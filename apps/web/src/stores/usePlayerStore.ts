@@ -143,7 +143,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     });
   },
 
-  seek: (time: number) => set({ currentTime: time }),
+  seek: (time: number) => {
+    if (isFinite(time) && time >= 0) {
+      set({ currentTime: time });
+    }
+  },
 
   // Volume
   setVolume: (volume: number) =>

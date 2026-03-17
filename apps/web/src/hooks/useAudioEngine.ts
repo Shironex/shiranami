@@ -109,6 +109,7 @@ export function useAudioEngine() {
       if (
         audioRef.current &&
         state.currentTime !== prev.currentTime &&
+        isFinite(state.currentTime) &&
         Math.abs(state.currentTime - audioRef.current.currentTime) > 1
       ) {
         seekingRef.current = true;
@@ -126,12 +127,25 @@ export function useAudioEngine() {
     const audio = audioRef.current;
     if (!audio) return;
 
+    const setDurationSafe = () => {
+      const d = audio.duration;
+      if (isFinite(d) && d > 0) {
+        _setDuration(d);
+      }
+    };
+
     const onLoadedMetadata = () => {
-      _setDuration(audio.duration);
+      setDurationSafe();
       _setIsLoading(false);
     };
 
+    // duration may start as Infinity for streamed content and resolve later
+    const onDurationChange = () => {
+      setDurationSafe();
+    };
+
     const onCanPlay = () => {
+      setDurationSafe();
       _setIsLoading(false);
     };
 
@@ -150,6 +164,7 @@ export function useAudioEngine() {
     const onPlaying = () => _setIsLoading(false);
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
@@ -158,6 +173,7 @@ export function useAudioEngine() {
 
     return () => {
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
