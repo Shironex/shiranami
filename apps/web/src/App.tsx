@@ -45,11 +45,11 @@ function App() {
           {/* Main content area */}
           <div className="flex-1 flex flex-col min-w-0 relative">
             <main className={cn(
-              'flex-1 flex overflow-hidden',
+              'flex-1 flex overflow-hidden min-h-0',
               currentTrack && 'pb-[88px]'
             )}>
               {/* Center content */}
-              <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
                 {activeView === 'library' && <LibraryView />}
                 {activeView === 'playlists' && (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground">
