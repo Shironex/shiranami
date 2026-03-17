@@ -21,7 +21,7 @@ function setupContentSecurityPolicy(isDev: boolean): void {
         ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT}`
         : "connect-src 'self'",
       "object-src 'none'",
-      "media-src 'self' blob: file:",
+      "media-src 'self' blob: file: shiranami-audio:",
       "default-src 'self'",
       "form-action 'self'",
       "base-uri 'self'",

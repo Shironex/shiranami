@@ -1,8 +1,24 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol } from 'electron';
 import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
 import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
+import { registerAudioProtocol } from './audio-protocol';
+
+// Register custom protocol scheme for streaming local audio files.
+// Must be called before app.ready.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'shiranami-audio',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: false,
+    },
+  },
+]);
 
 export let mainWindow: BrowserWindow | null = null;
 let isShuttingDown = false;
@@ -11,6 +27,8 @@ let cleanupDone = false;
 async function bootstrap(): Promise<void> {
   logger.info(`Shiranami v${app.getVersion()} starting...`);
   logger.info(`[security] App packaged: ${app.isPackaged}`);
+
+  registerAudioProtocol();
 
   mainWindow = await createMainWindow();
 
