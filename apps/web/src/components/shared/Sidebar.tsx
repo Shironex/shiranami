@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { IS_MAC } from '@/lib/platform';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { Library, Heart, ListMusic, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -17,7 +18,7 @@ export function Sidebar() {
   return (
     <div className="w-[200px] shrink-0 flex flex-col h-full bg-sidebar border-r border-border/50">
       {/* Logo area - also serves as drag region */}
-      <div className="drag h-14 flex items-center px-5 gap-2.5 shrink-0">
+      <div className={cn('drag h-14 flex items-center px-5 gap-2.5 shrink-0', IS_MAC && 'pt-8')}>
         <img src="./mascot.png" alt="" className="no-drag w-7 h-7 rounded-lg object-cover" draggable={false} />
         <span className="no-drag font-display font-semibold text-sm text-foreground tracking-tight">
           Shiranami

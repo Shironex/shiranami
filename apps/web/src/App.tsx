@@ -8,6 +8,7 @@ import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
+import { Toaster } from '@/components/ui/sonner';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -87,6 +88,8 @@ function App() {
           </div>
         </div>
       )}
+
+      <Toaster />
     </>
   );
 }
