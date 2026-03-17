@@ -10,6 +10,8 @@ import {
   cleanupDialogHandlers,
   registerLibraryHandlers,
   cleanupLibraryHandlers,
+  registerMediaHandlers,
+  cleanupMediaHandlers,
 } from './';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
@@ -18,6 +20,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerAppHandlers();
   registerDialogHandlers(mainWindow);
   registerLibraryHandlers();
+  registerMediaHandlers(mainWindow);
 }
 
 export function cleanupIpcHandlers(): void {
@@ -26,4 +29,5 @@ export function cleanupIpcHandlers(): void {
   cleanupAppHandlers();
   cleanupDialogHandlers();
   cleanupLibraryHandlers();
+  cleanupMediaHandlers();
 }

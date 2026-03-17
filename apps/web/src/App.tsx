@@ -6,6 +6,7 @@ import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { useMediaSession } from '@/hooks/useMediaSession';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
 
   // Mount the audio engine at root level
   useAudioEngine();
+  useMediaSession();
 
   const currentTrack = usePlayerStore(s => s.currentTrack);
 

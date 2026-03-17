@@ -81,6 +81,19 @@ export interface ElectronAPI {
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
+  media: {
+    onCommand: (callback: (command: string) => void) => () => void;
+    sendPlaybackState: (state: {
+      isPlaying: boolean;
+      title: string;
+      artist: string;
+      album: string;
+      duration: number;
+      currentTime: number;
+      albumArt: string | null;
+    }) => void;
+    clearState: () => void;
+  };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };
@@ -111,6 +124,11 @@ const electronAPI: ElectronAPI = {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
     parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
+  },
+  media: {
+    onCommand: createIpcListener<string>('media:command'),
+    sendPlaybackState: (state) => ipcRenderer.send('media:playback-state', state),
+    clearState: () => ipcRenderer.send('media:clear-state'),
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

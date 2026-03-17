@@ -31,6 +31,19 @@ export interface ElectronAPI {
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
+  media: {
+    onCommand: (callback: (command: string) => void) => () => void;
+    sendPlaybackState: (state: {
+      isPlaying: boolean;
+      title: string;
+      artist: string;
+      album: string;
+      duration: number;
+      currentTime: number;
+      albumArt: string | null;
+    }) => void;
+    clearState: () => void;
+  };
   app: {
     getVersion: () => Promise<string>;
   };

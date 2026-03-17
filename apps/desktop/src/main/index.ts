@@ -3,6 +3,7 @@ import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
 import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
+import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { registerAudioProtocol } from './audio-protocol';
 
 // Register custom protocol scheme for streaming local audio files.
@@ -36,6 +37,12 @@ async function bootstrap(): Promise<void> {
     createTray(mainWindow);
   } catch (error) {
     logger.warn('Failed to create system tray:', error);
+  }
+
+  try {
+    initializeMediaControls(mainWindow);
+  } catch (error) {
+    logger.warn('Failed to initialize media controls:', error);
   }
 }
 
@@ -91,6 +98,11 @@ app.on('before-quit', event => {
   isShuttingDown = true;
 
   (async () => {
+    try {
+      cleanupMediaControls();
+    } catch {
+      /* ignore */
+    }
     try {
       destroyTray();
     } catch {
