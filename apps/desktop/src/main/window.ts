@@ -14,9 +14,9 @@ function setupContentSecurityPolicy(isDev: boolean): void {
       isDev
         ? `script-src 'self' http://localhost:${VITE_DEV_PORT} 'unsafe-inline' 'unsafe-eval'`
         : "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: http:",
-      "font-src 'self' data:",
+      "font-src 'self' data: https://fonts.gstatic.com",
       isDev
         ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT}`
         : "connect-src 'self'",
