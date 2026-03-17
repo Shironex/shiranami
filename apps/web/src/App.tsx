@@ -3,10 +3,19 @@ import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { TitleBar } from '@/components/shared/TitleBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
+import { PlayerBar } from '@/components/player';
+import { LibraryView } from '@/components/library/LibraryView';
+import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDismissed = useCallback(() => setSplashDone(true), []);
+
+  // Mount the audio engine at root level
+  useAudioEngine();
+
+  const currentTrack = usePlayerStore(s => s.currentTrack);
 
   return (
     <>
@@ -21,17 +30,14 @@ function App() {
         >
           {IS_ELECTRON && <TitleBar />}
 
-          <main className="flex-1 flex items-center justify-center overflow-hidden">
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold text-gradient">Shiranami</h1>
-              <p className="text-muted-foreground text-lg">
-                白波 — Your personal music player
-              </p>
-              <p className="text-muted-foreground/60 text-sm">
-                Phase 1 complete — scaffold ready
-              </p>
-            </div>
+          <main className={cn(
+            'flex-1 flex overflow-hidden',
+            currentTrack && 'pb-20'
+          )}>
+            <LibraryView />
           </main>
+
+          <PlayerBar />
         </div>
       )}
     </>
