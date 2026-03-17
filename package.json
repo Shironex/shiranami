@@ -16,7 +16,7 @@
     "dev": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on http://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
     "dev:web": "pnpm --filter @shiranami/web dev",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",
-    "build:packages": "pnpm --filter @shiranami/shared build",
+    "build:packages": "pnpm --filter @shiranami/shared build && pnpm --filter @shiranami/database build",
     "package": "pnpm build && pnpm --filter @shiranami/desktop package",
     "package:win": "pnpm build && pnpm --filter @shiranami/desktop package:win",
     "lint": "eslint .",

@@ -22,6 +22,20 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'library:parse-files',
   'library:scan-folder',
   'lyrics:fetch',
+  'db:tracks:get-all',
+  'db:tracks:add',
+  'db:tracks:add-many',
+  'db:tracks:remove',
+  'db:tracks:remove-many',
+  'db:tracks:update',
+  'db:tracks:toggle-favorite',
+  'db:tracks:get-favorites',
+  'db:tracks:increment-play-count',
+  'db:tracks:exists',
+  'db:folders:get-all',
+  'db:folders:add',
+  'db:folders:remove',
+  'db:folders:update-scanned',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -82,6 +96,26 @@ export interface ElectronAPI {
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
+  db: {
+    tracks: {
+      getAll: () => Promise<unknown[]>;
+      add: (track: unknown) => Promise<unknown>;
+      addMany: (tracks: unknown[]) => Promise<unknown[]>;
+      remove: (id: string) => Promise<void>;
+      removeMany: (ids: string[]) => Promise<void>;
+      update: (id: string, data: unknown) => Promise<unknown>;
+      toggleFavorite: (id: string) => Promise<unknown>;
+      getFavorites: () => Promise<unknown[]>;
+      incrementPlayCount: (id: string) => Promise<unknown>;
+      exists: (filePath: string) => Promise<boolean>;
+    };
+    folders: {
+      getAll: () => Promise<unknown[]>;
+      add: (path: string) => Promise<unknown>;
+      remove: (id: string) => Promise<void>;
+      updateScanned: (id: string) => Promise<unknown>;
+    };
+  };
   lyrics: {
     fetch: (
       title: string,
@@ -137,6 +171,26 @@ const electronAPI: ElectronAPI = {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
     parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
+  },
+  db: {
+    tracks: {
+      getAll: () => ipcRenderer.invoke('db:tracks:get-all'),
+      add: (track: unknown) => ipcRenderer.invoke('db:tracks:add', track),
+      addMany: (tracks: unknown[]) => ipcRenderer.invoke('db:tracks:add-many', tracks),
+      remove: (id: string) => ipcRenderer.invoke('db:tracks:remove', id),
+      removeMany: (ids: string[]) => ipcRenderer.invoke('db:tracks:remove-many', ids),
+      update: (id: string, data: unknown) => ipcRenderer.invoke('db:tracks:update', id, data),
+      toggleFavorite: (id: string) => ipcRenderer.invoke('db:tracks:toggle-favorite', id),
+      getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
+      incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),
+      exists: (filePath: string) => ipcRenderer.invoke('db:tracks:exists', filePath),
+    },
+    folders: {
+      getAll: () => ipcRenderer.invoke('db:folders:get-all'),
+      add: (path: string) => ipcRenderer.invoke('db:folders:add', path),
+      remove: (id: string) => ipcRenderer.invoke('db:folders:remove', id),
+      updateScanned: (id: string) => ipcRenderer.invoke('db:folders:update-scanned', id),
+    },
   },
   lyrics: {
     fetch: (title: string, artist: string, album?: string, duration?: number) =>

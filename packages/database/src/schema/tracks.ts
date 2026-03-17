@@ -1,0 +1,30 @@
+/**
+ * Tracks table schema
+ */
+
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+
+export const tracks = sqliteTable('tracks', {
+  id: text('id').primaryKey(),
+  filePath: text('file_path').notNull().unique(),
+  title: text('title').notNull(),
+  artist: text('artist').default('Unknown Artist'),
+  album: text('album').default('Unknown Album'),
+  duration: real('duration'),
+  genre: text('genre'),
+  year: integer('year'),
+  trackNumber: integer('track_number'),
+  albumArt: text('album_art'),
+  isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
+  playCount: integer('play_count').default(0),
+  createdAt: text('created_at')
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  updatedAt: text('updated_at')
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
+
+export type Track = typeof tracks.$inferSelect;
+export type NewTrack = typeof tracks.$inferInsert;

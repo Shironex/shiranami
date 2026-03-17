@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { IS_ELECTRON } from '@/lib/platform';
 
 /**
  * Audio engine hook — creates and manages the HTML5 Audio element,
@@ -66,6 +67,11 @@ export function useAudioEngine() {
 
     _setIsLoading(true);
     _setError(null);
+
+    // Increment play count in the database
+    if (IS_ELECTRON) {
+      window.electronAPI.db.tracks.incrementPlayCount(currentTrack.id).catch(() => {});
+    }
 
     // Use custom protocol to serve local audio through Electron's network stack
     const normalized = currentTrack.filePath.replace(/\\/g, '/');

@@ -5,3 +5,4 @@ export { registerDialogHandlers, cleanupDialogHandlers } from './dialog';
 export { registerLibraryHandlers, cleanupLibraryHandlers } from './library';
 export { registerMediaHandlers, cleanupMediaHandlers } from './media';
 export { registerLyricsHandlers, cleanupLyricsHandlers } from './lyrics';
+export { registerDatabaseHandlers, cleanupDatabaseHandlers } from './database';

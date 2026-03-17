@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
+import { useLibraryLoader } from '@/hooks/useLibraryLoader';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 
@@ -21,6 +22,7 @@ function App() {
 
   useAudioEngine();
   useMediaSession();
+  useLibraryLoader();
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);

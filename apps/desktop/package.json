@@ -17,6 +17,7 @@
     "rebuild": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@shiranami/database": "workspace:*",
     "@shiranami/shared": "workspace:*",
     "better-sqlite3": "^12.6.2",
     "electron-store": "^8.2.0",

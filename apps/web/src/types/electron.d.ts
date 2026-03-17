@@ -51,6 +51,26 @@ export interface ElectronAPI {
       source: 'lrclib' | 'cache' | null;
     }>;
   };
+  db: {
+    tracks: {
+      getAll: () => Promise<unknown[]>;
+      add: (track: unknown) => Promise<unknown>;
+      addMany: (tracks: unknown[]) => Promise<unknown[]>;
+      remove: (id: string) => Promise<void>;
+      removeMany: (ids: string[]) => Promise<void>;
+      update: (id: string, data: unknown) => Promise<unknown>;
+      toggleFavorite: (id: string) => Promise<unknown>;
+      getFavorites: () => Promise<unknown[]>;
+      incrementPlayCount: (id: string) => Promise<unknown>;
+      exists: (filePath: string) => Promise<boolean>;
+    };
+    folders: {
+      getAll: () => Promise<unknown[]>;
+      add: (path: string) => Promise<unknown>;
+      remove: (id: string) => Promise<void>;
+      updateScanned: (id: string) => Promise<unknown>;
+    };
+  };
   app: {
     getVersion: () => Promise<string>;
   };

@@ -1,3 +1,4 @@
+import { join } from 'path';
 import { app, BrowserWindow, protocol } from 'electron';
 import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
@@ -5,6 +6,7 @@ import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { registerAudioProtocol } from './audio-protocol';
+import { initializeDatabase, closeDatabase } from '@shiranami/database';
 
 // Register custom protocol scheme for streaming local audio files.
 // Must be called before app.ready.
@@ -28,6 +30,9 @@ let cleanupDone = false;
 async function bootstrap(): Promise<void> {
   logger.info(`Shiranami v${app.getVersion()} starting...`);
   logger.info(`[security] App packaged: ${app.isPackaged}`);
+
+  initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
+  logger.info('Database initialized');
 
   registerAudioProtocol();
 
@@ -105,6 +110,11 @@ app.on('before-quit', event => {
     }
     try {
       destroyTray();
+    } catch {
+      /* ignore */
+    }
+    try {
+      closeDatabase();
     } catch {
       /* ignore */
     }

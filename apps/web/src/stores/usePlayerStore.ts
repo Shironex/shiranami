@@ -8,6 +8,13 @@ export interface Track {
   duration: number;
   filePath: string;
   albumArt?: string;
+  genre?: string | null;
+  year?: number | null;
+  trackNumber?: number | null;
+  isFavorite?: boolean;
+  playCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -49,6 +56,7 @@ interface PlayerActions {
   // Queue
   setQueue: (tracks: Track[], startIndex?: number) => void;
   addToQueue: (track: Track) => void;
+  addManyToQueue: (tracks: Track[]) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
 
@@ -167,6 +175,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   addToQueue: (track: Track) => set((s) => ({ queue: [...s.queue, track] })),
+
+  addManyToQueue: (tracks: Track[]) => set((s) => ({ queue: [...s.queue, ...tracks] })),
 
   removeFromQueue: (index: number) => {
     const { queue, queueIndex } = get();

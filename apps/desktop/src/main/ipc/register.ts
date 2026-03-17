@@ -14,6 +14,8 @@ import {
   cleanupMediaHandlers,
   registerLyricsHandlers,
   cleanupLyricsHandlers,
+  registerDatabaseHandlers,
+  cleanupDatabaseHandlers,
 } from './';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
@@ -24,6 +26,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerLibraryHandlers();
   registerMediaHandlers(mainWindow);
   registerLyricsHandlers();
+  registerDatabaseHandlers();
 }
 
 export function cleanupIpcHandlers(): void {
@@ -34,4 +37,5 @@ export function cleanupIpcHandlers(): void {
   cleanupLibraryHandlers();
   cleanupMediaHandlers();
   cleanupLyricsHandlers();
+  cleanupDatabaseHandlers();
 }
