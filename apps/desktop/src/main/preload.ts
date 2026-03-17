@@ -18,6 +18,9 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'app:get-version',
   'dialog:open-directory',
   'dialog:open-file',
+  'library:parse-metadata',
+  'library:parse-files',
+  'library:scan-folder',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -42,6 +45,17 @@ function invokeWithTimeout<T>(channel: string, timeout: number, ...args: unknown
   return Promise.race([invokePromise.finally(() => clearTimeout(timer)), timeoutPromise]);
 }
 
+interface TrackMetadata {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  genre: string;
+  year: number | null;
+  trackNumber: number | null;
+  albumArt: string | null;
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
@@ -61,6 +75,11 @@ export interface ElectronAPI {
   };
   app: {
     getVersion: () => Promise<string>;
+  };
+  library: {
+    parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
+    parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
+    scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
@@ -87,6 +106,11 @@ const electronAPI: ElectronAPI = {
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:get-version'),
+  },
+  library: {
+    parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
+    parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
+    scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

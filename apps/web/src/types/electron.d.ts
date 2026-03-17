@@ -1,3 +1,14 @@
+export interface TrackMetadata {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  genre: string;
+  year: number | null;
+  trackNumber: number | null;
+  albumArt: string | null;
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
@@ -14,6 +25,11 @@ export interface ElectronAPI {
   dialog: {
     openDirectory: () => Promise<string | null>;
     openFile: (options?: unknown) => Promise<string | null>;
+  };
+  library: {
+    parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
+    parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
+    scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
   app: {
     getVersion: () => Promise<string>;
