@@ -86,11 +86,11 @@
 }
 @keyframes eq-bar-2 {
   0%, 100% { transform: scaleY(0.5); }
-  50% { transform: scaleY(0.8); }
+  50% { transform: scaleY(0.85); }
 }
 @keyframes eq-bar-3 {
-  0%, 100% { transform: scaleY(0.4); }
-  50% { transform: scaleY(0.9); }
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(0.95); }
 }
 
 /* Midnight Lofi Cafe Theme */
