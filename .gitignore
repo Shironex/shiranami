@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+release/
+*.log
+.turbo/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.tsbuildinfo

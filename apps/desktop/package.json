@@ -1,0 +1,33 @@
+{
+  "name": "@shiranami/desktop",
+  "version": "0.1.0",
+  "description": "Shiranami desktop application",
+  "author": {
+    "name": "Shironex"
+  },
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json && cross-env NODE_ENV=development electron .",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-renderer.mjs",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "package": "pnpm build && electron-builder",
+    "package:win": "pnpm build && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@shiranami/shared": "workspace:*",
+    "better-sqlite3": "^12.6.2",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.3"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.5.0",
+    "cross-env": "^10.1.0",
+    "electron": "^40.8.2",
+    "electron-builder": "^26.8.1"
+  }
+}

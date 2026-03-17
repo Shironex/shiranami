@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.shironex.shiranami",
+  "productName": "Shiranami",
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts"],
+  "asarUnpack": ["**/node_modules/better-sqlite3/**"],
+  "artifactName": "${productName}-${version}-${arch}.${ext}",
+  "nodeGypRebuild": false,
+  "npmRebuild": false,
+  "mac": {
+    "category": "public.app-category.music",
+    "icon": "resources/icon.png",
+    "target": ["dmg"]
+  },
+  "win": {
+    "icon": "resources/icon.ico",
+    "target": ["nsis"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

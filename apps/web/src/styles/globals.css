@@ -1,0 +1,162 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand-600: var(--brand-600);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-mono: JetBrains Mono, Consolas, monospace;
+
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.2s ease-out;
+  --animate-pulse-subtle: pulseSubtle 2s ease-in-out infinite;
+
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes slideUp {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseSubtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  @keyframes splash-float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-6px) rotate(1.5deg); }
+    50% { transform: translateY(-10px) rotate(0deg); }
+    75% { transform: translateY(-6px) rotate(-1.5deg); }
+  }
+  @keyframes splash-bounce-in {
+    0% { opacity: 0; transform: scale(0) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes splash-fade-up {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes splash-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    20% { opacity: 0.8; transform: scale(1.2); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+    80% { opacity: 0.7; transform: scale(1); }
+  }
+  @keyframes splash-msg-swap {
+    0% { opacity: 0; transform: translateY(4px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Dark theme (default) - ocean/wave inspired for Shiranami */
+:root {
+  --background: oklch(0.04 0 0);
+  --foreground: oklch(1 0 0);
+
+  --card: oklch(0.14 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(1 0 0);
+
+  /* Ocean blue primary */
+  --primary: oklch(0.6 0.2 250);
+  --primary-foreground: oklch(1 0 0);
+  --brand-600: oklch(0.55 0.23 255);
+
+  --secondary: oklch(1 0 0 / 0.05);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.176 0 0);
+  --muted-foreground: oklch(0.588 0 0);
+  --accent: oklch(1 0 0 / 0.1);
+  --accent-foreground: oklch(1 0 0);
+
+  --border: oklch(0.176 0 0);
+  --destructive: oklch(0.6 0.25 25);
+  --destructive-foreground: oklch(1 0 0);
+  --input: oklch(0.04 0 0 / 0.8);
+  --ring: oklch(0.6 0.2 250);
+
+  --radius: 0.625rem;
+
+  --sidebar: oklch(0.04 0 0 / 0.5);
+  --sidebar-foreground: oklch(1 0 0);
+}
+
+/* Utility classes */
+@utility drag {
+  -webkit-app-region: drag;
+}
+
+@utility no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@utility glass {
+  backdrop-filter: blur(12px);
+  background: oklch(0.04 0 0 / 0.8);
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--brand-600));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}
