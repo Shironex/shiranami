@@ -1,9 +1,12 @@
 import { useCallback, useState } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Button } from '@/components/ui/button';
-import { Music, FolderOpen, File, Play, Loader2 } from 'lucide-react';
+import { Music, FolderOpen, File, Play, Loader2, Pause } from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { formatDuration } from '@shiranami/shared';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
@@ -14,13 +17,14 @@ export function LibraryView() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
+  const togglePlay = usePlayerStore(s => s.togglePlay);
   const [isScanning, setIsScanning] = useState(false);
+  const ambientColor = useAmbientColor();
 
   const handleOpenFile = useCallback(async () => {
     if (!IS_ELECTRON) return;
     const filePath = await window.electronAPI.dialog.openFile();
     if (!filePath) return;
-
     const { metadata } = await window.electronAPI.library.parseMetadata(filePath);
     const track: Track = {
       id: generateId(),
@@ -31,7 +35,6 @@ export function LibraryView() {
       filePath,
       albumArt: metadata.albumArt ?? undefined,
     };
-
     const newQueue = [...queue, track];
     if (!currentTrack) {
       setQueue(newQueue, newQueue.length - 1);
@@ -44,7 +47,6 @@ export function LibraryView() {
     if (!IS_ELECTRON) return;
     const dirPath = await window.electronAPI.dialog.openDirectory();
     if (!dirPath) return;
-
     setIsScanning(true);
     try {
       const results = await window.electronAPI.library.scanFolder(dirPath);
@@ -57,9 +59,7 @@ export function LibraryView() {
         filePath: r.filePath,
         albumArt: r.metadata.albumArt ?? undefined,
       }));
-
       if (newTracks.length === 0) return;
-
       const combined = [...queue, ...newTracks];
       if (!currentTrack) {
         setQueue(combined, 0);
@@ -79,73 +79,147 @@ export function LibraryView() {
   );
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Library</h1>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
+        <h1 className="font-display text-xl font-semibold text-foreground">Library</h1>
         <div className="flex items-center gap-2">
-          <Button onClick={handleOpenFolder} variant="outline" size="sm" disabled={isScanning}>
+          <Button onClick={handleOpenFolder} variant="ghost" size="sm" disabled={isScanning} className="rounded-lg text-xs">
             {isScanning ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
             ) : (
-              <FolderOpen className="w-4 h-4 mr-2" />
+              <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
             )}
             {isScanning ? 'Scanning...' : 'Add Folder'}
           </Button>
-          <Button onClick={handleOpenFile} variant="outline" size="sm">
-            <File className="w-4 h-4 mr-2" />
+          <Button onClick={handleOpenFile} variant="ghost" size="sm" className="rounded-lg text-xs">
+            <File className="w-3.5 h-3.5 mr-1.5" />
             Add File
           </Button>
         </div>
       </div>
 
+      {/* Now Playing Hero */}
+      <AnimatePresence>
+        {currentTrack && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            className="px-6 pb-4 shrink-0 overflow-hidden"
+          >
+            <div
+              className="relative rounded-2xl overflow-hidden p-5 flex items-center gap-5"
+              style={{
+                background: `linear-gradient(135deg, rgba(${ambientColor.rgb}, 0.15) 0%, rgba(${ambientColor.rgb}, 0.05) 100%)`,
+              }}
+            >
+              {/* Blurred album art background */}
+              {currentTrack.albumArt && (
+                <div
+                  className="absolute inset-0 opacity-[0.08] blur-2xl scale-110"
+                  style={{ backgroundImage: `url(${currentTrack.albumArt})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                />
+              )}
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTrack.id}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  transition={{ type: 'spring', damping: 20, stiffness: 250 }}
+                  className="w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center"
+                >
+                  {currentTrack.albumArt ? (
+                    <img src={currentTrack.albumArt} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Music className="w-8 h-8 text-muted-foreground/40" />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="relative min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">Now Playing</p>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentTrack.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h2 className="font-display text-lg font-semibold text-foreground truncate">{currentTrack.title}</h2>
+                    <p className="text-sm text-muted-foreground truncate mt-0.5">{currentTrack.artist} — {currentTrack.album}</p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={togglePlay}
+                className="w-10 h-10 rounded-full bg-primary/20 hover:bg-primary/30 flex items-center justify-center text-primary transition-colors shrink-0"
+              >
+                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Track list */}
       {queue.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center">
-            <Music className="w-10 h-10 text-muted-foreground/50" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
+          <div className="w-20 h-20 rounded-2xl bg-surface flex items-center justify-center">
+            <Music className="w-9 h-9 text-muted-foreground/30" />
           </div>
           <div>
-            <p className="text-lg font-medium text-muted-foreground">No tracks yet</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">
-              Add files or a folder to start listening
-            </p>
+            <p className="font-display text-base font-medium text-muted-foreground">No tracks yet</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">Add files or a folder to start listening</p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="space-y-0.5">
+        <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
+          <div className="space-y-px pb-4">
             {queue.map((track, index) => {
               const isActive = currentTrack?.id === track.id;
               return (
-                <button
+                <motion.button
                   key={track.id}
+                  whileTap={{ scale: 0.995 }}
                   onClick={() => handlePlayTrack(index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200',
                     isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'hover:bg-accent text-foreground'
-                  }`}
+                      ? 'bg-primary/[0.08] text-foreground'
+                      : 'hover:bg-accent text-foreground/80 hover:text-foreground'
+                  )}
                 >
-                  <div className="w-9 h-9 rounded bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className={cn(
+                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
+                    isActive ? 'bg-primary/15' : 'bg-surface'
+                  )}>
                     {track.albumArt ? (
-                      <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
+                      <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
                     ) : isActive && isPlaying ? (
-                      <div className="flex items-center gap-0.5">
-                        <div className="w-0.5 h-3 bg-primary rounded-full animate-pulse" />
-                        <div className="w-0.5 h-4 bg-primary rounded-full animate-pulse [animation-delay:150ms]" />
-                        <div className="w-0.5 h-2 bg-primary rounded-full animate-pulse [animation-delay:300ms]" />
+                      <div className="flex items-center gap-[3px] h-4">
+                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out infinite', height: '60%' }} />
+                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out 0.2s infinite', height: '100%' }} />
+                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out 0.4s infinite', height: '40%' }} />
                       </div>
                     ) : (
-                      <Play className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{track.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                    <p className={cn('text-sm font-medium truncate', isActive && 'text-primary')}>{track.title}</p>
+                    <p className="text-xs text-muted-foreground/60 truncate">{track.artist}</p>
                   </div>
-                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                  <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
                     {track.duration > 0 ? formatDuration(track.duration) : ''}
                   </span>
-                </button>
+                </motion.button>
               );
             })}
           </div>

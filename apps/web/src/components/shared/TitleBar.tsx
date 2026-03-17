@@ -13,69 +13,49 @@ export function TitleBar() {
     return cleanup;
   }, []);
 
-  const handleMinimize = useCallback(() => {
-    window.electronAPI?.window.minimize();
-  }, []);
-
-  const handleMaximize = useCallback(() => {
-    window.electronAPI?.window.maximize();
-  }, []);
-
-  const handleClose = useCallback(() => {
-    window.electronAPI?.window.close();
-  }, []);
+  const handleMinimize = useCallback(() => window.electronAPI?.window.minimize(), []);
+  const handleMaximize = useCallback(() => window.electronAPI?.window.maximize(), []);
+  const handleClose = useCallback(() => window.electronAPI?.window.close(), []);
 
   if (IS_MAC) {
-    return (
-      <div className="drag h-8 flex items-center px-3 bg-sidebar border-b border-border shrink-0">
-        <div className="flex-1" />
-        <span className="text-xs font-medium text-muted-foreground select-none">Shiranami</span>
-        <div className="flex-1" />
-      </div>
-    );
+    return <div className="drag h-3 shrink-0" />;
   }
 
   return (
-    <div className="drag h-8 flex items-center bg-sidebar border-b border-border shrink-0 select-none">
-      <div className="no-drag flex items-center px-3 gap-1.5">
-        <span className="text-xs font-semibold text-foreground">Shiranami</span>
-      </div>
-
-      <div className="flex-1" />
-
-      <div className="no-drag flex items-stretch h-full">
+    <div className="drag absolute top-0 right-0 z-[60] flex items-stretch h-8">
+      <div className="no-drag flex items-stretch">
         <button
           onClick={handleMinimize}
           className={cn(
             'w-11 flex items-center justify-center',
-            'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+            'text-muted-foreground/60 hover:bg-accent hover:text-foreground',
             'transition-colors duration-150'
           )}
           aria-label="Minimize"
         >
-          <Minus className="w-3.5 h-3.5" />
+          <Minus className="w-3 h-3" />
         </button>
         <button
           onClick={handleMaximize}
           className={cn(
             'w-11 flex items-center justify-center',
-            'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+            'text-muted-foreground/60 hover:bg-accent hover:text-foreground',
             'transition-colors duration-150'
           )}
           aria-label={isMaximized ? 'Restore' : 'Maximize'}
         >
-          {isMaximized ? <Copy className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+          {isMaximized ? <Copy className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
         </button>
         <button
           onClick={handleClose}
           className={cn(
-            'w-11 flex items-center justify-center',
-            'text-muted-foreground hover:bg-destructive hover:text-destructive-foreground',
+            'w-11 flex items-center justify-center rounded-tr-[10px]',
+            'text-muted-foreground/60 hover:bg-red-500/80 hover:text-white',
             'transition-colors duration-150'
           )}
           aria-label="Close"
         >
-          <X className="w-3.5 h-3.5" />
+          <X className="w-3 h-3" />
         </button>
       </div>
     </div>

@@ -2,24 +2,27 @@ import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { TitleBar } from '@/components/shared/TitleBar';
+import { Sidebar } from '@/components/shared/Sidebar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
+import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { usePlayerStore } from '@/stores/usePlayerStore';
-import { AmbientBackground } from '@/components/shared/AmbientBackground';
+import { useAppStore } from '@/stores/useAppStore';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDismissed = useCallback(() => setSplashDone(true), []);
 
-  // Mount the audio engine at root level
   useAudioEngine();
   useMediaSession();
 
   const currentTrack = usePlayerStore(s => s.currentTrack);
+  const activeView = useAppStore(s => s.activeView);
+  const rightPanel = useAppStore(s => s.rightPanel);
 
   return (
     <>
@@ -28,26 +31,54 @@ function App() {
       {splashDone && (
         <div
           className={cn(
-            'h-screen w-screen bg-background text-foreground flex flex-col overflow-hidden relative',
+            'h-screen w-screen bg-background text-foreground flex overflow-hidden relative',
             IS_ELECTRON && 'rounded-t-[10px]'
           )}
         >
           <AmbientBackground />
+
           {IS_ELECTRON && <TitleBar />}
 
-          <main className={cn(
-            'flex-1 flex overflow-hidden',
-            currentTrack && 'pb-20'
-          )}>
-            <LibraryView />
-            {currentTrack && (
-              <div className="w-[350px] border-l border-border shrink-0 flex flex-col overflow-hidden">
-                <LyricsPanel />
-              </div>
-            )}
-          </main>
+          {/* Sidebar */}
+          <Sidebar />
 
-          <PlayerBar />
+          {/* Main content area */}
+          <div className="flex-1 flex flex-col min-w-0 relative">
+            <main className={cn(
+              'flex-1 flex overflow-hidden',
+              currentTrack && 'pb-[88px]'
+            )}>
+              {/* Center content */}
+              <div className="flex-1 min-w-0 overflow-hidden">
+                {activeView === 'library' && <LibraryView />}
+                {activeView === 'playlists' && (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <p className="text-sm">Playlists coming soon</p>
+                  </div>
+                )}
+                {activeView === 'favorites' && (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <p className="text-sm">Favorites coming soon</p>
+                  </div>
+                )}
+                {activeView === 'settings' && (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <p className="text-sm">Settings coming soon</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right panel */}
+              {currentTrack && rightPanel === 'lyrics' && (
+                <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
+                  <LyricsPanel />
+                </div>
+              )}
+            </main>
+
+            {/* Player bar */}
+            <PlayerBar />
+          </div>
         </div>
       )}
     </>
