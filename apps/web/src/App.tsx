@@ -5,6 +5,7 @@ import { TitleBar } from '@/components/shared/TitleBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
+import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -37,6 +38,11 @@ function App() {
             currentTrack && 'pb-20'
           )}>
             <LibraryView />
+            {currentTrack && (
+              <div className="w-[350px] border-l border-border shrink-0 flex flex-col overflow-hidden">
+                <LyricsPanel />
+              </div>
+            )}
           </main>
 
           <PlayerBar />

@@ -56,6 +56,9 @@ importers:
       electron-updater:
         specifier: ^6.8.3
         version: 6.8.3
+      lrclib-api:
+        specifier: ^2.0.4
+        version: 2.0.4
       music-metadata:
         specifier: ^11.12.3
         version: 11.12.3
@@ -2247,6 +2250,9 @@ packages:
   lowercase-keys@2.0.0:
     resolution: {integrity: sha512-tqNXrS78oMOE73NMxK4EMLQsQowWf8jKooH9g7xPavRT706R6bkQJ6DY2Te7QukaZsulxa30wQ7bk0pm4XiHmA==}
     engines: {node: '>=8'}
+
+  lrclib-api@2.0.4:
+    resolution: {integrity: sha512-4u1FkSBfSRC6hs0MOLj8joGZruGejQR9hyRwh8wLnQULoSosZlqf2gKWB3WEjj4wl3XhFBjFpdUa8SXYe9bauQ==}
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
@@ -5292,6 +5298,10 @@ snapshots:
       js-tokens: 4.0.0
 
   lowercase-keys@2.0.0: {}
+
+  lrclib-api@2.0.4:
+    dependencies:
+      tslib: 2.8.1
 
   lru-cache@10.4.3: {}
 

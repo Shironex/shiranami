@@ -44,6 +44,13 @@ export interface ElectronAPI {
     }) => void;
     clearState: () => void;
   };
+  lyrics: {
+    fetch: (title: string, artist: string, album?: string, duration?: number) => Promise<{
+      synced: Array<{ time: number; text: string }> | null;
+      plain: string | null;
+      source: 'lrclib' | 'cache' | null;
+    }>;
+  };
   app: {
     getVersion: () => Promise<string>;
   };

@@ -21,6 +21,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'library:parse-metadata',
   'library:parse-files',
   'library:scan-folder',
+  'lyrics:fetch',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -81,6 +82,18 @@ export interface ElectronAPI {
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
   };
+  lyrics: {
+    fetch: (
+      title: string,
+      artist: string,
+      album?: string,
+      duration?: number
+    ) => Promise<{
+      synced: Array<{ time: number; text: string }> | null;
+      plain: string | null;
+      source: 'lrclib' | 'cache' | null;
+    }>;
+  };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;
     sendPlaybackState: (state: {
@@ -124,6 +137,10 @@ const electronAPI: ElectronAPI = {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
     parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
+  },
+  lyrics: {
+    fetch: (title: string, artist: string, album?: string, duration?: number) =>
+      ipcRenderer.invoke('lyrics:fetch', title, artist, album, duration),
   },
   media: {
     onCommand: createIpcListener<string>('media:command'),

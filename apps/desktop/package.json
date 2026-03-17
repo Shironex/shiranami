@@ -21,6 +21,7 @@
     "better-sqlite3": "^12.6.2",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3",
+    "lrclib-api": "^2.0.4",
     "music-metadata": "^11.12.3"
   },
   "devDependencies": {

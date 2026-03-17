@@ -4,3 +4,4 @@ export { registerAppHandlers, cleanupAppHandlers } from './app';
 export { registerDialogHandlers, cleanupDialogHandlers } from './dialog';
 export { registerLibraryHandlers, cleanupLibraryHandlers } from './library';
 export { registerMediaHandlers, cleanupMediaHandlers } from './media';
+export { registerLyricsHandlers, cleanupLyricsHandlers } from './lyrics';
