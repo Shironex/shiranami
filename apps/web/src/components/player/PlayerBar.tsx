@@ -8,6 +8,7 @@ import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Mic2, ListMusic } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export function PlayerBar() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
@@ -98,30 +99,40 @@ export function PlayerBar() {
 
           {/* Right - volume + panel toggles */}
           <div className="w-[220px] flex items-center justify-end gap-1 relative">
-            <button
-              onClick={() => toggleRightPanel('lyrics')}
-              className={cn(
-                'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                rightPanel === 'lyrics'
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              aria-label="Toggle lyrics"
-            >
-              <Mic2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => toggleRightPanel('queue')}
-              className={cn(
-                'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                rightPanel === 'queue'
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              aria-label="Toggle queue"
-            >
-              <ListMusic className="w-3.5 h-3.5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => toggleRightPanel('lyrics')}
+                  className={cn(
+                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                    rightPanel === 'lyrics'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  aria-label="Toggle lyrics"
+                >
+                  <Mic2 className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Lyrics</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => toggleRightPanel('queue')}
+                  className={cn(
+                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                    rightPanel === 'queue'
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  aria-label="Toggle queue"
+                >
+                  <ListMusic className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Queue</TooltipContent>
+            </Tooltip>
             <div className="w-px h-5 bg-border/30 mx-1" />
             <VolumeControl />
           </div>

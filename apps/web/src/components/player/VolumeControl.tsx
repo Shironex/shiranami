@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { Slider } from '@/components/ui/slider';
 import { Volume2, Volume1, VolumeX } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export function VolumeControl() {
   const volume = usePlayerStore(s => s.volume);
@@ -20,13 +21,18 @@ export function VolumeControl() {
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        onClick={toggleMute}
-        className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-        aria-label={isMuted ? 'Unmute' : 'Mute'}
-      >
-        <VolumeIcon className="w-4 h-4" />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={toggleMute}
+            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={isMuted ? 'Unmute' : 'Mute'}
+          >
+            <VolumeIcon className="w-4 h-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
+      </Tooltip>
       <Slider
         value={[isMuted ? 0 : volume]}
         max={1}

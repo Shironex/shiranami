@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
-import { TitleBar } from '@/components/shared/TitleBar';
 import { Sidebar } from '@/components/shared/Sidebar';
+import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
@@ -10,6 +10,7 @@ import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
+import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 
@@ -20,6 +21,7 @@ function App() {
   useAudioEngine();
   useMediaSession();
 
+  const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const activeView = useAppStore(s => s.activeView);
   const rightPanel = useAppStore(s => s.rightPanel);
@@ -37,13 +39,17 @@ function App() {
         >
           <AmbientBackground />
 
-          {IS_ELECTRON && <TitleBar />}
-
           {/* Sidebar */}
           <Sidebar />
 
           {/* Main content area */}
           <div className="flex-1 flex flex-col min-w-0 relative">
+            <TopBar
+              onAddFile={handleOpenFile}
+              onAddFolder={handleOpenFolder}
+              isScanning={isScanning}
+            />
+
             <main className={cn(
               'flex-1 flex overflow-hidden min-h-0',
               currentTrack && 'pb-[88px]'

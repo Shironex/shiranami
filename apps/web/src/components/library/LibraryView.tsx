@@ -1,17 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Button } from '@/components/ui/button';
-import { Music, FolderOpen, File, Play, Loader2, Pause } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
+import { Music, Play, Pause } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { List, type RowComponentProps } from 'react-window';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 10);
-}
 
 interface TrackRowProps {
   queue: Track[];
@@ -71,58 +65,7 @@ export function LibraryView() {
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
   const togglePlay = usePlayerStore(s => s.togglePlay);
-  const [isScanning, setIsScanning] = useState(false);
   const ambientColor = useAmbientColor();
-
-  const handleOpenFile = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    const filePath = await window.electronAPI.dialog.openFile();
-    if (!filePath) return;
-    const { metadata } = await window.electronAPI.library.parseMetadata(filePath);
-    const track: Track = {
-      id: generateId(),
-      title: metadata.title,
-      artist: metadata.artist,
-      album: metadata.album,
-      duration: metadata.duration,
-      filePath,
-      albumArt: metadata.albumArt ?? undefined,
-    };
-    const newQueue = [...queue, track];
-    if (!currentTrack) {
-      setQueue(newQueue, newQueue.length - 1);
-    } else {
-      usePlayerStore.setState({ queue: newQueue });
-    }
-  }, [queue, currentTrack, setQueue]);
-
-  const handleOpenFolder = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    const dirPath = await window.electronAPI.dialog.openDirectory();
-    if (!dirPath) return;
-    setIsScanning(true);
-    try {
-      const results = await window.electronAPI.library.scanFolder(dirPath);
-      const newTracks: Track[] = results.map(r => ({
-        id: generateId(),
-        title: r.metadata.title,
-        artist: r.metadata.artist,
-        album: r.metadata.album,
-        duration: r.metadata.duration,
-        filePath: r.filePath,
-        albumArt: r.metadata.albumArt ?? undefined,
-      }));
-      if (newTracks.length === 0) return;
-      const combined = [...queue, ...newTracks];
-      if (!currentTrack) {
-        setQueue(combined, 0);
-      } else {
-        usePlayerStore.setState({ queue: combined });
-      }
-    } finally {
-      setIsScanning(false);
-    }
-  }, [queue, currentTrack, setQueue]);
 
   const handlePlayTrack = useCallback(
     (index: number) => {
@@ -133,25 +76,6 @@ export function LibraryView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-3 shrink-0">
-        <h1 className="font-display text-xl font-semibold text-foreground">Library</h1>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleOpenFolder} variant="ghost" size="sm" disabled={isScanning} className="rounded-lg text-xs">
-            {isScanning ? (
-              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-            ) : (
-              <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-            )}
-            {isScanning ? 'Scanning...' : 'Add Folder'}
-          </Button>
-          <Button onClick={handleOpenFile} variant="ghost" size="sm" className="rounded-lg text-xs">
-            <File className="w-3.5 h-3.5 mr-1.5" />
-            Add File
-          </Button>
-        </div>
-      </div>
-
       {/* Now Playing Hero */}
       <AnimatePresence>
         {currentTrack && (
