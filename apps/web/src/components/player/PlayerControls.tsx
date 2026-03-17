@@ -10,6 +10,7 @@ import {
   Repeat1,
   Loader2,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function PlayerControls() {
   const isPlaying = usePlayerStore(s => s.isPlaying);
@@ -37,15 +38,18 @@ export function PlayerControls() {
         <Shuffle className="w-4 h-4" />
       </button>
 
-      <button
+      <motion.button
+        whileTap={{ scale: 0.9 }}
         onClick={previous}
         className="w-8 h-8 flex items-center justify-center rounded-md text-foreground hover:text-foreground/80 transition-colors"
         aria-label="Previous"
       >
         <SkipBack className="w-4 h-4 fill-current" />
-      </button>
+      </motion.button>
 
-      <button
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.05 }}
         onClick={togglePlay}
         disabled={isLoading}
         className={cn(
@@ -56,22 +60,31 @@ export function PlayerControls() {
         )}
         aria-label={isPlaying ? 'Pause' : 'Play'}
       >
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : isPlaying ? (
-          <Pause className="w-4 h-4 fill-current" />
-        ) : (
-          <Play className="w-4 h-4 fill-current ml-0.5" />
-        )}
-      </button>
+        <AnimatePresence mode="wait" initial={false}>
+          {isLoading ? (
+            <motion.div key="loading" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+              <Loader2 className="w-4 h-4 animate-spin" />
+            </motion.div>
+          ) : isPlaying ? (
+            <motion.div key="pause" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+              <Pause className="w-4 h-4 fill-current" />
+            </motion.div>
+          ) : (
+            <motion.div key="play" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+              <Play className="w-4 h-4 fill-current ml-0.5" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
-      <button
+      <motion.button
+        whileTap={{ scale: 0.9 }}
         onClick={next}
         className="w-8 h-8 flex items-center justify-center rounded-md text-foreground hover:text-foreground/80 transition-colors"
         aria-label="Next"
       >
         <SkipForward className="w-4 h-4 fill-current" />
-      </button>
+      </motion.button>
 
       <button
         onClick={cycleRepeatMode}

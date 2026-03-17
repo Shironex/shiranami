@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useLyricsStore } from '@/stores/useLyricsStore';
 import { cn } from '@/lib/utils';
@@ -71,8 +71,10 @@ export function LyricsPanel() {
 
   if (!currentTrack) return null;
 
+  let content: ReactNode;
+
   if (isLoading) {
-    return (
+    content = (
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -80,11 +82,9 @@ export function LyricsPanel() {
         </div>
       </div>
     );
-  }
-
-  // Synced lyrics view
-  if (synced && synced.length > 0) {
-    return (
+  } else if (synced && synced.length > 0) {
+    // Synced lyrics view
+    content = (
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto scrollbar-hide px-6 py-8"
@@ -114,11 +114,9 @@ export function LyricsPanel() {
         </div>
       </div>
     );
-  }
-
-  // Plain lyrics view
-  if (plain) {
-    return (
+  } else if (plain) {
+    // Plain lyrics view
+    content = (
       <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-8">
         <div className="max-w-lg mx-auto">
           <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">
@@ -127,13 +125,29 @@ export function LyricsPanel() {
         </div>
       </div>
     );
+  } else {
+    // No lyrics found
+    content = (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3">
+        <Music2 className="w-8 h-8 text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground/50">No lyrics found</p>
+      </div>
+    );
   }
 
-  // No lyrics found
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-3">
-      <Music2 className="w-8 h-8 text-muted-foreground/30" />
-      <p className="text-sm text-muted-foreground/50">No lyrics found</p>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      {currentTrack && (
+        <div className="px-4 py-3 border-b border-border/50 shrink-0">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Lyrics
+          </h2>
+        </div>
+      )}
+
+      {/* Content area */}
+      {content}
     </div>
   );
 }

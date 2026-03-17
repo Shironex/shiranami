@@ -9,6 +9,7 @@ import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { AmbientBackground } from '@/components/shared/AmbientBackground';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -31,6 +32,7 @@ function App() {
             IS_ELECTRON && 'rounded-t-[10px]'
           )}
         >
+          <AmbientBackground />
           {IS_ELECTRON && <TitleBar />}
 
           <main className={cn(
