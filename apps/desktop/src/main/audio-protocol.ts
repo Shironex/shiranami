@@ -27,14 +27,16 @@ export function registerAudioProtocol(): void {
   protocol.handle('shiranami-audio', async request => {
     try {
       const url = new URL(request.url);
-      // The file path is everything after the host, URL-decoded
-      const filePath = decodeURIComponent(url.pathname).replace(/^\//, '');
+      // File path is passed as ?path= query parameter to avoid URL encoding issues
+      const filePath = url.searchParams.get('path');
+      if (!filePath) {
+        logger.warn('[audio-protocol] Missing path parameter');
+        return new Response('Bad request', { status: 400 });
+      }
 
-      // On Windows, paths come through as /C:/Users/... — strip the leading slash
-      const normalizedPath =
-        process.platform === 'win32' && /^\/[a-zA-Z]:/.test('/' + filePath)
-          ? filePath
-          : filePath;
+      const normalizedPath = filePath;
+
+      logger.debug(`[audio-protocol] Request for: ${normalizedPath}`);
 
       // Security: validate extension
       const ext = path.extname(normalizedPath).toLowerCase();
@@ -47,14 +49,18 @@ export function registerAudioProtocol(): void {
       try {
         const stat = await fs.promises.stat(normalizedPath);
         if (!stat.isFile()) {
+          logger.warn(`[audio-protocol] Not a file: ${normalizedPath}`);
           return new Response('Not a file', { status: 403 });
         }
-      } catch {
+      } catch (err) {
+        logger.warn(`[audio-protocol] File not found: ${normalizedPath}`, err);
         return new Response('Not found', { status: 404 });
       }
 
-      // Use net.fetch with file:// to stream the file through Electron's network stack
-      return net.fetch(`file:///${normalizedPath.replace(/\\/g, '/')}`);
+      // Convert to a proper file:// URL using pathToFileURL for correct encoding
+      const { pathToFileURL } = await import('url');
+      const fileUrl = pathToFileURL(normalizedPath).href;
+      return net.fetch(fileUrl);
     } catch (error) {
       logger.error('[audio-protocol] Error handling request:', error);
       return new Response('Internal error', { status: 500 });
@@ -69,5 +75,5 @@ export function registerAudioProtocol(): void {
  */
 export function toAudioUrl(filePath: string): string {
   const normalized = filePath.replace(/\\/g, '/');
-  return `shiranami-audio://play/${encodeURIComponent(normalized)}`;
+  return `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
 }

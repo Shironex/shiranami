@@ -69,7 +69,7 @@ export function useAudioEngine() {
 
     // Use custom protocol to serve local audio through Electron's network stack
     const normalized = currentTrack.filePath.replace(/\\/g, '/');
-    audio.src = `shiranami-audio://play/${encodeURIComponent(normalized)}`;
+    audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
     audio.load();
   }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration]);
 
