@@ -71,7 +71,26 @@ export function useAudioEngine() {
     const normalized = currentTrack.filePath.replace(/\\/g, '/');
     audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
     audio.load();
-  }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration]);
+
+    // Auto-play once the audio is ready (canplay fires after load)
+    const onCanPlayOnce = () => {
+      audio.removeEventListener('canplay', onCanPlayOnce);
+      if (usePlayerStore.getState().isPlaying) {
+        audio.play().catch(err => {
+          if (err.name !== 'AbortError') {
+            _setError(err.message);
+            _setIsPlaying(false);
+          }
+        });
+        animationFrameRef.current = requestAnimationFrame(updateTime);
+      }
+    };
+    audio.addEventListener('canplay', onCanPlayOnce);
+
+    return () => {
+      audio.removeEventListener('canplay', onCanPlayOnce);
+    };
+  }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime]);
 
   // Sync play / pause with the Audio element
   useEffect(() => {
