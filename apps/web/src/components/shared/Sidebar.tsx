@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
-import { Library, Heart, ListMusic, Settings, Music2 } from 'lucide-react';
+import { Library, Heart, ListMusic, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const NAV_ITEMS: Array<{ id: AppView; label: string; icon: typeof Library }> = [
@@ -18,9 +18,7 @@ export function Sidebar() {
     <div className="w-[200px] shrink-0 flex flex-col h-full bg-sidebar border-r border-border/50">
       {/* Logo area - also serves as drag region */}
       <div className="drag h-14 flex items-center px-5 gap-2.5 shrink-0">
-        <div className="no-drag w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-          <Music2 className="w-3.5 h-3.5 text-primary" />
-        </div>
+        <img src="./mascot.png" alt="" className="no-drag w-7 h-7 rounded-lg object-cover" draggable={false} />
         <span className="no-drag font-display font-semibold text-sm text-foreground tracking-tight">
           Shiranami
         </span>

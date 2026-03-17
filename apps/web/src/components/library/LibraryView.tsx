@@ -148,9 +148,7 @@ export function LibraryView() {
       {/* Track list */}
       {queue.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <div className="w-20 h-20 rounded-2xl bg-surface flex items-center justify-center">
-            <Music className="w-9 h-9 text-muted-foreground/30" />
-          </div>
+          <img src="./mascot.png" alt="" className="w-28 h-28 object-contain opacity-40" draggable={false} />
           <div>
             <p className="font-display text-base font-medium text-muted-foreground">No tracks yet</p>
             <p className="text-sm text-muted-foreground/50 mt-1">Add files or a folder to start listening</p>

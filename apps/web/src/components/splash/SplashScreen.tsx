@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Loader2, AlertCircle, Music } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 
@@ -124,11 +124,12 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
             ))}
           </div>
 
-          <div className="relative w-28 h-28 flex items-center justify-center animate-[splash-float_3s_ease-in-out_0.7s_infinite]">
-            <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
-              <Music className="w-10 h-10 text-primary" />
-            </div>
-          </div>
+          <img
+            src="./mascot.png"
+            alt="Shiranami mascot"
+            className="relative w-36 h-36 object-contain drop-shadow-lg animate-[splash-float_3s_ease-in-out_0.7s_infinite]"
+            draggable={false}
+          />
         </div>
 
         <div className="flex flex-col items-center gap-0.5 animate-[splash-fade-up_0.8s_ease-out_0.3s_both]">
