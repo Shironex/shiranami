@@ -77,18 +77,20 @@
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
   }
-  @keyframes eq-bar-1 {
-    0%, 100% { transform: scaleY(0.3); }
-    50% { transform: scaleY(1); }
-  }
-  @keyframes eq-bar-2 {
-    0%, 100% { transform: scaleY(0.5); }
-    50% { transform: scaleY(0.8); }
-  }
-  @keyframes eq-bar-3 {
-    0%, 100% { transform: scaleY(0.4); }
-    50% { transform: scaleY(0.9); }
-  }
+}
+
+/* EQ bar animations - must be outside @theme inline for Tailwind v4 */
+@keyframes eq-bar-1 {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+@keyframes eq-bar-2 {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(0.8); }
+}
+@keyframes eq-bar-3 {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(0.9); }
 }
 
 /* Midnight Lofi Cafe Theme */
