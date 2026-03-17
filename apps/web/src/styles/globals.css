@@ -77,9 +77,17 @@
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
   }
-  @keyframes eq-bar {
-    0%, 100% { height: 30%; }
-    50% { height: 100%; }
+  @keyframes eq-bar-1 {
+    0%, 100% { transform: scaleY(0.3); }
+    50% { transform: scaleY(1); }
+  }
+  @keyframes eq-bar-2 {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(0.8); }
+  }
+  @keyframes eq-bar-3 {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(0.9); }
   }
 }
 
@@ -149,6 +157,24 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.2 0.02 280) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: oklch(0.2 0.02 280);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.3 0.02 280);
   }
 }
 

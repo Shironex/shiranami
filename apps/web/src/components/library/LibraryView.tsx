@@ -7,9 +7,62 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { List, type RowComponentProps } from 'react-window';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
+}
+
+interface TrackRowProps {
+  queue: Track[];
+  currentTrack: Track | null;
+  isPlaying: boolean;
+  handlePlayTrack: (index: number) => void;
+}
+
+function TrackRow(props: RowComponentProps<TrackRowProps>) {
+  const { index, style, queue, currentTrack, isPlaying, handlePlayTrack } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
+  const track = queue[index];
+  if (!track) return null;
+  const isActive = currentTrack?.id === track.id;
+
+  return (
+    <div style={style} className="px-0.5">
+      <button
+        onClick={() => handlePlayTrack(index)}
+        className={cn(
+          'w-full flex items-center gap-3 px-3 h-[48px] rounded-xl text-left transition-all duration-200',
+          isActive
+            ? 'bg-primary/[0.08] text-foreground'
+            : 'hover:bg-accent text-foreground/80 hover:text-foreground'
+        )}
+      >
+        <div className={cn(
+          'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
+          isActive ? 'bg-primary/15' : 'bg-surface'
+        )}>
+          {track.albumArt ? (
+            <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
+          ) : isActive && isPlaying ? (
+            <div className="flex items-end gap-[3px] h-4">
+              <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 0.6s ease-in-out infinite' }} />
+              <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-2 0.7s ease-in-out 0.15s infinite' }} />
+              <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-3 0.5s ease-in-out 0.3s infinite' }} />
+            </div>
+          ) : (
+            <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={cn('text-sm font-medium truncate', isActive && 'text-primary')}>{track.title}</p>
+          <p className="text-xs text-muted-foreground/60 truncate">{track.artist}</p>
+        </div>
+        <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
+          {track.duration > 0 ? formatDuration(track.duration) : ''}
+        </span>
+      </button>
+    </div>
+  );
 }
 
 export function LibraryView() {
@@ -180,49 +233,16 @@ export function LibraryView() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-4">
-          <div className="space-y-px pb-4">
-            {queue.map((track, index) => {
-              const isActive = currentTrack?.id === track.id;
-              return (
-                <motion.button
-                  key={track.id}
-                  whileTap={{ scale: 0.995 }}
-                  onClick={() => handlePlayTrack(index)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200',
-                    isActive
-                      ? 'bg-primary/[0.08] text-foreground'
-                      : 'hover:bg-accent text-foreground/80 hover:text-foreground'
-                  )}
-                >
-                  <div className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
-                    isActive ? 'bg-primary/15' : 'bg-surface'
-                  )}>
-                    {track.albumArt ? (
-                      <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
-                    ) : isActive && isPlaying ? (
-                      <div className="flex items-center gap-[3px] h-4">
-                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out infinite', height: '60%' }} />
-                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out 0.2s infinite', height: '100%' }} />
-                        <div className="w-[3px] rounded-full bg-primary" style={{ animation: 'eq-bar 0.8s ease-in-out 0.4s infinite', height: '40%' }} />
-                      </div>
-                    ) : (
-                      <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={cn('text-sm font-medium truncate', isActive && 'text-primary')}>{track.title}</p>
-                    <p className="text-xs text-muted-foreground/60 truncate">{track.artist}</p>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
-                    {track.duration > 0 ? formatDuration(track.duration) : ''}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
+        <div className="flex-1 min-h-0 px-4">
+          <List
+            rowCount={queue.length}
+            rowHeight={52}
+            overscanCount={10}
+            className="scrollbar-thin"
+            style={{ height: '100%' }}
+            rowComponent={TrackRow}
+            rowProps={{ queue, currentTrack, isPlaying, handlePlayTrack }}
+          />
         </div>
       )}
     </div>
