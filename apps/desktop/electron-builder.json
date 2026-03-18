@@ -7,6 +7,12 @@
     "buildResources": "resources"
   },
   "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts"],
+  "extraResources": [
+    { "from": "resources/tray-icon.png", "to": "tray-icon.png" },
+    { "from": "resources/icon.png", "to": "icon.png" },
+    { "from": "resources/icon.ico", "to": "icon.ico" },
+    { "from": "resources/mascot.png", "to": "mascot.png" }
+  ],
   "asarUnpack": ["**/node_modules/better-sqlite3/**"],
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,

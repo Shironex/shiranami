@@ -5,6 +5,8 @@ const ALLOWED_STORE_KEYS = new Set([
   'settings',
   'music-folders',
   'player-state',
+  'player.volume',
+  'player.isMuted',
   'theme',
   'window-bounds',
 ]);

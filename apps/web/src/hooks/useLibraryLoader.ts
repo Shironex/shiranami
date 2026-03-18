@@ -14,14 +14,16 @@ export function useLibraryLoader() {
     // Use store state as guard instead of a ref (refs survive HMR but store may reset)
     if (usePlayerStore.getState().library.length > 0) return;
 
-    // Restore persisted volume setting
-    async function loadVolume() {
+    // Restore persisted player preferences
+    async function loadPreferences() {
       try {
-        const vol = await window.electronAPI.store.get<number>('player.volume');
-        const muted = await window.electronAPI.store.get<boolean>('player.isMuted');
-        const updates: Record<string, unknown> = {};
-        if (vol !== undefined && vol !== null) updates.volume = vol;
-        if (muted !== undefined && muted !== null) updates.isMuted = muted;
+        const [vol, muted] = await Promise.all([
+          window.electronAPI.store.get<number>('player.volume'),
+          window.electronAPI.store.get<boolean>('player.isMuted'),
+        ]);
+        const updates: Partial<{ volume: number; isMuted: boolean }> = {};
+        if (typeof vol === 'number' && isFinite(vol)) updates.volume = vol;
+        if (typeof muted === 'boolean') updates.isMuted = muted;
         if (Object.keys(updates).length > 0) {
           usePlayerStore.setState(updates);
         }
@@ -30,7 +32,7 @@ export function useLibraryLoader() {
       }
     }
 
-    loadVolume();
+    loadPreferences();
 
     async function loadLibrary() {
       try {
