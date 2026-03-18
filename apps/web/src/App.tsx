@@ -7,6 +7,7 @@ import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
+import { SettingsView } from '@/components/settings/SettingsView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { PlaylistDetailView } from '@/components/playlists/PlaylistDetailView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
@@ -68,11 +69,7 @@ function App() {
                   selectedPlaylistId ? <PlaylistDetailView /> : <PlaylistsView />
                 )}
                 {activeView === 'favorites' && <FavoritesView />}
-                {activeView === 'settings' && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p className="text-sm">Settings coming soon</p>
-                  </div>
-                )}
+                {activeView === 'settings' && <SettingsView />}
               </div>
 
               {/* Right panel */}
