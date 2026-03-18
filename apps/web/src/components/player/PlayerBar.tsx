@@ -13,6 +13,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 export function PlayerBar() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const currentTime = usePlayerStore(s => s.currentTime);
+  const scrubTime = usePlayerStore(s => s.scrubTime);
   const duration = usePlayerStore(s => s.duration);
   const ambientColor = useAmbientColor();
   const rightPanel = useAppStore(s => s.rightPanel);
@@ -90,7 +91,7 @@ export function PlayerBar() {
             <PlayerControls />
             <div className="w-full flex items-center gap-2.5">
               <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 text-right font-medium">
-                {formatDuration(currentTime)}
+                {formatDuration(scrubTime ?? currentTime)}
               </span>
               <SeekBar />
               <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 font-medium">

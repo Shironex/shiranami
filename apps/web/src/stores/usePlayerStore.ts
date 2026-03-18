@@ -41,6 +41,10 @@ interface PlayerState {
   // Loading
   isLoading: boolean;
   error: string | null;
+
+  // UI state (not persisted)
+  scrubTime: number | null;
+  _seekTarget: number | null;
 }
 
 interface PlayerActions {
@@ -76,7 +80,11 @@ interface PlayerActions {
   toggleShuffle: () => void;
   cycleRepeatMode: () => void;
 
+  // Scrub
+  setScrubTime: (time: number | null) => void;
+
   // Internal (called by audio hook)
+  _clearSeekTarget: () => void;
   _setCurrentTime: (time: number) => void;
   _setDuration: (duration: number) => void;
   _setIsPlaying: (playing: boolean) => void;
@@ -112,6 +120,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   repeatMode: 'off',
   isLoading: false,
   error: null,
+  scrubTime: null,
+  _seekTarget: null,
 
   // Playback controls
   play: () => set({ isPlaying: true }),
@@ -166,9 +176,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   seek: (time: number) => {
     if (isFinite(time) && time >= 0) {
-      set({ currentTime: time });
+      set({ currentTime: time, scrubTime: null, _seekTarget: time });
     }
   },
+
+  setScrubTime: (time) => set({ scrubTime: time }),
 
   // Volume
   setVolume: (volume: number) =>
@@ -283,6 +295,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   },
 
   // Internal setters (called by the audio engine hook)
+  _clearSeekTarget: () => set({ _seekTarget: null }),
   _setCurrentTime: (currentTime) => set({ currentTime }),
   _setDuration: (duration) => set({ duration }),
   _setIsPlaying: (isPlaying) => set({ isPlaying }),
@@ -298,3 +311,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
   },
 }));
+
+// Preserve store state across Vite HMR (dev only, tree-shaken in production)
+if (import.meta.hot) {
+  if (import.meta.hot.data.store) {
+    usePlayerStore.setState(import.meta.hot.data.store.getState());
+  }
+  import.meta.hot.data.store = usePlayerStore;
+  import.meta.hot.accept();
+}

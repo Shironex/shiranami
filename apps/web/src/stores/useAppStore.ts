@@ -37,3 +37,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   },
   toggleVisualizer: () => set((s) => ({ showVisualizer: !s.showVisualizer })),
 }));
+
+if (import.meta.hot) {
+  if (import.meta.hot.data.store) {
+    useAppStore.setState(import.meta.hot.data.store.getState());
+  }
+  import.meta.hot.data.store = useAppStore;
+  import.meta.hot.accept();
+}

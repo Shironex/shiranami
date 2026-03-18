@@ -5,9 +5,18 @@ import { Slider } from '@/components/ui/slider';
 export function SeekBar() {
   const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
+  const scrubTime = usePlayerStore(s => s.scrubTime);
   const seek = usePlayerStore(s => s.seek);
+  const setScrubTime = usePlayerStore(s => s.setScrubTime);
 
-  const handleSeek = useCallback(
+  const handleValueChange = useCallback(
+    (value: number[]) => {
+      setScrubTime(value[0]);
+    },
+    [setScrubTime]
+  );
+
+  const handleValueCommit = useCallback(
     (value: number[]) => {
       seek(value[0]);
     },
@@ -16,10 +25,11 @@ export function SeekBar() {
 
   return (
     <Slider
-      value={[currentTime]}
+      value={[scrubTime ?? currentTime]}
       max={duration || 100}
       step={0.1}
-      onValueChange={handleSeek}
+      onValueChange={handleValueChange}
+      onValueCommit={handleValueCommit}
       className="w-full"
       aria-label="Seek"
     />

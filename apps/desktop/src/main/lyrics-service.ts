@@ -47,6 +47,51 @@ function parseLrc(lrc: string): LyricLine[] {
 }
 
 /**
+ * Build a list of search queries to try, from most specific to least.
+ * Handles common metadata issues like "ARTIST - TITLE" in the title field.
+ */
+function buildSearchQueries(title: string, artist: string): string[] {
+  const queries: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (q: string) => {
+    const normalized = q.trim().replace(/\s+/g, ' ');
+    if (normalized && !seen.has(normalized.toLowerCase())) {
+      seen.add(normalized.toLowerCase());
+      queries.push(normalized);
+    }
+  };
+
+  // 1. Full "title artist"
+  add(`${title} ${artist}`);
+
+  // 2. Title alone (often contains "ARTIST - SONG" from filename)
+  add(title);
+
+  // 3. If title contains " - ", split and try both parts as search terms
+  if (title.includes(' - ')) {
+    const parts = title.split(' - ').map(p => p.trim()).filter(Boolean);
+    // Try "part1 part2" without the dash
+    add(parts.join(' '));
+    // Try reversed: "part2 part1" (handles "ARTIST - TITLE" format)
+    if (parts.length === 2) {
+      add(`${parts[1]} ${parts[0]}`);
+    }
+  }
+
+  // 4. If title contains " – " (en-dash variant)
+  if (title.includes(' – ')) {
+    const parts = title.split(' – ').map(p => p.trim()).filter(Boolean);
+    add(parts.join(' '));
+    if (parts.length === 2) {
+      add(`${parts[1]} ${parts[0]}`);
+    }
+  }
+
+  return queries;
+}
+
+/**
  * Fetch lyrics for a track from LRCLIB.
  * Returns synced (timestamped) lyrics if available, otherwise plain text.
  */
@@ -65,40 +110,45 @@ export async function fetchLyrics(
   }
 
   try {
-    // Dynamic import since lrclib-api may have ESM internals
     const { Client } = require('lrclib-api');
     const client = new Client();
 
-    const query: Record<string, string | number> = {
+    const query = {
       track_name: title,
       artist_name: artist,
+      ...(album && album !== 'Unknown Album' ? { album_name: album } : {}),
+      ...(duration && duration > 0 ? { duration: Math.round(duration * 1000) } : {}),
     };
-    if (album && album !== 'Unknown Album') {
-      query.album_name = album;
-    }
-    if (duration && duration > 0) {
-      query.duration = Math.round(duration);
-    }
 
     logger.debug(`[lyrics] Fetching lyrics for: ${title} - ${artist}`);
 
-    const result = await client.get(query);
+    let result: { syncedLyrics?: string | null; plainLyrics?: string | null } | null = null;
+    try {
+      result = await client.findLyrics(query);
+    } catch {
+      // Any error (NotFound, NoResult, RequestError) — fall through to search
+    }
 
-    if (!result) {
-      // Try search as fallback
-      const searchResults = await client.search({ q: `${title} ${artist}` });
-      if (searchResults && searchResults.length > 0) {
-        const best = searchResults[0];
-        const lyricsResult: LyricsResult = {
-          synced: best.syncedLyrics ? parseLrc(best.syncedLyrics) : null,
-          plain: best.plainLyrics || null,
-          source: 'lrclib',
-        };
-        lyricsCache.set(key, lyricsResult);
-        logger.info(
-          `[lyrics] Found lyrics via search for: ${title} - ${artist}`
-        );
-        return lyricsResult;
+    if (!result || (!result.syncedLyrics && !result.plainLyrics)) {
+      // Try multiple search strategies — metadata is often imprecise
+      const searchQueries = buildSearchQueries(title, artist);
+      for (const sq of searchQueries) {
+        try {
+          const searchResults = await client.searchLyrics({ query: sq });
+          if (searchResults && searchResults.length > 0) {
+            const best = searchResults[0];
+            const lyricsResult: LyricsResult = {
+              synced: best.syncedLyrics ? parseLrc(best.syncedLyrics) : null,
+              plain: best.plainLyrics || null,
+              source: 'lrclib',
+            };
+            lyricsCache.set(key, lyricsResult);
+            logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
+            return lyricsResult;
+          }
+        } catch {
+          // This search variant failed, try next
+        }
       }
 
       logger.debug(`[lyrics] No lyrics found for: ${title} - ${artist}`);

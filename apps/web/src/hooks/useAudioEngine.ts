@@ -47,8 +47,18 @@ export function useAudioEngine() {
 
   // Smooth time-update loop via requestAnimationFrame
   const updateTime = useCallback(() => {
-    if (audioRef.current && !seekingRef.current) {
-      _setCurrentTime(audioRef.current.currentTime);
+    const audio = audioRef.current;
+    if (audio) {
+      // Check for pending seek (set by store's seek() action)
+      const { _seekTarget } = usePlayerStore.getState();
+      if (_seekTarget !== null && isFinite(_seekTarget)) {
+        audio.currentTime = _seekTarget;
+        usePlayerStore.getState()._clearSeekTarget();
+        seekingRef.current = true;
+        setTimeout(() => { seekingRef.current = false; }, 300);
+      } else if (!seekingRef.current) {
+        _setCurrentTime(audio.currentTime);
+      }
     }
     if (usePlayerStore.getState().isPlaying) {
       animationFrameRef.current = requestAnimationFrame(updateTime);
@@ -141,24 +151,23 @@ export function useAudioEngine() {
     }
   }, [volume, isMuted]);
 
-  // Detect store-driven seeks (user scrubbing the progress bar)
+  // Handle seeks that happen while paused (RAF loop not running)
   useEffect(() => {
-    const unsub = usePlayerStore.subscribe((state, prev) => {
+    const unsub = usePlayerStore.subscribe((state) => {
+      const audio = audioRef.current;
       if (
-        audioRef.current &&
-        state.currentTime !== prev.currentTime &&
-        isFinite(state.currentTime) &&
-        Math.abs(state.currentTime - audioRef.current.currentTime) > 1
+        audio &&
+        state._seekTarget !== null &&
+        isFinite(state._seekTarget) &&
+        !usePlayerStore.getState().isPlaying
       ) {
-        seekingRef.current = true;
-        audioRef.current.currentTime = state.currentTime;
-        setTimeout(() => {
-          seekingRef.current = false;
-        }, 100);
+        audio.currentTime = state._seekTarget;
+        usePlayerStore.getState()._clearSeekTarget();
+        _setCurrentTime(state._seekTarget);
       }
     });
     return unsub;
-  }, []);
+  }, [_setCurrentTime]);
 
   // Attach Audio element event listeners
   useEffect(() => {

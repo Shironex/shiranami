@@ -77,17 +77,24 @@ export async function getFFmpegVersion(): Promise<string | null> {
 export async function downloadFFmpeg(
   onProgress?: (percent: number) => void
 ): Promise<void> {
-  if (process.platform !== 'darwin') {
-    throw new Error('Automatic ffmpeg download is currently only supported on macOS');
-  }
-
   const binDir = getBinDir();
   fs.mkdirSync(binDir, { recursive: true });
 
-  // Download ffmpeg and ffprobe from evermeet.cx (macOS single-binary zips)
+  if (process.platform === 'darwin') {
+    await downloadFFmpegMac(binDir, onProgress);
+  } else if (process.platform === 'win32') {
+    await downloadFFmpegWin(binDir, onProgress);
+  } else {
+    throw new Error('Automatic ffmpeg download is only supported on macOS and Windows');
+  }
+}
+
+async function downloadFFmpegMac(
+  binDir: string,
+  onProgress?: (percent: number) => void
+): Promise<void> {
   const ffmpegUrl = 'https://evermeet.cx/ffmpeg/getrelease/zip';
   const ffprobeUrl = 'https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip';
-
   const ffmpegZipPath = path.join(binDir, 'ffmpeg.zip');
   const ffprobeZipPath = path.join(binDir, 'ffprobe.zip');
 
@@ -121,10 +128,8 @@ export async function downloadFFmpeg(
     // Make executable and remove quarantine
     const ffmpegBin = getFFmpegPath();
     const ffprobeBin = getFFprobePath();
-
     fs.chmodSync(ffmpegBin, 0o755);
     fs.chmodSync(ffprobeBin, 0o755);
-
     try {
       execSync(`xattr -d com.apple.quarantine "${ffmpegBin}"`, { timeout: 5000 });
       execSync(`xattr -d com.apple.quarantine "${ffprobeBin}"`, { timeout: 5000 });
@@ -136,16 +141,77 @@ export async function downloadFFmpeg(
     onProgress?.(100);
     logger.info(`[ffmpeg-manager] ffmpeg and ffprobe installed to ${binDir}`);
   } catch (err) {
-    // Clean up partial downloads
     for (const zipPath of [ffmpegZipPath, ffprobeZipPath]) {
-      try {
-        fs.unlinkSync(zipPath);
-      } catch {
-        // ignore
-      }
+      try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
     }
     throw err;
   }
+}
+
+async function downloadFFmpegWin(
+  binDir: string,
+  onProgress?: (percent: number) => void
+): Promise<void> {
+  // Download from gyan.dev essentials build (stable redirect URL)
+  const zipUrl = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';
+  const zipPath = path.join(binDir, 'ffmpeg-essentials.zip');
+  const extractDir = path.join(binDir, '_ffmpeg_extract');
+
+  try {
+    // Download zip (0-90%)
+    logger.info(`[ffmpeg-manager] Downloading ffmpeg from ${zipUrl}`);
+    await downloadFile(zipUrl, zipPath, (pct) => {
+      onProgress?.(Math.round(pct * 0.9));
+    });
+
+    // Extract using tar (available on Windows 10+)
+    onProgress?.(92);
+    logger.info('[ffmpeg-manager] Extracting ffmpeg...');
+    fs.mkdirSync(extractDir, { recursive: true });
+    execSync(`tar -xf "${zipPath}" -C "${extractDir}"`, {
+      timeout: 120000,
+    });
+    fs.unlinkSync(zipPath);
+
+    // Find ffmpeg.exe and ffprobe.exe inside the extracted directory
+    // Structure: ffmpeg-N.N-essentials_build/bin/ffmpeg.exe
+    onProgress?.(96);
+    const ffmpegExe = findFileRecursive(extractDir, 'ffmpeg.exe');
+    const ffprobeExe = findFileRecursive(extractDir, 'ffprobe.exe');
+
+    if (!ffmpegExe || !ffprobeExe) {
+      throw new Error('Could not find ffmpeg.exe or ffprobe.exe in downloaded archive');
+    }
+
+    // Move binaries to bin dir
+    fs.copyFileSync(ffmpegExe, getFFmpegPath());
+    fs.copyFileSync(ffprobeExe, getFFprobePath());
+
+    // Clean up extracted directory
+    fs.rmSync(extractDir, { recursive: true, force: true });
+
+    onProgress?.(100);
+    logger.info(`[ffmpeg-manager] ffmpeg and ffprobe installed to ${binDir}`);
+  } catch (err) {
+    try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
+    try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    throw err;
+  }
+}
+
+function findFileRecursive(dir: string, filename: string): string | null {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isFile() && entry.name.toLowerCase() === filename.toLowerCase()) {
+      return fullPath;
+    }
+    if (entry.isDirectory()) {
+      const found = findFileRecursive(fullPath, filename);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 function downloadFile(

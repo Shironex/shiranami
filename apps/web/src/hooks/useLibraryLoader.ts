@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 
@@ -8,11 +8,11 @@ import { IS_ELECTRON } from '@/lib/platform';
  * In non-Electron environments this is a no-op.
  */
 export function useLibraryLoader() {
-  const hasLoaded = useRef(false);
-
   useEffect(() => {
-    if (!IS_ELECTRON || hasLoaded.current) return;
-    hasLoaded.current = true;
+    if (!IS_ELECTRON) return;
+
+    // Use store state as guard instead of a ref (refs survive HMR but store may reset)
+    if (usePlayerStore.getState().library.length > 0) return;
 
     async function loadLibrary() {
       try {
@@ -36,14 +36,11 @@ export function useLibraryLoader() {
           updatedAt: t.updatedAt as string | undefined,
         }));
 
+        // Only populate if still empty (guards against race conditions)
         const current = usePlayerStore.getState();
-
-        // Always populate the library
         if (current.library.length === 0) {
           usePlayerStore.setState({ library: tracks });
         }
-
-        // Also seed the queue from the library if nothing is queued yet
         if (current.queue.length === 0) {
           usePlayerStore.setState({ queue: tracks });
         }
