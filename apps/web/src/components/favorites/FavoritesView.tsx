@@ -1,12 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Play, Pause } from 'lucide-react';
+import { Music, Play, Pause, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 
-export function LibraryView() {
+export function FavoritesView() {
   const queue = usePlayerStore(s => s.queue);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
@@ -15,18 +15,31 @@ export function LibraryView() {
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
 
+  const favorites = useMemo(
+    () => queue.filter((t) => t.isFavorite),
+    [queue]
+  );
+
+  const showHero = currentTrack?.isFavorite;
+
   const handlePlayTrack = useCallback(
-    (index: number) => {
-      setQueue(queue, index);
+    (favIndex: number) => {
+      const track = favorites[favIndex];
+      if (!track) return;
+      // Find the track's position in the full queue so playback uses the full library
+      const fullIndex = queue.findIndex((t) => t.id === track.id);
+      if (fullIndex !== -1) {
+        setQueue(queue, fullIndex);
+      }
     },
-    [queue, setQueue]
+    [favorites, queue, setQueue]
   );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Now Playing Hero */}
+      {/* Now Playing Hero (only if current track is a favorite) */}
       <AnimatePresence>
-        {currentTrack && (
+        {showHero && currentTrack && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -40,7 +53,6 @@ export function LibraryView() {
                 background: `linear-gradient(135deg, rgba(${ambientColor.rgb}, 0.15) 0%, rgba(${ambientColor.rgb}, 0.05) 100%)`,
               }}
             >
-              {/* Blurred album art background */}
               {currentTrack.albumArt && (
                 <div
                   className="absolute inset-0 opacity-[0.08] blur-2xl scale-110"
@@ -93,25 +105,25 @@ export function LibraryView() {
         )}
       </AnimatePresence>
 
-      {/* Track list */}
-      {queue.length === 0 ? (
+      {/* Favorites list */}
+      {favorites.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <img src="./mascot.png" alt="" className="w-28 h-28 object-contain opacity-40" draggable={false} />
+          <Heart className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No tracks yet</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Add files or a folder to start listening</p>
+            <p className="font-display text-base font-medium text-muted-foreground">No favorites yet</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">Click the heart icon on any track to add it here</p>
           </div>
         </div>
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List
-            rowCount={queue.length}
+            rowCount={favorites.length}
             rowHeight={52}
             overscanCount={10}
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite }}
+            rowProps={{ queue: favorites, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite }}
           />
         </div>
       )}

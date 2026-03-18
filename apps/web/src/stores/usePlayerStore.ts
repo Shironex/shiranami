@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { IS_ELECTRON } from '@/lib/platform';
 
 export interface Track {
   id: string;
@@ -59,6 +60,9 @@ interface PlayerActions {
   addManyToQueue: (tracks: Track[]) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
+
+  // Favorites
+  toggleFavorite: (trackId: string) => void;
 
   // Modes
   toggleShuffle: () => void;
@@ -210,6 +214,23 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       currentTime: 0,
       duration: 0,
     }),
+
+  // Favorites
+  toggleFavorite: (trackId: string) => {
+    const { queue, currentTrack } = get();
+    const newQueue = queue.map((t) =>
+      t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t
+    );
+    const updates: Partial<PlayerState> = { queue: newQueue };
+    if (currentTrack?.id === trackId) {
+      updates.currentTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
+    }
+    set(updates);
+
+    if (IS_ELECTRON) {
+      window.electronAPI.db.tracks.toggleFavorite(trackId).catch(() => {});
+    }
+  },
 
   // Modes
   toggleShuffle: () => {

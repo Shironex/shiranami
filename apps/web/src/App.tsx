@@ -6,6 +6,7 @@ import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
+import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { Toaster } from '@/components/ui/sonner';
@@ -65,11 +66,7 @@ function App() {
                     <p className="text-sm">Playlists coming soon</p>
                   </div>
                 )}
-                {activeView === 'favorites' && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p className="text-sm">Favorites coming soon</p>
-                  </div>
-                )}
+                {activeView === 'favorites' && <FavoritesView />}
                 {activeView === 'settings' && (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground">
                     <p className="text-sm">Settings coming soon</p>
