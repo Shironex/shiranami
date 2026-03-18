@@ -1,4 +1,4 @@
-import { protocol, net } from 'electron';
+import { protocol } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
@@ -46,8 +46,9 @@ export function registerAudioProtocol(): void {
       }
 
       // Security: verify file exists and is a file (not directory/symlink to sensitive path)
+      let stat: fs.Stats;
       try {
-        const stat = await fs.promises.stat(normalizedPath);
+        stat = await fs.promises.stat(normalizedPath);
         if (!stat.isFile()) {
           logger.warn(`[audio-protocol] Not a file: ${normalizedPath}`);
           return new Response('Not a file', { status: 403 });
@@ -57,10 +58,65 @@ export function registerAudioProtocol(): void {
         return new Response('Not found', { status: 404 });
       }
 
-      // Convert to a proper file:// URL using pathToFileURL for correct encoding
-      const { pathToFileURL } = await import('url');
-      const fileUrl = pathToFileURL(normalizedPath).href;
-      return net.fetch(fileUrl);
+      // Handle Range requests for seeking support
+      const fileSize = stat.size;
+      const mimeTypes: Record<string, string> = {
+        '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.wav': 'audio/wav',
+        '.ogg': 'audio/ogg', '.aac': 'audio/aac', '.m4a': 'audio/mp4',
+        '.opus': 'audio/opus', '.wma': 'audio/x-ms-wma',
+        '.weba': 'audio/webm', '.webm': 'audio/webm',
+      };
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      const rangeHeader = request.headers.get('Range');
+
+      if (rangeHeader) {
+        const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (match) {
+          const start = parseInt(match[1], 10);
+          const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+          const chunkSize = end - start + 1;
+
+          const stream = fs.createReadStream(normalizedPath, { start, end });
+          const readable = new ReadableStream({
+            start(controller) {
+              stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));
+              stream.on('end', () => controller.close());
+              stream.on('error', (err) => controller.error(err));
+            },
+            cancel() { stream.destroy(); },
+          });
+
+          return new Response(readable as unknown as ReadableStream, {
+            status: 206,
+            headers: {
+              'Content-Type': contentType,
+              'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+              'Content-Length': String(chunkSize),
+              'Accept-Ranges': 'bytes',
+            },
+          });
+        }
+      }
+
+      // No Range header — return full file
+      const stream = fs.createReadStream(normalizedPath);
+      const readable = new ReadableStream({
+        start(controller) {
+          stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));
+          stream.on('end', () => controller.close());
+          stream.on('error', (err) => controller.error(err));
+        },
+        cancel() { stream.destroy(); },
+      });
+
+      return new Response(readable as unknown as ReadableStream, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Content-Length': String(fileSize),
+          'Accept-Ranges': 'bytes',
+        },
+      });
     } catch (error) {
       logger.error('[audio-protocol] Error handling request:', error);
       return new Response('Internal error', { status: 500 });
