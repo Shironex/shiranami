@@ -30,18 +30,22 @@ export function initializeMediaControls(mainWindow: BrowserWindow): void {
     'MediaStop': 'stop',
   };
 
-  for (const [key, command] of Object.entries(shortcuts)) {
-    try {
-      const registered = globalShortcut.register(key, () => {
-        sendMediaCommand(command);
-      });
-      if (registered) {
-        logger.debug(`[media] Registered global shortcut: ${key}`);
-      } else {
-        logger.warn(`[media] Failed to register shortcut: ${key}`);
+  // Skip global shortcut registration on macOS — media keys are handled
+  // via the MediaSession API in the renderer process instead.
+  if (process.platform !== 'darwin') {
+    for (const [key, command] of Object.entries(shortcuts)) {
+      try {
+        const registered = globalShortcut.register(key, () => {
+          sendMediaCommand(command);
+        });
+        if (registered) {
+          logger.debug(`[media] Registered global shortcut: ${key}`);
+        } else {
+          logger.warn(`[media] Failed to register shortcut: ${key}`);
+        }
+      } catch (error) {
+        logger.warn(`[media] Error registering shortcut ${key}:`, error);
       }
-    } catch (error) {
-      logger.warn(`[media] Error registering shortcut ${key}:`, error);
     }
   }
 
