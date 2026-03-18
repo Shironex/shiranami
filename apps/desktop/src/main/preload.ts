@@ -45,6 +45,10 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:playlists:add-track',
   'db:playlists:remove-track',
   'db:playlists:reorder',
+  'shell:show-in-folder',
+  'downloader:check',
+  'downloader:search',
+  'downloader:download',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -161,6 +165,28 @@ export interface ElectronAPI {
     }) => void;
     clearState: () => void;
   };
+  downloader: {
+    search: (query: string) => Promise<Array<{
+      id: string;
+      title: string;
+      uploader: string;
+      duration: number;
+      thumbnail: string;
+      url: string;
+      webpage_url: string;
+    }>>;
+    download: (url: string) => Promise<string>;
+    check: () => Promise<{ installed: boolean; version?: string }>;
+    onProgress: (callback: (data: {
+      url: string;
+      progress: number;
+      status: 'downloading' | 'converting' | 'done' | 'error';
+      error?: string;
+    }) => void) => () => void;
+  };
+  shell: {
+    showInFolder: (filePath: string) => Promise<void>;
+  };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };
@@ -236,6 +262,20 @@ const electronAPI: ElectronAPI = {
     onCommand: createIpcListener<string>('media:command'),
     sendPlaybackState: (state) => ipcRenderer.send('media:playback-state', state),
     clearState: () => ipcRenderer.send('media:clear-state'),
+  },
+  downloader: {
+    search: (query: string) => ipcRenderer.invoke('downloader:search', query),
+    download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),
+    check: () => ipcRenderer.invoke('downloader:check'),
+    onProgress: createIpcListener<{
+      url: string;
+      progress: number;
+      status: 'downloading' | 'converting' | 'done' | 'error';
+      error?: string;
+    }>('downloader:progress'),
+  },
+  shell: {
+    showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

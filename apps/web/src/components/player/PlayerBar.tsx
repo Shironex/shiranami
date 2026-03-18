@@ -6,7 +6,7 @@ import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Mic2, ListMusic } from 'lucide-react';
+import { Music, Mic2, ListMusic, AudioLines } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
@@ -17,6 +17,8 @@ export function PlayerBar() {
   const ambientColor = useAmbientColor();
   const rightPanel = useAppStore(s => s.rightPanel);
   const toggleRightPanel = useAppStore(s => s.toggleRightPanel);
+  const showVisualizer = useAppStore(s => s.showVisualizer);
+  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
 
   return (
     <AnimatePresence>
@@ -99,6 +101,23 @@ export function PlayerBar() {
 
           {/* Right - volume + panel toggles */}
           <div className="w-[220px] flex items-center justify-end gap-1 relative">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleVisualizer}
+                  className={cn(
+                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                    showVisualizer
+                      ? 'text-primary bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  aria-label="Toggle visualizer"
+                >
+                  <AudioLines className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Visualizer</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button

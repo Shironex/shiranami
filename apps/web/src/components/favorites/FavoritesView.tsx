@@ -7,7 +7,7 @@ import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 
 export function FavoritesView() {
-  const queue = usePlayerStore(s => s.queue);
+  const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -16,23 +16,18 @@ export function FavoritesView() {
   const ambientColor = useAmbientColor();
 
   const favorites = useMemo(
-    () => queue.filter((t) => t.isFavorite),
-    [queue]
+    () => library.filter((t) => t.isFavorite),
+    [library]
   );
 
   const showHero = currentTrack?.isFavorite;
 
   const handlePlayTrack = useCallback(
     (favIndex: number) => {
-      const track = favorites[favIndex];
-      if (!track) return;
-      // Find the track's position in the full queue so playback uses the full library
-      const fullIndex = queue.findIndex((t) => t.id === track.id);
-      if (fullIndex !== -1) {
-        setQueue(queue, fullIndex);
-      }
+      // When playing from favorites, set the queue to just the favorites list
+      setQueue(favorites, favIndex);
     },
-    [favorites, queue, setQueue]
+    [favorites, setQueue]
   );
 
   return (

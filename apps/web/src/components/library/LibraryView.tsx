@@ -7,7 +7,7 @@ import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 
 export function LibraryView() {
-  const queue = usePlayerStore(s => s.queue);
+  const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -17,9 +17,9 @@ export function LibraryView() {
 
   const handlePlayTrack = useCallback(
     (index: number) => {
-      setQueue(queue, index);
+      setQueue(library, index);
     },
-    [queue, setQueue]
+    [library, setQueue]
   );
 
   return (
@@ -94,7 +94,7 @@ export function LibraryView() {
       </AnimatePresence>
 
       {/* Track list */}
-      {queue.length === 0 ? (
+      {library.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <img src="./mascot.png" alt="" className="w-28 h-28 object-contain opacity-40" draggable={false} />
           <div>
@@ -105,13 +105,13 @@ export function LibraryView() {
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List
-            rowCount={queue.length}
+            rowCount={library.length}
             rowHeight={52}
             overscanCount={10}
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
+            rowProps={{ queue: library, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
           />
         </div>
       )}

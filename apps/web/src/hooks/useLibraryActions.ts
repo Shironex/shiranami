@@ -52,6 +52,10 @@ export function useLibraryActions() {
         updatedAt: dbTrack.updatedAt as string | undefined,
       };
 
+      // Add to library
+      usePlayerStore.getState().addToLibrary([track]);
+
+      // Also add to queue so it's immediately playable
       const currentQueue = usePlayerStore.getState().queue;
       const currentPlaying = usePlayerStore.getState().currentTrack;
       const newQueue = [...currentQueue, track];
@@ -80,9 +84,9 @@ export function useLibraryActions() {
         return;
       }
 
-      // Filter out tracks that already exist in the DB
-      const existingQueue = usePlayerStore.getState().queue;
-      const existingPaths = new Set(existingQueue.map(t => t.filePath));
+      // Filter out tracks that already exist in the library
+      const existingLibrary = usePlayerStore.getState().library;
+      const existingPaths = new Set(existingLibrary.map(t => t.filePath));
 
       const newResults = results.filter(r => !existingPaths.has(r.filePath));
 
@@ -139,6 +143,10 @@ export function useLibraryActions() {
         // Folder may already exist, that's fine
       }
 
+      // Add to library
+      usePlayerStore.getState().addToLibrary(newTracks);
+
+      // Also add to queue so they're immediately playable
       const currentQueue = usePlayerStore.getState().queue;
       const currentPlaying = usePlayerStore.getState().currentTrack;
       const combined = [...currentQueue, ...newTracks];

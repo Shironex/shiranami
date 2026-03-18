@@ -21,6 +21,9 @@ export interface Track {
 export type RepeatMode = 'off' | 'all' | 'one';
 
 interface PlayerState {
+  // Library (persistent collection of all tracks)
+  library: Track[];
+
   // Current track
   currentTrack: Track | null;
   queue: Track[];
@@ -54,10 +57,15 @@ interface PlayerActions {
   setVolume: (volume: number) => void;
   toggleMute: () => void;
 
+  // Library
+  setLibrary: (tracks: Track[]) => void;
+  addToLibrary: (tracks: Track[]) => void;
+  removeFromLibrary: (trackIds: string[]) => void;
+
   // Queue
   setQueue: (tracks: Track[], startIndex?: number) => void;
-  addToQueue: (track: Track) => void;
-  addManyToQueue: (tracks: Track[]) => void;
+  addToQueue: (tracks: Track[]) => void;
+  playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   clearQueue: () => void;
 
@@ -91,6 +99,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   // Initial state
+  library: [],
   currentTrack: null,
   queue: [],
   queueIndex: -1,
@@ -166,6 +175,17 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ volume: Math.max(0, Math.min(1, volume)), isMuted: false }),
   toggleMute: () => set((s) => ({ isMuted: !s.isMuted })),
 
+  // Library management
+  setLibrary: (tracks: Track[]) => set({ library: tracks }),
+
+  addToLibrary: (tracks: Track[]) =>
+    set((s) => ({ library: [...s.library, ...tracks] })),
+
+  removeFromLibrary: (trackIds: string[]) => {
+    const ids = new Set(trackIds);
+    set((s) => ({ library: s.library.filter((t) => !ids.has(t.id)) }));
+  },
+
   // Queue management
   setQueue: (tracks: Track[], startIndex = 0) => {
     set({
@@ -178,9 +198,14 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     });
   },
 
-  addToQueue: (track: Track) => set((s) => ({ queue: [...s.queue, track] })),
+  addToQueue: (tracks: Track[]) => set((s) => ({ queue: [...s.queue, ...tracks] })),
 
-  addManyToQueue: (tracks: Track[]) => set((s) => ({ queue: [...s.queue, ...tracks] })),
+  playNext: (track: Track) => {
+    const { queue, queueIndex } = get();
+    const insertAt = queueIndex + 1;
+    const newQueue = [...queue.slice(0, insertAt), track, ...queue.slice(insertAt)];
+    set({ queue: newQueue });
+  },
 
   removeFromQueue: (index: number) => {
     const { queue, queueIndex } = get();
@@ -215,13 +240,16 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       duration: 0,
     }),
 
-  // Favorites
+  // Favorites — update track in both library and queue
   toggleFavorite: (trackId: string) => {
-    const { queue, currentTrack } = get();
-    const newQueue = queue.map((t) =>
-      t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t
-    );
-    const updates: Partial<PlayerState> = { queue: newQueue };
+    const { library, queue, currentTrack } = get();
+    const toggle = (t: Track) =>
+      t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t;
+
+    const updates: Partial<PlayerState> = {
+      library: library.map(toggle),
+      queue: queue.map(toggle),
+    };
     if (currentTrack?.id === trackId) {
       updates.currentTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
     }

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-export type AppView = 'library' | 'playlists' | 'favorites' | 'settings';
+export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'settings';
 export type RightPanel = 'lyrics' | 'queue' | null;
 
 interface AppState {
   activeView: AppView;
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
+  showVisualizer: boolean;
 }
 
 interface AppActions {
@@ -14,12 +15,14 @@ interface AppActions {
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
+  toggleVisualizer: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
   activeView: 'library',
   rightPanel: 'lyrics',
   selectedPlaylistId: null,
+  showVisualizer: true,
 
   navigateTo: (view, playlistId) =>
     set({
@@ -32,4 +35,5 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     const current = get().rightPanel;
     set({ rightPanel: current === panel ? null : panel });
   },
+  toggleVisualizer: () => set((s) => ({ showVisualizer: !s.showVisualizer })),
 }));

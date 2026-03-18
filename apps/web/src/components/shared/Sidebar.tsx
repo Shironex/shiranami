@@ -1,13 +1,14 @@
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
-import { Library, Heart, ListMusic, Settings } from 'lucide-react';
+import { Library, Heart, ListMusic, Search, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const NAV_ITEMS: Array<{ id: AppView; label: string; icon: typeof Library }> = [
   { id: 'library', label: 'Library', icon: Library },
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
   { id: 'favorites', label: 'Favorites', icon: Heart },
+  { id: 'search', label: 'Search', icon: Search },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

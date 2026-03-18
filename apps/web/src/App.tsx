@@ -5,12 +5,15 @@ import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
+import { AudioVisualizer } from '@/components/player/AudioVisualizer';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { PlaylistDetailView } from '@/components/playlists/PlaylistDetailView';
+import { SearchView } from '@/components/search/SearchView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
+import { QueuePanel } from '@/components/player/QueuePanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { Toaster } from '@/components/ui/sonner';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
@@ -33,6 +36,7 @@ function App() {
   const activeView = useAppStore(s => s.activeView);
   const rightPanel = useAppStore(s => s.rightPanel);
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
+  const showVisualizer = useAppStore(s => s.showVisualizer);
 
   return (
     <>
@@ -69,6 +73,7 @@ function App() {
                   selectedPlaylistId ? <PlaylistDetailView /> : <PlaylistsView />
                 )}
                 {activeView === 'favorites' && <FavoritesView />}
+                {activeView === 'search' && <SearchView />}
                 {activeView === 'settings' && <SettingsView />}
               </div>
 
@@ -78,7 +83,19 @@ function App() {
                   <LyricsPanel />
                 </div>
               )}
+              {currentTrack && rightPanel === 'queue' && (
+                <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
+                  <QueuePanel />
+                </div>
+              )}
             </main>
+
+            {/* Visualizer strip above player bar */}
+            {currentTrack && showVisualizer && (
+              <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
+                <AudioVisualizer />
+              </div>
+            )}
 
             {/* Player bar */}
             <PlayerBar />

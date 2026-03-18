@@ -8,6 +8,7 @@ const VIEW_TITLES: Record<string, string> = {
   library: 'Library',
   playlists: 'Playlists',
   favorites: 'Favorites',
+  search: 'Search',
   settings: 'Settings',
 };
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import { initAnalyser, destroyAnalyser } from '@/lib/audioAnalyser';
 
 /**
  * Audio engine hook — creates and manages the HTML5 Audio element,
@@ -12,6 +13,7 @@ export function useAudioEngine() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number>(0);
   const seekingRef = useRef(false);
+  const analyserInitRef = useRef(false);
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -33,6 +35,7 @@ export function useAudioEngine() {
       audioRef.current.preload = 'auto';
     }
     return () => {
+      destroyAnalyser();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -104,6 +107,16 @@ export function useAudioEngine() {
     if (!audio || !audio.src) return;
 
     if (isPlaying) {
+      // Lazily initialise the Web Audio analyser on first play (requires user gesture)
+      if (!analyserInitRef.current) {
+        try {
+          initAnalyser(audio);
+          analyserInitRef.current = true;
+        } catch {
+          // Non-critical — visualiser just won't work
+        }
+      }
+
       const playPromise = audio.play();
       if (playPromise) {
         playPromise.catch((err: DOMException) => {

@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { type Track } from '@/stores/usePlayerStore';
 import { Heart, Play, X } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
@@ -5,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { type RowComponentProps } from 'react-window';
 import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
+import { TrackContextMenu, type ContextMenuPosition } from '@/components/shared/TrackContextMenu';
 
 export interface TrackRowProps {
   queue: Track[];
@@ -29,12 +31,25 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
     showAddToPlaylist,
   } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
   const track = queue[index];
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
   if (!track) return null;
   const isActive = currentTrack?.id === track.id;
 
   return (
     <div style={style} className="px-0.5">
       <div
+        onContextMenu={handleContextMenu}
         className={cn(
           'w-full flex items-center gap-3 px-3 h-[48px] rounded-xl text-left transition-all duration-200 group',
           isActive
@@ -111,6 +126,13 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
           </motion.button>
         )}
       </div>
+      {contextMenu && (
+        <TrackContextMenu
+          track={track}
+          position={contextMenu}
+          onClose={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 }

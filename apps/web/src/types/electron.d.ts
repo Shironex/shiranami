@@ -7,6 +7,23 @@ export interface Playlist {
   updatedAt: string;
 }
 
+export interface SearchResult {
+  id: string;
+  title: string;
+  uploader: string;
+  duration: number;
+  thumbnail: string;
+  url: string;
+  webpage_url: string;
+}
+
+export interface DownloadProgress {
+  url: string;
+  progress: number;
+  status: 'downloading' | 'converting' | 'done' | 'error';
+  error?: string;
+}
+
 export interface TrackMetadata {
   title: string;
   artist: string;
@@ -90,6 +107,15 @@ export interface ElectronAPI {
       remove: (id: string) => Promise<void>;
       updateScanned: (id: string) => Promise<unknown>;
     };
+  };
+  downloader: {
+    search: (query: string) => Promise<SearchResult[]>;
+    download: (url: string) => Promise<string>;
+    check: () => Promise<{ installed: boolean; version?: string }>;
+    onProgress: (callback: (data: DownloadProgress) => void) => () => void;
+  };
+  shell: {
+    showInFolder: (filePath: string) => Promise<void>;
   };
   app: {
     getVersion: () => Promise<string>;

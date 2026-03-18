@@ -36,9 +36,14 @@ export function useLibraryLoader() {
           updatedAt: t.updatedAt as string | undefined,
         }));
 
-        // Only populate the queue if nothing is already loaded
-        // (e.g. the user hasn't already added tracks before this resolves)
         const current = usePlayerStore.getState();
+
+        // Always populate the library
+        if (current.library.length === 0) {
+          usePlayerStore.setState({ library: tracks });
+        }
+
+        // Also seed the queue from the library if nothing is queued yet
         if (current.queue.length === 0) {
           usePlayerStore.setState({ queue: tracks });
         }
