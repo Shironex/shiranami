@@ -7,6 +7,8 @@ import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
+import { PlaylistsView } from '@/components/playlists/PlaylistsView';
+import { PlaylistDetailView } from '@/components/playlists/PlaylistDetailView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { Toaster } from '@/components/ui/sonner';
@@ -29,6 +31,7 @@ function App() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const activeView = useAppStore(s => s.activeView);
   const rightPanel = useAppStore(s => s.rightPanel);
+  const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
 
   return (
     <>
@@ -62,9 +65,7 @@ function App() {
               <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
                 {activeView === 'library' && <LibraryView />}
                 {activeView === 'playlists' && (
-                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    <p className="text-sm">Playlists coming soon</p>
-                  </div>
+                  selectedPlaylistId ? <PlaylistDetailView /> : <PlaylistsView />
                 )}
                 {activeView === 'favorites' && <FavoritesView />}
                 {activeView === 'settings' && (

@@ -36,6 +36,15 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:folders:add',
   'db:folders:remove',
   'db:folders:update-scanned',
+  'db:playlists:get-all',
+  'db:playlists:get',
+  'db:playlists:create',
+  'db:playlists:update',
+  'db:playlists:delete',
+  'db:playlists:get-tracks',
+  'db:playlists:add-track',
+  'db:playlists:remove-track',
+  'db:playlists:reorder',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -115,6 +124,17 @@ export interface ElectronAPI {
       remove: (id: string) => Promise<void>;
       updateScanned: (id: string) => Promise<unknown>;
     };
+    playlists: {
+      getAll: () => Promise<unknown[]>;
+      get: (id: string) => Promise<unknown>;
+      create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      delete: (id: string) => Promise<void>;
+      getTracks: (playlistId: string) => Promise<unknown[]>;
+      addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
+      removeTrack: (playlistId: string, trackId: string) => Promise<void>;
+      reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
+    };
   };
   lyrics: {
     fetch: (
@@ -190,6 +210,22 @@ const electronAPI: ElectronAPI = {
       add: (path: string) => ipcRenderer.invoke('db:folders:add', path),
       remove: (id: string) => ipcRenderer.invoke('db:folders:remove', id),
       updateScanned: (id: string) => ipcRenderer.invoke('db:folders:update-scanned', id),
+    },
+    playlists: {
+      getAll: () => ipcRenderer.invoke('db:playlists:get-all'),
+      get: (id: string) => ipcRenderer.invoke('db:playlists:get', id),
+      create: (data: { name: string; description?: string; coverArt?: string }) =>
+        ipcRenderer.invoke('db:playlists:create', data),
+      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) =>
+        ipcRenderer.invoke('db:playlists:update', id, data),
+      delete: (id: string) => ipcRenderer.invoke('db:playlists:delete', id),
+      getTracks: (playlistId: string) => ipcRenderer.invoke('db:playlists:get-tracks', playlistId),
+      addTrack: (playlistId: string, trackId: string) =>
+        ipcRenderer.invoke('db:playlists:add-track', { playlistId, trackId }),
+      removeTrack: (playlistId: string, trackId: string) =>
+        ipcRenderer.invoke('db:playlists:remove-track', { playlistId, trackId }),
+      reorder: (playlistId: string, trackIds: string[]) =>
+        ipcRenderer.invoke('db:playlists:reorder', { playlistId, trackIds }),
     },
   },
   lyrics: {

@@ -111,7 +111,7 @@ export function LibraryView() {
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite }}
+            rowProps={{ queue, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
           />
         </div>
       )}

@@ -1,3 +1,12 @@
+export interface Playlist {
+  id: string;
+  name: string;
+  description?: string;
+  coverArt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TrackMetadata {
   title: string;
   artist: string;
@@ -63,6 +72,17 @@ export interface ElectronAPI {
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
+    };
+    playlists: {
+      getAll: () => Promise<unknown[]>;
+      get: (id: string) => Promise<unknown>;
+      create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      delete: (id: string) => Promise<void>;
+      getTracks: (playlistId: string) => Promise<unknown[]>;
+      addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
+      removeTrack: (playlistId: string, trackId: string) => Promise<void>;
+      reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
     };
     folders: {
       getAll: () => Promise<unknown[]>;

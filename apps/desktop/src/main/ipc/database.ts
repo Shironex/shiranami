@@ -3,12 +3,16 @@ import {
   getDatabase,
   tracks,
   folders,
+  playlists,
+  playlistTracks,
   eq,
+  and,
   desc,
   inArray,
   sql,
   type NewTrack,
   type NewFolder,
+  type NewPlaylist,
 } from '@shiranami/database';
 
 export function registerDatabaseHandlers(): void {
@@ -120,6 +124,135 @@ export function registerDatabaseHandlers(): void {
       .returning()
       .get();
   });
+
+  // ── Playlists ───────────────────────────────────────────────────────
+
+  ipcMain.handle('db:playlists:get-all', async () => {
+    const db = getDatabase();
+    return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
+  });
+
+  ipcMain.handle('db:playlists:get', async (_event, id: string) => {
+    const db = getDatabase();
+    return db.select().from(playlists).where(eq(playlists.id, id)).get();
+  });
+
+  ipcMain.handle(
+    'db:playlists:create',
+    async (_event, data: { name: string; description?: string; coverArt?: string }) => {
+      const db = getDatabase();
+      const id = crypto.randomUUID();
+      const row: NewPlaylist = { id, ...data };
+      return db.insert(playlists).values(row).returning().get();
+    },
+  );
+
+  ipcMain.handle(
+    'db:playlists:update',
+    async (
+      _event,
+      id: string,
+      data: Partial<Pick<NewPlaylist, 'name' | 'description' | 'coverArt'>>,
+    ) => {
+      const db = getDatabase();
+      return db
+        .update(playlists)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(playlists.id, id))
+        .returning()
+        .get();
+    },
+  );
+
+  ipcMain.handle('db:playlists:delete', async (_event, id: string) => {
+    const db = getDatabase();
+    db.delete(playlists).where(eq(playlists.id, id)).run();
+  });
+
+  ipcMain.handle('db:playlists:get-tracks', async (_event, playlistId: string) => {
+    const db = getDatabase();
+    return db
+      .select()
+      .from(tracks)
+      .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
+      .where(eq(playlistTracks.playlistId, playlistId))
+      .orderBy(playlistTracks.position)
+      .all();
+  });
+
+  ipcMain.handle(
+    'db:playlists:add-track',
+    async (_event, data: { playlistId: string; trackId: string }) => {
+      const db = getDatabase();
+
+      const existing = db
+        .select({ id: playlistTracks.id })
+        .from(playlistTracks)
+        .where(
+          and(
+            eq(playlistTracks.playlistId, data.playlistId),
+            eq(playlistTracks.trackId, data.trackId),
+          ),
+        )
+        .get();
+
+      if (existing) return existing;
+
+      const maxRow = db
+        .select({ maxPos: sql<number>`COALESCE(MAX(${playlistTracks.position}), -1)` })
+        .from(playlistTracks)
+        .where(eq(playlistTracks.playlistId, data.playlistId))
+        .get();
+
+      const nextPosition = (maxRow?.maxPos ?? -1) + 1;
+
+      return db
+        .insert(playlistTracks)
+        .values({
+          id: crypto.randomUUID(),
+          playlistId: data.playlistId,
+          trackId: data.trackId,
+          position: nextPosition,
+        })
+        .returning()
+        .get();
+    },
+  );
+
+  ipcMain.handle(
+    'db:playlists:remove-track',
+    async (_event, data: { playlistId: string; trackId: string }) => {
+      const db = getDatabase();
+      db.delete(playlistTracks)
+        .where(
+          and(
+            eq(playlistTracks.playlistId, data.playlistId),
+            eq(playlistTracks.trackId, data.trackId),
+          ),
+        )
+        .run();
+    },
+  );
+
+  ipcMain.handle(
+    'db:playlists:reorder',
+    async (_event, data: { playlistId: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      db.transaction(tx => {
+        for (let i = 0; i < data.trackIds.length; i++) {
+          tx.update(playlistTracks)
+            .set({ position: i })
+            .where(
+              and(
+                eq(playlistTracks.playlistId, data.playlistId),
+                eq(playlistTracks.trackId, data.trackIds[i]),
+              ),
+            )
+            .run();
+        }
+      });
+    },
+  );
 }
 
 export function cleanupDatabaseHandlers(): void {
@@ -137,4 +270,13 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:folders:add');
   ipcMain.removeHandler('db:folders:remove');
   ipcMain.removeHandler('db:folders:update-scanned');
+  ipcMain.removeHandler('db:playlists:get-all');
+  ipcMain.removeHandler('db:playlists:get');
+  ipcMain.removeHandler('db:playlists:create');
+  ipcMain.removeHandler('db:playlists:update');
+  ipcMain.removeHandler('db:playlists:delete');
+  ipcMain.removeHandler('db:playlists:get-tracks');
+  ipcMain.removeHandler('db:playlists:add-track');
+  ipcMain.removeHandler('db:playlists:remove-track');
+  ipcMain.removeHandler('db:playlists:reorder');
 }

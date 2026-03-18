@@ -123,7 +123,7 @@ export function FavoritesView() {
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue: favorites, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite }}
+            rowProps={{ queue: favorites, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
           />
         </div>
       )}

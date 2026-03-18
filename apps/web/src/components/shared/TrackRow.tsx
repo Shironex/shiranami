@@ -1,9 +1,10 @@
 import { type Track } from '@/stores/usePlayerStore';
-import { Heart, Play } from 'lucide-react';
+import { Heart, Play, X } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { type RowComponentProps } from 'react-window';
+import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
 
 export interface TrackRowProps {
   queue: Track[];
@@ -11,10 +12,22 @@ export interface TrackRowProps {
   isPlaying: boolean;
   handlePlayTrack: (index: number) => void;
   onToggleFavorite?: (trackId: string) => void;
+  onRemoveFromPlaylist?: (trackId: string) => void;
+  showAddToPlaylist?: boolean;
 }
 
 export function TrackRow(props: RowComponentProps<TrackRowProps>) {
-  const { index, style, queue, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
+  const {
+    index,
+    style,
+    queue,
+    currentTrack,
+    isPlaying,
+    handlePlayTrack,
+    onToggleFavorite,
+    onRemoveFromPlaylist,
+    showAddToPlaylist,
+  } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
   const track = queue[index];
   if (!track) return null;
   const isActive = currentTrack?.id === track.id;
@@ -59,6 +72,10 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
           {track.duration > 0 ? formatDuration(track.duration) : ''}
         </span>
 
+        {showAddToPlaylist && (
+          <AddToPlaylistButton trackId={track.id} />
+        )}
+
         {onToggleFavorite && (
           <motion.button
             whileTap={{ scale: 0.75 }}
@@ -77,6 +94,20 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
             <Heart
               className={cn('w-3.5 h-3.5 transition-all duration-150', track.isFavorite && 'fill-current')}
             />
+          </motion.button>
+        )}
+
+        {onRemoveFromPlaylist && (
+          <motion.button
+            whileTap={{ scale: 0.75 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemoveFromPlaylist(track.id);
+            }}
+            className="shrink-0 p-1 rounded-md text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors duration-150"
+            aria-label="Remove from playlist"
+          >
+            <X className="w-3.5 h-3.5" />
           </motion.button>
         )}
       </div>
