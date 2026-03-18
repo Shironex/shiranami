@@ -1,7 +1,7 @@
 import { app, net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import { logger } from './logger';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
@@ -60,7 +60,7 @@ export function getYtDlpVersion(): string | null {
   if (!isYtDlpInstalled()) return null;
   try {
     const output = execFileSync(getYtDlpPath(), ['--version'], {
-      timeout: 10000,
+      timeout: 5000,
       encoding: 'utf-8',
     });
     return output.trim();
@@ -99,6 +99,16 @@ export async function downloadYtDlp(
 
     // Atomic rename
     fs.renameSync(tmpPath, binPath);
+
+    // Remove macOS quarantine attribute so Gatekeeper doesn't block execution
+    if (process.platform === 'darwin') {
+      try {
+        execSync(`xattr -d com.apple.quarantine "${binPath}"`, { timeout: 5000 });
+        logger.info('[ytdlp-manager] Removed quarantine attribute');
+      } catch {
+        // xattr may fail if attribute doesn't exist, that's fine
+      }
+    }
 
     logger.info(`[ytdlp-manager] yt-dlp downloaded to ${binPath}`);
   } catch (err) {
