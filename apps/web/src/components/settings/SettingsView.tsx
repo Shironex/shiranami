@@ -106,6 +106,12 @@ export function SettingsView() {
   const [ytdlpInstalling, setYtdlpInstalling] = useState(false);
   const [ytdlpInstallProgress, setYtdlpInstallProgress] = useState(0);
 
+  // ffmpeg state
+  const [ffmpegInstalled, setFfmpegInstalled] = useState<boolean | null>(null);
+  const [ffmpegVersion, setFfmpegVersion] = useState<string | undefined>();
+  const [ffmpegInstalling, setFfmpegInstalling] = useState(false);
+  const [ffmpegInstallProgress, setFfmpegInstallProgress] = useState(0);
+
   // Load folders, settings, and version on mount
   useEffect(() => {
     if (!IS_ELECTRON) {
@@ -135,7 +141,7 @@ export function SettingsView() {
     load();
   }, []);
 
-  // Load yt-dlp info on mount
+  // Load yt-dlp and ffmpeg info on mount
   useEffect(() => {
     if (!IS_ELECTRON) return;
 
@@ -153,7 +159,18 @@ export function SettingsView() {
       }
     }
 
+    async function loadFfmpeg() {
+      try {
+        const result = await window.electronAPI.downloader.checkFfmpeg();
+        setFfmpegInstalled(result.installed);
+        setFfmpegVersion(result.version);
+      } catch {
+        setFfmpegInstalled(false);
+      }
+    }
+
     loadYtdlp();
+    loadFfmpeg();
   }, []);
 
   // Listen for yt-dlp install progress
@@ -162,6 +179,17 @@ export function SettingsView() {
     const cleanup = window.electronAPI.downloader.onInstallProgress(
       (progress: { percent: number }) => {
         setYtdlpInstallProgress(progress.percent);
+      }
+    );
+    return cleanup;
+  }, []);
+
+  // Listen for ffmpeg install progress
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.downloader.onFfmpegInstallProgress(
+      (progress: { percent: number }) => {
+        setFfmpegInstallProgress(progress.percent);
       }
     );
     return cleanup;
@@ -191,6 +219,29 @@ export function SettingsView() {
       toast.error(`Failed to install yt-dlp: ${msg}`);
     } finally {
       setYtdlpInstalling(false);
+    }
+  }, []);
+
+  const handleInstallFfmpeg = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setFfmpegInstalling(true);
+    setFfmpegInstallProgress(0);
+
+    try {
+      const result = await window.electronAPI.downloader.installFfmpeg();
+      if (result.success) {
+        toast.success('ffmpeg installed successfully');
+        const checkResult = await window.electronAPI.downloader.checkFfmpeg();
+        setFfmpegInstalled(checkResult.installed);
+        setFfmpegVersion(checkResult.version);
+      } else {
+        toast.error(`Failed to install ffmpeg: ${result.error ?? 'Unknown error'}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Installation failed';
+      toast.error(`Failed to install ffmpeg: ${msg}`);
+    } finally {
+      setFfmpegInstalling(false);
     }
   }, []);
 
@@ -632,6 +683,65 @@ export function SettingsView() {
                 >
                   <Download className="w-3.5 h-3.5" />
                   {ytdlpInstalled ? 'Update yt-dlp' : 'Download yt-dlp'}
+                </button>
+              )}
+
+              {/* ffmpeg section */}
+              <div className="border-t border-border/20 pt-3 mt-3" />
+
+              {/* ffmpeg status */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+                {ffmpegInstalled === null ? (
+                  <>
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    <span className="text-sm text-muted-foreground">Checking ffmpeg...</span>
+                  </>
+                ) : ffmpegInstalled ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-foreground">ffmpeg installed</span>
+                    {ffmpegVersion && (
+                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                        {ffmpegVersion}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">ffmpeg not installed</span>
+                    <span className="ml-auto text-[10px] text-muted-foreground/60">optional</span>
+                  </>
+                )}
+              </div>
+
+              {!ffmpegInstalled && ffmpegInstalled !== null && (
+                <p className="text-xs text-muted-foreground/60 px-1">
+                  ffmpeg enables MP3 conversion and thumbnail embedding for downloads.
+                  Without it, audio downloads as webm/opus format.
+                </p>
+              )}
+
+              {/* ffmpeg install/update */}
+              {ffmpegInstalling ? (
+                <div className="space-y-2 px-1">
+                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${ffmpegInstallProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Downloading ffmpeg... {ffmpegInstallProgress}%
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={handleInstallFfmpeg}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {ffmpegInstalled ? 'Update ffmpeg' : 'Download ffmpeg'}
                 </button>
               )}
             </div>

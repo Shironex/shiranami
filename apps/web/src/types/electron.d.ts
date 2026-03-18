@@ -116,6 +116,9 @@ export interface ElectronAPI {
     installYtDlp: () => Promise<{ success: boolean; error?: string }>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
+    checkFfmpeg: () => Promise<{ installed: boolean; version?: string }>;
+    installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
+    onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;

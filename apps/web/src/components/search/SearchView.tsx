@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Download, Check, AlertCircle, Loader2, Music, ArrowDownToLine } from 'lucide-react';
+import { Search, Download, Check, AlertCircle, Loader2, Music, ArrowDownToLine, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
@@ -33,6 +33,10 @@ export function SearchView() {
   const [installStatus, setInstallStatus] = useState<InstallStatus>('idle');
   const [installProgress, setInstallProgress] = useState(0);
   const [installError, setInstallError] = useState<string | null>(null);
+  const [ffmpegInstalled, setFfmpegInstalled] = useState<boolean | null>(null);
+  const [ffmpegInstalling, setFfmpegInstalling] = useState(false);
+  const [ffmpegInstallProgress, setFfmpegInstallProgress] = useState(0);
+  const [ffmpegBannerDismissed, setFfmpegBannerDismissed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -44,6 +48,9 @@ export function SearchView() {
       setYtdlpInstalled(installed);
       setYtdlpVersion(version);
     });
+    window.electronAPI.downloader.checkFfmpeg().then(({ installed }) => {
+      setFfmpegInstalled(installed);
+    });
   }, []);
 
   // Listen for yt-dlp install progress
@@ -52,6 +59,17 @@ export function SearchView() {
     const cleanup = window.electronAPI.downloader.onInstallProgress(
       (progress: { percent: number }) => {
         setInstallProgress(progress.percent);
+      }
+    );
+    return cleanup;
+  }, []);
+
+  // Listen for ffmpeg install progress
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.downloader.onFfmpegInstallProgress(
+      (progress: { percent: number }) => {
+        setFfmpegInstallProgress(progress.percent);
       }
     );
     return cleanup;
@@ -125,6 +143,28 @@ export function SearchView() {
       const msg = err instanceof Error ? err.message : 'Installation failed';
       setInstallError(msg);
       toast.error(`Failed to install yt-dlp: ${msg}`);
+    }
+  }, []);
+
+  const handleInstallFfmpeg = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setFfmpegInstalling(true);
+    setFfmpegInstallProgress(0);
+
+    try {
+      const result = await window.electronAPI.downloader.installFfmpeg();
+      if (result.success) {
+        toast.success('ffmpeg installed successfully');
+        setFfmpegInstalled(true);
+        setFfmpegBannerDismissed(true);
+      } else {
+        toast.error(`Failed to install ffmpeg: ${result.error ?? 'Unknown error'}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Installation failed';
+      toast.error(`Failed to install ffmpeg: ${msg}`);
+    } finally {
+      setFfmpegInstalling(false);
     }
   }, []);
 
@@ -322,8 +362,62 @@ export function SearchView() {
         )}
       </div>
 
+      {/* ffmpeg info banner */}
+      {ffmpegInstalled === false && !ffmpegBannerDismissed && (
+        <div className="px-6 pb-2 shrink-0">
+          <div className="max-w-2xl flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
+            <Info className="w-4 h-4 text-primary shrink-0" />
+            {ffmpegInstalling ? (
+              <div className="flex-1 space-y-1.5">
+                <p className="text-xs text-muted-foreground">
+                  Downloading ffmpeg... {ffmpegInstallProgress}%
+                </p>
+                <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${ffmpegInstallProgress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground flex-1">
+                  Install ffmpeg for MP3 conversion and thumbnail embedding
+                </p>
+                <button
+                  onClick={handleInstallFfmpeg}
+                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors shrink-0"
+                >
+                  Download
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setFfmpegBannerDismissed(true)}
+              className="p-0.5 rounded text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Results */}
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
+        {isSearching && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+            <img src="./mascot.png" alt="" className="w-20 h-20 object-contain opacity-40 animate-pulse" draggable={false} />
+            <div>
+              <p className="font-display text-sm font-medium text-muted-foreground">
+                Searching for music...
+              </p>
+              <p className="text-xs text-muted-foreground/50 mt-1">
+                This may take a moment
+              </p>
+            </div>
+          </div>
+        )}
+
         {searchError && !isSearching && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <p className="text-sm text-muted-foreground">{searchError}</p>

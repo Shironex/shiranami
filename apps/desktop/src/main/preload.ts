@@ -51,6 +51,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'downloader:download',
   'downloader:install-ytdlp',
   'downloader:get-ytdlp-path',
+  'downloader:check-ffmpeg',
+  'downloader:install-ffmpeg',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -188,6 +190,9 @@ export interface ElectronAPI {
     installYtDlp: () => Promise<{ success: boolean; error?: string }>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
+    checkFfmpeg: () => Promise<{ installed: boolean; version?: string }>;
+    installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
+    onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
@@ -281,6 +286,9 @@ const electronAPI: ElectronAPI = {
     installYtDlp: () => ipcRenderer.invoke('downloader:install-ytdlp'),
     onInstallProgress: createIpcListener<{ percent: number }>('downloader:install-progress'),
     getYtDlpPath: () => ipcRenderer.invoke('downloader:get-ytdlp-path'),
+    checkFfmpeg: () => ipcRenderer.invoke('downloader:check-ffmpeg'),
+    installFfmpeg: () => ipcRenderer.invoke('downloader:install-ffmpeg'),
+    onFfmpegInstallProgress: createIpcListener<{ percent: number }>('downloader:ffmpeg-install-progress'),
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),

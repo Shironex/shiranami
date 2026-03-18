@@ -9,6 +9,12 @@ import {
   getYtDlpVersion,
   downloadYtDlp,
 } from '../ytdlp-manager';
+import {
+  getFFmpegDir,
+  isFFmpegInstalled,
+  getFFmpegVersion,
+  downloadFFmpeg,
+} from '../ffmpeg-manager';
 
 export interface SearchResult {
   id: string;
@@ -142,18 +148,39 @@ export function registerDownloaderHandlers(): void {
       return new Promise<string>((resolve, reject) => {
         const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
 
-        const proc = spawn(getYtDlpPath(), [
-          '-x',
-          '--audio-format', 'mp3',
-          '--audio-quality', '0',
-          '--embed-thumbnail',
-          '--add-metadata',
-          '--no-warnings',
-          '--newline',
-          '--print', 'after_move:filepath',
-          '-o', outputTemplate,
-          url,
-        ], { env: { ...process.env } });
+        // Check if ffmpeg is available for audio conversion
+        // First check our managed bin dir, then fall back to system PATH
+        let hasFFmpeg = false;
+        let ffmpegLocation: string | null = null;
+
+        if (isFFmpegInstalled()) {
+          hasFFmpeg = true;
+          ffmpegLocation = getFFmpegDir();
+          logger.info(`[downloader] Using managed ffmpeg from ${ffmpegLocation}`);
+        } else {
+          try {
+            const { execFileSync: efs } = require('child_process');
+            efs('ffmpeg', ['-version'], { timeout: 5000, stdio: 'ignore' });
+            hasFFmpeg = true;
+            logger.info('[downloader] Using system ffmpeg');
+          } catch {
+            logger.info('[downloader] ffmpeg not found, downloading best audio without conversion');
+          }
+        }
+
+        const args: string[] = [];
+        if (ffmpegLocation) {
+          args.push('--ffmpeg-location', ffmpegLocation);
+        }
+        if (hasFFmpeg) {
+          args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0', '--embed-thumbnail', '--add-metadata');
+        } else {
+          // Without ffmpeg: download best audio as-is (usually webm/opus or m4a)
+          args.push('-f', 'bestaudio', '--add-metadata');
+        }
+        args.push('--no-warnings', '--newline', '--print', 'after_move:filepath', '-o', outputTemplate, url);
+
+        const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
 
         let allOutput = '';
         let downloadedFilePath = '';
@@ -241,6 +268,36 @@ export function registerDownloaderHandlers(): void {
   ipcMain.handle('downloader:get-ytdlp-path', async () => {
     return getYtDlpPath();
   });
+
+  // Check if ffmpeg is installed
+  ipcMain.handle('downloader:check-ffmpeg', async () => {
+    try {
+      if (!isFFmpegInstalled()) {
+        return { installed: false };
+      }
+      const version = await getFFmpegVersion();
+      return { installed: true, version: version ?? undefined };
+    } catch {
+      return { installed: isFFmpegInstalled() };
+    }
+  });
+
+  // Install ffmpeg + ffprobe
+  ipcMain.handle('downloader:install-ffmpeg', async () => {
+    try {
+      const mainWindow = getMainWindow();
+      await downloadFFmpeg((percent) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('downloader:ffmpeg-install-progress', { percent });
+        }
+      });
+      return { success: true };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Download failed';
+      logger.error('[downloader] Failed to install ffmpeg:', err);
+      return { success: false, error: errorMessage };
+    }
+  });
 }
 
 export function cleanupDownloaderHandlers(): void {
@@ -249,4 +306,6 @@ export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler('downloader:download');
   ipcMain.removeHandler('downloader:install-ytdlp');
   ipcMain.removeHandler('downloader:get-ytdlp-path');
+  ipcMain.removeHandler('downloader:check-ffmpeg');
+  ipcMain.removeHandler('downloader:install-ffmpeg');
 }
