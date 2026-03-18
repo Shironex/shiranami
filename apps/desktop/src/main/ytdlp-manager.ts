@@ -1,7 +1,7 @@
 import { app, net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFileSync, execSync } from 'child_process';
+import { execSync } from 'child_process';
 import { logger } from './logger';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
@@ -56,14 +56,27 @@ export function isYtDlpInstalled(): boolean {
   return fs.existsSync(binPath);
 }
 
-export function getYtDlpVersion(): string | null {
+export async function getYtDlpVersion(): Promise<string | null> {
   if (!isYtDlpInstalled()) return null;
   try {
-    const output = execFileSync(getYtDlpPath(), ['--version'], {
-      timeout: 5000,
-      encoding: 'utf-8',
+    const { execFile } = await import('child_process');
+    return new Promise((resolve) => {
+      const child = execFile(
+        getYtDlpPath(),
+        ['--version'],
+        { timeout: 30000 },
+        (err, stdout) => {
+          if (err) {
+            logger.error('[ytdlp-manager] Failed to get version:', err.message);
+            resolve(null);
+          } else {
+            resolve(stdout.trim());
+          }
+        }
+      );
+      // Safety: kill if process hangs
+      child.on('error', () => resolve(null));
     });
-    return output.trim();
   } catch (err) {
     logger.error('[ytdlp-manager] Failed to get version:', err);
     return null;

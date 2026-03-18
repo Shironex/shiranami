@@ -107,12 +107,14 @@ export function SearchView() {
       if (result.success) {
         setInstallStatus('done');
         toast.success('yt-dlp installed successfully');
-        // Short delay so user sees success, then transition to search view
-        setTimeout(async () => {
-          const { installed, version } = await window.electronAPI.downloader.check();
-          setYtdlpInstalled(installed);
-          setYtdlpVersion(version);
-        }, 1000);
+        // Transition to search view after brief success message
+        setTimeout(() => {
+          setYtdlpInstalled(true);
+          // Fetch version in background (may be slow on first run)
+          window.electronAPI.downloader.check().then(({ version }) => {
+            if (version) setYtdlpVersion(version);
+          });
+        }, 1200);
       } else {
         setInstallStatus('error');
         setInstallError(result.error ?? 'Installation failed');

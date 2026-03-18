@@ -61,15 +61,14 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
 }
 
 export function registerDownloaderHandlers(): void {
-  // Check if yt-dlp is installed (file exists = installed, version is best-effort)
+  // Check if yt-dlp is installed; version is fetched async (may be slow on first run)
   ipcMain.handle('downloader:check', async () => {
     try {
-      const installed = isYtDlpInstalled();
-      if (!installed) {
+      if (!isYtDlpInstalled()) {
         return { installed: false };
       }
-      // Version check is best-effort — may timeout on first run
-      const version = getYtDlpVersion();
+      // Binary exists — report installed immediately, version async
+      const version = await getYtDlpVersion();
       return { installed: true, version: version ?? undefined };
     } catch {
       return { installed: isYtDlpInstalled() };
