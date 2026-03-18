@@ -182,10 +182,17 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   setScrubTime: (time) => set({ scrubTime: time }),
 
-  // Volume
-  setVolume: (volume: number) =>
-    set({ volume: Math.max(0, Math.min(1, volume)), isMuted: false }),
-  toggleMute: () => set((s) => ({ isMuted: !s.isMuted })),
+  // Volume (persisted to electron store)
+  setVolume: (volume: number) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    set({ volume: clamped, isMuted: false });
+    window.electronAPI?.store.set('player.volume', clamped).catch(() => {});
+  },
+  toggleMute: () => {
+    const muted = !get().isMuted;
+    set({ isMuted: muted });
+    window.electronAPI?.store.set('player.isMuted', muted).catch(() => {});
+  },
 
   // Library management
   setLibrary: (tracks: Track[]) => set({ library: tracks }),

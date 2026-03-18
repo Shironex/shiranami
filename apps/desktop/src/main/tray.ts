@@ -12,6 +12,15 @@ function getTrayIconPath(): string {
     ? process.resourcesPath
     : path.join(__dirname, '../../resources');
 
+  // Use tray-specific icon if available, otherwise fall back to app icon
+  const trayIcon = path.join(resourcesDir, 'tray-icon.png');
+  try {
+    require('fs').accessSync(trayIcon);
+    return trayIcon;
+  } catch {
+    // fallback
+  }
+
   if (process.platform === 'darwin') {
     return path.join(resourcesDir, 'icon-16.png');
   }
@@ -81,11 +90,27 @@ function rebuildContextMenu(): void {
 export function createTray(mainWindow: BrowserWindow): void {
   mainWindowRef = mainWindow;
   const iconPath = getTrayIconPath();
+  logger.debug(`[tray] Loading icon from: ${iconPath}`);
   let icon = nativeImage.createFromPath(iconPath);
+
+  if (icon.isEmpty()) {
+    logger.warn(`[tray] Icon is empty, using fallback. Path: ${iconPath}`);
+    // Create a simple purple square as fallback
+    const fallback = nativeImage.createFromBuffer(
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAMklEQVRYR+3QQREAAAjDMPB/aEMD' +
+        'G4SdNXAddDaJc0AAAgQIECBAgAABAgQIECDwP/AAP4ABIW7CsGsAAAAASUVORK5CYII=',
+        'base64'
+      )
+    );
+    icon = fallback;
+  }
 
   if (process.platform === 'darwin') {
     icon = icon.resize({ width: 16, height: 16 });
     icon.setTemplateImage(true);
+  } else {
+    icon = icon.resize({ width: 32, height: 32 });
   }
 
   tray = new Tray(icon);
