@@ -171,13 +171,14 @@ export function registerDatabaseHandlers(): void {
 
   ipcMain.handle('db:playlists:get-tracks', async (_event, playlistId: string) => {
     const db = getDatabase();
-    return db
+    const rows = db
       .select()
       .from(tracks)
       .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
       .where(eq(playlistTracks.playlistId, playlistId))
       .orderBy(playlistTracks.position)
       .all();
+    return rows.map((row) => row.tracks);
   });
 
   ipcMain.handle(
