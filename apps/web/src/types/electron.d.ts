@@ -113,6 +113,9 @@ export interface ElectronAPI {
     download: (url: string) => Promise<string>;
     check: () => Promise<{ installed: boolean; version?: string }>;
     onProgress: (callback: (data: DownloadProgress) => void) => () => void;
+    installYtDlp: () => Promise<{ success: boolean; error?: string }>;
+    onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
+    getYtDlpPath: () => Promise<string>;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;

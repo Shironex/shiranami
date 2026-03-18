@@ -14,6 +14,9 @@ import {
   X,
   Plus,
   Loader2,
+  Download,
+  Check,
+  ArrowDownToLine,
 } from 'lucide-react';
 
 interface WatchedFolder {
@@ -96,6 +99,13 @@ export function SettingsView() {
   const [isClearing, setIsClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
+  // yt-dlp state
+  const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
+  const [ytdlpVersion, setYtdlpVersion] = useState<string | undefined>();
+  const [ytdlpPath, setYtdlpPath] = useState<string>('');
+  const [ytdlpInstalling, setYtdlpInstalling] = useState(false);
+  const [ytdlpInstallProgress, setYtdlpInstallProgress] = useState(0);
+
   // Load folders, settings, and version on mount
   useEffect(() => {
     if (!IS_ELECTRON) {
@@ -123,6 +133,65 @@ export function SettingsView() {
     }
 
     load();
+  }, []);
+
+  // Load yt-dlp info on mount
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+
+    async function loadYtdlp() {
+      try {
+        const [checkResult, binPath] = await Promise.all([
+          window.electronAPI.downloader.check(),
+          window.electronAPI.downloader.getYtDlpPath(),
+        ]);
+        setYtdlpInstalled(checkResult.installed);
+        setYtdlpVersion(checkResult.version);
+        setYtdlpPath(binPath);
+      } catch {
+        setYtdlpInstalled(false);
+      }
+    }
+
+    loadYtdlp();
+  }, []);
+
+  // Listen for yt-dlp install progress
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.downloader.onInstallProgress(
+      (progress: { percent: number }) => {
+        setYtdlpInstallProgress(progress.percent);
+      }
+    );
+    return cleanup;
+  }, []);
+
+  const handleInstallYtDlp = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setYtdlpInstalling(true);
+    setYtdlpInstallProgress(0);
+
+    try {
+      const result = await window.electronAPI.downloader.installYtDlp();
+      if (result.success) {
+        toast.success('yt-dlp installed successfully');
+        const [checkResult, binPath] = await Promise.all([
+          window.electronAPI.downloader.check(),
+          window.electronAPI.downloader.getYtDlpPath(),
+        ]);
+        setYtdlpInstalled(checkResult.installed);
+        setYtdlpVersion(checkResult.version);
+        setYtdlpPath(binPath);
+      } else {
+        toast.error(`Failed to install yt-dlp: ${result.error ?? 'Unknown error'}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Installation failed';
+      toast.error(`Failed to install yt-dlp: ${msg}`);
+    } finally {
+      setYtdlpInstalling(false);
+    }
   }, []);
 
   const handleAddFolder = useCallback(async () => {
@@ -492,6 +561,79 @@ export function SettingsView() {
                   </div>
                 )}
               </div>
+            </div>
+          </section>
+
+          {/* Downloads */}
+          <section className="rounded-2xl bg-surface/50 border border-border/30 p-5">
+            <SectionHeader
+              icon={ArrowDownToLine}
+              title="Downloads"
+              description="yt-dlp integration for searching and downloading music"
+            />
+
+            <div className="space-y-3">
+              {/* Status */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+                {ytdlpInstalled === null ? (
+                  <>
+                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    <span className="text-sm text-muted-foreground">Checking yt-dlp...</span>
+                  </>
+                ) : ytdlpInstalled ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-foreground">yt-dlp installed</span>
+                    {ytdlpVersion && (
+                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                        v{ytdlpVersion}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground">yt-dlp not installed</span>
+                  </>
+                )}
+              </div>
+
+              {/* Binary path */}
+              {ytdlpPath && (
+                <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">Binary path</p>
+                  <p className="text-xs text-foreground font-mono truncate">{ytdlpPath}</p>
+                </div>
+              )}
+
+              {/* Download location */}
+              <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
+                <p className="text-xs text-muted-foreground mb-1">Download location</p>
+                <p className="text-xs text-foreground font-mono truncate">~/Music/Shiranami Downloads/</p>
+              </div>
+
+              {/* Install/Update button */}
+              {ytdlpInstalling ? (
+                <div className="space-y-2 px-1">
+                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${ytdlpInstallProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Downloading yt-dlp... {ytdlpInstallProgress}%
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={handleInstallYtDlp}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {ytdlpInstalled ? 'Update yt-dlp' : 'Download yt-dlp'}
+                </button>
+              )}
             </div>
           </section>
 

@@ -3,6 +3,12 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { logger } from '../logger';
+import {
+  getYtDlpPath,
+  isYtDlpInstalled,
+  getYtDlpVersion,
+  downloadYtDlp,
+} from '../ytdlp-manager';
 
 export interface SearchResult {
   id: string;
@@ -35,7 +41,7 @@ function getDownloadDir(): string {
 
 function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('yt-dlp', args, { env: { ...process.env } });
+    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
     let stdout = '';
     let stderr = '';
 
@@ -58,11 +64,13 @@ export function registerDownloaderHandlers(): void {
   // Check if yt-dlp is installed
   ipcMain.handle('downloader:check', async () => {
     try {
-      const { stdout, code } = await spawnYtDlp(['--version']);
-      if (code === 0) {
-        return { installed: true, version: stdout.trim() };
+      if (!isYtDlpInstalled()) {
+        return { installed: false };
       }
-      return { installed: false };
+      const version = getYtDlpVersion();
+      return version
+        ? { installed: true, version }
+        : { installed: false };
     } catch {
       return { installed: false };
     }
@@ -135,7 +143,7 @@ export function registerDownloaderHandlers(): void {
       return new Promise<string>((resolve, reject) => {
         const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
 
-        const proc = spawn('yt-dlp', [
+        const proc = spawn(getYtDlpPath(), [
           '-x',
           '--audio-format', 'mp3',
           '--audio-quality', '0',
@@ -212,10 +220,34 @@ export function registerDownloaderHandlers(): void {
       });
     }
   );
+
+  // Install yt-dlp binary
+  ipcMain.handle('downloader:install-ytdlp', async () => {
+    try {
+      const mainWindow = getMainWindow();
+      await downloadYtDlp((percent) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('downloader:install-progress', { percent });
+        }
+      });
+      return { success: true };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Download failed';
+      logger.error('[downloader] Failed to install yt-dlp:', err);
+      return { success: false, error: errorMessage };
+    }
+  });
+
+  // Get yt-dlp binary path
+  ipcMain.handle('downloader:get-ytdlp-path', async () => {
+    return getYtDlpPath();
+  });
 }
 
 export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler('downloader:check');
   ipcMain.removeHandler('downloader:search');
   ipcMain.removeHandler('downloader:download');
+  ipcMain.removeHandler('downloader:install-ytdlp');
+  ipcMain.removeHandler('downloader:get-ytdlp-path');
 }

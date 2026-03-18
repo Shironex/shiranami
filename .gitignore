@@ -1,6 +1,7 @@
 node_modules/
 dist/
 build/
+bin/
 release/
 *.log
 .turbo/
@@ -9,3 +10,5 @@ release/
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+.claude
+.mcp.json

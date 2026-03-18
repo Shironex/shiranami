@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Download, Check, AlertCircle, Loader2, Music } from 'lucide-react';
+import { Search, Download, Check, AlertCircle, Loader2, Music, ArrowDownToLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
@@ -12,6 +12,8 @@ interface DownloadState {
   error?: string;
   filePath?: string;
 }
+
+type InstallStatus = 'idle' | 'downloading' | 'done' | 'error';
 
 function formatDuration(seconds: number): string {
   if (!seconds || seconds <= 0) return '--:--';
@@ -28,6 +30,9 @@ export function SearchView() {
   const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
   const [ytdlpVersion, setYtdlpVersion] = useState<string | undefined>();
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
+  const [installStatus, setInstallStatus] = useState<InstallStatus>('idle');
+  const [installProgress, setInstallProgress] = useState(0);
+  const [installError, setInstallError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -39,6 +44,17 @@ export function SearchView() {
       setYtdlpInstalled(installed);
       setYtdlpVersion(version);
     });
+  }, []);
+
+  // Listen for yt-dlp install progress
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.downloader.onInstallProgress(
+      (progress: { percent: number }) => {
+        setInstallProgress(progress.percent);
+      }
+    );
+    return cleanup;
   }, []);
 
   // Listen for download progress updates
@@ -79,6 +95,34 @@ export function SearchView() {
       setIsSearching(false);
     }
   }, [query]);
+
+  const handleInstallYtDlp = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setInstallStatus('downloading');
+    setInstallProgress(0);
+    setInstallError(null);
+
+    try {
+      const result = await window.electronAPI.downloader.installYtDlp();
+      if (result.success) {
+        setInstallStatus('done');
+        toast.success('yt-dlp installed successfully');
+        // Re-check yt-dlp availability
+        const { installed, version } = await window.electronAPI.downloader.check();
+        setYtdlpInstalled(installed);
+        setYtdlpVersion(version);
+      } else {
+        setInstallStatus('error');
+        setInstallError(result.error ?? 'Installation failed');
+        toast.error(`Failed to install yt-dlp: ${result.error ?? 'Unknown error'}`);
+      }
+    } catch (err) {
+      setInstallStatus('error');
+      const msg = err instanceof Error ? err.message : 'Installation failed';
+      setInstallError(msg);
+      toast.error(`Failed to install yt-dlp: ${msg}`);
+    }
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -181,50 +225,54 @@ export function SearchView() {
     return downloads[url] ?? { progress: 0, status: 'idle' };
   };
 
-  // yt-dlp not installed notice
+  // yt-dlp not installed -- offer one-click download
   if (ytdlpInstalled === false) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
-          <AlertCircle className="w-7 h-7 text-destructive" />
+        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+          <ArrowDownToLine className="w-7 h-7 text-primary" />
         </div>
         <div>
           <p className="font-display text-base font-medium text-foreground">
-            yt-dlp not found
+            yt-dlp required
           </p>
           <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Search and download requires yt-dlp to be installed on your system.
+            yt-dlp is needed to search and download music. Click below to download it automatically.
           </p>
         </div>
-        <div className="mt-2 rounded-xl bg-card border border-border/50 px-5 py-4 text-left max-w-md w-full">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-3">
-            Install yt-dlp
-          </p>
-          <div className="space-y-2">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">macOS (Homebrew)</p>
-              <code className="block text-sm text-foreground bg-muted/50 rounded-lg px-3 py-2 font-mono">
-                brew install yt-dlp
-              </code>
+
+        <div className="mt-2 max-w-sm w-full space-y-3">
+          {installStatus === 'downloading' ? (
+            <div className="space-y-2">
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${installProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Downloading yt-dlp... {installProgress}%
+              </p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Windows (winget)</p>
-              <code className="block text-sm text-foreground bg-muted/50 rounded-lg px-3 py-2 font-mono">
-                winget install yt-dlp
-              </code>
+          ) : installStatus === 'done' ? (
+            <div className="flex items-center justify-center gap-2 text-green-400">
+              <Check className="w-4 h-4" />
+              <p className="text-sm font-medium">yt-dlp installed successfully</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Or visit</p>
-              <a
-                href="https://github.com/yt-dlp/yt-dlp"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline"
+          ) : (
+            <>
+              <button
+                onClick={handleInstallYtDlp}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                https://github.com/yt-dlp/yt-dlp
-              </a>
-            </div>
-          </div>
+                <Download className="w-4 h-4" />
+                Download yt-dlp
+              </button>
+              {installStatus === 'error' && installError && (
+                <p className="text-xs text-destructive">{installError}</p>
+              )}
+            </>
+          )}
         </div>
       </div>
     );

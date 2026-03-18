@@ -49,6 +49,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'downloader:check',
   'downloader:search',
   'downloader:download',
+  'downloader:install-ytdlp',
+  'downloader:get-ytdlp-path',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -183,6 +185,9 @@ export interface ElectronAPI {
       status: 'downloading' | 'converting' | 'done' | 'error';
       error?: string;
     }) => void) => () => void;
+    installYtDlp: () => Promise<{ success: boolean; error?: string }>;
+    onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
+    getYtDlpPath: () => Promise<string>;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
@@ -273,6 +278,9 @@ const electronAPI: ElectronAPI = {
       status: 'downloading' | 'converting' | 'done' | 'error';
       error?: string;
     }>('downloader:progress'),
+    installYtDlp: () => ipcRenderer.invoke('downloader:install-ytdlp'),
+    onInstallProgress: createIpcListener<{ percent: number }>('downloader:install-progress'),
+    getYtDlpPath: () => ipcRenderer.invoke('downloader:get-ytdlp-path'),
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),
