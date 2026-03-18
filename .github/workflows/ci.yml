@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check - shared
+        run: pnpm --filter @shiranami/shared typecheck
+
+      - name: Type check - database
+        run: pnpm --filter @shiranami/database typecheck
+
+      - name: Type check - web
+        run: pnpm --filter @shiranami/web typecheck
+
+      - name: Type check - desktop
+        run: pnpm --filter @shiranami/desktop typecheck

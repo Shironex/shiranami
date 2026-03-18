@@ -11,19 +11,29 @@ function setupContentSecurityPolicy(isDev: boolean): void {
 
   session.defaultSession.webRequest.onHeadersReceived(urlFilter, (details, callback) => {
     const cspDirectives = [
+      // Scripts: self only in prod; dev needs eval for Vite HMR
       isDev
         ? `script-src 'self' http://localhost:${VITE_DEV_PORT} 'unsafe-inline' 'unsafe-eval'`
         : "script-src 'self'",
+      // Styles: inline needed for Tailwind/CSS-in-JS + Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https: http:",
+      // Images: data URIs for album art, https for thumbnails
+      "img-src 'self' data: blob: https:",
+      // Fonts: Google Fonts + self
       "font-src 'self' data: https://fonts.gstatic.com",
+      // Connections: LRCLIB for lyrics, yt-dlp thumbnails; dev adds Vite WS
       isDev
-        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT}`
-        : "connect-src 'self'",
+        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} https://lrclib.net https://i.ytimg.com`
+        : "connect-src 'self' https://lrclib.net https://i.ytimg.com",
+      // No plugins/embeds
       "object-src 'none'",
-      "media-src 'self' blob: file: shiranami-audio:",
+      // Audio: custom protocol + local files
+      "media-src 'self' blob: shiranami-audio:",
+      // Default restrictive
       "default-src 'self'",
+      // Forms: same-origin only
       "form-action 'self'",
+      // Base URI restriction
       "base-uri 'self'",
     ];
 

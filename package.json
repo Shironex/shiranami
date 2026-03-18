@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Shiranami — Your personal music player",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@10.9.0",
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -23,6 +23,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "pnpm build:packages && pnpm --filter @shiranami/web typecheck && pnpm --filter @shiranami/desktop typecheck",
+    "version:patch": "node scripts/bump-version.mjs patch",
+    "version:minor": "node scripts/bump-version.mjs minor",
+    "version:major": "node scripts/bump-version.mjs major",
+    "generate-icons": "node scripts/generate-icons.mjs",
     "prepare": "husky"
   },
   "engines": {
@@ -46,7 +50,9 @@
     "globals": "^17.4.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.3.3",
+    "png-to-ico": "^3.0.1",
     "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.0",
     "wait-on": "^9.0.4"
