@@ -17,8 +17,8 @@ function setupContentSecurityPolicy(isDev: boolean): void {
         : "script-src 'self'",
       // Styles: inline needed for Tailwind/CSS-in-JS + Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // Images: data URIs for album art, https for thumbnails, http for radio favicons
-      "img-src 'self' data: blob: https: http:",
+      // Images: shiranami-art:// protocol for album art, https for thumbnails, http for radio favicons
+      "img-src 'self' data: blob: https: http: shiranami-art:",
       // Fonts: Google Fonts + self
       "font-src 'self' data: https://fonts.gstatic.com",
       // Connections: LRCLIB for lyrics, yt-dlp thumbnails; dev adds Vite WS

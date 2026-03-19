@@ -39,7 +39,7 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
     let albumArt: string | null = null;
     if (common.picture && common.picture.length > 0) {
       const pic = common.picture[0];
-      albumArt = saveAlbumArt(Buffer.from(pic.data), pic.format);
+      albumArt = await saveAlbumArt(Buffer.from(pic.data), pic.format);
     }
 
     // Build title fallback from filename

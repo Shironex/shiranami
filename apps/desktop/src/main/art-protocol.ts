@@ -54,17 +54,23 @@ const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.
  * Save album art image data to disk.
  * Returns the protocol URL (shiranami-art://art/{hash}{ext}) or null if data is empty.
  */
-export function saveAlbumArt(data: Buffer, mimeType: string): string | null {
+export async function saveAlbumArt(data: Buffer, mimeType: string): Promise<string | null> {
   if (!data || data.length === 0) return null;
 
-  const hash = crypto.createHash('sha256').update(data).digest('hex').slice(0, 16);
+  const hash = crypto.createHash('sha256').update(data).digest('hex').slice(0, 32);
   const ext = mimeToExt(mimeType);
   const fileName = `${hash}${ext}`;
   const filePath = path.join(getArtDir(), fileName);
 
-  // Skip write if already exists (content-addressed, so identical hash = identical content)
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, data);
+  try {
+    // Atomically write the file if it doesn't exist using the 'wx' flag.
+    await fs.promises.writeFile(filePath, data, { flag: 'wx' });
+  } catch (error: any) {
+    // If the file already exists ('EEXIST'), it's not an error for content-addressing.
+    if (error.code !== 'EEXIST') {
+      logger.error(`[art-protocol] Failed to save album art ${fileName}:`, error);
+      throw error;
+    }
   }
 
   return toArtUrl(fileName);
