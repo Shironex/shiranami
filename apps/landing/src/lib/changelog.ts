@@ -13,6 +13,21 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.2.1',
+    date: '19 March 2026',
+    title: 'Quick fix',
+    description:
+      'Removed the duplicate play/pause button from the favorites hero card — playback controls now live in the player bar only.',
+    categories: [
+      {
+        label: 'Interface',
+        entries: [
+          'Removed duplicate play/pause button from the favorites "Now Playing" card for consistency with the library view.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.0',
     date: '19 March 2026',
     title: 'Settings redesign and audio visualizer',
