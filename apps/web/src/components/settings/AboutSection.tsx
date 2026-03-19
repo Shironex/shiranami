@@ -1,25 +1,9 @@
-import { useState, useEffect } from 'react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { useAppVersion } from '@/hooks/useAppVersion';
 import { Info } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
 
 export function AboutSection() {
-  const [version, setVersion] = useState('0.1.0');
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-
-    async function loadVersion() {
-      try {
-        const appVersion = await window.electronAPI.app.getVersion();
-        setVersion(appVersion);
-      } catch (err) {
-        console.error('Failed to load app version:', err);
-      }
-    }
-
-    loadVersion();
-  }, []);
+  const version = useAppVersion();
 
   return (
     <SettingsCard

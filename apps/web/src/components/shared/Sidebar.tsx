@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
+import { useAppVersion } from '@/hooks/useAppVersion';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import type { Playlist } from '@/types/electron';
 import { subscribeToPlaylistChanges } from '@/lib/playlists';
@@ -34,12 +35,15 @@ export function Sidebar() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
   const navigateTo = useAppStore((s) => s.navigateTo);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
+  const version = useAppVersion();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
   const [contextMenuState, setContextMenuState] = useState<{
     playlist: Playlist;
     position: ContextMenuPosition;
   } | null>(null);
+  const versionLabel = `v${version}`;
+  const sidebarVersionLabel = sidebarCollapsed ? versionLabel : `Shiranami ${versionLabel}`;
 
   const loadPlaylists = useCallback(async () => {
     try {
@@ -287,9 +291,9 @@ export function Sidebar() {
             'text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase',
             sidebarCollapsed && 'text-center'
           )}
-          title={sidebarCollapsed ? 'Shiranami v0.1.0' : undefined}
+          title={sidebarCollapsed ? `Shiranami ${versionLabel}` : undefined}
         >
-          {sidebarCollapsed ? 'v0.1.0' : 'Shiranami v0.1.0'}
+          {sidebarVersionLabel}
         </p>
       </div>
 
