@@ -8,6 +8,8 @@ import { createTray, destroyTray } from './tray';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
+import { registerArtProtocol } from './art-protocol';
+import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { initializeDatabase, closeDatabase } from '@shiranami/database';
 
 // Register custom protocol scheme for streaming local audio files.
@@ -33,6 +35,16 @@ protocol.registerSchemesAsPrivileged([
       bypassCSP: false,
     },
   },
+  {
+    scheme: 'shiranami-art',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: false,
+      bypassCSP: false,
+    },
+  },
 ]);
 
 export let mainWindow: BrowserWindow | null = null;
@@ -48,6 +60,12 @@ async function bootstrap(): Promise<void> {
 
   registerAudioProtocol();
   registerRadioProtocol();
+  registerArtProtocol();
+
+  // Migrate legacy base64 album art to disk files
+  migrateAlbumArtToDisk().catch(err => {
+    logger.warn('Album art migration failed:', err);
+  });
 
   mainWindow = await createMainWindow();
 

@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { logger } from './logger';
+import { saveAlbumArt } from './art-protocol';
 
 export interface TrackMetadata {
   title: string;
@@ -9,7 +10,7 @@ export interface TrackMetadata {
   genre: string;
   year: number | null;
   trackNumber: number | null;
-  albumArt: string | null; // data URL (base64)
+  albumArt: string | null; // shiranami-art:// protocol URL
 }
 
 // Cache the dynamic import
@@ -24,7 +25,7 @@ async function getModule() {
 
 /**
  * Parse metadata from an audio file.
- * Returns structured metadata with album art as a data URL.
+ * Returns structured metadata with album art saved to disk (shiranami-art:// URL).
  */
 export async function parseAudioMetadata(filePath: string): Promise<TrackMetadata> {
   const mm = await getModule();
@@ -34,12 +35,11 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
     const common = metadata.common;
     const format = metadata.format;
 
-    // Extract album art as data URL
+    // Extract album art and save to disk
     let albumArt: string | null = null;
     if (common.picture && common.picture.length > 0) {
       const pic = common.picture[0];
-      const base64 = Buffer.from(pic.data).toString('base64');
-      albumArt = `data:${pic.format};base64,${base64}`;
+      albumArt = await saveAlbumArt(Buffer.from(pic.data), pic.format);
     }
 
     // Build title fallback from filename
