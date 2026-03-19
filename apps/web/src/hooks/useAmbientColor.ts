@@ -27,7 +27,11 @@ export function useAmbientColor(): AmbientColor {
     }
 
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Only set crossOrigin for http(s) URLs — custom protocols don't need it
+    // and setting it can cause loading issues with protocol handlers
+    if (albumArt.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
     img.src = albumArt;
 
     img.onload = () => {
