@@ -111,6 +111,16 @@ export interface ElectronAPI {
   downloader: {
     search: (query: string) => Promise<SearchResult[]>;
     download: (url: string) => Promise<string>;
+    getDownloadLocation: () => Promise<{
+      path: string;
+      defaultPath: string;
+      isDefault: boolean;
+    }>;
+    setDownloadLocation: (path: string | null) => Promise<{
+      path: string;
+      defaultPath: string;
+      isDefault: boolean;
+    }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
     check: () => Promise<{
       installed: boolean;

@@ -358,6 +358,8 @@ export function SearchView() {
     return downloads[url] ?? { progress: 0, status: 'idle' };
   };
 
+  const showCenteredSearchState = results.length === 0;
+
   if (dependencyState === 'checking') {
     return (
       <SearchStateCard
@@ -462,56 +464,59 @@ export function SearchView() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
-        {isSearching && (
-          <div className="flex flex-col items-center justify-center py-20 gap-5 text-center">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl" />
-              <img
-                src="./mascot.png"
-                alt=""
-                className="relative w-24 h-24 object-contain opacity-60"
-                draggable={false}
-              />
-            </div>
-            <div>
-              <p className="font-display text-sm font-medium text-foreground/85">
-                Searching YouTube
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Pulling the best matches for "{query.trim()}"
-              </p>
-            </div>
-            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-          </div>
+      <div
+        className={cn(
+          'flex-1 overflow-y-auto scrollbar-thin px-6 pb-6',
+          showCenteredSearchState && 'flex'
         )}
-
-        {searchError && !isSearching && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm text-muted-foreground">{searchError}</p>
+      >
+        {showCenteredSearchState ? (
+          <div className="flex-1 min-h-full flex items-center justify-center">
+            {isSearching ? (
+              <div className="w-full max-w-md flex flex-col items-center justify-center gap-5 rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl" />
+                  <img
+                    src="./mascot.png"
+                    alt=""
+                    className="relative w-24 h-24 object-contain opacity-60"
+                    draggable={false}
+                  />
+                </div>
+                <div>
+                  <p className="font-display text-sm font-medium text-foreground/85">
+                    Searching YouTube
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    Pulling the best matches for "{query.trim()}"
+                  </p>
+                </div>
+                <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              </div>
+            ) : searchError ? (
+              <div className="w-full max-w-md rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
+                <p className="text-sm text-muted-foreground">{searchError}</p>
+              </div>
+            ) : (
+              <div className="w-full max-w-md flex flex-col items-center justify-center gap-4 rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
+                <img
+                  src="./mascot.png"
+                  alt=""
+                  className="w-24 h-24 object-contain opacity-30"
+                  draggable={false}
+                />
+                <div>
+                  <p className="font-display text-sm font-medium text-muted-foreground">
+                    Search YouTube for music
+                  </p>
+                  <p className="text-xs text-muted-foreground/50 mt-1">
+                    Type a song name and press Enter
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
-        {results.length === 0 && !isSearching && !searchError && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-            <img
-              src="./mascot.png"
-              alt=""
-              className="w-24 h-24 object-contain opacity-30"
-              draggable={false}
-            />
-            <div>
-              <p className="font-display text-sm font-medium text-muted-foreground">
-                Search YouTube for music
-              </p>
-              <p className="text-xs text-muted-foreground/50 mt-1">
-                Type a song name and press Enter
-              </p>
-            </div>
-          </div>
-        )}
-
-        {results.length > 0 && (
+        ) : (
           <div className="space-y-1">
             {results.map((result) => {
               const dlState = getDownloadState(result);

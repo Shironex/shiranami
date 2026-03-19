@@ -47,6 +47,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:playlists:reorder',
   'shell:show-in-folder',
   'downloader:check',
+  'downloader:get-download-location',
+  'downloader:set-download-location',
   'downloader:check-dependencies',
   'downloader:search',
   'downloader:download',
@@ -182,6 +184,16 @@ export interface ElectronAPI {
       webpage_url: string;
     }>>;
     download: (url: string) => Promise<string>;
+    getDownloadLocation: () => Promise<{
+      path: string;
+      defaultPath: string;
+      isDefault: boolean;
+    }>;
+    setDownloadLocation: (path: string | null) => Promise<{
+      path: string;
+      defaultPath: string;
+      isDefault: boolean;
+    }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
     check: () => Promise<{
       installed: boolean;
@@ -296,6 +308,9 @@ const electronAPI: ElectronAPI = {
   downloader: {
     search: (query: string) => ipcRenderer.invoke('downloader:search', query),
     download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),
+    getDownloadLocation: () => ipcRenderer.invoke('downloader:get-download-location'),
+    setDownloadLocation: (downloadPath: string | null) =>
+      ipcRenderer.invoke('downloader:set-download-location', downloadPath),
     checkDependencies: () => ipcRenderer.invoke('downloader:check-dependencies'),
     check: () => ipcRenderer.invoke('downloader:check'),
     onProgress: createIpcListener<{

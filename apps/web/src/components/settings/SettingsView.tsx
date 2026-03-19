@@ -109,6 +109,10 @@ export function SettingsView() {
   const [ytdlpPath, setYtdlpPath] = useState<string>('');
   const [ytdlpInstalling, setYtdlpInstalling] = useState(false);
   const [ytdlpInstallProgress, setYtdlpInstallProgress] = useState(0);
+  const [downloadLocation, setDownloadLocation] = useState('');
+  const [downloadLocationDefaultPath, setDownloadLocationDefaultPath] = useState('');
+  const [downloadLocationIsDefault, setDownloadLocationIsDefault] = useState(true);
+  const [downloadLocationUpdating, setDownloadLocationUpdating] = useState(false);
 
   // ffmpeg state
   const [ffmpegInstalled, setFfmpegInstalled] = useState<boolean | null>(null);
@@ -161,10 +165,11 @@ export function SettingsView() {
     }
 
     try {
-      const [ytdlpResult, binPath, ffmpegResult] = await Promise.all([
+      const [ytdlpResult, binPath, ffmpegResult, downloadLocationResult] = await Promise.all([
         window.electronAPI.downloader.check(),
         window.electronAPI.downloader.getYtDlpPath(),
         window.electronAPI.downloader.checkFfmpeg(),
+        window.electronAPI.downloader.getDownloadLocation(),
       ]);
 
       setYtdlpInstalled(ytdlpResult.installed);
@@ -177,6 +182,9 @@ export function SettingsView() {
       setFfmpegVersion(ffmpegResult.version);
       setFfmpegLatestVersion(ffmpegResult.latestVersion);
       setFfmpegUpdateAvailable(Boolean(ffmpegResult.updateAvailable));
+      setDownloadLocation(downloadLocationResult.path);
+      setDownloadLocationDefaultPath(downloadLocationResult.defaultPath);
+      setDownloadLocationIsDefault(downloadLocationResult.isDefault);
 
       return {
         ytdlpInstalled: ytdlpResult.installed,
@@ -191,6 +199,9 @@ export function SettingsView() {
       setFfmpegVersion(undefined);
       setFfmpegLatestVersion(undefined);
       setFfmpegUpdateAvailable(false);
+      setDownloadLocation('');
+      setDownloadLocationDefaultPath('');
+      setDownloadLocationIsDefault(true);
       return {
         ytdlpInstalled: false,
         ffmpegInstalled: false,
@@ -302,6 +313,45 @@ export function SettingsView() {
       stopDependencyInstall();
     }
   }, [refreshDownloadToolStatus, startDependencyInstall, stopDependencyInstall]);
+
+  const handleChangeDownloadLocation = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+
+    try {
+      const dirPath = await window.electronAPI.dialog.openDirectory();
+      if (!dirPath) return;
+
+      setDownloadLocationUpdating(true);
+      const result = await window.electronAPI.downloader.setDownloadLocation(dirPath);
+      setDownloadLocation(result.path);
+      setDownloadLocationDefaultPath(result.defaultPath);
+      setDownloadLocationIsDefault(result.isDefault);
+      toast.success('Download location updated', { id: 'download-location' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update download location';
+      toast.error(message, { id: 'download-location' });
+    } finally {
+      setDownloadLocationUpdating(false);
+    }
+  }, []);
+
+  const handleResetDownloadLocation = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+
+    try {
+      setDownloadLocationUpdating(true);
+      const result = await window.electronAPI.downloader.setDownloadLocation(null);
+      setDownloadLocation(result.path);
+      setDownloadLocationDefaultPath(result.defaultPath);
+      setDownloadLocationIsDefault(result.isDefault);
+      toast.success('Download location reset to default', { id: 'download-location' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to reset download location';
+      toast.error(message, { id: 'download-location' });
+    } finally {
+      setDownloadLocationUpdating(false);
+    }
+  }, []);
 
   const handleAddFolder = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -783,11 +833,46 @@ export function SettingsView() {
                     )}
                   </div>
 
-                  <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
-                    <p className="text-xs text-muted-foreground mb-1">Download location</p>
-                    <p className="text-xs text-foreground font-mono truncate">
-                      ~/Music/Shiranami Downloads/
-                    </p>
+                  <div className="px-3 py-3 rounded-xl bg-background/50 border border-border/20 space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Download location</p>
+                        <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                          {downloadLocationIsDefault ? 'Default' : 'Custom'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground font-mono break-all">
+                        {downloadLocation || downloadLocationDefaultPath || 'Loading...'}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/70">
+                        Search downloads are saved here automatically.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleChangeDownloadLocation}
+                        disabled={downloadLocationUpdating}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {downloadLocationUpdating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        )}
+                        Change location
+                      </button>
+
+                      {!downloadLocationIsDefault && (
+                        <button
+                          onClick={handleResetDownloadLocation}
+                          disabled={downloadLocationUpdating}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Reset to default
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {ytdlpInstalling ? (

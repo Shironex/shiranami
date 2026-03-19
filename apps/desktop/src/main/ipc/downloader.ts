@@ -17,6 +17,7 @@ import {
   getLatestFFmpegVersion,
   downloadFFmpeg,
 } from '../ffmpeg-manager';
+import { store } from '../store';
 
 export interface SearchResult {
   id: string;
@@ -49,16 +50,51 @@ interface DependencyInstallProgress {
   label: string;
 }
 
+interface DownloadLocationState {
+  path: string;
+  defaultPath: string;
+  isDefault: boolean;
+}
+
+const DOWNLOAD_LOCATION_STORE_KEY = 'downloads.location';
+
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
   return windows[0] ?? null;
 }
 
-function getDownloadDir(): string {
+function getDefaultDownloadDir(): string {
   const musicDir = app.getPath('music');
-  const downloadDir = path.join(musicDir, 'Shiranami Downloads');
+  return path.join(musicDir, 'Shiranami Downloads');
+}
+
+function ensureDownloadDir(downloadDir: string): string {
   fs.mkdirSync(downloadDir, { recursive: true });
   return downloadDir;
+}
+
+function getStoredDownloadDir(): string | null {
+  const configuredPath = store.get(DOWNLOAD_LOCATION_STORE_KEY);
+  if (typeof configuredPath !== 'string') {
+    return null;
+  }
+
+  const trimmed = configuredPath.trim();
+  return trimmed.length > 0 ? path.resolve(trimmed) : null;
+}
+
+function getDownloadDir(): string {
+  return ensureDownloadDir(getStoredDownloadDir() ?? getDefaultDownloadDir());
+}
+
+function getDownloadLocationState(): DownloadLocationState {
+  const defaultPath = getDefaultDownloadDir();
+  const selectedPath = getStoredDownloadDir() ?? defaultPath;
+  return {
+    path: ensureDownloadDir(selectedPath),
+    defaultPath,
+    isDefault: path.normalize(selectedPath) === path.normalize(defaultPath),
+  };
 }
 
 function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
@@ -148,6 +184,28 @@ async function getFFmpegStatus(): Promise<BinaryStatus> {
 }
 
 export function registerDownloaderHandlers(): void {
+  ipcMain.handle('downloader:get-download-location', async () => {
+    return getDownloadLocationState();
+  });
+
+  ipcMain.handle('downloader:set-download-location', async (_event, downloadDir: string | null) => {
+    const defaultPath = getDefaultDownloadDir();
+
+    if (typeof downloadDir !== 'string' || downloadDir.trim().length === 0) {
+      store.delete(DOWNLOAD_LOCATION_STORE_KEY);
+      return getDownloadLocationState();
+    }
+
+    const resolvedPath = ensureDownloadDir(path.resolve(downloadDir.trim()));
+    if (path.normalize(resolvedPath) === path.normalize(defaultPath)) {
+      store.delete(DOWNLOAD_LOCATION_STORE_KEY);
+    } else {
+      store.set(DOWNLOAD_LOCATION_STORE_KEY, resolvedPath);
+    }
+
+    return getDownloadLocationState();
+  });
+
   ipcMain.handle('downloader:check-dependencies', async () => {
     return {
       ytdlpInstalled: isYtDlpInstalled(),
@@ -447,6 +505,8 @@ export function registerDownloaderHandlers(): void {
 }
 
 export function cleanupDownloaderHandlers(): void {
+  ipcMain.removeHandler('downloader:get-download-location');
+  ipcMain.removeHandler('downloader:set-download-location');
   ipcMain.removeHandler('downloader:check-dependencies');
   ipcMain.removeHandler('downloader:check');
   ipcMain.removeHandler('downloader:search');
