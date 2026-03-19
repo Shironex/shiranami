@@ -159,6 +159,27 @@ export interface ElectronAPI {
     onUpdateDownloaded: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
     onUpdateError: (callback: (message: string) => void) => () => void;
   };
+  radio: {
+    favorites: {
+      getAll: () => Promise<unknown[]>;
+      add: (station: {
+        stationUuid: string;
+        name: string;
+        url: string;
+        urlResolved: string;
+        homepage?: string;
+        favicon?: string;
+        country?: string;
+        countryCode?: string;
+        language?: string;
+        codec?: string;
+        bitrate?: number;
+        tags?: string;
+      }) => Promise<unknown>;
+      remove: (stationUuid: string) => Promise<void>;
+      isFavorite: (stationUuid: string) => Promise<boolean>;
+    };
+  };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
   };

@@ -22,6 +22,8 @@ import {
   cleanupDownloaderHandlers,
   registerUpdaterHandlers,
   cleanupUpdaterHandlers,
+  registerRadioHandlers,
+  cleanupRadioHandlers,
 } from './';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
@@ -36,6 +38,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerShellHandlers();
   registerDownloaderHandlers();
   registerUpdaterHandlers();
+  registerRadioHandlers();
 }
 
 export function cleanupIpcHandlers(): void {
@@ -50,4 +53,5 @@ export function cleanupIpcHandlers(): void {
   cleanupShellHandlers();
   cleanupDownloaderHandlers();
   cleanupUpdaterHandlers();
+  cleanupRadioHandlers();
 }

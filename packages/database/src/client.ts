@@ -100,6 +100,26 @@ function createTables(database: Database.Database): void {
     )
   `);
 
+  // Radio favorites table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS radio_favorites (
+      id TEXT PRIMARY KEY,
+      station_uuid TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      url_resolved TEXT NOT NULL,
+      homepage TEXT,
+      favicon TEXT,
+      country TEXT,
+      country_code TEXT,
+      language TEXT,
+      codec TEXT,
+      bitrate INTEGER,
+      tags TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create indexes for common queries
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
@@ -109,6 +129,7 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist_id ON playlist_tracks(playlist_id);
     CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track_id ON playlist_tracks(track_id);
     CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
+    CREATE INDEX IF NOT EXISTS idx_radio_favorites_station_uuid ON radio_favorites(station_uuid);
   `);
 }
 

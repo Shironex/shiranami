@@ -9,3 +9,4 @@ export { registerDatabaseHandlers, cleanupDatabaseHandlers } from './database';
 export { registerShellHandlers, cleanupShellHandlers } from './shell';
 export { registerDownloaderHandlers, cleanupDownloaderHandlers } from './downloader';
 export { registerUpdaterHandlers, cleanupUpdaterHandlers } from './updater';
+export { registerRadioHandlers, cleanupRadioHandlers } from './radio';

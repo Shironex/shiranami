@@ -63,6 +63,10 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'downloader:check-ffmpeg',
   'downloader:install-ffmpeg',
   'downloader:install-dependencies',
+  'radio:favorites:get-all',
+  'radio:favorites:add',
+  'radio:favorites:remove',
+  'radio:favorites:is-favorite',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -246,6 +250,27 @@ export interface ElectronAPI {
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
   };
+  radio: {
+    favorites: {
+      getAll: () => Promise<unknown[]>;
+      add: (station: {
+        stationUuid: string;
+        name: string;
+        url: string;
+        urlResolved: string;
+        homepage?: string;
+        favicon?: string;
+        country?: string;
+        countryCode?: string;
+        language?: string;
+        codec?: string;
+        bitrate?: number;
+        tags?: string;
+      }) => Promise<unknown>;
+      remove: (stationUuid: string) => Promise<void>;
+      isFavorite: (stationUuid: string) => Promise<boolean>;
+    };
+  };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };
@@ -363,6 +388,28 @@ const electronAPI: ElectronAPI = {
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),
+  },
+  radio: {
+    favorites: {
+      getAll: () => ipcRenderer.invoke('radio:favorites:get-all'),
+      add: (station: {
+        stationUuid: string;
+        name: string;
+        url: string;
+        urlResolved: string;
+        homepage?: string;
+        favicon?: string;
+        country?: string;
+        countryCode?: string;
+        language?: string;
+        codec?: string;
+        bitrate?: number;
+        tags?: string;
+      }) => ipcRenderer.invoke('radio:favorites:add', station),
+      remove: (stationUuid: string) => ipcRenderer.invoke('radio:favorites:remove', stationUuid),
+      isFavorite: (stationUuid: string) =>
+        ipcRenderer.invoke('radio:favorites:is-favorite', stationUuid) as Promise<boolean>,
+    },
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

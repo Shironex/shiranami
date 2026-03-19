@@ -13,3 +13,9 @@ export {
 } from './playlist-tracks.js';
 
 export { folders, type Folder, type NewFolder } from './folders.js';
+
+export {
+  radioFavorites,
+  type RadioFavorite,
+  type NewRadioFavorite,
+} from './radio-favorites.js';

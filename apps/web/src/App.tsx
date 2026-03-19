@@ -13,6 +13,7 @@ import { SettingsView } from '@/components/settings/SettingsView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { PlaylistDetailView } from '@/components/playlists/PlaylistDetailView';
 import { SearchView } from '@/components/search/SearchView';
+import { RadioView } from '@/components/radio/RadioView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
@@ -89,6 +90,7 @@ function App() {
                 )}
                 {activeView === 'favorites' && <FavoritesView />}
                 {activeView === 'search' && <SearchView />}
+                {activeView === 'radio' && <RadioView />}
                 {activeView === 'settings' && <SettingsView />}
               </div>
 

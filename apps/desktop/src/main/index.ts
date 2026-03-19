@@ -7,6 +7,7 @@ import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { registerAudioProtocol } from './audio-protocol';
+import { registerRadioProtocol } from './radio-protocol';
 import { initializeDatabase, closeDatabase } from '@shiranami/database';
 
 // Register custom protocol scheme for streaming local audio files.
@@ -14,6 +15,16 @@ import { initializeDatabase, closeDatabase } from '@shiranami/database';
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'shiranami-audio',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      stream: true,
+      bypassCSP: false,
+    },
+  },
+  {
+    scheme: 'shiranami-radio',
     privileges: {
       standard: true,
       secure: true,
@@ -36,6 +47,7 @@ async function bootstrap(): Promise<void> {
   logger.info('Database initialized');
 
   registerAudioProtocol();
+  registerRadioProtocol();
 
   mainWindow = await createMainWindow();
 

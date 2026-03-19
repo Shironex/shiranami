@@ -10,6 +10,10 @@ import { Music, Mic2, ListMusic, AudioLines } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
+function isRadioTrack(filePath: string): boolean {
+  return filePath.startsWith('shiranami-radio://');
+}
+
 export function PlayerBar() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const currentTime = usePlayerStore(s => s.currentTime);
@@ -76,9 +80,17 @@ export function PlayerBar() {
                 transition={{ duration: 0.25 }}
                 className="min-w-0"
               >
-                <p className="text-sm font-medium text-foreground truncate">
-                  {currentTrack.title}
-                </p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {currentTrack.title}
+                  </p>
+                  {isRadioTrack(currentTrack.filePath) && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-semibold uppercase tracking-wider shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                      Live
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {currentTrack.artist}
                 </p>
@@ -89,15 +101,17 @@ export function PlayerBar() {
           {/* Center - controls + seek */}
           <div className="flex-1 flex flex-col items-center gap-1.5 max-w-[560px] mx-auto relative">
             <PlayerControls />
-            <div className="w-full flex items-center gap-2.5">
-              <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 text-right font-medium">
-                {formatDuration(scrubTime ?? currentTime)}
-              </span>
-              <SeekBar />
-              <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 font-medium">
-                {formatDuration(duration)}
-              </span>
-            </div>
+            {!(currentTrack && isRadioTrack(currentTrack.filePath)) && (
+              <div className="w-full flex items-center gap-2.5">
+                <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 text-right font-medium">
+                  {formatDuration(scrubTime ?? currentTime)}
+                </span>
+                <SeekBar />
+                <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 font-medium">
+                  {formatDuration(duration)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right - volume + panel toggles */}

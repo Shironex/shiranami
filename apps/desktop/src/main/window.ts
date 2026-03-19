@@ -17,18 +17,18 @@ function setupContentSecurityPolicy(isDev: boolean): void {
         : "script-src 'self'",
       // Styles: inline needed for Tailwind/CSS-in-JS + Google Fonts
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // Images: data URIs for album art, https for thumbnails
-      "img-src 'self' data: blob: https:",
+      // Images: data URIs for album art, https for thumbnails, http for radio favicons
+      "img-src 'self' data: blob: https: http:",
       // Fonts: Google Fonts + self
       "font-src 'self' data: https://fonts.gstatic.com",
       // Connections: LRCLIB for lyrics, yt-dlp thumbnails; dev adds Vite WS
       isDev
-        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} https://lrclib.net https://i.ytimg.com`
-        : "connect-src 'self' https://lrclib.net https://i.ytimg.com",
+        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info`
+        : "connect-src 'self' https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info",
       // No plugins/embeds
       "object-src 'none'",
       // Audio: custom protocol + local files
-      "media-src 'self' blob: shiranami-audio:",
+      "media-src 'self' blob: shiranami-audio: shiranami-radio:",
       // Default restrictive
       "default-src 'self'",
       // Forms: same-origin only

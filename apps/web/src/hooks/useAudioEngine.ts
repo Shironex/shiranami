@@ -83,8 +83,8 @@ export function useAudioEngine() {
     _setIsLoading(true);
     _setError(null);
 
-    // Increment play count in the database
-    if (IS_ELECTRON) {
+    // Increment play count in the database (skip for radio streams)
+    if (IS_ELECTRON && !currentTrack.filePath.startsWith('shiranami-radio://')) {
       window.electronAPI.db.tracks.incrementPlayCount(currentTrack.id).catch(() => {});
     }
 
@@ -104,10 +104,15 @@ export function useAudioEngine() {
     };
     audio.addEventListener('canplay', onCanPlayOnce);
 
-    // Use custom protocol to serve local audio through Electron's network stack.
-    // The readiness listener is attached first so fast local files cannot beat it.
-    const normalized = currentTrack.filePath.replace(/\\/g, '/');
-    audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+    // Radio streams use their own protocol; local files use shiranami-audio://
+    if (currentTrack.filePath.startsWith('shiranami-radio://')) {
+      audio.src = currentTrack.filePath;
+    } else {
+      // Use custom protocol to serve local audio through Electron's network stack.
+      // The readiness listener is attached first so fast local files cannot beat it.
+      const normalized = currentTrack.filePath.replace(/\\/g, '/');
+      audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+    }
     audio.load();
 
     if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {

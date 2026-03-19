@@ -141,6 +141,9 @@ importers:
       motion:
         specifier: ^12.38.0
         version: 12.38.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      radio-browser-api:
+        specifier: ^6.0.3
+        version: 6.0.3
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -3877,6 +3880,9 @@ packages:
   quick-lru@5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
+
+  radio-browser-api@6.0.3:
+    resolution: {integrity: sha512-/NU3aCI994ydjG/saO3BN52NGpQ8jwTAgFDg786wtB+hVwY/L0mYx2Covgx53RnVL1NTob2xYrdPzlkYR4bi2w==}
 
   radix3@1.1.2:
     resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
@@ -8705,6 +8711,8 @@ snapshots:
   punycode@2.3.1: {}
 
   quick-lru@5.1.1: {}
+
+  radio-browser-api@6.0.3: {}
 
   radix3@1.1.2: {}
 
