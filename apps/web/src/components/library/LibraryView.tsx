@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music } from 'lucide-react';
@@ -14,11 +14,14 @@ export function LibraryView() {
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
 
+  const libraryRef = useRef(library);
+  libraryRef.current = library;
+
   const handlePlayTrack = useCallback(
     (index: number) => {
-      setQueue(library, index);
+      setQueue(libraryRef.current, index);
     },
-    [library, setQueue]
+    [setQueue]
   );
 
   return (

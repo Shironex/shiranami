@@ -1,9 +1,62 @@
-import { useCallback } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { memo, useCallback, useRef } from 'react';
+import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { X, Trash2, Music, Play, Pause } from 'lucide-react';
 import { motion } from 'motion/react';
+import { List, type RowComponentProps } from 'react-window';
+
+interface QueueRowProps {
+  upNext: Track[];
+  queueIndexOffset: number;
+  onPlay: (queueIndex: number) => void;
+  onRemove: (e: React.MouseEvent, queueIndex: number) => void;
+}
+
+function QueueRow(props: RowComponentProps<QueueRowProps>) {
+  const { index, style, upNext, queueIndexOffset, onPlay, onRemove } =
+    props as RowComponentProps<QueueRowProps> & QueueRowProps;
+
+  const track = upNext[index];
+  if (!track) return null;
+
+  const actualQueueIndex = index + queueIndexOffset;
+
+  return (
+    <div style={style}>
+      <div
+        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-all duration-200 group cursor-pointer hover:bg-accent"
+        onClick={() => onPlay(actualQueueIndex)}
+      >
+        <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
+          {track.albumArt ? (
+            <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-md" />
+          ) : (
+            <Play className="w-3 h-3 text-muted-foreground/40" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium truncate">{track.title}</p>
+          <p className="text-[10px] text-muted-foreground/50 truncate">{track.artist}</p>
+        </div>
+
+        <span className="text-[10px] text-muted-foreground/30 tabular-nums shrink-0">
+          {track.duration > 0 ? formatDuration(track.duration) : ''}
+        </span>
+
+        <motion.button
+          whileTap={{ scale: 0.75 }}
+          onClick={(e) => onRemove(e, actualQueueIndex)}
+          className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
+          aria-label="Remove from queue"
+        >
+          <X className="w-3 h-3" />
+        </motion.button>
+      </div>
+    </div>
+  );
+}
 
 export function QueuePanel() {
   const queue = usePlayerStore(s => s.queue);
@@ -15,15 +68,20 @@ export function QueuePanel() {
   const clearQueue = usePlayerStore(s => s.clearQueue);
   const togglePlay = usePlayerStore(s => s.togglePlay);
 
+  const queueRef = useRef(queue);
+  const queueIndexRef = useRef(queueIndex);
+  queueRef.current = queue;
+  queueIndexRef.current = queueIndex;
+
   const handlePlayIndex = useCallback(
     (index: number) => {
-      if (index === queueIndex) {
+      if (index === queueIndexRef.current) {
         togglePlay();
       } else {
-        setQueue(queue, index);
+        setQueue(queueRef.current, index);
       }
     },
-    [queue, queueIndex, setQueue, togglePlay]
+    [setQueue, togglePlay]
   );
 
   const handleRemove = useCallback(
@@ -35,7 +93,6 @@ export function QueuePanel() {
   );
 
   const upNext = queue.slice(queueIndex + 1);
-  const upNextStartIndex = queueIndex + 1;
 
   return (
     <div className="flex flex-col h-full">
@@ -62,10 +119,10 @@ export function QueuePanel() {
           <p className="text-xs text-muted-foreground/30 font-medium">Queue is empty</p>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto scrollbar-thin px-3 py-2">
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Now Playing */}
           {currentTrack && queueIndex >= 0 && (
-            <div className="mb-3">
+            <div className="shrink-0 px-3 py-2">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
                 Now Playing
               </p>
@@ -80,26 +137,31 @@ export function QueuePanel() {
             </div>
           )}
 
-          {/* Up Next */}
+          {/* Up Next - Virtualized */}
           {upNext.length > 0 && (
-            <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
-                Up Next ({upNext.length})
-              </p>
-              <div className="space-y-0.5">
-                {upNext.map((track, i) => (
-                  <QueueItem
-                    key={`${track.id}-${upNextStartIndex + i}`}
-                    track={track}
-                    index={upNextStartIndex + i}
-                    isActive={false}
-                    isPlaying={false}
-                    onPlay={handlePlayIndex}
-                    onRemove={handleRemove}
-                  />
-                ))}
+            <>
+              <div className="shrink-0 px-3 pt-2">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
+                  Up Next ({upNext.length})
+                </p>
               </div>
-            </div>
+              <div className="flex-1 min-h-0 px-3">
+                <List
+                  rowCount={upNext.length}
+                  rowHeight={44}
+                  overscanCount={10}
+                  className="scrollbar-thin"
+                  style={{ height: '100%' }}
+                  rowComponent={QueueRow}
+                  rowProps={{
+                    upNext,
+                    queueIndexOffset: queueIndex + 1,
+                    onPlay: handlePlayIndex,
+                    onRemove: handleRemove,
+                  }}
+                />
+              </div>
+            </>
           )}
         </div>
       )}
@@ -116,7 +178,7 @@ interface QueueItemProps {
   onRemove: (e: React.MouseEvent, index: number) => void;
 }
 
-function QueueItem({ track, index, isActive, isPlaying, onPlay, onRemove }: QueueItemProps) {
+const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, onPlay, onRemove }: QueueItemProps) {
   return (
     <div
       className={cn(
@@ -167,4 +229,6 @@ function QueueItem({ track, index, isActive, isPlaying, onPlay, onRemove }: Queu
       </motion.button>
     </div>
   );
-}
+});
+
+export default QueuePanel;

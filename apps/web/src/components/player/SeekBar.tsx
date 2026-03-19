@@ -1,15 +1,18 @@
-import { useCallback, useRef } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useCallback, useEffect, useRef } from 'react';
+import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 
 export function SeekBar() {
-  const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
   const scrubTime = usePlayerStore(s => s.scrubTime);
+  const isPlaying = usePlayerStore(s => s.isPlaying);
   const seek = usePlayerStore(s => s.seek);
   const setScrubTime = usePlayerStore(s => s.setScrubTime);
 
   const trackRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const rafRef = useRef<number>(0);
 
   const getValueFromPointer = useCallback(
     (clientX: number) => {
@@ -55,8 +58,33 @@ export function SeekBar() {
     [getValueFromPointer, setScrubTime, seek]
   );
 
-  const displayTime = scrubTime ?? currentTime;
-  const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
+  // RAF loop for smooth seek bar updates while playing and not scrubbing
+  useEffect(() => {
+    if (!isPlaying || scrubTime !== null) {
+      cancelAnimationFrame(rafRef.current);
+      return;
+    }
+
+    const tick = () => {
+      const time = currentTimeRef.current;
+      const progress = duration > 0 ? (time / duration) * 100 : 0;
+      const pct = `${progress}%`;
+
+      if (fillRef.current) fillRef.current.style.width = pct;
+      if (thumbRef.current) thumbRef.current.style.left = pct;
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [isPlaying, scrubTime, duration]);
+
+  // When paused or scrubbing, compute progress from store values
+  const storeTime = usePlayerStore(s => s.currentTime);
+  const displayTime = scrubTime ?? storeTime;
+  const staticProgress = duration > 0 ? (displayTime / duration) * 100 : 0;
+  const needsStaticStyle = !isPlaying || scrubTime !== null;
 
   return (
     <div
@@ -74,14 +102,16 @@ export function SeekBar() {
       <div className="relative h-1 w-full grow overflow-hidden rounded-full bg-foreground/[0.06] group-hover:h-[5px] transition-all duration-200">
         {/* Range fill */}
         <div
+          ref={fillRef}
           className="absolute h-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200"
-          style={{ width: `${progress}%` }}
+          style={needsStaticStyle ? { width: `${staticProgress}%` } : undefined}
         />
       </div>
       {/* Thumb */}
       <div
+        ref={thumbRef}
         className="absolute h-0 w-0 group-hover:h-3 group-hover:w-3 rounded-full bg-primary shadow-md shadow-primary/30 transition-all duration-200 -translate-x-1/2"
-        style={{ left: `${progress}%` }}
+        style={needsStaticStyle ? { left: `${staticProgress}%` } : undefined}
       />
     </div>
   );

@@ -431,3 +431,5 @@ export function RadioView() {
     </div>
   );
 }
+
+export default RadioView;

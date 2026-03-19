@@ -1,10 +1,10 @@
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { Slider } from '@/components/ui/slider';
 import { Volume2, Volume1, VolumeX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-export function VolumeControl() {
+export const VolumeControl = memo(function VolumeControl() {
   const volume = usePlayerStore(s => s.volume);
   const isMuted = usePlayerStore(s => s.isMuted);
   const setVolume = usePlayerStore(s => s.setVolume);
@@ -43,4 +43,4 @@ export function VolumeControl() {
       />
     </div>
   );
-}
+});

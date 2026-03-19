@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
@@ -14,10 +15,16 @@ function isRadioTrack(filePath: string): boolean {
   return filePath.startsWith('shiranami-radio://');
 }
 
-export function PlayerBar() {
-  const currentTrack = usePlayerStore(s => s.currentTrack);
+/** Isolated component that subscribes to currentTime/scrubTime so
+ *  the rest of PlayerBar doesn't re-render on every time update. */
+const TimeDisplay = memo(function TimeDisplay() {
   const currentTime = usePlayerStore(s => s.currentTime);
   const scrubTime = usePlayerStore(s => s.scrubTime);
+  return <>{formatDuration(scrubTime ?? currentTime)}</>;
+});
+
+export function PlayerBar() {
+  const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
   const ambientColor = useAmbientColor();
   const rightPanel = useAppStore(s => s.rightPanel);
@@ -104,7 +111,7 @@ export function PlayerBar() {
             {!(currentTrack && isRadioTrack(currentTrack.filePath)) && (
               <div className="w-full flex items-center gap-2.5">
                 <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 text-right font-medium">
-                  {formatDuration(scrubTime ?? currentTime)}
+                  <TimeDisplay />
                 </span>
                 <SeekBar />
                 <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 font-medium">

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { initAnalyser, destroyAnalyser } from '@/lib/audioAnalyser';
+
+/** Minimum interval (ms) between Zustand store updates for currentTime. */
+const STORE_UPDATE_INTERVAL = 250;
 
 /**
  * Audio engine hook — creates and manages the HTML5 Audio element,
@@ -14,6 +17,7 @@ export function useAudioEngine() {
   const animationFrameRef = useRef<number>(0);
   const seekingRef = useRef(false);
   const analyserInitRef = useRef(false);
+  const lastStoreUpdateRef = useRef(0);
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -46,7 +50,9 @@ export function useAudioEngine() {
     };
   }, [_setIsLoading]);
 
-  // Smooth time-update loop via requestAnimationFrame
+  // Smooth time-update loop via requestAnimationFrame.
+  // The mutable currentTimeRef is updated every frame for smooth SeekBar animation,
+  // but the Zustand store is only updated at ~4Hz to avoid excessive React re-renders.
   const updateTime = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
@@ -58,7 +64,15 @@ export function useAudioEngine() {
         seekingRef.current = true;
         setTimeout(() => { seekingRef.current = false; }, 300);
       } else if (!seekingRef.current) {
-        _setCurrentTime(audio.currentTime);
+        // Always update the mutable ref at full frame rate
+        currentTimeRef.current = audio.currentTime;
+
+        // Throttle Zustand store updates to ~4Hz
+        const now = performance.now();
+        if (now - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
+          lastStoreUpdateRef.current = now;
+          _setCurrentTime(audio.currentTime);
+        }
       }
     }
     if (usePlayerStore.getState().isPlaying) {

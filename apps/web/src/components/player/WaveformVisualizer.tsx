@@ -123,3 +123,5 @@ export function WaveformVisualizer() {
     />
   );
 }
+
+export default WaveformVisualizer;

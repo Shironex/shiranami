@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { cn } from '@/lib/utils';
 import {
@@ -13,7 +14,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-export function PlayerControls() {
+export const PlayerControls = memo(function PlayerControls() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const isLoading = usePlayerStore(s => s.isLoading);
@@ -136,4 +137,4 @@ export function PlayerControls() {
       </Tooltip>
     </div>
   );
-}
+});
