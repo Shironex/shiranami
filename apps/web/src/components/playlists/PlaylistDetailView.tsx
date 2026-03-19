@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import { ArrowLeft, Play, Trash2, ListMusic, Loader2 } from 'lucide-react';
+import { ArrowLeft, Play, Trash2, ListMusic, Loader2, ImagePlus, Sparkles, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { toast } from 'sonner';
 import type { Playlist } from '@/types/electron';
+import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export function PlaylistDetailView() {
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
@@ -23,7 +24,13 @@ export function PlaylistDetailView() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCoverMenu, setShowCoverMenu] = useState(false);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const coverMenuRef = useRef<HTMLDivElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
 
   const loadPlaylist = useCallback(async () => {
     if (!IS_ELECTRON || !selectedPlaylistId) return;
@@ -45,6 +52,19 @@ export function PlaylistDetailView() {
   useEffect(() => {
     loadPlaylist();
   }, [loadPlaylist]);
+
+  useEffect(() => {
+    if (!showCoverMenu) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (coverMenuRef.current && !coverMenuRef.current.contains(event.target as Node)) {
+        setShowCoverMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [showCoverMenu]);
 
   const handleBack = useCallback(() => selectPlaylist(null), [selectPlaylist]);
 
@@ -95,6 +115,7 @@ export function PlaylistDetailView() {
     try {
       await window.electronAPI.db.playlists.update(selectedPlaylistId, { name });
       setPlaylist(prev => prev ? { ...prev, name } : prev);
+      notifyPlaylistsChanged();
       toast.success('Playlist renamed');
     } catch {
       toast.error('Failed to rename playlist');
@@ -115,12 +136,69 @@ export function PlaylistDetailView() {
     if (!IS_ELECTRON || !selectedPlaylistId) return;
     try {
       await window.electronAPI.db.playlists.delete(selectedPlaylistId);
+      notifyPlaylistsChanged();
       toast.success('Playlist deleted');
       selectPlaylist(null);
     } catch {
       toast.error('Failed to delete playlist');
     }
   }, [selectedPlaylistId, selectPlaylist]);
+
+  const updateCoverArt = useCallback(
+    async (coverArt: string) => {
+      if (!IS_ELECTRON || !selectedPlaylistId) return;
+
+      setIsUpdatingCover(true);
+      try {
+        await window.electronAPI.db.playlists.update(selectedPlaylistId, { coverArt });
+        setPlaylist((prev) => (prev ? { ...prev, coverArt } : prev));
+        notifyPlaylistsChanged();
+        setShowCoverMenu(false);
+        toast.success(coverArt ? 'Playlist cover updated' : 'Playlist cover cleared');
+      } catch {
+        toast.error('Failed to update playlist cover');
+      } finally {
+        setIsUpdatingCover(false);
+      }
+    },
+    [selectedPlaylistId]
+  );
+
+  const handleCoverFileSelected = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        if (!result) {
+          toast.error('Failed to read image file');
+          return;
+        }
+        await updateCoverArt(result);
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read image file');
+      };
+      reader.readAsDataURL(file);
+    },
+    [updateCoverArt]
+  );
+
+  const handlePickCustomCover = useCallback(() => {
+    coverInputRef.current?.click();
+  }, []);
+
+  const handleUseSuggestedCover = useCallback(async () => {
+    if (!suggestedCoverArt) return;
+    await updateCoverArt(suggestedCoverArt);
+  }, [suggestedCoverArt, updateCoverArt]);
+
+  const handleClearCover = useCallback(async () => {
+    await updateCoverArt('');
+  }, [updateCoverArt]);
 
   if (isLoading) {
     return (
@@ -210,12 +288,75 @@ export function PlaylistDetailView() {
 
         {/* Playlist info */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center shrink-0 overflow-hidden">
-            {playlist.coverArt ? (
-              <img src={playlist.coverArt} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <ListMusic className="w-7 h-7 text-muted-foreground/20" />
-            )}
+          <div ref={coverMenuRef} className="relative shrink-0">
+            <button
+              onClick={() => setShowCoverMenu((open) => !open)}
+              className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
+              disabled={isUpdatingCover}
+              title="Edit playlist cover"
+            >
+              {playlist.coverArt ? (
+                <img src={playlist.coverArt} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <ListMusic className="w-7 h-7 text-muted-foreground/20" />
+              )}
+
+              <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/30 transition-colors flex items-center justify-center">
+                {isUpdatingCover ? (
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                ) : (
+                  <ImagePlus className="w-4 h-4 text-white opacity-0 group-hover/cover:opacity-100 transition-opacity" />
+                )}
+              </div>
+            </button>
+
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleCoverFileSelected}
+            />
+
+            <AnimatePresence>
+              {showCoverMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-0 top-full mt-2 w-52 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
+                >
+                  <button
+                    onClick={handlePickCustomCover}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    <ImagePlus className="w-4 h-4 text-muted-foreground/60" />
+                    Upload Custom Image
+                  </button>
+
+                  {suggestedCoverArt && (
+                    <button
+                      onClick={handleUseSuggestedCover}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 text-muted-foreground/60" />
+                      Use Track Artwork
+                    </button>
+                  )}
+
+                  {playlist.coverArt && (
+                    <button
+                      onClick={handleClearCover}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Remove Cover
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="min-w-0 flex-1">
             {isEditing ? (

@@ -5,6 +5,7 @@ import { ListMusic, Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import type { Playlist } from '@/types/electron';
+import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export function PlaylistsView() {
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
@@ -40,6 +41,7 @@ export function PlaylistsView() {
     try {
       const playlist = await window.electronAPI.db.playlists.create({ name }) as Playlist;
       setPlaylists(prev => [playlist, ...prev]);
+      notifyPlaylistsChanged();
       setNewName('');
       setShowNewForm(false);
       toast.success(`Created "${playlist.name}"`);

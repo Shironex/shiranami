@@ -16,6 +16,7 @@ import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
 import type { Playlist } from '@/types/electron';
+import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export interface ContextMenuPosition {
   x: number;
@@ -111,6 +112,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
     try {
       const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
       await window.electronAPI.db.playlists.addTrack(playlist.id, track.id);
+      notifyPlaylistsChanged();
       toast.success(`Created "${playlist.name}" and added track`);
       onClose();
     } catch {

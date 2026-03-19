@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Playlist } from '@/types/electron';
+import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 interface AddToPlaylistButtonProps {
   trackId: string;
@@ -69,6 +70,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
     try {
       const playlist = await window.electronAPI.db.playlists.create({ name }) as Playlist;
       await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
+      notifyPlaylistsChanged();
       toast.success(`Created "${playlist.name}" and added track`);
       setIsOpen(false);
       setShowNewForm(false);
