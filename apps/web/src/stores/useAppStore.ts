@@ -38,7 +38,7 @@ interface AppActions {
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
   activeView: 'library',
-  rightPanel: 'lyrics',
+  rightPanel: null,
   selectedPlaylistId: null,
   sidebarCollapsed: getInitialSidebarCollapsed(),
   showVisualizer: true,

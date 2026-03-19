@@ -64,8 +64,10 @@ export function Sidebar() {
     >
       <div
         className={cn(
-          'drag h-14 flex items-center shrink-0',
-          sidebarCollapsed ? 'px-3 justify-between' : 'px-5 gap-2.5',
+          'drag flex shrink-0',
+          sidebarCollapsed
+            ? 'h-[92px] flex-col items-center justify-center gap-1.5 px-2'
+            : 'h-14 items-center px-5 gap-2.5',
           IS_MAC && 'pt-8'
         )}
       >
@@ -93,7 +95,10 @@ export function Sidebar() {
 
         <button
           onClick={toggleSidebarCollapsed}
-          className="no-drag w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className={cn(
+            'no-drag rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
+            sidebarCollapsed ? 'w-7 h-7' : 'w-8 h-8'
+          )}
           aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
