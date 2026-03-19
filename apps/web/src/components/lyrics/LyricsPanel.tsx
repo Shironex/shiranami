@@ -115,3 +115,5 @@ export function LyricsPanel() {
     </div>
   );
 }
+
+export default LyricsPanel;

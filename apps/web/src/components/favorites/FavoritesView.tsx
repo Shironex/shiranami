@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Heart } from 'lucide-react';
@@ -21,12 +21,15 @@ export function FavoritesView() {
 
   const showHero = currentTrack?.isFavorite;
 
+  const favoritesRef = useRef(favorites);
+  favoritesRef.current = favorites;
+
   const handlePlayTrack = useCallback(
     (favIndex: number) => {
       // When playing from favorites, set the queue to just the favorites list
-      setQueue(favorites, favIndex);
+      setQueue(favoritesRef.current, favIndex);
     },
-    [favorites, setQueue]
+    [setQueue]
   );
 
   return (

@@ -95,6 +95,13 @@ interface PlayerActions {
 
 export type PlayerStore = PlayerState & PlayerActions;
 
+/**
+ * Mutable ref holding the latest currentTime at ~60fps.
+ * Used by the SeekBar for smooth RAF-driven DOM updates without triggering
+ * React re-renders. The Zustand store's `currentTime` is only updated at ~4Hz.
+ */
+export const currentTimeRef = { current: 0 };
+
 /** Fisher-Yates shuffle (returns a new array). */
 function shuffleArray<T>(arr: T[]): T[] {
   const shuffled = [...arr];
@@ -301,7 +308,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   // Internal setters (called by the audio engine hook)
   _clearSeekTarget: () => set({ _seekTarget: null }),
-  _setCurrentTime: (currentTime) => set({ currentTime }),
+  _setCurrentTime: (currentTime) => {
+    currentTimeRef.current = currentTime;
+    set({ currentTime });
+  },
   _setDuration: (duration) => set({ duration }),
   _setIsPlaying: (isPlaying) => set({ isPlaying }),
   _setIsLoading: (loading) => set({ isLoading: loading }),

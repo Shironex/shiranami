@@ -132,3 +132,5 @@ export function AudioVisualizer() {
     />
   );
 }
+
+export default AudioVisualizer;

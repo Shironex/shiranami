@@ -416,3 +416,5 @@ export function PlaylistDetailView() {
     </div>
   );
 }
+
+export default PlaylistDetailView;
