@@ -41,7 +41,7 @@ function restoreQueueFromPaths(library: Track[], persisted: PersistedPlayerState
   return restoredQueue.length > 0 ? restoredQueue : library;
 }
 
-export function usePlaybackResume() {
+export function usePlaybackResume(enabled = true) {
   const library = usePlayerStore((s) => s.library);
   const currentTrackPath = usePlayerStore((s) => s.currentTrack?.filePath ?? null);
   const queue = usePlayerStore((s) => s.queue);
@@ -96,6 +96,7 @@ export function usePlaybackResume() {
   useEffect(() => {
     if (
       !IS_ELECTRON ||
+      !enabled ||
       !isReady ||
       isRestoreResolved ||
       !shouldRestore ||
@@ -154,10 +155,10 @@ export function usePlaybackResume() {
     return () => {
       cancelled = true;
     };
-  }, [isReady, isRestoreResolved, library, persistedState, shouldRestore]);
+  }, [enabled, isReady, isRestoreResolved, library, persistedState, shouldRestore]);
 
   useEffect(() => {
-    if (!IS_ELECTRON || !isReady || !isRestoreResolved) return;
+    if (!IS_ELECTRON || !enabled || !isReady || !isRestoreResolved) return;
 
     const persistState = () => {
       const state = buildPersistedState();
@@ -177,10 +178,10 @@ export function usePlaybackResume() {
       window.removeEventListener('beforeunload', persistState);
       persistState();
     };
-  }, [isReady, isRestoreResolved]);
+  }, [enabled, isReady, isRestoreResolved]);
 
   useEffect(() => {
-    if (!IS_ELECTRON || !isReady || !isRestoreResolved) return;
+    if (!IS_ELECTRON || !enabled || !isReady || !isRestoreResolved) return;
 
     const persistState = () => {
       const state = buildPersistedState();
@@ -193,5 +194,5 @@ export function usePlaybackResume() {
     };
 
     persistState();
-  }, [isReady, isRestoreResolved, currentTrackPath, queue, queueIndex, isPlaying]);
+  }, [enabled, isReady, isRestoreResolved, currentTrackPath, queue, queueIndex, isPlaying]);
 }

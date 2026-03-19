@@ -33,7 +33,7 @@ function App() {
   useMediaSession();
   usePlayerPreferences();
   useLibraryLoader();
-  usePlaybackResume();
+  usePlaybackResume(splashDone);
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
