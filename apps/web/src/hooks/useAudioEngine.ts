@@ -41,9 +41,10 @@ export function useAudioEngine() {
         audioRef.current.src = '';
         audioRef.current = null;
       }
+      _setIsLoading(false);
       cancelAnimationFrame(animationFrameRef.current);
     };
-  }, []);
+  }, [_setIsLoading]);
 
   // Smooth time-update loop via requestAnimationFrame
   const updateTime = useCallback(() => {
@@ -73,6 +74,7 @@ export function useAudioEngine() {
     if (!currentTrack) {
       audio.pause();
       audio.src = '';
+      _setIsLoading(false);
       _setCurrentTime(0);
       _setDuration(0);
       return;
@@ -86,14 +88,10 @@ export function useAudioEngine() {
       window.electronAPI.db.tracks.incrementPlayCount(currentTrack.id).catch(() => {});
     }
 
-    // Use custom protocol to serve local audio through Electron's network stack
-    const normalized = currentTrack.filePath.replace(/\\/g, '/');
-    audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
-    audio.load();
-
     // Auto-play once the audio is ready (canplay fires after load)
     const onCanPlayOnce = () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
+      _setIsLoading(false);
       if (usePlayerStore.getState().isPlaying) {
         audio.play().catch(err => {
           if (err.name !== 'AbortError') {
@@ -105,6 +103,16 @@ export function useAudioEngine() {
       }
     };
     audio.addEventListener('canplay', onCanPlayOnce);
+
+    // Use custom protocol to serve local audio through Electron's network stack.
+    // The readiness listener is attached first so fast local files cannot beat it.
+    const normalized = currentTrack.filePath.replace(/\\/g, '/');
+    audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+    audio.load();
+
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      onCanPlayOnce();
+    }
 
     return () => {
       audio.removeEventListener('canplay', onCanPlayOnce);

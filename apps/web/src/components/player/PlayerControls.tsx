@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export function PlayerControls() {
+  const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const isLoading = usePlayerStore(s => s.isLoading);
   const isShuffled = usePlayerStore(s => s.isShuffled);
@@ -23,6 +24,7 @@ export function PlayerControls() {
   const previous = usePlayerStore(s => s.previous);
   const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
   const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
+  const showLoading = isLoading && !isPlaying;
 
   return (
     <div className="flex items-center gap-2">
@@ -64,7 +66,7 @@ export function PlayerControls() {
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.04 }}
             onClick={togglePlay}
-            disabled={isLoading}
+            disabled={!currentTrack}
             className={cn(
               'w-10 h-10 flex items-center justify-center rounded-full',
               'bg-primary text-primary-foreground',
@@ -76,7 +78,7 @@ export function PlayerControls() {
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             <AnimatePresence mode="wait" initial={false}>
-              {isLoading ? (
+              {showLoading ? (
                 <motion.div key="loading" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.12 }}>
                   <Loader2 className="w-4.5 h-4.5 animate-spin" />
                 </motion.div>

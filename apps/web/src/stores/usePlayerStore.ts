@@ -320,7 +320,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 // Preserve store state across Vite HMR (dev only, tree-shaken in production)
 if (import.meta.hot) {
   if (import.meta.hot.data.store) {
-    usePlayerStore.setState(import.meta.hot.data.store.getState());
+    usePlayerStore.setState({
+      ...import.meta.hot.data.store.getState(),
+      isLoading: false,
+      error: null,
+      scrubTime: null,
+      _seekTarget: null,
+    });
   }
   import.meta.hot.data.store = usePlayerStore;
   import.meta.hot.accept();

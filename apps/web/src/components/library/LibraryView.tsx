@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Play, Pause } from 'lucide-react';
+import { Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -11,7 +11,6 @@ export function LibraryView() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
-  const togglePlay = usePlayerStore(s => s.togglePlay);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
 
@@ -80,14 +79,6 @@ export function LibraryView() {
                   </motion.div>
                 </AnimatePresence>
               </div>
-
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={togglePlay}
-                className="w-10 h-10 rounded-full bg-primary/20 hover:bg-primary/30 flex items-center justify-center text-primary transition-colors shrink-0"
-              >
-                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-              </motion.button>
             </div>
           </motion.div>
         )}
