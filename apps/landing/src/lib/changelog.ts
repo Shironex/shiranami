@@ -13,6 +13,34 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.2.0',
+    date: '19 March 2026',
+    title: 'Settings redesign and audio visualizer',
+    description:
+      'A polish pass on the desktop experience — the settings page got a full redesign, and the audio visualizer now has two styles to match your mood.',
+    categories: [
+      {
+        label: 'Visualizer',
+        entries: [
+          'Two visualizer styles: soft frequency bars and a dense waveform inspired by ElevenLabs UI.',
+          'Style picker in Settings lets you switch between bars and waveform.',
+          'Redesigned bar visualizer with center alignment, edge fading, and softer glow.',
+          'Visualizer toggle and style preference persist across restarts.',
+          'Content no longer hides behind the visualizer strip.',
+        ],
+      },
+      {
+        label: 'Settings',
+        entries: [
+          'Settings page redesigned with sidebar tab navigation.',
+          'Each section (Folders, Library, Downloads, Playback, Visualizer, Updates, About) is now its own panel.',
+          'Download tools section refactored with cleaner status rows and progress bars.',
+          'New reusable Switch component with spring animation.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.0',
     date: '19 March 2026',
     title: 'First public release',
