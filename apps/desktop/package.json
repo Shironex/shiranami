@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "package": "pnpm build && electron-builder --config electron-builder.json",
     "package:win": "pnpm build && electron-builder --config electron-builder.json --win",
+    "package:mac": "pnpm build && electron-builder --config electron-builder.json --mac",
     "postinstall": "electron-builder install-app-deps",
     "rebuild": "electron-builder install-app-deps"
   },

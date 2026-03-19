@@ -1,0 +1,20 @@
+{
+  "name": "@shiranami/landing",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev --port 3000",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@astrojs/sitemap": "^3.7.1",
+    "@tailwindcss/vite": "^4.2.1",
+    "astro": "^6.0.5",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
+  }
+}

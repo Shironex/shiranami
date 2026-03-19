@@ -1,0 +1,23 @@
+---
+import AppPreview from '../components/AppPreview.astro';
+import DownloadSection from '../components/DownloadSection.astro';
+import FeatureGrid from '../components/FeatureGrid.astro';
+import Footer from '../components/Footer.astro';
+import Hero from '../components/Hero.astro';
+import Navbar from '../components/Navbar.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Shiranami - Desktop music sanctuary"
+  description="A lofi desktop player for local music libraries, lyrics, playlists, and one-step downloads."
+>
+  <Navbar />
+  <main id="main">
+    <Hero />
+    <FeatureGrid />
+    <AppPreview />
+    <DownloadSection />
+  </main>
+  <Footer />
+</BaseLayout>

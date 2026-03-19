@@ -1,0 +1,176 @@
+---
+import { formatDate, GITHUB_RELEASES_API_URL, GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
+import Footer from '../components/Footer.astro';
+import Navbar from '../components/Navbar.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const fallbackPublishedAt = formatDate(new Date().toISOString());
+---
+
+<BaseLayout
+  title="Download Shiranami"
+  description="Download the latest Shiranami desktop build for Windows or macOS."
+>
+  <Navbar />
+  <main id="main" class="section-shell download-page">
+    <div class="section-heading reveal">
+      <div class="pill">Download</div>
+      <h1>Pick the build that fits your desk.</h1>
+      <p>
+        We detect your platform and pull the latest build from GitHub so you can start listening.
+      </p>
+    </div>
+
+    <div class="download-hero reveal">
+      <div class="download-summary">
+        <div class="version-badge" id="release-version">v{LANDING_VERSION}</div>
+        <p id="release-date">{fallbackPublishedAt}</p>
+        <strong id="release-title">First public build</strong>
+        <span id="release-state">Checking GitHub for the latest release&hellip;</span>
+      </div>
+    </div>
+
+    <div class="platform-grid reveal-stagger" id="platform-grid">
+      <article class="platform-card reveal" data-platform="win">
+        <div class="platform-top">
+          <strong>Windows</strong>
+          <span class="platform-pill" data-recommended hidden>Recommended</span>
+        </div>
+        <p>NSIS installer build for the main supported desktop platform.</p>
+        <div class="platform-meta">
+          <span data-size>Release page</span>
+          <span>.exe</span>
+        </div>
+        <a class="platform-link" id="primary-download" data-download href={GITHUB_RELEASES_LATEST_URL} target="_blank" rel="noreferrer">
+          Download Windows build
+        </a>
+      </article>
+
+      <article class="platform-card reveal" data-platform="mac">
+        <div class="platform-top">
+          <strong>macOS</strong>
+          <span class="platform-pill" data-recommended hidden>Recommended</span>
+        </div>
+        <p>DMG build for manual installation from the latest release.</p>
+        <div class="platform-meta">
+          <span data-size>Release page</span>
+          <span>.dmg</span>
+        </div>
+        <a class="platform-link" data-download href={GITHUB_RELEASES_LATEST_URL} target="_blank" rel="noreferrer">
+          Download macOS build
+        </a>
+      </article>
+    </div>
+
+    <div class="note-panel reveal">
+      <h2>Unsigned build notes</h2>
+      <p>Windows may show SmartScreen. macOS requires a Terminal command after each download before the app will launch.</p>
+      <pre><code>xattr -cr /Applications/Shiranami.app</code></pre>
+    </div>
+  </main>
+  <Footer />
+
+  <script
+    is:inline
+    define:vars={{
+      releasesApiUrl: GITHUB_RELEASES_API_URL,
+      releasesLatestUrl: GITHUB_RELEASES_LATEST_URL,
+      releaseVersionFallback: LANDING_VERSION,
+      fallbackPublishedAt,
+    }}
+  >
+    const detectPlatform = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes('mac')) return 'mac';
+      return 'win';
+    };
+
+    const formatPublishedDate = (value) =>
+      new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+        new Date(value)
+      );
+
+    const releaseVersion = document.getElementById('release-version');
+    const releaseDate = document.getElementById('release-date');
+    const releaseTitle = document.getElementById('release-title');
+    const releaseState = document.getElementById('release-state');
+    const primaryDownload = document.getElementById('primary-download');
+    const platformCards = Array.from(document.querySelectorAll('[data-platform]'));
+    const currentPlatform = detectPlatform();
+
+    const setRecommendedPlatform = (platform) => {
+      platformCards.forEach((card) => {
+        const recommended = card.querySelector('[data-recommended]');
+        const isCurrent = card.dataset.platform === platform;
+        card.classList.toggle('is-recommended', isCurrent);
+        if (recommended) {
+          recommended.hidden = !isCurrent;
+        }
+      });
+    };
+
+    const fallbackDownloadState = () => {
+      releaseVersion.textContent = `v${releaseVersionFallback}`;
+      releaseDate.textContent = fallbackPublishedAt;
+      releaseTitle.textContent = 'First public build';
+      releaseState.textContent = 'Release details will show up once the GitHub release goes live.';
+    };
+
+    const updatePlatformCard = (platform, asset) => {
+      const card = document.querySelector(`[data-platform="${platform}"]`);
+      if (!card || !asset) return;
+
+      const sizeNode = card.querySelector('[data-size]');
+      const linkNode = card.querySelector('[data-download]');
+
+      if (sizeNode) {
+        const mb = (asset.size / (1024 * 1024)).toFixed(1);
+        sizeNode.textContent = `${mb} MB`;
+      }
+
+      if (linkNode) {
+        linkNode.href = asset.browser_download_url;
+      }
+    };
+
+    const findAsset = (assets, platform) => {
+      const patterns = {
+        win: /\.exe$/i,
+        mac: /\.dmg$/i,
+      };
+
+      return assets.find((asset) => patterns[platform]?.test(asset.name));
+    };
+
+    setRecommendedPlatform(currentPlatform);
+    fallbackDownloadState();
+
+    fetch(releasesApiUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch latest release');
+        }
+        return response.json();
+      })
+      .then((release) => {
+        releaseVersion.textContent = release.tag_name;
+        releaseDate.textContent = formatPublishedDate(release.published_at);
+        releaseTitle.textContent = release.name || 'Latest public build';
+        releaseState.textContent = 'Pulled from GitHub just now.';
+
+        const winAsset = findAsset(release.assets, 'win');
+        const macAsset = findAsset(release.assets, 'mac');
+
+        updatePlatformCard('win', winAsset);
+        updatePlatformCard('mac', macAsset);
+
+        const preferredAsset = currentPlatform === 'mac' ? macAsset : winAsset;
+        if (primaryDownload) {
+          primaryDownload.href = preferredAsset?.browser_download_url || release.html_url || releasesLatestUrl;
+        }
+      })
+      .catch(() => {
+        fallbackDownloadState();
+      });
+  </script>
+</BaseLayout>

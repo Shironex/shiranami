@@ -1,0 +1,23 @@
+---
+import { Image } from 'astro:assets';
+import previewSrc from '../assets/app-preview.png';
+---
+
+<section class="section-shell section-stack" id="preview">
+  <div class="section-heading reveal">
+    <div class="pill">The app</div>
+    <h2>This is what it looks like.</h2>
+    <p>
+      Your library, now playing, and queue — all in one calm view.
+    </p>
+  </div>
+
+  <div class="app-frame reveal">
+    <Image
+      src={previewSrc}
+      alt="Shiranami desktop app showing the library view with a track playing"
+      width={1100}
+      quality={85}
+    />
+  </div>
+</section>

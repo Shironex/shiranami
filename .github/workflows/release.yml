@@ -1,4 +1,4 @@
-name: Release
+name: Release Build
 
 on:
   release:
@@ -7,80 +7,127 @@ on:
 permissions:
   contents: write
 
+env:
+  HUSKY: 0
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            platform: win
           - os: macos-latest
             platform: mac
+          - os: windows-latest
+            platform: win
 
-    name: Build (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - name: Extract version and channel from tag
+        id: version
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="${TAG_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          if echo "${VERSION}" | grep -qE '\-beta(\.|$)'; then
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+          elif echo "${VERSION}" | grep -qE '\-alpha(\.|$)'; then
+            echo "channel=alpha" >> "$GITHUB_OUTPUT"
+          else
+            echo "channel=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync package.json versions for tag
+        shell: bash
+        run: bash ./scripts/set-version-ci.sh "${{ steps.version.outputs.version }}"
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.9.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build shared packages
-        run: pnpm build:packages
+      - run: pnpm build:packages
 
-      - name: Extract version from tag
-        id: version
-        shell: bash
-        run: |
-          TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [[ "$TAG" == *"-alpha"* ]]; then
-            echo "channel=alpha" >> "$GITHUB_OUTPUT"
-          elif [[ "$TAG" == *"-beta"* ]]; then
-            echo "channel=beta" >> "$GITHUB_OUTPUT"
-          else
-            echo "channel=latest" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Build web frontend
+        run: pnpm --filter @shiranami/web build
 
-      - name: Update version in package.json files
-        shell: bash
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          for f in package.json apps/desktop/package.json apps/web/package.json packages/shared/package.json packages/database/package.json; do
-            node -e "
-              const fs = require('fs');
-              const pkg = JSON.parse(fs.readFileSync('$f', 'utf-8'));
-              pkg.version = '$VERSION';
-              fs.writeFileSync('$f', JSON.stringify(pkg, null, 2) + '\n');
-            "
-          done
+      - name: Build desktop app
+        run: pnpm --filter @shiranami/desktop build
 
-      - name: Build & Package (Windows)
-        if: matrix.platform == 'win'
-        run: pnpm --filter @shiranami/desktop package:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Package (macOS)
+      - name: Package macOS
         if: matrix.platform == 'mac'
-        run: pnpm --filter @shiranami/desktop package
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder --mac --publish never -c.publish.channel=${{ steps.version.outputs.channel }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload artifacts to release
+      - name: Package Windows
+        if: matrix.platform == 'win'
+        shell: bash
+        working-directory: apps/desktop
+        run: pnpm exec electron-builder --win --publish never -c.publish.channel=${{ steps.version.outputs.channel }}
+
+      - name: Upload macOS artifacts
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-builds
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*-mac.yml
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-builds
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest.yml
+          if-no-files-found: error
+          retention-days: 30
+
+  upload:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: macos-builds
+          path: artifacts/macos-builds
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: windows-builds
+          path: artifacts/windows-builds
+
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/desktop/release/*.*
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/macos-builds/*.dmg
+            artifacts/macos-builds/*-mac.yml
+            artifacts/windows-builds/*.exe
+            artifacts/windows-builds/*.blockmap
+            artifacts/windows-builds/*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

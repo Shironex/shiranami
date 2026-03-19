@@ -1,0 +1,45 @@
+---
+const features = [
+  {
+    icon: '\u266B',
+    title: 'Library first',
+    body: 'Built around your own folders and files, not around pushing you into an online catalog.',
+  },
+  {
+    icon: '\u2913',
+    title: 'Downloads that stay coherent',
+    body: 'yt-dlp and ffmpeg install together in one step, update checks are real, and the download folder is configurable.',
+  },
+  {
+    icon: '\u25B6',
+    title: 'Playback that remembers',
+    body: 'Volume, queue, track, and position all survive restarts so you pick up right where you left off.',
+  },
+  {
+    icon: '\u2726',
+    title: 'Quiet interface touches',
+    body: 'Collapsible sidebar, optional lyrics panel, and a cleaner now playing surface keep the layout relaxed.',
+  },
+];
+---
+
+<section class="section-shell section-stack" id="features">
+  <div class="section-heading reveal">
+    <div class="pill">What makes it feel like Shiranami</div>
+    <h2>Everything is aimed at a calmer listening flow.</h2>
+    <p>
+      The first release is about removing friction: less reloading, less setup repetition, and fewer
+      panels fighting for attention while you listen.
+    </p>
+  </div>
+
+  <div class="feature-grid reveal-stagger">
+    {features.map((feature) => (
+      <article class="feature-card reveal">
+        <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
+        <h3>{feature.title}</h3>
+        <p>{feature.body}</p>
+      </article>
+    ))}
+  </div>
+</section>

@@ -11,6 +11,7 @@ const root = resolve(__dirname, '..');
 const PACKAGE_FILES = [
   'package.json',
   'apps/desktop/package.json',
+  'apps/landing/package.json',
   'apps/web/package.json',
   'packages/shared/package.json',
   'packages/database/package.json',

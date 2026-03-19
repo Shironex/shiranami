@@ -1,0 +1,87 @@
+---
+import { Image } from 'astro:assets';
+import faviconSrc from '../assets/favicon.png';
+
+const currentPath = Astro.url.pathname;
+const isLanding = currentPath === '/' || currentPath === '';
+
+const navItems = isLanding
+  ? [
+      { href: '#features', label: 'Features' },
+      { href: '/changelog', label: 'Changelog' },
+      { href: '/download', label: 'Download' },
+    ]
+  : [
+      { href: '/', label: 'Home' },
+      { href: '/changelog', label: 'Changelog' },
+      { href: '/download', label: 'Download' },
+    ];
+---
+
+<header class="nav-wrap">
+  <nav class="nav-shell" aria-label="Primary">
+    <a href="/" class="brand-mark">
+      <Image src={faviconSrc} alt="Shiranami icon" width={28} height={28} />
+      <div>
+        <p>Shiranami</p>
+      </div>
+    </a>
+
+    <div class="nav-links">
+      {navItems.map((item) => (
+        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''}>{item.label}</a>
+      ))}
+    </div>
+
+    <div class="nav-end">
+      <a class="button-primary compact nav-cta-desktop" href="/download">Get the app</a>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-mobile" aria-hidden="true">
+    <div class="nav-mobile-inner">
+      {navItems.map((item) => (
+        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-nav-link>{item.label}</a>
+      ))}
+    </div>
+  </div>
+</header>
+
+<script>
+  function initMobileNav() {
+    const toggle = document.querySelector('.nav-toggle');
+    const mobile = document.querySelector('.nav-mobile') as HTMLElement | null;
+    const header = document.querySelector('.nav-wrap');
+    if (!toggle || !mobile || !header) return;
+
+    function closeMenu() {
+      mobile!.classList.remove('is-open');
+      mobile!.setAttribute('aria-hidden', 'true');
+      toggle!.setAttribute('aria-expanded', 'false');
+      header!.classList.remove('is-open');
+    }
+
+    function openMenu() {
+      mobile!.classList.add('is-open');
+      mobile!.setAttribute('aria-hidden', 'false');
+      toggle!.setAttribute('aria-expanded', 'true');
+      header!.classList.add('is-open');
+    }
+
+    toggle.addEventListener('click', () => {
+      const isOpen = mobile.classList.contains('is-open');
+      if (isOpen) closeMenu();
+      else openMenu();
+    });
+
+    mobile.querySelectorAll('a[data-nav-link]').forEach((link) => {
+      link.addEventListener('click', () => closeMenu());
+    });
+  }
+
+  document.addEventListener('astro:page-load', initMobileNav);
+</script>

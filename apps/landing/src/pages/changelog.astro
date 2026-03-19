@@ -1,0 +1,50 @@
+---
+import Footer from '../components/Footer.astro';
+import Navbar from '../components/Navbar.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { changelog } from '../lib/changelog';
+---
+
+<BaseLayout title="Changelog - Shiranami" description="Release notes and changes for Shiranami.">
+  <Navbar />
+  <main id="main" class="section-shell changelog-page">
+    <div class="changelog-header reveal">
+      <p class="changelog-label">Changelog</p>
+      <h1>What's new?</h1>
+      <p class="changelog-subtitle">Release history and changes in Shiranami.</p>
+    </div>
+
+    <div class="release-list">
+      {changelog.map((release) => (
+        <article class="release-entry reveal">
+          <div class="release-meta">
+            <span class="release-version-dot">
+              <span class="dot-pulse" />
+              <span>v{release.version}</span>
+            </span>
+            <span class="release-date">{release.date}</span>
+          </div>
+          <h2>{release.title}</h2>
+          <p class="release-description">{release.description}</p>
+
+          <div class="category-list">
+            {release.categories.map((category) => (
+              <div class="category-section">
+                <h3 class="category-label">{category.label}</h3>
+                <ul class="change-list">
+                  {category.entries.map((entry) => (
+                    <li>
+                      <svg class="change-dot" width="6" height="6" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="currentColor" /></svg>
+                      <span>{entry}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>

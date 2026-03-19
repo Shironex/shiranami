@@ -1,0 +1,40 @@
+---
+import { Image } from 'astro:assets';
+import mascotSrc from '../assets/mascot.png';
+import { LANDING_VERSION } from '../lib/site';
+
+const platforms = ['Windows', 'macOS'];
+---
+
+<section class="hero section-shell" id="top">
+  <div class="hero-panel reveal">
+    <div class="hero-copy">
+      <div class="hero-badges">
+        <div class="pill">Lofi desktop player</div>
+        <div class="version-badge">v{LANDING_VERSION}</div>
+      </div>
+      <h1>A softer place for your music library.</h1>
+      <p>
+        Shiranami keeps your local collection, playlists, lyrics, and new downloads in one calm
+        desktop space with the same dark lavender mood as the app itself.
+      </p>
+
+      <div class="hero-actions">
+        <a class="button-primary" href="/download">Get the app</a>
+        <a class="button-secondary" href="/changelog">Release notes</a>
+      </div>
+
+      <p class="hero-platforms">Available for {platforms.join(' and ')}</p>
+    </div>
+
+    <div class="hero-mascot-wrap">
+      <Image class="hero-mascot" src={mascotSrc} alt="Shiranami mascot" width={256} height={256} format="png" />
+    </div>
+  </div>
+
+  <div class="lofi-divider reveal" aria-hidden="true">
+    {Array.from({ length: 72 }).map((_, index) => (
+      <span style={`animation-delay:${index * 0.05}s`} />
+    ))}
+  </div>
+</section>

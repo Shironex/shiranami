@@ -6,7 +6,7 @@
     "output": "release",
     "buildResources": "resources"
   },
-  "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts"],
+  "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts", "!dist/**/*.d.ts"],
   "extraResources": [
     { "from": "resources/tray-icon.png", "to": "tray-icon.png" },
     { "from": "resources/icon-16.png", "to": "icon-16.png" },
@@ -19,6 +19,11 @@
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,
+  "publish": {
+    "provider": "github",
+    "owner": "Shironex",
+    "repo": "shiranami"
+  },
   "mac": {
     "category": "public.app-category.music",
     "icon": "resources/icon.png",

@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  contents: read
+  pull-requests: read
+
 on:
   push:
     branches: [master]
@@ -7,41 +11,147 @@ on:
     branches: [master]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: 0
+
 jobs:
-  lint-and-typecheck:
-    name: Lint & Type Check
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' }}
+      landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            root:
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - 'eslint.config.mjs'
+              - '.prettierrc'
+              - '.gitignore'
+            ci:
+              - '.github/**'
+              - 'scripts/set-version-ci.sh'
+              - 'scripts/bump-version.mjs'
+            shared:
+              - 'packages/shared/**'
+            database:
+              - 'packages/database/**'
+            web:
+              - 'apps/web/**'
+            desktop:
+              - 'apps/desktop/**'
+            landing:
+              - 'apps/landing/**'
+              - 'Dockerfile.landing'
+              - 'README.md'
+
+  lint:
+    name: Lint
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.landing == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10.9.0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build shared packages
-        run: pnpm build:packages
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm lint
 
-      - name: Type check - shared
-        run: pnpm --filter @shiranami/shared typecheck
+  typecheck:
+    name: Type Check
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Type check - database
-        run: pnpm --filter @shiranami/database typecheck
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
 
-      - name: Type check - web
-        run: pnpm --filter @shiranami/web typecheck
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
 
-      - name: Type check - desktop
-        run: pnpm --filter @shiranami/desktop typecheck
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      - name: Type check
+        run: pnpm typecheck
+
+  landing:
+    name: Landing Check
+    needs: [changes]
+    if: needs.changes.outputs.landing == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Astro check
+        run: pnpm check:landing
+
+      - name: Build landing site
+        run: pnpm build:landing
+
+  ci-result:
+    name: CI Result
+    if: always()
+    needs: [lint, typecheck, landing]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI outcome
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One or more CI jobs failed"
+            exit 1
+          fi
+          echo "All CI jobs passed or were skipped"
