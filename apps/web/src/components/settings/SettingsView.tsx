@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import {
@@ -103,6 +104,8 @@ export function SettingsView() {
   // yt-dlp state
   const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
   const [ytdlpVersion, setYtdlpVersion] = useState<string | undefined>();
+  const [ytdlpLatestVersion, setYtdlpLatestVersion] = useState<string | undefined>();
+  const [ytdlpUpdateAvailable, setYtdlpUpdateAvailable] = useState(false);
   const [ytdlpPath, setYtdlpPath] = useState<string>('');
   const [ytdlpInstalling, setYtdlpInstalling] = useState(false);
   const [ytdlpInstallProgress, setYtdlpInstallProgress] = useState(0);
@@ -110,8 +113,15 @@ export function SettingsView() {
   // ffmpeg state
   const [ffmpegInstalled, setFfmpegInstalled] = useState<boolean | null>(null);
   const [ffmpegVersion, setFfmpegVersion] = useState<string | undefined>();
+  const [ffmpegLatestVersion, setFfmpegLatestVersion] = useState<string | undefined>();
+  const [ffmpegUpdateAvailable, setFfmpegUpdateAvailable] = useState(false);
   const [ffmpegInstalling, setFfmpegInstalling] = useState(false);
   const [ffmpegInstallProgress, setFfmpegInstallProgress] = useState(0);
+  const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
+  const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
+  const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
+  const startDependencyInstall = useDownloadStore((s) => s.startDependencyInstall);
+  const stopDependencyInstall = useDownloadStore((s) => s.stopDependencyInstall);
 
   // Load folders, settings, and version on mount
   useEffect(() => {
@@ -142,37 +152,56 @@ export function SettingsView() {
     load();
   }, []);
 
-  // Load yt-dlp and ffmpeg info on mount
+  const refreshDownloadToolStatus = useCallback(async () => {
+    if (!IS_ELECTRON) {
+      return {
+        ytdlpInstalled: false,
+        ffmpegInstalled: false,
+      };
+    }
+
+    try {
+      const [ytdlpResult, binPath, ffmpegResult] = await Promise.all([
+        window.electronAPI.downloader.check(),
+        window.electronAPI.downloader.getYtDlpPath(),
+        window.electronAPI.downloader.checkFfmpeg(),
+      ]);
+
+      setYtdlpInstalled(ytdlpResult.installed);
+      setYtdlpVersion(ytdlpResult.version);
+      setYtdlpLatestVersion(ytdlpResult.latestVersion);
+      setYtdlpUpdateAvailable(Boolean(ytdlpResult.updateAvailable));
+      setYtdlpPath(binPath);
+
+      setFfmpegInstalled(ffmpegResult.installed);
+      setFfmpegVersion(ffmpegResult.version);
+      setFfmpegLatestVersion(ffmpegResult.latestVersion);
+      setFfmpegUpdateAvailable(Boolean(ffmpegResult.updateAvailable));
+
+      return {
+        ytdlpInstalled: ytdlpResult.installed,
+        ffmpegInstalled: ffmpegResult.installed,
+      };
+    } catch {
+      setYtdlpInstalled(false);
+      setYtdlpVersion(undefined);
+      setYtdlpLatestVersion(undefined);
+      setYtdlpUpdateAvailable(false);
+      setFfmpegInstalled(false);
+      setFfmpegVersion(undefined);
+      setFfmpegLatestVersion(undefined);
+      setFfmpegUpdateAvailable(false);
+      return {
+        ytdlpInstalled: false,
+        ffmpegInstalled: false,
+      };
+    }
+  }, []);
+
   useEffect(() => {
     if (!IS_ELECTRON) return;
-
-    async function loadYtdlp() {
-      try {
-        const [checkResult, binPath] = await Promise.all([
-          window.electronAPI.downloader.check(),
-          window.electronAPI.downloader.getYtDlpPath(),
-        ]);
-        setYtdlpInstalled(checkResult.installed);
-        setYtdlpVersion(checkResult.version);
-        setYtdlpPath(binPath);
-      } catch {
-        setYtdlpInstalled(false);
-      }
-    }
-
-    async function loadFfmpeg() {
-      try {
-        const result = await window.electronAPI.downloader.checkFfmpeg();
-        setFfmpegInstalled(result.installed);
-        setFfmpegVersion(result.version);
-      } catch {
-        setFfmpegInstalled(false);
-      }
-    }
-
-    loadYtdlp();
-    loadFfmpeg();
-  }, []);
+    refreshDownloadToolStatus();
+  }, [refreshDownloadToolStatus]);
 
   // Listen for yt-dlp install progress
   useEffect(() => {
@@ -204,24 +233,20 @@ export function SettingsView() {
     try {
       const result = await window.electronAPI.downloader.installYtDlp();
       if (result.success) {
-        toast.success('yt-dlp installed successfully');
-        const [checkResult, binPath] = await Promise.all([
-          window.electronAPI.downloader.check(),
-          window.electronAPI.downloader.getYtDlpPath(),
-        ]);
-        setYtdlpInstalled(checkResult.installed);
-        setYtdlpVersion(checkResult.version);
-        setYtdlpPath(binPath);
+        toast.success('yt-dlp installed successfully', { id: 'ytdlp-install' });
+        await refreshDownloadToolStatus();
       } else {
-        toast.error(`Failed to install yt-dlp: ${result.error ?? 'Unknown error'}`);
+        toast.error(`Failed to install yt-dlp: ${result.error ?? 'Unknown error'}`, {
+          id: 'ytdlp-install',
+        });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Installation failed';
-      toast.error(`Failed to install yt-dlp: ${msg}`);
+      toast.error(`Failed to install yt-dlp: ${msg}`, { id: 'ytdlp-install' });
     } finally {
       setYtdlpInstalling(false);
     }
-  }, []);
+  }, [refreshDownloadToolStatus]);
 
   const handleInstallFfmpeg = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -231,20 +256,52 @@ export function SettingsView() {
     try {
       const result = await window.electronAPI.downloader.installFfmpeg();
       if (result.success) {
-        toast.success('ffmpeg installed successfully');
-        const checkResult = await window.electronAPI.downloader.checkFfmpeg();
-        setFfmpegInstalled(checkResult.installed);
-        setFfmpegVersion(checkResult.version);
+        toast.success('ffmpeg installed successfully', { id: 'ffmpeg-install' });
+        await refreshDownloadToolStatus();
       } else {
-        toast.error(`Failed to install ffmpeg: ${result.error ?? 'Unknown error'}`);
+        toast.error(`Failed to install ffmpeg: ${result.error ?? 'Unknown error'}`, {
+          id: 'ffmpeg-install',
+        });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Installation failed';
-      toast.error(`Failed to install ffmpeg: ${msg}`);
+      toast.error(`Failed to install ffmpeg: ${msg}`, { id: 'ffmpeg-install' });
     } finally {
       setFfmpegInstalling(false);
     }
-  }, []);
+  }, [refreshDownloadToolStatus]);
+
+  const handleInstallMissingTools = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    startDependencyInstall();
+
+    try {
+      const result = await window.electronAPI.downloader.installDependencies();
+      const snapshot = await refreshDownloadToolStatus();
+
+      if (result.success) {
+        toast.success('Download tools installed successfully', {
+          id: 'dependency-install',
+        });
+      } else if (snapshot.ytdlpInstalled) {
+        toast.error(result.error ?? 'ffmpeg could not be installed completely', {
+          id: 'dependency-install',
+        });
+      } else {
+        toast.error(result.error ?? 'Failed to install missing tools', {
+          id: 'dependency-install',
+        });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Installation failed';
+      toast.error(`Failed to install missing tools: ${msg}`, {
+        id: 'dependency-install',
+      });
+      await refreshDownloadToolStatus();
+    } finally {
+      stopDependencyInstall();
+    }
+  }, [refreshDownloadToolStatus, startDependencyInstall, stopDependencyInstall]);
 
   const handleAddFolder = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -480,6 +537,12 @@ export function SettingsView() {
     [settings]
   );
 
+  const isCheckingDownloadTools =
+    ytdlpInstalled === null || ffmpegInstalled === null;
+  const hasMissingDownloadTools =
+    ytdlpInstalled === false || ffmpegInstalled === false;
+  const dependenciesInstalling = isDependencyInstallInProgress;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6">
@@ -630,125 +693,209 @@ export function SettingsView() {
             />
 
             <div className="space-y-3">
-              {/* Status */}
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
-                {ytdlpInstalled === null ? (
-                  <>
-                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                    <span className="text-sm text-muted-foreground">Checking yt-dlp...</span>
-                  </>
-                ) : ytdlpInstalled ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-foreground">yt-dlp installed</span>
-                    {ytdlpVersion && (
-                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                        v{ytdlpVersion}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">yt-dlp not installed</span>
-                  </>
-                )}
-              </div>
-
-              {/* Binary path */}
-              {ytdlpPath && (
-                <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
-                  <p className="text-xs text-muted-foreground mb-1">Binary path</p>
-                  <p className="text-xs text-foreground font-mono truncate">{ytdlpPath}</p>
-                </div>
-              )}
-
-              {/* Download location */}
-              <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
-                <p className="text-xs text-muted-foreground mb-1">Download location</p>
-                <p className="text-xs text-foreground font-mono truncate">~/Music/Shiranami Downloads/</p>
-              </div>
-
-              {/* Install/Update button */}
-              {ytdlpInstalling ? (
-                <div className="space-y-2 px-1">
-                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-300"
-                      style={{ width: `${ytdlpInstallProgress}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Downloading yt-dlp... {ytdlpInstallProgress}%
-                  </p>
+              {isCheckingDownloadTools ? (
+                <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-background/50 border border-border/20 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Checking download tools...</span>
                 </div>
               ) : (
-                <button
-                  onClick={handleInstallYtDlp}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  {ytdlpInstalled ? 'Update yt-dlp' : 'Download yt-dlp'}
-                </button>
-              )}
+                <>
+                  {hasMissingDownloadTools && (
+                    <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-foreground">
+                          Install missing tools in one pass
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-5">
+                          Shiranami will download yt-dlp and ffmpeg, then unpack everything it
+                          needs automatically.
+                        </p>
+                      </div>
 
-              {/* ffmpeg section */}
-              <div className="border-t border-border/20 pt-3 mt-3" />
+                      {dependenciesInstalling ? (
+                        <div className="space-y-2">
+                          <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all duration-300"
+                              style={{ width: `${dependencyInstallProgress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {dependencyInstallLabel}... {dependencyInstallProgress}%
+                          </p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleInstallMissingTools}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          <ArrowDownToLine className="w-3.5 h-3.5" />
+                          Install Missing Tools
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-              {/* ffmpeg status */}
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
-                {ffmpegInstalled === null ? (
-                  <>
-                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                    <span className="text-sm text-muted-foreground">Checking ffmpeg...</span>
-                  </>
-                ) : ffmpegInstalled ? (
-                  <>
-                    <Check className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-foreground">ffmpeg installed</span>
-                    {ffmpegVersion && (
-                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                        {ffmpegVersion}
-                      </span>
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+                    {ytdlpInstalled ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-400" />
+                        <span className="text-sm text-foreground">yt-dlp installed</span>
+                        {ytdlpUpdateAvailable ? (
+                          <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-amber-300">
+                            Update available
+                          </span>
+                        ) : (
+                          <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                            Up to date
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">yt-dlp not installed</span>
+                      </>
                     )}
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-foreground">ffmpeg not installed</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground/60">optional</span>
-                  </>
-                )}
-              </div>
-
-              {!ffmpegInstalled && ffmpegInstalled !== null && (
-                <p className="text-xs text-muted-foreground/60 px-1">
-                  ffmpeg enables MP3 conversion and thumbnail embedding for downloads.
-                  Without it, audio downloads as webm/opus format.
-                </p>
-              )}
-
-              {/* ffmpeg install/update */}
-              {ffmpegInstalling ? (
-                <div className="space-y-2 px-1">
-                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-300"
-                      style={{ width: `${ffmpegInstallProgress}%` }}
-                    />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Downloading ffmpeg... {ffmpegInstallProgress}%
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={handleInstallFfmpeg}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  {ffmpegInstalled ? 'Update ffmpeg' : 'Download ffmpeg'}
-                </button>
+
+                  {ytdlpPath && (
+                    <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
+                      <p className="text-xs text-muted-foreground mb-1">Binary path</p>
+                      <p className="text-xs text-foreground font-mono truncate">{ytdlpPath}</p>
+                    </div>
+                  )}
+
+                  <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">Installed version</p>
+                      <p className="ml-auto text-xs text-foreground font-mono tabular-nums">
+                        {ytdlpVersion ? `v${ytdlpVersion}` : ytdlpInstalled ? 'Unknown' : 'Not installed'}
+                      </p>
+                    </div>
+                    {ytdlpLatestVersion && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Latest release</p>
+                        <p className="ml-auto text-xs text-foreground font-mono tabular-nums">
+                          v{ytdlpLatestVersion}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
+                    <p className="text-xs text-muted-foreground mb-1">Download location</p>
+                    <p className="text-xs text-foreground font-mono truncate">
+                      ~/Music/Shiranami Downloads/
+                    </p>
+                  </div>
+
+                  {ytdlpInstalling ? (
+                    <div className="space-y-2 px-1">
+                      <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-300"
+                          style={{ width: `${ytdlpInstallProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Downloading yt-dlp... {ytdlpInstallProgress}%
+                      </p>
+                    </div>
+                  ) : ytdlpInstalled && ytdlpUpdateAvailable ? (
+                    <button
+                      onClick={handleInstallYtDlp}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Update yt-dlp
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground/60 px-1">
+                      {ytdlpInstalled
+                        ? 'yt-dlp is already on the latest release.'
+                        : 'Install missing tools above to add yt-dlp.'}
+                    </p>
+                  )}
+
+                  <div className="border-t border-border/20 pt-3 mt-3" />
+
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+                    {ffmpegInstalled ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-400" />
+                        <span className="text-sm text-foreground">ffmpeg installed</span>
+                        {ffmpegUpdateAvailable ? (
+                          <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-amber-300">
+                            Update available
+                          </span>
+                        ) : (
+                          <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                            Up to date
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm text-foreground">ffmpeg not installed</span>
+                        <span className="ml-auto text-[10px] text-muted-foreground/60">recommended</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">Installed version</p>
+                      <p className="ml-auto text-xs text-foreground font-mono tabular-nums">
+                        {ffmpegVersion ?? (ffmpegInstalled ? 'Unknown' : 'Not installed')}
+                      </p>
+                    </div>
+                    {ffmpegLatestVersion && (
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Latest release</p>
+                        <p className="ml-auto text-xs text-foreground font-mono tabular-nums">
+                          {ffmpegLatestVersion}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {!ffmpegInstalled && (
+                    <p className="text-xs text-muted-foreground/60 px-1">
+                      ffmpeg enables MP3 conversion and thumbnail embedding for downloads.
+                      Without it, audio downloads as webm or opus.
+                    </p>
+                  )}
+
+                  {ffmpegInstalling ? (
+                    <div className="space-y-2 px-1">
+                      <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all duration-300"
+                          style={{ width: `${ffmpegInstallProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Downloading ffmpeg... {ffmpegInstallProgress}%
+                      </p>
+                    </div>
+                  ) : ffmpegInstalled && ffmpegUpdateAvailable ? (
+                    <button
+                      onClick={handleInstallFfmpeg}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Update ffmpeg
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground/60 px-1">
+                      {ffmpegInstalled
+                        ? 'ffmpeg is already on the latest release.'
+                        : 'Install missing tools above to add ffmpeg automatically.'}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </section>

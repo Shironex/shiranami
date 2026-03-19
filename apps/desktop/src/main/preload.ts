@@ -47,12 +47,14 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:playlists:reorder',
   'shell:show-in-folder',
   'downloader:check',
+  'downloader:check-dependencies',
   'downloader:search',
   'downloader:download',
   'downloader:install-ytdlp',
   'downloader:get-ytdlp-path',
   'downloader:check-ffmpeg',
   'downloader:install-ffmpeg',
+  'downloader:install-dependencies',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -180,7 +182,13 @@ export interface ElectronAPI {
       webpage_url: string;
     }>>;
     download: (url: string) => Promise<string>;
-    check: () => Promise<{ installed: boolean; version?: string }>;
+    checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
+    check: () => Promise<{
+      installed: boolean;
+      version?: string;
+      latestVersion?: string;
+      updateAvailable?: boolean;
+    }>;
     onProgress: (callback: (data: {
       url: string;
       progress: number;
@@ -190,9 +198,21 @@ export interface ElectronAPI {
     installYtDlp: () => Promise<{ success: boolean; error?: string }>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
-    checkFfmpeg: () => Promise<{ installed: boolean; version?: string }>;
+    checkFfmpeg: () => Promise<{
+      installed: boolean;
+      version?: string;
+      latestVersion?: string;
+      updateAvailable?: boolean;
+    }>;
     installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
+    installDependencies: () => Promise<{ success: boolean; error?: string }>;
+    onDependencyInstallProgress: (callback: (progress: {
+      target: 'ytdlp' | 'ffmpeg';
+      percent: number;
+      overallPercent: number;
+      label: string;
+    }) => void) => () => void;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
@@ -276,6 +296,7 @@ const electronAPI: ElectronAPI = {
   downloader: {
     search: (query: string) => ipcRenderer.invoke('downloader:search', query),
     download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),
+    checkDependencies: () => ipcRenderer.invoke('downloader:check-dependencies'),
     check: () => ipcRenderer.invoke('downloader:check'),
     onProgress: createIpcListener<{
       url: string;
@@ -289,6 +310,13 @@ const electronAPI: ElectronAPI = {
     checkFfmpeg: () => ipcRenderer.invoke('downloader:check-ffmpeg'),
     installFfmpeg: () => ipcRenderer.invoke('downloader:install-ffmpeg'),
     onFfmpegInstallProgress: createIpcListener<{ percent: number }>('downloader:ffmpeg-install-progress'),
+    installDependencies: () => ipcRenderer.invoke('downloader:install-dependencies'),
+    onDependencyInstallProgress: createIpcListener<{
+      target: 'ytdlp' | 'ffmpeg';
+      percent: number;
+      overallPercent: number;
+      label: string;
+    }>('downloader:dependency-install-progress'),
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -15,7 +15,6 @@ import { SearchView } from '@/components/search/SearchView';
 import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
-import { Toaster } from '@/components/ui/sonner';
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -24,6 +23,7 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useDownloadStore } from '@/stores/useDownloadStore';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -41,6 +41,15 @@ function App() {
   const rightPanel = useAppStore(s => s.rightPanel);
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
   const showVisualizer = useAppStore(s => s.showVisualizer);
+  const updateDependencyInstall = useDownloadStore((s) => s.updateDependencyInstall);
+
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.downloader.onDependencyInstallProgress((progress) => {
+      updateDependencyInstall(progress);
+    });
+    return cleanup;
+  }, [updateDependencyInstall]);
 
   return (
     <>
@@ -106,8 +115,6 @@ function App() {
           </div>
         </div>
       )}
-
-      <Toaster />
     </>
   );
 }

@@ -3,8 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from './logger';
+import { requestJson } from './http';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
+const GITHUB_RELEASE_API = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
+
+interface GithubLatestReleaseResponse {
+  tag_name?: string;
+}
 
 function getAssetUrl(): string {
   switch (process.platform) {
@@ -79,6 +85,21 @@ export async function getYtDlpVersion(): Promise<string | null> {
     });
   } catch (err) {
     logger.error('[ytdlp-manager] Failed to get version:', err);
+    return null;
+  }
+}
+
+export async function getLatestYtDlpVersion(): Promise<string | null> {
+  try {
+    const release = await requestJson<GithubLatestReleaseResponse>(GITHUB_RELEASE_API, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'Shiranami',
+      },
+    });
+    return release.tag_name?.trim() || null;
+  } catch (err) {
+    logger.error('[ytdlp-manager] Failed to get latest release version:', err);
     return null;
   }
 }

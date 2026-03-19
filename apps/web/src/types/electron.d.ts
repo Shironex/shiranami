@@ -111,14 +111,32 @@ export interface ElectronAPI {
   downloader: {
     search: (query: string) => Promise<SearchResult[]>;
     download: (url: string) => Promise<string>;
-    check: () => Promise<{ installed: boolean; version?: string }>;
+    checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
+    check: () => Promise<{
+      installed: boolean;
+      version?: string;
+      latestVersion?: string;
+      updateAvailable?: boolean;
+    }>;
     onProgress: (callback: (data: DownloadProgress) => void) => () => void;
     installYtDlp: () => Promise<{ success: boolean; error?: string }>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
-    checkFfmpeg: () => Promise<{ installed: boolean; version?: string }>;
+    checkFfmpeg: () => Promise<{
+      installed: boolean;
+      version?: string;
+      latestVersion?: string;
+      updateAvailable?: boolean;
+    }>;
     installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
+    installDependencies: () => Promise<{ success: boolean; error?: string }>;
+    onDependencyInstallProgress: (callback: (progress: {
+      target: 'ytdlp' | 'ffmpeg';
+      percent: number;
+      overallPercent: number;
+      label: string;
+    }) => void) => () => void;
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;

@@ -3,6 +3,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from './logger';
+import { requestJson, requestText } from './http';
+
+const FFMPEG_WINDOWS_VERSION_URL =
+  'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip.ver';
+const FFMPEG_MAC_INFO_URL = 'https://evermeet.cx/ffmpeg/info/ffmpeg/release';
+
+interface EvermeetReleaseResponse {
+  version?: string;
+}
 
 function getBinDir(): string {
   if (app.isPackaged) {
@@ -70,6 +79,25 @@ export async function getFFmpegVersion(): Promise<string | null> {
     });
   } catch (err) {
     logger.error('[ffmpeg-manager] Failed to get version:', err);
+    return null;
+  }
+}
+
+export async function getLatestFFmpegVersion(): Promise<string | null> {
+  try {
+    if (process.platform === 'darwin') {
+      const info = await requestJson<EvermeetReleaseResponse>(FFMPEG_MAC_INFO_URL);
+      return info.version?.trim() || null;
+    }
+
+    if (process.platform === 'win32') {
+      const version = await requestText(FFMPEG_WINDOWS_VERSION_URL);
+      return version.trim() || null;
+    }
+
+    return null;
+  } catch (err) {
+    logger.error('[ffmpeg-manager] Failed to get latest release version:', err);
     return null;
   }
 }

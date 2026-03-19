@@ -7,12 +7,14 @@ import {
   getYtDlpPath,
   isYtDlpInstalled,
   getYtDlpVersion,
+  getLatestYtDlpVersion,
   downloadYtDlp,
 } from '../ytdlp-manager';
 import {
   getFFmpegDir,
   isFFmpegInstalled,
   getFFmpegVersion,
+  getLatestFFmpegVersion,
   downloadFFmpeg,
 } from '../ffmpeg-manager';
 
@@ -31,6 +33,20 @@ export interface DownloadProgress {
   progress: number;
   status: 'downloading' | 'converting' | 'done' | 'error';
   error?: string;
+}
+
+interface BinaryStatus {
+  installed: boolean;
+  version?: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+}
+
+interface DependencyInstallProgress {
+  target: 'ytdlp' | 'ffmpeg';
+  percent: number;
+  overallPercent: number;
+  label: string;
 }
 
 function getMainWindow(): BrowserWindow | null {
@@ -66,22 +82,87 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
   });
 }
 
+function extractVersionSegments(version: string | null | undefined): number[] {
+  if (!version) return [];
+
+  const match = version.match(/\d+(?:\.\d+)*/);
+  if (!match) return [];
+
+  return match[0]
+    .split('.')
+    .map((part) => Number.parseInt(part, 10))
+    .filter((part) => Number.isFinite(part));
+}
+
+function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
+  const currentSegments = extractVersionSegments(currentVersion);
+  const latestSegments = extractVersionSegments(latestVersion);
+
+  if (currentSegments.length === 0 || latestSegments.length === 0) {
+    return false;
+  }
+
+  const maxLength = Math.max(currentSegments.length, latestSegments.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const current = currentSegments[index] ?? 0;
+    const latest = latestSegments[index] ?? 0;
+
+    if (latest > current) return true;
+    if (latest < current) return false;
+  }
+
+  return false;
+}
+
+async function getYtDlpStatus(): Promise<BinaryStatus> {
+  const installed = isYtDlpInstalled();
+
+  const [version, latestVersion] = await Promise.all([
+    installed ? getYtDlpVersion().catch(() => null) : Promise.resolve<string | null>(null),
+    getLatestYtDlpVersion().catch(() => null),
+  ]);
+
+  return {
+    installed,
+    version: version ?? undefined,
+    latestVersion: latestVersion ?? undefined,
+    updateAvailable: installed ? hasUpdate(version, latestVersion) : undefined,
+  };
+}
+
+async function getFFmpegStatus(): Promise<BinaryStatus> {
+  const installed = isFFmpegInstalled();
+
+  const [version, latestVersion] = await Promise.all([
+    installed ? getFFmpegVersion().catch(() => null) : Promise.resolve<string | null>(null),
+    getLatestFFmpegVersion().catch(() => null),
+  ]);
+
+  return {
+    installed,
+    version: version ?? undefined,
+    latestVersion: latestVersion ?? undefined,
+    updateAvailable: installed ? hasUpdate(version, latestVersion) : undefined,
+  };
+}
+
 export function registerDownloaderHandlers(): void {
-  // Check if yt-dlp is installed; version is fetched async (may be slow on first run)
+  ipcMain.handle('downloader:check-dependencies', async () => {
+    return {
+      ytdlpInstalled: isYtDlpInstalled(),
+      ffmpegInstalled: isFFmpegInstalled(),
+    };
+  });
+
   ipcMain.handle('downloader:check', async () => {
     try {
-      if (!isYtDlpInstalled()) {
-        return { installed: false };
-      }
-      // Binary exists — report installed immediately, version async
-      const version = await getYtDlpVersion();
-      return { installed: true, version: version ?? undefined };
+      return await getYtDlpStatus();
     } catch {
       return { installed: isYtDlpInstalled() };
     }
   });
 
-  // Search YouTube for music
   ipcMain.handle('downloader:search', async (_event, query: string) => {
     logger.info(`[downloader] Searching: ${query}`);
     try {
@@ -96,7 +177,6 @@ export function registerDownloaderHandlers(): void {
         throw new Error('yt-dlp search failed');
       }
 
-      // Each line is a separate JSON object
       const results: SearchResult[] = stdout
         .trim()
         .split('\n')
@@ -117,7 +197,7 @@ export function registerDownloaderHandlers(): void {
             return null;
           }
         })
-        .filter((r): r is SearchResult => r !== null);
+        .filter((result): result is SearchResult => result !== null);
 
       logger.info(`[downloader] Found ${results.length} results`);
       return results;
@@ -127,7 +207,6 @@ export function registerDownloaderHandlers(): void {
     }
   });
 
-  // Download a video as audio
   ipcMain.handle(
     'downloader:download',
     async (_event, opts: { url: string; outputDir?: string }) => {
@@ -148,8 +227,6 @@ export function registerDownloaderHandlers(): void {
       return new Promise<string>((resolve, reject) => {
         const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
 
-        // Check if ffmpeg is available for audio conversion
-        // First check our managed bin dir, then fall back to system PATH
         let hasFFmpeg = false;
         let ffmpegLocation: string | null = null;
 
@@ -173,12 +250,27 @@ export function registerDownloaderHandlers(): void {
           args.push('--ffmpeg-location', ffmpegLocation);
         }
         if (hasFFmpeg) {
-          args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0', '--embed-thumbnail', '--add-metadata');
+          args.push(
+            '-x',
+            '--audio-format',
+            'mp3',
+            '--audio-quality',
+            '0',
+            '--embed-thumbnail',
+            '--add-metadata'
+          );
         } else {
-          // Without ffmpeg: download best audio as-is (usually webm/opus or m4a)
           args.push('-f', 'bestaudio', '--add-metadata');
         }
-        args.push('--no-warnings', '--newline', '--print', 'after_move:filepath', '-o', outputTemplate, url);
+        args.push(
+          '--no-warnings',
+          '--newline',
+          '--print',
+          'after_move:filepath',
+          '-o',
+          outputTemplate,
+          url
+        );
 
         const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
 
@@ -189,14 +281,12 @@ export function registerDownloaderHandlers(): void {
           const text = data.toString();
           allOutput += text;
 
-          // Parse progress lines like: [download]  45.2% of 5.23MiB ...
           const progressMatch = text.match(/\[download\]\s+([\d.]+)%/);
           if (progressMatch) {
             const pct = parseFloat(progressMatch[1]);
             sendProgress({ url, progress: pct, status: 'downloading' });
           }
 
-          // Detect conversion phase
           if (text.includes('[ExtractAudio]') || text.includes('[Merger]')) {
             sendProgress({ url, progress: 100, status: 'converting' });
           }
@@ -219,12 +309,9 @@ export function registerDownloaderHandlers(): void {
             return;
           }
 
-          // The last non-empty line of stdout should be the filepath from --print
           const lines = allOutput.trim().split('\n').filter(Boolean);
-          // Find the filepath output (the line printed by --print after_move:filepath)
-          // It's the last line that looks like a file path (not a yt-dlp progress line)
-          for (let i = lines.length - 1; i >= 0; i--) {
-            const line = lines[i].trim();
+          for (let index = lines.length - 1; index >= 0; index -= 1) {
+            const line = lines[index].trim();
             if (line && !line.startsWith('[') && !line.startsWith('Deleting')) {
               downloadedFilePath = line;
               break;
@@ -232,7 +319,6 @@ export function registerDownloaderHandlers(): void {
           }
 
           if (!downloadedFilePath) {
-            // Fallback: look for .mp3 files in the output directory
             const errMsg = 'Could not determine downloaded file path';
             sendProgress({ url, progress: 0, status: 'error', error: errMsg });
             reject(new Error(errMsg));
@@ -247,7 +333,6 @@ export function registerDownloaderHandlers(): void {
     }
   );
 
-  // Install yt-dlp binary
   ipcMain.handle('downloader:install-ytdlp', async () => {
     try {
       const mainWindow = getMainWindow();
@@ -264,25 +349,18 @@ export function registerDownloaderHandlers(): void {
     }
   });
 
-  // Get yt-dlp binary path
   ipcMain.handle('downloader:get-ytdlp-path', async () => {
     return getYtDlpPath();
   });
 
-  // Check if ffmpeg is installed
   ipcMain.handle('downloader:check-ffmpeg', async () => {
     try {
-      if (!isFFmpegInstalled()) {
-        return { installed: false };
-      }
-      const version = await getFFmpegVersion();
-      return { installed: true, version: version ?? undefined };
+      return await getFFmpegStatus();
     } catch {
       return { installed: isFFmpegInstalled() };
     }
   });
 
-  // Install ffmpeg + ffprobe
   ipcMain.handle('downloader:install-ffmpeg', async () => {
     try {
       const mainWindow = getMainWindow();
@@ -298,9 +376,78 @@ export function registerDownloaderHandlers(): void {
       return { success: false, error: errorMessage };
     }
   });
+
+  ipcMain.handle('downloader:install-dependencies', async () => {
+    const mainWindow = getMainWindow();
+    const targets: Array<'ytdlp' | 'ffmpeg'> = [];
+
+    if (!isYtDlpInstalled()) {
+      targets.push('ytdlp');
+    }
+    if (!isFFmpegInstalled()) {
+      targets.push('ffmpeg');
+    }
+
+    if (targets.length === 0) {
+      return { success: true };
+    }
+
+    const stepWeight = 100 / targets.length;
+    const sendProgress = (progress: DependencyInstallProgress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('downloader:dependency-install-progress', progress);
+      }
+    };
+
+    try {
+      for (const [index, target] of targets.entries()) {
+        const offset = index * stepWeight;
+
+        if (target === 'ytdlp') {
+          await downloadYtDlp((percent) => {
+            sendProgress({
+              target,
+              percent,
+              overallPercent: Math.min(
+                100,
+                Math.round(offset + (percent / 100) * stepWeight)
+              ),
+              label:
+                targets.length > 1
+                  ? `Installing yt-dlp (${index + 1}/${targets.length})`
+                  : 'Installing yt-dlp',
+            });
+          });
+          continue;
+        }
+
+        await downloadFFmpeg((percent) => {
+          sendProgress({
+            target,
+            percent,
+            overallPercent: Math.min(
+              100,
+              Math.round(offset + (percent / 100) * stepWeight)
+            ),
+            label:
+              targets.length > 1
+                ? `Installing ffmpeg (${index + 1}/${targets.length})`
+                : 'Installing ffmpeg',
+          });
+        });
+      }
+
+      return { success: true };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Dependency installation failed';
+      logger.error('[downloader] Failed to install dependencies:', err);
+      return { success: false, error: errorMessage };
+    }
+  });
 }
 
 export function cleanupDownloaderHandlers(): void {
+  ipcMain.removeHandler('downloader:check-dependencies');
   ipcMain.removeHandler('downloader:check');
   ipcMain.removeHandler('downloader:search');
   ipcMain.removeHandler('downloader:download');
@@ -308,4 +455,5 @@ export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler('downloader:get-ytdlp-path');
   ipcMain.removeHandler('downloader:check-ffmpeg');
   ipcMain.removeHandler('downloader:install-ffmpeg');
+  ipcMain.removeHandler('downloader:install-dependencies');
 }
