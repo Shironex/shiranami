@@ -148,6 +148,17 @@ export interface ElectronAPI {
       label: string;
     }) => void) => () => void;
   };
+  updater: {
+    checkForUpdates: () => Promise<{ enabled: boolean }>;
+    startDownload: () => Promise<void>;
+    installNow: () => Promise<void>;
+    onCheckingForUpdate: (callback: () => void) => () => void;
+    onUpdateAvailable: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateNotAvailable: (callback: () => void) => () => void;
+    onDownloadProgress: (callback: (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => void) => () => void;
+    onUpdateDownloaded: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateError: (callback: (message: string) => void) => () => void;
+  };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
   };

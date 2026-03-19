@@ -10,6 +10,12 @@ function createIpcListener<T>(channel: string): (callback: (data: T) => void) =>
   };
 }
 
+const UPDATER_IPC_CHANNELS = new Set([
+  'updater:check-for-updates',
+  'updater:start-download',
+  'updater:install-now',
+]);
+
 const ALLOWED_IPC_CHANNELS = new Set([
   'window:is-maximized',
   'store:get',
@@ -60,7 +66,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
 ]);
 
 function assertAllowedChannel(channel: string): void {
-  if (!ALLOWED_IPC_CHANNELS.has(channel)) {
+  if (!ALLOWED_IPC_CHANNELS.has(channel) && !UPDATER_IPC_CHANNELS.has(channel)) {
     throw new Error(`IPC channel not allowed: "${channel}"`);
   }
 }
@@ -226,6 +232,17 @@ export interface ElectronAPI {
       label: string;
     }) => void) => () => void;
   };
+  updater: {
+    checkForUpdates: () => Promise<{ enabled: boolean }>;
+    startDownload: () => Promise<void>;
+    installNow: () => Promise<void>;
+    onCheckingForUpdate: (callback: () => void) => () => void;
+    onUpdateAvailable: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateNotAvailable: (callback: () => void) => () => void;
+    onDownloadProgress: (callback: (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => void) => () => void;
+    onUpdateDownloaded: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateError: (callback: (message: string) => void) => () => void;
+  };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
   };
@@ -332,6 +349,17 @@ const electronAPI: ElectronAPI = {
       overallPercent: number;
       label: string;
     }>('downloader:dependency-install-progress'),
+  },
+  updater: {
+    checkForUpdates: () => ipcRenderer.invoke('updater:check-for-updates'),
+    startDownload: () => ipcRenderer.invoke('updater:start-download'),
+    installNow: () => ipcRenderer.invoke('updater:install-now'),
+    onCheckingForUpdate: createIpcListener<void>('updater:checking-for-update'),
+    onUpdateAvailable: createIpcListener<{ version: string; releaseNotes: string | null; releaseDate: string }>('updater:update-available'),
+    onUpdateNotAvailable: createIpcListener<void>('updater:update-not-available'),
+    onDownloadProgress: createIpcListener<{ bytesPerSecond: number; percent: number; transferred: number; total: number }>('updater:download-progress'),
+    onUpdateDownloaded: createIpcListener<{ version: string; releaseNotes: string | null; releaseDate: string }>('updater:update-downloaded'),
+    onUpdateError: createIpcListener<string>('updater:error'),
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),

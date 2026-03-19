@@ -2,6 +2,7 @@ import { join } from 'path';
 import { app, BrowserWindow, protocol } from 'electron';
 import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
+import { initializeAutoUpdater } from './updater';
 import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
@@ -48,6 +49,12 @@ async function bootstrap(): Promise<void> {
     initializeMediaControls(mainWindow);
   } catch (error) {
     logger.warn('Failed to initialize media controls:', error);
+  }
+
+  try {
+    initializeAutoUpdater(mainWindow, !app.isPackaged);
+  } catch (error) {
+    logger.warn('Failed to initialize auto-updater:', error);
   }
 }
 

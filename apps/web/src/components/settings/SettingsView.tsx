@@ -18,6 +18,8 @@ import {
   Download,
   Check,
   ArrowDownToLine,
+  RefreshCcw,
+  ExternalLink,
 } from 'lucide-react';
 
 interface WatchedFolder {
@@ -101,6 +103,13 @@ export function SettingsView() {
   const [isClearing, setIsClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
+  // Updater state
+  type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   // yt-dlp state
   const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
   const [ytdlpVersion, setYtdlpVersion] = useState<string | undefined>();
@@ -155,6 +164,79 @@ export function SettingsView() {
 
     load();
   }, []);
+
+  // Updater listeners
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const updater = window.electronAPI.updater;
+    const unsubs = [
+      updater.onCheckingForUpdate(() => {
+        setUpdateStatus('checking');
+        setUpdateError(null);
+      }),
+      updater.onUpdateAvailable((info) => {
+        setUpdateStatus('available');
+        setUpdateVersion(info.version);
+        setUpdateError(null);
+      }),
+      updater.onUpdateNotAvailable(() => {
+        setUpdateStatus('idle');
+        setUpdateError(null);
+      }),
+      updater.onDownloadProgress((progress) => {
+        setUpdateStatus('downloading');
+        setUpdateProgress(Math.round(progress.percent));
+      }),
+      updater.onUpdateDownloaded((info) => {
+        setUpdateStatus('ready');
+        setUpdateVersion(info.version);
+      }),
+      updater.onUpdateError((message) => {
+        if (message === 'RELEASE_PENDING') {
+          setUpdateStatus('idle');
+          setUpdateError(null);
+        } else {
+          setUpdateStatus('error');
+          setUpdateError(message);
+        }
+      }),
+    ];
+    return () => unsubs.forEach((fn) => fn());
+  }, []);
+
+  const handleCheckForUpdates = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setUpdateStatus('checking');
+    setUpdateError(null);
+    try {
+      const result = await window.electronAPI.updater.checkForUpdates();
+      if (!result.enabled) {
+        setUpdateStatus('idle');
+      }
+    } catch {
+      setUpdateStatus('error');
+      setUpdateError('Failed to check for updates');
+    }
+  }, []);
+
+  const handleDownloadUpdate = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    setUpdateStatus('downloading');
+    setUpdateProgress(0);
+    try {
+      await window.electronAPI.updater.startDownload();
+    } catch {
+      setUpdateStatus('error');
+      setUpdateError('Download failed');
+    }
+  }, []);
+
+  const handleInstallUpdate = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    await window.electronAPI.updater.installNow();
+  }, []);
+
+  const isMac = IS_ELECTRON && window.electronAPI.platform === 'darwin';
 
   const refreshDownloadToolStatus = useCallback(async () => {
     if (!IS_ELECTRON) {
@@ -1020,6 +1102,88 @@ export function SettingsView() {
                 />
               </div>
             </div>
+          </section>
+
+          {/* Updates */}
+          <section className="rounded-2xl bg-surface/50 border border-border/30 p-5">
+            <SectionHeader
+              icon={RefreshCcw}
+              title="Updates"
+              description={isMac ? 'Download updates from GitHub' : 'Check for new versions'}
+            />
+
+            {isMac ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Auto-updates are not available on macOS because the app is unsigned.
+                  Download new versions manually from GitHub Releases.
+                </p>
+                <a
+                  href="https://github.com/Shironex/shiranami/releases/latest"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Open GitHub Releases
+                </a>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCheckForUpdates}
+                    disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {updateStatus === 'checking' ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="w-3.5 h-3.5" />
+                    )}
+                    Check for updates
+                  </button>
+
+                  {updateStatus === 'available' && (
+                    <button
+                      onClick={handleDownloadUpdate}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download {updateVersion}
+                    </button>
+                  )}
+
+                  {updateStatus === 'ready' && (
+                    <button
+                      onClick={handleInstallUpdate}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Install and restart
+                    </button>
+                  )}
+                </div>
+
+                <p className={`text-xs ${updateStatus === 'error' ? 'text-red-400' : 'text-muted-foreground'}`}>
+                  {updateStatus === 'idle' && 'No updates available'}
+                  {updateStatus === 'checking' && 'Checking...'}
+                  {updateStatus === 'available' && `Update ${updateVersion} is available`}
+                  {updateStatus === 'downloading' && `Downloading... ${updateProgress}%`}
+                  {updateStatus === 'ready' && 'Update ready to install'}
+                  {updateStatus === 'error' && (updateError ?? 'Something went wrong')}
+                </p>
+
+                {updateStatus === 'downloading' && (
+                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${updateProgress}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* About */}
