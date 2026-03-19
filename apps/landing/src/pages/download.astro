@@ -26,7 +26,7 @@ const fallbackPublishedAt = formatDate(new Date().toISOString());
         <div class="version-badge" id="release-version">v{LANDING_VERSION}</div>
         <p id="release-date">{fallbackPublishedAt}</p>
         <strong id="release-title">First public build</strong>
-        <span id="release-state">Checking GitHub for the latest release&hellip;</span>
+        <span id="release-state"></span>
       </div>
     </div>
 
@@ -113,7 +113,7 @@ const fallbackPublishedAt = formatDate(new Date().toISOString());
       releaseVersion.textContent = `v${releaseVersionFallback}`;
       releaseDate.textContent = fallbackPublishedAt;
       releaseTitle.textContent = 'First public build';
-      releaseState.textContent = 'Release details will show up once the GitHub release goes live.';
+      releaseState.textContent = '';
     };
 
     const updatePlatformCard = (platform, asset) => {
@@ -156,7 +156,7 @@ const fallbackPublishedAt = formatDate(new Date().toISOString());
         releaseVersion.textContent = release.tag_name;
         releaseDate.textContent = formatPublishedDate(release.published_at);
         releaseTitle.textContent = release.name || 'Latest public build';
-        releaseState.textContent = 'Pulled from GitHub just now.';
+        releaseState.textContent = '';
 
         const winAsset = findAsset(release.assets, 'win');
         const macAsset = findAsset(release.assets, 'mac');
