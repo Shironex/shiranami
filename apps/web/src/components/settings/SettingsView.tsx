@@ -20,7 +20,9 @@ import {
   ArrowDownToLine,
   RefreshCcw,
   ExternalLink,
+  AudioLines,
 } from 'lucide-react';
+import { useAppStore, type VisualizerStyle } from '@/stores/useAppStore';
 
 interface WatchedFolder {
   id: string;
@@ -102,6 +104,12 @@ export function SettingsView() {
   const [isScanning, setIsScanning] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Visualizer style
+  const visualizerStyle = useAppStore(s => s.visualizerStyle);
+  const setVisualizerStyle = useAppStore(s => s.setVisualizerStyle);
+  const showVisualizer = useAppStore(s => s.showVisualizer);
+  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
 
   // Updater state
   type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
@@ -1101,6 +1109,57 @@ export function SettingsView() {
                   onChange={(v) => updateSetting('gaplessPlayback', v)}
                 />
               </div>
+            </div>
+          </section>
+
+          {/* Appearance */}
+          <section className="rounded-2xl bg-surface/50 border border-border/30 p-5">
+            <SectionHeader
+              icon={AudioLines}
+              title="Visualizer"
+              description="Audio visualization above the player bar"
+            />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Show visualizer</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Display audio-reactive animation above the player
+                  </p>
+                </div>
+                <Toggle
+                  checked={showVisualizer}
+                  onChange={toggleVisualizer}
+                />
+              </div>
+
+              {showVisualizer && (
+                <div className="px-3">
+                  <p className="text-xs text-muted-foreground mb-3">Style</p>
+                  <div className="flex gap-3">
+                    {([
+                      { value: 'bars' as VisualizerStyle, label: 'Bars', desc: 'Soft frequency bars' },
+                      { value: 'waveform' as VisualizerStyle, label: 'Waveform', desc: 'Flowing audio line' },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setVisualizerStyle(opt.value)}
+                        className={`flex-1 px-4 py-3 rounded-xl border text-left transition-all ${
+                          visualizerStyle === opt.value
+                            ? 'border-primary/40 bg-primary/10'
+                            : 'border-border/30 hover:border-border/50 hover:bg-accent/30'
+                        }`}
+                      >
+                        <p className={`text-sm font-medium ${visualizerStyle === opt.value ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

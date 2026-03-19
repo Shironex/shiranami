@@ -3,12 +3,12 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
 
 /**
- * Canvas-based frequency visualizer with a soft lofi aesthetic.
+ * Dense vertical-bar waveform visualizer inspired by ElevenLabs UI.
  *
- * Renders gentle, rounded bars with edge fading and a subtle
- * mirror reflection. Bars are center-aligned for a calmer feel.
+ * Renders tightly packed thin bars of varying height that create
+ * a barcode/waveform silhouette reacting to audio frequency data.
  */
-export function AudioVisualizer() {
+export function WaveformVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
@@ -31,8 +31,9 @@ export function AudioVisualizer() {
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
     }
-    if (!smoothedRef.current || smoothedRef.current.length !== binCount) {
-      smoothedRef.current = new Float32Array(binCount);
+    if (!smoothedRef.current) {
+      // Use more bars than bins — we'll interpolate
+      smoothedRef.current = new Float32Array(200);
     }
 
     analyser.getByteFrequencyData(bufferRef.current);
@@ -55,58 +56,48 @@ export function AudioVisualizer() {
 
     const raw = bufferRef.current;
     const smoothed = smoothedRef.current;
+    const ease = 0.18;
 
-    // Fewer bars = calmer, more spaced out
-    const barCount = Math.min(48, Math.floor(w / 8));
-    const binsPerBar = Math.floor(binCount / barCount);
-    const gap = 3;
-    const barWidth = Math.max(2.5, (w - gap * (barCount - 1)) / barCount);
-    const maxBarHeight = h * 0.4;
-    const centerY = h * 0.5;
+    // Dense bar count — creates that barcode/waveform look
+    const barCount = Math.min(120, Math.floor(w / 4));
+    const barWidth = 2;
+    const gap = Math.max(1, (w - barCount * barWidth) / (barCount - 1));
+    const totalWidth = barCount * barWidth + (barCount - 1) * gap;
+    const offsetX = (w - totalWidth) / 2;
 
-    // Slower easing for lofi smoothness
-    const ease = 0.12;
+    const centerY = h / 2;
+    const maxBarH = h * 0.4;
+    const minBarH = 2;
 
     for (let i = 0; i < barCount; i++) {
-      let sum = 0;
-      const start = i * binsPerBar;
-      for (let j = start; j < start + binsPerBar && j < binCount; j++) {
-        sum += raw[j];
-      }
-      const avg = sum / binsPerBar;
-      const normalised = avg / 255;
+      // Map bar index to frequency bin (with interpolation)
+      const binPos = (i / barCount) * binCount;
+      const binIdx = Math.floor(binPos);
+      const binFrac = binPos - binIdx;
+      const nextIdx = Math.min(binIdx + 1, binCount - 1);
+      const rawValue = (raw[binIdx] * (1 - binFrac) + raw[nextIdx] * binFrac) / 255;
 
-      const prevSmoothed = smoothed[i] ?? 0;
-      smoothed[i] = prevSmoothed + (normalised - prevSmoothed) * ease;
-
+      // Smooth
+      const prev = smoothed[i] ?? 0;
+      smoothed[i] = prev + (rawValue - prev) * ease;
       const value = smoothed[i];
-      const barH = Math.max(2, value * maxBarHeight);
 
-      const x = i * (barWidth + gap);
+      const barH = Math.max(minBarH, value * maxBarH);
+      const x = offsetX + i * (barWidth + gap);
 
-      // Edge fade — bars near edges are more transparent
-      const edgePos = i / barCount;
-      const edgeFade = Math.min(1, Math.min(edgePos, 1 - edgePos) * 5);
+      // Edge fade
+      const edgeT = i / barCount;
+      const edgeFade = Math.min(1, Math.min(edgeT, 1 - edgeT) * 6);
 
-      // Color: soft lavender gradient across frequency range
-      const t = i / barCount;
-      const r = Math.round(110 + t * 50);
-      const g = Math.round(85 + t * 35);
-      const b = Math.round(190 + t * 45);
-      const alpha = (0.35 + value * 0.3) * edgeFade;
+      const alpha = (0.4 + value * 0.5) * edgeFade;
 
-      // Subtle glow
-      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${0.3 * edgeFade})`;
-      ctx.shadowBlur = 4;
+      // Color: consistent lavender
+      ctx.fillStyle = `rgba(155, 125, 235, ${alpha})`;
 
-      // Main bar — center-aligned (grows up and down from center)
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      // Center-aligned bar (grows from center up and down)
       ctx.beginPath();
-      ctx.roundRect(x, centerY - barH / 2, barWidth, barH, barWidth / 2);
+      ctx.roundRect(x, centerY - barH / 2, barWidth, barH, 1);
       ctx.fill();
-
-      // Reset shadow for reflection
-      ctx.shadowBlur = 0;
     }
 
     rafRef.current = requestAnimationFrame(draw);

@@ -6,6 +6,7 @@ import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { AudioVisualizer } from '@/components/player/AudioVisualizer';
+import { WaveformVisualizer } from '@/components/player/WaveformVisualizer';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { SettingsView } from '@/components/settings/SettingsView';
@@ -41,6 +42,7 @@ function App() {
   const rightPanel = useAppStore(s => s.rightPanel);
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
   const showVisualizer = useAppStore(s => s.showVisualizer);
+  const visualizerStyle = useAppStore(s => s.visualizerStyle);
   const updateDependencyInstall = useDownloadStore((s) => s.updateDependencyInstall);
 
   useEffect(() => {
@@ -77,7 +79,7 @@ function App() {
 
             <main className={cn(
               'flex-1 flex overflow-hidden min-h-0',
-              currentTrack && 'pb-[88px]'
+              currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
             )}>
               {/* Center content */}
               <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -106,7 +108,7 @@ function App() {
             {/* Visualizer strip above player bar */}
             {currentTrack && showVisualizer && (
               <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
-                <AudioVisualizer />
+                {visualizerStyle === 'waveform' ? <WaveformVisualizer /> : <AudioVisualizer />}
               </div>
             )}
 

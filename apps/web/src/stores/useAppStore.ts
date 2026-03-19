@@ -2,8 +2,11 @@ import { create } from 'zustand';
 
 export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'settings';
 export type RightPanel = 'lyrics' | 'queue' | null;
+export type VisualizerStyle = 'bars' | 'waveform';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
+const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
+const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
 
 function getInitialSidebarCollapsed() {
   if (typeof window === 'undefined') return false;
@@ -18,12 +21,37 @@ function persistSidebarCollapsed(sidebarCollapsed: boolean) {
   );
 }
 
+function getInitialVisualizerStyle(): VisualizerStyle {
+  if (typeof window === 'undefined') return 'bars';
+  const stored = window.localStorage.getItem(VISUALIZER_STYLE_STORAGE_KEY);
+  if (stored === 'bars' || stored === 'waveform') return stored;
+  return 'bars';
+}
+
+function persistVisualizerStyle(style: VisualizerStyle) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(VISUALIZER_STYLE_STORAGE_KEY, style);
+}
+
+function getInitialVisualizerEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  const stored = window.localStorage.getItem(VISUALIZER_ENABLED_STORAGE_KEY);
+  if (stored === 'false') return false;
+  return true;
+}
+
+function persistVisualizerEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(VISUALIZER_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
+}
+
 interface AppState {
   activeView: AppView;
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
   sidebarCollapsed: boolean;
   showVisualizer: boolean;
+  visualizerStyle: VisualizerStyle;
 }
 
 interface AppActions {
@@ -34,6 +62,7 @@ interface AppActions {
   toggleSidebarCollapsed: () => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
+  setVisualizerStyle: (style: VisualizerStyle) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -41,7 +70,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   rightPanel: null,
   selectedPlaylistId: null,
   sidebarCollapsed: getInitialSidebarCollapsed(),
-  showVisualizer: true,
+  showVisualizer: getInitialVisualizerEnabled(),
+  visualizerStyle: getInitialVisualizerStyle(),
 
   navigateTo: (view, playlistId) =>
     set({
@@ -63,7 +93,15 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     const current = get().rightPanel;
     set({ rightPanel: current === panel ? null : panel });
   },
-  toggleVisualizer: () => set((s) => ({ showVisualizer: !s.showVisualizer })),
+  toggleVisualizer: () => {
+    const next = !get().showVisualizer;
+    persistVisualizerEnabled(next);
+    set({ showVisualizer: next });
+  },
+  setVisualizerStyle: (style) => {
+    persistVisualizerStyle(style);
+    set({ visualizerStyle: style });
+  },
 }));
 
 if (import.meta.hot) {
