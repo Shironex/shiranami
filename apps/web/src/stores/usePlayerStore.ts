@@ -186,12 +186,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   setVolume: (volume: number) => {
     const clamped = Math.max(0, Math.min(1, volume));
     set({ volume: clamped, isMuted: false });
-    window.electronAPI?.store.set('player.volume', clamped).catch(() => {});
   },
   toggleMute: () => {
     const muted = !get().isMuted;
     set({ isMuted: muted });
-    window.electronAPI?.store.set('player.isMuted', muted).catch(() => {});
   },
 
   // Library management

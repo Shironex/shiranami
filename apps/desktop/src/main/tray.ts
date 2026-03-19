@@ -1,4 +1,5 @@
 import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
+import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
 import type { PlaybackState } from './media-controls';
@@ -7,24 +8,37 @@ let tray: Tray | null = null;
 let mainWindowRef: BrowserWindow | null = null;
 let currentState: PlaybackState | null = null;
 
+function findExistingResource(resourcesDir: string, candidates: string[]): string {
+  for (const candidate of candidates) {
+    const fullPath = path.join(resourcesDir, candidate);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+
+  return path.join(resourcesDir, candidates[candidates.length - 1]);
+}
+
 function getTrayIconPath(): string {
   const resourcesDir = app.isPackaged
     ? process.resourcesPath
     : path.join(__dirname, '../../resources');
 
-  // Use tray-specific icon if available, otherwise fall back to app icon
-  const trayIcon = path.join(resourcesDir, 'tray-icon.png');
-  try {
-    require('fs').accessSync(trayIcon);
-    return trayIcon;
-  } catch {
-    // fallback
+  if (process.platform === 'win32') {
+    return findExistingResource(resourcesDir, [
+      'tray-icon.ico',
+      'icon.ico',
+      'tray-icon.png',
+      'icon-32.png',
+      'icon.png',
+    ]);
   }
 
   if (process.platform === 'darwin') {
-    return path.join(resourcesDir, 'icon-16.png');
+    return findExistingResource(resourcesDir, ['tray-icon.png', 'icon-16.png', 'icon.png']);
   }
-  return path.join(resourcesDir, 'icon-32.png');
+
+  return findExistingResource(resourcesDir, ['tray-icon.png', 'icon-32.png', 'icon.png']);
 }
 
 function showWindow(win: BrowserWindow): void {
@@ -95,11 +109,10 @@ export function createTray(mainWindow: BrowserWindow): void {
 
   if (icon.isEmpty()) {
     logger.warn(`[tray] Icon is empty, using fallback. Path: ${iconPath}`);
-    // Create a simple purple square as fallback
     const fallback = nativeImage.createFromBuffer(
       Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAMklEQVRYR+3QQREAAAjDMPB/aEMD' +
-        'G4SdNXAddDaJc0AAAgQIECBAgAABAgQIECDwP/AAP4ABIW7CsGsAAAAASUVORK5CYII=',
+          'G4SdNXAddDaJc0AAAgQIECBAgAABAgQIECDwP/AAP4ABIW7CsGsAAAAASUVORK5CYII=',
         'base64'
       )
     );
@@ -128,7 +141,7 @@ export function updateTrayWithPlaybackState(state: PlaybackState | null): void {
 
   if (tray) {
     if (state) {
-      tray.setToolTip(`Shiranami — ${state.title} - ${state.artist}`);
+      tray.setToolTip(`Shiranami - ${state.title} - ${state.artist}`);
     } else {
       tray.setToolTip('Shiranami');
     }

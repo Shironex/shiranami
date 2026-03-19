@@ -9,6 +9,8 @@
   "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts"],
   "extraResources": [
     { "from": "resources/tray-icon.png", "to": "tray-icon.png" },
+    { "from": "resources/icon-16.png", "to": "icon-16.png" },
+    { "from": "resources/icon-32.png", "to": "icon-32.png" },
     { "from": "resources/icon.png", "to": "icon.png" },
     { "from": "resources/icon.ico", "to": "icon.ico" },
     { "from": "resources/mascot.png", "to": "mascot.png" }

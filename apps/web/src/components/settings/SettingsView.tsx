@@ -88,7 +88,8 @@ function SectionHeader({
 }
 
 export function SettingsView() {
-  const queue = usePlayerStore((s) => s.queue);
+  const library = usePlayerStore((s) => s.library);
+  const addToLibrary = usePlayerStore((s) => s.addToLibrary);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
 
   const [folders, setFolders] = useState<WatchedFolder[]>([]);
@@ -270,8 +271,8 @@ export function SettingsView() {
           return;
         }
 
-        // Filter out tracks already in queue
-        const existingPaths = new Set(usePlayerStore.getState().queue.map((t) => t.filePath));
+        // Filter out tracks already in library
+        const existingPaths = new Set(usePlayerStore.getState().library.map((t) => t.filePath));
         const newResults = results.filter((r) => !existingPaths.has(r.filePath));
 
         // Also check DB
@@ -319,6 +320,8 @@ export function SettingsView() {
           updatedAt: t.updatedAt as string | undefined,
         }));
 
+        addToLibrary(newTracks);
+
         const currentQueue = usePlayerStore.getState().queue;
         const currentPlaying = usePlayerStore.getState().currentTrack;
         const combined = [...currentQueue, ...newTracks];
@@ -337,7 +340,7 @@ export function SettingsView() {
       toast.error('Failed to add folder');
       setIsScanning(false);
     }
-  }, [folders]);
+  }, [addToLibrary, folders]);
 
   const handleRemoveFolder = useCallback(async (folder: WatchedFolder) => {
     if (!IS_ELECTRON) return;
@@ -362,7 +365,7 @@ export function SettingsView() {
           const results = await window.electronAPI.library.scanFolder(folder.path);
           if (results.length === 0) continue;
 
-          const existingPaths = new Set(usePlayerStore.getState().queue.map((t) => t.filePath));
+          const existingPaths = new Set(usePlayerStore.getState().library.map((t) => t.filePath));
           const newResults = results.filter((r) => !existingPaths.has(r.filePath));
 
           const toCheck = await Promise.all(
@@ -405,6 +408,8 @@ export function SettingsView() {
             updatedAt: t.updatedAt as string | undefined,
           }));
 
+          addToLibrary(newTracks);
+
           const currentQueue = usePlayerStore.getState().queue;
           const currentPlaying = usePlayerStore.getState().currentTrack;
           const combined = [...currentQueue, ...newTracks];
@@ -438,17 +443,18 @@ export function SettingsView() {
     } finally {
       setIsScanning(false);
     }
-  }, [folders]);
+  }, [addToLibrary, folders]);
 
   const handleClearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
     setIsClearing(true);
     try {
-      const allTracks = usePlayerStore.getState().queue;
+      const allTracks = usePlayerStore.getState().library;
       if (allTracks.length > 0) {
         await window.electronAPI.db.tracks.removeMany(allTracks.map((t) => t.id));
       }
       clearQueue();
+      usePlayerStore.setState({ library: [] });
       setConfirmClear(false);
       toast.success('Library cleared');
     } catch (err) {
@@ -555,7 +561,7 @@ export function SettingsView() {
                 <Music className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-foreground">Total tracks</span>
                 <span className="ml-auto text-sm font-medium text-foreground tabular-nums">
-                  {queue.length.toLocaleString()}
+                  {library.length.toLocaleString()}
                 </span>
               </div>
 
@@ -576,7 +582,7 @@ export function SettingsView() {
                 {!confirmClear ? (
                   <button
                     onClick={() => setConfirmClear(true)}
-                    disabled={queue.length === 0}
+                    disabled={library.length === 0}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -586,7 +592,7 @@ export function SettingsView() {
                   <div className="flex-1 rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-3">
                     <p className="text-sm text-foreground">
                       This will remove all{' '}
-                      <span className="font-semibold">{queue.length.toLocaleString()}</span>{' '}
+                      <span className="font-semibold">{library.length.toLocaleString()}</span>{' '}
                       tracks from your library. Audio files on disk won't be deleted.
                     </p>
                     <div className="flex gap-2">

@@ -39,6 +39,7 @@ export function SearchView() {
   const [ffmpegBannerDismissed, setFfmpegBannerDismissed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const addToLibrary = usePlayerStore(s => s.addToLibrary);
   const setQueue = usePlayerStore(s => s.setQueue);
 
   // Check yt-dlp availability on mount
@@ -217,6 +218,8 @@ export function SearchView() {
           updatedAt: dbTrack.updatedAt as string | undefined,
         };
 
+        addToLibrary([track]);
+
         const currentQueue = usePlayerStore.getState().queue;
         const currentPlaying = usePlayerStore.getState().currentTrack;
         const newQueue = [...currentQueue, track];
@@ -232,7 +235,7 @@ export function SearchView() {
         toast.error('Failed to import track to library');
       }
     },
-    [setQueue]
+    [addToLibrary, setQueue]
   );
 
   const handleDownload = useCallback(

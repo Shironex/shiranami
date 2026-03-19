@@ -20,6 +20,8 @@ import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useLibraryLoader } from '@/hooks/useLibraryLoader';
+import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
+import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 
@@ -29,7 +31,9 @@ function App() {
 
   useAudioEngine();
   useMediaSession();
+  usePlayerPreferences();
   useLibraryLoader();
+  usePlaybackResume();
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
