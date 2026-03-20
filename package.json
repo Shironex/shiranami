@@ -6,6 +6,10 @@
   "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@10.9.0",
   "pnpm": {
+    "overrides": {
+      "h3": "1.15.9",
+      "undici": "6.24.1"
+    },
     "onlyBuiltDependencies": [
       "electron",
       "esbuild",
