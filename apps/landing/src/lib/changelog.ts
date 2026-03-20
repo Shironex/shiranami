@@ -17,7 +17,7 @@ export const changelog: ChangelogRelease[] = [
     date: '20 March 2026',
     title: 'Discord Rich Presence',
     description:
-      'Show what you're listening to on Discord, plus a smoother playlist submenu experience.',
+      "Show what you're listening to on Discord, plus a smoother playlist submenu experience.",
     categories: [
       {
         label: 'Discord',

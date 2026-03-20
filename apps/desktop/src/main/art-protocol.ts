@@ -65,9 +65,9 @@ export async function saveAlbumArt(data: Buffer, mimeType: string): Promise<stri
   try {
     // Atomically write the file if it doesn't exist using the 'wx' flag.
     await fs.promises.writeFile(filePath, data, { flag: 'wx' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If the file already exists ('EEXIST'), it's not an error for content-addressing.
-    if (error.code !== 'EEXIST') {
+    if (error instanceof Error && (error as NodeJS.ErrnoException).code !== 'EEXIST') {
       logger.error(`[art-protocol] Failed to save album art ${fileName}:`, error);
       throw error;
     }
