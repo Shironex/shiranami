@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import {
   Search,
   Download,
@@ -6,301 +6,31 @@ import {
   AlertCircle,
   Loader2,
   Music,
-  ArrowDownToLine,
   Play,
   Pause,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
-import { IS_ELECTRON } from '@/lib/platform';
-import { useDownloadStore } from '@/stores/useDownloadStore';
-import { useTrackImport } from '@/hooks/useTrackImport';
-import { useAudioPreview } from '@/hooks/useAudioPreview';
-import { toast } from 'sonner';
-import type { SearchResult, DownloadProgress } from '@/types/electron';
-
-interface DownloadState {
-  progress: number;
-  status: 'idle' | 'downloading' | 'converting' | 'done' | 'error';
-  error?: string;
-  filePath?: string;
-}
-
-type InstallStatus = 'idle' | 'downloading' | 'done' | 'error';
-type DependencyState = 'checking' | 'needs-install' | 'ready';
-
-function SearchStateCard({
-  title,
-  description,
-  loading = false,
-  children,
-}: {
-  title: string;
-  description: string;
-  loading?: boolean;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="flex-1 flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md rounded-[28px] border border-border/30 bg-surface/40 px-8 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-        <div className="mx-auto relative w-24 h-24 rounded-[28px] bg-primary/8 border border-primary/10 flex items-center justify-center">
-          <img
-            src="./mascot.png"
-            alt=""
-            className="w-16 h-16 object-contain opacity-80"
-            draggable={false}
-          />
-          {loading && (
-            <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6">
-          <p className="font-display text-lg font-semibold text-foreground">{title}</p>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-        </div>
-
-        {children && <div className="mt-6">{children}</div>}
-      </div>
-    </div>
-  );
-}
+import { useSearch } from '@/hooks/useSearch';
+import { useSearchDependencies } from '@/hooks/useSearchDependencies';
+import { SearchStateCard } from './SearchStateCard';
+import { DependencyInstallCard } from './DependencyInstallCard';
 
 export function SearchView() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [dependencyState, setDependencyState] = useState<DependencyState>('checking');
-  const [dependencyInstallStatus, setDependencyInstallStatus] = useState<InstallStatus>('idle');
-  const [dependencyInstallError, setDependencyInstallError] = useState<string | null>(null);
-  const [dependenciesSnapshot, setDependenciesSnapshot] = useState<{
-    ytdlpInstalled: boolean;
-    ffmpegInstalled: boolean;
-  } | null>(null);
-  const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { importTrack } = useTrackImport();
-  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview('YouTube Search');
-  const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
-  const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
-  const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
-  const dependencyInstallTarget = useDownloadStore((s) => s.dependencyInstallTarget);
-  const startDependencyInstall = useDownloadStore((s) => s.startDependencyInstall);
-  const stopDependencyInstall = useDownloadStore((s) => s.stopDependencyInstall);
+  const {
+    query, setQuery, results, isSearching, searchError,
+    handleKeyDown, handleDownload, getDownloadState,
+    previewLoadingId, isPreviewPlaying, handlePreview,
+  } = useSearch();
 
-  const refreshDependencies = useCallback(async () => {
-    if (!IS_ELECTRON) {
-      return {
-        ytdlpInstalled: false,
-        ffmpegInstalled: false,
-      };
-    }
-
-    try {
-      const snapshot = await window.electronAPI.downloader.checkDependencies();
-      setDependenciesSnapshot(snapshot);
-      setDependencyState(snapshot.ytdlpInstalled ? 'ready' : 'needs-install');
-      return snapshot;
-    } catch {
-      const snapshot = { ytdlpInstalled: false, ffmpegInstalled: false };
-      setDependenciesSnapshot(snapshot);
-      setDependencyState('needs-install');
-      return snapshot;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    refreshDependencies();
-  }, [refreshDependencies]);
-
-  useEffect(() => {
-    if (!isDependencyInstallInProgress) return;
-    setDependencyInstallStatus('downloading');
-  }, [isDependencyInstallInProgress]);
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    if (dependencyInstallTarget !== 'ffmpeg') return;
-
-    let cancelled = false;
-
-    refreshDependencies().then((snapshot) => {
-      if (cancelled || !snapshot.ytdlpInstalled) return;
-      setDependencyState('ready');
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dependencyInstallTarget, refreshDependencies]);
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    if (isDependencyInstallInProgress) return;
-    if (dependencyInstallStatus !== 'downloading') return;
-
-    let cancelled = false;
-
-    refreshDependencies().then((snapshot) => {
-      if (cancelled) return;
-
-      if (snapshot.ytdlpInstalled) {
-        setDependencyInstallStatus('done');
-        setDependencyInstallError(null);
-        setDependencyState('ready');
-        return;
-      }
-
-      setDependencyInstallStatus('error');
-      setDependencyInstallError('Installation failed');
-      setDependencyState('needs-install');
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [dependencyInstallStatus, isDependencyInstallInProgress, refreshDependencies]);
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    const cleanup = window.electronAPI.downloader.onProgress((data: DownloadProgress) => {
-      setDownloads((prev) => ({
-        ...prev,
-        [data.url]: {
-          ...prev[data.url],
-          progress: data.progress,
-          status: data.status,
-          error: data.error,
-        },
-      }));
-    });
-    return cleanup;
-  }, []);
-
-  const handleSearch = useCallback(async () => {
-    const trimmed = query.trim();
-    if (!trimmed || !IS_ELECTRON) return;
-
-    setIsSearching(true);
-    setSearchError(null);
-    setResults([]);
-
-    try {
-      const searchResults = await window.electronAPI.downloader.search(trimmed);
-      setResults(searchResults);
-      if (searchResults.length === 0) {
-        setSearchError('No results found. Try a different search term.');
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Search failed';
-      setSearchError(msg);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [query]);
-
-  const handleInstallDependencies = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-
-    setDependencyInstallStatus('downloading');
-    setDependencyInstallError(null);
-    startDependencyInstall();
-
-    try {
-      const result = await window.electronAPI.downloader.installDependencies();
-      const snapshot = await refreshDependencies();
-
-      if (snapshot.ytdlpInstalled) {
-        setDependencyInstallStatus('done');
-
-        if (result.success) {
-          toast.success('Download tools installed successfully', {
-            id: 'dependency-install',
-          });
-        } else {
-          toast.error(result.error ?? 'ffmpeg could not be installed completely', {
-            id: 'dependency-install',
-          });
-        }
-
-        window.setTimeout(() => {
-          setDependencyState('ready');
-        }, 700);
-        return;
-      }
-
-      setDependencyInstallStatus('error');
-      setDependencyInstallError(result.error ?? 'Installation failed');
-      toast.error(result.error ?? 'Failed to install search tools', {
-        id: 'dependency-install',
-      });
-    } catch (err) {
-      await refreshDependencies();
-      const msg = err instanceof Error ? err.message : 'Installation failed';
-      setDependencyInstallStatus('error');
-      setDependencyInstallError(msg);
-      toast.error(`Failed to install search tools: ${msg}`, {
-        id: 'dependency-install',
-      });
-    } finally {
-      stopDependencyInstall();
-    }
-  }, [refreshDependencies, startDependencyInstall, stopDependencyInstall]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleSearch();
-      }
-    },
-    [handleSearch]
-  );
-
-  const handleDownload = useCallback(
-    async (result: SearchResult) => {
-      if (!IS_ELECTRON) return;
-      const url = result.webpage_url || result.url;
-
-      setDownloads((prev) => ({
-        ...prev,
-        [url]: { progress: 0, status: 'downloading' },
-      }));
-
-      try {
-        const filePath = await window.electronAPI.downloader.download(url);
-        setDownloads((prev) => ({
-          ...prev,
-          [url]: { progress: 100, status: 'done', filePath },
-        }));
-        const track = await importTrack(filePath);
-        if (track) {
-          toast.success(`Downloaded: ${track.title}`);
-        } else {
-          toast.info('Track already in library');
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Download failed';
-        setDownloads((prev) => ({
-          ...prev,
-          [url]: { progress: 0, status: 'error', error: msg },
-        }));
-        toast.error(`Download failed: ${msg}`);
-      }
-    },
-    [importTrack]
-  );
-
-  const getDownloadState = (result: SearchResult): DownloadState => {
-    const url = result.webpage_url || result.url;
-    return downloads[url] ?? { progress: 0, status: 'idle' };
-  };
-
-  const showCenteredSearchState = results.length === 0;
+  const {
+    dependencyState, dependencyInstallStatus, dependencyInstallError,
+    dependenciesSnapshot, isDependencyInstallInProgress,
+    dependencyInstallProgress, dependencyInstallLabel, dependencyInstallTarget,
+    handleInstallDependencies,
+  } = useSearchDependencies();
 
   if (dependencyState === 'checking') {
     return (
@@ -313,49 +43,20 @@ export function SearchView() {
   }
 
   if (dependencyState === 'needs-install') {
-    const installAllText =
-      dependenciesSnapshot?.ffmpegInstalled === false
-        ? 'Install yt-dlp and ffmpeg together so search and proper audio downloads are ready in one step.'
-        : 'Install yt-dlp so Shiranami can search and download music from YouTube.';
-
     return (
-      <SearchStateCard title="Search tools missing" description={installAllText}>
-        <div className="space-y-3">
-          {dependencyInstallStatus === 'downloading' || isDependencyInstallInProgress ? (
-            <div className="space-y-3">
-              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${dependencyInstallProgress}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {dependencyInstallLabel}... {dependencyInstallProgress}%
-              </p>
-            </div>
-          ) : dependencyInstallStatus === 'done' ? (
-            <div className="flex items-center justify-center gap-2 text-green-400">
-              <Check className="w-4 h-4" />
-              <p className="text-sm font-medium">Search tools installed</p>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={handleInstallDependencies}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <ArrowDownToLine className="w-4 h-4" />
-                Install Missing Tools
-              </button>
-              {dependencyInstallStatus === 'error' && dependencyInstallError && (
-                <p className="text-xs text-destructive">{dependencyInstallError}</p>
-              )}
-            </>
-          )}
-        </div>
-      </SearchStateCard>
+      <DependencyInstallCard
+        ffmpegInstalled={dependenciesSnapshot?.ffmpegInstalled}
+        installStatus={dependencyInstallStatus}
+        installError={dependencyInstallError}
+        isInstallInProgress={isDependencyInstallInProgress}
+        installProgress={dependencyInstallProgress}
+        installLabel={dependencyInstallLabel}
+        onInstall={handleInstallDependencies}
+      />
     );
   }
+
+  const showCenteredSearchState = results.length === 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -430,7 +131,7 @@ export function SearchView() {
                     Searching YouTube
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Pulling the best matches for "{query.trim()}"
+                    Pulling the best matches for &quot;{query.trim()}&quot;
                   </p>
                 </div>
                 <Loader2 className="w-4 h-4 text-primary animate-spin" />
