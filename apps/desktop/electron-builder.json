@@ -12,8 +12,7 @@
     { "from": "resources/icon-16.png", "to": "icon-16.png" },
     { "from": "resources/icon-32.png", "to": "icon-32.png" },
     { "from": "resources/icon.png", "to": "icon.png" },
-    { "from": "resources/icon.ico", "to": "icon.ico" },
-    { "from": "resources/mascot.png", "to": "mascot.png" }
+    { "from": "resources/icon.ico", "to": "icon.ico" }
   ],
   "asarUnpack": ["**/node_modules/better-sqlite3/**"],
   "artifactName": "${productName}-${version}-${arch}.${ext}",
