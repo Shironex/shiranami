@@ -13,6 +13,41 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.3.0',
+    date: '20 March 2026',
+    title: 'Internet radio and performance overhaul',
+    description:
+      'Stream internet radio stations, enjoy faster rendering with protocol-based album art, and benefit from a leaner build powered by esbuild.',
+    categories: [
+      {
+        label: 'Radio',
+        entries: [
+          'Stream internet radio stations via the Radio Browser API with a dedicated Radio view.',
+          'Search, browse, and favorite radio stations — favorites persist in the local database.',
+          'Radio playback integrates with the existing player bar and audio engine.',
+        ],
+      },
+      {
+        label: 'Performance',
+        entries: [
+          'Album art is now served via a custom protocol instead of base64 blobs, reducing memory usage.',
+          'Throttled playback store updates, memoized components, and virtualized the queue panel.',
+          'Main process is bundled with esbuild; icon assets optimized from ~885 KB down to ~176 KB.',
+        ],
+      },
+      {
+        label: 'Bug fixes',
+        entries: [
+          'Fixed LRU lyrics cache promoting existing keys and avoiding incorrect eviction.',
+          'Enabled Electron fuses for security hardening.',
+          'Deduplicated ambient color hook to prevent redundant canvas draws.',
+          'Fixed CSP img-src to allow the new art protocol.',
+          'Synced app version labels across settings, sidebar, and landing page.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.1',
     date: '19 March 2026',
     title: 'Quick fix',
