@@ -13,6 +13,28 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.3.1',
+    date: '20 March 2026',
+    title: 'Search preview and quality-of-life tweaks',
+    description:
+      'Preview search results before downloading, and quickly check what changed when an update is available.',
+    categories: [
+      {
+        label: 'Search',
+        entries: [
+          'Preview audio directly from search results by clicking the thumbnail — no download required.',
+          'Playback streams through the existing radio protocol so previews work instantly with the player bar.',
+        ],
+      },
+      {
+        label: 'Updates',
+        entries: [
+          'A "View changelog" link now appears in Settings when an update is available, opening the Shiranami website changelog.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.3.0',
     date: '20 March 2026',
     title: 'Internet radio and performance overhaul',
