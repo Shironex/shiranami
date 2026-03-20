@@ -62,6 +62,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'downloader:get-ytdlp-path',
   'downloader:check-ffmpeg',
   'downloader:install-ffmpeg',
+  'downloader:get-stream-url',
   'downloader:install-dependencies',
   'radio:favorites:get-all',
   'radio:favorites:add',
@@ -184,6 +185,7 @@ export interface ElectronAPI {
     clearState: () => void;
   };
   downloader: {
+    getStreamUrl: (url: string) => Promise<string>;
     search: (query: string) => Promise<Array<{
       id: string;
       title: string;
@@ -349,6 +351,7 @@ const electronAPI: ElectronAPI = {
   },
   downloader: {
     search: (query: string) => ipcRenderer.invoke('downloader:search', query),
+    getStreamUrl: (url: string) => ipcRenderer.invoke('downloader:get-stream-url', url),
     download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),
     getDownloadLocation: () => ipcRenderer.invoke('downloader:get-download-location'),
     setDownloadLocation: (downloadPath: string | null) =>

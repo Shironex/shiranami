@@ -391,6 +391,34 @@ export function registerDownloaderHandlers(): void {
     }
   );
 
+  ipcMain.handle('downloader:get-stream-url', async (_event, url: string) => {
+    logger.info(`[downloader] Getting stream URL for: ${url}`);
+    try {
+      const { stdout, code } = await spawnYtDlp([
+        '-f',
+        'bestaudio',
+        '--get-url',
+        '--no-warnings',
+        url,
+      ]);
+
+      if (code !== 0) {
+        throw new Error('yt-dlp failed to extract stream URL');
+      }
+
+      const streamUrl = stdout.trim().split('\n')[0];
+      if (!streamUrl) {
+        throw new Error('No stream URL returned');
+      }
+
+      logger.info(`[downloader] Got stream URL for: ${url}`);
+      return streamUrl;
+    } catch (err) {
+      logger.error('[downloader] Stream URL extraction error:', err);
+      throw err;
+    }
+  });
+
   ipcMain.handle('downloader:install-ytdlp', async () => {
     try {
       const mainWindow = getMainWindow();
@@ -511,6 +539,7 @@ export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler('downloader:check');
   ipcMain.removeHandler('downloader:search');
   ipcMain.removeHandler('downloader:download');
+  ipcMain.removeHandler('downloader:get-stream-url');
   ipcMain.removeHandler('downloader:install-ytdlp');
   ipcMain.removeHandler('downloader:get-ytdlp-path');
   ipcMain.removeHandler('downloader:check-ffmpeg');

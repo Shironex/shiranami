@@ -7,6 +7,8 @@ import {
   Loader2,
   Music,
   ArrowDownToLine,
+  Play,
+  Pause,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
@@ -84,10 +86,13 @@ export function SearchView() {
     ffmpegInstalled: boolean;
   } | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addToLibrary = usePlayerStore((s) => s.addToLibrary);
   const setQueue = usePlayerStore((s) => s.setQueue);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
   const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
   const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
@@ -358,6 +363,54 @@ export function SearchView() {
     return downloads[url] ?? { progress: 0, status: 'idle' };
   };
 
+  const isPreviewPlaying = useCallback(
+    (result: SearchResult) => {
+      return (
+        currentTrack?.id === `preview-${result.id}` && isPlaying
+      );
+    },
+    [currentTrack, isPlaying]
+  );
+
+  const handlePreview = useCallback(
+    async (result: SearchResult) => {
+      if (!IS_ELECTRON) return;
+
+      const previewTrackId = `preview-${result.id}`;
+
+      if (currentTrack?.id === previewTrackId) {
+        usePlayerStore.getState().togglePlay();
+        return;
+      }
+
+      setPreviewLoadingId(result.id);
+
+      try {
+        const streamUrl = await window.electronAPI.downloader.getStreamUrl(
+          result.webpage_url || result.url
+        );
+
+        const previewTrack: Track = {
+          id: previewTrackId,
+          title: result.title,
+          artist: result.uploader,
+          album: 'YouTube Search',
+          duration: result.duration,
+          filePath: `shiranami-radio://stream?url=${encodeURIComponent(streamUrl)}`,
+          albumArt: result.thumbnail || undefined,
+        };
+
+        setQueue([previewTrack], 0);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to load preview';
+        toast.error(`Preview failed: ${msg}`);
+      } finally {
+        setPreviewLoadingId(null);
+      }
+    },
+    [currentTrack, setQueue]
+  );
+
   const showCenteredSearchState = results.length === 0;
 
   if (dependencyState === 'checking') {
@@ -537,7 +590,11 @@ export function SearchView() {
                     />
                   )}
 
-                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10">
+                  <button
+                    onClick={() => handlePreview(result)}
+                    className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
+                    title={isPreviewPlaying(result) ? 'Pause preview' : 'Preview'}
+                  >
                     {result.thumbnail ? (
                       <img
                         src={result.thumbnail}
@@ -550,7 +607,23 @@ export function SearchView() {
                         <Music className="w-4 h-4 text-muted-foreground/40" />
                       </div>
                     )}
-                  </div>
+                    <div
+                      className={cn(
+                        'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
+                        isPreviewPlaying(result)
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover/thumb:opacity-100'
+                      )}
+                    >
+                      {previewLoadingId === result.id ? (
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      ) : isPreviewPlaying(result) ? (
+                        <Pause className="w-4 h-4 text-white" />
+                      ) : (
+                        <Play className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                  </button>
 
                   <div className="flex-1 min-w-0 relative z-10">
                     <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
