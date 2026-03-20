@@ -27,6 +27,7 @@ import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
+import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -60,6 +61,7 @@ function App() {
       <SplashScreen ready={true} error={null} onDismissed={handleSplashDismissed} />
 
       {splashDone && (
+        <AmbientColorProvider>
         <div
           className={cn(
             'h-screen w-screen bg-background text-foreground flex overflow-hidden relative',
@@ -141,6 +143,7 @@ function App() {
             <PlayerBar />
           </div>
         </div>
+        </AmbientColorProvider>
       )}
     </>
   );
