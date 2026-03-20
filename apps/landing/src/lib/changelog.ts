@@ -13,6 +13,29 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.4.0',
+    date: '20 March 2026',
+    title: 'Discord Rich Presence',
+    description:
+      'Show what you're listening to on Discord, plus a smoother playlist submenu experience.',
+    categories: [
+      {
+        label: 'Discord',
+        entries: [
+          'Discord Rich Presence shows the current track name, artist, album, and time remaining.',
+          'Connects automatically on app start with reconnection on disconnect.',
+          'Enable or disable it from the Playback section in Settings (off by default).',
+        ],
+      },
+      {
+        label: 'Fixes',
+        entries: [
+          'The "Add to Playlist" submenu no longer disappears when moving the mouse to it.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.3.1',
     date: '20 March 2026',
     title: 'Search preview and quality-of-life tweaks',
