@@ -30,7 +30,9 @@ function cacheGet(key: string): LyricsResult | undefined {
 }
 
 function cacheSet(key: string, value: LyricsResult): void {
-  if (lyricsCache.size >= LYRICS_CACHE_MAX) {
+  if (lyricsCache.has(key)) {
+    lyricsCache.delete(key);
+  } else if (lyricsCache.size >= LYRICS_CACHE_MAX) {
     const oldest = lyricsCache.keys().next().value;
     if (oldest !== undefined) lyricsCache.delete(oldest);
   }
