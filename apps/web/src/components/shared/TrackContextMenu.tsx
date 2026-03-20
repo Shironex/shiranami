@@ -372,6 +372,52 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
     onClose();
   }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
 
+  const handleDeleteFromDisk = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    try {
+      const isCurrentlyPlaying = currentTrack?.id === track.id;
+
+      // Remove from DB
+      await window.electronAPI.db.tracks.remove(track.id);
+
+      // Move file to recycle bin
+      await window.electronAPI.shell.trashFile(track.filePath);
+
+      // Remove from library state
+      removeFromLibrary([track.id]);
+
+      // Remove from queue if present
+      const idx = queue.findIndex((t) => t.id === track.id);
+      if (idx !== -1) {
+        const newQueue = queue.filter((t) => t.id !== track.id);
+        let newIndex = queueIndex;
+        if (idx < queueIndex) {
+          newIndex--;
+        }
+        if (isCurrentlyPlaying) {
+          const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
+          usePlayerStore.setState({
+            queue: newQueue,
+            queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
+            currentTrack: nextTrack,
+            currentTime: 0,
+            isPlaying: !!nextTrack,
+          });
+        } else {
+          usePlayerStore.setState({
+            queue: newQueue,
+            queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
+          });
+        }
+      }
+
+      toast.success('Moved to recycle bin');
+    } catch {
+      toast.error('Failed to delete track');
+    }
+    onClose();
+  }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
+
   return createPortal(
     <AnimatePresence>
       <motion.div
@@ -429,6 +475,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
           onClick={handleRemoveFromLibrary}
           variant="destructive"
         />
+        {IS_ELECTRON && (
+          <MenuItem
+            icon={<Trash2 className="w-4 h-4" />}
+            label="Delete from Disk"
+            onClick={handleDeleteFromDisk}
+            variant="destructive"
+          />
+        )}
       </motion.div>
     </AnimatePresence>,
     document.body

@@ -52,6 +52,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:playlists:remove-track',
   'db:playlists:reorder',
   'shell:show-in-folder',
+  'shell:trash-file',
   'downloader:check',
   'downloader:get-download-location',
   'downloader:set-download-location',
@@ -68,6 +69,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'radio:favorites:add',
   'radio:favorites:remove',
   'radio:favorites:is-favorite',
+  'playlist:extract',
+  'playlist:cancel',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -251,6 +254,7 @@ export interface ElectronAPI {
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
+    trashFile: (filePath: string) => Promise<void>;
   };
   radio: {
     favorites: {
@@ -272,6 +276,23 @@ export interface ElectronAPI {
       remove: (stationUuid: string) => Promise<void>;
       isFavorite: (stationUuid: string) => Promise<boolean>;
     };
+  };
+  playlist: {
+    extract: (url: string) => Promise<Array<{
+      id: string;
+      title: string;
+      uploader: string;
+      duration: number;
+      thumbnail: string;
+      url: string;
+      webpage_url: string;
+    }>>;
+    cancel: () => Promise<void>;
+    onExtractProgress: (callback: (data: {
+      current: number;
+      total: number;
+      trackName: string;
+    }) => void) => () => void;
   };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
@@ -391,6 +412,7 @@ const electronAPI: ElectronAPI = {
   },
   shell: {
     showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),
+    trashFile: (filePath: string) => ipcRenderer.invoke('shell:trash-file', filePath),
   },
   radio: {
     favorites: {
@@ -413,6 +435,15 @@ const electronAPI: ElectronAPI = {
       isFavorite: (stationUuid: string) =>
         ipcRenderer.invoke('radio:favorites:is-favorite', stationUuid) as Promise<boolean>,
     },
+  },
+  playlist: {
+    extract: (url: string) => ipcRenderer.invoke('playlist:extract', url),
+    cancel: () => ipcRenderer.invoke('playlist:cancel'),
+    onExtractProgress: createIpcListener<{
+      current: number;
+      total: number;
+      trackName: string;
+    }>('playlist:extract-progress'),
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

@@ -183,9 +183,19 @@ export interface ElectronAPI {
   };
   shell: {
     showInFolder: (filePath: string) => Promise<void>;
+    trashFile: (filePath: string) => Promise<void>;
   };
   app: {
     getVersion: () => Promise<string>;
+  };
+  playlist: {
+    extract: (url: string) => Promise<SearchResult[]>;
+    cancel: () => Promise<void>;
+    onExtractProgress: (callback: (data: {
+      current: number;
+      total: number;
+      trackName: string;
+    }) => void) => () => void;
   };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;

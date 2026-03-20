@@ -13,6 +13,7 @@ import { AmbientBackground } from '@/components/shared/AmbientBackground';
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
+const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
@@ -99,6 +100,11 @@ function App() {
                 {activeView === 'search' && (
                   <Suspense fallback={null}>
                     <SearchView />
+                  </Suspense>
+                )}
+                {activeView === 'import-playlist' && (
+                  <Suspense fallback={null}>
+                    <PlaylistImportView />
                   </Suspense>
                 )}
                 {activeView === 'radio' && (

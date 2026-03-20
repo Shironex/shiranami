@@ -15,6 +15,7 @@ import {
   Loader2,
   PanelLeftClose,
   PanelLeftOpen,
+  ListPlus,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
@@ -25,6 +26,7 @@ const NAV_ITEMS: Array<{ id: AppView; label: string; icon: typeof Library }> = [
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'search', label: 'Search', icon: Search },
+  { id: 'import-playlist', label: 'Import Playlist', icon: ListPlus },
   { id: 'radio', label: 'Radio', icon: Radio },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

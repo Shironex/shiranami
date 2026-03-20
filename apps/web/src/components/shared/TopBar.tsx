@@ -9,6 +9,8 @@ const VIEW_TITLES: Record<string, string> = {
   playlists: 'Playlists',
   favorites: 'Favorites',
   search: 'Search',
+  'import-playlist': 'Import Playlist',
+  radio: 'Radio',
   settings: 'Settings',
 };
 

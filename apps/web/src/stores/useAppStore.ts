@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'radio' | 'settings';
+export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'radio' | 'settings' | 'import-playlist';
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform';
 
