@@ -182,6 +182,18 @@ export function UpdatesSection() {
                 Install and restart
               </button>
             )}
+
+            {(updateStatus === 'available' || updateStatus === 'ready') && (
+              <a
+                href="https://shiranami.app/changelog"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                View changelog
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            )}
           </div>
 
           <p
