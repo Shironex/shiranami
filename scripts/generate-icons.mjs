@@ -14,6 +14,7 @@ const source = resolve(resourcesDir, 'mascot.png');
 mkdirSync(resourcesDir, { recursive: true });
 
 const sizes = [16, 32, 1024];
+const pngOptions = { compressionLevel: 9, palette: true, effort: 10, quality: 80 };
 
 async function generate() {
   console.log('Generating app icons from mascot.png...\n');
@@ -23,7 +24,7 @@ async function generate() {
     const outPath = resolve(resourcesDir, size === 1024 ? 'icon.png' : `icon-${size}.png`);
     await sharp(source)
       .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png({ compressionLevel: 9, palette: true, effort: 10, quality: 80 })
+      .png(pngOptions)
       .toFile(outPath);
     console.log(`  icon${size === 1024 ? '' : `-${size}`}.png  (${size}x${size})`);
   }
@@ -34,7 +35,7 @@ async function generate() {
     icoSizes.map(size =>
       sharp(source)
         .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .png({ compressionLevel: 9, palette: true, effort: 10, quality: 80 })
+        .png(pngOptions)
         .toBuffer()
     )
   );
