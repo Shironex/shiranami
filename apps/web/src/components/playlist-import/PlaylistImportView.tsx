@@ -16,7 +16,7 @@ export function PlaylistImportView() {
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     url, setUrl, tracks, isExtracting, extractProgress, isImporting,
-    extractError, previewLoadingId, completedCount, totalCount, pendingCount,
+    extractError, previewLoadingId, processedCount, totalCount, pendingCount,
     overallProgress, hasResults, isFinished,
     handleExtract, handleKeyDown, handleStartImport, handleCancel,
     handleReset, handleRemoveTrack, isPreviewPlaying, handlePreview,
@@ -118,7 +118,7 @@ export function PlaylistImportView() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>
-                    {completedCount}/{totalCount} complete
+                    {processedCount}/{totalCount} processed
                   </span>
                   {isImporting && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>

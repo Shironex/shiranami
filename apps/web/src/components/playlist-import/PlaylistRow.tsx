@@ -151,7 +151,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
 
         {playlistTrack.status === 'pending' && !isImporting && (
           <button
-            onClick={() => handleRemoveTrack(result.id)}
+            onClick={() => handleRemoveTrack(playlistTrack.id)}
             className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
             title="Remove from list"
           >

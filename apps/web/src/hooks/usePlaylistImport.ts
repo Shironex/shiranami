@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import {
   usePlaylistImportStore,
@@ -11,6 +11,8 @@ import type { DownloadProgress } from '@/types/electron';
 
 export function usePlaylistImport() {
   const [extractError, setExtractError] = useState<string | null>(null);
+  const activeImportTrackIdRef = useRef<string | null>(null);
+  const activeImportTrackUrlRef = useRef<string | null>(null);
 
   // Store selectors
   const url = usePlaylistImportStore((s) => s.url);
@@ -44,8 +46,14 @@ export function usePlaylistImport() {
         error: 'error',
       };
       const mapped = statusMap[data.status] ?? 'downloading';
+      if (
+        !activeImportTrackIdRef.current ||
+        data.url !== activeImportTrackUrlRef.current
+      ) {
+        return;
+      }
       if (mapped === 'downloading' || mapped === 'converting') {
-        updateTrackStatus(data.url, mapped, data.progress);
+        updateTrackStatus(activeImportTrackIdRef.current, mapped, data.progress);
       }
     });
     return cleanup;
@@ -103,32 +111,49 @@ export function usePlaylistImport() {
     startImporting();
 
     const currentTracks = usePlaylistImportStore.getState().tracks;
+    const completedUrls = new Set<string>();
 
     for (const playlistTrack of currentTracks) {
       if (usePlaylistImportStore.getState().isCancelled) break;
       if (playlistTrack.status !== 'pending') continue;
 
+      const trackId = playlistTrack.id;
       const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
+      if (completedUrls.has(trackUrl)) {
+        updateTrackStatus(trackId, 'skipped');
+        continue;
+      }
 
-      updateTrackStatus(trackUrl, 'downloading', 0);
+      activeImportTrackIdRef.current = trackId;
+      activeImportTrackUrlRef.current = trackUrl;
+      updateTrackStatus(trackId, 'downloading', 0);
 
       try {
         const filePath = await window.electronAPI.downloader.download(trackUrl);
 
         const exists = await window.electronAPI.db.tracks.exists(filePath);
         if (exists) {
-          updateTrackStatus(trackUrl, 'skipped');
+          completedUrls.add(trackUrl);
+          updateTrackStatus(trackId, 'skipped');
           continue;
         }
 
         await importTrack(filePath);
-        updateTrackStatus(trackUrl, 'done', 100);
+        completedUrls.add(trackUrl);
+        updateTrackStatus(trackId, 'done', 100);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Download failed';
-        updateTrackStatus(trackUrl, 'error', 0, msg);
+        updateTrackStatus(trackId, 'error', 0, msg);
+      } finally {
+        if (activeImportTrackIdRef.current === trackId) {
+          activeImportTrackIdRef.current = null;
+          activeImportTrackUrlRef.current = null;
+        }
       }
     }
 
+    activeImportTrackIdRef.current = null;
+    activeImportTrackUrlRef.current = null;
     usePlaylistImportStore.setState({ isImporting: false });
 
     if (!usePlaylistImportStore.getState().isCancelled) {
@@ -157,14 +182,16 @@ export function usePlaylistImport() {
   const handleReset = useCallback(() => {
     reset();
     setExtractError(null);
+    activeImportTrackIdRef.current = null;
+    activeImportTrackUrlRef.current = null;
   }, [reset]);
 
   // Computed values
-  const completedCount = tracks.filter(
-    (t) => t.status === 'done' || t.status === 'skipped'
+  const processedCount = tracks.filter(
+    (t) => t.status === 'done' || t.status === 'skipped' || t.status === 'error'
   ).length;
   const totalCount = tracks.length;
-  const overallProgress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const overallProgress = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
   const pendingCount = tracks.filter((t) => t.status === 'pending').length;
   const hasResults = tracks.length > 0;
   const isFinished = hasResults && !isImporting && pendingCount === 0;
@@ -180,7 +207,7 @@ export function usePlaylistImport() {
     previewLoadingId,
 
     // Computed
-    completedCount,
+    processedCount,
     totalCount,
     pendingCount,
     overallProgress,

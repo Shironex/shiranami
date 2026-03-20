@@ -114,8 +114,6 @@ async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
     '--flat-playlist',
     '--dump-json',
     '--no-warnings',
-    '--playlist-items',
-    '1:100',
     url,
   ]);
 

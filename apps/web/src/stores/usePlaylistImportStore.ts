@@ -4,6 +4,7 @@ import type { SearchResult } from '@/types/electron';
 export type PlaylistTrackStatus = 'pending' | 'downloading' | 'converting' | 'done' | 'error' | 'skipped';
 
 export interface PlaylistTrack {
+  id: string;
   searchResult: SearchResult;
   status: PlaylistTrackStatus;
   progress: number;
@@ -24,7 +25,7 @@ interface PlaylistImportActions {
   setTracks: (results: SearchResult[]) => void;
   removeTrack: (id: string) => void;
   updateTrackStatus: (
-    url: string,
+    id: string,
     status: PlaylistTrackStatus,
     progress?: number,
     error?: string
@@ -46,6 +47,11 @@ const INITIAL_STATE: PlaylistImportState = {
   isCancelled: false,
 };
 
+function createPlaylistTrackId(result: SearchResult, index: number): string {
+  const identity = result.webpage_url || result.url || result.id || 'track';
+  return `${index}:${identity}`;
+}
+
 export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImportActions>(
   (set) => ({
     ...INITIAL_STATE,
@@ -54,7 +60,8 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
 
     setTracks: (results) =>
       set({
-        tracks: results.map((r) => ({
+        tracks: results.map((r, index) => ({
+          id: createPlaylistTrackId(r, index),
           searchResult: r,
           status: 'pending' as const,
           progress: 0,
@@ -65,14 +72,13 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
 
     removeTrack: (id) =>
       set((s) => ({
-        tracks: s.tracks.filter((t) => t.searchResult.id !== id),
+        tracks: s.tracks.filter((t) => t.id !== id),
       })),
 
-    updateTrackStatus: (url, status, progress, error) =>
+    updateTrackStatus: (id, status, progress, error) =>
       set((s) => ({
         tracks: s.tracks.map((t) => {
-          const trackUrl = t.searchResult.webpage_url || t.searchResult.url;
-          if (trackUrl !== url) return t;
+          if (t.id !== id) return t;
           return {
             ...t,
             status,

@@ -374,14 +374,16 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const handleDeleteFromDisk = useCallback(async () => {
     if (!IS_ELECTRON) return;
+    let fileMovedToTrash = false;
     try {
       const isCurrentlyPlaying = currentTrack?.id === track.id;
 
-      // Remove from DB
-      await window.electronAPI.db.tracks.remove(track.id);
-
       // Move file to recycle bin
       await window.electronAPI.shell.trashFile(track.filePath);
+      fileMovedToTrash = true;
+
+      // Remove from DB after the file move succeeds
+      await window.electronAPI.db.tracks.remove(track.id);
 
       // Remove from library state
       removeFromLibrary([track.id]);
@@ -413,7 +415,11 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
       toast.success('Moved to recycle bin');
     } catch {
-      toast.error('Failed to delete track');
+      toast.error(
+        fileMovedToTrash
+          ? 'File moved to recycle bin, but failed to remove track from library'
+          : 'Failed to move track to recycle bin'
+      );
     }
     onClose();
   }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
