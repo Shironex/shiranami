@@ -29,7 +29,7 @@
   </p>
 
   <blockquote>
-    <p>A calm desktop player for your local music — playlists, synced lyrics, and one-step downloads, all in one quiet space with a late-night lavender mood.</p>
+    <p>A calm desktop player for your local music library, internet radio, synced lyrics, YouTube downloads, and full playlist imports, all in one quiet space.</p>
   </blockquote>
 </div>
 
@@ -37,7 +37,7 @@
 
 ### What is Shiranami?
 
-Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files — and adds playlists, synced lyrics, and YouTube downloads on top, all in a dark lavender interface that stays out of your way.
+Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files and adds playlists, synced lyrics, internet radio, YouTube downloads, and full playlist importing on top, all in a dark lavender interface that stays out of your way.
 
 ### Screenshot
 
@@ -53,6 +53,8 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 | ------------------------ | ------------------------------------------------------------------------- |
 | **Local library**        | Scan your folders, browse tracks, and play from your own collection       |
 | **Playlists**            | Create playlists with custom covers and quick access from the sidebar     |
+| **Playlist import**      | Pull full YouTube or Spotify playlists into a review list before download |
+| **Internet radio**       | Browse, stream, and favorite stations from Radio Browser                  |
 | **Synced lyrics**        | Lyrics that scroll with the music, right inside the player                |
 | **Search & download**    | Find tracks on YouTube and download them with yt-dlp + ffmpeg in one step |
 | **Playback resume**      | Volume, queue, track, and position survive restarts                       |

@@ -13,6 +13,37 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.5.0',
+    date: '20 March 2026',
+    title: 'Playlist import and library cleanup',
+    description:
+      'Bring whole playlists in from YouTube or Spotify, review the batch before downloading, and clean up downloaded files with a safer delete flow.',
+    categories: [
+      {
+        label: 'Playlist import',
+        entries: [
+          'Import full playlists from YouTube and Spotify links into your library.',
+          'Preview tracks before downloading and remove individual entries from the import list.',
+          'Large YouTube playlists no longer stop at the first 100 tracks.',
+        ],
+      },
+      {
+        label: 'Library',
+        entries: [
+          'Delete from Disk sends tracks to the recycle bin from the context menu.',
+          'The delete flow now keeps the library entry intact if moving the file fails.',
+        ],
+      },
+      {
+        label: 'Polish',
+        entries: [
+          'Playlist import lists stay smooth on larger batches thanks to virtualization.',
+          'Top bar titles are now correct in the Import Playlist and Radio views.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.4.0',
     date: '20 March 2026',
     title: 'Discord Rich Presence',
