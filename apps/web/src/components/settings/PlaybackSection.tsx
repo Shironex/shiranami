@@ -7,11 +7,13 @@ import { IS_ELECTRON } from '@/lib/platform';
 interface SettingsData {
   rememberPlaybackPosition: boolean;
   gaplessPlayback: boolean;
+  discordRpc: boolean;
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
   rememberPlaybackPosition: false,
   gaplessPlayback: false,
+  discordRpc: false,
 };
 
 export function PlaybackSection() {
@@ -86,6 +88,23 @@ export function PlaybackSection() {
             onChange={(v) => updateSetting('gaplessPlayback', v)}
           />
         </div>
+
+        {IS_ELECTRON && (
+          <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Discord Rich Presence
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Show currently playing track in Discord
+              </p>
+            </div>
+            <Switch
+              checked={settings.discordRpc}
+              onChange={(v) => updateSetting('discordRpc', v)}
+            />
+          </div>
+        )}
       </div>
     </SettingsCard>
   );

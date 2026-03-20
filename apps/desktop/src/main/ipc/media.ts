@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain } from 'electron';
 import { updateTrayWithPlaybackState } from '../tray';
+import { updateDiscordPresence } from '../discord-rpc';
 import type { PlaybackState } from '../media-controls';
 
 export function registerMediaHandlers(mainWindow: BrowserWindow): void {
@@ -7,6 +8,9 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
   ipcMain.on('media:playback-state', (_event, state: PlaybackState) => {
     // Update tray tooltip with now-playing info
     updateTrayWithPlaybackState(state);
+
+    // Update Discord Rich Presence
+    updateDiscordPresence(state);
 
     // Update taskbar progress (Windows)
     if (process.platform === 'win32' && !mainWindow.isDestroyed()) {
@@ -26,6 +30,7 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
       mainWindow.setProgressBar(-1);
     }
     updateTrayWithPlaybackState(null);
+    updateDiscordPresence(null);
   });
 }
 

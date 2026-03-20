@@ -6,6 +6,7 @@ import { initializeAutoUpdater } from './updater';
 import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
+import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
 import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol } from './art-protocol';
@@ -82,6 +83,12 @@ async function bootstrap(): Promise<void> {
   }
 
   try {
+    initializeDiscordRpc();
+  } catch (error) {
+    logger.warn('Failed to initialize Discord RPC:', error);
+  }
+
+  try {
     initializeAutoUpdater(mainWindow, !app.isPackaged);
   } catch (error) {
     logger.warn('Failed to initialize auto-updater:', error);
@@ -140,6 +147,11 @@ app.on('before-quit', event => {
   isShuttingDown = true;
 
   (async () => {
+    try {
+      cleanupDiscordRpc();
+    } catch {
+      /* ignore */
+    }
     try {
       cleanupMediaControls();
     } catch {
