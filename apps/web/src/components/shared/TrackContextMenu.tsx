@@ -67,6 +67,28 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
   const submenuRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
+  const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setIsSubmenuOpen(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    closeTimerRef.current = setTimeout(() => {
+      setIsSubmenuOpen(false);
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -121,7 +143,12 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
   }, [newName, track.id, onClose]);
 
   return (
-    <div ref={parentRef} className="relative group/submenu">
+    <div
+      ref={parentRef}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div
         className={cn(
           'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left cursor-default',
@@ -135,14 +162,14 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
         <ChevronRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40" />
       </div>
 
-      <div
-        ref={submenuRef}
-        className={cn(
-          'absolute top-0 w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20',
-          'hidden group-hover/submenu:block',
-          submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'
-        )}
-      >
+      {isSubmenuOpen && (
+        <div
+          ref={submenuRef}
+          className={cn(
+            'absolute top-0 w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20',
+            submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'
+          )}
+        >
         {isLoading ? (
           <div className="flex items-center justify-center py-3">
             <Loader2 className="w-4 h-4 text-muted-foreground/40 animate-spin" />
@@ -204,7 +231,8 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
             </div>
           </>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
