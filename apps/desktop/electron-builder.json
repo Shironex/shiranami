@@ -18,6 +18,12 @@
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,
+  "electronFuses": {
+    "runAsNode": false,
+    "enableNodeCliInspectArguments": false,
+    "enableNodeOptionsEnvironmentVariable": false,
+    "onlyLoadAppFromAsar": true
+  },
   "publish": {
     "provider": "github",
     "owner": "Shironex",

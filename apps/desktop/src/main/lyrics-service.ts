@@ -13,9 +13,30 @@ export interface LyricsResult {
 
 // In-memory cache for current session
 const lyricsCache = new Map<string, LyricsResult>();
+const LYRICS_CACHE_MAX = 200;
 
 function getCacheKey(title: string, artist: string): string {
   return `${title.toLowerCase().trim()}::${artist.toLowerCase().trim()}`;
+}
+
+function cacheGet(key: string): LyricsResult | undefined {
+  const value = lyricsCache.get(key);
+  if (value !== undefined) {
+    // Promote to most-recently-used by deleting and re-inserting
+    lyricsCache.delete(key);
+    lyricsCache.set(key, value);
+  }
+  return value;
+}
+
+function cacheSet(key: string, value: LyricsResult): void {
+  if (lyricsCache.has(key)) {
+    lyricsCache.delete(key);
+  } else if (lyricsCache.size >= LYRICS_CACHE_MAX) {
+    const oldest = lyricsCache.keys().next().value;
+    if (oldest !== undefined) lyricsCache.delete(oldest);
+  }
+  lyricsCache.set(key, value);
 }
 
 /**
@@ -104,7 +125,7 @@ export async function fetchLyrics(
   const key = getCacheKey(title, artist);
 
   // Check memory cache
-  const cached = lyricsCache.get(key);
+  const cached = cacheGet(key);
   if (cached) {
     return { ...cached, source: 'cache' };
   }
@@ -142,7 +163,7 @@ export async function fetchLyrics(
               plain: best.plainLyrics || null,
               source: 'lrclib',
             };
-            lyricsCache.set(key, lyricsResult);
+            cacheSet(key, lyricsResult);
             logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
             return lyricsResult;
           }
@@ -153,7 +174,7 @@ export async function fetchLyrics(
 
       logger.debug(`[lyrics] No lyrics found for: ${title} - ${artist}`);
       const empty: LyricsResult = { synced: null, plain: null, source: null };
-      lyricsCache.set(key, empty);
+      cacheSet(key, empty);
       return empty;
     }
 
@@ -163,7 +184,7 @@ export async function fetchLyrics(
       source: 'lrclib',
     };
 
-    lyricsCache.set(key, lyricsResult);
+    cacheSet(key, lyricsResult);
     logger.info(
       `[lyrics] Found ${lyricsResult.synced ? 'synced' : 'plain'} lyrics for: ${title} - ${artist}`
     );

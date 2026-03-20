@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { FastAverageColor } from 'fast-average-color';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
@@ -10,13 +10,15 @@ export interface AmbientColor {
   isDark: boolean;
 }
 
-const DEFAULT_COLOR: AmbientColor = {
+export const DEFAULT_COLOR: AmbientColor = {
   rgb: '59, 130, 246', // blue-500
   hex: '#3b82f6',
   isDark: true,
 };
 
-export function useAmbientColor(): AmbientColor {
+const AmbientColorContext = createContext<AmbientColor>(DEFAULT_COLOR);
+
+export function AmbientColorProvider({ children }: { children: ReactNode }) {
   const albumArt = usePlayerStore(s => s.currentTrack?.albumArt);
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
 
@@ -25,6 +27,8 @@ export function useAmbientColor(): AmbientColor {
       setColor(DEFAULT_COLOR);
       return;
     }
+
+    let cancelled = false;
 
     const img = new Image();
     // Only set crossOrigin for http(s) URLs — custom protocols don't need it
@@ -35,6 +39,7 @@ export function useAmbientColor(): AmbientColor {
     img.src = albumArt;
 
     img.onload = () => {
+      if (cancelled) return;
       try {
         const result = fac.getColor(img);
         setColor({
@@ -48,9 +53,22 @@ export function useAmbientColor(): AmbientColor {
     };
 
     img.onerror = () => {
+      if (cancelled) return;
       setColor(DEFAULT_COLOR);
+    };
+
+    return () => {
+      cancelled = true;
     };
   }, [albumArt]);
 
-  return color;
+  return (
+    <AmbientColorContext.Provider value={color}>
+      {children}
+    </AmbientColorContext.Provider>
+  );
+}
+
+export function useAmbientColor(): AmbientColor {
+  return useContext(AmbientColorContext);
 }
