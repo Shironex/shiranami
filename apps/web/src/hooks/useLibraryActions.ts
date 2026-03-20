@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
 
 export function useLibraryActions() {
   const setQueue = usePlayerStore(s => s.setQueue);
   const [isScanning, setIsScanning] = useState(false);
+  const { importTrack } = useTrackImport();
 
   const handleOpenFile = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -13,56 +15,10 @@ export function useLibraryActions() {
       const filePath = await window.electronAPI.dialog.openFile();
       if (!filePath) return;
 
-      // Check if already in DB
-      const exists = await window.electronAPI.db.tracks.exists(filePath);
-      if (exists) {
+      const track = await importTrack(filePath);
+      if (!track) {
         toast.info('Track already in library');
         return;
-      }
-
-      const { metadata } = await window.electronAPI.library.parseMetadata(filePath);
-
-      // Save to DB first (DB generates the id)
-      const dbTrack = (await window.electronAPI.db.tracks.add({
-        filePath,
-        title: metadata.title,
-        artist: metadata.artist,
-        album: metadata.album,
-        duration: metadata.duration,
-        genre: metadata.genre ?? null,
-        year: metadata.year ?? null,
-        trackNumber: metadata.trackNumber ?? null,
-        albumArt: metadata.albumArt ?? null,
-      })) as Record<string, unknown>;
-
-      const track: Track = {
-        id: dbTrack.id as string,
-        title: dbTrack.title as string,
-        artist: (dbTrack.artist as string) ?? 'Unknown Artist',
-        album: (dbTrack.album as string) ?? 'Unknown Album',
-        duration: (dbTrack.duration as number) ?? 0,
-        filePath: dbTrack.filePath as string,
-        albumArt: (dbTrack.albumArt as string | null) ?? undefined,
-        genre: dbTrack.genre as string | null | undefined,
-        year: dbTrack.year as number | null | undefined,
-        trackNumber: dbTrack.trackNumber as number | null | undefined,
-        isFavorite: (dbTrack.isFavorite as boolean) ?? false,
-        playCount: (dbTrack.playCount as number) ?? 0,
-        createdAt: dbTrack.createdAt as string | undefined,
-        updatedAt: dbTrack.updatedAt as string | undefined,
-      };
-
-      // Add to library
-      usePlayerStore.getState().addToLibrary([track]);
-
-      // Also add to queue so it's immediately playable
-      const currentQueue = usePlayerStore.getState().queue;
-      const currentPlaying = usePlayerStore.getState().currentTrack;
-      const newQueue = [...currentQueue, track];
-      if (!currentPlaying) {
-        setQueue(newQueue, newQueue.length - 1);
-      } else {
-        usePlayerStore.setState({ queue: newQueue });
       }
 
       toast.success('Added 1 track to library');
@@ -70,7 +26,7 @@ export function useLibraryActions() {
       console.error('Failed to add file:', err);
       toast.error('Failed to add track');
     }
-  }, [setQueue]);
+  }, [importTrack]);
 
   const handleOpenFolder = useCallback(async () => {
     if (!IS_ELECTRON) return;

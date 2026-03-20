@@ -11,9 +11,11 @@ import {
   Pause,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDuration } from '@shiranami/shared';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
+import { useTrackImport } from '@/hooks/useTrackImport';
+import { useAudioPreview } from '@/hooks/useAudioPreview';
 import { toast } from 'sonner';
 import type { SearchResult, DownloadProgress } from '@/types/electron';
 
@@ -26,13 +28,6 @@ interface DownloadState {
 
 type InstallStatus = 'idle' | 'downloading' | 'done' | 'error';
 type DependencyState = 'checking' | 'needs-install' | 'ready';
-
-function formatDuration(seconds: number): string {
-  if (!seconds || seconds <= 0) return '--:--';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
 
 function SearchStateCard({
   title,
@@ -86,13 +81,10 @@ export function SearchView() {
     ffmpegInstalled: boolean;
   } | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
-  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const addToLibrary = usePlayerStore((s) => s.addToLibrary);
-  const setQueue = usePlayerStore((s) => s.setQueue);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const { importTrack } = useTrackImport();
+  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview('YouTube Search');
   const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
   const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
   const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
@@ -269,66 +261,6 @@ export function SearchView() {
     [handleSearch]
   );
 
-  const importTrack = useCallback(
-    async (filePath: string) => {
-      try {
-        const { metadata } = await window.electronAPI.library.parseMetadata(filePath);
-
-        const exists = await window.electronAPI.db.tracks.exists(filePath);
-        if (exists) {
-          toast.info('Track already in library');
-          return;
-        }
-
-        const dbTrack = (await window.electronAPI.db.tracks.add({
-          filePath,
-          title: metadata.title,
-          artist: metadata.artist,
-          album: metadata.album,
-          duration: metadata.duration,
-          genre: metadata.genre ?? null,
-          year: metadata.year ?? null,
-          trackNumber: metadata.trackNumber ?? null,
-          albumArt: metadata.albumArt ?? null,
-        })) as Record<string, unknown>;
-
-        const track: Track = {
-          id: dbTrack.id as string,
-          title: dbTrack.title as string,
-          artist: (dbTrack.artist as string) ?? 'Unknown Artist',
-          album: (dbTrack.album as string) ?? 'Unknown Album',
-          duration: (dbTrack.duration as number) ?? 0,
-          filePath: dbTrack.filePath as string,
-          albumArt: (dbTrack.albumArt as string | null) ?? undefined,
-          genre: dbTrack.genre as string | null | undefined,
-          year: dbTrack.year as number | null | undefined,
-          trackNumber: dbTrack.trackNumber as number | null | undefined,
-          isFavorite: (dbTrack.isFavorite as boolean) ?? false,
-          playCount: (dbTrack.playCount as number) ?? 0,
-          createdAt: dbTrack.createdAt as string | undefined,
-          updatedAt: dbTrack.updatedAt as string | undefined,
-        };
-
-        addToLibrary([track]);
-
-        const currentQueue = usePlayerStore.getState().queue;
-        const currentPlaying = usePlayerStore.getState().currentTrack;
-        const newQueue = [...currentQueue, track];
-        if (!currentPlaying) {
-          setQueue(newQueue, newQueue.length - 1);
-        } else {
-          usePlayerStore.setState({ queue: newQueue });
-        }
-
-        toast.success(`Downloaded: ${track.title}`);
-      } catch (err) {
-        console.error('Failed to import downloaded track:', err);
-        toast.error('Failed to import track to library');
-      }
-    },
-    [addToLibrary, setQueue]
-  );
-
   const handleDownload = useCallback(
     async (result: SearchResult) => {
       if (!IS_ELECTRON) return;
@@ -345,7 +277,12 @@ export function SearchView() {
           ...prev,
           [url]: { progress: 100, status: 'done', filePath },
         }));
-        await importTrack(filePath);
+        const track = await importTrack(filePath);
+        if (track) {
+          toast.success(`Downloaded: ${track.title}`);
+        } else {
+          toast.info('Track already in library');
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Download failed';
         setDownloads((prev) => ({
@@ -362,54 +299,6 @@ export function SearchView() {
     const url = result.webpage_url || result.url;
     return downloads[url] ?? { progress: 0, status: 'idle' };
   };
-
-  const isPreviewPlaying = useCallback(
-    (result: SearchResult) => {
-      return (
-        currentTrack?.id === `preview-${result.id}` && isPlaying
-      );
-    },
-    [currentTrack, isPlaying]
-  );
-
-  const handlePreview = useCallback(
-    async (result: SearchResult) => {
-      if (!IS_ELECTRON) return;
-
-      const previewTrackId = `preview-${result.id}`;
-
-      if (currentTrack?.id === previewTrackId) {
-        usePlayerStore.getState().togglePlay();
-        return;
-      }
-
-      setPreviewLoadingId(result.id);
-
-      try {
-        const streamUrl = await window.electronAPI.downloader.getStreamUrl(
-          result.webpage_url || result.url
-        );
-
-        const previewTrack: Track = {
-          id: previewTrackId,
-          title: result.title,
-          artist: result.uploader,
-          album: 'YouTube Search',
-          duration: result.duration,
-          filePath: `shiranami-radio://stream?url=${encodeURIComponent(streamUrl)}`,
-          albumArt: result.thumbnail || undefined,
-        };
-
-        setQueue([previewTrack], 0);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load preview';
-        toast.error(`Preview failed: ${msg}`);
-      } finally {
-        setPreviewLoadingId(null);
-      }
-    },
-    [currentTrack, setQueue]
-  );
 
   const showCenteredSearchState = results.length === 0;
 
