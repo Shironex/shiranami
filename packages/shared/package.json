@@ -1,6 +1,6 @@
 {
   "name": "@shiranami/shared",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Shiranami shared types and utilities",
   "main": "./dist/index.js",

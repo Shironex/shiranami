@@ -13,6 +13,35 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.5.1',
+    date: '21 March 2026',
+    title: 'Radio and playback polish',
+    description:
+      'A focused polish patch for smoother scrubbing, cleaner Windows window controls, and a more responsive radio browsing flow.',
+    categories: [
+      {
+        label: 'Player',
+        entries: [
+          'The player seek thumb now snaps straight to the scrubbed position instead of visibly sliding from the old timestamp.',
+        ],
+      },
+      {
+        label: 'Radio',
+        entries: [
+          'Switching between Top Stations, By Country, and Favorites now shows skeleton rows while results load.',
+          'Fast tab and country changes no longer let stale radio requests overwrite the newest selection.',
+          'The country picker now uses the same shared select styling as the rest of the app instead of a native browser dropdown.',
+        ],
+      },
+      {
+        label: 'Interface',
+        entries: [
+          'Windows title bar controls have been resized and balanced so minimize, maximize, and close feel more consistent.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.5.0',
     date: '20 March 2026',
     title: 'Playlist import and library cleanup',
