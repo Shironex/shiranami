@@ -8,6 +8,7 @@ export type VisualizerStyle = 'bars' | 'waveform';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
 const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
 const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
+const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
 
 function getInitialSidebarCollapsed() {
   if (typeof window === 'undefined') return false;
@@ -46,12 +47,26 @@ function persistVisualizerEnabled(enabled: boolean) {
   window.localStorage.setItem(VISUALIZER_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
 }
 
+function getInitialCompactAlwaysOnTop(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(COMPACT_ALWAYS_ON_TOP_STORAGE_KEY) === 'true';
+}
+
+function persistCompactAlwaysOnTop(compactAlwaysOnTop: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(
+    COMPACT_ALWAYS_ON_TOP_STORAGE_KEY,
+    compactAlwaysOnTop ? 'true' : 'false'
+  );
+}
+
 interface AppState {
   activeView: AppView;
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
   sidebarCollapsed: boolean;
   compactMode: boolean;
+  compactAlwaysOnTop: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
 }
@@ -62,7 +77,9 @@ interface AppActions {
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   setCompactMode: (compactMode: boolean) => Promise<void>;
+  setCompactAlwaysOnTop: (compactAlwaysOnTop: boolean) => Promise<void>;
   toggleCompactMode: () => Promise<void>;
+  toggleCompactAlwaysOnTop: () => Promise<void>;
   toggleSidebarCollapsed: () => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
@@ -75,6 +92,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   selectedPlaylistId: null,
   sidebarCollapsed: getInitialSidebarCollapsed(),
   compactMode: false,
+  compactAlwaysOnTop: getInitialCompactAlwaysOnTop(),
   showVisualizer: getInitialVisualizerEnabled(),
   visualizerStyle: getInitialVisualizerStyle(),
 
@@ -99,12 +117,41 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 
     try {
       await window.electronAPI.window.setCompactMode(compactMode);
+      if (get().compactAlwaysOnTop) {
+        await window.electronAPI.window.setAlwaysOnTop(compactMode);
+      }
     } catch {
+      if (compactMode && get().compactAlwaysOnTop) {
+        try {
+          await window.electronAPI.window.setAlwaysOnTop(false);
+        } catch {
+          // noop
+        }
+      }
       set({ compactMode: previous });
+    }
+  },
+  setCompactAlwaysOnTop: async (compactAlwaysOnTop) => {
+    const previous = get().compactAlwaysOnTop;
+    if (previous === compactAlwaysOnTop) return;
+
+    persistCompactAlwaysOnTop(compactAlwaysOnTop);
+    set({ compactAlwaysOnTop });
+
+    if (!IS_ELECTRON || !get().compactMode) return;
+
+    try {
+      await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
+    } catch {
+      persistCompactAlwaysOnTop(previous);
+      set({ compactAlwaysOnTop: previous });
     }
   },
   toggleCompactMode: async () => {
     await get().setCompactMode(!get().compactMode);
+  },
+  toggleCompactAlwaysOnTop: async () => {
+    await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
   },
   toggleSidebarCollapsed: () => {
     const sidebarCollapsed = !get().sidebarCollapsed;

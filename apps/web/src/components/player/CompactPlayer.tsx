@@ -8,7 +8,7 @@ import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Maximize2, Minimize2, Music, X } from 'lucide-react';
+import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
 
 function isRadioTrack(filePath: string): boolean {
   return filePath.startsWith('shiranami-radio://');
@@ -24,6 +24,8 @@ export function CompactPlayer() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
   const setCompactMode = useAppStore(s => s.setCompactMode);
+  const compactAlwaysOnTop = useAppStore(s => s.compactAlwaysOnTop);
+  const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
   const ambientColor = useAmbientColor();
 
   const handleExitCompact = useCallback(() => {
@@ -32,6 +34,9 @@ export function CompactPlayer() {
 
   const handleMinimize = useCallback(() => window.electronAPI?.window.minimize(), []);
   const handleClose = useCallback(() => window.electronAPI?.window.close(), []);
+  const handleToggleAlwaysOnTop = useCallback(() => {
+    void toggleCompactAlwaysOnTop();
+  }, [toggleCompactAlwaysOnTop]);
   const showSeekBar = !!currentTrack && !isRadioTrack(currentTrack.filePath);
 
   return (
@@ -57,6 +62,27 @@ export function CompactPlayer() {
         </div>
 
         <div className="no-drag flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={handleToggleAlwaysOnTop}
+                className={cn(
+                  'flex size-7 items-center justify-center rounded-lg transition-colors',
+                  compactAlwaysOnTop
+                    ? 'bg-primary/15 text-primary hover:bg-primary/20'
+                    : 'text-muted-foreground/65 hover:bg-accent hover:text-foreground'
+                )}
+                aria-label={compactAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+              >
+                <Pin className="size-3.25" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {compactAlwaysOnTop ? 'Disable always on top' : 'Keep on top'}
+            </TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <button

@@ -18,6 +18,7 @@ const UPDATER_IPC_CHANNELS = new Set([
 
 const ALLOWED_IPC_CHANNELS = new Set([
   'window:is-maximized',
+  'window:set-always-on-top',
   'window:set-compact-mode',
   'store:get',
   'store:set',
@@ -42,6 +43,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:history:record-play',
   'db:history:get-recent',
   'db:history:get-summary',
+  'db:history:get-activity',
   'db:folders:get-all',
   'db:folders:add',
   'db:folders:remove',
@@ -152,12 +154,19 @@ interface ListeningStatsSummary {
   topArtists: ListeningStatsArtist[];
 }
 
+interface ListeningActivityPoint {
+  date: string;
+  playCount: number;
+  listenedMinutes: number;
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
     maximize: () => void;
     close: () => void;
     isMaximized: () => Promise<boolean>;
+    setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
     setCompactMode: (compactMode: boolean) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
@@ -198,8 +207,12 @@ export interface ElectronAPI {
         duration: number | null;
         source?: string;
       }) => Promise<unknown>;
-      getRecent: (limit?: number) => Promise<ListeningHistoryEntry[]>;
-      getSummary: () => Promise<ListeningStatsSummary>;
+      getRecent: (options?: {
+        limit?: number;
+        since?: string | null;
+      }) => Promise<ListeningHistoryEntry[]>;
+      getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
+      getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
     };
     folders: {
       getAll: () => Promise<unknown[]>;
@@ -363,6 +376,8 @@ const electronAPI: ElectronAPI = {
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+    setAlwaysOnTop: (alwaysOnTop: boolean) =>
+      ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
     setCompactMode: (compactMode: boolean) =>
       ipcRenderer.invoke('window:set-compact-mode', compactMode),
     onMaximizedChange: createIpcListener<boolean>('window:maximized-change'),
@@ -404,8 +419,12 @@ const electronAPI: ElectronAPI = {
         duration: number | null;
         source?: string;
       }) => ipcRenderer.invoke('db:history:record-play', data),
-      getRecent: (limit = 30) => ipcRenderer.invoke('db:history:get-recent', limit),
-      getSummary: () => ipcRenderer.invoke('db:history:get-summary'),
+      getRecent: (options?: { limit?: number; since?: string | null }) =>
+        ipcRenderer.invoke('db:history:get-recent', options),
+      getSummary: (options?: { since?: string | null }) =>
+        ipcRenderer.invoke('db:history:get-summary', options),
+      getActivity: (options?: { since?: string | null }) =>
+        ipcRenderer.invoke('db:history:get-activity', options),
     },
     folders: {
       getAll: () => ipcRenderer.invoke('db:folders:get-all'),

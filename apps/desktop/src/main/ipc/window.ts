@@ -30,6 +30,10 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     return mainWindow.isMaximized();
   });
 
+  ipcMain.handle('window:set-always-on-top', (_event, alwaysOnTop: boolean) => {
+    mainWindow.setAlwaysOnTop(alwaysOnTop);
+  });
+
   ipcMain.handle('window:set-compact-mode', (_event, compactMode: boolean) => {
     if (compactMode === isCompactMode) return;
 
@@ -78,5 +82,6 @@ export function cleanupWindowHandlers(): void {
   ipcMain.removeAllListeners('window:maximize');
   ipcMain.removeAllListeners('window:close');
   ipcMain.removeHandler('window:is-maximized');
+  ipcMain.removeHandler('window:set-always-on-top');
   ipcMain.removeHandler('window:set-compact-mode');
 }

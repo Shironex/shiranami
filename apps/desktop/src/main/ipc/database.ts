@@ -17,8 +17,13 @@ import {
   type NewPlayHistory,
 } from '@shiranami/database';
 
+function buildHistorySinceFilter(since?: string | null) {
+  if (!since) return null;
+  return sql`${playHistory.playedAt} >= ${since}`;
+}
+
 export function registerDatabaseHandlers(): void {
-  // ── Tracks ──────────────────────────────────────────────────────────
+  // Tracks
 
   ipcMain.handle('db:tracks:get-all', async () => {
     const db = getDatabase();
@@ -137,36 +142,43 @@ export function registerDatabaseHandlers(): void {
     },
   );
 
-  ipcMain.handle('db:history:get-recent', async (_event, limit = 30) => {
+  ipcMain.handle(
+    'db:history:get-recent',
+    async (_event, options?: { limit?: number; since?: string | null }) => {
+      const db = getDatabase();
+      const safeLimit = Math.max(1, Math.min(100, options?.limit ?? 30));
+      const sinceFilter = buildHistorySinceFilter(options?.since);
+
+      const recentQuery = db
+        .select({
+          id: playHistory.id,
+          trackId: playHistory.trackId,
+          playedAt: playHistory.playedAt,
+          playedSeconds: playHistory.playedSeconds,
+          completionRatio: playHistory.completionRatio,
+          completed: playHistory.completed,
+          source: playHistory.source,
+          title: tracks.title,
+          artist: tracks.artist,
+          album: tracks.album,
+          albumArt: tracks.albumArt,
+          duration: tracks.duration,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .orderBy(desc(playHistory.playedAt));
+
+      return (sinceFilter ? recentQuery.where(sinceFilter) : recentQuery)
+        .limit(safeLimit)
+        .all();
+    },
+  );
+
+  ipcMain.handle('db:history:get-summary', async (_event, options?: { since?: string | null }) => {
     const db = getDatabase();
-    const safeLimit = Math.max(1, Math.min(100, limit));
+    const sinceFilter = buildHistorySinceFilter(options?.since);
 
-    return db
-      .select({
-        id: playHistory.id,
-        trackId: playHistory.trackId,
-        playedAt: playHistory.playedAt,
-        playedSeconds: playHistory.playedSeconds,
-        completionRatio: playHistory.completionRatio,
-        completed: playHistory.completed,
-        source: playHistory.source,
-        title: tracks.title,
-        artist: tracks.artist,
-        album: tracks.album,
-        albumArt: tracks.albumArt,
-        duration: tracks.duration,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .orderBy(desc(playHistory.playedAt))
-      .limit(safeLimit)
-      .all();
-  });
-
-  ipcMain.handle('db:history:get-summary', async () => {
-    const db = getDatabase();
-
-    const totals = db
+    const totalsQuery = db
       .select({
         totalPlays: sql<number>`COUNT(*)`,
         totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
@@ -175,10 +187,10 @@ export function registerDatabaseHandlers(): void {
         completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
       })
       .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .get();
+      .innerJoin(tracks, eq(playHistory.trackId, tracks.id));
+    const totals = (sinceFilter ? totalsQuery.where(sinceFilter) : totalsQuery).get();
 
-    const topTracks = db
+    const topTracksQuery = db
       .select({
         trackId: tracks.id,
         title: tracks.title,
@@ -191,12 +203,13 @@ export function registerDatabaseHandlers(): void {
       })
       .from(playHistory)
       .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.id)
+      .groupBy(tracks.id);
+    const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
       .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
       .limit(5)
       .all();
 
-    const topArtists = db
+    const topArtistsQuery = db
       .select({
         artist: tracks.artist,
         playCount: sql<number>`COUNT(*)`,
@@ -204,7 +217,8 @@ export function registerDatabaseHandlers(): void {
       })
       .from(playHistory)
       .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.artist)
+      .groupBy(tracks.artist);
+    const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
       .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
       .limit(5)
       .all();
@@ -220,7 +234,26 @@ export function registerDatabaseHandlers(): void {
     };
   });
 
-  // ── Folders ─────────────────────────────────────────────────────────
+  ipcMain.handle('db:history:get-activity', async (_event, options?: { since?: string | null }) => {
+    const db = getDatabase();
+    const sinceFilter = buildHistorySinceFilter(options?.since);
+    const dayExpression = sql<string>`substr(${playHistory.playedAt}, 1, 10)`;
+
+    const activityQuery = db
+      .select({
+        date: dayExpression,
+        playCount: sql<number>`COUNT(*)`,
+        listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+      })
+      .from(playHistory)
+      .groupBy(dayExpression);
+
+    return (sinceFilter ? activityQuery.where(sinceFilter) : activityQuery)
+      .orderBy(dayExpression)
+      .all();
+  });
+
+  // Folders
 
   ipcMain.handle('db:folders:get-all', async () => {
     const db = getDatabase();
@@ -249,7 +282,7 @@ export function registerDatabaseHandlers(): void {
       .get();
   });
 
-  // ── Playlists ───────────────────────────────────────────────────────
+  // Playlists
 
   ipcMain.handle('db:playlists:get-all', async () => {
     const db = getDatabase();
@@ -394,6 +427,7 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:history:record-play');
   ipcMain.removeHandler('db:history:get-recent');
   ipcMain.removeHandler('db:history:get-summary');
+  ipcMain.removeHandler('db:history:get-activity');
   ipcMain.removeHandler('db:folders:get-all');
   ipcMain.removeHandler('db:folders:add');
   ipcMain.removeHandler('db:folders:remove');

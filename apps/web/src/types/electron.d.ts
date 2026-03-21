@@ -77,12 +77,19 @@ export interface ListeningStatsSummary {
   topArtists: ListeningStatsArtist[];
 }
 
+export interface ListeningActivityPoint {
+  date: string;
+  playCount: number;
+  listenedMinutes: number;
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
     maximize: () => void;
     close: () => void;
     isMaximized: () => Promise<boolean>;
+    setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
     setCompactMode: (compactMode: boolean) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
@@ -140,8 +147,12 @@ export interface ElectronAPI {
         duration: number | null;
         source?: string;
       }) => Promise<unknown>;
-      getRecent: (limit?: number) => Promise<ListeningHistoryEntry[]>;
-      getSummary: () => Promise<ListeningStatsSummary>;
+      getRecent: (options?: {
+        limit?: number;
+        since?: string | null;
+      }) => Promise<ListeningHistoryEntry[]>;
+      getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
+      getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
     };
     playlists: {
       getAll: () => Promise<unknown[]>;

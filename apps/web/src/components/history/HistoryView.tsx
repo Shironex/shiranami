@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatDuration } from '@shiranami/shared';
+import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { subscribeToListeningHistoryUpdates } from '@/lib/listeningHistory';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import type {
+  ListeningActivityPoint,
   ListeningHistoryEntry,
   ListeningStatsArtist,
   ListeningStatsSummary,
@@ -11,6 +13,14 @@ import type {
 } from '@/types/electron';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, CheckCircle2, Clock3, Disc3, Music, PlayCircle } from 'lucide-react';
+
+type HistoryRange = '7d' | '30d' | 'all';
+
+const HISTORY_RANGES: Array<{ id: HistoryRange; label: string }> = [
+  { id: '7d', label: '7 Days' },
+  { id: '30d', label: '30 Days' },
+  { id: 'all', label: 'All Time' },
+];
 
 const EMPTY_SUMMARY: ListeningStatsSummary = {
   totalPlays: 0,
@@ -21,6 +31,52 @@ const EMPTY_SUMMARY: ListeningStatsSummary = {
   topTracks: [],
   topArtists: [],
 };
+
+function getSinceForRange(range: HistoryRange): string | null {
+  if (range === 'all') return null;
+
+  const days = range === '7d' ? 7 : 30;
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (days - 1));
+  return since.toISOString();
+}
+
+function getRangeCopy(range: HistoryRange): string {
+  if (range === '7d') return 'Last 7 days';
+  if (range === '30d') return 'Last 30 days';
+  return 'All time';
+}
+
+function buildActivitySeries(
+  range: HistoryRange,
+  activity: ListeningActivityPoint[],
+): ListeningActivityPoint[] {
+  if (range === 'all' || activity.length === 0) {
+    return activity;
+  }
+
+  const byDate = new Map(activity.map((point) => [point.date, point]));
+  const days = range === '7d' ? 7 : 30;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const series: ListeningActivityPoint[] = [];
+  for (let index = days - 1; index >= 0; index -= 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+    const key = date.toISOString().slice(0, 10);
+    series.push(
+      byDate.get(key) ?? {
+        date: key,
+        playCount: 0,
+        listenedMinutes: 0,
+      },
+    );
+  }
+
+  return series;
+}
 
 function formatTotalTime(minutes: number): string {
   if (minutes >= 60) {
@@ -47,6 +103,13 @@ function formatPlayedAt(value: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+  });
+}
+
+function formatActivityLabel(value: string): string {
+  return new Date(value).toLocaleDateString([], {
+    month: 'short',
+    day: 'numeric',
   });
 }
 
@@ -113,7 +176,9 @@ function TopTrackRow({
       </div>
       <div className="shrink-0 text-right">
         <p className="text-xs font-medium text-foreground">{track.playCount} plays</p>
-        <p className="text-[11px] text-muted-foreground/65">{formatListenTime(track.listenedSeconds)}</p>
+        <p className="text-[11px] text-muted-foreground/65">
+          {formatListenTime(track.listenedSeconds)}
+        </p>
       </div>
     </button>
   );
@@ -123,10 +188,16 @@ function TopArtistRow({ artist }: { artist: ListeningStatsArtist }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/20 bg-background/25 px-3 py-3">
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-foreground">{artist.artist || 'Unknown Artist'}</p>
-        <p className="text-[11px] text-muted-foreground/65">{formatListenTime(artist.listenedSeconds)}</p>
+        <p className="truncate text-sm font-medium text-foreground">
+          {artist.artist || 'Unknown Artist'}
+        </p>
+        <p className="text-[11px] text-muted-foreground/65">
+          {formatListenTime(artist.listenedSeconds)}
+        </p>
       </div>
-      <span className="shrink-0 text-xs font-medium text-foreground">{artist.playCount} plays</span>
+      <span className="shrink-0 text-xs font-medium text-foreground">
+        {artist.playCount} plays
+      </span>
     </div>
   );
 }
@@ -152,10 +223,80 @@ function RecentRow({
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-xs font-medium text-foreground">{formatDuration(entry.playedSeconds)}</p>
-        <p className="text-[11px] text-muted-foreground/65">{formatPlayedAt(entry.playedAt)}</p>
+        <p className="text-xs font-medium text-foreground">
+          {formatDuration(entry.playedSeconds)}
+        </p>
+        <p className="text-[11px] text-muted-foreground/65">
+          {formatPlayedAt(entry.playedAt)}
+        </p>
       </div>
     </button>
+  );
+}
+
+function EmptyPanel({
+  title,
+  copy,
+}: {
+  title: string;
+  copy: string;
+}) {
+  return (
+    <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/25 bg-background/20 px-6 text-center">
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="mt-2 max-w-sm text-xs text-muted-foreground/65">{copy}</p>
+    </div>
+  );
+}
+
+function ActivityGraph({
+  points,
+  range,
+}: {
+  points: ListeningActivityPoint[];
+  range: HistoryRange;
+}) {
+  if (points.length === 0) {
+    return (
+      <EmptyPanel
+        title="No activity yet"
+        copy={`Nothing has been logged for ${getRangeCopy(range).toLowerCase()}. Play through a few tracks and activity will appear here.`}
+      />
+    );
+  }
+
+  const maxPlayCount = Math.max(...points.map((point) => point.playCount), 1);
+  const labelEvery =
+    points.length <= 10 ? 1 : points.length <= 20 ? 2 : points.length <= 40 ? 4 : 7;
+  const barWidthClass =
+    points.length <= 10 ? 'w-10' : points.length <= 31 ? 'w-7' : points.length <= 90 ? 'w-5' : 'w-4';
+
+  return (
+    <div className="overflow-x-auto scrollbar-thin pb-1">
+      <div className="flex min-w-max items-end gap-2">
+        {points.map((point, index) => {
+          const height = Math.max(10, Math.round((point.playCount / maxPlayCount) * 112));
+          const showLabel = index % labelEvery === 0 || index === points.length - 1;
+          return (
+            <div key={point.date} className={cn('flex flex-col items-center gap-2', barWidthClass)}>
+              <div className="flex h-32 items-end">
+                <div
+                  className={cn(
+                    'w-full rounded-full border border-primary/30 bg-primary/70 transition-colors',
+                    point.playCount === 0 && 'border-border/20 bg-foreground/[0.08]'
+                  )}
+                  style={{ height }}
+                  title={`${formatActivityLabel(point.date)}: ${point.playCount} plays, ${Math.round(point.listenedMinutes)}m listened`}
+                />
+              </div>
+              <span className="text-[10px] text-muted-foreground/55">
+                {showLabel ? formatActivityLabel(point.date) : ''}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -166,6 +307,11 @@ function HistoryViewSkeleton() {
         <Skeleton className="h-4 w-28" />
         <Skeleton className="mt-3 h-10 w-72 max-w-full" />
         <Skeleton className="mt-2 h-4 w-80 max-w-full" />
+        <div className="mt-5 flex gap-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-9 w-24 rounded-full" />
+          ))}
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
@@ -175,6 +321,10 @@ function HistoryViewSkeleton() {
             <Skeleton className="mt-2 h-3 w-28" />
           </div>
         ))}
+      </div>
+      <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="mt-5 h-40 w-full rounded-2xl" />
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         {Array.from({ length: 2 }).map((_, index) => (
@@ -215,35 +365,42 @@ function HistoryViewSkeleton() {
 export default function HistoryView() {
   const library = usePlayerStore((s) => s.library);
   const setQueue = usePlayerStore((s) => s.setQueue);
+  const [selectedRange, setSelectedRange] = useState<HistoryRange>('all');
   const [summary, setSummary] = useState<ListeningStatsSummary>(EMPTY_SUMMARY);
   const [recent, setRecent] = useState<ListeningHistoryEntry[]>([]);
+  const [activity, setActivity] = useState<ListeningActivityPoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadHistoryData = useCallback(async () => {
     if (!IS_ELECTRON) {
       setSummary(EMPTY_SUMMARY);
       setRecent([]);
+      setActivity([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    const since = getSinceForRange(selectedRange);
 
     try {
-      const [nextSummary, nextRecent] = await Promise.all([
-        window.electronAPI.db.history.getSummary(),
-        window.electronAPI.db.history.getRecent(25),
+      const [nextSummary, nextRecent, nextActivity] = await Promise.all([
+        window.electronAPI.db.history.getSummary({ since }),
+        window.electronAPI.db.history.getRecent({ limit: 25, since }),
+        window.electronAPI.db.history.getActivity({ since }),
       ]);
 
       setSummary(nextSummary);
       setRecent(nextRecent);
+      setActivity(nextActivity);
     } catch {
       setSummary(EMPTY_SUMMARY);
       setRecent([]);
+      setActivity([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [selectedRange]);
 
   useEffect(() => {
     void loadHistoryData();
@@ -259,30 +416,12 @@ export default function HistoryView() {
     }
   }, [library, setQueue]);
 
-  const isEmpty = !isLoading && summary.totalPlays === 0 && recent.length === 0;
+  const activitySeries = buildActivitySeries(selectedRange, activity);
 
   if (isLoading) {
     return (
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         <HistoryViewSkeleton />
-      </div>
-    );
-  }
-
-  if (isEmpty) {
-    return (
-      <div className="flex-1 px-6 py-10">
-        <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-4 rounded-[28px] border border-border/25 bg-surface/35 px-6 text-center">
-          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
-            <BarChart3 className="size-7 text-primary/80" />
-          </div>
-          <div>
-            <p className="font-display text-lg font-semibold text-foreground">No listening history yet</p>
-            <p className="mt-2 max-w-md text-sm text-muted-foreground/70">
-              Play a few tracks through to meaningful listens and Shiranami will start building your recent history and listening stats here.
-            </p>
-          </div>
-        </div>
       </div>
     );
   }
@@ -293,13 +432,34 @@ export default function HistoryView() {
         <section className="relative overflow-hidden rounded-[28px] border border-border/25 bg-surface/35 p-6">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(167,139,250,0.18),transparent_45%)]" />
           <div className="relative">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/55">Listening History</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/55">
+              Listening History
+            </p>
             <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground">
-              A running picture of what you actually finish listening to.
+              A running picture of what you actually stick with.
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-muted-foreground/75">
-              Stats are built from meaningful listens, not every accidental click. Recent plays update automatically as tracks finish.
+              Showing {getRangeCopy(selectedRange).toLowerCase()}. Stats are built from
+              meaningful listens, not every accidental click.
             </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {HISTORY_RANGES.map((range) => (
+                <button
+                  key={range.id}
+                  type="button"
+                  onClick={() => setSelectedRange(range.id)}
+                  className={cn(
+                    'rounded-full border px-4 py-2 text-xs font-medium transition-colors',
+                    selectedRange === range.id
+                      ? 'border-primary/60 bg-primary/15 text-primary'
+                      : 'border-border/20 bg-background/30 text-muted-foreground hover:border-border/35 hover:text-foreground'
+                  )}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -307,7 +467,7 @@ export default function HistoryView() {
           <StatCard
             label="Logged Plays"
             value={summary.totalPlays.toLocaleString()}
-            hint="Meaningful listens recorded"
+            hint={`${getRangeCopy(selectedRange)} meaningful listens`}
             icon={PlayCircle}
           />
           <StatCard
@@ -319,7 +479,7 @@ export default function HistoryView() {
           <StatCard
             label="Unique Tracks"
             value={summary.uniqueTracks.toLocaleString()}
-            hint="Songs that made your history"
+            hint="Songs that made this range"
             icon={Music}
           />
           <StatCard
@@ -330,28 +490,61 @@ export default function HistoryView() {
           />
         </section>
 
+        <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="size-4 text-primary/80" />
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              Activity
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground/65">
+            Daily listens across {getRangeCopy(selectedRange).toLowerCase()}.
+          </p>
+          <div className="mt-5">
+            <ActivityGraph points={activitySeries} range={selectedRange} />
+          </div>
+        </section>
+
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
             <div className="flex items-center gap-2">
               <Disc3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">Top Tracks</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                Top Tracks
+              </h2>
             </div>
             <div className="mt-4 space-y-3">
-              {summary.topTracks.map((track) => (
-                <TopTrackRow key={track.trackId} track={track} onPlay={handlePlayTrack} />
-              ))}
+              {summary.topTracks.length > 0 ? (
+                summary.topTracks.map((track) => (
+                  <TopTrackRow key={track.trackId} track={track} onPlay={handlePlayTrack} />
+                ))
+              ) : (
+                <EmptyPanel
+                  title="No top tracks in this range"
+                  copy="Once enough listens are logged in the selected period, your most-played tracks will surface here."
+                />
+              )}
             </div>
           </div>
 
           <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">Top Artists</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                Top Artists
+              </h2>
             </div>
             <div className="mt-4 space-y-3">
-              {summary.topArtists.map((artist) => (
-                <TopArtistRow key={artist.artist} artist={artist} />
-              ))}
+              {summary.topArtists.length > 0 ? (
+                summary.topArtists.map((artist) => (
+                  <TopArtistRow key={artist.artist} artist={artist} />
+                ))
+              ) : (
+                <EmptyPanel
+                  title="No artist trends yet"
+                  copy="Your most-played artists will show up here as soon as the selected range has enough history."
+                />
+              )}
             </div>
           </div>
         </section>
@@ -359,12 +552,21 @@ export default function HistoryView() {
         <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
           <div className="flex items-center gap-2">
             <Clock3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Recent Plays</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              Recent Plays
+            </h2>
           </div>
           <div className="mt-4 space-y-3">
-            {recent.map((entry) => (
-              <RecentRow key={entry.id} entry={entry} onPlay={handlePlayTrack} />
-            ))}
+            {recent.length > 0 ? (
+              recent.map((entry) => (
+                <RecentRow key={entry.id} entry={entry} onPlay={handlePlayTrack} />
+              ))
+            ) : (
+              <EmptyPanel
+                title="No recent plays in this range"
+                copy="Recent listens are filtered by the active range too, so try widening the window or playing a few more tracks."
+              />
+            )}
           </div>
         </section>
       </div>
