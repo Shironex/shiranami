@@ -75,6 +75,7 @@ interface PlayerActions {
 
   // Favorites
   toggleFavorite: (trackId: string) => void;
+  incrementTrackPlayCount: (trackId: string) => void;
 
   // Modes
   toggleShuffle: () => void;
@@ -264,7 +265,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       duration: 0,
     }),
 
-  // Favorites — update track in both library and queue
+  // Favorites - update track in both library and queue
   toggleFavorite: (trackId: string) => {
     const { library, queue, currentTrack } = get();
     const toggle = (t: Track) =>
@@ -282,6 +283,26 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     if (IS_ELECTRON) {
       window.electronAPI.db.tracks.toggleFavorite(trackId).catch(() => {});
     }
+  },
+
+  incrementTrackPlayCount: (trackId: string) => {
+    const { library, queue, currentTrack } = get();
+    const increment = (t: Track) =>
+      t.id === trackId ? { ...t, playCount: (t.playCount ?? 0) + 1 } : t;
+
+    const updates: Partial<PlayerState> = {
+      library: library.map(increment),
+      queue: queue.map(increment),
+    };
+
+    if (currentTrack?.id === trackId) {
+      updates.currentTrack = {
+        ...currentTrack,
+        playCount: (currentTrack.playCount ?? 0) + 1,
+      };
+    }
+
+    set(updates);
   },
 
   // Modes

@@ -13,6 +13,7 @@ import { AmbientBackground } from '@/components/shared/AmbientBackground';
 
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView'));
+const HistoryView = lazy(() => import('@/components/history/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
 const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
@@ -104,6 +105,11 @@ function App() {
                         ) : <PlaylistsView />
                       )}
                       {activeView === 'favorites' && <FavoritesView />}
+                      {activeView === 'history' && (
+                        <Suspense fallback={null}>
+                          <HistoryView />
+                        </Suspense>
+                      )}
                       {activeView === 'search' && (
                         <Suspense fallback={null}>
                           <SearchView />

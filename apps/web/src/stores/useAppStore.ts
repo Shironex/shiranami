@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { IS_ELECTRON } from '@/lib/platform';
 
-export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'radio' | 'settings' | 'import-playlist';
+export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'search' | 'radio' | 'settings' | 'import-playlist';
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform';
 

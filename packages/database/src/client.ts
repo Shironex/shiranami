@@ -120,6 +120,19 @@ function createTables(database: Database.Database): void {
     )
   `);
 
+  // Listening history table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS play_history (
+      id TEXT PRIMARY KEY,
+      track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+      played_at TEXT NOT NULL DEFAULT (datetime('now')),
+      played_seconds REAL NOT NULL,
+      completion_ratio REAL NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'library'
+    )
+  `);
+
   // Create indexes for common queries
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
@@ -130,6 +143,8 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track_id ON playlist_tracks(track_id);
     CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
     CREATE INDEX IF NOT EXISTS idx_radio_favorites_station_uuid ON radio_favorites(station_uuid);
+    CREATE INDEX IF NOT EXISTS idx_play_history_track_id ON play_history(track_id);
+    CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at);
   `);
 }
 

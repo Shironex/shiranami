@@ -8,6 +8,7 @@ import { subscribeToPlaylistChanges } from '@/lib/playlists';
 import {
   Library,
   Heart,
+  History,
   ListMusic,
   Search,
   Radio,
@@ -25,6 +26,7 @@ const NAV_ITEMS: Array<{ id: AppView; label: string; icon: typeof Library }> = [
   { id: 'library', label: 'Library', icon: Library },
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
   { id: 'favorites', label: 'Favorites', icon: Heart },
+  { id: 'history', label: 'History', icon: History },
   { id: 'search', label: 'Search', icon: Search },
   { id: 'import-playlist', label: 'Import Playlist', icon: ListPlus },
   { id: 'radio', label: 'Radio', icon: Radio },

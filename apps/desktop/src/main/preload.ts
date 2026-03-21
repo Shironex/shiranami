@@ -39,6 +39,9 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:tracks:get-favorites',
   'db:tracks:increment-play-count',
   'db:tracks:exists',
+  'db:history:record-play',
+  'db:history:get-recent',
+  'db:history:get-summary',
   'db:folders:get-all',
   'db:folders:add',
   'db:folders:remove',
@@ -107,6 +110,48 @@ interface TrackMetadata {
   albumArt: string | null;
 }
 
+interface ListeningHistoryEntry {
+  id: string;
+  trackId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  duration: number | null;
+  playedAt: string;
+  playedSeconds: number;
+  completionRatio: number;
+  completed: boolean;
+  source: string;
+}
+
+interface ListeningStatsTrack {
+  trackId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  playCount: number;
+  listenedSeconds: number;
+  lastPlayedAt: string;
+}
+
+interface ListeningStatsArtist {
+  artist: string;
+  playCount: number;
+  listenedSeconds: number;
+}
+
+interface ListeningStatsSummary {
+  totalPlays: number;
+  totalMinutes: number;
+  uniqueTracks: number;
+  uniqueArtists: number;
+  completedPlays: number;
+  topTracks: ListeningStatsTrack[];
+  topArtists: ListeningStatsArtist[];
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
@@ -145,6 +190,16 @@ export interface ElectronAPI {
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
+    };
+    history: {
+      recordPlay: (data: {
+        trackId: string;
+        playedSeconds: number;
+        duration: number | null;
+        source?: string;
+      }) => Promise<unknown>;
+      getRecent: (limit?: number) => Promise<ListeningHistoryEntry[]>;
+      getSummary: () => Promise<ListeningStatsSummary>;
     };
     folders: {
       getAll: () => Promise<unknown[]>;
@@ -341,6 +396,16 @@ const electronAPI: ElectronAPI = {
       getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
       incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),
       exists: (filePath: string) => ipcRenderer.invoke('db:tracks:exists', filePath),
+    },
+    history: {
+      recordPlay: (data: {
+        trackId: string;
+        playedSeconds: number;
+        duration: number | null;
+        source?: string;
+      }) => ipcRenderer.invoke('db:history:record-play', data),
+      getRecent: (limit = 30) => ipcRenderer.invoke('db:history:get-recent', limit),
+      getSummary: () => ipcRenderer.invoke('db:history:get-summary'),
     },
     folders: {
       getAll: () => ipcRenderer.invoke('db:folders:get-all'),

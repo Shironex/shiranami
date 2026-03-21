@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import {
   getDatabase,
   tracks,
+  playHistory,
   folders,
   playlists,
   playlistTracks,
@@ -13,6 +14,7 @@ import {
   type NewTrack,
   type NewFolder,
   type NewPlaylist,
+  type NewPlayHistory,
 } from '@shiranami/database';
 
 export function registerDatabaseHandlers(): void {
@@ -94,6 +96,128 @@ export function registerDatabaseHandlers(): void {
       .where(eq(tracks.filePath, filePath))
       .get();
     return !!row;
+  });
+
+  ipcMain.handle(
+    'db:history:record-play',
+    async (
+      _event,
+      data: { trackId: string; playedSeconds: number; duration: number | null; source?: string },
+    ) => {
+      const db = getDatabase();
+      const playedSeconds = Math.max(0, data.playedSeconds);
+      const completionRatio = data.duration && data.duration > 0
+        ? Math.min(1, playedSeconds / data.duration)
+        : 0;
+      const completed = data.duration ? completionRatio >= 0.95 : false;
+
+      return db.transaction((tx) => {
+        const row: NewPlayHistory = {
+          id: crypto.randomUUID(),
+          trackId: data.trackId,
+          playedAt: new Date().toISOString(),
+          playedSeconds,
+          completionRatio,
+          completed,
+          source: data.source ?? 'library',
+        };
+
+        const historyEntry = tx.insert(playHistory).values(row).returning().get();
+
+        tx.update(tracks)
+          .set({
+            playCount: sql`COALESCE(${tracks.playCount}, 0) + 1`,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(tracks.id, data.trackId))
+          .run();
+
+        return historyEntry;
+      });
+    },
+  );
+
+  ipcMain.handle('db:history:get-recent', async (_event, limit = 30) => {
+    const db = getDatabase();
+    const safeLimit = Math.max(1, Math.min(100, limit));
+
+    return db
+      .select({
+        id: playHistory.id,
+        trackId: playHistory.trackId,
+        playedAt: playHistory.playedAt,
+        playedSeconds: playHistory.playedSeconds,
+        completionRatio: playHistory.completionRatio,
+        completed: playHistory.completed,
+        source: playHistory.source,
+        title: tracks.title,
+        artist: tracks.artist,
+        album: tracks.album,
+        albumArt: tracks.albumArt,
+        duration: tracks.duration,
+      })
+      .from(playHistory)
+      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+      .orderBy(desc(playHistory.playedAt))
+      .limit(safeLimit)
+      .all();
+  });
+
+  ipcMain.handle('db:history:get-summary', async () => {
+    const db = getDatabase();
+
+    const totals = db
+      .select({
+        totalPlays: sql<number>`COUNT(*)`,
+        totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+        uniqueTracks: sql<number>`COUNT(DISTINCT ${playHistory.trackId})`,
+        uniqueArtists: sql<number>`COUNT(DISTINCT ${tracks.artist})`,
+        completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
+      })
+      .from(playHistory)
+      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+      .get();
+
+    const topTracks = db
+      .select({
+        trackId: tracks.id,
+        title: tracks.title,
+        artist: tracks.artist,
+        album: tracks.album,
+        albumArt: tracks.albumArt,
+        playCount: sql<number>`COUNT(*)`,
+        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+        lastPlayedAt: sql<string>`MAX(${playHistory.playedAt})`,
+      })
+      .from(playHistory)
+      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+      .groupBy(tracks.id)
+      .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
+      .limit(5)
+      .all();
+
+    const topArtists = db
+      .select({
+        artist: tracks.artist,
+        playCount: sql<number>`COUNT(*)`,
+        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+      })
+      .from(playHistory)
+      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+      .groupBy(tracks.artist)
+      .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
+      .limit(5)
+      .all();
+
+    return {
+      totalPlays: totals?.totalPlays ?? 0,
+      totalMinutes: totals?.totalMinutes ?? 0,
+      uniqueTracks: totals?.uniqueTracks ?? 0,
+      uniqueArtists: totals?.uniqueArtists ?? 0,
+      completedPlays: totals?.completedPlays ?? 0,
+      topTracks,
+      topArtists,
+    };
   });
 
   // ── Folders ─────────────────────────────────────────────────────────
@@ -267,6 +391,9 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:tracks:get-favorites');
   ipcMain.removeHandler('db:tracks:increment-play-count');
   ipcMain.removeHandler('db:tracks:exists');
+  ipcMain.removeHandler('db:history:record-play');
+  ipcMain.removeHandler('db:history:get-recent');
+  ipcMain.removeHandler('db:history:get-summary');
   ipcMain.removeHandler('db:folders:get-all');
   ipcMain.removeHandler('db:folders:add');
   ipcMain.removeHandler('db:folders:remove');

@@ -1,13 +1,21 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
+import { usePlayerStore, currentTimeRef, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { initAnalyser, destroyAnalyser } from '@/lib/audioAnalyser';
+import { emitListeningHistoryUpdated } from '@/lib/listeningHistory';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
+const MIN_HISTORY_SECONDS = 30;
+const MIN_HISTORY_COMPLETION_RATIO = 0.5;
+const MAX_SESSION_DELTA_SECONDS = 1;
+
+function isRadioTrack(filePath: string): boolean {
+  return filePath.startsWith('shiranami-radio://');
+}
 
 /**
- * Audio engine hook — creates and manages the HTML5 Audio element,
+ * Audio engine hook - creates and manages the HTML5 Audio element,
  * keeping it in sync with the player store.
  *
  * Must be mounted exactly once at the app root level.
@@ -18,6 +26,17 @@ export function useAudioEngine() {
   const seekingRef = useRef(false);
   const analyserInitRef = useRef(false);
   const lastStoreUpdateRef = useRef(0);
+  const playbackSessionRef = useRef<{
+    track: Track | null;
+    listenedSeconds: number;
+    lastTickAt: number | null;
+    recorded: boolean;
+  }>({
+    track: null,
+    listenedSeconds: 0,
+    lastTickAt: null,
+    recorded: false,
+  });
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -31,6 +50,49 @@ export function useAudioEngine() {
   const _setIsLoading = usePlayerStore((s) => s._setIsLoading);
   const _setError = usePlayerStore((s) => s._setError);
   const _onTrackEnd = usePlayerStore((s) => s._onTrackEnd);
+  const incrementTrackPlayCount = usePlayerStore((s) => s.incrementTrackPlayCount);
+
+  const resetPlaybackSession = useCallback((track: Track | null) => {
+    playbackSessionRef.current = {
+      track: track && !isRadioTrack(track.filePath) ? track : null,
+      listenedSeconds: 0,
+      lastTickAt: null,
+      recorded: false,
+    };
+  }, []);
+
+  const flushPlaybackSession = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+
+    const session = playbackSessionRef.current;
+    const track = session.track;
+    const playedSeconds = session.listenedSeconds;
+    const duration = track?.duration ?? usePlayerStore.getState().duration ?? 0;
+    const completionRatio = duration > 0 ? playedSeconds / duration : 0;
+    const shouldRecord =
+      !!track &&
+      !session.recorded &&
+      (playedSeconds >= MIN_HISTORY_SECONDS || completionRatio >= MIN_HISTORY_COMPLETION_RATIO);
+
+    session.lastTickAt = null;
+
+    if (!track || !shouldRecord) return;
+
+    session.recorded = true;
+
+    try {
+      await window.electronAPI.db.history.recordPlay({
+        trackId: track.id,
+        playedSeconds,
+        duration,
+        source: 'library',
+      });
+      incrementTrackPlayCount(track.id);
+      emitListeningHistoryUpdated();
+    } catch {
+      session.recorded = false;
+    }
+  }, [incrementTrackPlayCount]);
 
   // Initialize the audio element once on mount
   useEffect(() => {
@@ -40,6 +102,7 @@ export function useAudioEngine() {
     }
     return () => {
       destroyAnalyser();
+      void flushPlaybackSession();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -48,7 +111,7 @@ export function useAudioEngine() {
       _setIsLoading(false);
       cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [_setIsLoading]);
+  }, [_setIsLoading, flushPlaybackSession]);
 
   // Smooth time-update loop via requestAnimationFrame.
   // The mutable currentTimeRef is updated every frame for smooth SeekBar animation,
@@ -62,15 +125,37 @@ export function useAudioEngine() {
         audio.currentTime = _seekTarget;
         usePlayerStore.getState()._clearSeekTarget();
         seekingRef.current = true;
+        playbackSessionRef.current.lastTickAt = performance.now();
         setTimeout(() => { seekingRef.current = false; }, 300);
       } else if (!seekingRef.current) {
+        const session = playbackSessionRef.current;
+        const tickNow = performance.now();
+        const canAccumulate =
+          session.track &&
+          !audio.paused &&
+          !audio.ended &&
+          !audio.seeking &&
+          audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+
+        if (canAccumulate) {
+          if (session.lastTickAt !== null) {
+            session.listenedSeconds += Math.max(
+              0,
+              Math.min(MAX_SESSION_DELTA_SECONDS, (tickNow - session.lastTickAt) / 1000),
+            );
+          }
+          session.lastTickAt = tickNow;
+        } else if (session.track) {
+          session.lastTickAt = tickNow;
+        }
+
         // Always update the mutable ref at full frame rate
         currentTimeRef.current = audio.currentTime;
 
         // Throttle Zustand store updates to ~4Hz
-        const now = performance.now();
-        if (now - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
-          lastStoreUpdateRef.current = now;
+        const storeUpdateNow = performance.now();
+        if (storeUpdateNow - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
+          lastStoreUpdateRef.current = storeUpdateNow;
           _setCurrentTime(audio.currentTime);
         }
       }
@@ -86,6 +171,8 @@ export function useAudioEngine() {
     if (!audio) return;
 
     if (!currentTrack) {
+      void flushPlaybackSession();
+      resetPlaybackSession(null);
       audio.pause();
       audio.src = '';
       _setIsLoading(false);
@@ -94,13 +181,13 @@ export function useAudioEngine() {
       return;
     }
 
+    if (playbackSessionRef.current.track?.id !== currentTrack.id) {
+      void flushPlaybackSession();
+      resetPlaybackSession(currentTrack);
+    }
+
     _setIsLoading(true);
     _setError(null);
-
-    // Increment play count in the database (skip for radio streams)
-    if (IS_ELECTRON && !currentTrack.filePath.startsWith('shiranami-radio://')) {
-      window.electronAPI.db.tracks.incrementPlayCount(currentTrack.id).catch(() => {});
-    }
 
     // Auto-play once the audio is ready (canplay fires after load)
     const onCanPlayOnce = () => {
@@ -136,7 +223,7 @@ export function useAudioEngine() {
     return () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
     };
-  }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime]);
+  }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime, flushPlaybackSession, resetPlaybackSession]);
 
   // Sync play / pause with the Audio element
   useEffect(() => {
@@ -144,20 +231,22 @@ export function useAudioEngine() {
     if (!audio || !audio.src) return;
 
     if (isPlaying) {
+      playbackSessionRef.current.lastTickAt = performance.now();
+
       // Lazily initialise the Web Audio analyser on first play (requires user gesture)
       if (!analyserInitRef.current) {
         try {
           initAnalyser(audio);
           analyserInitRef.current = true;
         } catch {
-          // Non-critical — visualiser just won't work
+          // Non-critical - visualiser just won't work
         }
       }
 
       const playPromise = audio.play();
       if (playPromise) {
         playPromise.catch((err: DOMException) => {
-          // AbortError fires when a play() is interrupted by a new load — safe to ignore
+          // AbortError fires when a play() is interrupted by a new load - safe to ignore
           if (err.name !== 'AbortError') {
             _setError(err.message);
             _setIsPlaying(false);
@@ -166,6 +255,7 @@ export function useAudioEngine() {
       }
       animationFrameRef.current = requestAnimationFrame(updateTime);
     } else {
+      playbackSessionRef.current.lastTickAt = null;
       audio.pause();
       cancelAnimationFrame(animationFrameRef.current);
     }
@@ -224,6 +314,11 @@ export function useAudioEngine() {
     };
 
     const onEnded = () => {
+      const endedTrack = usePlayerStore.getState().currentTrack;
+      void flushPlaybackSession();
+      if (usePlayerStore.getState().repeatMode === 'one' && endedTrack) {
+        resetPlaybackSession(endedTrack);
+      }
       _onTrackEnd();
     };
 
@@ -234,8 +329,14 @@ export function useAudioEngine() {
       _setIsPlaying(false);
     };
 
-    const onWaiting = () => _setIsLoading(true);
-    const onPlaying = () => _setIsLoading(false);
+    const onWaiting = () => {
+      playbackSessionRef.current.lastTickAt = null;
+      _setIsLoading(true);
+    };
+    const onPlaying = () => {
+      playbackSessionRef.current.lastTickAt = performance.now();
+      _setIsLoading(false);
+    };
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('durationchange', onDurationChange);
@@ -254,7 +355,7 @@ export function useAudioEngine() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('playing', onPlaying);
     };
-  }, [_setDuration, _setIsLoading, _onTrackEnd, _setError, _setIsPlaying]);
+  }, [_setDuration, _setIsLoading, _onTrackEnd, _setError, _setIsPlaying, flushPlaybackSession, resetPlaybackSession]);
 
   // Handle repeat-one at the Audio element level: restart playback directly
   // so there is no audible gap (the store handler prevents next() from firing).

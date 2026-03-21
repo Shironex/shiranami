@@ -35,6 +35,48 @@ export interface TrackMetadata {
   albumArt: string | null;
 }
 
+export interface ListeningHistoryEntry {
+  id: string;
+  trackId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  duration: number | null;
+  playedAt: string;
+  playedSeconds: number;
+  completionRatio: number;
+  completed: boolean;
+  source: string;
+}
+
+export interface ListeningStatsTrack {
+  trackId: string;
+  title: string;
+  artist: string;
+  album: string;
+  albumArt: string | null;
+  playCount: number;
+  listenedSeconds: number;
+  lastPlayedAt: string;
+}
+
+export interface ListeningStatsArtist {
+  artist: string;
+  playCount: number;
+  listenedSeconds: number;
+}
+
+export interface ListeningStatsSummary {
+  totalPlays: number;
+  totalMinutes: number;
+  uniqueTracks: number;
+  uniqueArtists: number;
+  completedPlays: number;
+  topTracks: ListeningStatsTrack[];
+  topArtists: ListeningStatsArtist[];
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => void;
@@ -90,6 +132,16 @@ export interface ElectronAPI {
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
+    };
+    history: {
+      recordPlay: (data: {
+        trackId: string;
+        playedSeconds: number;
+        duration: number | null;
+        source?: string;
+      }) => Promise<unknown>;
+      getRecent: (limit?: number) => Promise<ListeningHistoryEntry[]>;
+      getSummary: () => Promise<ListeningStatsSummary>;
     };
     playlists: {
       getAll: () => Promise<unknown[]>;

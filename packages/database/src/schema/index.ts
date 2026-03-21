@@ -19,3 +19,9 @@ export {
   type RadioFavorite,
   type NewRadioFavorite,
 } from './radio-favorites.js';
+
+export {
+  playHistory,
+  type PlayHistory,
+  type NewPlayHistory,
+} from './play-history.js';
