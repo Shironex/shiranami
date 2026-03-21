@@ -13,6 +13,38 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.6.0',
+    date: '21 March 2026',
+    title: 'Compact mode and listening history',
+    description:
+      'Keep Shiranami close at hand with a dedicated compact player, then look back on your listening habits with a new history and stats view.',
+    categories: [
+      {
+        label: 'Compact mode',
+        entries: [
+          'Switch the main window into a dedicated compact player layout with art, transport controls, volume, and a tighter scrub bar.',
+          'Compact mode restores your previous window bounds when you exit and includes an always-on-top toggle for desk-side playback.',
+          'The compact layout received multiple spacing and truncation passes so controls stay readable without overflowing the card.',
+        ],
+      },
+      {
+        label: 'History and stats',
+        entries: [
+          'A new History view shows recent plays, top tracks, top artists, and key listening totals.',
+          'Stats support 7-day, 30-day, and all-time ranges, plus a daily activity graph for quick trends.',
+          'Listening history is recorded from meaningful sessions instead of every skip, producing cleaner stats.',
+        ],
+      },
+      {
+        label: 'Quality',
+        entries: [
+          'Added a shared Vitest workspace with initial coverage for web UI, desktop IPC, shared utilities, and database logic.',
+          'Release safety improved with automated checks around compact mode state, radio loading UI, seek bar behavior, and listening-history queries.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.5.1',
     date: '21 March 2026',
     title: 'Radio and playback polish',
