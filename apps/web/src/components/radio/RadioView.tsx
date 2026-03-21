@@ -2,6 +2,15 @@ import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useRadioStore, type RadioSearchTab } from '@/stores/useRadioStore';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Radio,
   Search,
@@ -10,7 +19,6 @@ import {
   Globe,
   Loader2,
   Star,
-  ChevronDown,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { List, type RowComponentProps } from 'react-window';
@@ -201,6 +209,27 @@ const TAB_ITEMS: Array<{ id: RadioSearchTab; label: string; icon: typeof Radio }
   { id: 'favorites', label: 'Favorites', icon: Heart },
 ];
 
+const RADIO_SKELETON_ROWS = 10;
+
+function StationRowSkeleton() {
+  return (
+    <div className="px-0.5">
+      <div className="flex h-[52px] items-center gap-3 rounded-xl px-3">
+        <Skeleton className="size-9 shrink-0 rounded-lg" />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <Skeleton className="h-4 w-2/5" />
+          <Skeleton className="h-3 w-1/4" />
+        </div>
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+          <Skeleton className="h-3 w-5 rounded-full" />
+          <Skeleton className="h-5 w-14 rounded-md" />
+        </div>
+        <Skeleton className="size-7 shrink-0 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export function RadioView() {
   const stations = useRadioStore((s) => s.stations);
   const favorites = useRadioStore((s) => s.favorites);
@@ -234,6 +263,12 @@ export function RadioView() {
     }
   }, [loadTopStations]);
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   // Debounced search
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -255,6 +290,7 @@ export function RadioView() {
 
   const handleTabChange = useCallback(
     (tab: RadioSearchTab) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       setActiveTab(tab);
       setSearchQuery('');
       if (tab === 'top') loadTopStations();
@@ -266,6 +302,7 @@ export function RadioView() {
 
   const handleCountryChange = useCallback(
     (countryCode: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       setSelectedCountry(countryCode);
       loadByCountry(countryCode);
     },
@@ -332,24 +369,24 @@ export function RadioView() {
 
           {/* Country selector */}
           {activeTab === 'country' && (
-            <div className="relative ml-2">
-              <select
+            <div className="ml-2">
+              <Select
                 value={selectedCountry}
-                onChange={(e) => handleCountryChange(e.target.value)}
-                className={cn(
-                  'appearance-none pl-3 pr-7 py-1.5 rounded-lg text-xs font-medium',
-                  'bg-card border border-border/50 text-foreground',
-                  'focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40',
-                  'transition-colors cursor-pointer'
-                )}
+                onValueChange={handleCountryChange}
               >
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+                <SelectTrigger className="w-[172px]">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.flag} {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -371,6 +408,14 @@ export function RadioView() {
             >
               Retry
             </button>
+          </div>
+        </div>
+      ) : isLoading ? (
+        <div className="flex-1 min-h-0 px-4">
+          <div className="flex h-full flex-col gap-1 overflow-hidden">
+            {Array.from({ length: RADIO_SKELETON_ROWS }, (_, index) => (
+              <StationRowSkeleton key={index} />
+            ))}
           </div>
         </div>
       ) : showEmptyState ? (
@@ -400,13 +445,6 @@ export function RadioView() {
               </div>
             </>
           )}
-        </div>
-      ) : isLoading && stations.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Loading stations...</p>
-          </div>
         </div>
       ) : (
         <div className="flex-1 min-h-0 px-4">

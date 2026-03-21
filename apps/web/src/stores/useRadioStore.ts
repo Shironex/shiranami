@@ -3,6 +3,16 @@ import { RadioBrowserApi, type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
 
 const api = new RadioBrowserApi('Shiranami/0.2.1');
+let latestRadioRequestId = 0;
+
+function beginRadioRequest(): number {
+  latestRadioRequestId += 1;
+  return latestRadioRequestId;
+}
+
+function isLatestRadioRequest(requestId: number): boolean {
+  return requestId === latestRadioRequestId;
+}
 
 export type RadioSearchTab = 'top' | 'country' | 'favorites';
 
@@ -41,6 +51,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   activeTab: 'top',
 
   searchStations: async (query: string) => {
+    const requestId = beginRadioRequest();
     set({ isLoading: true, error: null });
     try {
       const stations = await api.searchStations({
@@ -50,13 +61,16 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         reverse: true,
         hideBroken: true,
       });
+      if (!isLatestRadioRequest(requestId)) return;
       set({ stations, isLoading: false });
     } catch (err) {
+      if (!isLatestRadioRequest(requestId)) return;
       set({ error: err instanceof Error ? err.message : 'Search failed', isLoading: false });
     }
   },
 
   loadTopStations: async () => {
+    const requestId = beginRadioRequest();
     set({ isLoading: true, error: null });
     try {
       const stations = await api.searchStations({
@@ -65,13 +79,16 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         reverse: true,
         hideBroken: true,
       });
+      if (!isLatestRadioRequest(requestId)) return;
       set({ stations, isLoading: false });
     } catch (err) {
+      if (!isLatestRadioRequest(requestId)) return;
       set({ error: err instanceof Error ? err.message : 'Failed to load stations', isLoading: false });
     }
   },
 
   loadByCountry: async (countryCode: string) => {
+    const requestId = beginRadioRequest();
     set({ isLoading: true, error: null, selectedCountry: countryCode });
     try {
       const stations = await api.searchStations({
@@ -81,14 +98,17 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         reverse: true,
         hideBroken: true,
       });
+      if (!isLatestRadioRequest(requestId)) return;
       set({ stations, isLoading: false });
     } catch (err) {
+      if (!isLatestRadioRequest(requestId)) return;
       set({ error: err instanceof Error ? err.message : 'Failed to load stations', isLoading: false });
     }
   },
 
   loadFavorites: async () => {
     if (!IS_ELECTRON) return;
+    const requestId = beginRadioRequest();
     set({ isLoading: true, error: null });
     try {
       const rows = (await window.electronAPI.radio.favorites.getAll()) as Array<{
@@ -133,8 +153,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         clickTrend: 0,
         tags: r.tags ? r.tags.split(',') : [],
       })) as Station[];
+      if (!isLatestRadioRequest(requestId)) return;
       set({ stations, favorites: favoriteIds, isLoading: false });
     } catch (err) {
+      if (!isLatestRadioRequest(requestId)) return;
       set({ error: err instanceof Error ? err.message : 'Failed to load favorites', isLoading: false });
     }
   },

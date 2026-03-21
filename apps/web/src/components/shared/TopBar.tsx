@@ -100,32 +100,34 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
 
       {/* Window controls (Windows only) */}
       {IS_ELECTRON && !IS_MAC && (
-        <div className="no-drag flex items-stretch h-full">
+        <div className="no-drag flex h-full items-center gap-1 pr-1.5">
           <button
+            type="button"
             onClick={handleMinimize}
-            className="w-11 flex items-center justify-center text-muted-foreground/50 hover:bg-accent hover:text-foreground transition-colors"
+            className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Minimize"
           >
-            <Minus className="w-3 h-3" />
+            <Minus className="h-3.5 w-3.5" />
           </button>
           <button
+            type="button"
             onClick={handleMaximize}
-            className="w-11 flex items-center justify-center text-muted-foreground/50 hover:bg-accent hover:text-foreground transition-colors"
+            className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
             aria-label={isMaximized ? 'Restore' : 'Maximize'}
           >
-            {isMaximized ? <Copy className="w-2.5 h-2.5" /> : <Square className="w-2.5 h-2.5" />}
+            {isMaximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
           </button>
           <button
+            type="button"
             onClick={handleClose}
             className={cn(
-              'w-11 flex items-center justify-center',
-              'text-muted-foreground/50 hover:bg-red-500/80 hover:text-white',
-              'transition-colors',
-              IS_ELECTRON && 'rounded-tr-[10px]'
+              'flex h-8 w-10 items-center justify-center rounded-md',
+              'text-muted-foreground/55 transition-colors',
+              'hover:bg-red-500/85 hover:text-white'
             )}
             aria-label="Close"
           >
-            <X className="w-3 h-3" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
