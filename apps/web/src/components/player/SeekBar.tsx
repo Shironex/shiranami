@@ -90,7 +90,7 @@ export function SeekBar() {
     <div
       ref={trackRef}
       onPointerDown={handlePointerDown}
-      className="relative flex w-full touch-none select-none items-center group cursor-pointer py-1"
+      className="group relative flex min-w-0 flex-1 touch-none cursor-pointer select-none items-center py-1"
       role="slider"
       aria-label="Seek"
       aria-valuemin={0}

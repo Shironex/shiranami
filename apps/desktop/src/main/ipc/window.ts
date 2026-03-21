@@ -2,8 +2,8 @@ import { BrowserWindow, ipcMain, type Rectangle } from 'electron';
 
 const DEFAULT_MIN_WIDTH = 800;
 const DEFAULT_MIN_HEIGHT = 600;
-const COMPACT_WIDTH = 440;
-const COMPACT_HEIGHT = 186;
+const COMPACT_WIDTH = 500;
+const COMPACT_HEIGHT = 214;
 
 export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   let isCompactMode = false;

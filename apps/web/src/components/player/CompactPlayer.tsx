@@ -45,12 +45,12 @@ export function CompactPlayer() {
 
       <div className="drag flex h-9 shrink-0 items-center justify-between border-b border-border/20 px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="size-2 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(167,139,250,0.45)]" />
-          <span className="truncate font-display text-[11px] font-semibold text-foreground">
+          <div className="size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(167,139,250,0.45)]" />
+          <span className="shrink-0 font-display text-[11px] font-semibold text-foreground">
             Compact Mode
           </span>
           {currentTrack && (
-            <span className="truncate text-[11px] text-muted-foreground/70">
+            <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground/70">
               {currentTrack.title}
             </span>
           )}
@@ -96,9 +96,9 @@ export function CompactPlayer() {
         </div>
       </div>
 
-      <div className="relative flex min-h-0 flex-1 items-center p-3">
-        <div className="glass-subtle relative flex h-full w-full items-stretch gap-3 rounded-[20px] border border-border/25 p-3">
-          <div className="flex size-[76px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20">
+      <div className="relative flex min-h-0 flex-1 items-center p-2.5">
+        <div className="glass-subtle relative flex h-full w-full items-stretch gap-2.5 overflow-hidden rounded-[20px] border border-border/25 p-2.5">
+          <div className="flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20">
             {currentTrack?.albumArt ? (
               <img
                 src={currentTrack.albumArt}
@@ -126,18 +126,20 @@ export function CompactPlayer() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-center gap-3.5">
                 <PlayerControls />
-                <VolumeControl sliderClassName="w-[72px]" />
+                <VolumeControl sliderClassName="w-12" />
               </div>
 
               {showSeekBar ? (
-                <div className="flex items-center gap-2">
-                  <span className="w-8 text-right text-[10px] font-medium tabular-nums text-muted-foreground/70">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="w-7 text-right text-[10px] font-medium tabular-nums text-muted-foreground/70">
                     <TimeDisplay />
                   </span>
-                  <SeekBar />
-                  <span className="w-8 text-[10px] font-medium tabular-nums text-muted-foreground/70">
+                  <div className="min-w-0 flex-1">
+                    <SeekBar />
+                  </div>
+                  <span className="w-7 text-[10px] font-medium tabular-nums text-muted-foreground/70">
                     {formatDuration(duration)}
                   </span>
                 </div>
