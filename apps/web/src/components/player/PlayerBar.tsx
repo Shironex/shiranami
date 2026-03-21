@@ -7,7 +7,7 @@ import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Mic2, ListMusic, AudioLines } from 'lucide-react';
+import { Music, Mic2, ListMusic, AudioLines, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
@@ -31,6 +31,7 @@ export function PlayerBar() {
   const toggleRightPanel = useAppStore(s => s.toggleRightPanel);
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
+  const setCompactMode = useAppStore(s => s.setCompactMode);
 
   return (
     <AnimatePresence>
@@ -122,60 +123,73 @@ export function PlayerBar() {
           </div>
 
           {/* Right - volume + panel toggles */}
-          <div className="w-[220px] flex items-center justify-end gap-1 relative">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={toggleVisualizer}
-                  className={cn(
-                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    showVisualizer
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                  aria-label="Toggle visualizer"
-                >
-                  <AudioLines className="w-3.5 h-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Visualizer</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => toggleRightPanel('lyrics')}
-                  className={cn(
-                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    rightPanel === 'lyrics'
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                  aria-label="Toggle lyrics"
-                >
-                  <Mic2 className="w-3.5 h-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Lyrics</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => toggleRightPanel('queue')}
-                  className={cn(
-                    'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                    rightPanel === 'queue'
-                      ? 'text-primary bg-primary/10'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                  aria-label="Toggle queue"
-                >
-                  <ListMusic className="w-3.5 h-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Queue</TooltipContent>
-            </Tooltip>
-            <div className="w-px h-5 bg-border/30 mx-1" />
-            <VolumeControl />
+          <div className="w-[264px] flex items-center justify-end gap-2.5 relative">
+            <div className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => void setCompactMode(true)}
+                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
+                    aria-label="Compact mode"
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Compact mode</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleVisualizer}
+                    className={cn(
+                      'size-7 flex items-center justify-center rounded-lg transition-colors',
+                      showVisualizer
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                    )}
+                    aria-label="Toggle visualizer"
+                  >
+                    <AudioLines className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Visualizer</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => toggleRightPanel('lyrics')}
+                    className={cn(
+                      'size-7 flex items-center justify-center rounded-lg transition-colors',
+                      rightPanel === 'lyrics'
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                    )}
+                    aria-label="Toggle lyrics"
+                  >
+                    <Mic2 className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Lyrics</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => toggleRightPanel('queue')}
+                    className={cn(
+                      'size-7 flex items-center justify-center rounded-lg transition-colors',
+                      rightPanel === 'queue'
+                        ? 'text-primary bg-primary/10'
+                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                    )}
+                    aria-label="Toggle queue"
+                  >
+                    <ListMusic className="w-3.5 h-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Queue</TooltipContent>
+              </Tooltip>
+            </div>
+            <VolumeControl sliderClassName="w-20" />
           </div>
         </motion.div>
       )}

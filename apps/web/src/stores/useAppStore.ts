@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { IS_ELECTRON } from '@/lib/platform';
 
 export type AppView = 'library' | 'playlists' | 'favorites' | 'search' | 'radio' | 'settings' | 'import-playlist';
 export type RightPanel = 'lyrics' | 'queue' | null;
@@ -50,6 +51,7 @@ interface AppState {
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
   sidebarCollapsed: boolean;
+  compactMode: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
 }
@@ -59,6 +61,8 @@ interface AppActions {
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
+  setCompactMode: (compactMode: boolean) => Promise<void>;
+  toggleCompactMode: () => Promise<void>;
   toggleSidebarCollapsed: () => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
@@ -70,6 +74,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   rightPanel: null,
   selectedPlaylistId: null,
   sidebarCollapsed: getInitialSidebarCollapsed(),
+  compactMode: false,
   showVisualizer: getInitialVisualizerEnabled(),
   visualizerStyle: getInitialVisualizerStyle(),
 
@@ -83,6 +88,23 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   setSidebarCollapsed: (sidebarCollapsed) => {
     persistSidebarCollapsed(sidebarCollapsed);
     set({ sidebarCollapsed });
+  },
+  setCompactMode: async (compactMode) => {
+    const previous = get().compactMode;
+    if (previous === compactMode) return;
+
+    set({ compactMode });
+
+    if (!IS_ELECTRON) return;
+
+    try {
+      await window.electronAPI.window.setCompactMode(compactMode);
+    } catch {
+      set({ compactMode: previous });
+    }
+  },
+  toggleCompactMode: async () => {
+    await get().setCompactMode(!get().compactMode);
   },
   toggleSidebarCollapsed: () => {
     const sidebarCollapsed = !get().sidebarCollapsed;

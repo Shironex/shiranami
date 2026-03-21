@@ -1,6 +1,15 @@
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, type Rectangle } from 'electron';
+
+const DEFAULT_MIN_WIDTH = 800;
+const DEFAULT_MIN_HEIGHT = 600;
+const COMPACT_WIDTH = 440;
+const COMPACT_HEIGHT = 186;
 
 export function registerWindowHandlers(mainWindow: BrowserWindow): void {
+  let isCompactMode = false;
+  let normalBounds: Rectangle | null = null;
+  let wasMaximizedBeforeCompact = false;
+
   ipcMain.on('window:minimize', () => {
     mainWindow.minimize();
   });
@@ -21,6 +30,40 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     return mainWindow.isMaximized();
   });
 
+  ipcMain.handle('window:set-compact-mode', (_event, compactMode: boolean) => {
+    if (compactMode === isCompactMode) return;
+
+    if (compactMode) {
+      wasMaximizedBeforeCompact = mainWindow.isMaximized();
+      normalBounds = mainWindow.getNormalBounds();
+
+      if (wasMaximizedBeforeCompact) {
+        mainWindow.unmaximize();
+      }
+
+      mainWindow.setResizable(false);
+      mainWindow.setMinimizable(true);
+      mainWindow.setMinimumSize(COMPACT_WIDTH, COMPACT_HEIGHT);
+      mainWindow.setMaximumSize(COMPACT_WIDTH, COMPACT_HEIGHT);
+      mainWindow.setSize(COMPACT_WIDTH, COMPACT_HEIGHT, true);
+      isCompactMode = true;
+      return;
+    }
+
+    mainWindow.setResizable(true);
+    mainWindow.setMinimumSize(DEFAULT_MIN_WIDTH, DEFAULT_MIN_HEIGHT);
+    mainWindow.setMaximumSize(0, 0);
+
+    if (wasMaximizedBeforeCompact) {
+      mainWindow.maximize();
+    } else if (normalBounds) {
+      mainWindow.setBounds(normalBounds, true);
+    }
+
+    wasMaximizedBeforeCompact = false;
+    isCompactMode = false;
+  });
+
   mainWindow.on('maximize', () => {
     mainWindow.webContents.send('window:maximized-change', true);
   });
@@ -35,4 +78,5 @@ export function cleanupWindowHandlers(): void {
   ipcMain.removeAllListeners('window:maximize');
   ipcMain.removeAllListeners('window:close');
   ipcMain.removeHandler('window:is-maximized');
+  ipcMain.removeHandler('window:set-compact-mode');
 }

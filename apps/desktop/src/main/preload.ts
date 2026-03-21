@@ -18,6 +18,7 @@ const UPDATER_IPC_CHANNELS = new Set([
 
 const ALLOWED_IPC_CHANNELS = new Set([
   'window:is-maximized',
+  'window:set-compact-mode',
   'store:get',
   'store:set',
   'store:delete',
@@ -112,6 +113,7 @@ export interface ElectronAPI {
     maximize: () => void;
     close: () => void;
     isMaximized: () => Promise<boolean>;
+    setCompactMode: (compactMode: boolean) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
   store: {
@@ -306,6 +308,8 @@ const electronAPI: ElectronAPI = {
     maximize: () => ipcRenderer.send('window:maximize'),
     close: () => ipcRenderer.send('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+    setCompactMode: (compactMode: boolean) =>
+      ipcRenderer.invoke('window:set-compact-mode', compactMode),
     onMaximizedChange: createIpcListener<boolean>('window:maximized-change'),
   },
   store: {

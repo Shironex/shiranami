@@ -41,6 +41,7 @@ export interface ElectronAPI {
     maximize: () => void;
     close: () => void;
     isMaximized: () => Promise<boolean>;
+    setCompactMode: (compactMode: boolean) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
   store: {

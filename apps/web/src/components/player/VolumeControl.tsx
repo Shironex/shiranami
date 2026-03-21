@@ -1,10 +1,17 @@
 import { memo, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
 import { Volume2, Volume1, VolumeX } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-export const VolumeControl = memo(function VolumeControl() {
+interface VolumeControlProps {
+  sliderClassName?: string;
+}
+
+export const VolumeControl = memo(function VolumeControl({
+  sliderClassName = 'w-24',
+}: VolumeControlProps) {
   const volume = usePlayerStore(s => s.volume);
   const isMuted = usePlayerStore(s => s.isMuted);
   const setVolume = usePlayerStore(s => s.setVolume);
@@ -38,7 +45,7 @@ export const VolumeControl = memo(function VolumeControl() {
         max={1}
         step={0.01}
         onValueChange={handleVolumeChange}
-        className="w-24"
+        className={cn(sliderClassName)}
         aria-label="Volume"
       />
     </div>
