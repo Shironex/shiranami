@@ -110,7 +110,7 @@ export function SeekBar() {
       {/* Thumb */}
       <div
         ref={thumbRef}
-        className="absolute h-0 w-0 group-hover:h-3 group-hover:w-3 rounded-full bg-primary shadow-md shadow-primary/30 transition-all duration-200 -translate-x-1/2"
+        className="absolute h-0 w-0 -translate-x-1/2 rounded-full bg-primary shadow-md shadow-primary/30 transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
         style={needsStaticStyle ? { left: `${staticProgress}%` } : undefined}
       />
     </div>
