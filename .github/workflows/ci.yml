@@ -41,6 +41,9 @@ jobs:
               - 'eslint.config.mjs'
               - '.prettierrc'
               - '.gitignore'
+              - 'vitest.config.ts'
+              - 'scripts/rebuild-better-sqlite-for-node.mjs'
+              - 'scripts/run-vitest.mjs'
             ci:
               - '.github/**'
               - 'scripts/set-version-ci.sh'
@@ -113,6 +116,35 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
+  test:
+    name: Test
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      - name: Test
+        run: pnpm test
+
   landing:
     name: Landing Check
     needs: [changes]
@@ -145,7 +177,7 @@ jobs:
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, landing]
+    needs: [lint, typecheck, test, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

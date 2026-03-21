@@ -31,6 +31,9 @@
     "format:check": "prettier --check .",
     "check:landing": "pnpm --filter @shiranami/landing check",
     "typecheck": "pnpm build:packages && pnpm --filter @shiranami/web typecheck && pnpm --filter @shiranami/desktop typecheck",
+    "test": "node scripts/run-vitest.mjs run",
+    "test:watch": "node scripts/run-vitest.mjs",
+    "test:cov": "node scripts/run-vitest.mjs run --coverage",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
     "version:major": "node scripts/bump-version.mjs major",
@@ -52,6 +55,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "^9.2.1",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
@@ -63,6 +67,7 @@
     "sharp": "^0.34.5",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.0",
+    "vitest": "^3.2.4",
     "wait-on": "^9.0.4"
   }
 }

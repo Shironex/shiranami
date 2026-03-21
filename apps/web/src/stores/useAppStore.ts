@@ -174,9 +174,13 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
 }));
 
 if (import.meta.hot) {
-  if (import.meta.hot.data.store) {
-    useAppStore.setState(import.meta.hot.data.store.getState());
+  type HmrData = { store?: typeof useAppStore };
+  const hot = import.meta.hot;
+  const data = (hot.data ?? {}) as HmrData;
+  if (data.store) {
+    useAppStore.setState(data.store.getState());
   }
-  import.meta.hot.data.store = useAppStore;
-  import.meta.hot.accept();
+  data.store = useAppStore;
+  (hot as { data: HmrData }).data = data;
+  hot.accept();
 }

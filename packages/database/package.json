@@ -17,7 +17,8 @@
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "test": "node ../../scripts/run-vitest.mjs run --project database"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
