@@ -1,7 +1,7 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music } from 'lucide-react';
+import { Music, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -14,18 +14,42 @@ export function LibraryView() {
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
 
-  const libraryRef = useRef(library);
-  libraryRef.current = library;
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredLibrary = useMemo(() => {
+    if (!searchQuery.trim()) return library;
+    const q = searchQuery.toLowerCase();
+    return library.filter(
+      t =>
+        t.title.toLowerCase().includes(q) ||
+        t.artist.toLowerCase().includes(q) ||
+        t.album.toLowerCase().includes(q)
+    );
+  }, [library, searchQuery]);
+
+  const filteredRef = useRef(filteredLibrary);
+  filteredRef.current = filteredLibrary;
 
   const handlePlayTrack = useCallback(
     (index: number) => {
-      setQueue(libraryRef.current, index);
+      setQueue(filteredRef.current, index);
     },
     [setQueue]
   );
 
+  // Ctrl+F / Cmd+F focuses the search input
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    }
+  }, []);
+
+  const isFiltered = searchQuery.trim().length > 0;
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden" onKeyDown={handleKeyDown} tabIndex={-1}>
       {/* Now Playing Hero */}
       <AnimatePresence>
         {currentTrack && (
@@ -87,6 +111,42 @@ export function LibraryView() {
         )}
       </AnimatePresence>
 
+      {/* Search bar */}
+      {library.length > 0 && (
+        <div className="px-6 pb-3 shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/40" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Filter tracks..."
+              className="w-full pl-9 pr-9 py-2 rounded-xl text-sm bg-card border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors"
+            />
+            <AnimatePresence>
+              {isFiltered && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.1 }}
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </motion.button>
+              )}
+            </AnimatePresence>
+          </div>
+          {isFiltered && (
+            <p className="text-xs text-muted-foreground/50 mt-1.5 px-1">
+              {filteredLibrary.length} of {library.length} tracks
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Track list */}
       {library.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
@@ -96,16 +156,24 @@ export function LibraryView() {
             <p className="text-sm text-muted-foreground/50 mt-1">Add files or a folder to start listening</p>
           </div>
         </div>
+      ) : filteredLibrary.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
+          <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
+          <div>
+            <p className="font-display text-base font-medium text-muted-foreground">No matching tracks</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">Try a different search term</p>
+          </div>
+        </div>
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List
-            rowCount={library.length}
+            rowCount={filteredLibrary.length}
             rowHeight={52}
             overscanCount={10}
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue: library, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
+            rowProps={{ queue: filteredLibrary, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
           />
         </div>
       )}

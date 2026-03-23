@@ -31,6 +31,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
+import { CommandPalette } from '@/components/shared/CommandPalette';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -74,6 +75,7 @@ function App() {
             )}
           >
             <AmbientBackground />
+            <CommandPalette />
 
             {compactMode ? (
               <CompactPlayer />
