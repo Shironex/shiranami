@@ -13,6 +13,30 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.6.1',
+    date: '23 March 2026',
+    title: 'Library search and command palette',
+    description:
+      'Find any track in seconds with a new inline library filter and a global command palette you can open from anywhere.',
+    categories: [
+      {
+        label: 'Search',
+        entries: [
+          'The library view now has an inline search bar that instantly filters tracks by title, artist, or album — with a result count and a clear button.',
+          'A global command palette (Ctrl+K / Cmd+K) lets you search and play any track from any view, or quickly navigate to Library, Favorites, Playlists, and more.',
+          'Playing from filtered results sets the queue to the matching subset so next/previous stay within your search.',
+        ],
+      },
+      {
+        label: 'Bug fixes',
+        entries: [
+          'Fixed Discord Rich Presence failing in a loop when a track had a very short or empty artist field (Discord requires at least 2 characters).',
+          'Fixed a TypeError on hot-module reload caused by Vite 7 making import.meta.hot.data read-only.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.6.0',
     date: '21 March 2026',
     title: 'Compact mode and listening history',
