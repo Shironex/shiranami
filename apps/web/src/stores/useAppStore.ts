@@ -181,6 +181,5 @@ if (import.meta.hot) {
     useAppStore.setState(data.store.getState());
   }
   data.store = useAppStore;
-  (hot as { data: HmrData }).data = data;
   hot.accept();
 }
