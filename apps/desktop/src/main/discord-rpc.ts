@@ -27,9 +27,18 @@ function isEnabled(): boolean {
   }
 }
 
+const MIN_FIELD_LENGTH = 2; // Discord requires at least 2 characters
+
 function truncate(text: string, max: number = MAX_FIELD_LENGTH): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + '\u2026';
+}
+
+function sanitizeField(text: string | undefined | null): string | undefined {
+  if (!text) return undefined;
+  const trimmed = text.trim();
+  if (trimmed.length < MIN_FIELD_LENGTH) return undefined;
+  return truncate(trimmed);
 }
 
 function clearReconnectTimer(): void {
@@ -60,13 +69,14 @@ function scheduleReconnect(): void {
 
 function buildPresence(state: PlaybackState): Record<string, unknown> {
   const presence: Record<string, unknown> = {
-    details: truncate(state.title),
+    details: sanitizeField(state.title) ?? 'Unknown Track',
     largeImageKey: 'shiranami',
-    largeImageText: state.album ? truncate(state.album) : 'Shiranami',
+    largeImageText: sanitizeField(state.album) ?? 'Shiranami',
   };
 
-  if (state.artist) {
-    presence.state = truncate(state.artist);
+  const artist = sanitizeField(state.artist);
+  if (artist) {
+    presence.state = artist;
   }
 
   // Show time remaining when playing
