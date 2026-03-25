@@ -6,6 +6,7 @@ import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
+import { SleepTimer } from './SleepTimer';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Mic2, ListMusic, AudioLines, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -125,6 +126,7 @@ export function PlayerBar() {
           {/* Right - volume + panel toggles */}
           <div className="w-[264px] flex items-center justify-end gap-2.5 relative">
             <div className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1">
+              <SleepTimer />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
