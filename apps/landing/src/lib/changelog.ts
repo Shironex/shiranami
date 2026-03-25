@@ -13,6 +13,43 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.7.0',
+    date: '26 March 2026',
+    title: 'Crossfade, sleep timer, and quality-of-life improvements',
+    description:
+      'Smooth transitions between tracks with a new crossfade engine, wind down with a built-in sleep timer, and fine-tune the interface to your liking.',
+    categories: [
+      {
+        label: 'Crossfade',
+        entries: [
+          'Dual-deck audio engine with equal-power crossfade between tracks — toggle and adjust duration (1-12s) in Settings > Playback.',
+          'Both decks route through Web Audio GainNodes for smooth volume ramps and merged visualizer output during transitions.',
+          'Crossfade automatically skips for radio streams, repeat-one mode, and tracks shorter than the fade duration.',
+        ],
+      },
+      {
+        label: 'Sleep timer',
+        entries: [
+          'New sleep timer in the player bar with 15, 30, 45, 60, and 90-minute presets.',
+          'Shows a live countdown in the tooltip and a pulsing indicator when active. Playback pauses automatically when the timer expires.',
+        ],
+      },
+      {
+        label: 'Interface',
+        entries: [
+          'New Appearance section in Settings with an interface scale slider (80–120%) for adjusting text and UI element sizes.',
+          'Update notifications now appear as toasts when a new version is detected, with a quick link to Settings.',
+        ],
+      },
+      {
+        label: 'Performance',
+        entries: [
+          'Desktop main process bundle reduced from 2.0 MB to 568 KB by externalizing npm dependencies at build time.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.6.1',
     date: '23 March 2026',
     title: 'Library search and command palette',
