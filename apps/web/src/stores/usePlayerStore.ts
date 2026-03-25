@@ -1,6 +1,25 @@
 import { create } from 'zustand';
 import { IS_ELECTRON } from '@/lib/platform';
 
+const CROSSFADE_ENABLED_KEY = 'shiranami.crossfade-enabled';
+const CROSSFADE_DURATION_KEY = 'shiranami.crossfade-duration';
+export const DEFAULT_CROSSFADE_DURATION = 5;
+
+function getInitialCrossfadeEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(CROSSFADE_ENABLED_KEY) === 'true';
+}
+
+function getInitialCrossfadeDuration(): number {
+  if (typeof window === 'undefined') return DEFAULT_CROSSFADE_DURATION;
+  const stored = window.localStorage.getItem(CROSSFADE_DURATION_KEY);
+  if (stored) {
+    const parsed = Number(stored);
+    if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 12) return parsed;
+  }
+  return DEFAULT_CROSSFADE_DURATION;
+}
+
 export interface Track {
   id: string;
   title: string;
@@ -42,6 +61,10 @@ interface PlayerState {
   isLoading: boolean;
   error: string | null;
 
+  // Crossfade
+  crossfadeEnabled: boolean;
+  crossfadeDuration: number; // seconds
+
   // UI state (not persisted)
   scrubTime: number | null;
   _seekTarget: number | null;
@@ -80,6 +103,10 @@ interface PlayerActions {
   // Modes
   toggleShuffle: () => void;
   cycleRepeatMode: () => void;
+
+  // Crossfade
+  setCrossfadeEnabled: (enabled: boolean) => void;
+  setCrossfadeDuration: (duration: number) => void;
 
   // Scrub
   setScrubTime: (time: number | null) => void;
@@ -128,6 +155,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   repeatMode: 'off',
   isLoading: false,
   error: null,
+  crossfadeEnabled: getInitialCrossfadeEnabled(),
+  crossfadeDuration: getInitialCrossfadeDuration(),
   scrubTime: null,
   _seekTarget: null,
 
@@ -186,6 +215,16 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     if (isFinite(time) && time >= 0) {
       set({ currentTime: time, scrubTime: null, _seekTarget: time });
     }
+  },
+
+  setCrossfadeEnabled: (enabled) => {
+    window.localStorage.setItem(CROSSFADE_ENABLED_KEY, enabled ? 'true' : 'false');
+    set({ crossfadeEnabled: enabled });
+  },
+  setCrossfadeDuration: (duration) => {
+    const clamped = Math.round(Math.max(1, Math.min(12, duration)));
+    window.localStorage.setItem(CROSSFADE_DURATION_KEY, String(clamped));
+    set({ crossfadeDuration: clamped });
   },
 
   setScrubTime: (time) => set({ scrubTime: time }),

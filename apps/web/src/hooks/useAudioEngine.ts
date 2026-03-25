@@ -1,7 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { usePlayerStore, currentTimeRef, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
-import { initAnalyser, destroyAnalyser } from '@/lib/audioAnalyser';
+import {
+  initAnalyser,
+  destroyAnalyser,
+  setDeckGain,
+  isAnalyserReady,
+} from '@/lib/audioAnalyser';
 import { emitListeningHistoryUpdated } from '@/lib/listeningHistory';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
@@ -10,22 +15,57 @@ const MIN_HISTORY_SECONDS = 30;
 const MIN_HISTORY_COMPLETION_RATIO = 0.5;
 const MAX_SESSION_DELTA_SECONDS = 1;
 
+type Deck = 'A' | 'B';
+
 function isRadioTrack(filePath: string): boolean {
   return filePath.startsWith('shiranami-radio://');
 }
 
+function getTrackSrc(track: Track): string {
+  if (track.filePath.startsWith('shiranami-radio://')) return track.filePath;
+  const normalized = track.filePath.replace(/\\/g, '/');
+  return `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+}
+
+/** Equal-power crossfade curves for smooth transitions. */
+function fadeOut(progress: number): number {
+  return Math.cos(progress * Math.PI * 0.5);
+}
+function fadeIn(progress: number): number {
+  return Math.sin(progress * Math.PI * 0.5);
+}
+
 /**
- * Audio engine hook - creates and manages the HTML5 Audio element,
- * keeping it in sync with the player store.
+ * Audio engine hook - creates and manages two HTML5 Audio elements (deck A/B),
+ * keeping them in sync with the player store and handling crossfade transitions.
  *
  * Must be mounted exactly once at the app root level.
  */
 export function useAudioEngine() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const deckARef = useRef<HTMLAudioElement | null>(null);
+  const deckBRef = useRef<HTMLAudioElement | null>(null);
+  const activeDeckRef = useRef<Deck>('A');
+
   const animationFrameRef = useRef<number>(0);
   const seekingRef = useRef(false);
   const analyserInitRef = useRef(false);
   const lastStoreUpdateRef = useRef(0);
+
+  // Track which track ID is loaded on each deck
+  const deckTrackIdRef = useRef<{ A: string | null; B: string | null }>({
+    A: null,
+    B: null,
+  });
+
+  // Crossfade state
+  const crossfadeRef = useRef<{
+    active: boolean;
+    startTime: number;
+    duration: number; // seconds
+    outgoingDeck: Deck;
+    incomingDeck: Deck;
+  }>({ active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' });
+
   const playbackSessionRef = useRef<{
     track: Track | null;
     listenedSeconds: number;
@@ -51,6 +91,31 @@ export function useAudioEngine() {
   const _setError = usePlayerStore((s) => s._setError);
   const _onTrackEnd = usePlayerStore((s) => s._onTrackEnd);
   const incrementTrackPlayCount = usePlayerStore((s) => s.incrementTrackPlayCount);
+
+  function getDeck(deck: Deck) {
+    return deck === 'A' ? deckARef.current : deckBRef.current;
+  }
+  function getActiveDeck() {
+    return getDeck(activeDeckRef.current);
+  }
+  function getIdleDeck() {
+    return getDeck(activeDeckRef.current === 'A' ? 'B' : 'A');
+  }
+  function getIdleDeckId(): Deck {
+    return activeDeckRef.current === 'A' ? 'B' : 'A';
+  }
+
+  /** Set volume on a deck, using GainNode if Web Audio is ready, else audio.volume. */
+  function setVolume(deck: Deck, value: number) {
+    if (isAnalyserReady()) {
+      setDeckGain(deck, value);
+    } else {
+      const audio = getDeck(deck);
+      if (audio) audio.volume = value;
+    }
+  }
+
+  // ── Playback session (listening history) ──────────────────────
 
   const resetPlaybackSession = useCallback((track: Track | null) => {
     playbackSessionRef.current = {
@@ -94,40 +159,144 @@ export function useAudioEngine() {
     }
   }, [incrementTrackPlayCount]);
 
-  // Initialize the audio element once on mount
+  // ── Crossfade helpers ─────────────────────────────────────────
+
+  const cancelCrossfade = useCallback(() => {
+    if (!crossfadeRef.current.active) return;
+    const cf = crossfadeRef.current;
+    const idle = getDeck(cf.incomingDeck);
+    if (idle) {
+      idle.pause();
+      idle.src = '';
+    }
+    deckTrackIdRef.current[cf.incomingDeck] = null;
+    setVolume(cf.incomingDeck, 0);
+    crossfadeRef.current = { active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' };
+  }, []);
+
+  const startCrossfade = useCallback(() => {
+    const state = usePlayerStore.getState();
+    const { queue, queueIndex, repeatMode: rm, crossfadeDuration } = state;
+
+    // Determine next track
+    let nextIndex = queueIndex + 1;
+    if (nextIndex >= queue.length) {
+      if (rm === 'all') nextIndex = 0;
+      else return; // No next track, let it end naturally
+    }
+    const nextTrack = queue[nextIndex];
+    if (!nextTrack || isRadioTrack(nextTrack.filePath)) return;
+
+    const incomingDeckId = getIdleDeckId();
+    const incomingAudio = getIdleDeck();
+    if (!incomingAudio) return;
+
+    // Flush history for outgoing track
+    void flushPlaybackSession();
+
+    // Load next track on idle deck
+    incomingAudio.src = getTrackSrc(nextTrack);
+    incomingAudio.load();
+    deckTrackIdRef.current[incomingDeckId] = nextTrack.id;
+
+    const onCanPlay = () => {
+      incomingAudio.removeEventListener('canplay', onCanPlay);
+      if (!crossfadeRef.current.active) return;
+      setVolume(incomingDeckId, 0);
+      incomingAudio.play().catch(() => {});
+    };
+    incomingAudio.addEventListener('canplay', onCanPlay);
+
+    if (incomingAudio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      onCanPlay();
+    }
+
+    crossfadeRef.current = {
+      active: true,
+      startTime: performance.now(),
+      duration: crossfadeDuration,
+      outgoingDeck: activeDeckRef.current,
+      incomingDeck: incomingDeckId,
+    };
+  }, [flushPlaybackSession]);
+
+  const completeCrossfade = useCallback(() => {
+    const cf = crossfadeRef.current;
+    if (!cf.active) return;
+
+    const userVol = usePlayerStore.getState().isMuted ? 0 : usePlayerStore.getState().volume;
+
+    // Final volumes
+    setVolume(cf.outgoingDeck, 0);
+    setVolume(cf.incomingDeck, userVol);
+
+    // Stop outgoing deck
+    const outgoing = getDeck(cf.outgoingDeck);
+    if (outgoing) {
+      outgoing.pause();
+      outgoing.src = '';
+    }
+    deckTrackIdRef.current[cf.outgoingDeck] = null;
+
+    // Swap active deck
+    activeDeckRef.current = cf.incomingDeck;
+
+    // Reset session for new track
+    const nextTrack = usePlayerStore.getState().queue[usePlayerStore.getState().queueIndex + 1]
+      ?? (usePlayerStore.getState().repeatMode === 'all' ? usePlayerStore.getState().queue[0] : null);
+    resetPlaybackSession(nextTrack);
+
+    // Clear crossfade state before store update (prevents re-triggering)
+    crossfadeRef.current = { active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' };
+
+    // Advance the store (this sets currentTrack, triggering the load effect —
+    // the effect will see the track is already loaded on the new active deck and skip reload)
+    usePlayerStore.getState().next();
+  }, [resetPlaybackSession]);
+
+  // ── Initialization ────────────────────────────────────────────
+
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.preload = 'auto';
+    if (!deckARef.current) {
+      deckARef.current = new Audio();
+      deckARef.current.preload = 'auto';
+    }
+    if (!deckBRef.current) {
+      deckBRef.current = new Audio();
+      deckBRef.current.preload = 'auto';
     }
     return () => {
       destroyAnalyser();
       void flushPlaybackSession();
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
+      for (const ref of [deckARef, deckBRef]) {
+        if (ref.current) {
+          ref.current.pause();
+          ref.current.src = '';
+          ref.current = null;
+        }
       }
       _setIsLoading(false);
       cancelAnimationFrame(animationFrameRef.current);
     };
   }, [_setIsLoading, flushPlaybackSession]);
 
-  // Smooth time-update loop via requestAnimationFrame.
-  // The mutable currentTimeRef is updated every frame for smooth SeekBar animation,
-  // but the Zustand store is only updated at ~4Hz to avoid excessive React re-renders.
+  // ── RAF time-update loop (with crossfade monitoring) ──────────
+
   const updateTime = useCallback(() => {
-    const audio = audioRef.current;
+    const audio = getActiveDeck();
     if (audio) {
-      // Check for pending seek (set by store's seek() action)
+      // Handle pending seek
       const { _seekTarget } = usePlayerStore.getState();
       if (_seekTarget !== null && isFinite(_seekTarget)) {
         audio.currentTime = _seekTarget;
         usePlayerStore.getState()._clearSeekTarget();
         seekingRef.current = true;
         playbackSessionRef.current.lastTickAt = performance.now();
-        setTimeout(() => { seekingRef.current = false; }, 300);
+        setTimeout(() => {
+          seekingRef.current = false;
+        }, 300);
       } else if (!seekingRef.current) {
+        // Accumulate listening time
         const session = playbackSessionRef.current;
         const tickNow = performance.now();
         const canAccumulate =
@@ -149,37 +318,87 @@ export function useAudioEngine() {
           session.lastTickAt = tickNow;
         }
 
-        // Always update the mutable ref at full frame rate
         currentTimeRef.current = audio.currentTime;
 
-        // Throttle Zustand store updates to ~4Hz
         const storeUpdateNow = performance.now();
         if (storeUpdateNow - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
           lastStoreUpdateRef.current = storeUpdateNow;
           _setCurrentTime(audio.currentTime);
         }
       }
+
+      // ── Crossfade monitoring ──
+      const cf = crossfadeRef.current;
+      const state = usePlayerStore.getState();
+
+      if (cf.active) {
+        // Update crossfade volumes
+        const elapsed = (performance.now() - cf.startTime) / 1000;
+        const progress = Math.min(1, elapsed / cf.duration);
+        const userVol = state.isMuted ? 0 : state.volume;
+
+        setVolume(cf.outgoingDeck, userVol * fadeOut(progress));
+        setVolume(cf.incomingDeck, userVol * fadeIn(progress));
+
+        if (progress >= 1) {
+          completeCrossfade();
+        }
+      } else if (
+        state.crossfadeEnabled &&
+        state.isPlaying &&
+        !isRadioTrack(state.currentTrack?.filePath ?? '') &&
+        state.repeatMode !== 'one'
+      ) {
+        // Check if we should start crossfade
+        const dur = audio.duration;
+        if (isFinite(dur) && dur > 0 && dur > state.crossfadeDuration) {
+          const timeLeft = dur - audio.currentTime;
+          if (timeLeft <= state.crossfadeDuration && timeLeft > 0.1) {
+            startCrossfade();
+          }
+        }
+      }
     }
+
     if (usePlayerStore.getState().isPlaying) {
       animationFrameRef.current = requestAnimationFrame(updateTime);
     }
-  }, [_setCurrentTime]);
+  }, [_setCurrentTime, completeCrossfade, startCrossfade]);
 
-  // Load a new track when currentTrack changes
+  // ── Load track when currentTrack changes ──────────────────────
+
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = getActiveDeck();
     if (!audio) return;
 
     if (!currentTrack) {
+      cancelCrossfade();
       void flushPlaybackSession();
       resetPlaybackSession(null);
       audio.pause();
       audio.src = '';
+      deckTrackIdRef.current[activeDeckRef.current] = null;
       _setIsLoading(false);
       _setCurrentTime(0);
       _setDuration(0);
       return;
     }
+
+    // If this track is already loaded on the active deck (crossfade completed
+    // or same track), skip reloading
+    if (deckTrackIdRef.current[activeDeckRef.current] === currentTrack.id) {
+      return;
+    }
+
+    // If loaded on the idle deck (crossfade advanced the store), swap
+    const idleDeckId = getIdleDeckId();
+    if (deckTrackIdRef.current[idleDeckId] === currentTrack.id) {
+      activeDeckRef.current = idleDeckId;
+      return;
+    }
+
+    // Cancel any in-progress crossfade (manual skip)
+    cancelCrossfade();
 
     if (playbackSessionRef.current.track?.id !== currentTrack.id) {
       void flushPlaybackSession();
@@ -189,12 +408,13 @@ export function useAudioEngine() {
     _setIsLoading(true);
     _setError(null);
 
-    // Auto-play once the audio is ready (canplay fires after load)
+    deckTrackIdRef.current[activeDeckRef.current] = currentTrack.id;
+
     const onCanPlayOnce = () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
       _setIsLoading(false);
       if (usePlayerStore.getState().isPlaying) {
-        audio.play().catch(err => {
+        audio.play().catch((err) => {
           if (err.name !== 'AbortError') {
             _setError(err.message);
             _setIsPlaying(false);
@@ -205,15 +425,7 @@ export function useAudioEngine() {
     };
     audio.addEventListener('canplay', onCanPlayOnce);
 
-    // Radio streams use their own protocol; local files use shiranami-audio://
-    if (currentTrack.filePath.startsWith('shiranami-radio://')) {
-      audio.src = currentTrack.filePath;
-    } else {
-      // Use custom protocol to serve local audio through Electron's network stack.
-      // The readiness listener is attached first so fast local files cannot beat it.
-      const normalized = currentTrack.filePath.replace(/\\/g, '/');
-      audio.src = `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
-    }
+    audio.src = getTrackSrc(currentTrack);
     audio.load();
 
     if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
@@ -223,55 +435,73 @@ export function useAudioEngine() {
     return () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
     };
-  }, [currentTrack, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime, flushPlaybackSession, resetPlaybackSession]);
+  }, [currentTrack, cancelCrossfade, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime, flushPlaybackSession, resetPlaybackSession]);
 
-  // Sync play / pause with the Audio element
+  // ── Sync play / pause ─────────────────────────────────────────
+
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !audio.src) return;
+    const active = getActiveDeck();
+    if (!active || !active.src) return;
 
     if (isPlaying) {
       playbackSessionRef.current.lastTickAt = performance.now();
 
-      // Lazily initialise the Web Audio analyser on first play (requires user gesture)
-      if (!analyserInitRef.current) {
+      // Lazily initialise the Web Audio analyser on first play
+      if (!analyserInitRef.current && deckARef.current && deckBRef.current) {
         try {
-          initAnalyser(audio);
+          initAnalyser(deckARef.current, deckBRef.current);
           analyserInitRef.current = true;
+          // Set initial gains
+          const userVol = isMuted ? 0 : volume;
+          setDeckGain(activeDeckRef.current, userVol);
+          setDeckGain(getIdleDeckId(), 0);
         } catch {
           // Non-critical - visualiser just won't work
         }
       }
 
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.catch((err: DOMException) => {
-          // AbortError fires when a play() is interrupted by a new load - safe to ignore
-          if (err.name !== 'AbortError') {
-            _setError(err.message);
-            _setIsPlaying(false);
-          }
-        });
+      active.play().catch((err: DOMException) => {
+        if (err.name !== 'AbortError') {
+          _setError(err.message);
+          _setIsPlaying(false);
+        }
+      });
+
+      // Also resume incoming deck if crossfading
+      if (crossfadeRef.current.active) {
+        const incoming = getDeck(crossfadeRef.current.incomingDeck);
+        incoming?.play().catch(() => {});
       }
+
       animationFrameRef.current = requestAnimationFrame(updateTime);
     } else {
       playbackSessionRef.current.lastTickAt = null;
-      audio.pause();
+      active.pause();
+      // Also pause incoming deck if crossfading
+      if (crossfadeRef.current.active) {
+        const incoming = getDeck(crossfadeRef.current.incomingDeck);
+        incoming?.pause();
+      }
       cancelAnimationFrame(animationFrameRef.current);
     }
-  }, [isPlaying, updateTime, _setError, _setIsPlaying]);
+  }, [isPlaying, updateTime, _setError, _setIsPlaying, volume, isMuted]);
 
-  // Sync volume
+  // ── Sync volume ───────────────────────────────────────────────
+
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
+    // During crossfade, volume is managed by the RAF loop
+    if (crossfadeRef.current.active) return;
+
+    const userVol = isMuted ? 0 : volume;
+    setVolume(activeDeckRef.current, userVol);
+    setVolume(getIdleDeckId(), 0);
   }, [volume, isMuted]);
 
-  // Handle seeks that happen while paused (RAF loop not running)
+  // ── Handle seeks while paused ─────────────────────────────────
+
   useEffect(() => {
     const unsub = usePlayerStore.subscribe((state) => {
-      const audio = audioRef.current;
+      const audio = getActiveDeck();
       if (
         audio &&
         state._seekTarget !== null &&
@@ -286,9 +516,10 @@ export function useAudioEngine() {
     return unsub;
   }, [_setCurrentTime]);
 
-  // Attach Audio element event listeners
+  // ── Audio element event listeners (active deck) ───────────────
+
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = getActiveDeck();
     if (!audio) return;
 
     const setDurationSafe = () => {
@@ -303,17 +534,15 @@ export function useAudioEngine() {
       _setIsLoading(false);
     };
 
-    // duration may start as Infinity for streamed content and resolve later
-    const onDurationChange = () => {
-      setDurationSafe();
-    };
-
+    const onDurationChange = () => setDurationSafe();
     const onCanPlay = () => {
       setDurationSafe();
       _setIsLoading(false);
     };
 
     const onEnded = () => {
+      // During/after crossfade the transition is already handled
+      if (crossfadeRef.current.active) return;
       const endedTrack = usePlayerStore.getState().currentTrack;
       void flushPlaybackSession();
       if (usePlayerStore.getState().repeatMode === 'one' && endedTrack) {
@@ -355,12 +584,12 @@ export function useAudioEngine() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('playing', onPlaying);
     };
-  }, [_setDuration, _setIsLoading, _onTrackEnd, _setError, _setIsPlaying, flushPlaybackSession, resetPlaybackSession]);
+  }, [currentTrack, _setDuration, _setIsLoading, _onTrackEnd, _setError, _setIsPlaying, flushPlaybackSession, resetPlaybackSession]);
 
-  // Handle repeat-one at the Audio element level: restart playback directly
-  // so there is no audible gap (the store handler prevents next() from firing).
+  // ── Repeat-one: restart playback directly at Audio element level ──
+
   useEffect(() => {
-    const audio = audioRef.current;
+    const audio = getActiveDeck();
     if (!audio) return;
 
     const onEnded = () => {
@@ -372,7 +601,7 @@ export function useAudioEngine() {
 
     audio.addEventListener('ended', onEnded);
     return () => audio.removeEventListener('ended', onEnded);
-  }, [repeatMode]);
+  }, [repeatMode, currentTrack]);
 
-  return audioRef;
+  return deckARef;
 }

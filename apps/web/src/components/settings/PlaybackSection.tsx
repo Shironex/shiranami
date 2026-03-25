@@ -1,33 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Settings2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
-import { Settings2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import { IS_ELECTRON } from '@/lib/platform';
+import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useState, useEffect, useCallback } from 'react';
 
-interface SettingsData {
+interface ElectronSettings {
   rememberPlaybackPosition: boolean;
-  gaplessPlayback: boolean;
   discordRpc: boolean;
 }
 
-const DEFAULT_SETTINGS: SettingsData = {
+const DEFAULT_ELECTRON_SETTINGS: ElectronSettings = {
   rememberPlaybackPosition: false,
-  gaplessPlayback: false,
   discordRpc: false,
 };
 
 export function PlaybackSection() {
-  const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
+  const [electronSettings, setElectronSettings] = useState<ElectronSettings>(DEFAULT_ELECTRON_SETTINGS);
+
+  const crossfadeEnabled = usePlayerStore((s) => s.crossfadeEnabled);
+  const crossfadeDuration = usePlayerStore((s) => s.crossfadeDuration);
+  const setCrossfadeEnabled = usePlayerStore((s) => s.setCrossfadeEnabled);
+  const setCrossfadeDuration = usePlayerStore((s) => s.setCrossfadeDuration);
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
 
     async function load() {
       try {
-        const savedSettings =
-          await window.electronAPI.store.get<SettingsData>('settings');
-        if (savedSettings) {
-          setSettings({ ...DEFAULT_SETTINGS, ...savedSettings });
+        const saved = await window.electronAPI.store.get<ElectronSettings & Record<string, unknown>>('settings');
+        if (saved) {
+          setElectronSettings({
+            rememberPlaybackPosition: saved.rememberPlaybackPosition ?? false,
+            discordRpc: saved.discordRpc ?? false,
+          });
         }
       } catch (err) {
         console.error('Failed to load playback settings:', err);
@@ -37,10 +44,10 @@ export function PlaybackSection() {
     load();
   }, []);
 
-  const updateSetting = useCallback(
-    async (key: keyof SettingsData, value: boolean) => {
-      const updated = { ...settings, [key]: value };
-      setSettings(updated);
+  const updateElectronSetting = useCallback(
+    async (key: keyof ElectronSettings, value: boolean) => {
+      const updated = { ...electronSettings, [key]: value };
+      setElectronSettings(updated);
       if (IS_ELECTRON) {
         try {
           await window.electronAPI.store.set('settings', updated);
@@ -49,7 +56,7 @@ export function PlaybackSection() {
         }
       }
     },
-    [settings]
+    [electronSettings],
   );
 
   return (
@@ -69,25 +76,50 @@ export function PlaybackSection() {
             </p>
           </div>
           <Switch
-            checked={settings.rememberPlaybackPosition}
-            onChange={(v) => updateSetting('rememberPlaybackPosition', v)}
+            checked={electronSettings.rememberPlaybackPosition}
+            onChange={(v) => updateElectronSetting('rememberPlaybackPosition', v)}
           />
         </div>
 
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
-            <p className="text-sm font-medium text-foreground">
-              Gapless playback
+            <p className="text-sm font-medium text-foreground flex items-center gap-2">
+              Crossfade
+              <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-semibold uppercase tracking-wider">
+                Beta
+              </span>
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Seamless transitions between tracks
+              Smooth volume transition between tracks
             </p>
           </div>
           <Switch
-            checked={settings.gaplessPlayback}
-            onChange={(v) => updateSetting('gaplessPlayback', v)}
+            checked={crossfadeEnabled}
+            onChange={setCrossfadeEnabled}
           />
         </div>
+
+        {crossfadeEnabled && (
+          <div className="px-3 py-3 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">Duration</p>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {crossfadeDuration}s
+              </span>
+            </div>
+            <Slider
+              min={1}
+              max={12}
+              step={1}
+              value={[crossfadeDuration]}
+              onValueChange={([v]) => setCrossfadeDuration(v)}
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-[10px] text-muted-foreground/60">1s</span>
+              <span className="text-[10px] text-muted-foreground/60">12s</span>
+            </div>
+          </div>
+        )}
 
         {IS_ELECTRON && (
           <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
@@ -100,8 +132,8 @@ export function PlaybackSection() {
               </p>
             </div>
             <Switch
-              checked={settings.discordRpc}
-              onChange={(v) => updateSetting('discordRpc', v)}
+              checked={electronSettings.discordRpc}
+              onChange={(v) => updateElectronSetting('discordRpc', v)}
             />
           </div>
         )}
