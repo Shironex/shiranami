@@ -1,4 +1,15 @@
 import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+
+// Externalize all npm dependencies — they're bundled by electron-builder at
+// package time via node_modules.  Workspace packages are kept bundled (tiny)
+// to avoid workspace-protocol resolution issues in production builds.
+const external = [
+  'electron',
+  ...Object.keys(pkg.dependencies ?? {}).filter((d) => !d.startsWith('@shiranami/')),
+];
 
 await build({
   entryPoints: ['src/main/index.ts', 'src/main/preload.ts'],
@@ -8,12 +19,6 @@ await build({
   format: 'cjs',
   outdir: 'dist/main',
   sourcemap: true,
-  external: [
-    'electron',
-    'better-sqlite3',
-    'electron-store',
-    'electron-updater',
-    'music-metadata',
-  ],
+  external,
   logLevel: 'info',
 });
