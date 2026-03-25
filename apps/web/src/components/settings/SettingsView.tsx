@@ -5,6 +5,7 @@ import {
   ArrowDownToLine,
   Settings2,
   AudioLines,
+  Monitor,
   RefreshCcw,
   Info,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import { DownloadsSection } from '@/components/settings/downloads/DownloadsSecti
 import { PlaybackSection } from '@/components/settings/PlaybackSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
+import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { AboutSection } from '@/components/settings/AboutSection';
 
 type SettingsSection =
@@ -23,6 +25,7 @@ type SettingsSection =
   | 'downloads'
   | 'playback'
   | 'visualizer'
+  | 'appearance'
   | 'updates'
   | 'about';
 
@@ -32,6 +35,7 @@ const SECTIONS: { id: SettingsSection; label: string; Icon: typeof FolderOpen }[
   { id: 'downloads', label: 'Downloads', Icon: ArrowDownToLine },
   { id: 'playback', label: 'Playback', Icon: Settings2 },
   { id: 'visualizer', label: 'Visualizer', Icon: AudioLines },
+  { id: 'appearance', label: 'Appearance', Icon: Monitor },
   { id: 'updates', label: 'Updates', Icon: RefreshCcw },
   { id: 'about', label: 'About', Icon: Info },
 ];
@@ -42,6 +46,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   downloads: DownloadsSection,
   playback: PlaybackSection,
   visualizer: VisualizerSection,
+  appearance: AppearanceSection,
   updates: UpdatesSection,
   about: AboutSection,
 };

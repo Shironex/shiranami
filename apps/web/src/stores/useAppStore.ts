@@ -9,6 +9,36 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
 const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
 const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
 const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
+const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
+
+export const UI_SCALE_MIN = 80;
+export const UI_SCALE_MAX = 120;
+export const UI_SCALE_DEFAULT = 100;
+export const UI_SCALE_STEP = 5;
+export const UI_SCALE_PRESETS = [80, 90, 100, 110, 120] as const;
+
+function applyUiScale(scale: number) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.fontSize = `${scale}%`;
+}
+
+function getInitialUiScale(): number {
+  if (typeof window === 'undefined') return UI_SCALE_DEFAULT;
+  const stored = window.localStorage.getItem(UI_SCALE_STORAGE_KEY);
+  if (stored) {
+    const parsed = Number(stored);
+    if (!Number.isNaN(parsed) && parsed >= UI_SCALE_MIN && parsed <= UI_SCALE_MAX) {
+      applyUiScale(parsed);
+      return parsed;
+    }
+  }
+  return UI_SCALE_DEFAULT;
+}
+
+function persistUiScale(scale: number) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(UI_SCALE_STORAGE_KEY, String(scale));
+}
 
 function getInitialSidebarCollapsed() {
   if (typeof window === 'undefined') return false;
@@ -69,6 +99,7 @@ interface AppState {
   compactAlwaysOnTop: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
+  uiScale: number;
 }
 
 interface AppActions {
@@ -84,6 +115,8 @@ interface AppActions {
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
   setVisualizerStyle: (style: VisualizerStyle) => void;
+  setUiScale: (scale: number) => void;
+  resetUiScale: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -95,6 +128,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   compactAlwaysOnTop: getInitialCompactAlwaysOnTop(),
   showVisualizer: getInitialVisualizerEnabled(),
   visualizerStyle: getInitialVisualizerStyle(),
+  uiScale: getInitialUiScale(),
 
   navigateTo: (view, playlistId) =>
     set({
@@ -170,6 +204,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   setVisualizerStyle: (style) => {
     persistVisualizerStyle(style);
     set({ visualizerStyle: style });
+  },
+  setUiScale: (scale) => {
+    const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
+    applyUiScale(clamped);
+    persistUiScale(clamped);
+    set({ uiScale: clamped });
+  },
+  resetUiScale: () => {
+    applyUiScale(UI_SCALE_DEFAULT);
+    persistUiScale(UI_SCALE_DEFAULT);
+    set({ uiScale: UI_SCALE_DEFAULT });
   },
 }));
 
