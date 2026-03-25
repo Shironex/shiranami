@@ -27,6 +27,7 @@ import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useLibraryLoader } from '@/hooks/useLibraryLoader';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
+import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -42,6 +43,7 @@ function App() {
   usePlayerPreferences();
   useLibraryLoader();
   usePlaybackResume(splashDone);
+  useUpdateNotifications();
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
