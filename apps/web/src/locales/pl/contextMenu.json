@@ -4,13 +4,17 @@
   "addToPlaylist": "Dodaj do playlisty",
   "removeFromFavorites": "Usuń z ulubionych",
   "addToFavorites": "Dodaj do ulubionych",
+  "toggleFavorites": "Przełącz ulubione",
   "showInFinder": "Pokaż w Finderze",
   "showInExplorer": "Pokaż w Eksploratorze",
   "removeFromLibrary": "Usuń z biblioteki",
+  "removeFromLibraryCount": "Usuń {{count}} z biblioteki",
   "deleteFromDisk": "Usuń z dysku",
+  "deleteFromDiskCount": "Usuń {{count}} z dysku",
   "openPlaylist": "Otwórz playlistę",
   "playPlaylist": "Odtwórz playlistę",
   "shufflePlaylist": "Losuj playlistę",
   "removeFromPlaylist": "Usuń z playlisty",
-  "addToPlaylistAria": "Dodaj do playlisty"
+  "addToPlaylistAria": "Dodaj do playlisty",
+  "selectedCount": "{{count}} zaznaczonych"
 }

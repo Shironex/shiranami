@@ -74,5 +74,12 @@
   "failedLoadStations": "Nie udało się załadować stacji",
   "failedLoadFavorites": "Nie udało się załadować ulubionych",
   "failedFetchLyrics": "Nie udało się pobrać tekstu piosenki",
-  "installingMissingTools": "Instalowanie brakujących narzędzi"
+  "installingMissingTools": "Instalowanie brakujących narzędzi",
+  "tracksPlayNext": "{{count}} utworów zostanie odtworzonych jako następne",
+  "addedTracksToQueue": "Dodano {{count}} utworów do kolejki",
+  "addedTracksToPlaylist": "Dodano {{count}} utworów do \"{{name}}\"",
+  "createdPlaylistAddedTracks": "Utworzono \"{{name}}\" i dodano {{count}} utworów",
+  "removedTracksFromLibrary": "Usunięto {{count}} utworów z biblioteki",
+  "movedTracksToRecycle": "Przeniesiono {{count}} utworów do kosza",
+  "removedTracksFromPlaylist": "Usunięto {{count}} utworów z playlisty"
 }

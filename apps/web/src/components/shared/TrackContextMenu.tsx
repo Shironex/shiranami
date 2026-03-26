@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
@@ -61,7 +62,7 @@ function Divider() {
   return <div className="my-1 border-t border-border/50" />;
 }
 
-function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void }) {
+function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: () => void }) {
   const { t } = useTranslation('contextMenu');
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
@@ -74,6 +75,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
   const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isBulk = trackIds.length > 1;
 
   const handleMouseEnter = useCallback(() => {
     if (closeTimerRef.current) {
@@ -123,14 +125,20 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
     async (playlist: Playlist) => {
       if (!IS_ELECTRON) return;
       try {
-        await window.electronAPI.db.playlists.addTrack(playlist.id, track.id);
-        toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+        for (const id of trackIds) {
+          await window.electronAPI.db.playlists.addTrack(playlist.id, id);
+        }
+        if (isBulk) {
+          toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
+        } else {
+          toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+        }
         onClose();
       } catch {
         toast.error(tToast('failedAddToPlaylist'));
       }
     },
-    [track.id, onClose]
+    [trackIds, isBulk, onClose]
   );
 
   const handleCreateAndAdd = useCallback(async () => {
@@ -138,14 +146,20 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
     if (!name || !IS_ELECTRON) return;
     try {
       const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
-      await window.electronAPI.db.playlists.addTrack(playlist.id, track.id);
+      for (const id of trackIds) {
+        await window.electronAPI.db.playlists.addTrack(playlist.id, id);
+      }
       notifyPlaylistsChanged();
-      toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
+      if (isBulk) {
+        toast.success(tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length }));
+      } else {
+        toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
+      }
       onClose();
     } catch {
       toast.error(tToast('failedCreatePlaylist'));
     }
-  }, [newName, track.id, onClose]);
+  }, [newName, trackIds, isBulk, onClose]);
 
   return (
     <div
@@ -256,6 +270,18 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const next = usePlayerStore((s) => s.next);
   const queue = usePlayerStore((s) => s.queue);
   const queueIndex = usePlayerStore((s) => s.queueIndex);
+  const library = usePlayerStore((s) => s.library);
+
+  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+
+  // Determine if this is a bulk operation
+  const isBulk = selectedTrackIds.size > 1 && selectedTrackIds.has(track.id);
+  const targetTrackIds = isBulk ? Array.from(selectedTrackIds) : [track.id];
+  const targetTracks = isBulk
+    ? library.filter((t) => selectedTrackIds.has(t.id))
+    : [track];
+  const count = targetTrackIds.length;
 
   // Resolve the current favorite state from the queue (in case toggled after menu opened)
   const isFavorite = queue.find((t) => t.id === track.id)?.isFavorite ?? track.isFavorite;
@@ -310,21 +336,28 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   }, [onClose]);
 
   const handlePlayNext = useCallback(() => {
-    playNext(track);
-    toast.success(tToast('trackPlayNext'));
+    for (const t of targetTracks) {
+      playNext(t);
+    }
+    toast.success(isBulk ? tToast('tracksPlayNext', { count }) : tToast('trackPlayNext'));
+    clearSelection();
     onClose();
-  }, [track, playNext, onClose]);
+  }, [targetTracks, isBulk, count, playNext, onClose, clearSelection]);
 
   const handleAddToQueue = useCallback(() => {
-    addToQueue([track]);
-    toast.success(tToast('addedToQueue'));
+    addToQueue(targetTracks);
+    toast.success(isBulk ? tToast('addedTracksToQueue', { count }) : tToast('addedToQueue'));
+    clearSelection();
     onClose();
-  }, [track, addToQueue, onClose]);
+  }, [targetTracks, isBulk, count, addToQueue, onClose, clearSelection]);
 
   const handleToggleFavorite = useCallback(() => {
-    toggleFavorite(track.id);
+    for (const id of targetTrackIds) {
+      toggleFavorite(id);
+    }
+    clearSelection();
     onClose();
-  }, [track.id, toggleFavorite, onClose]);
+  }, [targetTrackIds, toggleFavorite, onClose, clearSelection]);
 
   const handleShowInFolder = useCallback(() => {
     if (!IS_ELECTRON) return;
@@ -337,25 +370,31 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const handleRemoveFromLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
     try {
-      // If this track is currently playing, skip to next first
-      const isCurrentlyPlaying = currentTrack?.id === track.id;
+      const ids = targetTrackIds;
+      const idsSet = new Set(ids);
+
+      // If current track is being removed, skip to next first
+      const isCurrentlyPlaying = currentTrack && idsSet.has(currentTrack.id);
 
       // Remove from DB
-      await window.electronAPI.db.tracks.remove(track.id);
+      if (ids.length === 1) {
+        await window.electronAPI.db.tracks.remove(ids[0]);
+      } else {
+        await window.electronAPI.db.tracks.removeMany(ids);
+      }
 
       // Remove from library state
-      removeFromLibrary([track.id]);
+      removeFromLibrary(ids);
 
       // Remove from queue if present
-      const idx = queue.findIndex((t) => t.id === track.id);
-      if (idx !== -1) {
-        const newQueue = queue.filter((t) => t.id !== track.id);
+      const newQueue = queue.filter((t) => !idsSet.has(t.id));
+      if (newQueue.length !== queue.length) {
         let newIndex = queueIndex;
-        if (idx < queueIndex) {
-          newIndex--;
+        // Count how many removed tracks were before current index
+        for (let i = 0; i < queueIndex && i < queue.length; i++) {
+          if (idsSet.has(queue[i].id)) newIndex--;
         }
         if (isCurrentlyPlaying) {
-          // Move to next track or clear
           const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
           usePlayerStore.setState({
             queue: newQueue,
@@ -372,36 +411,58 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         }
       }
 
-      toast.success(tToast('removedFromLibrary'));
+      toast.success(isBulk
+        ? tToast('removedTracksFromLibrary', { count })
+        : tToast('removedFromLibrary'));
     } catch {
       toast.error(tToast('failedRemoveTrack'));
     }
+    clearSelection();
     onClose();
-  }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
+  }, [targetTrackIds, isBulk, count, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose, clearSelection]);
 
   const handleDeleteFromDisk = useCallback(async () => {
     if (!IS_ELECTRON) return;
-    let fileMovedToTrash = false;
+    const ids = targetTrackIds;
+    const idsSet = new Set(ids);
+    const tracks = targetTracks;
+    let filesMovedToTrash = 0;
+
     try {
-      const isCurrentlyPlaying = currentTrack?.id === track.id;
+      const isCurrentlyPlaying = currentTrack && idsSet.has(currentTrack.id);
 
-      // Move file to recycle bin
-      await window.electronAPI.shell.trashFile(track.filePath);
-      fileMovedToTrash = true;
+      // Move files to recycle bin
+      for (const t of tracks) {
+        try {
+          await window.electronAPI.shell.trashFile(t.filePath);
+          filesMovedToTrash++;
+        } catch {
+          // continue with others
+        }
+      }
 
-      // Remove from DB after the file move succeeds
-      await window.electronAPI.db.tracks.remove(track.id);
+      if (filesMovedToTrash === 0) {
+        toast.error(tToast('recycleFail'));
+        onClose();
+        return;
+      }
+
+      // Remove from DB
+      if (ids.length === 1) {
+        await window.electronAPI.db.tracks.remove(ids[0]);
+      } else {
+        await window.electronAPI.db.tracks.removeMany(ids);
+      }
 
       // Remove from library state
-      removeFromLibrary([track.id]);
+      removeFromLibrary(ids);
 
       // Remove from queue if present
-      const idx = queue.findIndex((t) => t.id === track.id);
-      if (idx !== -1) {
-        const newQueue = queue.filter((t) => t.id !== track.id);
+      const newQueue = queue.filter((t) => !idsSet.has(t.id));
+      if (newQueue.length !== queue.length) {
         let newIndex = queueIndex;
-        if (idx < queueIndex) {
-          newIndex--;
+        for (let i = 0; i < queueIndex && i < queue.length; i++) {
+          if (idsSet.has(queue[i].id)) newIndex--;
         }
         if (isCurrentlyPlaying) {
           const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
@@ -420,16 +481,24 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         }
       }
 
-      toast.success(tToast('movedToRecycle'));
+      toast.success(isBulk
+        ? tToast('movedTracksToRecycle', { count: filesMovedToTrash })
+        : tToast('movedToRecycle'));
     } catch {
       toast.error(
-        fileMovedToTrash
+        filesMovedToTrash > 0
           ? tToast('recyclePartialFail')
           : tToast('recycleFail')
       );
     }
+    clearSelection();
     onClose();
-  }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
+  }, [targetTrackIds, targetTracks, isBulk, count, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose, clearSelection]);
+
+  const handleClose = useCallback(() => {
+    clearSelection();
+    onClose();
+  }, [clearSelection, onClose]);
 
   return createPortal(
     <AnimatePresence>
@@ -447,6 +516,15 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
+        {isBulk && (
+          <>
+            <div className="px-3 py-1.5 text-xs text-muted-foreground/50 font-medium">
+              {t('selectedCount', { count })}
+            </div>
+            <Divider />
+          </>
+        )}
+
         <MenuItem
           icon={<Play className="w-4 h-4" />}
           label={t('playNext')}
@@ -460,19 +538,25 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
         <Divider />
 
-        <PlaylistSubmenu track={track} onClose={onClose} />
+        <PlaylistSubmenu trackIds={targetTrackIds} onClose={handleClose} />
 
         <MenuItem
           icon={
             <Heart
-              className={cn('w-4 h-4', isFavorite && 'fill-current text-red-400')}
+              className={cn('w-4 h-4', !isBulk && isFavorite && 'fill-current text-red-400')}
             />
           }
-          label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+          label={
+            isBulk
+              ? t('toggleFavorites')
+              : isFavorite
+                ? t('removeFromFavorites')
+                : t('addToFavorites')
+          }
           onClick={handleToggleFavorite}
         />
 
-        {IS_ELECTRON && (
+        {IS_ELECTRON && !isBulk && (
           <MenuItem
             icon={<Share2 className="w-4 h-4" />}
             label={t('share', { ns: 'share' })}
@@ -487,7 +571,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
         <Divider />
 
-        {IS_ELECTRON && (
+        {IS_ELECTRON && !isBulk && (
           <MenuItem
             icon={<FolderOpen className="w-4 h-4" />}
             label={IS_MAC ? t('showInFinder') : t('showInExplorer')}
@@ -497,14 +581,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
         <MenuItem
           icon={<Trash2 className="w-4 h-4" />}
-          label={t('removeFromLibrary')}
+          label={isBulk ? t('removeFromLibraryCount', { count }) : t('removeFromLibrary')}
           onClick={handleRemoveFromLibrary}
           variant="destructive"
         />
         {IS_ELECTRON && (
           <MenuItem
             icon={<Trash2 className="w-4 h-4" />}
-            label={t('deleteFromDisk')}
+            label={isBulk ? t('deleteFromDiskCount', { count }) : t('deleteFromDisk')}
             onClick={handleDeleteFromDisk}
             variant="destructive"
           />

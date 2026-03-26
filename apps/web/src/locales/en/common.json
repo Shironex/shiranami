@@ -14,5 +14,8 @@
   "unknownError": "Unknown error",
   "previewSource": "Preview",
   "loading": "Loading...",
-  "liveRadio": "Live Radio"
+  "liveRadio": "Live Radio",
+  "selectedTracks": "{{count}} selected",
+  "selectAll": "Select All",
+  "clearSelection": "Clear Selection"
 }

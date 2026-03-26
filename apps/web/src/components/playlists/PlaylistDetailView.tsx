@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import {
   ArrowLeft,
   Play,
@@ -17,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
+import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { toast } from 'sonner';
 import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
@@ -31,6 +33,7 @@ export function PlaylistDetailView() {
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const library = usePlayerStore(s => s.library);
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -111,6 +114,23 @@ export function PlaylistDetailView() {
         await window.electronAPI.db.playlists.removeTrack(selectedPlaylistId, trackId);
         setTracks(prev => prev.filter(t => t.id !== trackId));
         toast.success(tToast('removedFromPlaylist'));
+      } catch {
+        toast.error(tToast('failedRemoveTrack'));
+      }
+    },
+    [selectedPlaylistId, tToast]
+  );
+
+  const handleBulkRemoveFromPlaylist = useCallback(
+    async (trackIds: string[]) => {
+      if (!IS_ELECTRON || !selectedPlaylistId) return;
+      try {
+        for (const id of trackIds) {
+          await window.electronAPI.db.playlists.removeTrack(selectedPlaylistId, id);
+        }
+        const idsSet = new Set(trackIds);
+        setTracks(prev => prev.filter(t => !idsSet.has(t.id)));
+        toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length }));
       } catch {
         toast.error(tToast('failedRemoveTrack'));
       }
@@ -452,6 +472,13 @@ export function PlaylistDetailView() {
             }}
           />
         </div>
+      )}
+
+      {hasSelection && (
+        <BulkActionBar
+          trackList={displayTracks}
+          onRemoveFromPlaylist={handleBulkRemoveFromPlaylist}
+        />
       )}
     </div>
   );

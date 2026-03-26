@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Track } from '@/stores/usePlayerStore';
-import { Heart, Play, X } from 'lucide-react';
+import { useSelectionStore } from '@/stores/useSelectionStore';
+import { Heart, Play, X, Check } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
@@ -35,15 +36,51 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
   const track = queue[index];
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
 
+  const isSelected = useSelectionStore((s) => s.selectedTrackIds.has(track?.id ?? ''));
+  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
+  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
+  const toggleTrack = useSelectionStore((s) => s.toggleTrack);
+  const selectRange = useSelectionStore((s) => s.selectRange);
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // If right-clicking a track not in selection, clear selection
+    if (hasSelection && track && !selectedTrackIds.has(track.id)) {
+      clearSelection();
+    }
     setContextMenu({ x: e.clientX, y: e.clientY });
-  }, []);
+  }, [hasSelection, track, selectedTrackIds, clearSelection]);
 
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (!track) return;
+
+    const isMod = e.metaKey || e.ctrlKey;
+    const isShift = e.shiftKey;
+
+    if (isMod) {
+      e.preventDefault();
+      toggleTrack(track.id, index);
+      return;
+    }
+
+    if (isShift) {
+      e.preventDefault();
+      selectRange(index, queue);
+      return;
+    }
+
+    // Plain click: if we have a selection, clear it and play
+    if (hasSelection) {
+      clearSelection();
+    }
+    handlePlayTrack(index);
+  }, [track, index, queue, hasSelection, toggleTrack, selectRange, clearSelection, handlePlayTrack]);
 
   if (!track) return null;
   const isActive = currentTrack?.id === track.id;
@@ -54,20 +91,24 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
         onContextMenu={handleContextMenu}
         className={cn(
           'w-full flex items-center gap-3 px-3 h-[48px] rounded-xl text-left transition-all duration-200 group',
-          isActive
-            ? 'bg-primary/[0.08] text-foreground'
-            : 'hover:bg-accent text-foreground/80 hover:text-foreground'
+          isSelected
+            ? 'bg-primary/[0.12] text-foreground ring-1 ring-primary/20'
+            : isActive
+              ? 'bg-primary/[0.08] text-foreground'
+              : 'hover:bg-accent text-foreground/80 hover:text-foreground'
         )}
       >
         <button
-          onClick={() => handlePlayTrack(index)}
+          onClick={handleClick}
           className="flex items-center gap-3 min-w-0 flex-1"
         >
           <div className={cn(
-            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
-            isActive ? 'bg-primary/15' : 'bg-surface'
+            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative',
+            isSelected ? 'bg-primary/20' : isActive ? 'bg-primary/15' : 'bg-surface'
           )}>
-            {track.albumArt ? (
+            {isSelected ? (
+              <Check className="w-4 h-4 text-primary" />
+            ) : track.albumArt ? (
               <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
             ) : isActive && isPlaying ? (
               <div className="flex items-end gap-[3px] h-4">

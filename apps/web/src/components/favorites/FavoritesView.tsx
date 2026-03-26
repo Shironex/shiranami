@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
+import { BulkActionBar } from '@/components/shared/BulkActionBar';
 
 export function FavoritesView() {
   const { t } = useTranslation('favorites');
@@ -15,6 +17,7 @@ export function FavoritesView() {
   const setQueue = usePlayerStore(s => s.setQueue);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const favorites = useMemo(
     () => library.filter((t) => t.isFavorite),
@@ -119,6 +122,8 @@ export function FavoritesView() {
           />
         </div>
       )}
+
+      {hasSelection && <BulkActionBar trackList={favorites} />}
     </div>
   );
 }

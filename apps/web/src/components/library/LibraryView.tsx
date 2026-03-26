@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
+import { BulkActionBar } from '@/components/shared/BulkActionBar';
 
 export function LibraryView() {
   const { t } = useTranslation('library');
@@ -15,6 +17,7 @@ export function LibraryView() {
   const setQueue = usePlayerStore(s => s.setQueue);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -179,6 +182,8 @@ export function LibraryView() {
           />
         </div>
       )}
+
+      {hasSelection && <BulkActionBar trackList={filteredLibrary} />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 
 const NAV_VIEWS: AppView[] = [
   'library',
@@ -28,6 +29,17 @@ export function useKeyboardShortcuts() {
 
       // --- Modifier-key shortcuts (always work regardless of focus) ---
       if (mod) {
+        // Cmd/Ctrl+A: select all tracks (only when not in an editable target)
+        if ((e.key === 'a' || e.key === 'A') && !isEditableTarget(e.target)) {
+          const selectionSize = useSelectionStore.getState().selectedTrackIds.size;
+          if (selectionSize > 0) {
+            // If already selecting, select all is handled by the bulk action bar
+            // We just prevent the default browser select-all
+            e.preventDefault();
+            return;
+          }
+        }
+
         switch (e.key) {
           case 'b':
           case 'B': {
@@ -158,6 +170,13 @@ export function useKeyboardShortcuts() {
         }
         case 'Escape': {
           if (document.querySelector('[data-radix-portal]')) return;
+          // Clear track selection first
+          const { selectedTrackIds, clearSelection } = useSelectionStore.getState();
+          if (selectedTrackIds.size > 0) {
+            e.preventDefault();
+            clearSelection();
+            return;
+          }
           const { rightPanel, setRightPanel } = useAppStore.getState();
           if (rightPanel !== null) {
             e.preventDefault();

@@ -70,5 +70,12 @@
   "failedLoadStations": "Failed to load stations",
   "failedLoadFavorites": "Failed to load favorites",
   "failedFetchLyrics": "Failed to fetch lyrics",
-  "installingMissingTools": "Installing missing tools"
+  "installingMissingTools": "Installing missing tools",
+  "tracksPlayNext": "{{count}} tracks will play next",
+  "addedTracksToQueue": "Added {{count}} tracks to queue",
+  "addedTracksToPlaylist": "Added {{count}} tracks to \"{{name}}\"",
+  "createdPlaylistAddedTracks": "Created \"{{name}}\" and added {{count}} tracks",
+  "removedTracksFromLibrary": "Removed {{count}} tracks from library",
+  "movedTracksToRecycle": "Moved {{count}} tracks to recycle bin",
+  "removedTracksFromPlaylist": "Removed {{count}} tracks from playlist"
 }

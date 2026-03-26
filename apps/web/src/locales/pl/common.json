@@ -14,5 +14,8 @@
   "unknownError": "Nieznany błąd",
   "previewSource": "Podgląd",
   "loading": "Ładowanie...",
-  "liveRadio": "Radio na żywo"
+  "liveRadio": "Radio na żywo",
+  "selectedTracks": "{{count}} zaznaczonych",
+  "selectAll": "Zaznacz wszystko",
+  "clearSelection": "Wyczyść zaznaczenie"
 }
