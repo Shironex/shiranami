@@ -12,6 +12,8 @@ import { Music, Mic2, ListMusic, AudioLines, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
+const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl';
+
 function isRadioTrack(filePath: string): boolean {
   return filePath.startsWith('shiranami-radio://');
 }
@@ -137,7 +139,7 @@ export function PlayerBar() {
                     <Minimize2 className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Compact mode</TooltipContent>
+                <TooltipContent side="top">{`Compact mode (${MOD}+Shift+M)`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -154,7 +156,7 @@ export function PlayerBar() {
                     <AudioLines className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Visualizer</TooltipContent>
+                <TooltipContent side="top">Visualizer (V)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -171,7 +173,7 @@ export function PlayerBar() {
                     <Mic2 className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Lyrics</TooltipContent>
+                <TooltipContent side="top">{`Lyrics (${MOD}+L)`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -188,7 +190,7 @@ export function PlayerBar() {
                     <ListMusic className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Queue</TooltipContent>
+                <TooltipContent side="top">{`Queue (${MOD}+Q)`}</TooltipContent>
               </Tooltip>
             </div>
             <VolumeControl sliderClassName="w-20" />

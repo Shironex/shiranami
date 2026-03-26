@@ -44,7 +44,7 @@ export const PlayerControls = memo(function PlayerControls() {
             <Shuffle className="w-3.5 h-3.5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isShuffled ? 'Shuffle on' : 'Shuffle'}</TooltipContent>
+        <TooltipContent side="top">{isShuffled ? 'Shuffle on (S)' : 'Shuffle (S)'}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -58,7 +58,7 @@ export const PlayerControls = memo(function PlayerControls() {
             <SkipBack className="w-4 h-4 fill-current" />
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">Previous</TooltipContent>
+        <TooltipContent side="top">Previous (P)</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -95,7 +95,7 @@ export const PlayerControls = memo(function PlayerControls() {
             </AnimatePresence>
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isPlaying ? 'Pause' : 'Play'}</TooltipContent>
+        <TooltipContent side="top">{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -109,7 +109,7 @@ export const PlayerControls = memo(function PlayerControls() {
             <SkipForward className="w-4 h-4 fill-current" />
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">Next</TooltipContent>
+        <TooltipContent side="top">Next (N)</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -132,7 +132,7 @@ export const PlayerControls = memo(function PlayerControls() {
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {repeatMode === 'off' ? 'Repeat off' : repeatMode === 'all' ? 'Repeat all' : 'Repeat one'}
+          {repeatMode === 'off' ? 'Repeat off (R)' : repeatMode === 'all' ? 'Repeat all (R)' : 'Repeat one (R)'}
         </TooltipContent>
       </Tooltip>
     </div>

@@ -38,7 +38,7 @@ export const VolumeControl = memo(function VolumeControl({
             <VolumeIcon className="w-4 h-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isMuted ? 'Unmute' : 'Mute'}</TooltipContent>
+        <TooltipContent side="top">{isMuted ? 'Unmute (M)' : 'Mute (M)'}</TooltipContent>
       </Tooltip>
       <Slider
         value={[isMuted ? 0 : volume]}

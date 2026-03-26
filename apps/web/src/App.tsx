@@ -21,6 +21,7 @@ const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
 const AudioVisualizer = lazy(() => import('@/components/player/AudioVisualizer'));
 const WaveformVisualizer = lazy(() => import('@/components/player/WaveformVisualizer'));
+const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -28,6 +29,7 @@ import { useLibraryLoader } from '@/hooks/useLibraryLoader';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -44,6 +46,7 @@ function App() {
   useLibraryLoader();
   usePlaybackResume(splashDone);
   useUpdateNotifications();
+  useKeyboardShortcuts();
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
@@ -78,6 +81,9 @@ function App() {
           >
             <AmbientBackground />
             <CommandPalette />
+            <Suspense fallback={null}>
+              <KeyboardShortcutsHelp />
+            </Suspense>
 
             {compactMode ? (
               <CompactPlayer />
