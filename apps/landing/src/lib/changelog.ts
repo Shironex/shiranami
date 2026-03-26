@@ -13,6 +13,39 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.8.0',
+    date: '26 March 2026',
+    title: 'Keyboard shortcuts, quick favorite, and search improvements',
+    description:
+      'Navigate and control playback entirely from the keyboard, favorite tracks directly from the player bar, and see view counts on search results.',
+    categories: [
+      {
+        label: 'Keyboard shortcuts',
+        entries: [
+          'Full keyboard shortcut system — Space to play/pause, arrow keys for seeking and volume, M to mute, N/P for next/previous, S for shuffle, R for repeat, and more.',
+          'Press ? to open a help overlay listing all available shortcuts, organized by category.',
+          'Number keys 1–7 for quick navigation between views (Library, Playlists, Favorites, History, Download, Radio, Settings).',
+          'Modifier shortcuts for panels: Ctrl+B (sidebar), Ctrl+L (lyrics), Ctrl+Q (queue), Ctrl+Shift+M (compact mode), V (visualizer).',
+          'Platform-aware labels — shortcuts display ⌘ on macOS and Ctrl on Windows/Linux.',
+          'All player bar buttons now show their keyboard shortcut in tooltips.',
+        ],
+      },
+      {
+        label: 'Player bar',
+        entries: [
+          'New favorite button next to track info in the player bar — quickly heart or unheart the current track without leaving your view.',
+          'Fixed playlist detail view not reflecting favorite changes in real-time when toggled from the player bar or keyboard shortcut.',
+        ],
+      },
+      {
+        label: 'Search',
+        entries: [
+          'YouTube search results now display view counts next to the uploader name (e.g. "1.2M views") for quick popularity reference.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.7.1',
     date: '26 March 2026',
     title: 'Crossfade audio fix',
