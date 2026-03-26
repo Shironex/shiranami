@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
-import { useLyricsStore } from '@/stores/useLyricsStore';
+import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { cn } from '@/lib/utils';
 import { Loader2, Music2 } from 'lucide-react';
 
@@ -22,21 +22,18 @@ export function LyricsPanel() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const currentTime = usePlayerStore(s => s.currentTime);
 
-  const synced = useLyricsStore(s => s.synced);
-  const plain = useLyricsStore(s => s.plain);
-  const isLoading = useLyricsStore(s => s.isLoading);
-  const fetchLyrics = useLyricsStore(s => s.fetchLyrics);
-  const clear = useLyricsStore(s => s.clear);
+  const { data, isLoading } = useLyricsQuery(
+    currentTrack?.id ?? null,
+    currentTrack?.title ?? '',
+    currentTrack?.artist ?? '',
+    currentTrack?.album,
+    currentTrack?.duration,
+  );
+
+  const synced = data?.synced ?? null;
+  const plain = data?.plain ?? null;
 
   const activeLineRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    if (!currentTrack) {
-      clear();
-      return;
-    }
-    fetchLyrics(currentTrack.id, currentTrack.title, currentTrack.artist, currentTrack.album, currentTrack.duration);
-  }, [currentTrack, fetchLyrics, clear]);
 
   const activeLine = synced ? findActiveLine(synced, currentTime) : -1;
 

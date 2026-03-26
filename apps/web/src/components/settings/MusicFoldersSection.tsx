@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { useFoldersQuery, folderKeys } from '@/hooks/queries/useFolders';
+import { queryClient } from '@/lib/queryClient';
 
 export interface WatchedFolder {
   id: string;
@@ -18,30 +20,8 @@ export function MusicFoldersSection() {
   const { t: tToast } = useTranslation('toast');
   const addToLibrary = usePlayerStore(s => s.addToLibrary);
 
-  const [folders, setFolders] = useState<WatchedFolder[]>([]);
-  const [foldersLoading, setFoldersLoading] = useState(true);
+  const { data: folders = [], isLoading: foldersLoading } = useFoldersQuery();
   const [isScanning, setIsScanning] = useState(false);
-
-  // Load folders on mount
-  useEffect(() => {
-    if (!IS_ELECTRON) {
-      setFoldersLoading(false);
-      return;
-    }
-
-    async function load() {
-      try {
-        const allFolders = await window.electronAPI.db.folders.getAll();
-        setFolders(allFolders as WatchedFolder[]);
-      } catch (err) {
-        console.error('Failed to load folders:', err);
-      } finally {
-        setFoldersLoading(false);
-      }
-    }
-
-    load();
-  }, []);
 
   const handleAddFolder = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -56,8 +36,8 @@ export function MusicFoldersSection() {
         return;
       }
 
-      const result = (await window.electronAPI.db.folders.add(dirPath)) as WatchedFolder;
-      setFolders(prev => [...prev, result]);
+      await window.electronAPI.db.folders.add(dirPath);
+      queryClient.invalidateQueries({ queryKey: folderKeys.all });
 
       // Scan the new folder
       setIsScanning(true);
@@ -129,7 +109,7 @@ export function MusicFoldersSection() {
       if (!IS_ELECTRON) return;
       try {
         await window.electronAPI.db.folders.remove(folder.id);
-        setFolders(prev => prev.filter(f => f.id !== folder.id));
+        queryClient.invalidateQueries({ queryKey: folderKeys.all });
         toast.success(tToast('folderRemoved'));
       } catch (err) {
         console.error('Failed to remove folder:', err);

@@ -7,6 +7,8 @@ import { HardDrive, Music, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { queryClient } from '@/lib/queryClient';
+import { folderKeys } from '@/hooks/queries/useFolders';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
@@ -23,10 +25,12 @@ export function LibrarySection() {
   const handleRescan = useCallback(async () => {
     if (!IS_ELECTRON) return;
 
-    // Fetch folders directly so we don't depend on MusicFoldersSection state
     let folders: WatchedFolder[];
     try {
-      folders = (await window.electronAPI.db.folders.getAll()) as WatchedFolder[];
+      folders = await queryClient.fetchQuery({
+        queryKey: folderKeys.all,
+        queryFn: async () => (await window.electronAPI.db.folders.getAll()) as WatchedFolder[],
+      });
     } catch {
       toast.error(tToast('failedLoadFolders'));
       return;

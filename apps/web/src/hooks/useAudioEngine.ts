@@ -8,7 +8,8 @@ import {
   isAnalyserReady,
   resumeAudioContext,
 } from '@/lib/audioAnalyser';
-import { emitListeningHistoryUpdated } from '@/lib/listeningHistory';
+import { queryClient } from '@/lib/queryClient';
+import { historyKeys } from '@/hooks/queries/useHistory';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
@@ -160,7 +161,7 @@ export function useAudioEngine() {
         source: 'library',
       });
       incrementTrackPlayCount(track.id);
-      emitListeningHistoryUpdated();
+      queryClient.invalidateQueries({ queryKey: historyKeys.all });
     } catch {
       session.recorded = false;
     }
