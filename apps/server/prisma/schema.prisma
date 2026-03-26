@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Share {
+  id        String   @id @default(cuid())
+  code      String   @unique @db.VarChar(8)
+  type      ShareType
+  payload   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([code])
+  @@index([expiresAt])
+  @@map("shares")
+}
+
+enum ShareType {
+  TRACK
+  PLAYLIST
+
+  @@map("share_type")
+}

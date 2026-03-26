@@ -1,0 +1,38 @@
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.9.0 --activate
+WORKDIR /app
+
+# Install dependencies
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json apps/server/
+COPY apps/server/prisma/ apps/server/prisma/
+RUN pnpm install --frozen-lockfile --filter @shiranami/server
+
+# Build
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
+COPY apps/server/ apps/server/
+COPY tsconfig.base.json ./
+RUN pnpm --filter @shiranami/server run db:generate
+RUN pnpm --filter @shiranami/server run build
+
+# Production
+FROM node:22-alpine AS production
+RUN corepack enable && corepack prepare pnpm@10.9.0 --activate
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/server/package.json apps/server/
+COPY --from=build /app/apps/server/dist ./apps/server/dist
+COPY --from=build /app/apps/server/prisma ./apps/server/prisma
+RUN pnpm install --frozen-lockfile --filter @shiranami/server --prod
+
+# Generate Prisma client for production
+RUN cd apps/server && npx prisma generate
+
+EXPOSE 3000
+CMD ["node", "apps/server/dist/main.js"]
