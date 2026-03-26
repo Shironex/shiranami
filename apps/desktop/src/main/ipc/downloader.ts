@@ -27,6 +27,7 @@ export interface SearchResult {
   thumbnail: string;
   url: string;
   webpage_url: string;
+  view_count?: number;
 }
 
 export interface DownloadProgress {
@@ -242,7 +243,7 @@ export function registerDownloaderHandlers(): void {
         .map((line) => {
           try {
             const data = JSON.parse(line);
-            return {
+            const result: SearchResult = {
               id: data.id ?? '',
               title: data.title ?? 'Unknown',
               uploader: data.uploader ?? data.channel ?? 'Unknown',
@@ -250,7 +251,9 @@ export function registerDownloaderHandlers(): void {
               thumbnail: data.thumbnail ?? data.thumbnails?.[0]?.url ?? '',
               url: data.url ?? `https://www.youtube.com/watch?v=${data.id}`,
               webpage_url: data.webpage_url ?? `https://www.youtube.com/watch?v=${data.id}`,
-            } satisfies SearchResult;
+              view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
+            };
+            return result;
           } catch {
             return null;
           }

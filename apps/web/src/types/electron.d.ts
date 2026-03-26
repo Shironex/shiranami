@@ -15,6 +15,7 @@ export interface SearchResult {
   thumbnail: string;
   url: string;
   webpage_url: string;
+  view_count?: number;
 }
 
 export interface DownloadProgress {

@@ -16,6 +16,13 @@ import { useSearchDependencies } from '@/hooks/useSearchDependencies';
 import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
 
+function formatViewCount(count: number): string {
+  if (count >= 1_000_000_000) return `${(count / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B views`;
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K views`;
+  return `${count} views`;
+}
+
 export function SearchView() {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -219,6 +226,9 @@ export function SearchView() {
                     <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {result.uploader}
+                      {result.view_count != null && (
+                        <span className="text-muted-foreground/50"> · {formatViewCount(result.view_count)}</span>
+                      )}
                     </p>
                   </div>
 
