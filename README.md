@@ -37,7 +37,7 @@
 
 ### What is Shiranami?
 
-Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files and adds playlists, synced lyrics, internet radio, YouTube downloads, and full playlist importing on top, all in a dark lavender interface that stays out of your way.
+Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files and adds playlists, synced lyrics, internet radio, YouTube downloads, full playlist importing, crossfade, a compact mini player, audio visualizer, listening statistics, and Discord Rich Presence on top — all in a dark lavender interface that stays out of your way.
 
 ### Screenshot
 
@@ -49,18 +49,28 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 
 ### What's inside
 
-|                          |                                                                           |
-| ------------------------ | ------------------------------------------------------------------------- |
-| **Local library**        | Scan your folders, browse tracks, and play from your own collection       |
-| **Playlists**            | Create playlists with custom covers and quick access from the sidebar     |
-| **Playlist import**      | Pull full YouTube or Spotify playlists into a review list before download |
-| **Internet radio**       | Browse, stream, and favorite stations from Radio Browser                  |
-| **Synced lyrics**        | Lyrics that scroll with the music, right inside the player                |
-| **Search & download**    | Find tracks on YouTube and download them with yt-dlp + ffmpeg in one step |
-| **Playback resume**      | Volume, queue, track, and position survive restarts                       |
-| **Collapsible sidebar**  | Folds into an icon rail when you want more room for the music             |
-| **Configurable folder**  | Choose where downloaded tracks land, with a reset to the default          |
-| **Dark lavender mood**   | One quiet theme that matches the late-night listening vibe                |
+|                              |                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| **Local library**            | Scan your folders, browse tracks, and play from your own collection            |
+| **Playlists**                | Create playlists with custom covers and quick access from the sidebar          |
+| **Playlist import**          | Pull full YouTube or Spotify playlists into a review list before download      |
+| **Internet radio**           | Browse, stream, and favorite stations from Radio Browser                       |
+| **Synced lyrics**            | Lyrics that scroll with the music, click any line to seek                      |
+| **Search & download**        | Find tracks on YouTube, preview audio, and download with yt-dlp + ffmpeg      |
+| **Crossfade**                | Dual-deck engine with equal-power crossfade, configurable from 1 to 12 seconds |
+| **Sleep timer**              | Preset durations with a live countdown and auto-pause when time is up          |
+| **Compact mode**             | Mini player with always-on-top, full controls in a smaller window              |
+| **Audio visualizer**         | Frequency bars or waveform strip rendered above the player bar                 |
+| **Listening history**        | Play counts, top tracks and artists, daily activity graph, time-range filters  |
+| **Favorites**                | Heart any track and browse them all in a dedicated view                        |
+| **Command palette**          | Ctrl+K to search your library and jump to any view instantly                   |
+| **Discord Rich Presence**    | Shows the currently playing track in your Discord status                       |
+| **Ambient color**            | Extracts the dominant color from album art and tints the entire UI             |
+| **Playback resume**          | Volume, queue, track, and position survive restarts                            |
+| **System tray & media keys** | Control playback from the tray icon or your keyboard's media keys              |
+| **UI scale**                 | Adjust the interface from 80 % to 120 % to match your display                 |
+| **Auto-updater**             | In-app updates on Windows, GitHub Releases link on macOS                       |
+| **Dark lavender mood**       | One quiet theme that matches the late-night listening vibe                     |
 
 ### Getting started
 

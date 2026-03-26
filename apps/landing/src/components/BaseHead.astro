@@ -9,7 +9,7 @@ interface Props {
 
 const {
   title,
-  description = 'Shiranami is a desktop music sanctuary for local libraries, playlists, lyrics, and one-step YouTube downloads.',
+  description = 'Shiranami is a desktop music sanctuary for local libraries, playlists, synced lyrics, internet radio, crossfade, and one-step YouTube downloads.',
 } = Astro.props;
 
 const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
@@ -30,7 +30,7 @@ const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
 <meta property="og:title" content="Shiranami - Your personal music sanctuary" />
 <meta
   property="og:description"
-  content="Play your local collection, search and download new tracks, read synced lyrics, and keep everything in a calm late-night desktop space."
+  content="Play your local collection, stream internet radio, crossfade between tracks, read synced lyrics, and keep everything in a calm late-night desktop space."
 />
 <meta property="og:image" content={ogImage} />
 
@@ -38,6 +38,6 @@ const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
 <meta name="twitter:title" content="Shiranami - Your personal music sanctuary" />
 <meta
   name="twitter:description"
-  content="A desktop player built for local libraries, playlists, downloads, and a softer late-night listening flow."
+  content="A desktop player built for local libraries, playlists, internet radio, crossfade, downloads, and a softer late-night listening flow."
 />
 <meta name="twitter:image" content={ogImage} />
