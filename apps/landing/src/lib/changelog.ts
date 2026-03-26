@@ -69,6 +69,75 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.9.0',
+    date: '2026-03-26',
+    title: l(
+      'Music sharing and multilingual interface',
+      'Udostępnianie muzyki i wielojęzyczny interfejs'
+    ),
+    description: l(
+      'Share tracks and playlists with anyone via time-limited links and QR codes. The entire app and landing page now support English and Polish.',
+      'Udostępniaj utwory i playlisty przez tymczasowe linki i kody QR. Cała aplikacja i strona główna obsługują teraz angielski i polski.'
+    ),
+    categories: [
+      {
+        label: l('Music sharing', 'Udostępnianie muzyki'),
+        entries: [
+          l(
+            'Share any track or playlist via a time-limited link (1 hour) — right-click a track or use the share button on a playlist.',
+            'Udostępnij dowolny utwór lub playlistę tymczasowym linkiem (1 godzina) — kliknij prawym przyciskiem na utwór lub użyj przycisku udostępniania na playliście.'
+          ),
+          l(
+            'Share dialog with copyable link and scannable QR code for easy sharing on any device.',
+            'Okno udostępniania z linkiem do skopiowania i kodem QR do zeskanowania na dowolnym urządzeniu.'
+          ),
+          l(
+            'Web preview page at the share link shows track listing, artist info, and an "Open in Shiranami" button with deep link support.',
+            'Strona podglądu pod linkiem pokazuje listę utworów, informacje o wykonawcy i przycisk „Otwórz w Shiranami" z obsługą deep linków.'
+          ),
+          l(
+            'Import shared music directly into your library — downloads tracks from YouTube and creates a playlist with a custom name.',
+            'Importuj udostępnioną muzykę bezpośrednio do biblioteki — pobiera utwory z YouTube i tworzy playlistę z własną nazwą.'
+          ),
+          l(
+            'YouTube video IDs are cached at download time for accurate sharing — the exact same video you downloaded is shared.',
+            'Identyfikatory filmów YouTube są zapisywane przy pobieraniu — udostępniany jest dokładnie ten sam film, który pobrałeś.'
+          ),
+        ],
+      },
+      {
+        label: l('Internationalization', 'Internacjonalizacja'),
+        entries: [
+          l(
+            'Full Polish translation of the entire app — all UI strings, tooltips, toast messages, error messages, and empty states.',
+            'Pełne polskie tłumaczenie całej aplikacji — wszystkie napisy, podpowiedzi, powiadomienia, komunikaty błędów i puste stany.'
+          ),
+          l(
+            'Language switcher in Settings — switch between English and Polish instantly.',
+            'Przełącznik języka w Ustawieniach — natychmiastowe przełączanie między angielskim a polskim.'
+          ),
+          l(
+            'Landing page available in both English and Polish with language toggle.',
+            'Strona główna dostępna po angielsku i polsku z przełącznikiem języka.'
+          ),
+        ],
+      },
+      {
+        label: l('Infrastructure', 'Infrastruktura'),
+        entries: [
+          l(
+            'New share server (NestJS + PostgreSQL + Redis) with rate limiting, Redis caching, and automatic cleanup of expired shares.',
+            'Nowy serwer udostępniania (NestJS + PostgreSQL + Redis) z limitowaniem żądań, cache Redis i automatycznym usuwaniem wygasłych linków.'
+          ),
+          l(
+            'Docker-ready deployment with multi-stage Dockerfile and docker-compose for the share server.',
+            'Gotowe do wdrożenia Dockerem z wieloetapowym Dockerfile i docker-compose dla serwera udostępniania.'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-03-26',
     title: l(
