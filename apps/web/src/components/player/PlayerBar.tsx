@@ -8,7 +8,7 @@ import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { SleepTimer } from './SleepTimer';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Mic2, ListMusic, AudioLines, Minimize2 } from 'lucide-react';
+import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
@@ -29,6 +29,7 @@ const TimeDisplay = memo(function TimeDisplay() {
 export function PlayerBar() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
+  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
   const rightPanel = useAppStore(s => s.rightPanel);
   const toggleRightPanel = useAppStore(s => s.toggleRightPanel);
@@ -107,6 +108,28 @@ export function PlayerBar() {
                 </p>
               </motion.div>
             </AnimatePresence>
+
+            {!isRadioTrack(currentTrack.filePath) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => toggleFavorite(currentTrack.id)}
+                    className={cn(
+                      'shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                      currentTrack.isFavorite
+                        ? 'text-pink-400 hover:text-pink-300'
+                        : 'text-muted-foreground/40 hover:text-muted-foreground'
+                    )}
+                    aria-label={currentTrack.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart className={cn('w-4 h-4', currentTrack.isFavorite && 'fill-current')} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {currentTrack.isFavorite ? 'Unfavorite (L)' : 'Favorite (L)'}
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
 
           {/* Center - controls + seek */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
@@ -17,6 +17,7 @@ export function PlaylistDetailView() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const library = usePlayerStore(s => s.library);
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -31,6 +32,15 @@ export function PlaylistDetailView() {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
+
+  // Sync isFavorite from the store so hearts update in real-time
+  const displayTracks = useMemo(() => {
+    const favMap = new Map(library.map(t => [t.id, t.isFavorite]));
+    return tracks.map(t => {
+      const fav = favMap.get(t.id);
+      return fav !== undefined && fav !== t.isFavorite ? { ...t, isFavorite: fav } : t;
+    });
+  }, [tracks, library]);
 
   const loadPlaylist = useCallback(async () => {
     if (!IS_ELECTRON || !selectedPlaylistId) return;
@@ -403,7 +413,7 @@ export function PlaylistDetailView() {
             style={{ height: '100%' }}
             rowComponent={TrackRow}
             rowProps={{
-              queue: tracks,
+              queue: displayTracks,
               currentTrack,
               isPlaying,
               handlePlayTrack,
