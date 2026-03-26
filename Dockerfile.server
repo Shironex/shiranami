@@ -7,7 +7,7 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
 COPY apps/server/prisma/ apps/server/prisma/
-RUN pnpm install --frozen-lockfile --filter @shiranami/server
+RUN pnpm install --frozen-lockfile --filter @shiranami/server --ignore-scripts
 
 # Build
 FROM base AS build
@@ -29,7 +29,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/server/prisma ./apps/server/prisma
-RUN pnpm install --frozen-lockfile --filter @shiranami/server --prod
+RUN pnpm install --frozen-lockfile --filter @shiranami/server --prod --ignore-scripts
 
 # Generate Prisma client for production
 RUN cd apps/server && npx prisma generate
