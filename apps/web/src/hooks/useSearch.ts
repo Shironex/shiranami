@@ -93,6 +93,10 @@ export function useSearch() {
         }));
         const track = await importTrack(filePath);
         if (track) {
+          // Cache the YouTube video ID for accurate sharing later
+          if (result.id) {
+            window.electronAPI.share.cacheYoutubeId(track.id, result.id).catch(() => {});
+          }
           toast.success(i18n.t('downloaded', { ns: 'toast', title: track.title }));
         } else {
           toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));

@@ -436,7 +436,7 @@ export function PlaylistDetailView() {
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List
-            rowCount={tracks.length}
+            rowCount={displayTracks.length}
             rowHeight={52}
             overscanCount={10}
             className="scrollbar-thin"

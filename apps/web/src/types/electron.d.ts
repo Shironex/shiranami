@@ -271,6 +271,7 @@ export interface ElectronAPI {
       code: string;
       expiresAt: string;
     }>;
+    cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
     onDeepLink: (callback: (code: string) => void) => () => void;
   };
   ipc: {

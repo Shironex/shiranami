@@ -185,10 +185,24 @@ export function registerShareHandlers(): void {
     const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
     return result;
   });
+
+  // Cache a known YouTube ID for a track (called after download from search)
+  ipcMain.handle('share:cache-youtube-id', async (_event, trackId: string, youtubeId: string) => {
+    const db = getDatabase();
+    await db.insert(youtubeMappings).values({
+      id: randomUUID(),
+      trackId,
+      youtubeId,
+    }).onConflictDoUpdate({
+      target: youtubeMappings.trackId,
+      set: { youtubeId, searchedAt: new Date().toISOString() },
+    });
+  });
 }
 
 export function cleanupShareHandlers(): void {
   ipcMain.removeHandler('share:track');
   ipcMain.removeHandler('share:playlist');
   ipcMain.removeHandler('share:import');
+  ipcMain.removeHandler('share:cache-youtube-id');
 }

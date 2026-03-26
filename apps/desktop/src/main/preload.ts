@@ -80,6 +80,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'share:track',
   'share:playlist',
   'share:import',
+  'share:cache-youtube-id',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -376,6 +377,7 @@ export interface ElectronAPI {
       code: string;
       expiresAt: string;
     }>;
+    cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
     onDeepLink: (callback: (code: string) => void) => () => void;
   };
   ipc: {
@@ -551,6 +553,7 @@ const electronAPI: ElectronAPI = {
     track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),
     playlist: (playlistId: string) => ipcRenderer.invoke('share:playlist', playlistId),
     import: (code: string) => ipcRenderer.invoke('share:import', code),
+    cacheYoutubeId: (trackId: string, youtubeId: string) => ipcRenderer.invoke('share:cache-youtube-id', trackId, youtubeId),
     onDeepLink: createIpcListener<string>('share:deep-link'),
   },
   ipc: {

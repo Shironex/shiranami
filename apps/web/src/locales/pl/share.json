@@ -10,5 +10,7 @@
   "loadingShare": "Ładowanie udostępnionej treści...",
   "downloadAll": "Pobierz wszystko ({{count}} utworów)",
   "downloadingProgress": "Pobieranie {{current}} z {{total}}...",
-  "downloadComplete": "Wszystkie utwory pobrane!"
+  "downloadComplete": "Wszystkie utwory pobrane!",
+  "playlistName": "Nazwa playlisty",
+  "playlistCreated": "Playlista \"{{name}}\" utworzona"
 }

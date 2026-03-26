@@ -10,5 +10,7 @@
   "loadingShare": "Loading shared content...",
   "downloadAll": "Download All ({{count}} tracks)",
   "downloadingProgress": "Downloading {{current}} of {{total}}...",
-  "downloadComplete": "All tracks downloaded!"
+  "downloadComplete": "All tracks downloaded!",
+  "playlistName": "Playlist name",
+  "playlistCreated": "Playlist \"{{name}}\" created"
 }
