@@ -13,6 +13,25 @@ export interface ChangelogRelease {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.7.1',
+    date: '26 March 2026',
+    title: 'Crossfade audio fix',
+    description:
+      'Fixes a critical bug where enabling crossfade caused permanent audio loss after the first track transition.',
+    categories: [
+      {
+        label: 'Bug fixes',
+        entries: [
+          'Fixed permanent audio loss when crossfade is enabled — the idle deck\'s volume was zeroed before the Web Audio graph captured it, silencing all subsequent playback until restart.',
+          'Fixed a race condition where cached audio could fire canplay before the crossfade state was set, preventing the incoming deck from starting.',
+          'Fixed potential double track-advance when the outgoing deck\'s ended event fired after crossfade completion.',
+          'The AudioContext is now explicitly resumed before every play operation to prevent Chromium power-saving from killing audio output.',
+          'Crossfade completion now verifies the incoming deck is actually playing and syncs the correct track duration to the UI.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.7.0',
     date: '26 March 2026',
     title: 'Crossfade, sleep timer, and quality-of-life improvements',
