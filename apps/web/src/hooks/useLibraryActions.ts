@@ -3,6 +3,7 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 
 export function useLibraryActions() {
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -17,14 +18,14 @@ export function useLibraryActions() {
 
       const track = await importTrack(filePath);
       if (!track) {
-        toast.info('Track already in library');
+        toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));
         return;
       }
 
-      toast.success('Added 1 track to library');
+      toast.success(i18n.t('added1Track', { ns: 'toast' }));
     } catch (err) {
       console.error('Failed to add file:', err);
-      toast.error('Failed to add track');
+      toast.error(i18n.t('failedAddTrack', { ns: 'toast' }));
     }
   }, [importTrack]);
 
@@ -36,7 +37,7 @@ export function useLibraryActions() {
     try {
       const results = await window.electronAPI.library.scanFolder(dirPath);
       if (results.length === 0) {
-        toast.info('No audio files found in folder');
+        toast.info(i18n.t('noAudioInFolder', { ns: 'toast' }));
         return;
       }
 
@@ -56,7 +57,7 @@ export function useLibraryActions() {
       const genuinelyNew = toCheck.filter(c => !c.exists).map(c => c.result);
 
       if (genuinelyNew.length === 0) {
-        toast.info('All tracks already in library');
+        toast.info(i18n.t('allTracksExist', { ns: 'toast' }));
         return;
       }
 
@@ -78,8 +79,8 @@ export function useLibraryActions() {
       const newTracks: Track[] = dbTracks.map(t => ({
         id: t.id as string,
         title: t.title as string,
-        artist: (t.artist as string) ?? 'Unknown Artist',
-        album: (t.album as string) ?? 'Unknown Album',
+        artist: (t.artist as string) ?? i18n.t('unknownArtist', { ns: 'common' }),
+        album: (t.album as string) ?? i18n.t('unknownAlbum', { ns: 'common' }),
         duration: (t.duration as number) ?? 0,
         filePath: t.filePath as string,
         albumArt: (t.albumArt as string | null) ?? undefined,
@@ -112,10 +113,10 @@ export function useLibraryActions() {
         usePlayerStore.setState({ queue: combined });
       }
 
-      toast.success(`Added ${newTracks.length} track${newTracks.length === 1 ? '' : 's'} to library`);
+      toast.success(i18n.t('addedTracks', { ns: 'toast', count: newTracks.length }));
     } catch (err) {
       console.error('Failed to add folder:', err);
-      toast.error('Failed to scan folder');
+      toast.error(i18n.t('failedScanFolder', { ns: 'toast' }));
     } finally {
       setIsScanning(false);
     }

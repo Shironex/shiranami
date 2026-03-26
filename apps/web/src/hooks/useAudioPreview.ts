@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 
 export interface PreviewableItem {
   id: string;
@@ -17,11 +18,11 @@ export interface PreviewableItem {
  * Shared hook for previewing audio from a search result or playlist track.
  * Streams audio via yt-dlp without downloading.
  */
-export function useAudioPreview(albumLabel = 'Preview') {
+export function useAudioPreview(albumLabel = i18n.t('previewSource', { ns: 'common' })) {
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const currentTrack = usePlayerStore(s => s.currentTrack);
+  const isPlaying = usePlayerStore(s => s.isPlaying);
+  const setQueue = usePlayerStore(s => s.setQueue);
 
   const isPreviewPlaying = useCallback(
     (item: { id: string }) => {
@@ -60,8 +61,8 @@ export function useAudioPreview(albumLabel = 'Preview') {
 
         setQueue([previewTrack], 0);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load preview';
-        toast.error(`Preview failed: ${msg}`);
+        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        toast.error(i18n.t('previewFailed', { ns: 'toast', error: msg }));
       } finally {
         setPreviewLoadingId(null);
       }

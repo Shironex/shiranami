@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
+import i18n from '@/lib/i18n';
 
 const TOAST_ID = 'update-notification';
 
@@ -26,11 +27,11 @@ export function useUpdateNotifications() {
         if (notifiedVersionRef.current === info.version) return;
         notifiedVersionRef.current = info.version;
 
-        toast.info(`Update v${info.version} is available`, {
+        toast.info(i18n.t('updateAvailable', { ns: 'toast', version: info.version }), {
           id: TOAST_ID,
           duration: 19_000,
           action: {
-            label: 'Settings',
+            label: i18n.t('updateSettings', { ns: 'toast' }),
             onClick: () => useAppStore.getState().navigateTo('settings'),
           },
         });
@@ -39,11 +40,11 @@ export function useUpdateNotifications() {
 
     unsubs.push(
       window.electronAPI.updater.onUpdateDownloaded((info) => {
-        toast.success(`Update v${info.version} ready to install`, {
+        toast.success(i18n.t('updateReady', { ns: 'toast', version: info.version }), {
           id: TOAST_ID,
           duration: Infinity,
           action: {
-            label: 'Restart',
+            label: i18n.t('updateRestart', { ns: 'toast' }),
             onClick: () => {
               window.electronAPI.updater.installNow();
             },

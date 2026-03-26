@@ -3,6 +3,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 import type { SearchResult, DownloadProgress } from '@/types/electron';
 
 interface DownloadState {
@@ -22,13 +23,15 @@ export function useSearch() {
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
 
   const { importTrack } = useTrackImport();
-  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview('YouTube Search');
+  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview(
+    i18n.t('previewAlbum', { ns: 'search' })
+  );
 
   // Listen to download progress events
   useEffect(() => {
     if (!IS_ELECTRON) return;
     const cleanup = window.electronAPI.downloader.onProgress((data: DownloadProgress) => {
-      setDownloads((prev) => ({
+      setDownloads(prev => ({
         ...prev,
         [data.url]: {
           ...prev[data.url],
@@ -53,10 +56,10 @@ export function useSearch() {
       const searchResults = await window.electronAPI.downloader.search(trimmed);
       setResults(searchResults);
       if (searchResults.length === 0) {
-        setSearchError('No results found. Try a different search term.');
+        setSearchError(i18n.t('noResults', { ns: 'search' }));
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Search failed';
+      const msg = err instanceof Error ? err.message : i18n.t('searchFailed', { ns: 'toast' });
       setSearchError(msg);
     } finally {
       setIsSearching(false);
@@ -77,30 +80,30 @@ export function useSearch() {
       if (!IS_ELECTRON) return;
       const url = result.webpage_url || result.url;
 
-      setDownloads((prev) => ({
+      setDownloads(prev => ({
         ...prev,
         [url]: { progress: 0, status: 'downloading' },
       }));
 
       try {
         const filePath = await window.electronAPI.downloader.download(url);
-        setDownloads((prev) => ({
+        setDownloads(prev => ({
           ...prev,
           [url]: { progress: 100, status: 'done', filePath },
         }));
         const track = await importTrack(filePath);
         if (track) {
-          toast.success(`Downloaded: ${track.title}`);
+          toast.success(i18n.t('downloaded', { ns: 'toast', title: track.title }));
         } else {
-          toast.info('Track already in library');
+          toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Download failed';
-        setDownloads((prev) => ({
+        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        setDownloads(prev => ({
           ...prev,
           [url]: { progress: 0, status: 'error', error: msg },
         }));
-        toast.error(`Download failed: ${msg}`);
+        toast.error(i18n.t('downloadFailed', { ns: 'toast', error: msg }));
       }
     },
     [importTrack]

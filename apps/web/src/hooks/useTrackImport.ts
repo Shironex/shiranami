@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
 
 /**
  * Shared hook for importing a downloaded audio file into the library.
@@ -8,8 +9,8 @@ import { IS_ELECTRON } from '@/lib/platform';
  * Returns the created Track, or null if the track already exists.
  */
 export function useTrackImport() {
-  const addToLibrary = usePlayerStore((s) => s.addToLibrary);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const addToLibrary = usePlayerStore(s => s.addToLibrary);
+  const setQueue = usePlayerStore(s => s.setQueue);
 
   const importTrack = useCallback(
     async (filePath: string): Promise<Track | null> => {
@@ -35,8 +36,8 @@ export function useTrackImport() {
       const track: Track = {
         id: dbTrack.id as string,
         title: dbTrack.title as string,
-        artist: (dbTrack.artist as string) ?? 'Unknown Artist',
-        album: (dbTrack.album as string) ?? 'Unknown Album',
+        artist: (dbTrack.artist as string) ?? i18n.t('unknownArtist', { ns: 'common' }),
+        album: (dbTrack.album as string) ?? i18n.t('unknownAlbum', { ns: 'common' }),
         duration: (dbTrack.duration as number) ?? 0,
         filePath: dbTrack.filePath as string,
         albumArt: (dbTrack.albumArt as string | null) ?? undefined,

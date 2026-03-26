@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
 
 /**
  * Loads the persisted music library from the SQLite database on app startup.
@@ -19,11 +20,11 @@ export function useLibraryLoader() {
         const dbTracks = await window.electronAPI.db.tracks.getAll();
         if (!dbTracks || dbTracks.length === 0) return;
 
-        const tracks: Track[] = (dbTracks as Record<string, unknown>[]).map((t) => ({
+        const tracks: Track[] = (dbTracks as Record<string, unknown>[]).map(t => ({
           id: t.id as string,
           title: t.title as string,
-          artist: (t.artist as string) ?? 'Unknown Artist',
-          album: (t.album as string) ?? 'Unknown Album',
+          artist: (t.artist as string) ?? i18n.t('unknownArtist', { ns: 'common' }),
+          album: (t.album as string) ?? i18n.t('unknownAlbum', { ns: 'common' }),
           duration: (t.duration as number) ?? 0,
           filePath: t.filePath as string,
           albumArt: (t.albumArt as string | null) ?? undefined,

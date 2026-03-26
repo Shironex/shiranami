@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 
 type InstallStatus = 'idle' | 'downloading' | 'done' | 'error';
 export type DependencyState = 'checking' | 'needs-install' | 'ready';
@@ -81,7 +82,7 @@ export function useSearchDependencies() {
         return;
       }
       setDependencyInstallStatus('error');
-      setDependencyInstallError('Installation failed');
+      setDependencyInstallError(i18n.t('installationFailed', { ns: 'toast' }));
       setDependencyState('needs-install');
     });
     return () => { cancelled = true; };
@@ -102,9 +103,9 @@ export function useSearchDependencies() {
         setDependencyInstallStatus('done');
 
         if (result.success) {
-          toast.success('Download tools installed successfully', { id: 'dependency-install' });
+          toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), { id: 'dependency-install' });
         } else {
-          toast.error(result.error ?? 'ffmpeg could not be installed completely', { id: 'dependency-install' });
+          toast.error(result.error ?? i18n.t('failedInstallFfmpeg', { ns: 'toast', error: '' }), { id: 'dependency-install' });
         }
 
         window.setTimeout(() => { setDependencyState('ready'); }, 700);
@@ -112,14 +113,14 @@ export function useSearchDependencies() {
       }
 
       setDependencyInstallStatus('error');
-      setDependencyInstallError(result.error ?? 'Installation failed');
-      toast.error(result.error ?? 'Failed to install search tools', { id: 'dependency-install' });
+      setDependencyInstallError(result.error ?? i18n.t('installationFailed', { ns: 'toast' }));
+      toast.error(result.error ?? i18n.t('failedInstallSearch', { ns: 'toast' }), { id: 'dependency-install' });
     } catch (err) {
       await refreshDependencies();
-      const msg = err instanceof Error ? err.message : 'Installation failed';
+      const msg = err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
       setDependencyInstallStatus('error');
       setDependencyInstallError(msg);
-      toast.error(`Failed to install search tools: ${msg}`, { id: 'dependency-install' });
+      toast.error(i18n.t('failedInstallSearchError', { ns: 'toast', error: msg }), { id: 'dependency-install' });
     } finally {
       stopDependencyInstall();
     }

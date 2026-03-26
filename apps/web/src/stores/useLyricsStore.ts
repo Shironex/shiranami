@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '@/lib/i18n';
 
 export interface LyricLine {
   time: number;
@@ -53,7 +54,7 @@ export const useLyricsStore = create<LyricsState & LyricsActions>((set, get) => 
     } catch (error) {
       if (get().currentTrackId !== trackId) return;
       set({
-        error: error instanceof Error ? error.message : 'Failed to fetch lyrics',
+        error: error instanceof Error ? error.message : i18n.t('failedFetchLyrics', { ns: 'toast' }),
         isLoading: false,
       });
     }

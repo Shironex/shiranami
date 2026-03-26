@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
-import {
-  usePlaylistImportStore,
-  type PlaylistTrackStatus,
-} from '@/stores/usePlaylistImportStore';
+import { usePlaylistImportStore, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 import type { DownloadProgress } from '@/types/electron';
 
 export function usePlaylistImport() {
@@ -15,25 +13,27 @@ export function usePlaylistImport() {
   const activeImportTrackUrlRef = useRef<string | null>(null);
 
   // Store selectors
-  const url = usePlaylistImportStore((s) => s.url);
-  const setUrl = usePlaylistImportStore((s) => s.setUrl);
-  const tracks = usePlaylistImportStore((s) => s.tracks);
-  const isExtracting = usePlaylistImportStore((s) => s.isExtracting);
-  const extractProgress = usePlaylistImportStore((s) => s.extractProgress);
-  const isImporting = usePlaylistImportStore((s) => s.isImporting);
-  const setTracks = usePlaylistImportStore((s) => s.setTracks);
-  const removeTrack = usePlaylistImportStore((s) => s.removeTrack);
-  const updateTrackStatus = usePlaylistImportStore((s) => s.updateTrackStatus);
-  const startExtracting = usePlaylistImportStore((s) => s.startExtracting);
-  const stopExtracting = usePlaylistImportStore((s) => s.stopExtracting);
-  const setExtractProgress = usePlaylistImportStore((s) => s.setExtractProgress);
-  const startImporting = usePlaylistImportStore((s) => s.startImporting);
-  const cancelImport = usePlaylistImportStore((s) => s.cancelImport);
-  const reset = usePlaylistImportStore((s) => s.reset);
+  const url = usePlaylistImportStore(s => s.url);
+  const setUrl = usePlaylistImportStore(s => s.setUrl);
+  const tracks = usePlaylistImportStore(s => s.tracks);
+  const isExtracting = usePlaylistImportStore(s => s.isExtracting);
+  const extractProgress = usePlaylistImportStore(s => s.extractProgress);
+  const isImporting = usePlaylistImportStore(s => s.isImporting);
+  const setTracks = usePlaylistImportStore(s => s.setTracks);
+  const removeTrack = usePlaylistImportStore(s => s.removeTrack);
+  const updateTrackStatus = usePlaylistImportStore(s => s.updateTrackStatus);
+  const startExtracting = usePlaylistImportStore(s => s.startExtracting);
+  const stopExtracting = usePlaylistImportStore(s => s.stopExtracting);
+  const setExtractProgress = usePlaylistImportStore(s => s.setExtractProgress);
+  const startImporting = usePlaylistImportStore(s => s.startImporting);
+  const cancelImport = usePlaylistImportStore(s => s.cancelImport);
+  const reset = usePlaylistImportStore(s => s.reset);
 
   // Shared hooks
   const { importTrack } = useTrackImport();
-  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview('Playlist Import');
+  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview(
+    i18n.t('previewAlbum', { ns: 'import' })
+  );
 
   // Listen to download progress events
   useEffect(() => {
@@ -46,10 +46,7 @@ export function usePlaylistImport() {
         error: 'error',
       };
       const mapped = statusMap[data.status] ?? 'downloading';
-      if (
-        !activeImportTrackIdRef.current ||
-        data.url !== activeImportTrackUrlRef.current
-      ) {
+      if (!activeImportTrackIdRef.current || data.url !== activeImportTrackUrlRef.current) {
         return;
       }
       if (mapped === 'downloading' || mapped === 'converting') {
@@ -62,7 +59,7 @@ export function usePlaylistImport() {
   // Listen to Spotify extraction progress
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    const cleanup = window.electronAPI.playlist.onExtractProgress((data) => {
+    const cleanup = window.electronAPI.playlist.onExtractProgress(data => {
       setExtractProgress(data);
     });
     return cleanup;
@@ -78,13 +75,13 @@ export function usePlaylistImport() {
     try {
       const results = await window.electronAPI.playlist.extract(trimmed);
       if (results.length === 0) {
-        setExtractError('No tracks found in this playlist. It may be empty or private.');
+        setExtractError(i18n.t('noTracksFound', { ns: 'import' }));
         stopExtracting();
         return;
       }
       setTracks(results);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to extract playlist';
+      const msg = err instanceof Error ? err.message : i18n.t('noTracksFound', { ns: 'import' });
       setExtractError(msg);
       stopExtracting();
     }
@@ -142,7 +139,7 @@ export function usePlaylistImport() {
         completedUrls.add(trackUrl);
         updateTrackStatus(trackId, 'done', 100);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Download failed';
+        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
         updateTrackStatus(trackId, 'error', 0, msg);
       } finally {
         if (activeImportTrackIdRef.current === trackId) {
@@ -158,17 +155,20 @@ export function usePlaylistImport() {
 
     if (!usePlaylistImportStore.getState().isCancelled) {
       const finalTracks = usePlaylistImportStore.getState().tracks;
-      const doneCount = finalTracks.filter((t) => t.status === 'done').length;
-      const skippedCount = finalTracks.filter((t) => t.status === 'skipped').length;
-      const errorCount = finalTracks.filter((t) => t.status === 'error').length;
+      const doneCount = finalTracks.filter(t => t.status === 'done').length;
+      const skippedCount = finalTracks.filter(t => t.status === 'skipped').length;
+      const errorCount = finalTracks.filter(t => t.status === 'error').length;
 
-      let message = `Imported ${doneCount} track${doneCount !== 1 ? 's' : ''}`;
-      if (skippedCount > 0) message += `, ${skippedCount} already in library`;
-      if (errorCount > 0) message += `, ${errorCount} failed`;
-
-      toast.success(message);
+      toast.success(
+        i18n.t('importSummary', {
+          ns: 'toast',
+          done: doneCount,
+          skipped: skippedCount,
+          errors: errorCount,
+        })
+      );
     } else {
-      toast.info('Playlist import cancelled');
+      toast.info(i18n.t('importCancelled', { ns: 'toast' }));
     }
   }, [startImporting, updateTrackStatus, importTrack]);
 
@@ -188,11 +188,11 @@ export function usePlaylistImport() {
 
   // Computed values
   const processedCount = tracks.filter(
-    (t) => t.status === 'done' || t.status === 'skipped' || t.status === 'error'
+    t => t.status === 'done' || t.status === 'skipped' || t.status === 'error'
   ).length;
   const totalCount = tracks.length;
   const overallProgress = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
-  const pendingCount = tracks.filter((t) => t.status === 'pending').length;
+  const pendingCount = tracks.filter(t => t.status === 'pending').length;
   const hasResults = tracks.length > 0;
   const isFinished = hasResults && !isImporting && pendingCount === 0;
 

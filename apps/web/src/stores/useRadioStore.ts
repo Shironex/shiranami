@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { RadioBrowserApi, type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
 
 const api = new RadioBrowserApi('Shiranami/0.2.1');
 let latestRadioRequestId = 0;
@@ -65,7 +66,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : 'Search failed', isLoading: false });
+      set({ error: err instanceof Error ? err.message : i18n.t('searchFailed', { ns: 'toast' }), isLoading: false });
     }
   },
 
@@ -83,7 +84,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : 'Failed to load stations', isLoading: false });
+      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }), isLoading: false });
     }
   },
 
@@ -102,7 +103,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : 'Failed to load stations', isLoading: false });
+      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }), isLoading: false });
     }
   },
 
@@ -157,7 +158,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, favorites: favoriteIds, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : 'Failed to load favorites', isLoading: false });
+      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadFavorites', { ns: 'toast' }), isLoading: false });
     }
   },
 

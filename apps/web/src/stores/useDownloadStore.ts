@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '@/lib/i18n';
 
 type DependencyInstallTarget = 'ytdlp' | 'ffmpeg' | null;
 
@@ -22,15 +23,15 @@ interface DownloadActions {
   stopDependencyInstall: () => void;
 }
 
-const INITIAL_LABEL = 'Installing missing tools';
+const INITIAL_LABEL = () => i18n.t('installingMissingTools', { ns: 'toast' });
 
 export const useDownloadStore = create<DownloadState & DownloadActions>((set) => ({
   isDependencyInstallInProgress: false,
   dependencyInstallProgress: 0,
-  dependencyInstallLabel: INITIAL_LABEL,
+  dependencyInstallLabel: INITIAL_LABEL(),
   dependencyInstallTarget: null,
 
-  startDependencyInstall: (label = INITIAL_LABEL) =>
+  startDependencyInstall: (label = INITIAL_LABEL()) =>
     set({
       isDependencyInstallInProgress: true,
       dependencyInstallProgress: 0,
@@ -50,7 +51,7 @@ export const useDownloadStore = create<DownloadState & DownloadActions>((set) =>
     set({
       isDependencyInstallInProgress: false,
       dependencyInstallProgress: 0,
-      dependencyInstallLabel: INITIAL_LABEL,
+      dependencyInstallLabel: INITIAL_LABEL(),
       dependencyInstallTarget: null,
     }),
 }));
