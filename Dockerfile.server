@@ -28,11 +28,8 @@ ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
 COPY --from=build /app/apps/server/dist ./apps/server/dist
-COPY --from=build /app/apps/server/prisma ./apps/server/prisma
+COPY --from=build /app/apps/server/src/generated ./apps/server/src/generated
 RUN pnpm install --frozen-lockfile --filter @shiranami/server --prod --ignore-scripts
-
-# Generate Prisma client for production
-RUN cd apps/server && npx prisma generate
 
 EXPOSE 3000
 CMD ["node", "apps/server/dist/main.js"]
