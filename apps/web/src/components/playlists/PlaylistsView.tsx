@@ -1,59 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { ListMusic, Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
-import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
+import { usePlaylistsQuery, useCreatePlaylistMutation } from '@/hooks/queries/usePlaylists';
 
 export function PlaylistsView() {
   const { t } = useTranslation('playlists');
   const { t: tToast } = useTranslation('toast');
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const createPlaylist = useCreatePlaylistMutation();
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-
-  const loadPlaylists = useCallback(async () => {
-    if (!IS_ELECTRON) {
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
-      setPlaylists(result);
-    } catch {
-      toast.error(tToast('failedLoadPlaylists'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tToast]);
-
-  useEffect(() => {
-    loadPlaylists();
-  }, [loadPlaylists]);
 
   const handleCreate = useCallback(async () => {
     const name = newName.trim();
-    if (!name || !IS_ELECTRON) return;
-    setIsCreating(true);
+    if (!name) return;
     try {
-      const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
-      setPlaylists(prev => [playlist, ...prev]);
-      notifyPlaylistsChanged();
+      const playlist = await createPlaylist.mutateAsync({ name });
       setNewName('');
       setShowNewForm(false);
       toast.success(tToast('createdPlaylist', { name: playlist.name }));
     } catch {
       toast.error(tToast('failedCreatePlaylist'));
-    } finally {
-      setIsCreating(false);
     }
-  }, [newName, tToast]);
+  }, [newName, createPlaylist, tToast]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -106,14 +79,14 @@ export function PlaylistsView() {
                 onKeyDown={handleKeyDown}
                 placeholder={t('namePlaceholder')}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
-                disabled={isCreating}
+                disabled={createPlaylist.isPending}
               />
               <button
                 onClick={handleCreate}
-                disabled={!newName.trim() || isCreating}
+                disabled={!newName.trim() || createPlaylist.isPending}
                 className="px-3 py-1 rounded-lg text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
               >
-                {isCreating ? t('creating') : t('create')}
+                {createPlaylist.isPending ? t('creating') : t('create')}
               </button>
               <button
                 onClick={() => {

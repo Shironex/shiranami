@@ -1,5 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import App from './App';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -14,9 +16,11 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <TooltipProvider delayDuration={300}>
-      <App />
-      <Toaster />
-    </TooltipProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider delayDuration={300}>
+        <App />
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
   </StrictMode>
 );

@@ -35,12 +35,12 @@ export function PlaylistDetailView() {
   const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
 
   // Data fetching
-  const { playlist, setPlaylist, tracks, setTracks, displayTracks, isLoading } =
+  const { playlist, tracks, displayTracks, isLoading } =
     usePlaylistDetail(selectedPlaylistId);
 
   // Mutations
   const { handleSaveName, handleDelete, handleRemoveTrack, handleBulkRemoveFromPlaylist } =
-    usePlaylistMutations({ playlistId: selectedPlaylistId, playlist, setPlaylist, setTracks });
+    usePlaylistMutations({ playlistId: selectedPlaylistId, playlist });
 
   // Cover art
   const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
@@ -54,7 +54,7 @@ export function PlaylistDetailView() {
     handlePickCustomCover,
     handleUseSuggestedCover,
     handleClearCover,
-  } = usePlaylistCover({ playlistId: selectedPlaylistId, setPlaylist, suggestedCoverArt });
+  } = usePlaylistCover({ playlistId: selectedPlaylistId, suggestedCoverArt });
 
   useClickOutside(coverMenuRef, () => setShowCoverMenu(false), showCoverMenu);
 

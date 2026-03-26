@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
+import { queryClient } from '@/lib/queryClient';
+import { playlistKeys } from '@/hooks/queries/usePlaylists';
 import {
   Dialog,
   DialogContent,
@@ -104,7 +105,7 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
         for (const trackId of importedTrackIds) {
           await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
         }
-        notifyPlaylistsChanged();
+        queryClient.invalidateQueries({ queryKey: playlistKeys.all });
       } catch {
         // Playlist creation failed but downloads succeeded
       }

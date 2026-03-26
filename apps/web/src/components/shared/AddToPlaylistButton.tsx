@@ -1,13 +1,16 @@
 import { useState, useCallback, useRef } from 'react';
-import { IS_ELECTRON } from '@/lib/platform';
 import { ListPlus, Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  usePlaylistsQuery,
+  useCreatePlaylistMutation,
+  useAddTrackToPlaylistMutation,
+} from '@/hooks/queries/usePlaylists';
 
 interface AddToPlaylistButtonProps {
   trackId: string;
@@ -19,11 +22,13 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [newName, setNewName] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const addTrackMutation = useAddTrackToPlaylistMutation();
+  const createPlaylistMutation = useCreatePlaylistMutation();
 
   useClickOutside(ref, () => {
     setIsOpen(false);
@@ -31,43 +36,29 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
     setNewName('');
   }, isOpen);
 
-  const handleOpen = useCallback(async (e: React.MouseEvent) => {
+  const handleOpen = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!IS_ELECTRON) return;
     setIsOpen(prev => !prev);
-    if (!isOpen) {
-      setIsLoading(true);
-      try {
-        const result = await window.electronAPI.db.playlists.getAll() as Playlist[];
-        setPlaylists(result);
-      } catch {
-        toast.error(tToast('failedLoadPlaylists'));
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  }, [isOpen]);
+  }, []);
 
   const handleAddToPlaylist = useCallback(async (e: React.MouseEvent, playlist: Playlist) => {
     e.stopPropagation();
-    if (!IS_ELECTRON) return;
     try {
-      await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
+      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds: [trackId] });
       toast.success(tToast('addedToPlaylist', { name: playlist.name }));
       setIsOpen(false);
     } catch {
       toast.error(tToast('failedAddToPlaylist'));
     }
-  }, [trackId]);
+  }, [trackId, addTrackMutation]);
 
   const handleCreateAndAdd = useCallback(async (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     const name = newName.trim();
-    if (!name || !IS_ELECTRON) return;
+    if (!name) return;
     try {
-      const playlist = await window.electronAPI.db.playlists.create({ name }) as Playlist;
-      await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
-      notifyPlaylistsChanged();
+      const playlist = await createPlaylistMutation.mutateAsync({ name });
+      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds: [trackId] });
       toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
       setIsOpen(false);
       setShowNewForm(false);
@@ -75,7 +66,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
     } catch {
       toast.error(tToast('failedCreatePlaylist'));
     }
-  }, [newName, trackId]);
+  }, [newName, trackId, createPlaylistMutation, addTrackMutation]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     e.stopPropagation();

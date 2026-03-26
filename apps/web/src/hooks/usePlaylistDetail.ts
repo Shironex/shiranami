@@ -1,42 +1,25 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
-import type { Playlist } from '@/types/electron';
+import { useMemo } from 'react';
+import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaylistQuery, usePlaylistTracksQuery } from '@/hooks/queries/usePlaylists';
 
 /**
- * Fetches and manages a playlist's data (metadata + tracks).
+ * Fetches and manages a playlist's data (metadata + tracks) using TanStack Query.
  * Syncs isFavorite state from the library store in real-time.
  */
 export function usePlaylistDetail(playlistId: string | null) {
-  const { t: tToast } = useTranslation('toast');
   const library = usePlayerStore((s) => s.library);
 
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    data: playlist,
+    isLoading: isLoadingPlaylist,
+  } = usePlaylistQuery(playlistId);
 
-  const loadPlaylist = useCallback(async () => {
-    if (!IS_ELECTRON || !playlistId) return;
-    setIsLoading(true);
-    try {
-      const [pl, tr] = await Promise.all([
-        window.electronAPI.db.playlists.get(playlistId) as Promise<Playlist>,
-        window.electronAPI.db.playlists.getTracks(playlistId) as Promise<Track[]>,
-      ]);
-      setPlaylist(pl);
-      setTracks(tr);
-    } catch {
-      toast.error(tToast('failedLoadPlaylist'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [playlistId, tToast]);
+  const {
+    data: tracks = [],
+    isLoading: isLoadingTracks,
+  } = usePlaylistTracksQuery(playlistId);
 
-  useEffect(() => {
-    loadPlaylist();
-  }, [loadPlaylist]);
+  const isLoading = isLoadingPlaylist || isLoadingTracks;
 
   // Sync isFavorite from the store so hearts update in real-time
   const displayTracks = useMemo(() => {
@@ -47,5 +30,5 @@ export function usePlaylistDetail(playlistId: string | null) {
     });
   }, [tracks, library]);
 
-  return { playlist, setPlaylist, tracks, setTracks, displayTracks, isLoading };
+  return { playlist: playlist ?? null, tracks, displayTracks, isLoading };
 }

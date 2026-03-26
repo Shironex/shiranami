@@ -18,10 +18,14 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  usePlaylistsQuery,
+  useCreatePlaylistMutation,
+  useAddTrackToPlaylistMutation,
+} from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export interface ContextMenuPosition {
   x: number;
@@ -68,8 +72,9 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
   const { t } = useTranslation('contextMenu');
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const addTrackMutation = useAddTrackToPlaylistMutation();
+  const createPlaylistMutation = useCreatePlaylistMutation();
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
   const submenuRef = useRef<HTMLDivElement>(null);
@@ -100,20 +105,6 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
   }, []);
 
   useEffect(() => {
-    if (!IS_ELECTRON) return;
-    (async () => {
-      try {
-        const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
-        setPlaylists(result);
-      } catch {
-        toast.error(tToast('failedLoadPlaylists'));
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
     if (!parentRef.current) return;
     const rect = parentRef.current.getBoundingClientRect();
     const submenuWidth = 192;
@@ -124,11 +115,8 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
 
   const handleAddToPlaylist = useCallback(
     async (playlist: Playlist) => {
-      if (!IS_ELECTRON) return;
       try {
-        for (const id of trackIds) {
-          await window.electronAPI.db.playlists.addTrack(playlist.id, id);
-        }
+        await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
         if (isBulk) {
           toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
         } else {
@@ -139,18 +127,15 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
         toast.error(tToast('failedAddToPlaylist'));
       }
     },
-    [trackIds, isBulk, onClose]
+    [trackIds, isBulk, addTrackMutation, onClose]
   );
 
   const handleCreateAndAdd = useCallback(async () => {
     const name = newName.trim();
-    if (!name || !IS_ELECTRON) return;
+    if (!name) return;
     try {
-      const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
-      for (const id of trackIds) {
-        await window.electronAPI.db.playlists.addTrack(playlist.id, id);
-      }
-      notifyPlaylistsChanged();
+      const playlist = await createPlaylistMutation.mutateAsync({ name });
+      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
       if (isBulk) {
         toast.success(tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length }));
       } else {
@@ -160,7 +145,7 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
     } catch {
       toast.error(tToast('failedCreatePlaylist'));
     }
-  }, [newName, trackIds, isBulk, onClose]);
+  }, [newName, trackIds, isBulk, createPlaylistMutation, addTrackMutation, onClose]);
 
   return (
     <div

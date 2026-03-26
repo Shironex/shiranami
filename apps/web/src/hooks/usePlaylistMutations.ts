@@ -1,40 +1,40 @@
 import { useCallback } from 'react';
-import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import {
+  useUpdatePlaylistMutation,
+  useDeletePlaylistMutation,
+  useRemoveTrackFromPlaylistMutation,
+} from '@/hooks/queries/usePlaylists';
 import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
-import type { Track } from '@/stores/usePlayerStore';
 
 interface UsePlaylistMutationsOptions {
   playlistId: string | null;
   playlist: Playlist | null;
-  setPlaylist: React.Dispatch<React.SetStateAction<Playlist | null>>;
-  setTracks: React.Dispatch<React.SetStateAction<Track[]>>;
 }
 
 /**
- * Handles playlist mutation operations: rename, delete, remove tracks (single + bulk).
+ * Handles playlist mutation operations using TanStack Query mutations.
  */
 export function usePlaylistMutations({
   playlistId,
   playlist,
-  setPlaylist,
-  setTracks,
 }: UsePlaylistMutationsOptions) {
   const { t: tToast } = useTranslation('toast');
   const selectPlaylist = useAppStore((s) => s.selectPlaylist);
 
+  const updateMutation = useUpdatePlaylistMutation();
+  const deleteMutation = useDeletePlaylistMutation();
+  const removeTrackMutation = useRemoveTrackFromPlaylistMutation();
+
   const handleSaveName = useCallback(
     async (name: string) => {
       const trimmed = name.trim();
-      if (!trimmed || !IS_ELECTRON || !playlistId || !playlist) return false;
+      if (!trimmed || !playlistId || !playlist) return false;
       if (trimmed === playlist.name) return false;
       try {
-        await window.electronAPI.db.playlists.update(playlistId, { name: trimmed });
-        setPlaylist((prev) => (prev ? { ...prev, name: trimmed } : prev));
-        notifyPlaylistsChanged();
+        await updateMutation.mutateAsync({ id: playlistId, data: { name: trimmed } });
         toast.success(tToast('playlistRenamed'));
         return true;
       } catch {
@@ -42,50 +42,44 @@ export function usePlaylistMutations({
         return false;
       }
     },
-    [playlistId, playlist, setPlaylist, tToast]
+    [playlistId, playlist, updateMutation, tToast]
   );
 
   const handleDelete = useCallback(async () => {
-    if (!IS_ELECTRON || !playlistId) return;
+    if (!playlistId) return;
     try {
-      await window.electronAPI.db.playlists.delete(playlistId);
-      notifyPlaylistsChanged();
+      await deleteMutation.mutateAsync(playlistId);
       toast.success(tToast('playlistDeleted'));
       selectPlaylist(null);
     } catch {
       toast.error(tToast('failedDeletePlaylist'));
     }
-  }, [playlistId, selectPlaylist, tToast]);
+  }, [playlistId, deleteMutation, selectPlaylist, tToast]);
 
   const handleRemoveTrack = useCallback(
     async (trackId: string) => {
-      if (!IS_ELECTRON || !playlistId) return;
+      if (!playlistId) return;
       try {
-        await window.electronAPI.db.playlists.removeTrack(playlistId, trackId);
-        setTracks((prev) => prev.filter((t) => t.id !== trackId));
+        await removeTrackMutation.mutateAsync({ playlistId, trackIds: [trackId] });
         toast.success(tToast('removedFromPlaylist'));
       } catch {
         toast.error(tToast('failedRemoveTrack'));
       }
     },
-    [playlistId, setTracks, tToast]
+    [playlistId, removeTrackMutation, tToast]
   );
 
   const handleBulkRemoveFromPlaylist = useCallback(
     async (trackIds: string[]) => {
-      if (!IS_ELECTRON || !playlistId) return;
+      if (!playlistId) return;
       try {
-        for (const id of trackIds) {
-          await window.electronAPI.db.playlists.removeTrack(playlistId, id);
-        }
-        const idsSet = new Set(trackIds);
-        setTracks((prev) => prev.filter((t) => !idsSet.has(t.id)));
+        await removeTrackMutation.mutateAsync({ playlistId, trackIds });
         toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length }));
       } catch {
         toast.error(tToast('failedRemoveTrack'));
       }
     },
-    [playlistId, setTracks, tToast]
+    [playlistId, removeTrackMutation, tToast]
   );
 
   return { handleSaveName, handleDelete, handleRemoveTrack, handleBulkRemoveFromPlaylist };

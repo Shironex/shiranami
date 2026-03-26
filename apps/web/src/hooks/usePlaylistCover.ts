@@ -1,22 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
-import { IS_ELECTRON } from '@/lib/platform';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
+import { useUpdatePlaylistMutation } from '@/hooks/queries/usePlaylists';
 
 interface UsePlaylistCoverOptions {
   playlistId: string | null;
-  setPlaylist: React.Dispatch<React.SetStateAction<Playlist | null>>;
   suggestedCoverArt?: string;
 }
 
 /**
- * Manages playlist cover art: update, upload from file, use suggested, clear.
+ * Manages playlist cover art using TanStack Query mutations.
  */
 export function usePlaylistCover({
   playlistId,
-  setPlaylist,
   suggestedCoverArt,
 }: UsePlaylistCoverOptions) {
   const { t: tToast } = useTranslation('toast');
@@ -25,14 +21,14 @@ export function usePlaylistCover({
   const coverMenuRef = useRef<HTMLDivElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  const updateMutation = useUpdatePlaylistMutation();
+
   const updateCoverArt = useCallback(
     async (coverArt: string) => {
-      if (!IS_ELECTRON || !playlistId) return;
+      if (!playlistId) return;
       setIsUpdatingCover(true);
       try {
-        await window.electronAPI.db.playlists.update(playlistId, { coverArt });
-        setPlaylist((prev) => (prev ? { ...prev, coverArt } : prev));
-        notifyPlaylistsChanged();
+        await updateMutation.mutateAsync({ id: playlistId, data: { coverArt } });
         setShowCoverMenu(false);
         toast.success(coverArt ? tToast('coverUpdated') : tToast('coverCleared'));
       } catch {
@@ -41,7 +37,7 @@ export function usePlaylistCover({
         setIsUpdatingCover(false);
       }
     },
-    [playlistId, setPlaylist, tToast]
+    [playlistId, updateMutation, tToast]
   );
 
   const handleCoverFileSelected = useCallback(

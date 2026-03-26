@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import type { Playlist } from '@/types/electron';
-import { subscribeToPlaylistChanges } from '@/lib/playlists';
+import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import {
   Library,
   Heart,
@@ -42,30 +42,13 @@ export function Sidebar() {
   const navigateTo = useAppStore((s) => s.navigateTo);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
   const version = useAppVersion();
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
+  const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylistsQuery();
   const [contextMenuState, setContextMenuState] = useState<{
     playlist: Playlist;
     position: ContextMenuPosition;
   } | null>(null);
   const versionLabel = `v${version}`;
   const sidebarVersionLabel = sidebarCollapsed ? versionLabel : `${t('shiranami', { ns: 'common' })} ${versionLabel}`;
-
-  const loadPlaylists = useCallback(async () => {
-    try {
-      const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
-      setPlaylists(result);
-    } catch {
-      setPlaylists([]);
-    } finally {
-      setIsLoadingPlaylists(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadPlaylists();
-    return subscribeToPlaylistChanges(loadPlaylists);
-  }, [loadPlaylists]);
 
   return (
     <div

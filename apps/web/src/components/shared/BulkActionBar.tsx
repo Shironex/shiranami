@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -17,10 +17,14 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  usePlaylistsQuery,
+  useCreatePlaylistMutation,
+  useAddTrackToPlaylistMutation,
+} from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 interface BulkActionBarProps {
   trackList: Track[];
@@ -30,56 +34,37 @@ interface BulkActionBarProps {
 function PlaylistPopover({ trackIds, onDone }: { trackIds: string[]; onDone: () => void }) {
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const addTrackMutation = useAddTrackToPlaylistMutation();
+  const createPlaylistMutation = useCreatePlaylistMutation();
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    (async () => {
-      try {
-        const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
-        setPlaylists(result);
-      } catch {
-        toast.error(tToast('failedLoadPlaylists'));
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
-
   useClickOutside(ref, onDone);
 
   const handleAdd = useCallback(async (playlist: Playlist) => {
-    if (!IS_ELECTRON) return;
     try {
-      for (const id of trackIds) {
-        await window.electronAPI.db.playlists.addTrack(playlist.id, id);
-      }
+      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
       toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
       onDone();
     } catch {
       toast.error(tToast('failedAddToPlaylist'));
     }
-  }, [trackIds, onDone]);
+  }, [trackIds, addTrackMutation, onDone]);
 
   const handleCreateAndAdd = useCallback(async () => {
     const name = newName.trim();
-    if (!name || !IS_ELECTRON) return;
+    if (!name) return;
     try {
-      const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
-      for (const id of trackIds) {
-        await window.electronAPI.db.playlists.addTrack(playlist.id, id);
-      }
-      notifyPlaylistsChanged();
+      const playlist = await createPlaylistMutation.mutateAsync({ name });
+      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
       toast.success(tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length }));
       onDone();
     } catch {
       toast.error(tToast('failedCreatePlaylist'));
     }
-  }, [newName, trackIds, onDone]);
+  }, [newName, trackIds, createPlaylistMutation, addTrackMutation, onDone]);
 
   return (
     <motion.div
