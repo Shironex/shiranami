@@ -6,6 +6,7 @@ import {
   destroyAnalyser,
   setDeckGain,
   isAnalyserReady,
+  resumeAudioContext,
 } from '@/lib/audioAnalyser';
 import { emitListeningHistoryUpdated } from '@/lib/listeningHistory';
 
@@ -107,10 +108,16 @@ export function useAudioEngine() {
 
   /** Set volume on a deck, using GainNode if Web Audio is ready, else audio.volume. */
   function setVolume(deck: Deck, value: number) {
+    const audio = getDeck(deck);
     if (isAnalyserReady()) {
       setDeckGain(deck, value);
+      // Once captured by MediaElementAudioSourceNode, volume is controlled
+      // exclusively via GainNodes. However, Chromium still attenuates the
+      // signal feeding into the MESN by audio.volume — if it was set to 0
+      // before the analyser was initialised (e.g. idle deck on mount), the
+      // MESN permanently receives silence. Keep it at 1 to avoid this.
+      if (audio && audio.volume !== 1) audio.volume = 1;
     } else {
-      const audio = getDeck(deck);
       if (audio) audio.volume = value;
     }
   }
@@ -175,6 +182,9 @@ export function useAudioEngine() {
   }, []);
 
   const startCrossfade = useCallback(() => {
+    // Guard: don't start a new crossfade while one is already in progress
+    if (crossfadeRef.current.active) return;
+
     const state = usePlayerStore.getState();
     const { queue, queueIndex, repeatMode: rm, crossfadeDuration } = state;
 
@@ -199,9 +209,22 @@ export function useAudioEngine() {
     incomingAudio.load();
     deckTrackIdRef.current[incomingDeckId] = nextTrack.id;
 
+    // Set crossfade state BEFORE registering canplay listener so the
+    // onCanPlay guard always sees active === true (fixes race where
+    // cached audio fires canplay synchronously or the eager readyState
+    // check passes before the ref is assigned).
+    crossfadeRef.current = {
+      active: true,
+      startTime: performance.now(),
+      duration: crossfadeDuration,
+      outgoingDeck: activeDeckRef.current,
+      incomingDeck: incomingDeckId,
+    };
+
     const onCanPlay = () => {
       incomingAudio.removeEventListener('canplay', onCanPlay);
       if (!crossfadeRef.current.active) return;
+      resumeAudioContext();
       setVolume(incomingDeckId, 0);
       incomingAudio.play().catch(() => {});
     };
@@ -210,14 +233,6 @@ export function useAudioEngine() {
     if (incomingAudio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
       onCanPlay();
     }
-
-    crossfadeRef.current = {
-      active: true,
-      startTime: performance.now(),
-      duration: crossfadeDuration,
-      outgoingDeck: activeDeckRef.current,
-      incomingDeck: incomingDeckId,
-    };
   }, [flushPlaybackSession]);
 
   const completeCrossfade = useCallback(() => {
@@ -225,6 +240,9 @@ export function useAudioEngine() {
     if (!cf.active) return;
 
     const userVol = usePlayerStore.getState().isMuted ? 0 : usePlayerStore.getState().volume;
+
+    // Ensure AudioContext is running before finalising
+    resumeAudioContext();
 
     // Final volumes
     setVolume(cf.outgoingDeck, 0);
@@ -241,6 +259,23 @@ export function useAudioEngine() {
     // Swap active deck
     activeDeckRef.current = cf.incomingDeck;
 
+    // Sync duration from the incoming deck element (the event-listener effect
+    // wasn't watching this deck during crossfade, so the store may still show
+    // the outgoing track's duration)
+    const incoming = getDeck(cf.incomingDeck);
+    if (incoming) {
+      const d = incoming.duration;
+      if (isFinite(d) && d > 0) _setDuration(d);
+
+      // Ensure the incoming deck is actually producing audio. If play() was
+      // silently rejected during startCrossfade the element sits paused with
+      // gain ramped up — the user hears nothing, permanently.
+      if (incoming.paused && incoming.src) {
+        incoming.play().catch(() => {});
+      }
+    }
+    _setIsLoading(false);
+
     // Reset session for new track
     const nextTrack = usePlayerStore.getState().queue[usePlayerStore.getState().queueIndex + 1]
       ?? (usePlayerStore.getState().repeatMode === 'all' ? usePlayerStore.getState().queue[0] : null);
@@ -252,7 +287,7 @@ export function useAudioEngine() {
     // Advance the store (this sets currentTrack, triggering the load effect —
     // the effect will see the track is already loaded on the new active deck and skip reload)
     usePlayerStore.getState().next();
-  }, [resetPlaybackSession]);
+  }, [resetPlaybackSession, _setDuration, _setIsLoading]);
 
   // ── Initialization ────────────────────────────────────────────
 
@@ -414,6 +449,7 @@ export function useAudioEngine() {
       audio.removeEventListener('canplay', onCanPlayOnce);
       _setIsLoading(false);
       if (usePlayerStore.getState().isPlaying) {
+        resumeAudioContext();
         audio.play().catch((err) => {
           if (err.name !== 'AbortError') {
             _setError(err.message);
@@ -460,6 +496,7 @@ export function useAudioEngine() {
         }
       }
 
+      resumeAudioContext();
       active.play().catch((err: DOMException) => {
         if (err.name !== 'AbortError') {
           _setError(err.message);
@@ -495,7 +532,7 @@ export function useAudioEngine() {
     const userVol = isMuted ? 0 : volume;
     setVolume(activeDeckRef.current, userVol);
     setVolume(getIdleDeckId(), 0);
-  }, [volume, isMuted]);
+  }, [volume, isMuted, currentTrack]);
 
   // ── Handle seeks while paused ─────────────────────────────────
 
@@ -543,6 +580,9 @@ export function useAudioEngine() {
     const onEnded = () => {
       // During/after crossfade the transition is already handled
       if (crossfadeRef.current.active) return;
+      // Ignore ended events from a stale deck (e.g. outgoing deck whose
+      // src was cleared by completeCrossfade but fired before cleanup)
+      if (audio !== getActiveDeck()) return;
       const endedTrack = usePlayerStore.getState().currentTrack;
       void flushPlaybackSession();
       if (usePlayerStore.getState().repeatMode === 'one' && endedTrack) {

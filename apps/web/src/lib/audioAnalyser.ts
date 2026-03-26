@@ -105,6 +105,18 @@ export function getFrequencyBinCount(): number {
 }
 
 /**
+ * Ensure the AudioContext is running. Call before any play() operation.
+ * Once a MediaElementAudioSourceNode captures an element, ALL audio must
+ * flow through the AudioContext. If it becomes suspended (Chromium power-
+ * saving, tab backgrounding, etc.) audio is permanently lost until resumed.
+ */
+export function resumeAudioContext(): void {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume();
+  }
+}
+
+/**
  * Tear down the audio graph. Called on app unmount.
  */
 export function destroyAnalyser() {
