@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
@@ -22,18 +23,19 @@ import { motion } from 'motion/react';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
 import type { ContextMenuPosition } from './TrackContextMenu';
 
-const NAV_ITEMS: Array<{ id: AppView; label: string; icon: typeof Library }> = [
-  { id: 'library', label: 'Library', icon: Library },
-  { id: 'playlists', label: 'Playlists', icon: ListMusic },
-  { id: 'favorites', label: 'Favorites', icon: Heart },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'search', label: 'Search', icon: Search },
-  { id: 'import-playlist', label: 'Import Playlist', icon: ListPlus },
-  { id: 'radio', label: 'Radio', icon: Radio },
-  { id: 'settings', label: 'Settings', icon: Settings },
+const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
+  { id: 'library', key: 'library', icon: Library },
+  { id: 'playlists', key: 'playlists', icon: ListMusic },
+  { id: 'favorites', key: 'favorites', icon: Heart },
+  { id: 'history', key: 'history', icon: History },
+  { id: 'search', key: 'search', icon: Search },
+  { id: 'import-playlist', key: 'importPlaylist', icon: ListPlus },
+  { id: 'radio', key: 'radio', icon: Radio },
+  { id: 'settings', key: 'settings', icon: Settings },
 ];
 
 export function Sidebar() {
+  const { t } = useTranslation('sidebar');
   const activeView = useAppStore((s) => s.activeView);
   const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
@@ -47,7 +49,7 @@ export function Sidebar() {
     position: ContextMenuPosition;
   } | null>(null);
   const versionLabel = `v${version}`;
-  const sidebarVersionLabel = sidebarCollapsed ? versionLabel : `Shiranami ${versionLabel}`;
+  const sidebarVersionLabel = sidebarCollapsed ? versionLabel : `${t('shiranami', { ns: 'common' })} ${versionLabel}`;
 
   const loadPlaylists = useCallback(async () => {
     try {
@@ -87,8 +89,8 @@ export function Sidebar() {
             'no-drag flex items-center rounded-xl text-left transition-colors',
             sidebarCollapsed ? 'justify-center w-9 h-9' : 'gap-2.5'
           )}
-          title={sidebarCollapsed ? 'Library' : undefined}
-          aria-label="Open library"
+          title={sidebarCollapsed ? t('library') : undefined}
+          aria-label={t('openLibrary')}
         >
           <img
             src="./mascot.png"
@@ -98,7 +100,7 @@ export function Sidebar() {
           />
           {!sidebarCollapsed && (
             <span className="font-display font-semibold text-sm text-foreground tracking-tight">
-              Shiranami
+              {t('shiranami', { ns: 'common' })}
             </span>
           )}
         </button>
@@ -109,8 +111,8 @@ export function Sidebar() {
             'no-drag rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
             sidebarCollapsed ? 'w-7 h-7' : 'w-8 h-8'
           )}
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={sidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
+          title={sidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
         >
           {sidebarCollapsed ? (
             <PanelLeftOpen className="w-4 h-4" />
@@ -131,8 +133,8 @@ export function Sidebar() {
                 <button
                   key={item.id}
                   onClick={() => navigateTo(item.id)}
-                  title={sidebarCollapsed ? item.label : undefined}
-                  aria-label={item.label}
+                  title={sidebarCollapsed ? t(item.key) : undefined}
+                  aria-label={t(item.key)}
                   className={cn(
                     'w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative',
                     sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2',
@@ -149,7 +151,7 @@ export function Sidebar() {
                     />
                   )}
                   <Icon className="w-4 h-4 relative z-10" />
-                  {!sidebarCollapsed && <span className="relative z-10">{item.label}</span>}
+                  {!sidebarCollapsed && <span className="relative z-10">{t(item.key)}</span>}
                 </button>
               );
             })}
@@ -164,8 +166,8 @@ export function Sidebar() {
                   <button
                     onClick={() => navigateTo('playlists')}
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    title="All playlists"
-                    aria-label="All playlists"
+                    title={t('allPlaylists')}
+                    aria-label={t('allPlaylists')}
                   >
                     <ListMusic className="w-4 h-4" />
                   </button>
@@ -221,13 +223,13 @@ export function Sidebar() {
               <>
                 <div className="flex items-center justify-between px-2 pt-4 pb-2">
                   <p className="text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase">
-                    Your Playlists
+                    {t('yourPlaylists')}
                   </p>
                   <button
                     onClick={() => navigateTo('playlists')}
                     className="text-[10px] text-primary/70 hover:text-primary transition-colors uppercase tracking-wider"
                   >
-                    All
+                    {t('all')}
                   </button>
                 </div>
 
@@ -295,7 +297,7 @@ export function Sidebar() {
             'text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase',
             sidebarCollapsed && 'text-center'
           )}
-          title={sidebarCollapsed ? `Shiranami ${versionLabel}` : undefined}
+          title={sidebarCollapsed ? `${t('shiranami', { ns: 'common' })} ${versionLabel}` : undefined}
         >
           {sidebarVersionLabel}
         </p>

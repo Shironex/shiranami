@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Heart } from 'lucide-react';
@@ -7,6 +8,7 @@ import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 
 export function FavoritesView() {
+  const { t } = useTranslation('favorites');
   const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
@@ -75,7 +77,7 @@ export function FavoritesView() {
               </AnimatePresence>
 
               <div className="relative min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">Now Playing</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">{t('nowPlaying', { ns: 'common' })}</p>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentTrack.id}
@@ -100,8 +102,8 @@ export function FavoritesView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <Heart className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No favorites yet</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Click the heart icon on any track to add it here</p>
+            <p className="font-display text-base font-medium text-muted-foreground">{t('emptyTitle')}</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
           </div>
         </div>
       ) : (

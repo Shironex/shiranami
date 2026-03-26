@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   ArrowDownToLine,
   Download,
@@ -11,33 +12,34 @@ import { ToolVersionBlock } from '@/components/settings/downloads/ToolVersionBlo
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
 
 export function DownloadsSection() {
+  const { t } = useTranslation('settings');
   const s = useDownloadsSettings();
 
   const ytdlpInstalledVersionText = s.ytdlpVersion
     ? `v${s.ytdlpVersion}`
     : s.ytdlpInstalled
-      ? 'Unknown'
-      : 'Not installed';
+      ? t('dl.unknown')
+      : t('dl.notInstalled');
   const ytdlpLatestText = s.ytdlpLatestVersion ? `v${s.ytdlpLatestVersion}` : null;
 
   const ffmpegInstalledVersionText =
-    s.ffmpegVersion ?? (s.ffmpegInstalled ? 'Unknown' : 'Not installed');
+    s.ffmpegVersion ?? (s.ffmpegInstalled ? t('dl.unknown') : t('dl.notInstalled'));
   const ffmpegLatestText = s.ffmpegLatestVersion ?? null;
 
   const locationPathDisplay =
-    s.downloadLocation || s.downloadLocationDefaultPath || 'Loading...';
+    s.downloadLocation || s.downloadLocationDefaultPath || t('dl.checking');
 
   return (
     <SettingsCard
       icon={ArrowDownToLine}
-      title="Downloads"
-      subtitle="yt-dlp integration for searching and downloading music"
+      title={t('dl.title')}
+      subtitle={t('dl.subtitle')}
     >
       <div className="space-y-3">
         {s.isCheckingDownloadTools ? (
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-background/50 border border-border/20 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Checking download tools...</span>
+            <span className="text-sm">{t('dl.checking')}</span>
           </div>
         ) : (
           <>
@@ -45,11 +47,10 @@ export function DownloadsSection() {
               <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 space-y-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">
-                    Install missing tools in one pass
+                    {t('dl.installOnePassTitle')}
                   </p>
                   <p className="text-xs text-muted-foreground leading-5">
-                    Shiranami will download yt-dlp and ffmpeg, then unpack everything it
-                    needs automatically.
+                    {t('dl.installOnePassDesc')}
                   </p>
                 </div>
 
@@ -65,7 +66,7 @@ export function DownloadsSection() {
                     className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     <ArrowDownToLine className="w-3.5 h-3.5" />
-                    Install Missing Tools
+                    {t('dl.installMissing')}
                   </button>
                 )}
               </div>
@@ -73,14 +74,14 @@ export function DownloadsSection() {
 
             <ToolStatusRow
               installed={Boolean(s.ytdlpInstalled)}
-              installedTitle="yt-dlp installed"
-              notInstalledTitle="yt-dlp not installed"
+              installedTitle={t('dl.ytdlpInstalled')}
+              notInstalledTitle={t('dl.ytdlpNotInstalled')}
               updateAvailable={s.ytdlpUpdateAvailable}
             />
 
             {s.ytdlpPath ? (
               <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
-                <p className="text-xs text-muted-foreground mb-1">Binary path</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('dl.binaryPath')}</p>
                 <p className="text-xs text-foreground font-mono truncate">{s.ytdlpPath}</p>
               </div>
             ) : null}
@@ -101,7 +102,7 @@ export function DownloadsSection() {
             {s.ytdlpInstalling ? (
               <InstallProgressBar
                 percent={s.ytdlpInstallProgress}
-                caption={`Downloading yt-dlp... ${s.ytdlpInstallProgress}%`}
+                caption={`${t('dl.downloadingYtdlp')} ${s.ytdlpInstallProgress}%`}
                 className="px-1"
               />
             ) : s.ytdlpInstalled && s.ytdlpUpdateAvailable ? (
@@ -111,13 +112,13 @@ export function DownloadsSection() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                Update yt-dlp
+                {t('dl.updateYtdlp')}
               </button>
             ) : (
               <p className="text-xs text-muted-foreground/60 px-1">
                 {s.ytdlpInstalled
-                  ? 'yt-dlp is already on the latest release.'
-                  : 'Install missing tools above to add yt-dlp.'}
+                  ? t('dl.ytdlpLatest')
+                  : t('dl.ytdlpInstallHint')}
               </p>
             )}
 
@@ -125,10 +126,10 @@ export function DownloadsSection() {
 
             <ToolStatusRow
               installed={Boolean(s.ffmpegInstalled)}
-              installedTitle="ffmpeg installed"
-              notInstalledTitle="ffmpeg not installed"
+              installedTitle={t('dl.ffmpegInstalled')}
+              notInstalledTitle={t('dl.ffmpegNotInstalled')}
               updateAvailable={s.ffmpegUpdateAvailable}
-              notInstalledRight="recommended"
+              notInstalledRight={t('dl.recommended')}
             />
 
             <ToolVersionBlock
@@ -138,15 +139,14 @@ export function DownloadsSection() {
 
             {!s.ffmpegInstalled && (
               <p className="text-xs text-muted-foreground/60 px-1">
-                ffmpeg enables MP3 conversion and thumbnail embedding for downloads.
-                Without it, audio downloads as webm or opus.
+                {t('dl.ffmpegRecommendedNote')}
               </p>
             )}
 
             {s.ffmpegInstalling ? (
               <InstallProgressBar
                 percent={s.ffmpegInstallProgress}
-                caption={`Downloading ffmpeg... ${s.ffmpegInstallProgress}%`}
+                caption={`${t('dl.downloadingFfmpeg')} ${s.ffmpegInstallProgress}%`}
                 className="px-1"
               />
             ) : s.ffmpegInstalled && s.ffmpegUpdateAvailable ? (
@@ -156,13 +156,13 @@ export function DownloadsSection() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                Update ffmpeg
+                {t('dl.updateFfmpeg')}
               </button>
             ) : (
               <p className="text-xs text-muted-foreground/60 px-1">
                 {s.ffmpegInstalled
-                  ? 'ffmpeg is already on the latest release.'
-                  : 'Install missing tools above to add ffmpeg automatically.'}
+                  ? t('dl.ffmpegLatest')
+                  : t('dl.ffmpegInstallHint')}
               </p>
             )}
           </>

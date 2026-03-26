@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +18,7 @@ const DEFAULT_ELECTRON_SETTINGS: ElectronSettings = {
 };
 
 export function PlaybackSection() {
+  const { t } = useTranslation('settings');
   const [electronSettings, setElectronSettings] = useState<ElectronSettings>(DEFAULT_ELECTRON_SETTINGS);
 
   const crossfadeEnabled = usePlayerStore((s) => s.crossfadeEnabled);
@@ -62,17 +64,17 @@ export function PlaybackSection() {
   return (
     <SettingsCard
       icon={Settings2}
-      title="Playback"
-      subtitle="Audio playback preferences"
+      title={t('play.title')}
+      subtitle={t('play.subtitle')}
     >
       <div className="space-y-1">
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
             <p className="text-sm font-medium text-foreground">
-              Remember playback position
+              {t('play.rememberPosition')}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Resume tracks from where you left off
+              {t('play.rememberDesc')}
             </p>
           </div>
           <Switch
@@ -84,13 +86,13 @@ export function PlaybackSection() {
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
-              Crossfade
+              {t('play.crossfade')}
               <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                Beta
+                {t('play.beta')}
               </span>
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Smooth volume transition between tracks
+              {t('play.crossfadeDesc')}
             </p>
           </div>
           <Switch
@@ -102,7 +104,7 @@ export function PlaybackSection() {
         {crossfadeEnabled && (
           <div className="px-3 py-3 rounded-xl">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Duration</p>
+              <p className="text-sm text-muted-foreground">{t('play.duration')}</p>
               <span className="text-xs tabular-nums text-muted-foreground">
                 {crossfadeDuration}s
               </span>
@@ -125,10 +127,10 @@ export function PlaybackSection() {
           <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
             <div>
               <p className="text-sm font-medium text-foreground">
-                Discord Rich Presence
+                {t('play.discordRpc')}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Show currently playing track in Discord
+                {t('play.discordDesc')}
               </p>
             </div>
             <Switch

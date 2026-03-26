@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
@@ -7,17 +8,18 @@ import { useAppStore, type VisualizerStyle } from '@/stores/useAppStore';
 const VISUALIZER_STYLE_OPTIONS = [
   {
     value: 'bars' as VisualizerStyle,
-    label: 'Bars',
-    desc: 'Soft frequency bars',
+    labelKey: 'vis.bars',
+    descKey: 'vis.barsDesc',
   },
   {
     value: 'waveform' as VisualizerStyle,
-    label: 'Waveform',
-    desc: 'Flowing audio line',
+    labelKey: 'vis.waveform',
+    descKey: 'vis.waveformDesc',
   },
 ] as const;
 
 export function VisualizerSection() {
+  const { t } = useTranslation('settings');
   const visualizerStyle = useAppStore((s) => s.visualizerStyle);
   const setVisualizerStyle = useAppStore((s) => s.setVisualizerStyle);
   const showVisualizer = useAppStore((s) => s.showVisualizer);
@@ -26,17 +28,17 @@ export function VisualizerSection() {
   return (
     <SettingsCard
       icon={AudioLines}
-      title="Visualizer"
-      subtitle="Audio visualization above the player bar"
+      title={t('vis.title')}
+      subtitle={t('vis.subtitle')}
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
             <p className="text-sm font-medium text-foreground">
-              Show visualizer
+              {t('vis.show')}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Display audio-reactive animation above the player
+              {t('vis.showDesc')}
             </p>
           </div>
           <Switch
@@ -47,7 +49,7 @@ export function VisualizerSection() {
 
         {showVisualizer && (
           <div className="px-3">
-            <p className="text-xs text-muted-foreground mb-3">Style</p>
+            <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
             <div className="flex gap-3">
               {VISUALIZER_STYLE_OPTIONS.map((opt) => {
                 const selected = visualizerStyle === opt.value;
@@ -68,10 +70,10 @@ export function VisualizerSection() {
                         selected ? 'text-foreground' : 'text-muted-foreground',
                       )}
                     >
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </p>
                     <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      {opt.desc}
+                      {t(opt.descKey)}
                     </p>
                   </button>
                 );

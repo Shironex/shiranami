@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { ListMusic, Plus, Loader2 } from 'lucide-react';
@@ -8,6 +9,8 @@ import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export function PlaylistsView() {
+  const { t } = useTranslation('playlists');
+  const { t: tToast } = useTranslation('toast');
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,14 +24,14 @@ export function PlaylistsView() {
       return;
     }
     try {
-      const result = await window.electronAPI.db.playlists.getAll() as Playlist[];
+      const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
       setPlaylists(result);
     } catch {
-      toast.error('Failed to load playlists');
+      toast.error(tToast('failedLoadPlaylists'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [tToast]);
 
   useEffect(() => {
     loadPlaylists();
@@ -39,18 +42,18 @@ export function PlaylistsView() {
     if (!name || !IS_ELECTRON) return;
     setIsCreating(true);
     try {
-      const playlist = await window.electronAPI.db.playlists.create({ name }) as Playlist;
+      const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
       setPlaylists(prev => [playlist, ...prev]);
       notifyPlaylistsChanged();
       setNewName('');
       setShowNewForm(false);
-      toast.success(`Created "${playlist.name}"`);
+      toast.success(tToast('createdPlaylist', { name: playlist.name }));
     } catch {
-      toast.error('Failed to create playlist');
+      toast.error(tToast('failedCreatePlaylist'));
     } finally {
       setIsCreating(false);
     }
-  }, [newName]);
+  }, [newName, tToast]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -81,7 +84,7 @@ export function PlaylistsView() {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          New Playlist
+          {t('newPlaylist')}
         </motion.button>
       </div>
 
@@ -101,7 +104,7 @@ export function PlaylistsView() {
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Playlist name..."
+                placeholder={t('namePlaceholder')}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
                 disabled={isCreating}
               />
@@ -110,13 +113,16 @@ export function PlaylistsView() {
                 disabled={!newName.trim() || isCreating}
                 className="px-3 py-1 rounded-lg text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
               >
-                {isCreating ? 'Creating...' : 'Create'}
+                {isCreating ? t('creating') : t('create')}
               </button>
               <button
-                onClick={() => { setShowNewForm(false); setNewName(''); }}
+                onClick={() => {
+                  setShowNewForm(false);
+                  setNewName('');
+                }}
                 className="px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cancel
+                {t('cancel', { ns: 'common' })}
               </button>
             </div>
           </motion.div>
@@ -128,8 +134,10 @@ export function PlaylistsView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <ListMusic className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No playlists yet</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Create one to get started</p>
+            <p className="font-display text-base font-medium text-muted-foreground">
+              {t('emptyTitle')}
+            </p>
+            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
           </div>
         </div>
       ) : (
@@ -162,9 +170,13 @@ export function PlaylistsView() {
                     <ListMusic className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
                   )}
                 </div>
-                <p className="font-display text-sm font-semibold text-foreground truncate">{playlist.name}</p>
+                <p className="font-display text-sm font-semibold text-foreground truncate">
+                  {playlist.name}
+                </p>
                 {playlist.description && (
-                  <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{playlist.description}</p>
+                  <p className="text-xs text-muted-foreground/50 truncate mt-0.5">
+                    {playlist.description}
+                  </p>
                 )}
                 <p className="text-[10px] text-muted-foreground/30 mt-1.5">
                   {new Date(playlist.createdAt).toLocaleDateString()}

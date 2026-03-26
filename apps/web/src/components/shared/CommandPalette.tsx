@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Music, Heart, Radio, Settings, ListMusic, History, Download } from 'lucide-react';
 import {
   CommandDialog,
@@ -19,6 +20,7 @@ function formatDuration(seconds: number) {
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation('commandPalette');
   const [open, setOpen] = useState(false);
   const library = usePlayerStore(s => s.library);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -77,7 +79,7 @@ export function CommandPalette() {
             <p className="text-sm truncate">
               {track.title}
               {currentTrack?.id === track.id && (
-                <span className="ml-2 text-primary text-xs">Playing</span>
+                <span className="ml-2 text-primary text-xs">{t('playing')}</span>
               )}
             </p>
             <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
@@ -87,35 +89,35 @@ export function CommandPalette() {
           </span>
         </CommandItem>
       )),
-    [library, currentTrack?.id, handlePlayTrack]
+    [library, currentTrack?.id, handlePlayTrack, t]
   );
 
-  const navigationItems: { view: AppView; label: string; icon: React.ReactNode }[] = [
-    { view: 'library', label: 'Library', icon: <ListMusic className="w-4 h-4" /> },
-    { view: 'favorites', label: 'Favorites', icon: <Heart className="w-4 h-4" /> },
-    { view: 'playlists', label: 'Playlists', icon: <ListMusic className="w-4 h-4" /> },
-    { view: 'history', label: 'History', icon: <History className="w-4 h-4" /> },
-    { view: 'search', label: 'Download', icon: <Download className="w-4 h-4" /> },
-    { view: 'radio', label: 'Radio', icon: <Radio className="w-4 h-4" /> },
-    { view: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
+  const navigationItems: { view: AppView; key: string; icon: React.ReactNode }[] = [
+    { view: 'library', key: 'library', icon: <ListMusic className="w-4 h-4" /> },
+    { view: 'favorites', key: 'favorites', icon: <Heart className="w-4 h-4" /> },
+    { view: 'playlists', key: 'playlists', icon: <ListMusic className="w-4 h-4" /> },
+    { view: 'history', key: 'history', icon: <History className="w-4 h-4" /> },
+    { view: 'search', key: 'search', icon: <Download className="w-4 h-4" /> },
+    { view: 'radio', key: 'radio', icon: <Radio className="w-4 h-4" /> },
+    { view: 'settings', key: 'settings', icon: <Settings className="w-4 h-4" /> },
   ];
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search tracks, navigate..." />
+      <CommandInput placeholder={t('placeholder')} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t('noResults')}</CommandEmpty>
 
-        <CommandGroup heading="Navigation">
+        <CommandGroup heading={t('navigation')}>
           {navigationItems.map(item => (
             <CommandItem
               key={item.view}
-              value={`go to ${item.label}`}
+              value={`go to ${t(item.key, { ns: 'sidebar' })}`}
               onSelect={() => handleNavigate(item.view)}
               className="flex items-center gap-3"
             >
               {item.icon}
-              <span>Go to {item.label}</span>
+              <span>{t('goTo', { view: t(item.key, { ns: 'sidebar' }) })}</span>
             </CommandItem>
           ))}
         </CommandGroup>
@@ -123,7 +125,7 @@ export function CommandPalette() {
         {library.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Tracks">
+            <CommandGroup heading={t('tracks')}>
               {trackItems}
             </CommandGroup>
           </>

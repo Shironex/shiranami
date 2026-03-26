@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 
@@ -8,17 +9,17 @@ const EXIT_ANIMATION_MS = 600;
 const SPINNER_DELAY_MS = 600;
 const MESSAGE_ROTATE_MS = 1400;
 
-const LOADING_MESSAGES = [
-  'Tuning the instruments...',
-  'Loading your library...',
-  'Setting up the stage...',
-  'Warming up the speakers...',
-  'Finding the perfect beat...',
-  'Almost ready to play...',
-];
+const LOADING_MESSAGE_KEYS = [
+  'loading1',
+  'loading2',
+  'loading3',
+  'loading4',
+  'loading5',
+  'loading6',
+] as const;
 
 function randomStartIndex() {
-  return Math.floor(Math.random() * LOADING_MESSAGES.length);
+  return Math.floor(Math.random() * LOADING_MESSAGE_KEYS.length);
 }
 
 const SPARKLE_COUNT = 8;
@@ -49,6 +50,8 @@ interface SplashScreenProps {
 }
 
 export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
+  const { t } = useTranslation('splash');
+  const { t: tCommon } = useTranslation('common');
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
@@ -72,7 +75,7 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
   useEffect(() => {
     if (error) return;
     const timer = setInterval(
-      () => setMessageIndex(i => (i + 1) % LOADING_MESSAGES.length),
+      () => setMessageIndex(i => (i + 1) % LOADING_MESSAGE_KEYS.length),
       MESSAGE_ROTATE_MS
     );
     return () => clearInterval(timer);
@@ -135,7 +138,7 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
         <div className="flex flex-col items-center gap-0.5 animate-[splash-fade-up_0.8s_ease-out_0.3s_both]">
           <span className="text-2xl font-bold tracking-tight text-foreground">白波</span>
           <span className="text-[10px] text-muted-foreground/50 tracking-[0.25em] uppercase font-medium">
-            Shiranami
+            {tCommon('shiranami')}
           </span>
         </div>
 
@@ -158,7 +161,7 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
                 className="text-sm text-primary hover:underline cursor-pointer"
                 onClick={() => window.location.reload()}
               >
-                Try again
+                {t('tryAgain')}
               </button>
             </div>
           ) : (
@@ -168,7 +171,7 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
                 key={messageIndex}
                 className="text-muted-foreground text-sm animate-[splash-msg-swap_0.4s_ease-out_both]"
               >
-                {LOADING_MESSAGES[messageIndex]}
+                {t(LOADING_MESSAGE_KEYS[messageIndex])}
               </p>
             </div>
           )}

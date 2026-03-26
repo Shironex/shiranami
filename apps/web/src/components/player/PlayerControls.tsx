@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { cn } from '@/lib/utils';
 import {
@@ -15,6 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export const PlayerControls = memo(function PlayerControls() {
+  const { t } = useTranslation('player');
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const isLoading = usePlayerStore(s => s.isLoading);
@@ -39,12 +41,12 @@ export const PlayerControls = memo(function PlayerControls() {
                 ? 'text-primary'
                 : 'text-muted-foreground/60 hover:text-muted-foreground'
             )}
-            aria-label="Shuffle"
+            aria-label={t('shuffle')}
           >
             <Shuffle className="w-3.5 h-3.5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isShuffled ? 'Shuffle on (S)' : 'Shuffle (S)'}</TooltipContent>
+        <TooltipContent side="top">{isShuffled ? t('shuffleOn') : t('shuffleOff')}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -53,12 +55,12 @@ export const PlayerControls = memo(function PlayerControls() {
             whileTap={{ scale: 0.88 }}
             onClick={previous}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground/80 hover:text-foreground transition-colors"
-            aria-label="Previous"
+            aria-label={t('previous')}
           >
             <SkipBack className="w-4 h-4 fill-current" />
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">Previous (P)</TooltipContent>
+        <TooltipContent side="top">{t('previousTooltip')}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -76,7 +78,7 @@ export const PlayerControls = memo(function PlayerControls() {
               'transition-shadow duration-200',
               'disabled:opacity-50'
             )}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? t('pause') : t('play')}
           >
             <AnimatePresence mode="wait" initial={false}>
               {showLoading ? (
@@ -95,7 +97,7 @@ export const PlayerControls = memo(function PlayerControls() {
             </AnimatePresence>
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isPlaying ? 'Pause (Space)' : 'Play (Space)'}</TooltipContent>
+        <TooltipContent side="top">{isPlaying ? t('pauseSpace') : t('playSpace')}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -104,12 +106,12 @@ export const PlayerControls = memo(function PlayerControls() {
             whileTap={{ scale: 0.88 }}
             onClick={next}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground/80 hover:text-foreground transition-colors"
-            aria-label="Next"
+            aria-label={t('next')}
           >
             <SkipForward className="w-4 h-4 fill-current" />
           </motion.button>
         </TooltipTrigger>
-        <TooltipContent side="top">Next (N)</TooltipContent>
+        <TooltipContent side="top">{t('nextTooltip')}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -122,7 +124,7 @@ export const PlayerControls = memo(function PlayerControls() {
                 ? 'text-primary'
                 : 'text-muted-foreground/60 hover:text-muted-foreground'
             )}
-            aria-label={`Repeat: ${repeatMode}`}
+            aria-label={t('repeatAria', { mode: repeatMode })}
           >
             {repeatMode === 'one' ? (
               <Repeat1 className="w-3.5 h-3.5" />
@@ -132,7 +134,7 @@ export const PlayerControls = memo(function PlayerControls() {
           </button>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {repeatMode === 'off' ? 'Repeat off (R)' : repeatMode === 'all' ? 'Repeat all (R)' : 'Repeat one (R)'}
+          {repeatMode === 'off' ? t('repeatOff') : repeatMode === 'all' ? t('repeatAll') : t('repeatOne')}
         </TooltipContent>
       </Tooltip>
     </div>

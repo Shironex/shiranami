@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { formatDuration } from '@shiranami/shared';
 import { Music } from 'lucide-react';
 import type {
@@ -25,6 +26,7 @@ type TopTrackRowProps = {
 };
 
 export function TopTrackRow({ track, onPlay }: TopTrackRowProps) {
+  const { t } = useTranslation('history');
   return (
     <button
       type="button"
@@ -37,7 +39,7 @@ export function TopTrackRow({ track, onPlay }: TopTrackRowProps) {
         <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-xs font-medium text-foreground">{track.playCount} plays</p>
+        <p className="text-xs font-medium text-foreground">{t('plays', { count: track.playCount })}</p>
         <p className="text-[11px] text-muted-foreground/65">
           {formatListenTime(track.listenedSeconds)}
         </p>
@@ -47,18 +49,19 @@ export function TopTrackRow({ track, onPlay }: TopTrackRowProps) {
 }
 
 export function TopArtistRow({ artist }: { artist: ListeningStatsArtist }) {
+  const { t } = useTranslation('history');
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/20 bg-background/25 px-3 py-3">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-foreground">
-          {artist.artist || 'Unknown Artist'}
+          {artist.artist || t('unknownArtist', { ns: 'common' })}
         </p>
         <p className="text-[11px] text-muted-foreground/65">
           {formatListenTime(artist.listenedSeconds)}
         </p>
       </div>
       <span className="shrink-0 text-xs font-medium text-foreground">
-        {artist.playCount} plays
+        {t('plays', { count: artist.playCount })}
       </span>
     </div>
   );

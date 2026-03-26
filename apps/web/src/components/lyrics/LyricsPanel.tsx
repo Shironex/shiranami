@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useLyricsStore } from '@/stores/useLyricsStore';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ function findActiveLine(lines: Array<{ time: number }>, currentTime: number): nu
 }
 
 export function LyricsPanel() {
+  const { t } = useTranslation('lyrics');
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const currentTime = usePlayerStore(s => s.currentTime);
 
@@ -56,7 +58,7 @@ export function LyricsPanel() {
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-2.5 text-muted-foreground/50">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="text-xs font-medium">Finding lyrics...</span>
+          <span className="text-xs font-medium">{t('finding')}</span>
         </div>
       </div>
     );
@@ -99,7 +101,7 @@ export function LyricsPanel() {
     content = (
       <div className="flex-1 flex flex-col items-center justify-center gap-3">
         <Music2 className="w-7 h-7 text-muted-foreground/20" />
-        <p className="text-xs text-muted-foreground/30 font-medium">No lyrics found</p>
+        <p className="text-xs text-muted-foreground/30 font-medium">{t('notFound')}</p>
       </div>
     );
   }
@@ -108,7 +110,7 @@ export function LyricsPanel() {
     <div className="flex flex-col h-full">
       <div className="px-5 py-3.5 border-b border-border/20 shrink-0">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
-          Lyrics
+          {t('title')}
         </h2>
       </div>
       {content}

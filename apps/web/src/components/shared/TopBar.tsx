@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Minus, Square, Copy, X, Plus, FolderOpen, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 
-const VIEW_TITLES: Record<string, string> = {
-  library: 'Library',
-  playlists: 'Playlists',
-  favorites: 'Favorites',
-  search: 'Search',
-  'import-playlist': 'Import Playlist',
-  radio: 'Radio',
-  settings: 'Settings',
+const VIEW_TITLE_KEYS: Record<string, string> = {
+  library: 'library',
+  playlists: 'playlists',
+  favorites: 'favorites',
+  search: 'search',
+  'import-playlist': 'importPlaylist',
+  radio: 'radio',
+  settings: 'settings',
 };
 
 interface TopBarProps {
@@ -21,6 +22,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
+  const { t } = useTranslation('topbar');
   const activeView = useAppStore(s => s.activeView);
   const [isMaximized, setIsMaximized] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -54,7 +56,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
       {/* Page title */}
       <div className="no-drag flex items-center px-5">
         <h1 className="font-display text-sm font-semibold text-foreground">
-          {VIEW_TITLES[activeView] || 'Library'}
+          {t(VIEW_TITLE_KEYS[activeView] || 'library', { ns: 'sidebar' })}
         </h1>
       </div>
 
@@ -74,7 +76,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
             )}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>{isScanning ? 'Scanning...' : 'Add'}</span>
+            <span>{isScanning ? t('scanning') : t('add')}</span>
           </button>
 
           {dropdownOpen && (
@@ -84,14 +86,14 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <FolderOpen className="w-4 h-4 text-muted-foreground" />
-                Add Folder
+                {t('addFolder')}
               </button>
               <button
                 onClick={() => { onAddFile?.(); setDropdownOpen(false); }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <File className="w-4 h-4 text-muted-foreground" />
-                Add File
+                {t('addFile')}
               </button>
             </div>
           )}
@@ -105,7 +107,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
             type="button"
             onClick={handleMinimize}
             className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
-            aria-label="Minimize"
+            aria-label={t('minimize')}
           >
             <Minus className="h-3.5 w-3.5" />
           </button>
@@ -113,7 +115,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
             type="button"
             onClick={handleMaximize}
             className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={isMaximized ? 'Restore' : 'Maximize'}
+            aria-label={isMaximized ? t('restore') : t('maximize')}
           >
             {isMaximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
           </button>
@@ -125,7 +127,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
               'text-muted-foreground/55 transition-colors',
               'hover:bg-red-500/85 hover:text-white'
             )}
-            aria-label="Close"
+            aria-label={t('close')}
           >
             <X className="h-3.5 w-3.5" />
           </button>

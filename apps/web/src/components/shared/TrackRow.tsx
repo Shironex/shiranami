@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { type Track } from '@/stores/usePlayerStore';
 import { Heart, Play, X } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
@@ -30,6 +31,7 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
     onRemoveFromPlaylist,
     showAddToPlaylist,
   } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
+  const { t } = useTranslation('contextMenu');
   const track = queue[index];
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
 
@@ -104,7 +106,7 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
                 ? 'text-red-400 hover:text-red-300'
                 : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
             )}
-            aria-label={track.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           >
             <Heart
               className={cn('w-3.5 h-3.5 transition-all duration-150', track.isFavorite && 'fill-current')}
@@ -120,7 +122,7 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
               onRemoveFromPlaylist(track.id);
             }}
             className="shrink-0 p-1 rounded-md text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors duration-150"
-            aria-label="Remove from playlist"
+            aria-label={t('removeFromPlaylist')}
           >
             <X className="w-3.5 h-3.5" />
           </motion.button>

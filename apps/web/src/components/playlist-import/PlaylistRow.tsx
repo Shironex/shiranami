@@ -9,6 +9,7 @@ import {
   Pause,
 } from 'lucide-react';
 import { type RowComponentProps } from 'react-window';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import {
@@ -41,24 +42,30 @@ function StatusIcon({ track }: { track: PlaylistTrack }) {
   }
 }
 
-function statusLabel(status: PlaylistTrackStatus): string {
-  switch (status) {
-    case 'downloading':
-      return 'Downloading';
-    case 'converting':
-      return 'Converting';
-    case 'done':
-      return 'Done';
-    case 'error':
-      return 'Failed';
-    case 'skipped':
-      return 'Already in library';
-    default:
-      return 'Waiting';
-  }
+function useStatusLabel() {
+  const { t } = useTranslation('import');
+  return (status: PlaylistTrackStatus): string => {
+    switch (status) {
+      case 'downloading':
+        return t('statusDownloading');
+      case 'converting':
+        return t('statusConverting');
+      case 'done':
+        return t('statusDone');
+      case 'error':
+        return t('statusFailed');
+      case 'skipped':
+        return t('statusAlreadyInLibrary');
+      default:
+        return t('statusWaiting');
+    }
+  };
 }
 
 export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
+  const { t } = useTranslation('import');
+  const { t: tSearch } = useTranslation('search');
+  const statusLabel = useStatusLabel();
   const {
     index,
     style,
@@ -94,7 +101,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
         <button
           onClick={() => handlePreview(result)}
           className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
-          title={isPreviewPlaying(result) ? 'Pause preview' : 'Preview'}
+          title={isPreviewPlaying(result) ? tSearch('pausePreview') : tSearch('preview')}
         >
           {result.thumbnail ? (
             <img src={result.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
@@ -153,7 +160,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           <button
             onClick={() => handleRemoveTrack(playlistTrack.id)}
             className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-            title="Remove from list"
+            title={t('removeFromList')}
           >
             <X className="w-3.5 h-3.5" />
           </button>

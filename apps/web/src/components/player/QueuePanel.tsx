@@ -1,4 +1,5 @@
 import { memo, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -14,6 +15,7 @@ interface QueueRowProps {
 }
 
 function QueueRow(props: RowComponentProps<QueueRowProps>) {
+  const { t } = useTranslation('queue');
   const { index, style, upNext, queueIndexOffset, onPlay, onRemove } =
     props as RowComponentProps<QueueRowProps> & QueueRowProps;
 
@@ -49,7 +51,7 @@ function QueueRow(props: RowComponentProps<QueueRowProps>) {
           whileTap={{ scale: 0.75 }}
           onClick={(e) => onRemove(e, actualQueueIndex)}
           className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
-          aria-label="Remove from queue"
+          aria-label={t('remove')}
         >
           <X className="w-3 h-3" />
         </motion.button>
@@ -59,6 +61,7 @@ function QueueRow(props: RowComponentProps<QueueRowProps>) {
 }
 
 export function QueuePanel() {
+  const { t } = useTranslation('queue');
   const queue = usePlayerStore(s => s.queue);
   const queueIndex = usePlayerStore(s => s.queueIndex);
   const currentTrack = usePlayerStore(s => s.currentTrack);
@@ -99,7 +102,7 @@ export function QueuePanel() {
       {/* Header */}
       <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
-          Queue
+          {t('title')}
         </h2>
         {queue.length > 0 && (
           <button
@@ -107,7 +110,7 @@ export function QueuePanel() {
             className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
           >
             <Trash2 className="w-3 h-3" />
-            Clear
+            {t('clear')}
           </button>
         )}
       </div>
@@ -116,7 +119,7 @@ export function QueuePanel() {
       {queue.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
           <Music className="w-7 h-7 text-muted-foreground/20" />
-          <p className="text-xs text-muted-foreground/30 font-medium">Queue is empty</p>
+          <p className="text-xs text-muted-foreground/30 font-medium">{t('empty')}</p>
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
@@ -124,7 +127,7 @@ export function QueuePanel() {
           {currentTrack && queueIndex >= 0 && (
             <div className="shrink-0 px-3 py-2">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
-                Now Playing
+                {t('nowPlaying')}
               </p>
               <QueueItem
                 track={currentTrack}
@@ -142,7 +145,7 @@ export function QueuePanel() {
             <>
               <div className="shrink-0 px-3 pt-2">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
-                  Up Next ({upNext.length})
+                  {t('upNext', { count: upNext.length })}
                 </p>
               </div>
               <div className="flex-1 min-h-0 px-3">
@@ -179,6 +182,7 @@ interface QueueItemProps {
 }
 
 const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, onPlay, onRemove }: QueueItemProps) {
+  const { t } = useTranslation('queue');
   return (
     <div
       className={cn(
@@ -223,7 +227,7 @@ const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, o
         whileTap={{ scale: 0.75 }}
         onClick={(e) => onRemove(e, index)}
         className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
-        aria-label="Remove from queue"
+        aria-label={t('remove')}
       >
         <X className="w-3 h-3" />
       </motion.button>

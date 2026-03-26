@@ -1,11 +1,12 @@
+import i18n from '@/lib/i18n';
 import type { ListeningActivityPoint, ListeningStatsSummary } from '@/types/electron';
 
 export type HistoryRange = '7d' | '30d' | 'all';
 
-export const HISTORY_RANGES: Array<{ id: HistoryRange; label: string }> = [
-  { id: '7d', label: '7 Days' },
-  { id: '30d', label: '30 Days' },
-  { id: 'all', label: 'All Time' },
+export const HISTORY_RANGES: Array<{ id: HistoryRange; labelKey: string }> = [
+  { id: '7d', labelKey: 'range7d' },
+  { id: '30d', labelKey: 'range30d' },
+  { id: 'all', labelKey: 'rangeAll' },
 ];
 
 export const EMPTY_SUMMARY: ListeningStatsSummary = {
@@ -29,9 +30,9 @@ export function getSinceForRange(range: HistoryRange): string | null {
 }
 
 export function getRangeCopy(range: HistoryRange): string {
-  if (range === '7d') return 'Last 7 days';
-  if (range === '30d') return 'Last 30 days';
-  return 'All time';
+  if (range === '7d') return i18n.t('rangeCopy7d', { ns: 'history' });
+  if (range === '30d') return i18n.t('rangeCopy30d', { ns: 'history' });
+  return i18n.t('rangeCopyAll', { ns: 'history' });
 }
 
 export function buildActivitySeries(
@@ -75,12 +76,12 @@ export function formatTotalTime(minutes: number): string {
 
 export function formatListenTime(seconds: number): string {
   if (seconds >= 3600) {
-    return `${(seconds / 3600).toFixed(1)}h listened`;
+    return i18n.t('listenedHours', { ns: 'history', hours: (seconds / 3600).toFixed(1) });
   }
   if (seconds >= 60) {
-    return `${Math.round(seconds / 60)}m listened`;
+    return i18n.t('listenedMinutes', { ns: 'history', minutes: Math.round(seconds / 60) });
   }
-  return `${Math.max(1, Math.round(seconds))}s listened`;
+  return i18n.t('listenedSeconds', { ns: 'history', seconds: Math.max(1, Math.round(seconds)) });
 }
 
 export function formatPlayedAt(value: string): string {

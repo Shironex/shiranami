@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ const TimeDisplay = memo(function TimeDisplay() {
 });
 
 export function PlayerBar() {
+  const { t } = useTranslation('player');
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
@@ -99,7 +101,7 @@ export function PlayerBar() {
                   {isRadioTrack(currentTrack.filePath) && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-semibold uppercase tracking-wider shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                      Live
+                      {t('live')}
                     </span>
                   )}
                 </div>
@@ -120,13 +122,13 @@ export function PlayerBar() {
                         ? 'text-pink-400 hover:text-pink-300'
                         : 'text-muted-foreground/40 hover:text-muted-foreground'
                     )}
-                    aria-label={currentTrack.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    aria-label={currentTrack.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                   >
                     <Heart className={cn('w-4 h-4', currentTrack.isFavorite && 'fill-current')} />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  {currentTrack.isFavorite ? 'Unfavorite (L)' : 'Favorite (L)'}
+                  {currentTrack.isFavorite ? t('unfavorite') : t('favorite')}
                 </TooltipContent>
               </Tooltip>
             )}
@@ -157,12 +159,12 @@ export function PlayerBar() {
                   <button
                     onClick={() => void setCompactMode(true)}
                     className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
-                    aria-label="Compact mode"
+                    aria-label={t('compactMode')}
                   >
                     <Minimize2 className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">{`Compact mode (${MOD}+Shift+M)`}</TooltipContent>
+                <TooltipContent side="top">{t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -174,12 +176,12 @@ export function PlayerBar() {
                         ? 'text-primary bg-primary/10'
                         : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
                     )}
-                    aria-label="Toggle visualizer"
+                    aria-label={t('toggleVisualizer')}
                   >
                     <AudioLines className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">Visualizer (V)</TooltipContent>
+                <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -191,12 +193,12 @@ export function PlayerBar() {
                         ? 'text-primary bg-primary/10'
                         : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
                     )}
-                    aria-label="Toggle lyrics"
+                    aria-label={t('toggleLyrics')}
                   >
                     <Mic2 className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">{`Lyrics (${MOD}+L)`}</TooltipContent>
+                <TooltipContent side="top">{t('lyricsTooltip', { shortcut: `${MOD}+L` })}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -208,12 +210,12 @@ export function PlayerBar() {
                         ? 'text-primary bg-primary/10'
                         : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
                     )}
-                    aria-label="Toggle queue"
+                    aria-label={t('toggleQueue')}
                   >
                     <ListMusic className="w-3.5 h-3.5" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">{`Queue (${MOD}+Q)`}</TooltipContent>
+                <TooltipContent side="top">{t('queueTooltip', { shortcut: `${MOD}+Q` })}</TooltipContent>
               </Tooltip>
             </div>
             <VolumeControl sliderClassName="w-20" />

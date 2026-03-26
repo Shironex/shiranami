@@ -1,4 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useRadioStore, type RadioSearchTab } from '@/stores/useRadioStore';
@@ -48,7 +50,7 @@ function stationToTrack(station: Station): Track {
   return {
     id: `radio:${station.id}`,
     title: station.name,
-    artist: 'Live Radio',
+    artist: i18n.t('liveRadio', { ns: 'common' }),
     album: [station.country, station.codec, station.bitrate ? `${station.bitrate}kbps` : '']
       .filter(Boolean)
       .join(' \u00B7 '),
@@ -172,7 +174,7 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
               ? 'text-red-400 hover:text-red-300'
               : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
           )}
-          aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={isFav ? i18n.t('removeFavorite', { ns: 'radio' }) : i18n.t('addFavorite', { ns: 'radio' })}
         >
           <Heart className={cn('w-3.5 h-3.5 transition-all duration-150', isFav && 'fill-current')} />
         </motion.button>
@@ -203,10 +205,10 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
   );
 }
 
-const TAB_ITEMS: Array<{ id: RadioSearchTab; label: string; icon: typeof Radio }> = [
-  { id: 'top', label: 'Top Stations', icon: Star },
-  { id: 'country', label: 'By Country', icon: Globe },
-  { id: 'favorites', label: 'Favorites', icon: Heart },
+const TAB_IDS: Array<{ id: RadioSearchTab; labelKey: string; icon: typeof Radio }> = [
+  { id: 'top', labelKey: 'topStations', icon: Star },
+  { id: 'country', labelKey: 'byCountry', icon: Globe },
+  { id: 'favorites', labelKey: 'favorites', icon: Heart },
 ];
 
 const RADIO_SKELETON_ROWS = 10;
@@ -231,6 +233,7 @@ function StationRowSkeleton() {
 }
 
 export function RadioView() {
+  const { t } = useTranslation('radio');
   const stations = useRadioStore((s) => s.stations);
   const favorites = useRadioStore((s) => s.favorites);
   const isLoading = useRadioStore((s) => s.isLoading);
@@ -332,7 +335,7 @@ export function RadioView() {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search radio stations..."
+            placeholder={t('searchPlaceholder')}
             className={cn(
               'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border border-border/50',
               'text-foreground placeholder:text-muted-foreground/50',
@@ -347,7 +350,7 @@ export function RadioView() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mt-3">
-          {TAB_ITEMS.map((tab) => {
+          {TAB_IDS.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
             return (
@@ -362,7 +365,7 @@ export function RadioView() {
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}
@@ -375,7 +378,7 @@ export function RadioView() {
                 onValueChange={handleCountryChange}
               >
                 <SelectTrigger className="w-[172px]">
-                  <SelectValue placeholder="Select country" />
+                  <SelectValue placeholder={t('selectCountry')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -406,7 +409,7 @@ export function RadioView() {
               }}
               className="mt-4 px-4 py-2 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Retry
+              {t('retry', { ns: 'common' })}
             </button>
           </div>
         </div>
@@ -425,10 +428,10 @@ export function RadioView() {
               <Heart className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
               <div>
                 <p className="font-display text-base font-medium text-muted-foreground">
-                  No favorite stations yet
+                  {t('noFavoriteStationsTitle')}
                 </p>
                 <p className="text-sm text-muted-foreground/50 mt-1">
-                  Click the heart icon on any station to save it here
+                  {t('noFavoriteStationsSubtitle')}
                 </p>
               </div>
             </>
@@ -437,10 +440,10 @@ export function RadioView() {
               <Radio className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
               <div>
                 <p className="font-display text-base font-medium text-muted-foreground">
-                  No stations found
+                  {t('noStationsTitle')}
                 </p>
                 <p className="text-sm text-muted-foreground/50 mt-1">
-                  Try a different search or browse by country
+                  {t('noStationsSubtitle')}
                 </p>
               </div>
             </>

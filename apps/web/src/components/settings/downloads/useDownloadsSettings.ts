@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
+
+const UNKNOWN_ERROR = () => i18n.t('unknownError', { ns: 'common' });
 
 export function useDownloadsSettings() {
   const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
@@ -24,16 +27,14 @@ export function useDownloadsSettings() {
   const [downloadLocationIsDefault, setDownloadLocationIsDefault] = useState(true);
   const [downloadLocationUpdating, setDownloadLocationUpdating] = useState(false);
 
-  const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
-  const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
-  const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
-  const startDependencyInstall = useDownloadStore((s) => s.startDependencyInstall);
-  const stopDependencyInstall = useDownloadStore((s) => s.stopDependencyInstall);
+  const isDependencyInstallInProgress = useDownloadStore(s => s.isDependencyInstallInProgress);
+  const dependencyInstallProgress = useDownloadStore(s => s.dependencyInstallProgress);
+  const dependencyInstallLabel = useDownloadStore(s => s.dependencyInstallLabel);
+  const startDependencyInstall = useDownloadStore(s => s.startDependencyInstall);
+  const stopDependencyInstall = useDownloadStore(s => s.stopDependencyInstall);
 
-  const isCheckingDownloadTools =
-    ytdlpInstalled === null || ffmpegInstalled === null;
-  const hasMissingDownloadTools =
-    ytdlpInstalled === false || ffmpegInstalled === false;
+  const isCheckingDownloadTools = ytdlpInstalled === null || ffmpegInstalled === null;
+  const hasMissingDownloadTools = ytdlpInstalled === false || ffmpegInstalled === false;
   const dependenciesInstalling = isDependencyInstallInProgress;
 
   const refreshDownloadToolStatus = useCallback(async () => {
@@ -122,16 +123,22 @@ export function useDownloadsSettings() {
     try {
       const result = await window.electronAPI.downloader.installYtDlp();
       if (result.success) {
-        toast.success('yt-dlp installed successfully', { id: 'ytdlp-install' });
+        toast.success(i18n.t('ytdlpInstalled', { ns: 'toast' }), { id: 'ytdlp-install' });
         await refreshDownloadToolStatus();
       } else {
-        toast.error(`Failed to install yt-dlp: ${result.error ?? 'Unknown error'}`, {
-          id: 'ytdlp-install',
-        });
+        toast.error(
+          i18n.t('failedInstallYtdlp', { ns: 'toast', error: result.error ?? UNKNOWN_ERROR() }),
+          {
+            id: 'ytdlp-install',
+          }
+        );
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Installation failed';
-      toast.error(`Failed to install yt-dlp: ${msg}`, { id: 'ytdlp-install' });
+      const msg =
+        err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
+      toast.error(i18n.t('failedInstallYtdlp', { ns: 'toast', error: msg }), {
+        id: 'ytdlp-install',
+      });
     } finally {
       setYtdlpInstalling(false);
     }
@@ -145,16 +152,22 @@ export function useDownloadsSettings() {
     try {
       const result = await window.electronAPI.downloader.installFfmpeg();
       if (result.success) {
-        toast.success('ffmpeg installed successfully', { id: 'ffmpeg-install' });
+        toast.success(i18n.t('ffmpegInstalled', { ns: 'toast' }), { id: 'ffmpeg-install' });
         await refreshDownloadToolStatus();
       } else {
-        toast.error(`Failed to install ffmpeg: ${result.error ?? 'Unknown error'}`, {
-          id: 'ffmpeg-install',
-        });
+        toast.error(
+          i18n.t('failedInstallFfmpeg', { ns: 'toast', error: result.error ?? UNKNOWN_ERROR() }),
+          {
+            id: 'ffmpeg-install',
+          }
+        );
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Installation failed';
-      toast.error(`Failed to install ffmpeg: ${msg}`, { id: 'ffmpeg-install' });
+      const msg =
+        err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
+      toast.error(i18n.t('failedInstallFfmpeg', { ns: 'toast', error: msg }), {
+        id: 'ffmpeg-install',
+      });
     } finally {
       setFfmpegInstalling(false);
     }
@@ -169,21 +182,22 @@ export function useDownloadsSettings() {
       const snapshot = await refreshDownloadToolStatus();
 
       if (result.success) {
-        toast.success('Download tools installed successfully', {
+        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
           id: 'dependency-install',
         });
       } else if (snapshot.ytdlpInstalled) {
-        toast.error(result.error ?? 'ffmpeg could not be installed completely', {
+        toast.error(result.error ?? i18n.t('failedInstallFfmpeg', { ns: 'toast', error: '' }), {
           id: 'dependency-install',
         });
       } else {
-        toast.error(result.error ?? 'Failed to install missing tools', {
+        toast.error(result.error ?? i18n.t('failedInstallTools', { ns: 'toast' }), {
           id: 'dependency-install',
         });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Installation failed';
-      toast.error(`Failed to install missing tools: ${msg}`, {
+      const msg =
+        err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
+      toast.error(i18n.t('failedInstallToolsError', { ns: 'toast', error: msg }), {
         id: 'dependency-install',
       });
       await refreshDownloadToolStatus();
@@ -204,9 +218,14 @@ export function useDownloadsSettings() {
       setDownloadLocation(result.path);
       setDownloadLocationDefaultPath(result.defaultPath);
       setDownloadLocationIsDefault(result.isDefault);
-      toast.success('Download location updated', { id: 'download-location' });
+      toast.success(i18n.t('downloadLocationUpdated', { ns: 'toast' }), {
+        id: 'download-location',
+      });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update download location';
+      const message =
+        err instanceof Error
+          ? err.message
+          : i18n.t('failedUpdateDownloadLocation', { ns: 'toast' });
       toast.error(message, { id: 'download-location' });
     } finally {
       setDownloadLocationUpdating(false);
@@ -222,9 +241,10 @@ export function useDownloadsSettings() {
       setDownloadLocation(result.path);
       setDownloadLocationDefaultPath(result.defaultPath);
       setDownloadLocationIsDefault(result.isDefault);
-      toast.success('Download location reset to default', { id: 'download-location' });
+      toast.success(i18n.t('downloadLocationReset', { ns: 'toast' }), { id: 'download-location' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reset download location';
+      const message =
+        err instanceof Error ? err.message : i18n.t('failedResetDownloadLocation', { ns: 'toast' });
       toast.error(message, { id: 'download-location' });
     } finally {
       setDownloadLocationUpdating(false);

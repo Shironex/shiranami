@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ const TimeDisplay = memo(function TimeDisplay() {
 });
 
 export function CompactPlayer() {
+  const { t } = useTranslation('compact');
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
   const setCompactMode = useAppStore(s => s.setCompactMode);
@@ -52,7 +54,7 @@ export function CompactPlayer() {
         <div className="flex min-w-0 items-center gap-2">
           <div className="size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(167,139,250,0.45)]" />
           <span className="shrink-0 font-display text-[11px] font-semibold text-foreground">
-            Compact Mode
+            {t('title')}
           </span>
           {currentTrack && (
             <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground/70">
@@ -73,13 +75,13 @@ export function CompactPlayer() {
                     ? 'bg-primary/15 text-primary hover:bg-primary/20'
                     : 'text-muted-foreground/65 hover:bg-accent hover:text-foreground'
                 )}
-                aria-label={compactAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+                aria-label={compactAlwaysOnTop ? t('disableAlwaysOnTop') : t('enableAlwaysOnTop')}
               >
                 <Pin className="size-3.25" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              {compactAlwaysOnTop ? 'Disable always on top' : 'Keep on top'}
+              {compactAlwaysOnTop ? t('disableOnTop') : t('keepOnTop')}
             </TooltipContent>
           </Tooltip>
 
@@ -89,12 +91,12 @@ export function CompactPlayer() {
                 type="button"
                 onClick={handleExitCompact}
                 className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Exit compact mode"
+                aria-label={t('exitCompactMode')}
               >
                 <Maximize2 className="size-3.25" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Exit compact mode</TooltipContent>
+            <TooltipContent side="bottom">{t('exitCompactMode')}</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -103,19 +105,19 @@ export function CompactPlayer() {
                 type="button"
                 onClick={handleMinimize}
                 className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Minimize"
+                aria-label={t('minimize')}
               >
                 <Minimize2 className="size-3.25" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Minimize</TooltipContent>
+            <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
           </Tooltip>
 
           <button
             type="button"
             onClick={handleClose}
             className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-red-500/85 hover:text-white"
-            aria-label="Close"
+            aria-label={t('close')}
           >
             <X className="size-3.25" />
           </button>
@@ -139,10 +141,10 @@ export function CompactPlayer() {
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="min-w-0">
               <p className={cn('truncate text-sm font-semibold text-foreground', !currentTrack && 'text-muted-foreground')}>
-                {currentTrack?.title ?? 'Nothing playing'}
+                {currentTrack?.title ?? t('nothingPlaying')}
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {currentTrack ? currentTrack.artist : 'Start playback to keep a smaller player on screen.'}
+                {currentTrack ? currentTrack.artist : t('idleSubtitle')}
               </p>
               {currentTrack?.album && (
                 <p className="mt-1 truncate text-[11px] text-muted-foreground/65">

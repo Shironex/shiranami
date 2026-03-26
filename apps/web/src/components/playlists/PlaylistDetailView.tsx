@@ -1,8 +1,18 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import { ArrowLeft, Play, Trash2, ListMusic, Loader2, ImagePlus, Sparkles, XCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Play,
+  Trash2,
+  ListMusic,
+  Loader2,
+  ImagePlus,
+  Sparkles,
+  XCircle,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -11,6 +21,8 @@ import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export function PlaylistDetailView() {
+  const { t } = useTranslation('playlists');
+  const { t: tToast } = useTranslation('toast');
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -31,7 +43,7 @@ export function PlaylistDetailView() {
   const coverMenuRef = useRef<HTMLDivElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
+  const suggestedCoverArt = tracks.find(track => track.albumArt)?.albumArt;
 
   // Sync isFavorite from the store so hearts update in real-time
   const displayTracks = useMemo(() => {
@@ -53,11 +65,11 @@ export function PlaylistDetailView() {
       setPlaylist(pl);
       setTracks(tr);
     } catch {
-      toast.error('Failed to load playlist');
+      toast.error(tToast('failedLoadPlaylist'));
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPlaylistId]);
+  }, [selectedPlaylistId, tToast]);
 
   useEffect(() => {
     loadPlaylist();
@@ -97,12 +109,12 @@ export function PlaylistDetailView() {
       try {
         await window.electronAPI.db.playlists.removeTrack(selectedPlaylistId, trackId);
         setTracks(prev => prev.filter(t => t.id !== trackId));
-        toast.success('Removed from playlist');
+        toast.success(tToast('removedFromPlaylist'));
       } catch {
-        toast.error('Failed to remove track');
+        toast.error(tToast('failedRemoveTrack'));
       }
     },
-    [selectedPlaylistId]
+    [selectedPlaylistId, tToast]
   );
 
   const handleStartEdit = useCallback(() => {
@@ -124,15 +136,15 @@ export function PlaylistDetailView() {
     }
     try {
       await window.electronAPI.db.playlists.update(selectedPlaylistId, { name });
-      setPlaylist(prev => prev ? { ...prev, name } : prev);
+      setPlaylist(prev => (prev ? { ...prev, name } : prev));
       notifyPlaylistsChanged();
-      toast.success('Playlist renamed');
+      toast.success(tToast('playlistRenamed'));
     } catch {
-      toast.error('Failed to rename playlist');
+      toast.error(tToast('failedRename'));
     } finally {
       setIsEditing(false);
     }
-  }, [editName, selectedPlaylistId, playlist]);
+  }, [editName, selectedPlaylistId, playlist, tToast]);
 
   const handleNameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -147,12 +159,12 @@ export function PlaylistDetailView() {
     try {
       await window.electronAPI.db.playlists.delete(selectedPlaylistId);
       notifyPlaylistsChanged();
-      toast.success('Playlist deleted');
+      toast.success(tToast('playlistDeleted'));
       selectPlaylist(null);
     } catch {
-      toast.error('Failed to delete playlist');
+      toast.error(tToast('failedDeletePlaylist'));
     }
-  }, [selectedPlaylistId, selectPlaylist]);
+  }, [selectedPlaylistId, selectPlaylist, tToast]);
 
   const updateCoverArt = useCallback(
     async (coverArt: string) => {
@@ -161,17 +173,17 @@ export function PlaylistDetailView() {
       setIsUpdatingCover(true);
       try {
         await window.electronAPI.db.playlists.update(selectedPlaylistId, { coverArt });
-        setPlaylist((prev) => (prev ? { ...prev, coverArt } : prev));
+        setPlaylist(prev => (prev ? { ...prev, coverArt } : prev));
         notifyPlaylistsChanged();
         setShowCoverMenu(false);
-        toast.success(coverArt ? 'Playlist cover updated' : 'Playlist cover cleared');
+        toast.success(coverArt ? tToast('coverUpdated') : tToast('coverCleared'));
       } catch {
-        toast.error('Failed to update playlist cover');
+        toast.error(tToast('failedUpdateCover'));
       } finally {
         setIsUpdatingCover(false);
       }
     },
-    [selectedPlaylistId]
+    [selectedPlaylistId, tToast]
   );
 
   const handleCoverFileSelected = useCallback(
@@ -184,17 +196,17 @@ export function PlaylistDetailView() {
       reader.onload = async () => {
         const result = typeof reader.result === 'string' ? reader.result : '';
         if (!result) {
-          toast.error('Failed to read image file');
+          toast.error(tToast('failedReadImage'));
           return;
         }
         await updateCoverArt(result);
       };
       reader.onerror = () => {
-        toast.error('Failed to read image file');
+        toast.error(tToast('failedReadImage'));
       };
       reader.readAsDataURL(file);
     },
-    [updateCoverArt]
+    [updateCoverArt, tToast]
   );
 
   const handlePickCustomCover = useCallback(() => {
@@ -221,9 +233,9 @@ export function PlaylistDetailView() {
   if (!playlist) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-        <p className="text-sm text-muted-foreground">Playlist not found</p>
+        <p className="text-sm text-muted-foreground">{t('notFound')}</p>
         <button onClick={handleBack} className="text-xs text-primary hover:underline">
-          Go back
+          {t('goBack')}
         </button>
       </div>
     );
@@ -239,7 +251,7 @@ export function PlaylistDetailView() {
             whileTap={{ scale: 0.9 }}
             onClick={handleBack}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            aria-label="Back to playlists"
+            aria-label={t('back')}
           >
             <ArrowLeft className="w-4 h-4" />
           </motion.button>
@@ -253,7 +265,7 @@ export function PlaylistDetailView() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40"
           >
             <Play className="w-3.5 h-3.5 fill-current" />
-            Play All
+            {t('playAll')}
           </motion.button>
 
           <div className="relative">
@@ -261,7 +273,7 @@ export function PlaylistDetailView() {
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowDeleteConfirm(true)}
               className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              aria-label="Delete playlist"
+              aria-label={t('deletePlaylist')}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </motion.button>
@@ -275,19 +287,19 @@ export function PlaylistDetailView() {
                   transition={{ duration: 0.15 }}
                   className="absolute right-0 top-full mt-1 w-52 p-3 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
                 >
-                  <p className="text-xs text-foreground/80 mb-2">Delete this playlist?</p>
+                  <p className="text-xs text-foreground/80 mb-2">{t('deleteConfirm')}</p>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleDelete}
                       className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
                     >
-                      Delete
+                      {t('delete', { ns: 'common' })}
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                     >
-                      Cancel
+                      {t('cancel', { ns: 'common' })}
                     </button>
                   </div>
                 </motion.div>
@@ -300,10 +312,10 @@ export function PlaylistDetailView() {
         <div className="flex items-center gap-4">
           <div ref={coverMenuRef} className="relative shrink-0">
             <button
-              onClick={() => setShowCoverMenu((open) => !open)}
+              onClick={() => setShowCoverMenu(open => !open)}
               className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
               disabled={isUpdatingCover}
-              title="Edit playlist cover"
+              title={t('editCover')}
             >
               {playlist.coverArt ? (
                 <img src={playlist.coverArt} alt="" className="w-full h-full object-cover" />
@@ -342,7 +354,7 @@ export function PlaylistDetailView() {
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <ImagePlus className="w-4 h-4 text-muted-foreground/60" />
-                    Upload Custom Image
+                    {t('uploadCustomImage')}
                   </button>
 
                   {suggestedCoverArt && (
@@ -351,7 +363,7 @@ export function PlaylistDetailView() {
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
                     >
                       <Sparkles className="w-4 h-4 text-muted-foreground/60" />
-                      Use Track Artwork
+                      {t('useTrackArtwork')}
                     </button>
                   )}
 
@@ -361,7 +373,7 @@ export function PlaylistDetailView() {
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
                     >
                       <XCircle className="w-4 h-4" />
-                      Remove Cover
+                      {t('removeCover')}
                     </button>
                   )}
                 </motion.div>
@@ -382,13 +394,13 @@ export function PlaylistDetailView() {
               <button
                 onClick={handleStartEdit}
                 className="font-display text-lg font-semibold text-foreground truncate block text-left hover:text-primary transition-colors"
-                title="Click to rename"
+                title={t('clickToRename')}
               >
                 {playlist.name}
               </button>
             )}
             <p className="text-xs text-muted-foreground/50 mt-0.5">
-              {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+              {t('trackCount', { count: tracks.length })}
             </p>
           </div>
         </div>
@@ -399,8 +411,10 @@ export function PlaylistDetailView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <ListMusic className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No tracks yet</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Add tracks from your library</p>
+            <p className="font-display text-base font-medium text-muted-foreground">
+              {t('detailEmptyTitle')}
+            </p>
+            <p className="text-sm text-muted-foreground/50 mt-1">{t('detailEmptySubtitle')}</p>
           </div>
         </div>
       ) : (

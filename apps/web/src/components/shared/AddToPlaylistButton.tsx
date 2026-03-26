@@ -4,6 +4,7 @@ import { ListPlus, Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
 
@@ -13,6 +14,9 @@ interface AddToPlaylistButtonProps {
 }
 
 export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonProps) {
+  const { t } = useTranslation('contextMenu');
+  const { t: tToast } = useTranslation('toast');
+  const { t: tCommon } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +48,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
         const result = await window.electronAPI.db.playlists.getAll() as Playlist[];
         setPlaylists(result);
       } catch {
-        toast.error('Failed to load playlists');
+        toast.error(tToast('failedLoadPlaylists'));
       } finally {
         setIsLoading(false);
       }
@@ -56,10 +60,10 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
     if (!IS_ELECTRON) return;
     try {
       await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
-      toast.success(`Added to "${playlist.name}"`);
+      toast.success(tToast('addedToPlaylist', { name: playlist.name }));
       setIsOpen(false);
     } catch {
-      toast.error('Failed to add to playlist');
+      toast.error(tToast('failedAddToPlaylist'));
     }
   }, [trackId]);
 
@@ -71,12 +75,12 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
       const playlist = await window.electronAPI.db.playlists.create({ name }) as Playlist;
       await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
       notifyPlaylistsChanged();
-      toast.success(`Created "${playlist.name}" and added track`);
+      toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
       setIsOpen(false);
       setShowNewForm(false);
       setNewName('');
     } catch {
-      toast.error('Failed to create playlist');
+      toast.error(tToast('failedCreatePlaylist'));
     }
   }, [newName, trackId]);
 
@@ -99,7 +103,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
           'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60',
           className,
         )}
-        aria-label="Add to playlist"
+        aria-label={t('addToPlaylistAria')}
       >
         <ListPlus className="w-3.5 h-3.5" />
       </motion.button>
@@ -122,7 +126,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
               <>
                 <div className="max-h-40 overflow-y-auto scrollbar-thin">
                   {playlists.length === 0 && !showNewForm && (
-                    <p className="px-3 py-2 text-xs text-muted-foreground/50">No playlists</p>
+                    <p className="px-3 py-2 text-xs text-muted-foreground/50">{tCommon('noPlaylists')}</p>
                   )}
                   {playlists.map(pl => (
                     <button
@@ -145,7 +149,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
                         onChange={e => setNewName(e.target.value)}
                         onKeyDown={handleKeyDown}
                         onClick={e => e.stopPropagation()}
-                        placeholder="Name..."
+                        placeholder={tCommon('namePlaceholder')}
                         className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none min-w-0"
                       />
                       <button
@@ -153,7 +157,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
                         disabled={!newName.trim()}
                         className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
                       >
-                        Add
+                        {tCommon('add')}
                       </button>
                     </div>
                   ) : (
@@ -162,7 +166,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
                     >
                       <Plus className="w-3 h-3" />
-                      New Playlist
+                      {tCommon('newPlaylist')}
                     </button>
                   )}
                 </div>

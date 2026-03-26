@@ -9,10 +9,12 @@ import {
 } from 'lucide-react';
 import { List } from 'react-window';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 import { usePlaylistImport } from '@/hooks/usePlaylistImport';
 import { PlaylistRow } from './PlaylistRow';
 
 export function PlaylistImportView() {
+  const { t } = useTranslation('import');
   const inputRef = useRef<HTMLInputElement>(null);
   const {
     url, setUrl, tracks, isExtracting, extractProgress, isImporting,
@@ -34,7 +36,7 @@ export function PlaylistImportView() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Paste a YouTube or Spotify playlist URL..."
+            placeholder={t('urlPlaceholder')}
             disabled={isExtracting || isImporting}
             className={cn(
               'w-full pl-10 pr-24 py-2.5 rounded-xl text-sm bg-card border border-border/50',
@@ -53,7 +55,7 @@ export function PlaylistImportView() {
                 disabled={!url.trim()}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Extract
+                {t('extract')}
               </button>
             )}
           </div>
@@ -65,7 +67,7 @@ export function PlaylistImportView() {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               <span className="truncate">
-                Resolving track {extractProgress.current}/{extractProgress.total}: {extractProgress.trackName}
+                {t('resolvingTrack', { current: extractProgress.current, total: extractProgress.total, name: extractProgress.trackName })}
               </span>
             </div>
             <div className="mt-2 w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -81,7 +83,7 @@ export function PlaylistImportView() {
         {isExtracting && !extractProgress && (
           <div className="mt-3 max-w-2xl flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-            <span>Fetching playlist tracks...</span>
+            <span>{t('fetching')}</span>
           </div>
         )}
 
@@ -102,7 +104,7 @@ export function PlaylistImportView() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Download All ({pendingCount} tracks)
+                {t('downloadAll', { count: pendingCount })}
               </button>
             )}
             {isImporting && (
@@ -111,14 +113,14 @@ export function PlaylistImportView() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
               >
                 <X className="w-4 h-4" />
-                Cancel
+                {t('cancel')}
               </button>
             )}
             {(isImporting || isFinished) && (
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>
-                    {processedCount}/{totalCount} processed
+                    {t('processed', { done: processedCount, total: totalCount })}
                   </span>
                   {isImporting && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
@@ -133,9 +135,9 @@ export function PlaylistImportView() {
             <button
               onClick={handleReset}
               className="px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-              title="Start over"
+              title={t('startOver')}
             >
-              New Import
+              {t('newImport')}
             </button>
           </div>
         )}
@@ -156,10 +158,10 @@ export function PlaylistImportView() {
               </div>
               <div>
                 <p className="font-display text-sm font-medium text-muted-foreground">
-                  Import a playlist
+                  {t('emptyTitle')}
                 </p>
                 <p className="text-xs text-muted-foreground/50 mt-1 max-w-[280px]">
-                  Paste a YouTube or Spotify playlist URL above to fetch all tracks and download them to your library
+                  {t('emptySubtitle')}
                 </p>
               </div>
             </div>

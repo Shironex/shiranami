@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
 
@@ -60,6 +61,9 @@ function Divider() {
 }
 
 function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void }) {
+  const { t } = useTranslation('contextMenu');
+  const { t: tToast } = useTranslation('toast');
+  const { t: tCommon } = useTranslation('common');
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -97,7 +101,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
         const result = (await window.electronAPI.db.playlists.getAll()) as Playlist[];
         setPlaylists(result);
       } catch {
-        toast.error('Failed to load playlists');
+        toast.error(tToast('failedLoadPlaylists'));
       } finally {
         setIsLoading(false);
       }
@@ -119,10 +123,10 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
       if (!IS_ELECTRON) return;
       try {
         await window.electronAPI.db.playlists.addTrack(playlist.id, track.id);
-        toast.success(`Added to "${playlist.name}"`);
+        toast.success(tToast('addedToPlaylist', { name: playlist.name }));
         onClose();
       } catch {
-        toast.error('Failed to add to playlist');
+        toast.error(tToast('failedAddToPlaylist'));
       }
     },
     [track.id, onClose]
@@ -135,10 +139,10 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
       const playlist = (await window.electronAPI.db.playlists.create({ name })) as Playlist;
       await window.electronAPI.db.playlists.addTrack(playlist.id, track.id);
       notifyPlaylistsChanged();
-      toast.success(`Created "${playlist.name}" and added track`);
+      toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
       onClose();
     } catch {
-      toast.error('Failed to create playlist');
+      toast.error(tToast('failedCreatePlaylist'));
     }
   }, [newName, track.id, onClose]);
 
@@ -158,7 +162,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
         <span className="shrink-0 w-4 h-4 flex items-center justify-center text-muted-foreground/60">
           <ListPlus className="w-4 h-4" />
         </span>
-        Add to Playlist
+        {t('addToPlaylist')}
         <ChevronRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40" />
       </div>
 
@@ -178,7 +182,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
           <>
             <div className="max-h-40 overflow-y-auto scrollbar-thin">
               {playlists.length === 0 && !showNewForm && (
-                <p className="px-3 py-2 text-xs text-muted-foreground/50">No playlists</p>
+                <p className="px-3 py-2 text-xs text-muted-foreground/50">{tCommon('noPlaylists')}</p>
               )}
               {playlists.map((pl) => (
                 <button
@@ -208,7 +212,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
                       }
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    placeholder="Name..."
+                    placeholder={tCommon('namePlaceholder')}
                     className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none min-w-0"
                   />
                   <button
@@ -216,7 +220,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
                     disabled={!newName.trim()}
                     className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
                   >
-                    Add
+                    {tCommon('add')}
                   </button>
                 </div>
               ) : (
@@ -225,7 +229,7 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
                 >
                   <Plus className="w-3 h-3" />
-                  New Playlist
+                  {tCommon('newPlaylist')}
                 </button>
               )}
             </div>
@@ -238,6 +242,8 @@ function PlaylistSubmenu({ track, onClose }: { track: Track; onClose: () => void
 }
 
 export function TrackContextMenu({ track, position, onClose }: TrackContextMenuProps) {
+  const { t } = useTranslation('contextMenu');
+  const { t: tToast } = useTranslation('toast');
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -304,13 +310,13 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const handlePlayNext = useCallback(() => {
     playNext(track);
-    toast.success('Track will play next');
+    toast.success(tToast('trackPlayNext'));
     onClose();
   }, [track, playNext, onClose]);
 
   const handleAddToQueue = useCallback(() => {
     addToQueue([track]);
-    toast.success('Added to queue');
+    toast.success(tToast('addedToQueue'));
     onClose();
   }, [track, addToQueue, onClose]);
 
@@ -322,7 +328,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const handleShowInFolder = useCallback(() => {
     if (!IS_ELECTRON) return;
     window.electronAPI.shell.showInFolder(track.filePath).catch(() => {
-      toast.error('Failed to open file location');
+      toast.error(tToast('failedOpenLocation'));
     });
     onClose();
   }, [track.filePath, onClose]);
@@ -365,9 +371,9 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         }
       }
 
-      toast.success('Removed from library');
+      toast.success(tToast('removedFromLibrary'));
     } catch {
-      toast.error('Failed to remove track');
+      toast.error(tToast('failedRemoveTrack'));
     }
     onClose();
   }, [track, currentTrack, queue, queueIndex, removeFromLibrary, next, onClose]);
@@ -413,12 +419,12 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         }
       }
 
-      toast.success('Moved to recycle bin');
+      toast.success(tToast('movedToRecycle'));
     } catch {
       toast.error(
         fileMovedToTrash
-          ? 'File moved to recycle bin, but failed to remove track from library'
-          : 'Failed to move track to recycle bin'
+          ? tToast('recyclePartialFail')
+          : tToast('recycleFail')
       );
     }
     onClose();
@@ -442,12 +448,12 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
       >
         <MenuItem
           icon={<Play className="w-4 h-4" />}
-          label="Play Next"
+          label={t('playNext')}
           onClick={handlePlayNext}
         />
         <MenuItem
           icon={<ListPlus className="w-4 h-4" />}
-          label="Add to Queue"
+          label={t('addToQueue')}
           onClick={handleAddToQueue}
         />
 
@@ -461,7 +467,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
               className={cn('w-4 h-4', isFavorite && 'fill-current text-red-400')}
             />
           }
-          label={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+          label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           onClick={handleToggleFavorite}
         />
 
@@ -470,21 +476,21 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         {IS_ELECTRON && (
           <MenuItem
             icon={<FolderOpen className="w-4 h-4" />}
-            label={IS_MAC ? 'Show in Finder' : 'Show in Explorer'}
+            label={IS_MAC ? t('showInFinder') : t('showInExplorer')}
             onClick={handleShowInFolder}
           />
         )}
 
         <MenuItem
           icon={<Trash2 className="w-4 h-4" />}
-          label="Remove from Library"
+          label={t('removeFromLibrary')}
           onClick={handleRemoveFromLibrary}
           variant="destructive"
         />
         {IS_ELECTRON && (
           <MenuItem
             icon={<Trash2 className="w-4 h-4" />}
-            label="Delete from Disk"
+            label={t('deleteFromDisk')}
             onClick={handleDeleteFromDisk}
             variant="destructive"
           />

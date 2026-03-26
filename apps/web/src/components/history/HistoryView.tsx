@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { BarChart3, CheckCircle2, Clock3, Disc3, Music, PlayCircle } from 'lucide-react';
 import { useListeningHistoryView } from '@/hooks/useListeningHistoryView';
 import { formatTotalTime, getRangeCopy } from '@/components/history/historyUtils';
@@ -9,6 +10,7 @@ import { RecentRow, TopArtistRow, TopTrackRow } from '@/components/history/Histo
 import { HistoryViewSkeleton } from '@/components/history/HistoryViewSkeleton';
 
 export default function HistoryView() {
+  const { t } = useTranslation('history');
   const {
     selectedRange,
     setSelectedRange,
@@ -34,27 +36,27 @@ export default function HistoryView() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <HistoryStatCard
-            label="Logged Plays"
+            label={t('loggedPlays')}
             value={summary.totalPlays.toLocaleString()}
-            hint={`${getRangeCopy(selectedRange)} meaningful listens`}
+            hint={t('meaningfulListens', { range: getRangeCopy(selectedRange) })}
             icon={PlayCircle}
           />
           <HistoryStatCard
-            label="Listening Time"
+            label={t('listeningTime')}
             value={formatTotalTime(summary.totalMinutes)}
-            hint="Cumulative logged playback"
+            hint={t('cumulativePlayback')}
             icon={Clock3}
           />
           <HistoryStatCard
-            label="Unique Tracks"
+            label={t('uniqueTracks')}
             value={summary.uniqueTracks.toLocaleString()}
-            hint="Songs that made this range"
+            hint={t('uniqueTracksHint')}
             icon={Music}
           />
           <HistoryStatCard
-            label="Completed Plays"
+            label={t('completedPlays')}
             value={summary.completedPlays.toLocaleString()}
-            hint="Sessions finished at 95%+"
+            hint={t('completedPlaysHint')}
             icon={CheckCircle2}
           />
         </section>
@@ -62,10 +64,10 @@ export default function HistoryView() {
         <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Activity</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t('activity')}</h2>
           </div>
           <p className="mt-1 text-xs text-muted-foreground/65">
-            Daily listens across {getRangeCopy(selectedRange).toLowerCase()}.
+            {t('dailyListens', { range: getRangeCopy(selectedRange).toLowerCase() })}
           </p>
           <div className="mt-5">
             <HistoryActivityGraph points={activitySeries} range={selectedRange} />
@@ -76,7 +78,7 @@ export default function HistoryView() {
           <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
             <div className="flex items-center gap-2">
               <Disc3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">Top Tracks</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">{t('topTracks')}</h2>
             </div>
             <div className="mt-4 space-y-3">
               {summary.topTracks.length > 0 ? (
@@ -85,8 +87,8 @@ export default function HistoryView() {
                 ))
               ) : (
                 <HistoryEmptyState
-                  title="No top tracks in this range"
-                  copy="Once enough listens are logged in the selected period, your most-played tracks will surface here."
+                  title={t('noTopTracksTitle')}
+                  copy={t('noTopTracksCopy')}
                 />
               )}
             </div>
@@ -95,7 +97,7 @@ export default function HistoryView() {
           <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">Top Artists</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">{t('topArtists')}</h2>
             </div>
             <div className="mt-4 space-y-3">
               {summary.topArtists.length > 0 ? (
@@ -104,8 +106,8 @@ export default function HistoryView() {
                 ))
               ) : (
                 <HistoryEmptyState
-                  title="No artist trends yet"
-                  copy="Your most-played artists will show up here as soon as the selected range has enough history."
+                  title={t('noArtistTrendsTitle')}
+                  copy={t('noArtistTrendsCopy')}
                 />
               )}
             </div>
@@ -115,7 +117,7 @@ export default function HistoryView() {
         <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
           <div className="flex items-center gap-2">
             <Clock3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Recent Plays</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">{t('recentPlays')}</h2>
           </div>
           <div className="mt-4 space-y-3">
             {recent.length > 0 ? (
@@ -124,8 +126,8 @@ export default function HistoryView() {
               ))
             ) : (
               <HistoryEmptyState
-                title="No recent plays in this range"
-                copy="Recent listens are filtered by the active range too, so try widening the window or playing a few more tracks."
+                title={t('noRecentPlaysTitle')}
+                copy={t('noRecentPlaysCopy')}
               />
             )}
           </div>

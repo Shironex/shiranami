@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ListMusic, Play, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 import { IS_ELECTRON } from '@/lib/platform';
 import { shuffleItems } from '@/lib/playlists';
@@ -43,6 +44,8 @@ export function PlaylistContextMenu({
   position,
   onClose,
 }: PlaylistContextMenuProps) {
+  const { t } = useTranslation('contextMenu');
+  const { t: tToast } = useTranslation('toast');
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const navigateTo = useAppStore((s) => s.navigateTo);
@@ -106,7 +109,7 @@ export function PlaylistContextMenu({
 
     const tracks = (await window.electronAPI.db.playlists.getTracks(playlist.id)) as Track[];
     if (tracks.length === 0) {
-      toast.info(`"${playlist.name}" has no tracks yet`);
+      toast.info(tToast('playlistNoTracks', { name: playlist.name }));
     }
     return tracks;
   }, [playlist.id, playlist.name]);
@@ -150,17 +153,17 @@ export function PlaylistContextMenu({
       >
         <MenuItem
           icon={<ListMusic className="w-4 h-4" />}
-          label="Open Playlist"
+          label={t('openPlaylist')}
           onClick={handleOpen}
         />
         <MenuItem
           icon={<Play className="w-4 h-4" />}
-          label="Play Playlist"
+          label={t('playPlaylist')}
           onClick={handlePlay}
         />
         <MenuItem
           icon={<Shuffle className="w-4 h-4" />}
-          label="Shuffle Playlist"
+          label={t('shufflePlaylist')}
           onClick={handleShuffle}
         />
       </motion.div>

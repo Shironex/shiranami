@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
@@ -12,7 +13,10 @@ export interface WatchedFolder {
 }
 
 export function MusicFoldersSection() {
-  const addToLibrary = usePlayerStore((s) => s.addToLibrary);
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { t: tToast } = useTranslation('toast');
+  const addToLibrary = usePlayerStore(s => s.addToLibrary);
 
   const [folders, setFolders] = useState<WatchedFolder[]>([]);
   const [foldersLoading, setFoldersLoading] = useState(true);
@@ -46,44 +50,44 @@ export function MusicFoldersSection() {
       if (!dirPath) return;
 
       // Check if folder already exists
-      const existing = folders.find((f) => f.path === dirPath);
+      const existing = folders.find(f => f.path === dirPath);
       if (existing) {
-        toast.info('This folder is already in your library');
+        toast.info(tToast('folderAlreadyExists'));
         return;
       }
 
       const result = (await window.electronAPI.db.folders.add(dirPath)) as WatchedFolder;
-      setFolders((prev) => [...prev, result]);
+      setFolders(prev => [...prev, result]);
 
       // Scan the new folder
       setIsScanning(true);
       try {
         const results = await window.electronAPI.library.scanFolder(dirPath);
         if (results.length === 0) {
-          toast.info('No audio files found in folder');
+          toast.info(tToast('noAudioInFolder'));
           return;
         }
 
         // Filter out tracks already in library
-        const existingPaths = new Set(usePlayerStore.getState().library.map((t) => t.filePath));
-        const newResults = results.filter((r) => !existingPaths.has(r.filePath));
+        const existingPaths = new Set(usePlayerStore.getState().library.map(t => t.filePath));
+        const newResults = results.filter(r => !existingPaths.has(r.filePath));
 
         // Also check DB
         const toCheck = await Promise.all(
-          newResults.map(async (r) => ({
+          newResults.map(async r => ({
             result: r,
             exists: await window.electronAPI.db.tracks.exists(r.filePath),
           }))
         );
-        const genuinelyNew = toCheck.filter((c) => !c.exists).map((c) => c.result);
+        const genuinelyNew = toCheck.filter(c => !c.exists).map(c => c.result);
 
         if (genuinelyNew.length === 0) {
-          toast.info('All tracks already in library');
+          toast.info(tToast('allTracksExist'));
           return;
         }
 
         const dbTracks = (await window.electronAPI.db.tracks.addMany(
-          genuinelyNew.map((r) => ({
+          genuinelyNew.map(r => ({
             filePath: r.filePath,
             title: r.metadata.title,
             artist: r.metadata.artist,
@@ -96,11 +100,11 @@ export function MusicFoldersSection() {
           }))
         )) as Record<string, unknown>[];
 
-        const newTracks: Track[] = dbTracks.map((t) => ({
+        const newTracks: Track[] = dbTracks.map(t => ({
           id: t.id as string,
           title: t.title as string,
-          artist: (t.artist as string) ?? 'Unknown Artist',
-          album: (t.album as string) ?? 'Unknown Album',
+          artist: (t.artist as string) ?? tc('unknownArtist'),
+          album: (t.album as string) ?? tc('unknownAlbum'),
           duration: (t.duration as number) ?? 0,
           filePath: t.filePath as string,
           albumArt: (t.albumArt as string | null) ?? undefined,
@@ -124,48 +128,47 @@ export function MusicFoldersSection() {
           usePlayerStore.setState({ queue: combined });
         }
 
-        toast.success(`Added ${newTracks.length} track${newTracks.length === 1 ? '' : 's'} to library`);
+        toast.success(tToast('addedTracks', { count: newTracks.length }));
       } finally {
         setIsScanning(false);
       }
     } catch (err) {
       console.error('Failed to add folder:', err);
-      toast.error('Failed to add folder');
+      toast.error(tToast('failedAddFolder'));
       setIsScanning(false);
     }
-  }, [addToLibrary, folders]);
+  }, [addToLibrary, folders, tToast]);
 
-  const handleRemoveFolder = useCallback(async (folder: WatchedFolder) => {
-    if (!IS_ELECTRON) return;
-    try {
-      await window.electronAPI.db.folders.remove(folder.id);
-      setFolders((prev) => prev.filter((f) => f.id !== folder.id));
-      toast.success('Folder removed from watch list');
-    } catch (err) {
-      console.error('Failed to remove folder:', err);
-      toast.error('Failed to remove folder');
-    }
-  }, []);
+  const handleRemoveFolder = useCallback(
+    async (folder: WatchedFolder) => {
+      if (!IS_ELECTRON) return;
+      try {
+        await window.electronAPI.db.folders.remove(folder.id);
+        setFolders(prev => prev.filter(f => f.id !== folder.id));
+        toast.success(tToast('folderRemoved'));
+      } catch (err) {
+        console.error('Failed to remove folder:', err);
+        toast.error(tToast('failedRemoveFolder'));
+      }
+    },
+    [tToast]
+  );
 
   return (
-    <SettingsCard
-      icon={FolderOpen}
-      title="Music Folders"
-      subtitle="Directories that Shiranami watches for audio files"
-    >
+    <SettingsCard icon={FolderOpen} title={t('folders.title')} subtitle={t('folders.subtitle')}>
       {foldersLoading ? (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          <span className="text-sm">Loading folders...</span>
+          <span className="text-sm">{t('folders.loading')}</span>
         </div>
       ) : (
         <div className="space-y-2">
           {folders.length === 0 ? (
             <p className="text-sm text-muted-foreground/60 py-3 text-center">
-              No folders added yet
+              {t('folders.empty')}
             </p>
           ) : (
-            folders.map((folder) => (
+            folders.map(folder => (
               <div
                 key={folder.id}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20 group"
@@ -177,7 +180,7 @@ export function MusicFoldersSection() {
                 <button
                   onClick={() => handleRemoveFolder(folder)}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                  title="Remove folder"
+                  title={t('folders.remove')}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -195,7 +198,7 @@ export function MusicFoldersSection() {
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            {isScanning ? 'Scanning...' : 'Add Folder'}
+            {isScanning ? t('folders.scanning') : t('folders.addFolder')}
           </button>
         </div>
       )}

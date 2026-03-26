@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 
 export function SeekBar() {
+  const { t } = useTranslation('player');
   const duration = usePlayerStore(s => s.duration);
   const scrubTime = usePlayerStore(s => s.scrubTime);
   const isPlaying = usePlayerStore(s => s.isPlaying);
@@ -92,7 +94,7 @@ export function SeekBar() {
       onPointerDown={handlePointerDown}
       className="group relative flex min-w-0 flex-1 touch-none cursor-pointer select-none items-center py-1"
       role="slider"
-      aria-label="Seek"
+      aria-label={t('seek')}
       aria-valuemin={0}
       aria-valuemax={duration || 100}
       aria-valuenow={displayTime}

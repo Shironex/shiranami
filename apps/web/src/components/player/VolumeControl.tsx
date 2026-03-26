@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,7 @@ interface VolumeControlProps {
 export const VolumeControl = memo(function VolumeControl({
   sliderClassName = 'w-24',
 }: VolumeControlProps) {
+  const { t } = useTranslation('player');
   const volume = usePlayerStore(s => s.volume);
   const isMuted = usePlayerStore(s => s.isMuted);
   const setVolume = usePlayerStore(s => s.setVolume);
@@ -33,12 +35,12 @@ export const VolumeControl = memo(function VolumeControl({
           <button
             onClick={toggleMute}
             className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-            aria-label={isMuted ? 'Unmute' : 'Mute'}
+            aria-label={isMuted ? t('unmute') : t('mute')}
           >
             <VolumeIcon className="w-4 h-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isMuted ? 'Unmute (M)' : 'Mute (M)'}</TooltipContent>
+        <TooltipContent side="top">{isMuted ? t('unmuteTooltip') : t('muteTooltip')}</TooltipContent>
       </Tooltip>
       <Slider
         value={[isMuted ? 0 : volume]}
@@ -46,7 +48,7 @@ export const VolumeControl = memo(function VolumeControl({
         step={0.01}
         onValueChange={handleVolumeChange}
         className={cn(sliderClassName)}
-        aria-label="Volume"
+        aria-label={t('volume')}
       />
     </div>
   );

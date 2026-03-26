@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FolderOpen, Loader2 } from 'lucide-react';
 
 type DownloadLocationPanelProps = {
@@ -15,18 +16,20 @@ export function DownloadLocationPanel({
   onChange,
   onReset,
 }: DownloadLocationPanelProps) {
+  const { t } = useTranslation('settings');
+
   return (
     <div className="px-3 py-3 rounded-xl bg-background/50 border border-border/20 space-y-3">
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
-          <p className="text-xs text-muted-foreground">Download location</p>
+          <p className="text-xs text-muted-foreground">{t('dl.location')}</p>
           <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-            {isDefault ? 'Default' : 'Custom'}
+            {isDefault ? t('dl.default') : t('dl.custom')}
           </span>
         </div>
         <p className="text-xs text-foreground font-mono break-all">{pathDisplay}</p>
         <p className="text-[11px] text-muted-foreground/70">
-          Search downloads are saved here automatically.
+          {t('dl.locationHint')}
         </p>
       </div>
 
@@ -42,7 +45,7 @@ export function DownloadLocationPanel({
           ) : (
             <FolderOpen className="w-3.5 h-3.5" />
           )}
-          Change location
+          {t('dl.changeLocation')}
         </button>
 
         {!isDefault && (
@@ -52,7 +55,7 @@ export function DownloadLocationPanel({
             disabled={updating}
             className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Reset to default
+            {t('dl.resetDefault')}
           </button>
         )}
       </div>

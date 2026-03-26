@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Search,
   Download,
@@ -16,14 +17,8 @@ import { useSearchDependencies } from '@/hooks/useSearchDependencies';
 import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
 
-function formatViewCount(count: number): string {
-  if (count >= 1_000_000_000) return `${(count / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B views`;
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, '')}K views`;
-  return `${count} views`;
-}
-
 export function SearchView() {
+  const { t } = useTranslation('search');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -42,8 +37,8 @@ export function SearchView() {
   if (dependencyState === 'checking') {
     return (
       <SearchStateCard
-        title="Preparing search"
-        description="Checking yt-dlp and ffmpeg so this view can open cleanly."
+        title={t('preparing')}
+        description={t('preparingDesc')}
         loading
       />
     );
@@ -76,7 +71,7 @@ export function SearchView() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search for music..."
+            placeholder={t('placeholder')}
             className={cn(
               'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border border-border/50',
               'text-foreground placeholder:text-muted-foreground/50',
@@ -96,8 +91,8 @@ export function SearchView() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">
                   {dependencyInstallTarget === 'ffmpeg'
-                    ? 'Installing ffmpeg in the background'
-                    : 'Installing search tools'}
+                    ? t('installingFfmpegBg')
+                    : t('installingSearchTools')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {dependencyInstallLabel}... {dependencyInstallProgress}%
@@ -135,10 +130,10 @@ export function SearchView() {
                 </div>
                 <div>
                   <p className="font-display text-sm font-medium text-foreground/85">
-                    Searching YouTube
+                    {t('searchingYoutube')}
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Pulling the best matches for &quot;{query.trim()}&quot;
+                    {t('pullingMatches', { query: query.trim() })}
                   </p>
                 </div>
                 <Loader2 className="w-4 h-4 text-primary animate-spin" />
@@ -157,10 +152,10 @@ export function SearchView() {
                 />
                 <div>
                   <p className="font-display text-sm font-medium text-muted-foreground">
-                    Search YouTube for music
+                    {t('emptyTitle')}
                   </p>
                   <p className="text-xs text-muted-foreground/50 mt-1">
-                    Type a song name and press Enter
+                    {t('emptySubtitle')}
                   </p>
                 </div>
               </div>
@@ -190,7 +185,7 @@ export function SearchView() {
                   <button
                     onClick={() => handlePreview(result)}
                     className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
-                    title={isPreviewPlaying(result) ? 'Pause preview' : 'Preview'}
+                    title={isPreviewPlaying(result) ? t('pausePreview') : t('preview')}
                   >
                     {result.thumbnail ? (
                       <img
@@ -227,7 +222,15 @@ export function SearchView() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {result.uploader}
                       {result.view_count != null && (
-                        <span className="text-muted-foreground/50"> · {formatViewCount(result.view_count)}</span>
+                        <span className="text-muted-foreground/50"> · {
+                          result.view_count >= 1_000_000_000
+                            ? t('viewsBillion', { count: (result.view_count / 1_000_000_000).toFixed(1).replace(/\.0$/, '') })
+                            : result.view_count >= 1_000_000
+                              ? t('viewsMillion', { count: (result.view_count / 1_000_000).toFixed(1).replace(/\.0$/, '') })
+                              : result.view_count >= 1_000
+                                ? t('viewsThousand', { count: (result.view_count / 1_000).toFixed(1).replace(/\.0$/, '') })
+                                : t('views', { count: result.view_count })
+                        }</span>
                       )}
                     </p>
                   </div>
@@ -249,7 +252,7 @@ export function SearchView() {
                       <button
                         onClick={() => handleDownload(result)}
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
-                        title={dlState.error ?? 'Retry download'}
+                        title={dlState.error ?? t('retryDownload')}
                       >
                         <AlertCircle className="w-4 h-4" />
                       </button>
@@ -257,7 +260,7 @@ export function SearchView() {
                       <button
                         onClick={() => handleDownload(result)}
                         className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors opacity-0 group-hover:opacity-100"
-                        title="Download"
+                        title={t('download')}
                       >
                         <Download className="w-4 h-4" />
                       </button>

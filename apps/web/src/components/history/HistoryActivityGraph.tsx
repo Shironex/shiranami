@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { ListeningActivityPoint } from '@/types/electron';
 import { HistoryEmptyState } from './HistoryEmptyState';
@@ -9,11 +10,13 @@ type HistoryActivityGraphProps = {
 };
 
 export function HistoryActivityGraph({ points, range }: HistoryActivityGraphProps) {
+  const { t } = useTranslation('history');
+
   if (points.length === 0) {
     return (
       <HistoryEmptyState
-        title="No activity yet"
-        copy={`Nothing has been logged for ${getRangeCopy(range).toLowerCase()}. Play through a few tracks and activity will appear here.`}
+        title={t('noActivityTitle')}
+        copy={t('noActivityCopy', { range: getRangeCopy(range).toLowerCase() })}
       />
     );
   }
@@ -39,7 +42,7 @@ export function HistoryActivityGraph({ points, range }: HistoryActivityGraphProp
                     point.playCount === 0 && 'border-border/20 bg-foreground/8',
                   )}
                   style={{ height }}
-                  title={`${formatActivityLabel(point.date)}: ${point.playCount} plays, ${Math.round(point.listenedMinutes)}m listened`}
+                  title={t('activityBarTitle', { label: formatActivityLabel(point.date), count: point.playCount, minutes: Math.round(point.listenedMinutes) })}
                 />
               </div>
               <span className="text-[10px] text-muted-foreground/55">

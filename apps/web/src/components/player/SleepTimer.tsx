@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Timer, TimerOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -15,6 +16,7 @@ function formatRemaining(seconds: number): string {
 }
 
 export function SleepTimer() {
+  const { t } = useTranslation('sleepTimer');
   const [open, setOpen] = useState(false);
   const endTime = useSleepTimerStore((s) => s.endTime);
   const remaining = useSleepTimerStore((s) => s.remaining);
@@ -45,7 +47,7 @@ export function SleepTimer() {
                   ? 'text-primary bg-primary/10'
                   : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground',
               )}
-              aria-label="Sleep timer"
+              aria-label={t('label')}
             >
               {isActive ? (
                 <TimerOff className="w-3.5 h-3.5" />
@@ -59,14 +61,14 @@ export function SleepTimer() {
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {isActive ? `Sleep in ${formatRemaining(remaining)}` : 'Sleep timer'}
+          {isActive ? t('sleepIn', { time: formatRemaining(remaining) }) : t('label')}
         </TooltipContent>
       </Tooltip>
 
       <PopoverContent side="top" align="center" className="w-48">
         <div className="space-y-2">
           <p className="text-xs font-medium text-foreground px-1">
-            {isActive ? 'Timer active' : 'Stop playing after'}
+            {isActive ? t('active') : t('stopAfter')}
           </p>
 
           {isActive && (
@@ -74,7 +76,7 @@ export function SleepTimer() {
               <p className="text-lg font-semibold text-primary tabular-nums">
                 {formatRemaining(remaining)}
               </p>
-              <p className="text-[10px] text-muted-foreground">remaining</p>
+              <p className="text-[10px] text-muted-foreground">{t('remaining')}</p>
             </div>
           )}
 
@@ -89,7 +91,7 @@ export function SleepTimer() {
                   'text-muted-foreground',
                 )}
               >
-                {minutes} minutes
+                {t('minutes', { count: minutes })}
               </button>
             ))}
           </div>
@@ -99,7 +101,7 @@ export function SleepTimer() {
               onClick={handleCancel}
               className="w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
             >
-              Cancel timer
+              {t('cancelTimer')}
             </button>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
@@ -7,9 +8,12 @@ import { SettingsCard } from '@/components/settings/SettingsCard';
 import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 
 export function LibrarySection() {
-  const library = usePlayerStore((s) => s.library);
-  const addToLibrary = usePlayerStore((s) => s.addToLibrary);
-  const clearQueue = usePlayerStore((s) => s.clearQueue);
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+  const { t: tToast } = useTranslation('toast');
+  const library = usePlayerStore(s => s.library);
+  const addToLibrary = usePlayerStore(s => s.addToLibrary);
+  const clearQueue = usePlayerStore(s => s.clearQueue);
 
   const [confirmClear, setConfirmClear] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -23,7 +27,7 @@ export function LibrarySection() {
     try {
       folders = (await window.electronAPI.db.folders.getAll()) as WatchedFolder[];
     } catch {
-      toast.error('Failed to load folders');
+      toast.error(tToast('failedLoadFolders'));
       return;
     }
 
@@ -37,20 +41,20 @@ export function LibrarySection() {
           const results = await window.electronAPI.library.scanFolder(folder.path);
           if (results.length === 0) continue;
 
-          const existingPaths = new Set(usePlayerStore.getState().library.map((t) => t.filePath));
-          const newResults = results.filter((r) => !existingPaths.has(r.filePath));
+          const existingPaths = new Set(usePlayerStore.getState().library.map(t => t.filePath));
+          const newResults = results.filter(r => !existingPaths.has(r.filePath));
 
           const toCheck = await Promise.all(
-            newResults.map(async (r) => ({
+            newResults.map(async r => ({
               result: r,
               exists: await window.electronAPI.db.tracks.exists(r.filePath),
             }))
           );
-          const genuinelyNew = toCheck.filter((c) => !c.exists).map((c) => c.result);
+          const genuinelyNew = toCheck.filter(c => !c.exists).map(c => c.result);
           if (genuinelyNew.length === 0) continue;
 
           const dbTracks = (await window.electronAPI.db.tracks.addMany(
-            genuinelyNew.map((r) => ({
+            genuinelyNew.map(r => ({
               filePath: r.filePath,
               title: r.metadata.title,
               artist: r.metadata.artist,
@@ -63,11 +67,11 @@ export function LibrarySection() {
             }))
           )) as Record<string, unknown>[];
 
-          const newTracks: Track[] = dbTracks.map((t) => ({
+          const newTracks: Track[] = dbTracks.map(t => ({
             id: t.id as string,
             title: t.title as string,
-            artist: (t.artist as string) ?? 'Unknown Artist',
-            album: (t.album as string) ?? 'Unknown Album',
+            artist: (t.artist as string) ?? tc('unknownArtist'),
+            album: (t.album as string) ?? tc('unknownAlbum'),
             duration: (t.duration as number) ?? 0,
             filePath: t.filePath as string,
             albumArt: (t.albumArt as string | null) ?? undefined,
@@ -101,17 +105,17 @@ export function LibrarySection() {
       }
 
       if (totalAdded > 0) {
-        toast.success(`Found ${totalAdded} new track${totalAdded === 1 ? '' : 's'}`);
+        toast.success(tToast('foundNewTracks', { count: totalAdded }));
       } else {
-        toast.info('Library is up to date');
+        toast.info(tToast('libraryUpToDate'));
       }
     } catch (err) {
       console.error('Rescan failed:', err);
-      toast.error('Failed to rescan library');
+      toast.error(tToast('failedRescan'));
     } finally {
       setIsScanning(false);
     }
-  }, [addToLibrary]);
+  }, [addToLibrary, tToast]);
 
   const handleClearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -119,30 +123,26 @@ export function LibrarySection() {
     try {
       const allTracks = usePlayerStore.getState().library;
       if (allTracks.length > 0) {
-        await window.electronAPI.db.tracks.removeMany(allTracks.map((t) => t.id));
+        await window.electronAPI.db.tracks.removeMany(allTracks.map(t => t.id));
       }
       clearQueue();
       usePlayerStore.setState({ library: [] });
       setConfirmClear(false);
-      toast.success('Library cleared');
+      toast.success(tToast('libraryCleared'));
     } catch (err) {
       console.error('Failed to clear library:', err);
-      toast.error('Failed to clear library');
+      toast.error(tToast('failedClearLibrary'));
     } finally {
       setIsClearing(false);
     }
-  }, [clearQueue]);
+  }, [clearQueue, tToast]);
 
   return (
-    <SettingsCard
-      icon={HardDrive}
-      title="Library"
-      subtitle="Manage your music collection"
-    >
+    <SettingsCard icon={HardDrive} title={t('lib.title')} subtitle={t('lib.subtitle')}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
           <Music className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-foreground">Total tracks</span>
+          <span className="text-sm text-foreground">{t('lib.totalTracks')}</span>
           <span className="ml-auto text-sm font-medium text-foreground tabular-nums">
             {library.length.toLocaleString()}
           </span>
@@ -159,7 +159,7 @@ export function LibrarySection() {
             ) : (
               <RefreshCw className="w-3.5 h-3.5" />
             )}
-            {isScanning ? 'Scanning...' : 'Rescan Library'}
+            {isScanning ? t('lib.scanning') : t('lib.rescan')}
           </button>
 
           {!confirmClear ? (
@@ -169,14 +169,12 @@ export function LibrarySection() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear Library
+              {t('lib.clearLibrary')}
             </button>
           ) : (
             <div className="flex-1 rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-3">
               <p className="text-sm text-foreground">
-                This will remove all{' '}
-                <span className="font-semibold">{library.length.toLocaleString()}</span>{' '}
-                tracks from your library. Audio files on disk won't be deleted.
+                {t('lib.clearConfirm', { count: library.length.toLocaleString() })}
               </p>
               <div className="flex gap-2">
                 <button
@@ -189,13 +187,13 @@ export function LibrarySection() {
                   ) : (
                     <Trash2 className="w-3.5 h-3.5" />
                   )}
-                  {isClearing ? 'Clearing...' : 'Yes, clear everything'}
+                  {isClearing ? t('lib.clearing') : t('lib.yesClear')}
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
-                  Cancel
+                  {tc('cancel')}
                 </button>
               </div>
             </div>

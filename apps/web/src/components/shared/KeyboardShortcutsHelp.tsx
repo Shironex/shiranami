@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Keyboard } from 'lucide-react';
 import {
   Dialog,
@@ -12,57 +13,57 @@ const MOD = isMac ? '\u2318' : 'Ctrl';
 
 interface Shortcut {
   keys: string[];
-  action: string;
+  actionKey: string;
 }
 
 interface ShortcutCategory {
-  title: string;
+  titleKey: string;
   shortcuts: Shortcut[];
 }
 
 function getShortcutCategories(): ShortcutCategory[] {
   return [
     {
-      title: 'Playback',
+      titleKey: 'playback',
       shortcuts: [
-        { keys: ['Space'], action: 'Play / Pause' },
-        { keys: ['N'], action: 'Next track' },
-        { keys: ['P'], action: 'Previous track' },
-        { keys: ['\u2190'], action: 'Seek back 5s' },
-        { keys: ['\u2192'], action: 'Seek forward 5s' },
-        { keys: ['Shift', '\u2190'], action: 'Seek back 10s' },
-        { keys: ['Shift', '\u2192'], action: 'Seek forward 10s' },
-        { keys: ['\u2191'], action: 'Volume up' },
-        { keys: ['\u2193'], action: 'Volume down' },
-        { keys: ['M'], action: 'Mute / Unmute' },
-        { keys: ['S'], action: 'Toggle shuffle' },
-        { keys: ['R'], action: 'Cycle repeat mode' },
-        { keys: ['L'], action: 'Favorite track' },
+        { keys: ['Space'], actionKey: 'playPause' },
+        { keys: ['N'], actionKey: 'nextTrack' },
+        { keys: ['P'], actionKey: 'previousTrack' },
+        { keys: ['\u2190'], actionKey: 'seekBack5s' },
+        { keys: ['\u2192'], actionKey: 'seekForward5s' },
+        { keys: ['Shift', '\u2190'], actionKey: 'seekBack10s' },
+        { keys: ['Shift', '\u2192'], actionKey: 'seekForward10s' },
+        { keys: ['\u2191'], actionKey: 'volumeUp' },
+        { keys: ['\u2193'], actionKey: 'volumeDown' },
+        { keys: ['M'], actionKey: 'muteUnmute' },
+        { keys: ['S'], actionKey: 'toggleShuffle' },
+        { keys: ['R'], actionKey: 'cycleRepeat' },
+        { keys: ['L'], actionKey: 'favoriteTrack' },
       ],
     },
     {
-      title: 'Navigation',
+      titleKey: 'navigation',
       shortcuts: [
-        { keys: ['1'], action: 'Library' },
-        { keys: ['2'], action: 'Playlists' },
-        { keys: ['3'], action: 'Favorites' },
-        { keys: ['4'], action: 'History' },
-        { keys: ['5'], action: 'Download' },
-        { keys: ['6'], action: 'Radio' },
-        { keys: ['7'], action: 'Settings' },
-        { keys: [MOD, 'K'], action: 'Command palette' },
+        { keys: ['1'], actionKey: 'library' },
+        { keys: ['2'], actionKey: 'playlists' },
+        { keys: ['3'], actionKey: 'favorites' },
+        { keys: ['4'], actionKey: 'history' },
+        { keys: ['5'], actionKey: 'download' },
+        { keys: ['6'], actionKey: 'radio' },
+        { keys: ['7'], actionKey: 'settings' },
+        { keys: [MOD, 'K'], actionKey: 'commandPalette' },
       ],
     },
     {
-      title: 'Panels & UI',
+      titleKey: 'panelsUi',
       shortcuts: [
-        { keys: [MOD, 'B'], action: 'Toggle sidebar' },
-        { keys: [MOD, 'L'], action: 'Toggle lyrics' },
-        { keys: [MOD, 'Q'], action: 'Toggle queue' },
-        { keys: [MOD, 'Shift', 'M'], action: 'Compact mode' },
-        { keys: ['V'], action: 'Toggle visualizer' },
-        { keys: ['?'], action: 'Show this help' },
-        { keys: ['Esc'], action: 'Close panel' },
+        { keys: [MOD, 'B'], actionKey: 'toggleSidebar' },
+        { keys: [MOD, 'L'], actionKey: 'toggleLyrics' },
+        { keys: [MOD, 'Q'], actionKey: 'toggleQueue' },
+        { keys: [MOD, 'Shift', 'M'], actionKey: 'compactMode' },
+        { keys: ['V'], actionKey: 'toggleVisualizer' },
+        { keys: ['?'], actionKey: 'showHelp' },
+        { keys: ['Esc'], actionKey: 'closePanel' },
       ],
     },
   ];
@@ -76,7 +77,7 @@ function Kbd({ children }: { children: string }) {
   );
 }
 
-function ShortcutRow({ shortcut }: { shortcut: Shortcut }) {
+function ShortcutRow({ shortcut, t }: { shortcut: Shortcut; t: (key: string) => string }) {
   return (
     <div className="flex items-center justify-between gap-4 py-1.5">
       <span className="flex items-center gap-1 shrink-0">
@@ -87,20 +88,20 @@ function ShortcutRow({ shortcut }: { shortcut: Shortcut }) {
           </span>
         ))}
       </span>
-      <span className="text-sm text-muted-foreground">{shortcut.action}</span>
+      <span className="text-sm text-muted-foreground">{t(shortcut.actionKey)}</span>
     </div>
   );
 }
 
-function CategorySection({ category }: { category: ShortcutCategory }) {
+function CategorySection({ category, t }: { category: ShortcutCategory; t: (key: string) => string }) {
   return (
     <div>
       <h3 className="text-sm font-medium text-foreground/80 mb-2 border-b border-border/30 pb-1">
-        {category.title}
+        {t(category.titleKey)}
       </h3>
       <div className="space-y-0.5">
         {category.shortcuts.map((shortcut, i) => (
-          <ShortcutRow key={i} shortcut={shortcut} />
+          <ShortcutRow key={i} shortcut={shortcut} t={t} />
         ))}
       </div>
     </div>
@@ -108,6 +109,7 @@ function CategorySection({ category }: { category: ShortcutCategory }) {
 }
 
 function KeyboardShortcutsHelp() {
+  const { t } = useTranslation('shortcuts');
   const [open, setOpen] = useState(false);
   const categories = useMemo(() => getShortcutCategories(), []);
 
@@ -123,12 +125,12 @@ function KeyboardShortcutsHelp() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Keyboard className="h-5 w-5" />
-            Keyboard Shortcuts
+            {t('title')}
           </DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-2">
           {categories.map((category) => (
-            <CategorySection key={category.title} category={category} />
+            <CategorySection key={category.titleKey} category={category} t={t} />
           ))}
         </div>
       </DialogContent>

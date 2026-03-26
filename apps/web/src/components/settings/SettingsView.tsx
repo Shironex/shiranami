@@ -1,4 +1,5 @@
 import { useState, type ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FolderOpen,
   HardDrive,
@@ -29,15 +30,15 @@ type SettingsSection =
   | 'updates'
   | 'about';
 
-const SECTIONS: { id: SettingsSection; label: string; Icon: typeof FolderOpen }[] = [
-  { id: 'folders', label: 'Music Folders', Icon: FolderOpen },
-  { id: 'library', label: 'Library', Icon: HardDrive },
-  { id: 'downloads', label: 'Downloads', Icon: ArrowDownToLine },
-  { id: 'playback', label: 'Playback', Icon: Settings2 },
-  { id: 'visualizer', label: 'Visualizer', Icon: AudioLines },
-  { id: 'appearance', label: 'Appearance', Icon: Monitor },
-  { id: 'updates', label: 'Updates', Icon: RefreshCcw },
-  { id: 'about', label: 'About', Icon: Info },
+const SECTIONS: { id: SettingsSection; labelKey: string; Icon: typeof FolderOpen }[] = [
+  { id: 'folders', labelKey: 'musicFolders', Icon: FolderOpen },
+  { id: 'library', labelKey: 'library', Icon: HardDrive },
+  { id: 'downloads', labelKey: 'downloads', Icon: ArrowDownToLine },
+  { id: 'playback', labelKey: 'playback', Icon: Settings2 },
+  { id: 'visualizer', labelKey: 'visualizer', Icon: AudioLines },
+  { id: 'appearance', labelKey: 'appearance', Icon: Monitor },
+  { id: 'updates', labelKey: 'updates', Icon: RefreshCcw },
+  { id: 'about', labelKey: 'about', Icon: Info },
 ];
 
 const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
@@ -52,6 +53,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
 };
 
 export function SettingsView() {
+  const { t } = useTranslation('settings');
   const [activeSection, setActiveSection] = useState<SettingsSection>('folders');
   const Panel = SECTION_PANEL[activeSection];
 
@@ -79,7 +81,7 @@ export function SettingsView() {
             )}
           >
             <section.Icon className="w-4 h-4 shrink-0" />
-            {section.label}
+            {t(section.labelKey)}
           </button>
         ))}
       </div>

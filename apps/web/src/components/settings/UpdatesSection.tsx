@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import {
   RefreshCcw,
@@ -25,26 +26,28 @@ function updateStatusMessage(
     progress: number;
     error: string | null;
   },
+  t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   switch (status) {
     case 'idle':
-      return 'No updates available';
+      return t('upd.noUpdates');
     case 'checking':
-      return 'Checking...';
+      return t('upd.checking');
     case 'available':
       return ctx.version != null
-        ? `Update ${ctx.version} is available`
-        : 'Update available';
+        ? t('upd.available', { version: ctx.version })
+        : t('upd.available', { version: '' });
     case 'downloading':
-      return `Downloading... ${ctx.progress}%`;
+      return t('upd.downloading', { percent: ctx.progress });
     case 'ready':
-      return 'Update ready to install';
+      return t('upd.ready');
     case 'error':
-      return ctx.error ?? 'Something went wrong';
+      return ctx.error ?? t('upd.somethingWrong');
   }
 }
 
 export function UpdatesSection() {
+  const { t } = useTranslation('settings');
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [updateProgress, setUpdateProgress] = useState<number>(0);
@@ -102,9 +105,9 @@ export function UpdatesSection() {
       }
     } catch {
       setUpdateStatus('error');
-      setUpdateError('Failed to check for updates');
+      setUpdateError(t('upd.checkFailed'));
     }
-  }, []);
+  }, [t]);
 
   const handleDownloadUpdate = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -114,9 +117,9 @@ export function UpdatesSection() {
       await window.electronAPI.updater.startDownload();
     } catch {
       setUpdateStatus('error');
-      setUpdateError('Download failed');
+      setUpdateError(t('upd.downloadFailed'));
     }
-  }, []);
+  }, [t]);
 
   const handleInstallUpdate = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -126,14 +129,13 @@ export function UpdatesSection() {
   return (
     <SettingsCard
       icon={RefreshCcw}
-      title="Updates"
-      subtitle={isMac ? 'Download updates from GitHub' : 'Check for new versions'}
+      title={t('upd.title')}
+      subtitle={isMac ? t('upd.subtitleMac') : t('upd.subtitleWin')}
     >
       {isMac ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Auto-updates are not available on macOS because the app is unsigned.
-            Download new versions manually from GitHub Releases.
+            {t('upd.macNotice')}
           </p>
           <a
             href="https://github.com/Shironex/shiranami/releases/latest"
@@ -142,7 +144,7 @@ export function UpdatesSection() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            Open GitHub Releases
+            {t('upd.openGithub')}
           </a>
         </div>
       ) : (
@@ -160,7 +162,7 @@ export function UpdatesSection() {
               ) : (
                 <RefreshCcw className="w-3.5 h-3.5" />
               )}
-              Check for updates
+              {t('upd.check')}
             </button>
 
             {updateStatus === 'available' && (
@@ -169,7 +171,7 @@ export function UpdatesSection() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                Download {updateVersion}
+                {t('upd.downloadVersion', { version: updateVersion })}
               </button>
             )}
 
@@ -179,7 +181,7 @@ export function UpdatesSection() {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Check className="w-3.5 h-3.5" />
-                Install and restart
+                {t('upd.installRestart')}
               </button>
             )}
 
@@ -190,7 +192,7 @@ export function UpdatesSection() {
                 rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                View changelog
+                {t('upd.viewChangelog')}
                 <ExternalLink className="w-3 h-3" />
               </a>
             )}
@@ -206,7 +208,7 @@ export function UpdatesSection() {
               version: updateVersion,
               progress: updateProgress,
               error: updateError,
-            })}
+            }, t)}
           </p>
 
           {updateStatus === 'downloading' && (

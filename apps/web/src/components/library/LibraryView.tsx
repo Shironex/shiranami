@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Search, X } from 'lucide-react';
@@ -7,6 +8,7 @@ import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 
 export function LibraryView() {
+  const { t } = useTranslation('library');
   const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
@@ -92,7 +94,7 @@ export function LibraryView() {
               </AnimatePresence>
 
               <div className="relative min-w-0 flex-1">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">Now Playing</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">{t('nowPlaying', { ns: 'common' })}</p>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentTrack.id}
@@ -121,7 +123,7 @@ export function LibraryView() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Filter tracks..."
+              placeholder={t('filterPlaceholder')}
               className="w-full pl-9 pr-9 py-2 rounded-xl text-sm bg-card border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors"
             />
             <AnimatePresence>
@@ -141,7 +143,7 @@ export function LibraryView() {
           </div>
           {isFiltered && (
             <p className="text-xs text-muted-foreground/50 mt-1.5 px-1">
-              {filteredLibrary.length} of {library.length} tracks
+              {t('filterCount', { filtered: filteredLibrary.length, total: library.length })}
             </p>
           )}
         </div>
@@ -152,16 +154,16 @@ export function LibraryView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <img src="./mascot.png" alt="" className="w-28 h-28 object-contain opacity-40" draggable={false} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No tracks yet</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Add files or a folder to start listening</p>
+            <p className="font-display text-base font-medium text-muted-foreground">{t('emptyTitle')}</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
           </div>
         </div>
       ) : filteredLibrary.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">No matching tracks</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">Try a different search term</p>
+            <p className="font-display text-base font-medium text-muted-foreground">{t('noMatchesTitle')}</p>
+            <p className="text-sm text-muted-foreground/50 mt-1">{t('noMatchesSubtitle')}</p>
           </div>
         </div>
       ) : (
