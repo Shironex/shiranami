@@ -1,0 +1,194 @@
+import { ipcMain, net } from 'electron';
+import { spawn } from 'child_process';
+import { randomUUID } from 'crypto';
+import { getDatabase, eq, youtubeMappings, tracks } from '@shiranami/database';
+import { getYtDlpPath } from '../ytdlp-manager';
+import { logger } from '../logger';
+
+const SHARE_API_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : 'https://api.shiranami.app';
+
+function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
+    proc.on('error', (err) => reject(err));
+    proc.on('close', (code) => resolve({ stdout, stderr, code: code ?? 1 }));
+  });
+}
+
+async function getYoutubeId(trackId: string): Promise<string | null> {
+  const db = getDatabase();
+
+  // Check cache first
+  const cached = await db.select().from(youtubeMappings).where(eq(youtubeMappings.trackId, trackId)).get();
+  if (cached) return cached.youtubeId;
+
+  // Look up track info
+  const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
+  if (!track) return null;
+
+  // Search YouTube
+  try {
+    const query = `${track.title} ${track.artist ?? ''}`.trim();
+    const { stdout, code } = await spawnYtDlp([
+      '--flat-playlist',
+      '--dump-json',
+      '--no-warnings',
+      `ytsearch1:${query}`,
+    ]);
+
+    if (code !== 0 || !stdout.trim()) return null;
+
+    const data = JSON.parse(stdout.trim().split('\n')[0]);
+    const youtubeId = data.id;
+    if (!youtubeId) return null;
+
+    // Cache the mapping
+    await db.insert(youtubeMappings).values({
+      id: randomUUID(),
+      trackId,
+      youtubeId,
+    }).onConflictDoUpdate({
+      target: youtubeMappings.trackId,
+      set: { youtubeId, searchedAt: new Date().toISOString() },
+    });
+
+    return youtubeId;
+  } catch (err) {
+    logger.error('[share] YouTube search failed:', err);
+    return null;
+  }
+}
+
+async function fetchApi(path: string, options: { method: string; body?: unknown }): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const url = `${SHARE_API_URL}${path}`;
+    const request = net.request({
+      url,
+      method: options.method,
+    });
+
+    request.setHeader('Content-Type', 'application/json');
+
+    let responseData = '';
+    request.on('response', (response) => {
+      response.on('data', (chunk) => { responseData += chunk.toString(); });
+      response.on('end', () => {
+        try {
+          const parsed = JSON.parse(responseData);
+          if (response.statusCode && response.statusCode >= 400) {
+            reject(new Error(parsed.message ?? `HTTP ${response.statusCode}`));
+          } else {
+            resolve(parsed);
+          }
+        } catch {
+          reject(new Error(`Failed to parse response from ${path}`));
+        }
+      });
+    });
+
+    request.on('error', (err) => reject(err));
+
+    if (options.body) {
+      request.write(JSON.stringify(options.body));
+    }
+    request.end();
+  });
+}
+
+export function registerShareHandlers(): void {
+  // Share a single track
+  ipcMain.handle('share:track', async (_event, trackId: string) => {
+    const db = getDatabase();
+    const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
+    if (!track) throw new Error('Track not found');
+
+    const ytId = await getYoutubeId(trackId);
+    if (!ytId) throw new Error('Could not find YouTube match for this track');
+
+    const result = await fetchApi('/api/share', {
+      method: 'POST',
+      body: {
+        type: 'TRACK',
+        payload: {
+          title: track.title,
+          artist: track.artist ?? 'Unknown Artist',
+          ytId,
+        },
+      },
+    });
+
+    return result;
+  });
+
+  // Share a playlist
+  ipcMain.handle('share:playlist', async (_event, playlistId: string) => {
+    const db = getDatabase();
+
+    // Get playlist info
+    const { playlists } = await import('@shiranami/database');
+    const playlist = await db.select().from(playlists).where(eq(playlists.id, playlistId)).get();
+    if (!playlist) throw new Error('Playlist not found');
+
+    // Get playlist tracks
+    const { playlistTracks } = await import('@shiranami/database');
+    const ptRows = await db.select()
+      .from(playlistTracks)
+      .where(eq(playlistTracks.playlistId, playlistId))
+      .orderBy(playlistTracks.position)
+      .all();
+
+    const trackRows = [];
+    for (const pt of ptRows) {
+      const track = await db.select().from(tracks).where(eq(tracks.id, pt.trackId)).get();
+      if (track) trackRows.push(track);
+    }
+
+    if (trackRows.length === 0) throw new Error('Playlist has no tracks');
+
+    // Resolve YouTube IDs for all tracks
+    const shareTracks = [];
+    for (const track of trackRows) {
+      const ytId = await getYoutubeId(track.id);
+      if (ytId) {
+        shareTracks.push({
+          title: track.title,
+          artist: track.artist ?? 'Unknown Artist',
+          ytId,
+        });
+      }
+    }
+
+    if (shareTracks.length === 0) throw new Error('Could not find YouTube matches for any tracks');
+
+    const result = await fetchApi('/api/share', {
+      method: 'POST',
+      body: {
+        type: 'PLAYLIST',
+        payload: {
+          name: playlist.name,
+          tracks: shareTracks,
+        },
+      },
+    });
+
+    return result;
+  });
+
+  // Import shared content (fetch share data by code)
+  ipcMain.handle('share:import', async (_event, code: string) => {
+    const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
+    return result;
+  });
+}
+
+export function cleanupShareHandlers(): void {
+  ipcMain.removeHandler('share:track');
+  ipcMain.removeHandler('share:playlist');
+  ipcMain.removeHandler('share:import');
+}

@@ -11,3 +11,4 @@ export { registerDownloaderHandlers, cleanupDownloaderHandlers } from './downloa
 export { registerUpdaterHandlers, cleanupUpdaterHandlers } from './updater';
 export { registerRadioHandlers, cleanupRadioHandlers } from './radio';
 export { registerPlaylistHandlers, cleanupPlaylistHandlers } from './playlist';
+export { registerShareHandlers, cleanupShareHandlers } from './share';

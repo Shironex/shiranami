@@ -133,6 +133,16 @@ function createTables(database: Database.Database): void {
     )
   `);
 
+  // YouTube mappings table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS youtube_mappings (
+      id TEXT PRIMARY KEY,
+      track_id TEXT NOT NULL UNIQUE REFERENCES tracks(id) ON DELETE CASCADE,
+      youtube_id TEXT NOT NULL,
+      searched_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create indexes for common queries
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
@@ -145,6 +155,7 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_radio_favorites_station_uuid ON radio_favorites(station_uuid);
     CREATE INDEX IF NOT EXISTS idx_play_history_track_id ON play_history(track_id);
     CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at);
+    CREATE INDEX IF NOT EXISTS idx_youtube_mappings_track_id ON youtube_mappings(track_id);
   `);
 }
 

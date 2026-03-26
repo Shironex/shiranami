@@ -25,3 +25,9 @@ export {
   type PlayHistory,
   type NewPlayHistory,
 } from './play-history.js';
+
+export {
+  youtubeMappings,
+  type YoutubeMapping,
+  type NewYoutubeMapping,
+} from './youtube-mappings.js';

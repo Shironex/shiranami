@@ -262,6 +262,17 @@ export interface ElectronAPI {
       trackName: string;
     }) => void) => () => void;
   };
+  share: {
+    track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
+    playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
+    import: (code: string) => Promise<{
+      type: 'TRACK' | 'PLAYLIST';
+      payload: unknown;
+      code: string;
+      expiresAt: string;
+    }>;
+    onDeepLink: (callback: (code: string) => void) => () => void;
+  };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };

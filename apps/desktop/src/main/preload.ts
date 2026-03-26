@@ -77,6 +77,9 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'radio:favorites:is-favorite',
   'playlist:extract',
   'playlist:cancel',
+  'share:track',
+  'share:playlist',
+  'share:import',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -364,6 +367,17 @@ export interface ElectronAPI {
       trackName: string;
     }) => void) => () => void;
   };
+  share: {
+    track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
+    playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
+    import: (code: string) => Promise<{
+      type: 'TRACK' | 'PLAYLIST';
+      payload: unknown;
+      code: string;
+      expiresAt: string;
+    }>;
+    onDeepLink: (callback: (code: string) => void) => () => void;
+  };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };
@@ -532,6 +546,12 @@ const electronAPI: ElectronAPI = {
       total: number;
       trackName: string;
     }>('playlist:extract-progress'),
+  },
+  share: {
+    track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),
+    playlist: (playlistId: string) => ipcRenderer.invoke('share:playlist', playlistId),
+    import: (code: string) => ipcRenderer.invoke('share:import', code),
+    onDeepLink: createIpcListener<string>('share:deep-link'),
   },
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>

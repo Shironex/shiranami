@@ -13,6 +13,18 @@ import { registerArtProtocol } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { initializeDatabase, closeDatabase } from '@shiranami/database';
 
+// Register shiranami:// deep link protocol for share imports.
+// Only register in packaged builds — dev mode can't resolve the Electron binary correctly on Windows.
+if (!process.defaultApp) {
+  app.setAsDefaultProtocolClient('shiranami');
+}
+
+// Ensure single instance so deep links reuse the existing window.
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
+
 // Register custom protocol scheme for streaming local audio files.
 // Must be called before app.ready.
 protocol.registerSchemesAsPrivileged([
@@ -51,6 +63,46 @@ protocol.registerSchemesAsPrivileged([
 export let mainWindow: BrowserWindow | null = null;
 let isShuttingDown = false;
 let cleanupDone = false;
+
+/** Extract share import code from a shiranami:// deep link URL. */
+function parseDeepLink(url: string): string | null {
+  try {
+    // URL format: shiranami://import/<code>
+    const match = url.match(/^shiranami:\/\/import\/([A-Za-z0-9_-]+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Send the import code to the renderer process. */
+function handleDeepLink(url: string): void {
+  const code = parseDeepLink(url);
+  if (!code) return;
+  logger.info(`[deep-link] Import request for code: ${code}`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.webContents.send('share:deep-link', code);
+  }
+}
+
+// Windows/Linux: second instance receives the deep link via argv
+app.on('second-instance', (_event, argv) => {
+  const deepLink = argv.find(arg => arg.startsWith('shiranami://'));
+  if (deepLink) {
+    handleDeepLink(deepLink);
+  } else if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
+// macOS: open-url event fires when the protocol is triggered
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
+});
 
 async function bootstrap(): Promise<void> {
   logger.info(`Shiranami v${app.getVersion()} starting...`);
