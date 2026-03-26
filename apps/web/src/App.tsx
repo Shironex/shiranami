@@ -22,6 +22,7 @@ const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
 const AudioVisualizer = lazy(() => import('@/components/player/AudioVisualizer'));
 const WaveformVisualizer = lazy(() => import('@/components/player/WaveformVisualizer'));
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
+const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -88,6 +89,9 @@ function App() {
             <CommandPalette />
             <Suspense fallback={null}>
               <KeyboardShortcutsHelp />
+            </Suspense>
+            <Suspense fallback={null}>
+              <ShareDialogManager />
             </Suspense>
 
             {compactMode ? (

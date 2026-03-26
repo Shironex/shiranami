@@ -1,0 +1,14 @@
+{
+  "shareTrack": "Udostępnij utwór",
+  "sharePlaylist": "Udostępnij playlistę",
+  "creating": "Tworzenie linku...",
+  "copyLink": "Kopiuj link",
+  "expiresIn": "Link wygasa za {{minutes}} minut",
+  "share": "Udostępnij",
+  "shareError": "Nie udało się utworzyć linku",
+  "importTitle": "Importuj udostępnioną muzykę",
+  "loadingShare": "Ładowanie udostępnionej treści...",
+  "downloadAll": "Pobierz wszystko ({{count}} utworów)",
+  "downloadingProgress": "Pobieranie {{current}} z {{total}}...",
+  "downloadComplete": "Wszystkie utwory pobrane!"
+}

@@ -147,6 +147,12 @@ function createElectronAPIMock(): ElectronAPI {
         isFavorite: asyncFn(false),
       },
     },
+    share: {
+      track: asyncFn({ code: 'abc', url: 'https://example.com/s/abc', expiresAt: new Date(Date.now() + 3600000).toISOString() }),
+      playlist: asyncFn({ code: 'def', url: 'https://example.com/s/def', expiresAt: new Date(Date.now() + 3600000).toISOString() }),
+      import: asyncFn({ type: 'TRACK' as const, payload: null }),
+      onDeepLink: vi.fn(() => () => {}),
+    },
     shell: {
       showInFolder: asyncFn(undefined),
       trashFile: asyncFn(undefined),

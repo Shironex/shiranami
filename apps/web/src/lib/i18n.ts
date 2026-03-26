@@ -23,6 +23,7 @@ import contextMenuEn from '@/locales/en/contextMenu.json';
 import toastEn from '@/locales/en/toast.json';
 import splashEn from '@/locales/en/splash.json';
 import importEn from '@/locales/en/import.json';
+import shareEn from '@/locales/en/share.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -45,6 +46,7 @@ import contextMenuPl from '@/locales/pl/contextMenu.json';
 import toastPl from '@/locales/pl/toast.json';
 import splashPl from '@/locales/pl/splash.json';
 import importPl from '@/locales/pl/import.json';
+import sharePl from '@/locales/pl/share.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -75,7 +77,7 @@ const namespaces = [
   'common', 'sidebar', 'topbar', 'player', 'library', 'favorites',
   'playlists', 'search', 'radio', 'history', 'settings', 'queue',
   'lyrics', 'compact', 'commandPalette', 'shortcuts', 'sleepTimer',
-  'contextMenu', 'toast', 'splash', 'import',
+  'contextMenu', 'toast', 'splash', 'import', 'share',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -102,6 +104,7 @@ i18n.use(initReactI18next).init({
       toast: toastEn,
       splash: splashEn,
       import: importEn,
+      share: shareEn,
     },
     pl: {
       common: commonPl,
@@ -125,6 +128,7 @@ i18n.use(initReactI18next).init({
       toast: toastPl,
       splash: splashPl,
       import: importPl,
+      share: sharePl,
     },
   },
   lng: getInitialLanguage(),

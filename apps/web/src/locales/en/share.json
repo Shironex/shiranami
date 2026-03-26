@@ -1,0 +1,14 @@
+{
+  "shareTrack": "Share Track",
+  "sharePlaylist": "Share Playlist",
+  "creating": "Creating share link...",
+  "copyLink": "Copy link",
+  "expiresIn": "Link expires in {{minutes}} minutes",
+  "share": "Share",
+  "shareError": "Failed to create share link",
+  "importTitle": "Import Shared Music",
+  "loadingShare": "Loading shared content...",
+  "downloadAll": "Download All ({{count}} tracks)",
+  "downloadingProgress": "Downloading {{current}} of {{total}}...",
+  "downloadComplete": "All tracks downloaded!"
+}

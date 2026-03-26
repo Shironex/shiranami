@@ -5,6 +5,7 @@ import {
   Play,
   ListPlus,
   Heart,
+  Share2,
   FolderOpen,
   Trash2,
   Plus,
@@ -470,6 +471,19 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
           label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           onClick={handleToggleFavorite}
         />
+
+        {IS_ELECTRON && (
+          <MenuItem
+            icon={<Share2 className="w-4 h-4" />}
+            label={t('share', { ns: 'share' })}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-share-dialog', {
+                detail: { type: 'track', id: track.id }
+              }));
+              onClose();
+            }}
+          />
+        )}
 
         <Divider />
 

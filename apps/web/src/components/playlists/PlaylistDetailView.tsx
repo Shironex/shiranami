@@ -6,6 +6,7 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import {
   ArrowLeft,
   Play,
+  Share2,
   Trash2,
   ListMusic,
   Loader2,
@@ -267,6 +268,21 @@ export function PlaylistDetailView() {
             <Play className="w-3.5 h-3.5 fill-current" />
             {t('playAll')}
           </motion.button>
+
+          {IS_ELECTRON && selectedPlaylistId && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-share-dialog', {
+                  detail: { type: 'playlist', id: selectedPlaylistId }
+                }));
+              }}
+              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors"
+              aria-label={t('share', { ns: 'share' })}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </motion.button>
+          )}
 
           <div className="relative">
             <motion.button
