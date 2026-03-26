@@ -1,6 +1,6 @@
 {
   "name": "@shiranami/database",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "private": true,
   "description": "Shiranami database layer using Drizzle ORM with SQLite",
   "main": "./dist/index.js",
