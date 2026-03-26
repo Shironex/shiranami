@@ -1,0 +1,8 @@
+{
+  "title": "Kolejka",
+  "clear": "Wyczyść",
+  "empty": "Kolejka jest pusta",
+  "nowPlaying": "Teraz odtwarzane",
+  "upNext": "Następne ({{count}})",
+  "remove": "Usuń z kolejki"
+}

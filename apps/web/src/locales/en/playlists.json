@@ -1,0 +1,23 @@
+{
+  "newPlaylist": "New Playlist",
+  "namePlaceholder": "Playlist name...",
+  "creating": "Creating...",
+  "create": "Create",
+  "emptyTitle": "No playlists yet",
+  "emptySubtitle": "Create one to get started",
+  "back": "Back to playlists",
+  "playAll": "Play All",
+  "deletePlaylist": "Delete playlist",
+  "deleteConfirm": "Delete this playlist?",
+  "clickToRename": "Click to rename",
+  "trackCount_one": "{{count}} track",
+  "trackCount_other": "{{count}} tracks",
+  "detailEmptyTitle": "No tracks yet",
+  "detailEmptySubtitle": "Add tracks from your library",
+  "notFound": "Playlist not found",
+  "goBack": "Go back",
+  "uploadCustomImage": "Upload Custom Image",
+  "useTrackArtwork": "Use Track Artwork",
+  "removeCover": "Remove Cover",
+  "editCover": "Edit playlist cover"
+}

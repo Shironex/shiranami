@@ -1,0 +1,12 @@
+{
+  "title": "Compact Mode",
+  "nothingPlaying": "Nothing playing",
+  "idleSubtitle": "Start playback to keep a smaller player on screen.",
+  "disableAlwaysOnTop": "Disable always on top",
+  "enableAlwaysOnTop": "Enable always on top",
+  "keepOnTop": "Keep on top",
+  "disableOnTop": "Disable always on top",
+  "exitCompactMode": "Exit compact mode",
+  "minimize": "Minimize",
+  "close": "Close"
+}

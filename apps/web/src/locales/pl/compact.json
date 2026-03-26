@@ -1,0 +1,12 @@
+{
+  "title": "Tryb kompaktowy",
+  "nothingPlaying": "Nic nie jest odtwarzane",
+  "idleSubtitle": "Rozpocznij odtwarzanie, aby mieć mniejszy odtwarzacz na ekranie.",
+  "disableAlwaysOnTop": "Wyłącz zawsze na wierzchu",
+  "enableAlwaysOnTop": "Włącz zawsze na wierzchu",
+  "keepOnTop": "Zawsze na wierzchu",
+  "disableOnTop": "Wyłącz zawsze na wierzchu",
+  "exitCompactMode": "Wyjdź z trybu kompaktowego",
+  "minimize": "Minimalizuj",
+  "close": "Zamknij"
+}

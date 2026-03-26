@@ -1,0 +1,8 @@
+{
+  "placeholder": "Search tracks, navigate...",
+  "noResults": "No results found.",
+  "navigation": "Navigation",
+  "tracks": "Tracks",
+  "playing": "Playing",
+  "goTo": "Go to {{view}}"
+}

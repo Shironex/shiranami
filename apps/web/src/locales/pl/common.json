@@ -1,0 +1,18 @@
+{
+  "nowPlaying": "Teraz odtwarzane",
+  "noPlaylists": "Brak playlist",
+  "newPlaylist": "Nowa playlista",
+  "add": "Dodaj",
+  "cancel": "Anuluj",
+  "delete": "Usuń",
+  "retry": "Ponów",
+  "reset": "Resetuj",
+  "namePlaceholder": "Nazwa...",
+  "shiranami": "Shiranami",
+  "unknownArtist": "Nieznany artysta",
+  "unknownAlbum": "Nieznany album",
+  "unknownError": "Nieznany błąd",
+  "previewSource": "Podgląd",
+  "loading": "Ładowanie...",
+  "liveRadio": "Radio na żywo"
+}

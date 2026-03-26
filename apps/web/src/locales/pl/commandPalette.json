@@ -1,0 +1,8 @@
+{
+  "placeholder": "Szukaj utworów, nawiguj...",
+  "noResults": "Nie znaleziono wyników.",
+  "navigation": "Nawigacja",
+  "tracks": "Utwory",
+  "playing": "Odtwarzane",
+  "goTo": "Przejdź do {{view}}"
+}

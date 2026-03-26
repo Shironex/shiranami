@@ -1,0 +1,8 @@
+{
+  "title": "Queue",
+  "clear": "Clear",
+  "empty": "Queue is empty",
+  "nowPlaying": "Now Playing",
+  "upNext": "Up Next ({{count}})",
+  "remove": "Remove from queue"
+}

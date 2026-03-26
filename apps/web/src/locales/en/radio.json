@@ -1,0 +1,13 @@
+{
+  "searchPlaceholder": "Search radio stations...",
+  "topStations": "Top Stations",
+  "byCountry": "By Country",
+  "favorites": "Favorites",
+  "selectCountry": "Select country",
+  "noFavoriteStationsTitle": "No favorite stations yet",
+  "noFavoriteStationsSubtitle": "Click the heart icon on any station to save it here",
+  "noStationsTitle": "No stations found",
+  "noStationsSubtitle": "Try a different search or browse by country",
+  "removeFavorite": "Remove from favorites",
+  "addFavorite": "Add to favorites"
+}

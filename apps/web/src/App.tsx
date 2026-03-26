@@ -35,6 +35,7 @@ import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
+import { hydrateLanguageFromStore } from '@/lib/i18n';
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -47,6 +48,10 @@ function App() {
   usePlaybackResume(splashDone);
   useUpdateNotifications();
   useKeyboardShortcuts();
+
+  useEffect(() => {
+    hydrateLanguageFromStore();
+  }, []);
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);

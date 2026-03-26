@@ -1,0 +1,13 @@
+{
+  "searchPlaceholder": "Szukaj stacji radiowych...",
+  "topStations": "Popularne stacje",
+  "byCountry": "Według kraju",
+  "favorites": "Ulubione",
+  "selectCountry": "Wybierz kraj",
+  "noFavoriteStationsTitle": "Brak ulubionych stacji",
+  "noFavoriteStationsSubtitle": "Kliknij ikonę serca przy dowolnej stacji, aby ją tutaj zapisać",
+  "noStationsTitle": "Nie znaleziono stacji",
+  "noStationsSubtitle": "Spróbuj innej frazy lub przeglądaj według kraju",
+  "removeFavorite": "Usuń z ulubionych",
+  "addFavorite": "Dodaj do ulubionych"
+}

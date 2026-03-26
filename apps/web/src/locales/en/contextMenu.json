@@ -1,0 +1,16 @@
+{
+  "playNext": "Play Next",
+  "addToQueue": "Add to Queue",
+  "addToPlaylist": "Add to Playlist",
+  "removeFromFavorites": "Remove from Favorites",
+  "addToFavorites": "Add to Favorites",
+  "showInFinder": "Show in Finder",
+  "showInExplorer": "Show in Explorer",
+  "removeFromLibrary": "Remove from Library",
+  "deleteFromDisk": "Delete from Disk",
+  "openPlaylist": "Open Playlist",
+  "playPlaylist": "Play Playlist",
+  "shufflePlaylist": "Shuffle Playlist",
+  "removeFromPlaylist": "Remove from playlist",
+  "addToPlaylistAria": "Add to playlist"
+}

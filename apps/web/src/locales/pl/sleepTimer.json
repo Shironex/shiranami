@@ -1,0 +1,12 @@
+{
+  "label": "Wyłącznik czasowy",
+  "sleepIn": "Uśpienie za {{time}}",
+  "active": "Wyłącznik aktywny",
+  "stopAfter": "Zatrzymaj odtwarzanie po",
+  "remaining": "pozostało",
+  "minutes_one": "{{count}} minuta",
+  "minutes_few": "{{count}} minuty",
+  "minutes_many": "{{count}} minut",
+  "minutes_other": "{{count}} minut",
+  "cancelTimer": "Anuluj czasomierz"
+}

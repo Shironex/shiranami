@@ -1,0 +1,10 @@
+{
+  "label": "Sleep timer",
+  "sleepIn": "Sleep in {{time}}",
+  "active": "Timer active",
+  "stopAfter": "Stop playing after",
+  "remaining": "remaining",
+  "minutes_one": "{{count}} minute",
+  "minutes_other": "{{count}} minutes",
+  "cancelTimer": "Cancel timer"
+}

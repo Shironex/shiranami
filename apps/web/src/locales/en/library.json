@@ -1,0 +1,8 @@
+{
+  "filterPlaceholder": "Filter tracks...",
+  "filterCount": "{{filtered}} of {{total}} tracks",
+  "emptyTitle": "No tracks yet",
+  "emptySubtitle": "Add files or a folder to start listening",
+  "noMatchesTitle": "No matching tracks",
+  "noMatchesSubtitle": "Try a different search term"
+}

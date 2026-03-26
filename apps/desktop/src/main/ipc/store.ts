@@ -9,6 +9,7 @@ const ALLOWED_STORE_KEYS = new Set([
   'player.isMuted',
   'theme',
   'window-bounds',
+  'app.language',
 ]);
 
 export function registerStoreHandlers(): void {

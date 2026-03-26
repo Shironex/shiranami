@@ -1,0 +1,16 @@
+{
+  "library": "Library",
+  "playlists": "Playlists",
+  "favorites": "Favorites",
+  "history": "History",
+  "search": "Search",
+  "importPlaylist": "Import Playlist",
+  "radio": "Radio",
+  "settings": "Settings",
+  "openLibrary": "Open library",
+  "expandSidebar": "Expand sidebar",
+  "collapseSidebar": "Collapse sidebar",
+  "yourPlaylists": "Your Playlists",
+  "all": "All",
+  "allPlaylists": "All playlists"
+}

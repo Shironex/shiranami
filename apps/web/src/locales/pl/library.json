@@ -1,0 +1,8 @@
+{
+  "filterPlaceholder": "Filtruj utwory...",
+  "filterCount": "{{filtered}} z {{total}} utworów",
+  "emptyTitle": "Brak utworów",
+  "emptySubtitle": "Dodaj pliki lub folder, aby zacząć słuchać",
+  "noMatchesTitle": "Brak pasujących utworów",
+  "noMatchesSubtitle": "Spróbuj innej frazy"
+}
