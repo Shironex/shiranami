@@ -5,9 +5,9 @@ import previewSrc from '../assets/app-preview.png';
 
 <section class="section-shell section-stack" id="preview">
   <div class="section-heading reveal">
-    <div class="pill">The app</div>
-    <h2>This is what it looks like.</h2>
-    <p>
+    <div class="pill" data-i18n="preview.pill">The app</div>
+    <h2 data-i18n="preview.heading">This is what it looks like.</h2>
+    <p data-i18n="preview.body">
       Your library, now playing, and queue — all in one calm view.
     </p>
   </div>
@@ -16,6 +16,7 @@ import previewSrc from '../assets/app-preview.png';
     <Image
       src={previewSrc}
       alt="Shiranami desktop app showing the library view with a track playing"
+      data-i18n-alt="preview.alt"
       width={1100}
       quality={85}
     />

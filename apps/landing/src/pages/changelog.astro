@@ -2,40 +2,42 @@
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { changelog } from '../lib/changelog';
+import { changelog, getLocalizedChangelog } from '../lib/changelog';
+
+const initialChangelog = getLocalizedChangelog('en');
 ---
 
 <BaseLayout title="Changelog - Shiranami" description="Release notes and changes for Shiranami.">
   <Navbar />
   <main id="main" class="section-shell changelog-page">
     <div class="changelog-header reveal">
-      <p class="changelog-label">Changelog</p>
-      <h1>What's new?</h1>
-      <p class="changelog-subtitle">Release history and changes in Shiranami.</p>
+      <p class="changelog-label" data-i18n="changelog.label">Changelog</p>
+      <h1 data-i18n="changelog.heading">What's new?</h1>
+      <p class="changelog-subtitle" data-i18n="changelog.subtitle">Release history and changes in Shiranami.</p>
     </div>
 
     <div class="release-list">
-      {changelog.map((release) => (
-        <article class="release-entry reveal">
+      {initialChangelog.map((release, releaseIndex) => (
+        <article class="release-entry reveal" data-release-index={releaseIndex}>
           <div class="release-meta">
             <span class="release-version-dot">
               <span class="dot-pulse" />
               <span>v{release.version}</span>
             </span>
-            <span class="release-date">{release.date}</span>
+            <span class="release-date" data-release-date>{release.date}</span>
           </div>
-          <h2>{release.title}</h2>
-          <p class="release-description">{release.description}</p>
+          <h2 data-release-title>{release.title}</h2>
+          <p class="release-description" data-release-description>{release.description}</p>
 
           <div class="category-list">
-            {release.categories.map((category) => (
-              <div class="category-section">
-                <h3 class="category-label">{category.label}</h3>
+            {release.categories.map((category, categoryIndex) => (
+              <div class="category-section" data-category-index={categoryIndex}>
+                <h3 class="category-label" data-category-label>{category.label}</h3>
                 <ul class="change-list">
-                  {category.entries.map((entry) => (
-                    <li>
+                  {category.entries.map((entry, entryIndex) => (
+                    <li data-entry-index={entryIndex}>
                       <svg class="change-dot" width="6" height="6" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="currentColor" /></svg>
-                      <span>{entry}</span>
+                      <span data-entry-text>{entry}</span>
                     </li>
                   ))}
                 </ul>
@@ -47,4 +49,50 @@ import { changelog } from '../lib/changelog';
     </div>
   </main>
   <Footer />
+
+  <script is:inline define:vars={{ changelogData: changelog }}>
+    const formatLocalizedDate = (value, lang) =>
+      new Intl.DateTimeFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(`${value}T00:00:00Z`));
+
+    const applyChangelogLanguage = () => {
+      const lang = document.documentElement.lang === 'pl' ? 'pl' : 'en';
+
+      document.querySelectorAll('[data-release-index]').forEach((article) => {
+        const releaseIndex = Number(article.getAttribute('data-release-index'));
+        const release = changelogData[releaseIndex];
+        if (!release) return;
+
+        const dateEl = article.querySelector('[data-release-date]');
+        const titleEl = article.querySelector('[data-release-title]');
+        const descEl = article.querySelector('[data-release-description]');
+
+        if (dateEl) dateEl.textContent = formatLocalizedDate(release.date, lang);
+        if (titleEl) titleEl.textContent = release.title[lang];
+        if (descEl) descEl.textContent = release.description[lang];
+
+        article.querySelectorAll('[data-category-index]').forEach((section) => {
+          const categoryIndex = Number(section.getAttribute('data-category-index'));
+          const category = release.categories[categoryIndex];
+          if (!category) return;
+
+          const labelEl = section.querySelector('[data-category-label]');
+          if (labelEl) labelEl.textContent = category.label[lang];
+
+          section.querySelectorAll('[data-entry-index]').forEach((entryItem) => {
+            const entryIndex = Number(entryItem.getAttribute('data-entry-index'));
+            const entry = category.entries[entryIndex];
+            const entryEl = entryItem.querySelector('[data-entry-text]');
+            if (entry && entryEl) entryEl.textContent = entry[lang];
+          });
+        });
+      });
+    };
+
+    document.addEventListener('astro:page-load', applyChangelogLanguage);
+    document.addEventListener('shiranami:lang-change', applyChangelogLanguage);
+  </script>
 </BaseLayout>

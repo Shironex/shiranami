@@ -15,7 +15,7 @@ const { title, description } = Astro.props;
     <BaseHead title={title} description={description} />
   </head>
   <body>
-    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="#main" class="skip-link" data-i18n="layout.skipToContent">Skip to content</a>
     <div class="site-shell">
       <slot />
     </div>
@@ -41,6 +41,65 @@ const { title, description } = Astro.props;
       }
 
       document.addEventListener('astro:page-load', initReveal);
+    </script>
+
+    <script>
+      import { translations, type LandingLanguage } from '../lib/i18n';
+
+      const LANG_KEY = 'shiranami.language';
+      const landingWindow = window as Window & {
+        __shiranamiLandingTranslations?: Record<LandingLanguage, Record<string, string>>;
+      };
+      landingWindow.__shiranamiLandingTranslations = translations;
+
+      function getStoredLang(): LandingLanguage {
+        const stored = localStorage.getItem(LANG_KEY);
+        if (stored === 'en' || stored === 'pl') return stored;
+        return 'en';
+      }
+
+      function applyTranslations(lang: LandingLanguage) {
+        const dict = translations[lang];
+        if (!dict) return;
+
+        document.documentElement.lang = lang;
+
+        document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+          const key = el.dataset.i18n!;
+          if (dict[key] != null) el.textContent = dict[key];
+        });
+
+        document.querySelectorAll<HTMLElement>('[data-i18n-alt]').forEach((el) => {
+          const key = el.dataset.i18nAlt!;
+          if (dict[key] != null) el.setAttribute('alt', dict[key]);
+        });
+
+        document.querySelectorAll<HTMLElement>('[data-i18n-aria-label]').forEach((el) => {
+          const key = el.dataset.i18nAriaLabel!;
+          if (dict[key] != null) el.setAttribute('aria-label', dict[key]);
+        });
+
+        document.querySelectorAll<HTMLElement>('[data-lang-toggle]').forEach((btn) => {
+          btn.textContent = lang === 'en' ? 'PL' : 'EN';
+        });
+
+        document.dispatchEvent(new CustomEvent('shiranami:lang-change', { detail: { lang } }));
+      }
+
+      function initI18n() {
+        applyTranslations(getStoredLang());
+
+        document.querySelectorAll('[data-lang-toggle]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const current = getStoredLang();
+            const next: LandingLanguage = current === 'en' ? 'pl' : 'en';
+            localStorage.setItem(LANG_KEY, next);
+            applyTranslations(next);
+          });
+        });
+      }
+
+      document.addEventListener('astro:page-load', initI18n);
     </script>
   </body>
 </html>

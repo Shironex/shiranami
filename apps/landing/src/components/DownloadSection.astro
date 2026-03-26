@@ -5,16 +5,19 @@ import { LANDING_VERSION } from '../lib/site';
 <section class="section-shell section-stack">
   <div class="cta-card reveal">
     <div>
-      <div class="pill">v{LANDING_VERSION} is out</div>
-      <h2>Ready to listen?</h2>
-      <p>
+      <div class="pill cta-version-pill">
+        <span>v{LANDING_VERSION}</span>{' '}
+        <span data-i18n="cta.versionPill">is out</span>
+      </div>
+      <h2 data-i18n="cta.heading">Ready to listen?</h2>
+      <p data-i18n="cta.body">
         Grab the latest build for Windows or macOS, or read what went into making it feel right.
       </p>
     </div>
 
     <div class="cta-actions">
-      <a class="button-primary" href="/download">Get the app</a>
-      <a class="button-secondary" href="/changelog">Release notes</a>
+      <a class="button-primary" href="/download" data-i18n="cta.getTheApp">Get the app</a>
+      <a class="button-secondary" href="/changelog" data-i18n="cta.releaseNotes">Release notes</a>
     </div>
   </div>
 </section>

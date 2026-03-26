@@ -7,21 +7,21 @@ const isLanding = currentPath === '/' || currentPath === '';
 
 const navItems = isLanding
   ? [
-      { href: '#features', label: 'Features' },
-      { href: '/changelog', label: 'Changelog' },
-      { href: '/download', label: 'Download' },
+      { href: '#features', label: 'Features', i18nKey: 'nav.features' },
+      { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
+      { href: '/download', label: 'Download', i18nKey: 'nav.download' },
     ]
   : [
-      { href: '/', label: 'Home' },
-      { href: '/changelog', label: 'Changelog' },
-      { href: '/download', label: 'Download' },
+      { href: '/', label: 'Home', i18nKey: 'nav.home' },
+      { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
+      { href: '/download', label: 'Download', i18nKey: 'nav.download' },
     ];
 ---
 
 <header class="nav-wrap">
-  <nav class="nav-shell" aria-label="Primary">
+  <nav class="nav-shell" aria-label="Primary navigation" data-i18n-aria-label="nav.primary">
     <a href="/" class="brand-mark">
-      <Image src={faviconSrc} alt="Shiranami icon" width={28} height={28} />
+      <Image src={faviconSrc} alt="Shiranami icon" data-i18n-alt="brand.iconAlt" width={28} height={28} />
       <div>
         <p>Shiranami</p>
       </div>
@@ -29,13 +29,14 @@ const navItems = isLanding
 
     <div class="nav-links">
       {navItems.map((item) => (
-        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''}>{item.label}</a>
+        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-i18n={item.i18nKey}>{item.label}</a>
       ))}
     </div>
 
     <div class="nav-end">
-      <a class="button-primary compact nav-cta-desktop" href="/download">Get the app</a>
-      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+      <a class="button-primary compact nav-cta-desktop" href="/download" data-i18n="nav.getTheApp">Get the app</a>
+      <button class="lang-toggle" data-lang-toggle aria-label="Switch language" data-i18n-aria-label="nav.switchLanguage">PL</button>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" data-i18n-aria-label="nav.toggleMenu">
         <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
         <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
       </button>
@@ -45,7 +46,7 @@ const navItems = isLanding
   <div class="nav-mobile" aria-hidden="true">
     <div class="nav-mobile-inner">
       {navItems.map((item) => (
-        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-nav-link>{item.label}</a>
+        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-nav-link data-i18n={item.i18nKey}>{item.label}</a>
       ))}
     </div>
   </div>
