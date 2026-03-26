@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { usePlaylistDetail } from '@/hooks/usePlaylistDetail';
+import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
+import { usePlaylistCover } from '@/hooks/usePlaylistCover';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   ArrowLeft,
   Play,
@@ -19,78 +23,46 @@ import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
-import { toast } from 'sonner';
-import type { Playlist } from '@/types/electron';
-import { notifyPlaylistsChanged } from '@/lib/playlists';
 
 export function PlaylistDetailView() {
   const { t } = useTranslation('playlists');
-  const { t: tToast } = useTranslation('toast');
-  const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
-  const selectPlaylist = useAppStore(s => s.selectPlaylist);
-  const setQueue = usePlayerStore(s => s.setQueue);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
-  const library = usePlayerStore(s => s.library);
-  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
+  const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
+  const selectPlaylist = useAppStore((s) => s.selectPlaylist);
+  const setQueue = usePlayerStore((s) => s.setQueue);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
 
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Data fetching
+  const { playlist, setPlaylist, tracks, setTracks, displayTracks, isLoading } =
+    usePlaylistDetail(selectedPlaylistId);
+
+  // Mutations
+  const { handleSaveName, handleDelete, handleRemoveTrack, handleBulkRemoveFromPlaylist } =
+    usePlaylistMutations({ playlistId: selectedPlaylistId, playlist, setPlaylist, setTracks });
+
+  // Cover art
+  const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
+  const {
+    showCoverMenu,
+    setShowCoverMenu,
+    isUpdatingCover,
+    coverMenuRef,
+    coverInputRef,
+    handleCoverFileSelected,
+    handlePickCustomCover,
+    handleUseSuggestedCover,
+    handleClearCover,
+  } = usePlaylistCover({ playlistId: selectedPlaylistId, setPlaylist, suggestedCoverArt });
+
+  useClickOutside(coverMenuRef, () => setShowCoverMenu(false), showCoverMenu);
+
+  // Inline editing
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCoverMenu, setShowCoverMenu] = useState(false);
-  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const coverMenuRef = useRef<HTMLDivElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
-
-  const suggestedCoverArt = tracks.find(track => track.albumArt)?.albumArt;
-
-  // Sync isFavorite from the store so hearts update in real-time
-  const displayTracks = useMemo(() => {
-    const favMap = new Map(library.map(t => [t.id, t.isFavorite]));
-    return tracks.map(t => {
-      const fav = favMap.get(t.id);
-      return fav !== undefined && fav !== t.isFavorite ? { ...t, isFavorite: fav } : t;
-    });
-  }, [tracks, library]);
-
-  const loadPlaylist = useCallback(async () => {
-    if (!IS_ELECTRON || !selectedPlaylistId) return;
-    setIsLoading(true);
-    try {
-      const [pl, tr] = await Promise.all([
-        window.electronAPI.db.playlists.get(selectedPlaylistId) as Promise<Playlist>,
-        window.electronAPI.db.playlists.getTracks(selectedPlaylistId) as Promise<Track[]>,
-      ]);
-      setPlaylist(pl);
-      setTracks(tr);
-    } catch {
-      toast.error(tToast('failedLoadPlaylist'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedPlaylistId, tToast]);
-
-  useEffect(() => {
-    loadPlaylist();
-  }, [loadPlaylist]);
-
-  useEffect(() => {
-    if (!showCoverMenu) return;
-
-    const handleMouseDown = (event: MouseEvent) => {
-      if (coverMenuRef.current && !coverMenuRef.current.contains(event.target as Node)) {
-        setShowCoverMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [showCoverMenu]);
 
   const handleBack = useCallback(() => selectPlaylist(null), [selectPlaylist]);
 
@@ -107,37 +79,6 @@ export function PlaylistDetailView() {
     [tracks, setQueue]
   );
 
-  const handleRemoveTrack = useCallback(
-    async (trackId: string) => {
-      if (!IS_ELECTRON || !selectedPlaylistId) return;
-      try {
-        await window.electronAPI.db.playlists.removeTrack(selectedPlaylistId, trackId);
-        setTracks(prev => prev.filter(t => t.id !== trackId));
-        toast.success(tToast('removedFromPlaylist'));
-      } catch {
-        toast.error(tToast('failedRemoveTrack'));
-      }
-    },
-    [selectedPlaylistId, tToast]
-  );
-
-  const handleBulkRemoveFromPlaylist = useCallback(
-    async (trackIds: string[]) => {
-      if (!IS_ELECTRON || !selectedPlaylistId) return;
-      try {
-        for (const id of trackIds) {
-          await window.electronAPI.db.playlists.removeTrack(selectedPlaylistId, id);
-        }
-        const idsSet = new Set(trackIds);
-        setTracks(prev => prev.filter(t => !idsSet.has(t.id)));
-        toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length }));
-      } catch {
-        toast.error(tToast('failedRemoveTrack'));
-      }
-    },
-    [selectedPlaylistId, tToast]
-  );
-
   const handleStartEdit = useCallback(() => {
     if (!playlist) return;
     setEditName(playlist.name);
@@ -145,103 +86,18 @@ export function PlaylistDetailView() {
     requestAnimationFrame(() => nameInputRef.current?.focus());
   }, [playlist]);
 
-  const handleSaveName = useCallback(async () => {
-    const name = editName.trim();
-    if (!name || !IS_ELECTRON || !selectedPlaylistId || !playlist) {
-      setIsEditing(false);
-      return;
-    }
-    if (name === playlist.name) {
-      setIsEditing(false);
-      return;
-    }
-    try {
-      await window.electronAPI.db.playlists.update(selectedPlaylistId, { name });
-      setPlaylist(prev => (prev ? { ...prev, name } : prev));
-      notifyPlaylistsChanged();
-      toast.success(tToast('playlistRenamed'));
-    } catch {
-      toast.error(tToast('failedRename'));
-    } finally {
-      setIsEditing(false);
-    }
-  }, [editName, selectedPlaylistId, playlist, tToast]);
+  const handleSaveNameSubmit = useCallback(async () => {
+    await handleSaveName(editName);
+    setIsEditing(false);
+  }, [editName, handleSaveName]);
 
   const handleNameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') handleSaveName();
+      if (e.key === 'Enter') handleSaveNameSubmit();
       if (e.key === 'Escape') setIsEditing(false);
     },
-    [handleSaveName]
+    [handleSaveNameSubmit]
   );
-
-  const handleDelete = useCallback(async () => {
-    if (!IS_ELECTRON || !selectedPlaylistId) return;
-    try {
-      await window.electronAPI.db.playlists.delete(selectedPlaylistId);
-      notifyPlaylistsChanged();
-      toast.success(tToast('playlistDeleted'));
-      selectPlaylist(null);
-    } catch {
-      toast.error(tToast('failedDeletePlaylist'));
-    }
-  }, [selectedPlaylistId, selectPlaylist, tToast]);
-
-  const updateCoverArt = useCallback(
-    async (coverArt: string) => {
-      if (!IS_ELECTRON || !selectedPlaylistId) return;
-
-      setIsUpdatingCover(true);
-      try {
-        await window.electronAPI.db.playlists.update(selectedPlaylistId, { coverArt });
-        setPlaylist(prev => (prev ? { ...prev, coverArt } : prev));
-        notifyPlaylistsChanged();
-        setShowCoverMenu(false);
-        toast.success(coverArt ? tToast('coverUpdated') : tToast('coverCleared'));
-      } catch {
-        toast.error(tToast('failedUpdateCover'));
-      } finally {
-        setIsUpdatingCover(false);
-      }
-    },
-    [selectedPlaylistId, tToast]
-  );
-
-  const handleCoverFileSelected = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      event.target.value = '';
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const result = typeof reader.result === 'string' ? reader.result : '';
-        if (!result) {
-          toast.error(tToast('failedReadImage'));
-          return;
-        }
-        await updateCoverArt(result);
-      };
-      reader.onerror = () => {
-        toast.error(tToast('failedReadImage'));
-      };
-      reader.readAsDataURL(file);
-    },
-    [updateCoverArt, tToast]
-  );
-
-  const handlePickCustomCover = useCallback(() => {
-    coverInputRef.current?.click();
-  }, []);
-
-  const handleUseSuggestedCover = useCallback(async () => {
-    if (!suggestedCoverArt) return;
-    await updateCoverArt(suggestedCoverArt);
-  }, [suggestedCoverArt, updateCoverArt]);
-
-  const handleClearCover = useCallback(async () => {
-    await updateCoverArt('');
-  }, [updateCoverArt]);
 
   if (isLoading) {
     return (
@@ -293,9 +149,11 @@ export function PlaylistDetailView() {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => {
-                window.dispatchEvent(new CustomEvent('open-share-dialog', {
-                  detail: { type: 'playlist', id: selectedPlaylistId }
-                }));
+                window.dispatchEvent(
+                  new CustomEvent('open-share-dialog', {
+                    detail: { type: 'playlist', id: selectedPlaylistId },
+                  })
+                );
               }}
               className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors"
               aria-label={t('share', { ns: 'share' })}
@@ -348,7 +206,7 @@ export function PlaylistDetailView() {
         <div className="flex items-center gap-4">
           <div ref={coverMenuRef} className="relative shrink-0">
             <button
-              onClick={() => setShowCoverMenu(open => !open)}
+              onClick={() => setShowCoverMenu((open) => !open)}
               className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
               disabled={isUpdatingCover}
               title={t('editCover')}
@@ -421,8 +279,8 @@ export function PlaylistDetailView() {
               <input
                 ref={nameInputRef}
                 value={editName}
-                onChange={e => setEditName(e.target.value)}
-                onBlur={handleSaveName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={handleSaveNameSubmit}
                 onKeyDown={handleNameKeyDown}
                 className="font-display text-lg font-semibold text-foreground bg-transparent outline-none border-b border-primary/40 w-full pb-0.5"
               />

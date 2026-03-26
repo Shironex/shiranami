@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { ListPlus, Plus, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 import { notifyPlaylistsChanged } from '@/lib/playlists';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface AddToPlaylistButtonProps {
   trackId: string;
@@ -24,19 +25,11 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
   const [showNewForm, setShowNewForm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on click outside
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-        setShowNewForm(false);
-        setNewName('');
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [isOpen]);
+  useClickOutside(ref, () => {
+    setIsOpen(false);
+    setShowNewForm(false);
+    setNewName('');
+  }, isOpen);
 
   const handleOpen = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();

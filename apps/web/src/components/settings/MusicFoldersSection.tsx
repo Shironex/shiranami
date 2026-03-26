@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
 import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { mapDbTracksToTracks } from '@/lib/trackMapper';
 
 export interface WatchedFolder {
   id: string;
@@ -14,7 +15,6 @@ export interface WatchedFolder {
 
 export function MusicFoldersSection() {
   const { t } = useTranslation('settings');
-  const { t: tc } = useTranslation('common');
   const { t: tToast } = useTranslation('toast');
   const addToLibrary = usePlayerStore(s => s.addToLibrary);
 
@@ -100,22 +100,7 @@ export function MusicFoldersSection() {
           }))
         )) as Record<string, unknown>[];
 
-        const newTracks: Track[] = dbTracks.map(t => ({
-          id: t.id as string,
-          title: t.title as string,
-          artist: (t.artist as string) ?? tc('unknownArtist'),
-          album: (t.album as string) ?? tc('unknownAlbum'),
-          duration: (t.duration as number) ?? 0,
-          filePath: t.filePath as string,
-          albumArt: (t.albumArt as string | null) ?? undefined,
-          genre: t.genre as string | null | undefined,
-          year: t.year as number | null | undefined,
-          trackNumber: t.trackNumber as number | null | undefined,
-          isFavorite: (t.isFavorite as boolean) ?? false,
-          playCount: (t.playCount as number) ?? 0,
-          createdAt: t.createdAt as string | undefined,
-          updatedAt: t.updatedAt as string | undefined,
-        }));
+        const newTracks = mapDbTracksToTracks(dbTracks);
 
         addToLibrary(newTracks);
 

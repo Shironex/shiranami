@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
+import { useClickOutside } from '@/hooks/useClickOutside';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
@@ -48,20 +50,7 @@ function PlaylistPopover({ trackIds, onDone }: { trackIds: string[]; onDone: () 
     })();
   }, []);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onDone();
-      }
-    };
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handler);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handler);
-    };
-  }, [onDone]);
+  useClickOutside(ref, onDone);
 
   const handleAdd = useCallback(async (playlist: Playlist) => {
     if (!IS_ELECTRON) return;
@@ -205,18 +194,14 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   const addToQueue = usePlayerStore((s) => s.addToQueue);
   const playNext = usePlayerStore((s) => s.playNext);
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
-  const removeFromLibrary = usePlayerStore((s) => s.removeFromLibrary);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const queue = usePlayerStore((s) => s.queue);
-  const queueIndex = usePlayerStore((s) => s.queueIndex);
   const library = usePlayerStore((s) => s.library);
 
+  const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
   const [showPlaylistPopover, setShowPlaylistPopover] = useState(false);
 
   if (count === 0) return null;
 
   const selectedTracks = library.filter((t) => selectedTrackIds.has(t.id));
-  // Fallback: if tracks aren't in library (e.g. playlist view), get from trackList
   const resolvedTracks = selectedTracks.length > 0 ? selectedTracks : trackList.filter((t) => selectedTrackIds.has(t.id));
   const ids = Array.from(selectedTrackIds);
 
@@ -241,111 +226,17 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
     clearSelection();
   };
 
-  const handleRemoveFromLibrary = async () => {
-    if (!IS_ELECTRON) return;
-    try {
-      const idsSet = new Set(ids);
-      const isCurrentlyPlaying = currentTrack && idsSet.has(currentTrack.id);
-
-      if (ids.length === 1) {
-        await window.electronAPI.db.tracks.remove(ids[0]);
-      } else {
-        await window.electronAPI.db.tracks.removeMany(ids);
-      }
-
-      removeFromLibrary(ids);
-
-      const newQueue = queue.filter((t) => !idsSet.has(t.id));
-      if (newQueue.length !== queue.length) {
-        let newIndex = queueIndex;
-        for (let i = 0; i < queueIndex && i < queue.length; i++) {
-          if (idsSet.has(queue[i].id)) newIndex--;
-        }
-        if (isCurrentlyPlaying) {
-          const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
-          usePlayerStore.setState({
-            queue: newQueue,
-            queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
-            currentTrack: nextTrack,
-            currentTime: 0,
-            isPlaying: !!nextTrack,
-          });
-        } else {
-          usePlayerStore.setState({
-            queue: newQueue,
-            queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
-          });
-        }
-      }
-
-      toast.success(tToast('removedTracksFromLibrary', { count }));
-    } catch {
-      toast.error(tToast('failedRemoveTrack'));
-    }
+  const onRemoveFromLibrary = async () => {
+    await handleRemoveFromLibrary(ids);
     clearSelection();
   };
 
-  const handleDeleteFromDisk = async () => {
-    if (!IS_ELECTRON) return;
-    const idsSet = new Set(ids);
-    let filesMovedToTrash = 0;
-
-    try {
-      const isCurrentlyPlaying = currentTrack && idsSet.has(currentTrack.id);
-
-      for (const t of resolvedTracks) {
-        try {
-          await window.electronAPI.shell.trashFile(t.filePath);
-          filesMovedToTrash++;
-        } catch {
-          // continue
-        }
-      }
-
-      if (filesMovedToTrash === 0) {
-        toast.error(tToast('recycleFail'));
-        return;
-      }
-
-      if (ids.length === 1) {
-        await window.electronAPI.db.tracks.remove(ids[0]);
-      } else {
-        await window.electronAPI.db.tracks.removeMany(ids);
-      }
-
-      removeFromLibrary(ids);
-
-      const newQueue = queue.filter((t) => !idsSet.has(t.id));
-      if (newQueue.length !== queue.length) {
-        let newIndex = queueIndex;
-        for (let i = 0; i < queueIndex && i < queue.length; i++) {
-          if (idsSet.has(queue[i].id)) newIndex--;
-        }
-        if (isCurrentlyPlaying) {
-          const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
-          usePlayerStore.setState({
-            queue: newQueue,
-            queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
-            currentTrack: nextTrack,
-            currentTime: 0,
-            isPlaying: !!nextTrack,
-          });
-        } else {
-          usePlayerStore.setState({
-            queue: newQueue,
-            queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
-          });
-        }
-      }
-
-      toast.success(tToast('movedTracksToRecycle', { count: filesMovedToTrash }));
-    } catch {
-      toast.error(filesMovedToTrash > 0 ? tToast('recyclePartialFail') : tToast('recycleFail'));
-    }
+  const onDeleteFromDisk = async () => {
+    await handleDeleteFromDisk(ids, resolvedTracks);
     clearSelection();
   };
 
-  const handleRemoveFromPlaylist = () => {
+  const handleRemoveFromPlaylistClick = () => {
     if (onRemoveFromPlaylist) {
       onRemoveFromPlaylist(ids);
       clearSelection();
@@ -363,14 +254,12 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-3 py-2 rounded-2xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/30 max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-none"
       >
-        {/* Selection count */}
         <span className="text-xs font-medium text-muted-foreground px-2 whitespace-nowrap">
           {tCommon('selectedTracks', { count })}
         </span>
 
         <div className="w-px h-5 bg-border/50 mx-1" />
 
-        {/* Select All / Clear */}
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => allSelected ? clearSelection() : selectAll(trackList)}
@@ -383,7 +272,6 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
 
         <div className="w-px h-5 bg-border/50 mx-1" />
 
-        {/* Actions */}
         <ActionButton
           icon={<Play className="w-3.5 h-3.5" />}
           label={t('playNext')}
@@ -395,7 +283,6 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           onClick={handleAddToQueue}
         />
 
-        {/* Add to Playlist */}
         <div className="relative">
           <ActionButton
             icon={<ListPlus className="w-3.5 h-3.5" />}
@@ -425,7 +312,7 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           <ActionButton
             icon={<X className="w-3.5 h-3.5" />}
             label={t('removeFromPlaylist')}
-            onClick={handleRemoveFromPlaylist}
+            onClick={handleRemoveFromPlaylistClick}
             variant="destructive"
           />
         )}
@@ -435,21 +322,20 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
         <ActionButton
           icon={<Trash2 className="w-3.5 h-3.5" />}
           label={t('removeFromLibrary')}
-          onClick={handleRemoveFromLibrary}
+          onClick={onRemoveFromLibrary}
           variant="destructive"
         />
         {IS_ELECTRON && (
           <ActionButton
             icon={<Trash2 className="w-3.5 h-3.5" />}
             label={t('deleteFromDisk')}
-            onClick={handleDeleteFromDisk}
+            onClick={onDeleteFromDisk}
             variant="destructive"
           />
         )}
 
         <div className="w-px h-5 bg-border/50 mx-1" />
 
-        {/* Close */}
         <motion.button
           whileTap={{ scale: 0.85 }}
           onClick={clearSelection}
