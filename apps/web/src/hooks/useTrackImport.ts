@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
-import i18n from '@/lib/i18n';
+import { mapDbTrackToTrack } from '@/lib/trackMapper';
+import { queryClient } from '@/lib/queryClient';
+import { libraryKeys } from '@/hooks/queries/useLibrary';
 
 /**
  * Shared hook for importing a downloaded audio file into the library.
@@ -33,22 +35,7 @@ export function useTrackImport() {
         albumArt: metadata.albumArt ?? null,
       })) as Record<string, unknown>;
 
-      const track: Track = {
-        id: dbTrack.id as string,
-        title: dbTrack.title as string,
-        artist: (dbTrack.artist as string) ?? i18n.t('unknownArtist', { ns: 'common' }),
-        album: (dbTrack.album as string) ?? i18n.t('unknownAlbum', { ns: 'common' }),
-        duration: (dbTrack.duration as number) ?? 0,
-        filePath: dbTrack.filePath as string,
-        albumArt: (dbTrack.albumArt as string | null) ?? undefined,
-        genre: dbTrack.genre as string | null | undefined,
-        year: dbTrack.year as number | null | undefined,
-        trackNumber: dbTrack.trackNumber as number | null | undefined,
-        isFavorite: (dbTrack.isFavorite as boolean) ?? false,
-        playCount: (dbTrack.playCount as number) ?? 0,
-        createdAt: dbTrack.createdAt as string | undefined,
-        updatedAt: dbTrack.updatedAt as string | undefined,
-      };
+      const track: Track = mapDbTrackToTrack(dbTrack);
 
       addToLibrary([track]);
 
@@ -61,6 +48,7 @@ export function useTrackImport() {
         usePlayerStore.setState({ queue: newQueue });
       }
 
+      queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       return track;
     },
     [addToLibrary, setQueue]

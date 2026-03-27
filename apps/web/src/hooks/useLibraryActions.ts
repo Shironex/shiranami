@@ -5,6 +5,9 @@ import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { queryClient } from '@/lib/queryClient';
+import { libraryKeys } from '@/hooks/queries/useLibrary';
+import { folderKeys } from '@/hooks/queries/useFolders';
 
 export function useLibraryActions() {
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -99,6 +102,8 @@ export function useLibraryActions() {
         usePlayerStore.setState({ queue: combined });
       }
 
+      queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+      queryClient.invalidateQueries({ queryKey: folderKeys.all });
       toast.success(i18n.t('addedTracks', { ns: 'toast', count: newTracks.length }));
     } catch (err) {
       console.error('Failed to add folder:', err);

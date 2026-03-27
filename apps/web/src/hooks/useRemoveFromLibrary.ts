@@ -3,6 +3,8 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { queryClient } from '@/lib/queryClient';
+import { libraryKeys } from '@/hooks/queries/useLibrary';
 
 /**
  * Encapsulates the logic for removing tracks from the library and cleaning up queue state.
@@ -56,6 +58,7 @@ export function useRemoveFromLibrary() {
       await removeFromDb(ids);
       removeFromLibrary(ids);
       removeTracksFromQueue(ids);
+      queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       toast.success(
         ids.length > 1
           ? tToast('removedTracksFromLibrary', { count: ids.length })
@@ -88,6 +91,7 @@ export function useRemoveFromLibrary() {
       await removeFromDb(ids);
       removeFromLibrary(ids);
       removeTracksFromQueue(ids);
+      queryClient.invalidateQueries({ queryKey: libraryKeys.all });
 
       toast.success(
         ids.length > 1
