@@ -601,7 +601,9 @@ export function useAudioEngine() {
 
     const onWaiting = () => {
       playbackSessionRef.current.lastTickAt = null;
-      _setIsLoading(true);
+      if (usePlayerStore.getState().isPlaying) {
+        _setIsLoading(true);
+      }
     };
     const onPlaying = () => {
       playbackSessionRef.current.lastTickAt = performance.now();
