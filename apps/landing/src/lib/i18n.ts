@@ -41,7 +41,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'features.crossfade': 'Crossfade & playback resume',
     'features.crossfadeBody':
       'Dual-deck engine with smooth equal-power crossfade. Volume, queue, and position all survive restarts.',
-    'features.lyrics': 'Zsynchronizowane teksty',
+    'features.lyrics': 'Synced lyrics',
     'features.lyricsBody':
       'Timestamped lyrics scroll with the music. Click any line to seek. Falls back to plain text when needed.',
     'features.radio': 'Internet radio',
@@ -116,78 +116,78 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
 
     // Hero
     'hero.pill': 'Lo-fi odtwarzacz na komputer',
-    'hero.heading': 'Spokojniejsze miejsce dla Twojej biblioteki muzycznej.',
+    'hero.heading': 'Spokojna przystań dla Twojej biblioteki muzycznej.',
     'hero.body':
-      'Shiranami łączy lokalną kolekcję, playlisty, zsynchronizowane teksty, radio internetowe, crossfade i nowe pobrania w jednej spokojnej przestrzeni na pulpicie, utrzymanej w nocnym, lawendowym klimacie.',
+      'Shiranami zbiera lokalną kolekcję, playlisty, zsynchronizowane teksty, radio internetowe, crossfade i nowe pobrania w jednym spokojnym miejscu na pulpicie, utrzymanym w nocnym, lawendowym klimacie.',
     'hero.ctaPrimary': 'Pobierz aplikację',
     'hero.ctaSecondary': 'Zobacz zmiany',
-    'hero.platforms': 'Dostępne na Windows i macOS',
+    'hero.platforms': 'Dostępne na Windowsie i macOS',
     'hero.mascotAlt': 'Maskotka Shiranami',
 
     // Features
     'features.pill': 'Co sprawia, że to właśnie Shiranami',
-    'features.heading': 'Wszystko zostało podporządkowane spokojniejszemu słuchaniu.',
+    'features.heading': 'Wszystko podporządkowaliśmy spokojniejszemu słuchaniu.',
     'features.subheading':
-      'Mniej przeładowań, mniej powtarzania ustawień i mniej paneli walczących o uwagę, kiedy po prostu chcesz słuchać.',
+      'Mniej przeładowań, mniej powtarzania ustawień i mniej paneli, które odciągają uwagę od muzyki.',
     'features.libraryFirst': 'Biblioteka na pierwszym miejscu',
     'features.libraryFirstBody':
-      'Całość opiera się na Twoich folderach i plikach, zamiast wciskać Ci katalog online.',
+      'Shiranami opiera się na Twoich folderach i plikach, zamiast wypychać Cię do katalogu online.',
     'features.searchDownload': 'Wyszukiwanie i pobieranie',
     'features.searchDownloadBody':
-      'Wyszukuj utwory na YouTube, odsłuchuj je przed pobraniem i pobieraj całe playlisty z YouTube lub Spotify za jednym razem.',
-    'features.crossfade': 'Crossfade i wznawianie',
+      'Wyszukuj utwory na YouTube, odsłuchuj je przed pobraniem i ściągaj całe playlisty z YouTube lub Spotify za jednym zamachem.',
+    'features.crossfade': 'Crossfade i wznawianie odtwarzania',
     'features.crossfadeBody':
-      'Silnik z dwoma deckami i płynnym crossfade’em o równej mocy. Głośność, kolejka i pozycja odtwarzania przetrwają restart aplikacji.',
-    'features.lyrics': 'Synced lyrics',
+      'Dwudeckowy silnik z płynnym crossfade’em o równej mocy. Głośność, kolejka i miejsce, w którym skończyłeś słuchać, przetrwają restart aplikacji.',
+    'features.lyrics': 'Zsynchronizowane teksty',
     'features.lyricsBody':
-      'Tekst przewija się w rytm muzyki dzięki znacznikom czasu. Kliknij dowolny wers, żeby przeskoczyć do tego momentu. Gdy trzeba, aplikacja przełączy się na zwykły tekst.',
+      'Tekst przewija się razem z muzyką. Kliknij dowolny wers, aby przeskoczyć do tego momentu. W razie potrzeby aplikacja przełączy się na zwykły tekst.',
     'features.radio': 'Radio internetowe',
     'features.radioBody':
-      'Przeglądaj i odtwarzaj stacje z Radio Browser. Ulubione zapiszesz pod ręką, żeby wracać do nich jednym kliknięciem.',
+      'Przeglądaj i odtwarzaj stacje z Radio Browser. Te ulubione zapiszesz na później, żeby wracać do nich jednym kliknięciem.',
     'features.sleepTimer': 'Wyłącznik czasowy i tryb kompaktowy',
     'features.sleepTimerBody':
-      'Ustaw wyłącznik czasowy, a odtwarzanie zatrzyma się samo. Gdy chcesz mniej ekranu, przełącz się na mini odtwarzacz z opcją zawsze na wierzchu.',
-    'features.ambient': 'Kolorystyka i wizualizator',
+      'Ustaw wyłącznik czasowy i pozwól, by odtwarzanie zatrzymało się samo. Gdy chcesz mniej zajętego ekranu, przełącz się na mini odtwarzacz z opcją zawsze na wierzchu.',
+    'features.ambient': 'Kolory z okładki i wizualizator',
     'features.ambientBody':
-      'Interfejs dopasowuje akcenty kolorystyczne do okładki albumu. Nad paskiem odtwarzacza może działać wizualizator w formie słupków albo fali.',
+      'Interfejs dopasowuje akcenty do okładki albumu. Nad paskiem odtwarzacza może działać wizualizator w formie słupków albo fali.',
     'features.quiet': 'Spokojne detale interfejsu',
     'features.quietBody':
       'Zwijany pasek boczny, paleta poleceń, historia słuchania ze statystykami, Discord Rich Presence i regulowana skala interfejsu.',
 
     // App preview
     'preview.pill': 'Aplikacja',
-    'preview.heading': 'Tak to wygląda.',
-    'preview.body': 'Biblioteka, aktualnie odtwarzany utwór i kolejka w jednym spokojnym widoku.',
+    'preview.heading': 'Zobacz, jak to wygląda.',
+    'preview.body': 'Biblioteka, aktualnie grany utwór i kolejka w jednym spokojnym widoku.',
     'preview.alt': 'Aplikacja Shiranami pokazująca widok biblioteki z odtwarzanym utworem',
 
     // Download CTA
     'cta.versionPill': 'już dostępna',
     'cta.heading': 'Gotowy do słuchania?',
     'cta.body':
-      'Pobierz najnowszą wersję na Windows lub macOS albo sprawdź, co zmieniło się w kolejnych wydaniach.',
+      'Pobierz najnowszą wersję na Windows lub macOS albo sprawdź, co trafiło do ostatnich wydań.',
     'cta.getTheApp': 'Pobierz aplikację',
     'cta.releaseNotes': 'Zobacz zmiany',
 
     // Footer
-    'footer.tagline': 'Twoje osobiste muzyczne schronienie.',
+    'footer.tagline': 'Twoja osobista przystań dla muzyki.',
     'footer.githubAria': 'Shiranami na GitHubie',
 
     // Download page
     'download.pill': 'Pobierz',
-    'download.heading': 'Wybierz wersję dla swojego systemu.',
+    'download.heading': 'Wybierz wydanie dla swojego systemu.',
     'download.body':
-      'Wykrywamy Twoją platformę i podpinamy najnowsze wydanie z GitHuba, żebyś mógł od razu zacząć słuchać.',
+      'Wykrywamy Twoją platformę i kierujemy Cię do najnowszego wydania na GitHubie, żebyś mógł od razu zacząć słuchać.',
     'download.latestRelease': 'Najnowsze wydanie',
     'download.windows': 'Windows',
     'download.recommended': 'Polecane',
-    'download.windowsDesc': 'Instalator NSIS dla głównej wspieranej wersji aplikacji desktopowej.',
+    'download.windowsDesc': 'Instalator NSIS dla głównej wspieranej platformy desktopowej.',
     'download.downloadWindows': 'Pobierz wersję dla Windows',
     'download.macos': 'macOS',
     'download.macosDesc': 'Obraz DMG do ręcznej instalacji z najnowszego wydania.',
     'download.downloadMacos': 'Pobierz wersję dla macOS',
-    'download.unsignedTitle': 'Informacje o niepodpisanej wersji',
+    'download.unsignedTitle': 'Uwagi o niepodpisanej wersji',
     'download.unsignedBody':
-      'Windows może wyświetlić SmartScreen. Na macOS po każdym pobraniu trzeba wykonać jedno polecenie w Terminalu, zanim aplikacja się uruchomi.',
+      'Windows może pokazać SmartScreen. Na macOS po każdym pobraniu trzeba wykonać jedno polecenie w Terminalu, zanim aplikacja wystartuje.',
     'download.releasePage': 'Strona wydania',
     'download.latestPublicBuild': 'Najnowsza publiczna wersja',
 

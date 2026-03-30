@@ -73,23 +73,23 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-03-30',
     title: l(
       'Smarter search, bulk actions, and under-the-hood improvements',
-      'Inteligentniejsze wyszukiwanie, operacje zbiorcze i poprawki pod maską'
+      'Sprawniejsze wyszukiwanie, operacje zbiorcze i poprawki pod maską'
     ),
     description: l(
       'YouTube search now suggests queries as you type, playlists support drag-and-drop reordering, and multi-select lets you act on many tracks at once. Data fetching has been migrated to TanStack Query for snappier navigation.',
-      'Wyszukiwanie na YouTube podpowiada frazy w trakcie pisania, playlisty obsługują zmianę kolejności przeciąganiem, a zaznaczanie wielu utworów pozwala na operacje zbiorcze. Pobieranie danych przeniesiono na TanStack Query dla płynniejszej nawigacji.'
+      'Wyszukiwanie YouTube podpowiada hasła już w trakcie pisania, playlisty można porządkować przeciąganiem, a wielokrotny wybór pozwala działać na wielu utworach naraz. Przenieśliśmy też pobieranie danych na TanStack Query, żeby nawigacja była szybsza i płynniejsza.'
     ),
     categories: [
       {
         label: l('Search', 'Wyszukiwanie'),
         entries: [
           l(
-            'YouTube search autocomplete — suggestions appear as you type, powered by Google\'s suggest API routed through the main process.',
-            'Autouzupełnianie wyszukiwania YouTube — podpowiedzi pojawiają się w trakcie pisania, korzystając z API podpowiedzi Google przez proces główny.'
+            "YouTube search autocomplete — suggestions appear as you type, powered by Google's suggest API routed through the main process.",
+            'Autouzupełnianie wyszukiwania YouTube — podpowiedzi pojawiają się już podczas pisania dzięki API sugestii Google obsługiwanemu przez proces główny.'
           ),
           l(
             'Clear button (×) on the search input to quickly reset the query.',
-            'Przycisk czyszczenia (×) w polu wyszukiwania do szybkiego resetowania zapytania.'
+            'Przycisk czyszczenia (×) w polu wyszukiwania pozwala jednym kliknięciem wyzerować zapytanie.'
           ),
         ],
       },
@@ -98,7 +98,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Drag-and-drop track reordering in playlists — grab a track and move it to any position.',
-            'Zmiana kolejności utworów w playlistach przeciąganiem — chwyć utwór i przenieś na dowolną pozycję.'
+            'Przestawianie utworów w playlistach metodą przeciągnij i upuść — chwyć utwór i przenieś go w dowolne miejsce.'
           ),
         ],
       },
@@ -107,7 +107,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Multi-select tracks with bulk actions — select multiple tracks and perform actions like delete, add to playlist, or favorite in one step.',
-            'Zaznaczanie wielu utworów z operacjami zbiorczymi — zaznacz wiele utworów i wykonuj akcje takie jak usuwanie, dodawanie do playlisty czy dodawanie do ulubionych jednym krokiem.'
+            'Zaznaczanie wielu utworów i operacje zbiorcze — zaznacz kilka pozycji naraz i jednym ruchem usuń je, dodaj do playlisty albo oznacz jako ulubione.'
           ),
         ],
       },
@@ -116,11 +116,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Migrated data fetching to TanStack Query across playlists, history, folders, lyrics, and library for faster navigation and smarter caching.',
-            'Przeniesiono pobieranie danych na TanStack Query w playlistach, historii, folderach, tekstach piosenek i bibliotece dla szybszej nawigacji i lepszego cachowania.'
+            'Pobieranie danych w playlistach, historii, folderach, tekstach i bibliotece przenieśliśmy na TanStack Query, żeby przyspieszyć nawigację i poprawić buforowanie.'
           ),
           l(
             'Extracted shared utilities and hooks to reduce code duplication across the app.',
-            'Wyodrębniono współdzielone narzędzia i hooki, aby zmniejszyć duplikację kodu w aplikacji.'
+            'Wyciągnęliśmy wspólne narzędzia i hooki, żeby ograniczyć duplikację kodu w całej aplikacji.'
           ),
         ],
       },
@@ -129,7 +129,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Fixed stuck loading spinner when restoring a paused track on app restart.',
-            'Naprawiono zacięty spinner ładowania przy przywracaniu wstrzymanego utworu po restarcie aplikacji.'
+            'Naprawiono zawieszający się spinner ładowania przy przywracaniu wstrzymanego utworu po restarcie aplikacji.'
           ),
         ],
       },
@@ -144,7 +144,7 @@ export const changelog: ChangelogRelease[] = [
     ),
     description: l(
       'Share tracks and playlists with anyone via time-limited links and QR codes. The entire app and landing page now support English and Polish.',
-      'Udostępniaj utwory i playlisty przez tymczasowe linki i kody QR. Cała aplikacja i strona główna obsługują teraz angielski i polski.'
+      'Udostępniaj utwory i playlisty przez linki ważne przez określony czas i kody QR. Cała aplikacja oraz strona Shiranami są teraz dostępne po angielsku i po polsku.'
     ),
     categories: [
       {
@@ -152,19 +152,19 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Share any track or playlist via a time-limited link (1 hour) — right-click a track or use the share button on a playlist.',
-            'Udostępnij dowolny utwór lub playlistę tymczasowym linkiem (1 godzina) — kliknij prawym przyciskiem na utwór lub użyj przycisku udostępniania na playliście.'
+            'Udostępnisz dowolny utwór lub playlistę przez link ważny godzinę — kliknij prawym przyciskiem utwór albo skorzystaj z przycisku udostępniania na playliście.'
           ),
           l(
             'Share dialog with copyable link and scannable QR code for easy sharing on any device.',
-            'Okno udostępniania z linkiem do skopiowania i kodem QR do zeskanowania na dowolnym urządzeniu.'
+            'Okno udostępniania zawiera link do skopiowania i kod QR do zeskanowania, więc łatwo podeślesz muzykę na dowolne urządzenie.'
           ),
           l(
             'Web preview page at the share link shows track listing, artist info, and an "Open in Shiranami" button with deep link support.',
-            'Strona podglądu pod linkiem pokazuje listę utworów, informacje o wykonawcy i przycisk „Otwórz w Shiranami" z obsługą deep linków.'
+            'Podgląd pod linkiem udostępniania pokazuje listę utworów, informacje o wykonawcy i przycisk „Otwórz w Shiranami” z obsługą deep linków.'
           ),
           l(
             'Import shared music directly into your library — downloads tracks from YouTube and creates a playlist with a custom name.',
-            'Importuj udostępnioną muzykę bezpośrednio do biblioteki — pobiera utwory z YouTube i tworzy playlistę z własną nazwą.'
+            'Zaimportujesz udostępnioną muzykę prosto do biblioteki — aplikacja pobierze utwory z YouTube i utworzy playlistę z własną nazwą.'
           ),
           l(
             'YouTube video IDs are cached at download time for accurate sharing — the exact same video you downloaded is shared.',
@@ -177,15 +177,15 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Full Polish translation of the entire app — all UI strings, tooltips, toast messages, error messages, and empty states.',
-            'Pełne polskie tłumaczenie całej aplikacji — wszystkie napisy, podpowiedzi, powiadomienia, komunikaty błędów i puste stany.'
+            'Pełne polskie tłumaczenie całej aplikacji — od napisów w interfejsie po podpowiedzi, toasty, komunikaty błędów i puste stany.'
           ),
           l(
             'Language switcher in Settings — switch between English and Polish instantly.',
-            'Przełącznik języka w Ustawieniach — natychmiastowe przełączanie między angielskim a polskim.'
+            'Przełącznik języka w Ustawieniach pozwala od ręki przełączać się między angielskim a polskim.'
           ),
           l(
             'Landing page available in both English and Polish with language toggle.',
-            'Strona główna dostępna po angielsku i polsku z przełącznikiem języka.'
+            'Strona Shiranami jest dostępna po angielsku i po polsku, z prostym przełącznikiem języka.'
           ),
         ],
       },
@@ -194,11 +194,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'New share server (NestJS + PostgreSQL + Redis) with rate limiting, Redis caching, and automatic cleanup of expired shares.',
-            'Nowy serwer udostępniania (NestJS + PostgreSQL + Redis) z limitowaniem żądań, cache Redis i automatycznym usuwaniem wygasłych linków.'
+            'Nowy serwer udostępniania (NestJS + PostgreSQL + Redis) ma limitowanie żądań, cache w Redisie i automatyczne czyszczenie wygasłych linków.'
           ),
           l(
             'Docker-ready deployment with multi-stage Dockerfile and docker-compose for the share server.',
-            'Gotowe do wdrożenia Dockerem z wieloetapowym Dockerfile i docker-compose dla serwera udostępniania.'
+            'Wdrożenie jest gotowe pod Dockera dzięki wieloetapowemu Dockerfile i `docker-compose` dla serwera udostępniania.'
           ),
         ],
       },
@@ -209,11 +209,11 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-03-26',
     title: l(
       'Keyboard shortcuts, quick favorite, and search improvements',
-      'Skróty klawiszowe, szybkie ulubione i usprawnienia wyszukiwania'
+      'Skróty klawiszowe, szybkie ulubione i lepsze wyszukiwanie'
     ),
     description: l(
       'Navigate and control playback entirely from the keyboard, favorite tracks directly from the player bar, and see view counts on search results.',
-      'Steruj odtwarzaniem w całości z klawiatury, dodawaj utwory do ulubionych bezpośrednio z paska odtwarzacza i sprawdzaj liczbę wyświetleń w wynikach wyszukiwania.'
+      'Steruj odtwarzaniem w całości z klawiatury, dodawaj utwory do ulubionych prosto z paska odtwarzacza i sprawdzaj liczbę wyświetleń w wynikach wyszukiwania.'
     ),
     categories: [
       {
@@ -221,7 +221,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Full keyboard shortcut system — Space to play/pause, arrow keys for seeking and volume, M to mute, N/P for next/previous, S for shuffle, R for repeat, and more.',
-            'Pełny system skrótów klawiszowych — spacja do odtwarzania i pauzy, strzałki do przewijania i sterowania głośnością, M do wyciszenia, N/P do następnego lub poprzedniego utworu, S do losowania, R do powtarzania i nie tylko.'
+            'Pełny zestaw skrótów klawiszowych — spacja do odtwarzania i pauzy, strzałki do przewijania i sterowania głośnością, M do wyciszenia, N/P do następnego lub poprzedniego utworu, S do losowania, R do powtarzania i nie tylko.'
           ),
           l(
             'Press ? to open a help overlay listing all available shortcuts, organized by category.',
@@ -229,15 +229,15 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Number keys 1–7 for quick navigation between views (Library, Playlists, Favorites, History, Download, Radio, Settings).',
-            'Klawisze 1–7 pozwalają szybko przełączać widoki: Bibliotekę, Playlisty, Ulubione, Historię, Pobieranie, Radio i Ustawienia.'
+            'Klawisze 1–7 pozwalają błyskawicznie przełączać się między widokami: Biblioteką, Playlistami, Ulubionymi, Historią, Pobieraniem, Radiem i Ustawieniami.'
           ),
           l(
             'Modifier shortcuts for panels: Ctrl+B (sidebar), Ctrl+L (lyrics), Ctrl+Q (queue), Ctrl+Shift+M (compact mode), V (visualizer).',
-            'Skróty z modyfikatorem dla paneli: Ctrl+B (panel boczny), Ctrl+L (tekst), Ctrl+Q (kolejka), Ctrl+Shift+M (tryb kompaktowy), V (wizualizator).'
+            'Skróty z modyfikatorem dla paneli: Ctrl+B (pasek boczny), Ctrl+L (teksty), Ctrl+Q (kolejka), Ctrl+Shift+M (tryb kompaktowy), V (wizualizator).'
           ),
           l(
             'Platform-aware labels — shortcuts display ⌘ on macOS and Ctrl on Windows/Linux.',
-            'Oznaczenia skrótów są zależne od platformy — na macOS wyświetlane jest ⌘, a na Windowsie i Linuksie Ctrl.'
+            'Oznaczenia skrótów są zależne od platformy — na macOS wyświetlamy ⌘, a na Windowsie i Linuksie Ctrl.'
           ),
           l(
             'All player bar buttons now show their keyboard shortcut in tooltips.',
@@ -250,11 +250,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'New favorite button next to track info in the player bar — quickly heart or unheart the current track without leaving your view.',
-            'Obok informacji o utworze na pasku odtwarzacza pojawił się nowy przycisk ulubionych — możesz szybko dodać serduszko albo je usunąć bez opuszczania bieżącego widoku.'
+            'Obok informacji o utworze na pasku odtwarzacza pojawił się przycisk ulubionych — możesz szybko dodać albo usunąć serduszko bez opuszczania bieżącego widoku.'
           ),
           l(
             'Fixed playlist detail view not reflecting favorite changes in real-time when toggled from the player bar or keyboard shortcut.',
-            'Naprawiono widok szczegółów playlisty, który nie odświeżał zmian ulubionych w czasie rzeczywistym po przełączeniu ich z paska odtwarzacza albo skrótu klawiszowego.'
+            'Naprawiono widok szczegółów playlisty, który nie odświeżał na żywo zmian w ulubionych po użyciu paska odtwarzacza albo skrótu klawiszowego.'
           ),
         ],
       },
@@ -272,10 +272,10 @@ export const changelog: ChangelogRelease[] = [
   {
     version: '0.7.1',
     date: '2026-03-26',
-    title: l('Crossfade audio fix', 'Poprawka crossfade’u'),
+    title: l('Crossfade audio fix', 'Poprawka dźwięku przy crossfade'),
     description: l(
       'Fixes a critical bug where enabling crossfade caused permanent audio loss after the first track transition.',
-      'Naprawia krytyczny błąd, przez który włączenie crossfade’u powodowało trwały zanik dźwięku po pierwszym przejściu między utworami.'
+      'Naprawia krytyczny błąd, przez który włączenie crossfade’u powodowało utratę dźwięku po pierwszym przejściu między utworami.'
     ),
     categories: [
       {
@@ -283,11 +283,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             "Fixed permanent audio loss when crossfade is enabled — the idle deck's volume was zeroed before the Web Audio graph captured it, silencing all subsequent playback until restart.",
-            'Naprawiono trwały zanik dźwięku przy włączonym crossfade’zie — głośność nieaktywnego decka była zerowana, zanim graf Web Audio zdążył ją przechwycić, przez co całe dalsze odtwarzanie milczało aż do restartu.'
+            'Naprawiono trwałą utratę dźwięku po włączeniu crossfade’u — głośność nieaktywnego decka była zerowana, zanim graf Web Audio zdążył ją przechwycić, więc kolejne utwory milczały aż do restartu.'
           ),
           l(
             'Fixed a race condition where cached audio could fire canplay before the crossfade state was set, preventing the incoming deck from starting.',
-            'Naprawiono warunek wyścigu, w którym zbuforowane audio mogło wywołać `canplay`, zanim ustawiony został stan crossfade’u, przez co wchodzący deck nie startował.'
+            'Naprawiono warunek wyścigu, w którym zbuforowane audio mogło wywołać `canplay`, zanim ustawiono stan crossfade’u, przez co wchodzący deck nie startował.'
           ),
           l(
             "Fixed potential double track-advance when the outgoing deck's ended event fired after crossfade completion.",
@@ -310,7 +310,7 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-03-26',
     title: l(
       'Crossfade, sleep timer, and quality-of-life improvements',
-      'Crossfade, wyłącznik czasowy i poprawki jakości życia'
+      'Crossfade, wyłącznik czasowy i usprawnienia na co dzień'
     ),
     description: l(
       'Smooth transitions between tracks with a new crossfade engine, wind down with a built-in sleep timer, and fine-tune the interface to your liking.',
@@ -326,7 +326,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Both decks route through Web Audio GainNodes for smooth volume ramps and merged visualizer output during transitions.',
-            'Oba decki przechodzą przez `GainNode` w Web Audio, co pozwala na płynne zmiany głośności i wspólne wyjście do wizualizatora podczas przejść.'
+            'Oba decki są prowadzone przez `GainNode` w Web Audio, co pozwala na płynne zmiany głośności i wspólne wyjście do wizualizatora podczas przejść.'
           ),
           l(
             'Crossfade automatically skips for radio streams, repeat-one mode, and tracks shorter than the fade duration.',
@@ -365,7 +365,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Desktop main process bundle reduced from 2.0 MB to 568 KB by externalizing npm dependencies at build time.',
-            'Paczka głównego procesu desktopowego została zmniejszona z 2,0 MB do 568 KB dzięki wyniesieniu zależności npm poza bundel na etapie budowania.'
+            'Paczkę głównego procesu desktopowego zmniejszyliśmy z 2,0 MB do 568 KB, wynosząc zależności npm poza bundel na etapie budowania.'
           ),
         ],
       },
@@ -377,7 +377,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('Library search and command palette', 'Wyszukiwanie w bibliotece i paleta poleceń'),
     description: l(
       'Find any track in seconds with a new inline library filter and a global command palette you can open from anywhere.',
-      'Znajdź dowolny utwór w kilka sekund dzięki nowemu filtrowi w bibliotece i globalnej palecie poleceń, którą otworzysz z każdego miejsca.'
+      'Znajdź dowolny utwór w kilka sekund dzięki nowemu filtrowi w bibliotece i globalnej palecie poleceń dostępnej z każdego miejsca.'
     ),
     categories: [
       {
@@ -406,7 +406,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Fixed a TypeError on hot-module reload caused by Vite 7 making import.meta.hot.data read-only.',
-            'Naprawiono `TypeError` przy hot-module reloadzie, spowodowany tym, że Vite 7 traktuje `import.meta.hot.data` jako tylko do odczytu.'
+            'Naprawiono `TypeError` przy hot reloaderze modułów, bo Vite 7 traktuje `import.meta.hot.data` jako tylko do odczytu.'
           ),
         ],
       },
@@ -418,7 +418,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('Compact mode and listening history', 'Tryb kompaktowy i historia słuchania'),
     description: l(
       'Keep Shiranami close at hand with a dedicated compact player, then look back on your listening habits with a new history and stats view.',
-      'Trzymaj Shiranami zawsze pod ręką dzięki dedykowanemu kompaktowemu odtwarzaczowi, a potem wracaj do swoich nawyków słuchania w nowym widoku historii i statystyk.'
+      'Miej Shiranami zawsze pod ręką dzięki dedykowanemu mini odtwarzaczowi, a potem wracaj do swoich nawyków słuchania w nowym widoku historii i statystyk.'
     ),
     categories: [
       {
@@ -426,15 +426,15 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Switch the main window into a dedicated compact player layout with art, transport controls, volume, and a tighter scrub bar.',
-            'Główne okno można teraz przełączyć w dedykowany kompaktowy odtwarzacz z okładką, kontrolkami transportu, głośnością i ciaśniejszym paskiem przewijania.'
+            'Główne okno można teraz przełączyć w dedykowany mini odtwarzacz z okładką, kontrolkami odtwarzania, głośnością i bardziej zwartym paskiem przewijania.'
           ),
           l(
             'Compact mode restores your previous window bounds when you exit and includes an always-on-top toggle for desk-side playback.',
-            'Tryb kompaktowy przywraca poprzedni rozmiar i pozycję okna po wyjściu oraz zawiera przełącznik zawsze na wierzchu do wygodnego odtwarzania obok biurka.'
+            'Po wyjściu z trybu kompaktowego aplikacja przywraca poprzedni rozmiar i pozycję okna, a do tego oferuje przełącznik „zawsze na wierzchu”.'
           ),
           l(
             'The compact layout received multiple spacing and truncation passes so controls stay readable without overflowing the card.',
-            'Układ kompaktowy dostał kilka poprawek odstępów i przycinania tekstu, dzięki czemu kontrolki pozostają czytelne bez wychodzenia poza kartę.'
+            'Układ kompaktowy dostał serię poprawek odstępów i przycinania tekstu, dzięki czemu kontrolki pozostają czytelne i nie wychodzą poza kartę.'
           ),
         ],
       },
@@ -443,15 +443,15 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'A new History view shows recent plays, top tracks, top artists, and key listening totals.',
-            'Nowy widok Historii pokazuje ostatnie odsłuchania, najczęściej słuchane utwory, najpopularniejszych artystów i najważniejsze podsumowania słuchania.'
+            'Nowy widok Historii pokazuje ostatnie odsłuchania, najczęściej słuchane utwory, najpopularniejszych artystów i najważniejsze statystyki słuchania.'
           ),
           l(
             'Stats support 7-day, 30-day, and all-time ranges, plus a daily activity graph for quick trends.',
-            'Statystyki obsługują zakres 7 dni, 30 dni i cały okres, a do tego wykres dziennej aktywności dla szybkiego wychwytywania trendów.'
+            'Statystyki obsługują zakres 7 dni, 30 dni i cały okres, a dodatkowo pokazują wykres dziennej aktywności, żeby szybciej wychwycić trendy.'
           ),
           l(
             'Listening history is recorded from meaningful sessions instead of every skip, producing cleaner stats.',
-            'Historia słuchania jest zapisywana na podstawie wartościowych sesji zamiast każdego pominięcia, co daje czystsze statystyki.'
+            'Historia słuchania zapisuje tylko sensowne odsłuchy zamiast każdego pominięcia, dzięki czemu statystyki są czytelniejsze.'
           ),
         ],
       },
@@ -460,11 +460,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Added a shared Vitest workspace with initial coverage for web UI, desktop IPC, shared utilities, and database logic.',
-            'Dodano wspólny workspace Vitest z początkowym pokryciem dla webowego UI, desktopowego IPC, współdzielonych narzędzi i logiki bazy danych.'
+            'Dodano wspólny workspace Vitest z pierwszym zestawem testów dla webowego UI, desktopowego IPC, współdzielonych narzędzi i logiki bazy danych.'
           ),
           l(
             'Release safety improved with automated checks around compact mode state, radio loading UI, seek bar behavior, and listening-history queries.',
-            'Bezpieczeństwo wydań poprawiono dzięki automatycznym kontrolom stanu trybu kompaktowego, UI ładowania radia, zachowania paska przewijania i zapytań historii słuchania.'
+            'Bezpieczeństwo wydań poprawiliśmy dzięki automatycznym sprawdzeniom stanu trybu kompaktowego, UI ładowania radia, działania paska przewijania i zapytań do historii słuchania.'
           ),
         ],
       },
@@ -476,7 +476,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('Radio and playback polish', 'Radio i dopracowanie odtwarzania'),
     description: l(
       'A focused polish patch for smoother scrubbing, cleaner Windows window controls, and a more responsive radio browsing flow.',
-      'Mała poprawka skupiona na płynniejszym przewijaniu, bardziej uporządkowanych kontrolkach okna w Windowsie i szybszym przeglądaniu radia.'
+      'Niewielka poprawka skupiona na płynniejszym przewijaniu, lepiej dopracowanych kontrolkach okna w Windowsie i sprawniejszym przeglądaniu radia.'
     ),
     categories: [
       {
@@ -484,7 +484,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'The player seek thumb now snaps straight to the scrubbed position instead of visibly sliding from the old timestamp.',
-            'Uchwyt paska przewijania od razu przeskakuje teraz do wybranej pozycji zamiast wyraźnie dosuwać się od poprzedniego czasu.'
+            'Uchwyt paska przewijania od razu przeskakuje do wybranej pozycji zamiast widocznie dosuwać się od poprzedniego czasu.'
           ),
         ],
       },
@@ -493,7 +493,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Switching between Top Stations, By Country, and Favorites now shows skeleton rows while results load.',
-            'Przełączanie między Popularnymi stacjami, Według kraju i Ulubionymi pokazuje teraz wiersze szkieletowe podczas ładowania wyników.'
+            'Przełączanie między Popularnymi stacjami, Według kraju i Ulubionymi pokazuje teraz placeholdery wierszy podczas ładowania wyników.'
           ),
           l(
             'Fast tab and country changes no longer let stale radio requests overwrite the newest selection.',
@@ -501,7 +501,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'The country picker now uses the same shared select styling as the rest of the app instead of a native browser dropdown.',
-            'Wybór kraju korzysta teraz z tego samego współdzielonego stylu selecta co reszta aplikacji zamiast natywnej listy przeglądarki.'
+            'Wybór kraju korzysta teraz z tego samego stylu selecta co reszta aplikacji zamiast z natywnej listy przeglądarki.'
           ),
         ],
       },
@@ -522,7 +522,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('Playlist import and library cleanup', 'Import playlist i porządki w bibliotece'),
     description: l(
       'Bring whole playlists in from YouTube or Spotify, review the batch before downloading, and clean up downloaded files with a safer delete flow.',
-      'Importuj całe playlisty z YouTube lub Spotify, przejrzyj paczkę przed pobraniem i porządkuj pobrane pliki bezpieczniejszym sposobem usuwania.'
+      'Importuj całe playlisty z YouTube lub Spotify, przejrzyj paczkę przed pobraniem i porządkuj pobrane pliki w bezpieczniejszym procesie usuwania.'
     ),
     categories: [
       {
@@ -547,7 +547,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Delete from Disk sends tracks to the recycle bin from the context menu.',
-            'Opcja Usuń z dysku przenosi teraz utwory do kosza z poziomu menu kontekstowego.'
+            'Opcja „Usuń z dysku” przenosi teraz utwory do kosza z poziomu menu kontekstowego.'
           ),
           l(
             'The delete flow now keeps the library entry intact if moving the file fails.',
@@ -564,7 +564,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Top bar titles are now correct in the Import Playlist and Radio views.',
-            'Tytuły na górnym pasku są teraz poprawne w widokach Import playlisty i Radio.'
+            'Tytuły na górnym pasku są teraz poprawne w widokach Import playlisty i Radia.'
           ),
         ],
       },
@@ -576,7 +576,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('Discord Rich Presence', 'Discord Rich Presence'),
     description: l(
       "Show what you're listening to on Discord, plus a smoother playlist submenu experience.",
-      'Pokazuj na Discordzie, czego słuchasz, i korzystaj z płynniej działającego podmenu playlist.'
+      'Pokaż na Discordzie, czego słuchasz, i korzystaj z płynniej działającego podmenu playlist.'
     ),
     categories: [
       {
@@ -616,7 +616,7 @@ export const changelog: ChangelogRelease[] = [
     ),
     description: l(
       'Preview search results before downloading, and quickly check what changed when an update is available.',
-      'Odsłuchuj wyniki wyszukiwania przed pobraniem i szybko sprawdzaj, co zmieniło się, gdy pojawi się aktualizacja.'
+      'Odsłuchuj wyniki wyszukiwania przed pobraniem i szybko sprawdzaj, co się zmieniło, gdy pojawi się aktualizacja.'
     ),
     categories: [
       {
@@ -624,11 +624,11 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Preview audio directly from search results by clicking the thumbnail — no download required.',
-            'Odsłuchuj audio bezpośrednio z wyników wyszukiwania po kliknięciu miniatury — bez konieczności pobierania.'
+            'Odsłuchuj dźwięk bezpośrednio z wyników wyszukiwania po kliknięciu miniatury — bez konieczności pobierania.'
           ),
           l(
             'Playback streams through the existing radio protocol so previews work instantly with the player bar.',
-            'Odtwarzanie strumieniuje przez istniejący protokół radia, dzięki czemu podglądy działają od razu z paskiem odtwarzacza.'
+            'Podglądy są odtwarzane przez istniejący protokół radiowy, więc od razu działają z paskiem odtwarzacza.'
           ),
         ],
       },
@@ -637,7 +637,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'A "View changelog" link now appears in Settings when an update is available, opening the Shiranami website changelog.',
-            'W ustawieniach pojawia się teraz link „Zobacz historię zmian”, gdy dostępna jest aktualizacja, i otwiera changelog strony Shiranami.'
+            'W Ustawieniach pojawia się teraz link „Zobacz historię zmian”, gdy dostępna jest aktualizacja; otwiera changelog na stronie Shiranami.'
           ),
         ],
       },
@@ -652,7 +652,7 @@ export const changelog: ChangelogRelease[] = [
     ),
     description: l(
       'Stream internet radio stations, enjoy faster rendering with protocol-based album art, and benefit from a leaner build powered by esbuild.',
-      'Słuchaj stacji radia internetowego, korzystaj z szybszego renderowania dzięki okładkom serwowanym przez protokół i z lżejszego buildu opartego na esbuild.'
+      'Słuchaj stacji radia internetowego, korzystaj z szybszego renderowania dzięki okładkom serwowanym przez własny protokół i z lżejszej kompilacji opartej na esbuildzie.'
     ),
     categories: [
       {
@@ -660,7 +660,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Stream internet radio stations via the Radio Browser API with a dedicated Radio view.',
-            'Słuchaj stacji radia internetowego przez API Radio Browser w dedykowanym widoku Radia.'
+            'Słuchaj stacji radia internetowego przez API Radio Browser w osobnym widoku Radia.'
           ),
           l(
             'Search, browse, and favorite radio stations — favorites persist in the local database.',
@@ -681,11 +681,11 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Throttled playback store updates, memoized components, and virtualized the queue panel.',
-            'Ograniczono częstotliwość aktualizacji store’a odtwarzania, zmemoizowano komponenty i zwirtualizowano panel kolejki.'
+            'Ograniczono liczbę aktualizacji store’a odtwarzania, zmemoizowano komponenty i zwirtualizowano panel kolejki.'
           ),
           l(
             'Main process is bundled with esbuild; icon assets optimized from ~885 KB down to ~176 KB.',
-            'Główny proces jest bundlowany przez esbuild, a zasoby ikon zoptymalizowano z około 885 KB do około 176 KB.'
+            'Główny proces bundlujemy teraz esbuildem, a zasoby ikon zoptymalizowaliśmy z około 885 KB do około 176 KB.'
           ),
         ],
       },
@@ -702,7 +702,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Deduplicated ambient color hook to prevent redundant canvas draws.',
-            'Usunięto duplikację hooka odpowiedzialnego za kolorystykę ambient, aby zapobiec zbędnym renderom canvasa.'
+            'Usunięto duplikację hooka odpowiadającego za kolory ambient, żeby uniknąć zbędnych renderów canvasa.'
           ),
           l(
             'Fixed CSP img-src to allow the new art protocol.',
@@ -710,7 +710,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Synced app version labels across settings, sidebar, and landing page.',
-            'Zsynchronizowano oznaczenia wersji aplikacji między ustawieniami, paskiem bocznym i landing page’em.'
+            'Zsynchronizowano oznaczenia wersji aplikacji między ustawieniami, paskiem bocznym i stroną landingową.'
           ),
         ],
       },
@@ -745,7 +745,7 @@ export const changelog: ChangelogRelease[] = [
     ),
     description: l(
       'A polish pass on the desktop experience — the settings page got a full redesign, and the audio visualizer now has two styles to match your mood.',
-      'Solidna poprawka desktopowego doświadczenia — strona ustawień została całkowicie przeprojektowana, a wizualizator dźwięku ma teraz dwa style, które możesz dobrać do nastroju.'
+      'Dopracowaliśmy desktopowe doświadczenie — strona ustawień została całkowicie przeprojektowana, a wizualizator dźwięku ma teraz dwa style, które możesz dobrać do nastroju.'
     ),
     categories: [
       {
@@ -790,7 +790,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'New reusable Switch component with spring animation.',
-            'Dodano nowy wielokrotnego użytku komponent `Switch` z animacją sprężynową.'
+            'Dodano nowy, wielokrotnego użytku komponent `Switch` z animacją sprężynową.'
           ),
         ],
       },
@@ -802,7 +802,7 @@ export const changelog: ChangelogRelease[] = [
     title: l('First public release', 'Pierwsze publiczne wydanie'),
     description: l(
       'The first release focuses on turning Shiranami into a stable desktop sanctuary for local listening, playlists, synced lyrics, and one-step downloads.',
-      'Pierwsze wydanie skupia się na tym, by Shiranami stało się stabilnym desktopowym schronieniem do lokalnego słuchania, playlist, zsynchronizowanych tekstów i pobierania jednym kliknięciem.'
+      'Pierwsze wydanie skupia się na tym, żeby Shiranami stało się stabilną desktopową przystanią do lokalnego słuchania, playlist, zsynchronizowanych tekstów i pobierania jednym kliknięciem.'
     ),
     categories: [
       {
@@ -831,7 +831,7 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'yt-dlp and ffmpeg install together in one guided flow when search tools are missing.',
-            'Gdy brakuje narzędzi wyszukiwania, yt-dlp i ffmpeg instalują się razem w jednym prowadzonym przepływie.'
+            'Gdy brakuje narzędzi do wyszukiwania, yt-dlp i ffmpeg instalują się razem w jednym, prowadzonym procesie.'
           ),
           l(
             'Download progress stays visible across view changes instead of resetting with navigation.',
@@ -839,7 +839,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'yt-dlp and ffmpeg update buttons now check upstream versions instead of blindly redownloading.',
-            'Przyciski aktualizacji yt-dlp i ffmpeg sprawdzają teraz wersje upstream zamiast bezmyślnie pobierać wszystko od nowa.'
+            'Przyciski aktualizacji yt-dlp i ffmpeg sprawdzają teraz wersje upstream zamiast w ciemno pobierać wszystko od nowa.'
           ),
           l(
             'The download folder is configurable from settings, with a reset option back to the default location.',
@@ -873,15 +873,15 @@ export const changelog: ChangelogRelease[] = [
         entries: [
           l(
             'Packaged Windows builds now bundle the correct tray icon assets.',
-            'Spakietowane buildy dla Windowsa zawierają teraz poprawne zasoby ikon zasobnika.'
+            'Wydania dla Windowsa zawierają teraz poprawne zasoby ikon zasobnika.'
           ),
           l(
             'Release workflows build desktop artifacts from tags and upload them back to GitHub Releases.',
-            'Workflow wydawniczy buduje artefakty desktopowe z tagów i wysyła je z powrotem do GitHub Releases.'
+            'Proces wydawniczy buduje artefakty desktopowe z tagów i wysyła je z powrotem do GitHub Releases.'
           ),
           l(
             'Workspace version bumping and CI-side version syncing now cover the landing page too.',
-            'Podbijanie wersji w workspace i synchronizacja wersji po stronie CI obejmują teraz także landing page.'
+            'Podbijanie wersji w workspace i synchronizacja wersji po stronie CI obejmują teraz także stronę landingową.'
           ),
           l(
             'A dedicated landing site and static hosting Dockerfile are part of the repository.',
