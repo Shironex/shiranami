@@ -134,6 +134,12 @@ export function PlaylistDetailView() {
     setActiveId(null);
   }, []);
 
+  // Computed stats
+  const totalDuration = useMemo(
+    () => tracks.reduce((sum, t) => sum + t.duration, 0),
+    [tracks]
+  );
+
   // Cover art
   const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
   const {
@@ -387,6 +393,7 @@ export function PlaylistDetailView() {
             )}
             <p className="text-xs text-muted-foreground/50 mt-0.5">
               {t('trackCount', { count: tracks.length })}
+              {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
             </p>
           </div>
         </div>
