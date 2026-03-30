@@ -94,6 +94,7 @@ interface PlayerActions {
   addToQueue: (tracks: Track[]) => void;
   playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
+  reorderQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
 
   // Favorites
@@ -292,6 +293,30 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
 
     set({ queue: newQueue, queueIndex: newIndex });
+  },
+
+  reorderQueue: (fromIndex: number, toIndex: number) => {
+    const { queue, queueIndex } = get();
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 || fromIndex >= queue.length ||
+      toIndex < 0 || toIndex >= queue.length
+    ) return;
+
+    const newQueue = [...queue];
+    const [moved] = newQueue.splice(fromIndex, 1);
+    newQueue.splice(toIndex, 0, moved);
+
+    // Find where the currently-playing track ended up
+    const currentId = queue[queueIndex]?.id;
+    const newIndex = currentId != null
+      ? newQueue.findIndex((t, i) => t.id === currentId && (
+          // Handle duplicate IDs: prefer the index closest to the old queueIndex
+          i === queueIndex || newQueue.indexOf(t) === i
+        ))
+      : queueIndex;
+
+    set({ queue: newQueue, queueIndex: newIndex === -1 ? queueIndex : newIndex });
   },
 
   clearQueue: () =>

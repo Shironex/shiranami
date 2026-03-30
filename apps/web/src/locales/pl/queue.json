@@ -4,5 +4,6 @@
   "empty": "Kolejka jest pusta",
   "nowPlaying": "Teraz odtwarzane",
   "upNext": "Następne ({{count}})",
-  "remove": "Usuń z kolejki"
+  "remove": "Usuń z kolejki",
+  "dragToReorder": "Przeciągnij, aby zmienić kolejność"
 }

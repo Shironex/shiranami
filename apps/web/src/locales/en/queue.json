@@ -4,5 +4,6 @@
   "empty": "Queue is empty",
   "nowPlaying": "Now Playing",
   "upNext": "Up Next ({{count}})",
-  "remove": "Remove from queue"
+  "remove": "Remove from queue",
+  "dragToReorder": "Drag to reorder"
 }
