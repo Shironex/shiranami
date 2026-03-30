@@ -16,5 +16,6 @@
   "shufflePlaylist": "Losuj playlistę",
   "removeFromPlaylist": "Usuń z playlisty",
   "addToPlaylistAria": "Dodaj do playlisty",
-  "selectedCount": "{{count}} zaznaczonych"
+  "selectedCount": "{{count}} zaznaczonych",
+  "dragToReorder": "Przeciągnij, aby zmienić kolejność"
 }

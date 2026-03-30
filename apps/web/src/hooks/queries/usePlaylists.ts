@@ -117,3 +117,30 @@ export function useRemoveTrackFromPlaylistMutation() {
     },
   });
 }
+
+export function useReorderPlaylistMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
+      await window.electronAPI.db.playlists.reorder(playlistId, trackIds);
+    },
+    onMutate: async ({ playlistId, trackIds }) => {
+      await queryClient.cancelQueries({ queryKey: playlistKeys.tracks(playlistId) });
+      const previous = queryClient.getQueryData<Track[]>(playlistKeys.tracks(playlistId));
+
+      if (previous) {
+        const trackMap = new Map(previous.map((t) => [t.id, t]));
+        const reordered = trackIds.map((id) => trackMap.get(id)).filter(Boolean) as Track[];
+        queryClient.setQueryData(playlistKeys.tracks(playlistId), reordered);
+      }
+
+      return { previous, playlistId };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(playlistKeys.tracks(context.playlistId), context.previous);
+      }
+    },
+  });
+}

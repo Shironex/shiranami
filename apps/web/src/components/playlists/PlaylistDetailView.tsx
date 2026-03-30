@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
@@ -7,7 +7,25 @@ import { useSelectionStore } from '@/stores/useSelectionStore';
 import { usePlaylistDetail } from '@/hooks/usePlaylistDetail';
 import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
 import { usePlaylistCover } from '@/hooks/usePlaylistCover';
+import { useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
 import { useClickOutside } from '@/hooks/useClickOutside';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
 import {
   ArrowLeft,
   Play,
@@ -18,11 +36,41 @@ import {
   ImagePlus,
   Sparkles,
   XCircle,
+  GripVertical,
 } from 'lucide-react';
+import { formatDuration } from '@shiranami/shared';
 import { motion, AnimatePresence } from 'motion/react';
-import { List } from 'react-window';
-import { TrackRow } from '@/components/shared/TrackRow';
+import { SortableTrackRow } from '@/components/shared/SortableTrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
+
+/** Overlay shown while dragging — matches SortableTrackRow layout */
+function DragOverlayContent({ track }: { track: import('@/stores/usePlayerStore').Track }) {
+  return (
+    <div className="px-0.5">
+      <div className="w-full flex items-center gap-1.5 px-1.5 h-[48px] rounded-xl bg-accent text-foreground">
+        <div className="shrink-0 p-0.5 text-muted-foreground/40">
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-surface">
+            {track.albumArt ? (
+              <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
+            ) : (
+              <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium truncate">{track.title}</p>
+            <p className="text-xs text-muted-foreground/60 truncate">{track.artist}</p>
+          </div>
+        </div>
+        <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
+          {track.duration > 0 ? formatDuration(track.duration) : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function PlaylistDetailView() {
   const { t } = useTranslation('playlists');
@@ -41,6 +89,50 @@ export function PlaylistDetailView() {
   // Mutations
   const { handleSaveName, handleDelete, handleRemoveTrack, handleBulkRemoveFromPlaylist } =
     usePlaylistMutations({ playlistId: selectedPlaylistId, playlist });
+  const reorderMutation = useReorderPlaylistMutation();
+
+  // DnD
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const sortableIds = useMemo(
+    () => displayTracks.map((t) => t.id),
+    [displayTracks]
+  );
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const activeTrack = useMemo(
+    () => (activeId ? displayTracks.find((t) => t.id === activeId) ?? null : null),
+    [activeId, displayTracks]
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveId(null);
+
+      if (!over || active.id === over.id || !selectedPlaylistId) return;
+
+      const oldIndex = sortableIds.indexOf(active.id as string);
+      const newIndex = sortableIds.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const newOrder = arrayMove(sortableIds, oldIndex, newIndex);
+      reorderMutation.mutate({ playlistId: selectedPlaylistId, trackIds: newOrder });
+    },
+    [sortableIds, selectedPlaylistId, reorderMutation]
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   // Cover art
   const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
@@ -312,23 +404,33 @@ export function PlaylistDetailView() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <List
-            rowCount={displayTracks.length}
-            rowHeight={52}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={TrackRow}
-            rowProps={{
-              queue: displayTracks,
-              currentTrack,
-              isPlaying,
-              handlePlayTrack,
-              onToggleFavorite: toggleFavorite,
-              onRemoveFromPlaylist: handleRemoveTrack,
-            }}
-          />
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 scrollbar-thin">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              {displayTracks.map((track, index) => (
+                <SortableTrackRow
+                  key={track.id}
+                  track={track}
+                  index={index}
+                  queue={displayTracks}
+                  currentTrack={currentTrack}
+                  isPlaying={isPlaying}
+                  handlePlayTrack={handlePlayTrack}
+                  onToggleFavorite={toggleFavorite}
+                  onRemoveFromPlaylist={handleRemoveTrack}
+                />
+              ))}
+            </SortableContext>
+            <DragOverlay dropAnimation={null}>
+              {activeTrack ? <DragOverlayContent track={activeTrack} /> : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       )}
 
