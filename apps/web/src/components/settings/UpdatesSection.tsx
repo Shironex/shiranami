@@ -141,7 +141,7 @@ export function UpdatesSection() {
             href="https://github.com/Shironex/shiranami/releases/latest"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             {t('upd.openGithub')}
@@ -155,7 +155,7 @@ export function UpdatesSection() {
               disabled={
                 updateStatus === 'checking' || updateStatus === 'downloading'
               }
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updateStatus === 'checking' ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -168,7 +168,7 @@ export function UpdatesSection() {
             {updateStatus === 'available' && (
               <button
                 onClick={handleDownloadUpdate}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
                 {t('upd.downloadVersion', { version: updateVersion })}
@@ -178,7 +178,7 @@ export function UpdatesSection() {
             {updateStatus === 'ready' && (
               <button
                 onClick={handleInstallUpdate}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Check className="w-3.5 h-3.5" />
                 {t('upd.installRestart')}
