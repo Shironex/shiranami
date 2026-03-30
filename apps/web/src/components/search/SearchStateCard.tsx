@@ -20,6 +20,7 @@ export function SearchStateCard({
           <img
             src="./mascot.png"
             alt=""
+            aria-hidden="true"
             className="w-16 h-16 object-contain opacity-80"
             draggable={false}
           />

@@ -89,7 +89,7 @@ export function LibraryView() {
                   className="w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center"
                 >
                   {currentTrack.albumArt ? (
-                    <img src={currentTrack.albumArt} alt="" className="w-full h-full object-cover" />
+                    <img src={currentTrack.albumArt} alt={currentTrack.title} className="w-full h-full object-cover" />
                   ) : (
                     <Music className="w-8 h-8 text-muted-foreground/40" />
                   )}
@@ -155,7 +155,7 @@ export function LibraryView() {
       {/* Track list */}
       {library.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <img src="./mascot.png" alt="" className="w-28 h-28 object-contain opacity-40" draggable={false} />
+          <img src="./mascot.png" alt="" aria-hidden="true" className="w-28 h-28 object-contain opacity-40" draggable={false} />
           <div>
             <p className="font-display text-base font-medium text-muted-foreground">{t('emptyTitle')}</p>
             <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>

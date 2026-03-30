@@ -34,5 +34,6 @@
   "listenedHours": "{{hours}}h listened",
   "listenedMinutes": "{{minutes}}m listened",
   "listenedSeconds": "{{seconds}}s listened",
-  "activityBarTitle": "{{label}}: {{count}} plays, {{minutes}}m listened"
+  "activityBarTitle": "{{label}}: {{count}} plays, {{minutes}}m listened",
+  "activityGraphLabel": "Listening activity: {{total}} plays over {{days}} days"
 }

@@ -112,7 +112,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
               <div className="p-4 bg-white rounded-2xl">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}&bgcolor=ffffff&color=0c0a14`}
-                  alt="QR Code"
+                  alt="QR code for sharing"
                   width={180}
                   height={180}
                   className="rounded-lg"

@@ -72,7 +72,7 @@ export function FavoritesView() {
                   className="w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center"
                 >
                   {currentTrack.albumArt ? (
-                    <img src={currentTrack.albumArt} alt="" className="w-full h-full object-cover" />
+                    <img src={currentTrack.albumArt} alt={currentTrack.title} className="w-full h-full object-cover" />
                   ) : (
                     <Music className="w-8 h-8 text-muted-foreground/40" />
                   )}

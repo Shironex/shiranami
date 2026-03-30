@@ -80,6 +80,7 @@ export function Sidebar() {
           <img
             src="./mascot.png"
             alt=""
+            aria-hidden="true"
             className="w-7 h-7 rounded-lg object-cover"
             draggable={false}
           />
@@ -191,7 +192,7 @@ export function Sidebar() {
                             {playlist.coverArt ? (
                               <img
                                 src={playlist.coverArt}
-                                alt=""
+                                alt={playlist.name}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -250,7 +251,7 @@ export function Sidebar() {
                             {playlist.coverArt ? (
                               <img
                                 src={playlist.coverArt}
-                                alt=""
+                                alt={playlist.name}
                                 className="w-full h-full object-cover"
                               />
                             ) : (

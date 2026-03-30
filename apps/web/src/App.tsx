@@ -101,6 +101,14 @@ function App() {
               <CompactPlayer />
             ) : (
               <>
+                {/* Skip to content link for keyboard users */}
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium"
+                >
+                  Skip to main content
+                </a>
+
                 {/* Sidebar */}
                 <Sidebar />
 
@@ -112,7 +120,7 @@ function App() {
                     isScanning={isScanning}
                   />
 
-                  <main className={cn(
+                  <main id="main-content" aria-label={activeView} className={cn(
                     'flex-1 flex overflow-hidden min-h-0',
                     currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
                   )}>

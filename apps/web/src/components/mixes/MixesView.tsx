@@ -304,6 +304,7 @@ export function MixesView() {
                           key={i}
                           src={track.albumArt}
                           alt=""
+                          aria-hidden="true"
                           className="w-full h-full object-cover"
                         />
                       ))}
@@ -312,6 +313,7 @@ export function MixesView() {
                     <img
                       src={previewTracks[0].albumArt}
                       alt=""
+                      aria-hidden="true"
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -373,7 +375,7 @@ function ArtCollage({ library }: { library: Track[] }) {
           className="w-14 h-14 shrink-0 rounded-md overflow-hidden bg-accent/20"
         >
           {track.albumArt ? (
-            <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
+            <img src={track.albumArt} alt="" aria-hidden="true" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <Music className="w-4 h-4 text-muted-foreground/20" />

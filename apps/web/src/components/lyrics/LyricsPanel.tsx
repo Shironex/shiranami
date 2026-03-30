@@ -33,7 +33,7 @@ export function LyricsPanel() {
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;
 
-  const activeLineRef = useRef<HTMLParagraphElement>(null);
+  const activeLineRef = useRef<HTMLButtonElement>(null);
 
   const activeLine = synced ? findActiveLine(synced, currentTime) : -1;
 
@@ -67,19 +67,20 @@ export function LyricsPanel() {
             const isActive = index === activeLine;
             const isPast = index < activeLine;
             return (
-              <p
+              <button
                 key={index}
                 ref={isActive ? activeLineRef : null}
                 onClick={() => handleLineClick(line.time)}
+                type="button"
                 className={cn(
-                  'text-[15px] leading-relaxed font-medium cursor-pointer transition-all duration-500',
+                  'block w-full text-left text-[15px] leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
                   isActive && 'text-foreground text-base',
                   isPast && 'text-muted-foreground/25',
                   !isActive && !isPast && 'text-muted-foreground/45 hover:text-muted-foreground/70'
                 )}
               >
                 {line.text}
-              </p>
+              </button>
             );
           })}
           <div className="h-[50vh]" />

@@ -70,7 +70,7 @@ export function CommandPalette() {
         >
           <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
             {track.albumArt ? (
-              <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
+              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover" />
             ) : (
               <Music className="w-3.5 h-3.5 text-muted-foreground/40" />
             )}

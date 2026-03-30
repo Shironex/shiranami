@@ -138,7 +138,7 @@ export function PlaylistsView() {
               >
                 <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
                   {playlist.coverArt ? (
-                    <img src={playlist.coverArt} alt="" className="w-full h-full object-cover" />
+                    <img src={playlist.coverArt} alt={playlist.name} className="w-full h-full object-cover" />
                   ) : (
                     <ListMusic className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
                   )}

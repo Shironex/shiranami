@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
+import { formatDuration } from '@shiranami/shared';
 
 export function SeekBar() {
   const { t } = useTranslation('player');
@@ -98,6 +99,7 @@ export function SeekBar() {
       aria-valuemin={0}
       aria-valuemax={duration || 100}
       aria-valuenow={displayTime}
+      aria-valuetext={`${formatDuration(displayTime)} of ${formatDuration(duration)}`}
       tabIndex={0}
     >
       {/* Track */}

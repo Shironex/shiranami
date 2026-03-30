@@ -224,6 +224,7 @@ export function SearchView() {
                   <img
                     src="./mascot.png"
                     alt=""
+                    aria-hidden="true"
                     className="relative w-24 h-24 object-contain opacity-60"
                     draggable={false}
                   />
@@ -247,6 +248,7 @@ export function SearchView() {
                 <img
                   src="./mascot.png"
                   alt=""
+                  aria-hidden="true"
                   className="w-24 h-24 object-contain opacity-30"
                   draggable={false}
                 />
@@ -278,6 +280,10 @@ export function SearchView() {
                   {isDownloading && (
                     <div
                       className="absolute inset-0 bg-primary/5 transition-all duration-300"
+                      role="progressbar"
+                      aria-valuenow={dlState.progress}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
                       style={{ width: `${dlState.progress}%` }}
                     />
                   )}
@@ -290,7 +296,7 @@ export function SearchView() {
                     {result.thumbnail ? (
                       <img
                         src={result.thumbnail}
-                        alt=""
+                        alt={result.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />

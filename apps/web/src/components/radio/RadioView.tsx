@@ -120,7 +120,7 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
             {station.favicon ? (
               <img
                 src={station.favicon}
-                alt=""
+                alt={station.name}
                 className="w-full h-full object-cover rounded-lg"
                 loading="lazy"
                 onError={(e) => {

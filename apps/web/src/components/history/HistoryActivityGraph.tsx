@@ -27,8 +27,14 @@ export function HistoryActivityGraph({ points, range }: HistoryActivityGraphProp
   const barWidthClass =
     points.length <= 10 ? 'w-10' : points.length <= 31 ? 'w-7' : points.length <= 90 ? 'w-5' : 'w-4';
 
+  const totalPlays = points.reduce((sum, p) => sum + p.playCount, 0);
+
   return (
-    <div className="overflow-x-auto scrollbar-thin pb-1">
+    <div
+      className="overflow-x-auto scrollbar-thin pb-1"
+      role="img"
+      aria-label={t('activityGraphLabel', { days: points.length, total: totalPlays })}
+    >
       <div className="flex min-w-max items-end gap-2">
         {points.map((point, index) => {
           const height = Math.max(10, Math.round((point.playCount / maxPlayCount) * 112));

@@ -36,5 +36,6 @@
   "listenedHours": "{{hours}} godz. słuchania",
   "listenedMinutes": "{{minutes}} min słuchania",
   "listenedSeconds": "{{seconds}} sek. słuchania",
-  "activityBarTitle": "{{label}}: {{count}} odtworzeń, {{minutes}} min słuchania"
+  "activityBarTitle": "{{label}}: {{count}} odtworzeń, {{minutes}} min słuchania",
+  "activityGraphLabel": "Aktywność słuchania: {{total}} odtworzeń w ciągu {{days}} dni"
 }

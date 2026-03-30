@@ -71,7 +71,7 @@ function SortableQueueRow({ track, sortableId, queueIndex, onPlay, onRemove }: S
 
       <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
         {track.albumArt ? (
-          <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-md" />
+          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
         ) : (
           <Play className="w-3 h-3 text-muted-foreground/40" />
         )}
@@ -108,7 +108,7 @@ function DragOverlayContent({ track }: { track: Track }) {
       </div>
       <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
         {track.albumArt ? (
-          <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-md" />
+          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
         ) : (
           <Play className="w-3 h-3 text-muted-foreground/40" />
         )}
@@ -318,13 +318,16 @@ const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, o
         isActive ? 'bg-primary/15' : 'bg-surface'
       )}>
         {track.albumArt ? (
-          <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-md" />
+          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
         ) : isActive && isPlaying ? (
-          <div className="flex items-end gap-[2px] h-3">
-            <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 1.2s ease-in-out infinite' }} />
-            <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-2 1.4s ease-in-out 0.2s infinite' }} />
-            <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-3 1.1s ease-in-out 0.4s infinite' }} />
-          </div>
+          <>
+            <span className="sr-only">{t('nowPlaying')}</span>
+            <div className="flex items-end gap-[2px] h-3" aria-hidden="true">
+              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 1.2s ease-in-out infinite' }} />
+              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-2 1.4s ease-in-out 0.2s infinite' }} />
+              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-3 1.1s ease-in-out 0.4s infinite' }} />
+            </div>
+          </>
         ) : isActive ? (
           <Pause className="w-3 h-3 text-primary" />
         ) : (

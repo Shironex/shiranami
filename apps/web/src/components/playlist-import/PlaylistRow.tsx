@@ -158,7 +158,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           ) : (
             <>
               {result.thumbnail ? (
-                <img src={result.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+                <img src={result.thumbnail} alt={result.title} className="w-full h-full object-cover" loading="lazy" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Music className="w-4 h-4 text-muted-foreground/40" />

@@ -129,7 +129,7 @@ export function SortableTrackRow({
             {isSelected ? (
               <Check className="w-4 h-4 text-primary" />
             ) : track.albumArt ? (
-              <img src={track.albumArt} alt="" className="w-full h-full object-cover rounded-lg" />
+              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
             ) : isActive && isPlaying ? (
               <div className="flex items-end gap-[3px] h-4">
                 <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 1.2s ease-in-out infinite' }} />
