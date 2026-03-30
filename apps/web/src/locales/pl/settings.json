@@ -49,7 +49,11 @@
     "bars": "Słupki",
     "barsDesc": "Delikatne słupki częstotliwości",
     "waveform": "Fala",
-    "waveformDesc": "Płynna linia audio"
+    "waveformDesc": "Płynna linia audio",
+    "circle": "Okrąg",
+    "circleDesc": "Promieniowy łuk częstotliwości",
+    "particles": "Fala gradientowa",
+    "particlesDesc": "Płynna fala z wypełnieniem gradientowym"
   },
   "app": {
     "title": "Wygląd",

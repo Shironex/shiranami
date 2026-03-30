@@ -49,7 +49,11 @@
     "bars": "Bars",
     "barsDesc": "Soft frequency bars",
     "waveform": "Waveform",
-    "waveformDesc": "Flowing audio line"
+    "waveformDesc": "Flowing audio line",
+    "circle": "Circle",
+    "circleDesc": "Radial frequency arc",
+    "particles": "Wave",
+    "particlesDesc": "Smooth flowing gradient wave"
   },
   "app": {
     "title": "Appearance",

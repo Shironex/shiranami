@@ -16,6 +16,16 @@ const VISUALIZER_STYLE_OPTIONS = [
     labelKey: 'vis.waveform',
     descKey: 'vis.waveformDesc',
   },
+  {
+    value: 'circle' as VisualizerStyle,
+    labelKey: 'vis.circle',
+    descKey: 'vis.circleDesc',
+  },
+  {
+    value: 'particles' as VisualizerStyle,
+    labelKey: 'vis.particles',
+    descKey: 'vis.particlesDesc',
+  },
 ] as const;
 
 export function VisualizerSection() {
@@ -50,7 +60,7 @@ export function VisualizerSection() {
         {showVisualizer && (
           <div className="px-3">
             <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {VISUALIZER_STYLE_OPTIONS.map((opt) => {
                 const selected = visualizerStyle === opt.value;
                 return (

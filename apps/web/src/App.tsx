@@ -21,6 +21,8 @@ const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
 const AudioVisualizer = lazy(() => import('@/components/player/AudioVisualizer'));
 const WaveformVisualizer = lazy(() => import('@/components/player/WaveformVisualizer'));
+const CircleVisualizer = lazy(() => import('@/components/player/CircleVisualizer'));
+const ParticleVisualizer = lazy(() => import('@/components/player/ParticleVisualizer'));
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
@@ -172,7 +174,10 @@ function App() {
                   {currentTrack && showVisualizer && (
                     <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
                       <Suspense fallback={null}>
-                        {visualizerStyle === 'waveform' ? <WaveformVisualizer /> : <AudioVisualizer />}
+                        {visualizerStyle === 'waveform' ? <WaveformVisualizer /> :
+                         visualizerStyle === 'circle' ? <CircleVisualizer /> :
+                         visualizerStyle === 'particles' ? <ParticleVisualizer /> :
+                         <AudioVisualizer />}
                       </Suspense>
                     </div>
                   )}

@@ -3,7 +3,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 
 export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'search' | 'radio' | 'settings' | 'import-playlist';
 export type RightPanel = 'lyrics' | 'queue' | null;
-export type VisualizerStyle = 'bars' | 'waveform';
+export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
 const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
@@ -56,7 +56,7 @@ function persistSidebarCollapsed(sidebarCollapsed: boolean) {
 function getInitialVisualizerStyle(): VisualizerStyle {
   if (typeof window === 'undefined') return 'bars';
   const stored = window.localStorage.getItem(VISUALIZER_STYLE_STORAGE_KEY);
-  if (stored === 'bars' || stored === 'waveform') return stored;
+  if (stored === 'bars' || stored === 'waveform' || stored === 'circle' || stored === 'particles') return stored;
   return 'bars';
 }
 
