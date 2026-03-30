@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import {
   Link,
   Loader2,
@@ -11,7 +11,9 @@ import { List } from 'react-window';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { usePlaylistImport } from '@/hooks/usePlaylistImport';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { PlaylistRow } from './PlaylistRow';
+import { ImportBulkActionBar } from './ImportBulkActionBar';
 
 export function PlaylistImportView() {
   const { t } = useTranslation('import');
@@ -20,9 +22,31 @@ export function PlaylistImportView() {
     url, setUrl, tracks, isExtracting, extractProgress, isImporting,
     extractError, previewLoadingId, processedCount, totalCount, pendingCount,
     overallProgress, hasResults, isFinished,
-    handleExtract, handleKeyDown, handleStartImport, handleCancel,
-    handleReset, handleRemoveTrack, isPreviewPlaying, handlePreview,
+    handleExtract, handleKeyDown, handleStartImport, handleStartImportSelected,
+    handleCancel, handleReset, handleRemoveTrack, handleRemoveTracks,
+    isPreviewPlaying, handlePreview,
   } = usePlaylistImport();
+
+  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const hasSelection = selectedTrackIds.size > 0;
+
+  const selectedPendingCount = hasSelection
+    ? tracks.filter((t) => selectedTrackIds.has(t.id) && t.status === 'pending').length
+    : 0;
+
+  const handleDownloadTrack = useCallback((id: string) => {
+    handleStartImportSelected(new Set([id]));
+  }, [handleStartImportSelected]);
+
+  const handleDownloadClick = useCallback(() => {
+    if (hasSelection) {
+      handleStartImportSelected(new Set(selectedTrackIds));
+      clearSelection();
+    } else {
+      handleStartImport();
+    }
+  }, [hasSelection, selectedTrackIds, handleStartImportSelected, handleStartImport, clearSelection]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -100,11 +124,13 @@ export function PlaylistImportView() {
           <div className="mt-3 max-w-2xl flex items-center gap-3">
             {!isImporting && !isFinished && (
               <button
-                onClick={handleStartImport}
+                onClick={handleDownloadClick}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                {t('downloadAll', { count: pendingCount })}
+                {hasSelection
+                  ? t('downloadSelected', { count: selectedPendingCount })
+                  : t('downloadAll', { count: pendingCount })}
               </button>
             )}
             {isImporting && (
@@ -167,26 +193,35 @@ export function PlaylistImportView() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0">
-            <List
-              rowCount={tracks.length}
-              rowHeight={52}
-              overscanCount={10}
-              className="scrollbar-thin"
-              style={{ height: '100%' }}
-              rowComponent={PlaylistRow}
-              rowProps={{
-                tracks,
-                isImporting,
-                previewLoadingId,
-                isPreviewPlaying,
-                handlePreview,
-                handleRemoveTrack,
-              }}
-            />
-          </div>
+          <List
+            rowCount={tracks.length}
+            rowHeight={52}
+            overscanCount={10}
+            className="scrollbar-thin"
+            style={{ height: '100%' }}
+            rowComponent={PlaylistRow}
+            rowProps={{
+              tracks,
+              isImporting,
+              previewLoadingId,
+              isPreviewPlaying,
+              handlePreview,
+              handleRemoveTrack,
+              handleDownloadTrack,
+            }}
+          />
         )}
       </div>
+
+      {/* Bulk action bar for multi-select */}
+      {hasResults && hasSelection && (
+        <ImportBulkActionBar
+          tracks={tracks}
+          isImporting={isImporting}
+          onDownloadSelected={handleStartImportSelected}
+          onRemoveSelected={handleRemoveTracks}
+        />
+      )}
     </div>
   );
 }

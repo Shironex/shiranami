@@ -18,12 +18,14 @@ interface PlaylistImportState {
   extractProgress: { current: number; total: number; trackName: string } | null;
   isImporting: boolean;
   isCancelled: boolean;
+  importingTrackIds: Set<string> | null;
 }
 
 interface PlaylistImportActions {
   setUrl: (url: string) => void;
   setTracks: (results: SearchResult[]) => void;
   removeTrack: (id: string) => void;
+  removeTracks: (ids: Set<string>) => void;
   updateTrackStatus: (
     id: string,
     status: PlaylistTrackStatus,
@@ -33,7 +35,7 @@ interface PlaylistImportActions {
   startExtracting: () => void;
   stopExtracting: () => void;
   setExtractProgress: (progress: { current: number; total: number; trackName: string }) => void;
-  startImporting: () => void;
+  startImporting: (trackIds?: Set<string>) => void;
   cancelImport: () => void;
   reset: () => void;
 }
@@ -45,6 +47,7 @@ const INITIAL_STATE: PlaylistImportState = {
   extractProgress: null,
   isImporting: false,
   isCancelled: false,
+  importingTrackIds: null,
 };
 
 function createPlaylistTrackId(result: SearchResult, index: number): string {
@@ -75,6 +78,11 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
         tracks: s.tracks.filter((t) => t.id !== id),
       })),
 
+    removeTracks: (ids) =>
+      set((s) => ({
+        tracks: s.tracks.filter((t) => !ids.has(t.id)),
+      })),
+
     updateTrackStatus: (id, status, progress, error) =>
       set((s) => ({
         tracks: s.tracks.map((t) => {
@@ -91,7 +99,7 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
     startExtracting: () => set({ isExtracting: true, extractProgress: null, isCancelled: false }),
     stopExtracting: () => set({ isExtracting: false }),
     setExtractProgress: (progress) => set({ extractProgress: progress }),
-    startImporting: () => set({ isImporting: true, isCancelled: false }),
+    startImporting: (trackIds) => set({ isImporting: true, isCancelled: false, importingTrackIds: trackIds ?? null }),
     cancelImport: () => set({ isCancelled: true, isImporting: false }),
     reset: () => set(INITIAL_STATE),
   })

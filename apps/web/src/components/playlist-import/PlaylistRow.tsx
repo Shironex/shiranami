@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { type RowComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import {
@@ -24,6 +25,7 @@ export interface PlaylistRowProps {
   isPreviewPlaying: (result: { id: string }) => boolean;
   handlePreview: (result: PlaylistTrack['searchResult']) => void;
   handleRemoveTrack: (id: string) => void;
+  handleDownloadTrack: (id: string) => void;
 }
 
 function StatusIcon({ track }: { track: PlaylistTrack }) {
@@ -64,7 +66,6 @@ function useStatusLabel() {
 
 export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
   const { t } = useTranslation('import');
-  const { t: tSearch } = useTranslation('search');
   const statusLabel = useStatusLabel();
   const {
     index,
@@ -75,18 +76,58 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
     isPreviewPlaying,
     handlePreview,
     handleRemoveTrack,
+    handleDownloadTrack,
   } = props as RowComponentProps<PlaylistRowProps> & PlaylistRowProps;
 
   const playlistTrack = tracks[index];
+
+  const isSelected = useSelectionStore((s) => s.selectedTrackIds.has(playlistTrack?.id ?? ''));
+  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
+  const toggleTrack = useSelectionStore((s) => s.toggleTrack);
+  const selectRange = useSelectionStore((s) => s.selectRange);
+  const clearSelection = useSelectionStore((s) => s.clearSelection);
+
   if (!playlistTrack) return null;
 
   const result = playlistTrack.searchResult;
   const isActive =
     playlistTrack.status === 'downloading' || playlistTrack.status === 'converting';
 
+  const handleClick = (e: React.MouseEvent) => {
+    const isMod = e.metaKey || e.ctrlKey;
+    const isShift = e.shiftKey;
+
+    if (isMod) {
+      e.preventDefault();
+      toggleTrack(playlistTrack.id, index);
+      return;
+    }
+
+    if (isShift) {
+      e.preventDefault();
+      selectRange(index, tracks);
+      return;
+    }
+
+    // Plain click: if we have a selection, clear it; otherwise preview
+    if (hasSelection) {
+      clearSelection();
+    } else {
+      handlePreview(result);
+    }
+  };
+
   return (
     <div style={style} className="px-0.5">
-      <div className="group flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-accent/50 transition-colors relative overflow-hidden h-full">
+      <div
+        onClick={handleClick}
+        className={cn(
+          'group flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors relative overflow-hidden h-full cursor-pointer',
+          isSelected
+            ? 'bg-primary/[0.12] ring-1 ring-primary/20'
+            : 'hover:bg-accent/50'
+        )}
+      >
         {isActive && (
           <div
             className="absolute inset-0 bg-primary/5 transition-all duration-300"
@@ -98,33 +139,48 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           {index + 1}
         </span>
 
-        <button
-          onClick={() => handlePreview(result)}
-          className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
-          title={isPreviewPlaying(result) ? tSearch('pausePreview') : tSearch('preview')}
-        >
-          {result.thumbnail ? (
-            <img src={result.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Music className="w-4 h-4 text-muted-foreground/40" />
-            </div>
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasSelection) {
+              toggleTrack(playlistTrack.id, index);
+            } else {
+              handlePreview(result);
+            }
+          }}
+          className={cn(
+            'w-10 h-10 rounded-lg overflow-hidden shrink-0 relative z-10 group/thumb',
+            isSelected ? 'bg-primary/20 flex items-center justify-center' : 'bg-muted'
           )}
-          <div
-            className={cn(
-              'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
-              isPreviewPlaying(result) ? 'opacity-100' : 'opacity-0 group-hover/thumb:opacity-100'
-            )}
-          >
-            {previewLoadingId === result.id ? (
-              <Loader2 className="w-4 h-4 text-white animate-spin" />
-            ) : isPreviewPlaying(result) ? (
-              <Pause className="w-4 h-4 text-white" />
-            ) : (
-              <Play className="w-4 h-4 text-white" />
-            )}
-          </div>
-        </button>
+        >
+          {isSelected ? (
+            <Check className="w-4 h-4 text-primary" />
+          ) : (
+            <>
+              {result.thumbnail ? (
+                <img src={result.thumbnail} alt="" className="w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Music className="w-4 h-4 text-muted-foreground/40" />
+                </div>
+              )}
+              <div
+                className={cn(
+                  'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
+                  isPreviewPlaying(result) ? 'opacity-100' : 'opacity-0 group-hover/thumb:opacity-100'
+                )}
+              >
+                {previewLoadingId === result.id ? (
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                ) : isPreviewPlaying(result) ? (
+                  <Pause className="w-4 h-4 text-white" />
+                ) : (
+                  <Play className="w-4 h-4 text-white" />
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="flex-1 min-w-0 relative z-10">
           <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
@@ -152,13 +208,29 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           {formatDuration(result.duration)}
         </span>
 
-        <div className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center">
-          <StatusIcon track={playlistTrack} />
-        </div>
+        {playlistTrack.status === 'pending' && !isImporting ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadTrack(playlistTrack.id);
+            }}
+            className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
+            title={t('downloadTrack')}
+          >
+            <Download className="w-4 h-4 text-muted-foreground/50 hover:text-primary transition-colors" />
+          </button>
+        ) : (
+          <div className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center">
+            <StatusIcon track={playlistTrack} />
+          </div>
+        )}
 
         {playlistTrack.status === 'pending' && !isImporting && (
           <button
-            onClick={() => handleRemoveTrack(playlistTrack.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemoveTrack(playlistTrack.id);
+            }}
             className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
             title={t('removeFromList')}
           >

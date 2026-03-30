@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { useAppStore } from '@/stores/useAppStore';
-import type { Track } from '@/stores/usePlayerStore';
+
+interface Identifiable {
+  id: string;
+}
 
 interface SelectionState {
   selectedTrackIds: Set<string>;
@@ -9,9 +12,9 @@ interface SelectionState {
 
 interface SelectionActions {
   toggleTrack: (trackId: string, index: number) => void;
-  selectRange: (toIndex: number, trackList: Track[]) => void;
+  selectRange: (toIndex: number, trackList: Identifiable[]) => void;
   selectSingle: (trackId: string, index: number) => void;
-  selectAll: (trackList: Track[]) => void;
+  selectAll: (trackList: Identifiable[]) => void;
   clearSelection: () => void;
 }
 

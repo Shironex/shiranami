@@ -17,10 +17,12 @@ export function usePlaylistImport() {
   const setUrl = usePlaylistImportStore(s => s.setUrl);
   const tracks = usePlaylistImportStore(s => s.tracks);
   const isExtracting = usePlaylistImportStore(s => s.isExtracting);
+  const importingTrackIds = usePlaylistImportStore(s => s.importingTrackIds);
   const extractProgress = usePlaylistImportStore(s => s.extractProgress);
   const isImporting = usePlaylistImportStore(s => s.isImporting);
   const setTracks = usePlaylistImportStore(s => s.setTracks);
   const removeTrack = usePlaylistImportStore(s => s.removeTrack);
+  const removeTracks = usePlaylistImportStore(s => s.removeTracks);
   const updateTrackStatus = usePlaylistImportStore(s => s.updateTrackStatus);
   const startExtracting = usePlaylistImportStore(s => s.startExtracting);
   const stopExtracting = usePlaylistImportStore(s => s.stopExtracting);
@@ -172,6 +174,84 @@ export function usePlaylistImport() {
     }
   }, [startImporting, updateTrackStatus, importTrack]);
 
+  const handleStartImportSelected = useCallback(async (selectedIds: Set<string>) => {
+    if (!IS_ELECTRON || selectedIds.size === 0) return;
+    startImporting(selectedIds);
+
+    const currentTracks = usePlaylistImportStore.getState().tracks;
+    const completedUrls = new Set<string>();
+
+    for (const playlistTrack of currentTracks) {
+      if (usePlaylistImportStore.getState().isCancelled) break;
+      if (playlistTrack.status !== 'pending') continue;
+      if (!selectedIds.has(playlistTrack.id)) continue;
+
+      const trackId = playlistTrack.id;
+      const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
+      if (completedUrls.has(trackUrl)) {
+        updateTrackStatus(trackId, 'skipped');
+        continue;
+      }
+
+      activeImportTrackIdRef.current = trackId;
+      activeImportTrackUrlRef.current = trackUrl;
+      updateTrackStatus(trackId, 'downloading', 0);
+
+      try {
+        const filePath = await window.electronAPI.downloader.download(trackUrl);
+
+        const exists = await window.electronAPI.db.tracks.exists(filePath);
+        if (exists) {
+          completedUrls.add(trackUrl);
+          updateTrackStatus(trackId, 'skipped');
+          continue;
+        }
+
+        await importTrack(filePath);
+        completedUrls.add(trackUrl);
+        updateTrackStatus(trackId, 'done', 100);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        updateTrackStatus(trackId, 'error', 0, msg);
+      } finally {
+        if (activeImportTrackIdRef.current === trackId) {
+          activeImportTrackIdRef.current = null;
+          activeImportTrackUrlRef.current = null;
+        }
+      }
+    }
+
+    activeImportTrackIdRef.current = null;
+    activeImportTrackUrlRef.current = null;
+    usePlaylistImportStore.setState({ isImporting: false });
+
+    if (!usePlaylistImportStore.getState().isCancelled) {
+      const finalTracks = usePlaylistImportStore.getState().tracks;
+      const selectedFinal = finalTracks.filter(t => selectedIds.has(t.id));
+      const doneCount = selectedFinal.filter(t => t.status === 'done').length;
+      const skippedCount = selectedFinal.filter(t => t.status === 'skipped').length;
+      const errorCount = selectedFinal.filter(t => t.status === 'error').length;
+
+      toast.success(
+        i18n.t('importSummary', {
+          ns: 'toast',
+          done: doneCount,
+          skipped: skippedCount,
+          errors: errorCount,
+        })
+      );
+    } else {
+      toast.info(i18n.t('importCancelled', { ns: 'toast' }));
+    }
+  }, [startImporting, updateTrackStatus, importTrack]);
+
+  const handleRemoveTracks = useCallback(
+    (ids: Set<string>) => {
+      removeTracks(ids);
+    },
+    [removeTracks]
+  );
+
   const handleCancel = useCallback(() => {
     cancelImport();
     if (IS_ELECTRON) {
@@ -186,11 +266,14 @@ export function usePlaylistImport() {
     activeImportTrackUrlRef.current = null;
   }, [reset]);
 
-  // Computed values
-  const processedCount = tracks.filter(
+  // Computed values — scoped to importingTrackIds when doing a selective import
+  const scopedTracks = importingTrackIds
+    ? tracks.filter(t => importingTrackIds.has(t.id))
+    : tracks;
+  const processedCount = scopedTracks.filter(
     t => t.status === 'done' || t.status === 'skipped' || t.status === 'error'
   ).length;
-  const totalCount = tracks.length;
+  const totalCount = scopedTracks.length;
   const overallProgress = totalCount > 0 ? Math.round((processedCount / totalCount) * 100) : 0;
   const pendingCount = tracks.filter(t => t.status === 'pending').length;
   const hasResults = tracks.length > 0;
@@ -219,9 +302,11 @@ export function usePlaylistImport() {
     handleExtract,
     handleKeyDown,
     handleStartImport,
+    handleStartImportSelected,
     handleCancel,
     handleReset,
     handleRemoveTrack,
+    handleRemoveTracks,
 
     // Preview
     isPreviewPlaying,
