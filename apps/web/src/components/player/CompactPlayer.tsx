@@ -77,7 +77,7 @@ export function CompactPlayer() {
                 )}
                 aria-label={compactAlwaysOnTop ? t('disableAlwaysOnTop') : t('enableAlwaysOnTop')}
               >
-                <Pin className="size-3.25" />
+                <Pin className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -93,7 +93,7 @@ export function CompactPlayer() {
                 className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('exitCompactMode')}
               >
-                <Maximize2 className="size-3.25" />
+                <Maximize2 className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('exitCompactMode')}</TooltipContent>
@@ -107,7 +107,7 @@ export function CompactPlayer() {
                 className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={t('minimize')}
               >
-                <Minimize2 className="size-3.25" />
+                <Minimize2 className="size-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
@@ -119,7 +119,7 @@ export function CompactPlayer() {
             className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-red-500/85 hover:text-white"
             aria-label={t('close')}
           >
-            <X className="size-3.25" />
+            <X className="size-3.5" />
           </button>
         </div>
       </div>

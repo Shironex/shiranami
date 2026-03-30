@@ -36,7 +36,7 @@ export const PlayerControls = memo(function PlayerControls() {
           <button
             onClick={toggleShuffle}
             className={cn(
-              'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200',
+              'w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200',
               isShuffled
                 ? 'text-primary'
                 : 'text-muted-foreground/60 hover:text-muted-foreground'
@@ -119,7 +119,7 @@ export const PlayerControls = memo(function PlayerControls() {
           <button
             onClick={cycleRepeatMode}
             className={cn(
-              'w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-200',
+              'w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200',
               repeatMode !== 'off'
                 ? 'text-primary'
                 : 'text-muted-foreground/60 hover:text-muted-foreground'

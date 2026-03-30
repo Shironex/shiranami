@@ -57,6 +57,18 @@ function App() {
     hydrateLanguageFromStore();
   }, []);
 
+  // Auto-collapse sidebar on narrow viewports
+  const setSidebarCollapsed = useAppStore(s => s.setSidebarCollapsed);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 900px)');
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) setSidebarCollapsed(true);
+    };
+    handleChange(mql);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, [setSidebarCollapsed]);
+
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const activeView = useAppStore(s => s.activeView);

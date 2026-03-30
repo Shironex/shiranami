@@ -340,8 +340,8 @@ export function MixesView() {
                       {t('trackCount', { count: preview })}
                     </span>
                   )}
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10">
-                    <Play className="w-3 h-3 text-primary fill-current" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10">
+                    <Play className="w-3.5 h-3.5 text-primary fill-current" />
                   </div>
                 </div>
               </motion.button>
