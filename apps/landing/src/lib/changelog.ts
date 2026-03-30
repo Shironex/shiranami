@@ -69,6 +69,73 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.10.0',
+    date: '2026-03-30',
+    title: l(
+      'Smarter search, bulk actions, and under-the-hood improvements',
+      'Inteligentniejsze wyszukiwanie, operacje zbiorcze i poprawki pod maską'
+    ),
+    description: l(
+      'YouTube search now suggests queries as you type, playlists support drag-and-drop reordering, and multi-select lets you act on many tracks at once. Data fetching has been migrated to TanStack Query for snappier navigation.',
+      'Wyszukiwanie na YouTube podpowiada frazy w trakcie pisania, playlisty obsługują zmianę kolejności przeciąganiem, a zaznaczanie wielu utworów pozwala na operacje zbiorcze. Pobieranie danych przeniesiono na TanStack Query dla płynniejszej nawigacji.'
+    ),
+    categories: [
+      {
+        label: l('Search', 'Wyszukiwanie'),
+        entries: [
+          l(
+            'YouTube search autocomplete — suggestions appear as you type, powered by Google\'s suggest API routed through the main process.',
+            'Autouzupełnianie wyszukiwania YouTube — podpowiedzi pojawiają się w trakcie pisania, korzystając z API podpowiedzi Google przez proces główny.'
+          ),
+          l(
+            'Clear button (×) on the search input to quickly reset the query.',
+            'Przycisk czyszczenia (×) w polu wyszukiwania do szybkiego resetowania zapytania.'
+          ),
+        ],
+      },
+      {
+        label: l('Playlists', 'Playlisty'),
+        entries: [
+          l(
+            'Drag-and-drop track reordering in playlists — grab a track and move it to any position.',
+            'Zmiana kolejności utworów w playlistach przeciąganiem — chwyć utwór i przenieś na dowolną pozycję.'
+          ),
+        ],
+      },
+      {
+        label: l('Library', 'Biblioteka'),
+        entries: [
+          l(
+            'Multi-select tracks with bulk actions — select multiple tracks and perform actions like delete, add to playlist, or favorite in one step.',
+            'Zaznaczanie wielu utworów z operacjami zbiorczymi — zaznacz wiele utworów i wykonuj akcje takie jak usuwanie, dodawanie do playlisty czy dodawanie do ulubionych jednym krokiem.'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Migrated data fetching to TanStack Query across playlists, history, folders, lyrics, and library for faster navigation and smarter caching.',
+            'Przeniesiono pobieranie danych na TanStack Query w playlistach, historii, folderach, tekstach piosenek i bibliotece dla szybszej nawigacji i lepszego cachowania.'
+          ),
+          l(
+            'Extracted shared utilities and hooks to reduce code duplication across the app.',
+            'Wyodrębniono współdzielone narzędzia i hooki, aby zmniejszyć duplikację kodu w aplikacji.'
+          ),
+        ],
+      },
+      {
+        label: l('Bug fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Fixed stuck loading spinner when restoring a paused track on app restart.',
+            'Naprawiono zacięty spinner ładowania przy przywracaniu wstrzymanego utworu po restarcie aplikacji.'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.9.0',
     date: '2026-03-26',
     title: l(
