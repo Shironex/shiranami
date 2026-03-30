@@ -4,6 +4,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Heart } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -102,13 +103,11 @@ export function FavoritesView() {
 
       {/* Favorites list */}
       {favorites.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <Heart className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-          <div>
-            <p className="font-display text-base font-medium text-muted-foreground">{t('emptyTitle')}</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
-          </div>
-        </div>
+        <ViewEmptyState
+          title={t('emptyTitle')}
+          subtitle={t('emptySubtitle')}
+          icon={Heart}
+        />
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List

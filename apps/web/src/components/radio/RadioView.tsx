@@ -22,6 +22,7 @@ import {
   Loader2,
   Star,
 } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion } from 'motion/react';
 import { List, type RowComponentProps } from 'react-window';
 import type { Station } from 'radio-browser-api';
@@ -419,33 +420,19 @@ export function RadioView() {
           </div>
         </div>
       ) : showEmptyState ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          {activeTab === 'favorites' ? (
-            <>
-              <Heart className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-              <div>
-                <p className="font-display text-base font-medium text-muted-foreground">
-                  {t('noFavoriteStationsTitle')}
-                </p>
-                <p className="text-sm text-muted-foreground/50 mt-1">
-                  {t('noFavoriteStationsSubtitle')}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <Radio className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-              <div>
-                <p className="font-display text-base font-medium text-muted-foreground">
-                  {t('noStationsTitle')}
-                </p>
-                <p className="text-sm text-muted-foreground/50 mt-1">
-                  {t('noStationsSubtitle')}
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+        activeTab === 'favorites' ? (
+          <ViewEmptyState
+            title={t('noFavoriteStationsTitle')}
+            subtitle={t('noFavoriteStationsSubtitle')}
+            icon={Heart}
+          />
+        ) : (
+          <ViewEmptyState
+            title={t('noStationsTitle')}
+            subtitle={t('noStationsSubtitle')}
+            icon={Radio}
+          />
+        )
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List

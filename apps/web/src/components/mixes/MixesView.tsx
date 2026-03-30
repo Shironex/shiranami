@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Music,
 } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -178,13 +179,11 @@ export function MixesView() {
   // ── Empty library state ──
   if (library.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-        <Sparkles className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-        <div>
-          <p className="font-display text-base font-medium text-muted-foreground">{t('title')}</p>
-          <p className="text-sm text-muted-foreground/50 mt-1">{t('emptyLibrary')}</p>
-        </div>
-      </div>
+      <ViewEmptyState
+        title={t('title')}
+        subtitle={t('emptyLibrary')}
+        icon={Sparkles}
+      />
     );
   }
 
