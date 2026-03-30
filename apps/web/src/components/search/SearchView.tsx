@@ -9,6 +9,7 @@ import {
   Music,
   Play,
   Pause,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -130,14 +131,27 @@ export function SearchView() {
             onBlur={() => closeSuggestions()}
             placeholder={t('placeholder')}
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border border-border/50',
+              'w-full pl-10 py-2.5 rounded-xl text-sm bg-card border border-border/50',
+              query ? 'pr-10' : 'pr-4',
               'text-foreground placeholder:text-muted-foreground/50',
               'focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40',
               'transition-colors'
             )}
           />
-          {isSearching && (
+          {isSearching ? (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          ) : query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                closeSuggestions();
+                inputRef.current?.focus();
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
 
           {suggestionsOpen && suggestions.length > 0 && (
