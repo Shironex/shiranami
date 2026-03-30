@@ -23,5 +23,6 @@
   "viewsMillion": "{{count}} mln wyświetleń",
   "viewsThousand": "{{count}} tys. wyświetleń",
   "views": "{{count}} wyświetleń",
+  "emptyHintEnter": "Naciśnij Enter, aby wyszukać",
   "suggestion": "Sugestia"
 }

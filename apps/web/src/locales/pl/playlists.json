@@ -5,6 +5,7 @@
   "create": "Utwórz",
   "emptyTitle": "Brak playlist",
   "emptySubtitle": "Utwórz jedną, aby zacząć",
+  "emptyHintCreate": "Utwórz playlistę",
   "back": "Wróć do playlist",
   "playAll": "Odtwórz wszystko",
   "deletePlaylist": "Usuń playlistę",

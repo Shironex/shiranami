@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
-import { Music, Search, X } from 'lucide-react';
+import { Music, Search, X, Download } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion, AnimatePresence } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -154,13 +155,15 @@ export function LibraryView() {
 
       {/* Track list */}
       {library.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <img src="./mascot.png" alt="" aria-hidden="true" className="w-28 h-28 object-contain opacity-40" draggable={false} />
-          <div>
-            <p className="font-display text-base font-medium text-muted-foreground">{t('emptyTitle')}</p>
-            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
-          </div>
-        </div>
+        <ViewEmptyState
+          title={t('emptyTitle')}
+          subtitle={t('emptySubtitle')}
+          icon={Music}
+          hints={[
+            { icon: Search, label: t('emptyHintSearch') },
+            { icon: Download, label: t('emptyHintImport') },
+          ]}
+        />
       ) : filteredLibrary.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />

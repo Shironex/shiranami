@@ -10,6 +10,7 @@ import {
   Play,
   Pause,
   X,
+  Keyboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -18,6 +19,7 @@ import { useSearchDependencies } from '@/hooks/useSearchDependencies';
 import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
 import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
+import { ViewEmptyState } from '../shared/ViewEmptyState';
 
 export function SearchView() {
   const { t } = useTranslation('search');
@@ -216,53 +218,70 @@ export function SearchView() {
         )}
       >
         {showCenteredSearchState ? (
-          <div className="flex-1 min-h-full flex items-center justify-center">
-            {isSearching ? (
-              <div className="w-full max-w-md flex flex-col items-center justify-center gap-5 rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
+          isSearching ? (
+            <div className="flex-1 min-h-full flex items-center justify-center">
+              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-primary/10 blur-2xl" />
-                  <img
-                    src="./mascot.png"
-                    alt=""
-                    aria-hidden="true"
-                    className="relative w-24 h-24 object-contain opacity-60"
-                    draggable={false}
-                  />
+                  <div className="w-28 h-28 rounded-[28px] bg-primary/8 border border-primary/10 flex items-center justify-center">
+                    <img
+                      src="./mascot.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-[4.5rem] h-[4.5rem] object-contain opacity-70 animate-[splash-float_6s_ease-in-out_infinite]"
+                      draggable={false}
+                    />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                  </div>
                 </div>
                 <div>
-                  <p className="font-display text-sm font-medium text-foreground/85">
+                  <p className="font-display text-base font-semibold text-foreground/85">
                     {t('searchingYoutube')}
                   </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
+                  <p className="text-sm text-muted-foreground/60 mt-1.5 leading-relaxed">
                     {t('pullingMatches', { query: query.trim() })}
                   </p>
                 </div>
-                <Loader2 className="w-4 h-4 text-primary animate-spin" />
               </div>
-            ) : searchError ? (
-              <div className="w-full max-w-md rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
-                <p className="text-sm text-muted-foreground">{searchError}</p>
-              </div>
-            ) : (
-              <div className="w-full max-w-md flex flex-col items-center justify-center gap-4 rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
-                <img
-                  src="./mascot.png"
-                  alt=""
-                  aria-hidden="true"
-                  className="w-24 h-24 object-contain opacity-30"
-                  draggable={false}
-                />
+            </div>
+          ) : searchError ? (
+            <div className="flex-1 min-h-full flex items-center justify-center">
+              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-[28px] bg-destructive/8 border border-destructive/10 flex items-center justify-center">
+                    <img
+                      src="./mascot.png"
+                      alt=""
+                      aria-hidden="true"
+                      className="w-[4.5rem] h-[4.5rem] object-contain opacity-50"
+                      draggable={false}
+                    />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                  </div>
+                </div>
                 <div>
-                  <p className="font-display text-sm font-medium text-muted-foreground">
-                    {t('emptyTitle')}
+                  <p className="font-display text-base font-semibold text-foreground/85">
+                    {t('noResults')}
                   </p>
-                  <p className="text-xs text-muted-foreground/50 mt-1">
-                    {t('emptySubtitle')}
+                  <p className="text-sm text-muted-foreground/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                    {searchError}
                   </p>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <ViewEmptyState
+              title={t('emptyTitle')}
+              subtitle={t('emptySubtitle')}
+              icon={Search}
+              hints={[
+                { icon: Keyboard, label: t('emptyHintEnter') },
+              ]}
+            />
+          )
         ) : (
           <div className="space-y-1">
             {results.map((result) => {

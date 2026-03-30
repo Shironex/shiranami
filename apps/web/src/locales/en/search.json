@@ -23,5 +23,6 @@
   "viewsMillion": "{{count}}M views",
   "viewsThousand": "{{count}}K views",
   "views": "{{count}} views",
+  "emptyHintEnter": "Press Enter to search",
   "suggestion": "Suggestion"
 }

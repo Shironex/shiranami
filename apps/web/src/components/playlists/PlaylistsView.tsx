@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
 import { ListMusic, Plus, Loader2 } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { usePlaylistsQuery, useCreatePlaylistMutation } from '@/hooks/queries/usePlaylists';
@@ -104,15 +105,14 @@ export function PlaylistsView() {
 
       {/* Playlist grid or empty state */}
       {playlists.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <ListMusic className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-          <div>
-            <p className="font-display text-base font-medium text-muted-foreground">
-              {t('emptyTitle')}
-            </p>
-            <p className="text-sm text-muted-foreground/50 mt-1">{t('emptySubtitle')}</p>
-          </div>
-        </div>
+        <ViewEmptyState
+          title={t('emptyTitle')}
+          subtitle={t('emptySubtitle')}
+          icon={ListMusic}
+          hints={[
+            { icon: Plus, label: t('emptyHintCreate') },
+          ]}
+        />
       ) : (
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
           <motion.div

@@ -7,6 +7,7 @@ import {
   Download,
   ListMusic,
 } from 'lucide-react';
+import { ViewEmptyState } from '../shared/ViewEmptyState';
 import { List } from 'react-window';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -177,21 +178,15 @@ export function PlaylistImportView() {
         )}
       >
         {!hasResults ? (
-          <div className="flex-1 min-h-full flex items-center justify-center">
-            <div className="w-full max-w-md flex flex-col items-center justify-center gap-4 rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
-              <div className="w-24 h-24 rounded-[28px] bg-primary/8 border border-primary/10 flex items-center justify-center">
-                <ListMusic className="w-10 h-10 text-primary/40" />
-              </div>
-              <div>
-                <p className="font-display text-sm font-medium text-muted-foreground">
-                  {t('emptyTitle')}
-                </p>
-                <p className="text-xs text-muted-foreground/50 mt-1 max-w-[280px]">
-                  {t('emptySubtitle')}
-                </p>
-              </div>
-            </div>
-          </div>
+          <ViewEmptyState
+            title={t('emptyTitle')}
+            subtitle={t('emptySubtitle')}
+            icon={ListMusic}
+            hints={[
+              { icon: Link, label: 'YouTube' },
+              { icon: Link, label: 'Spotify' },
+            ]}
+          />
         ) : (
           <List
             rowCount={tracks.length}

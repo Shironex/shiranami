@@ -3,6 +3,8 @@
   "filterCount": "{{filtered}} z {{total}} utworów",
   "emptyTitle": "Brak utworów",
   "emptySubtitle": "Dodaj pliki lub folder, aby zacząć słuchać",
+  "emptyHintSearch": "Szukaj na YouTube",
+  "emptyHintImport": "Importuj playlistę",
   "noMatchesTitle": "Brak pasujących utworów",
   "noMatchesSubtitle": "Spróbuj innej frazy"
 }
