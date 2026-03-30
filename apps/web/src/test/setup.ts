@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import type { ElectronAPI } from '@/types/electron';
 
+
 class ResizeObserverMock {
   observe(): void {}
   unobserve(): void {}

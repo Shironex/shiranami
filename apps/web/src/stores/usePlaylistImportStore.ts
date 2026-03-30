@@ -106,9 +106,12 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
 );
 
 if (import.meta.hot) {
-  if (import.meta.hot.data.store) {
-    usePlaylistImportStore.setState(import.meta.hot.data.store.getState());
+  type HmrData = { store?: typeof usePlaylistImportStore };
+  const hot = import.meta.hot;
+  const data = (hot.data ?? {}) as HmrData;
+  if (data.store) {
+    usePlaylistImportStore.setState(data.store.getState());
   }
-  import.meta.hot.data.store = usePlaylistImportStore;
-  import.meta.hot.accept();
+  data.store = usePlaylistImportStore;
+  hot.accept();
 }

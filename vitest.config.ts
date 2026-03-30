@@ -7,6 +7,7 @@ export default defineConfig({
       'apps/desktop/vitest.config.ts',
       'packages/shared/vitest.config.ts',
       'packages/database/vitest.config.ts',
+      'apps/server/vitest.config.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -16,6 +17,7 @@ export default defineConfig({
         'apps/desktop/src/main/**/*.{ts,tsx}',
         'packages/shared/src/**/*.ts',
         'packages/database/src/**/*.ts',
+        'apps/server/src/**/*.ts',
       ],
       exclude: [
         '**/*.test.{ts,tsx}',

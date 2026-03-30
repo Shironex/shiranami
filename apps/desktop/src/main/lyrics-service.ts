@@ -43,7 +43,7 @@ function cacheSet(key: string, value: LyricsResult): void {
  * Parse LRC format string into array of timed lyric lines.
  * Format: [mm:ss.xx]Lyric text
  */
-function parseLrc(lrc: string): LyricLine[] {
+export function parseLrc(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
   const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
 
@@ -71,7 +71,7 @@ function parseLrc(lrc: string): LyricLine[] {
  * Build a list of search queries to try, from most specific to least.
  * Handles common metadata issues like "ARTIST - TITLE" in the title field.
  */
-function buildSearchQueries(title: string, artist: string): string[] {
+export function buildSearchQueries(title: string, artist: string): string[] {
   const queries: string[] = [];
   const seen = new Set<string>();
 

@@ -120,7 +120,7 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
   });
 }
 
-function extractVersionSegments(version: string | null | undefined): number[] {
+export function extractVersionSegments(version: string | null | undefined): number[] {
   if (!version) return [];
 
   const match = version.match(/\d+(?:\.\d+)*/);
@@ -132,7 +132,7 @@ function extractVersionSegments(version: string | null | undefined): number[] {
     .filter((part) => Number.isFinite(part));
 }
 
-function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
+export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
   const currentSegments = extractVersionSegments(currentVersion);
   const latestSegments = extractVersionSegments(latestVersion);
 

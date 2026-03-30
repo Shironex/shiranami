@@ -24,7 +24,7 @@ export function ensureArtDir(): void {
 }
 
 /** Map MIME type to file extension */
-function mimeToExt(mime: string): string {
+export function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
     'image/jpeg': '.jpg',
     'image/png': '.png',
@@ -36,7 +36,7 @@ function mimeToExt(mime: string): string {
 }
 
 /** Map file extension to MIME type */
-function extToMime(ext: string): string {
+export function extToMime(ext: string): string {
   const map: Record<string, string> = {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',

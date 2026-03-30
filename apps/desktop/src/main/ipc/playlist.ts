@@ -28,7 +28,7 @@ function getMainWindow(): BrowserWindow | null {
   return windows[0] ?? null;
 }
 
-function detectPlaylistType(url: string): PlaylistType {
+export function detectPlaylistType(url: string): PlaylistType {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
@@ -51,7 +51,7 @@ function detectPlaylistType(url: string): PlaylistType {
   return 'unknown';
 }
 
-function extractSpotifyPlaylistId(url: string): string | null {
+export function extractSpotifyPlaylistId(url: string): string | null {
   try {
     const parsed = new URL(url);
     const match = parsed.pathname.match(/\/playlist\/([a-zA-Z0-9]+)/);
@@ -84,7 +84,7 @@ function spawnYtDlpForPlaylist(
   });
 }
 
-function parseYtDlpJsonLines(stdout: string): SearchResult[] {
+export function parseYtDlpJsonLines(stdout: string): SearchResult[] {
   return stdout
     .trim()
     .split('\n')

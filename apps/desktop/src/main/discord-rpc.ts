@@ -29,12 +29,12 @@ function isEnabled(): boolean {
 
 const MIN_FIELD_LENGTH = 2; // Discord requires at least 2 characters
 
-function truncate(text: string, max: number = MAX_FIELD_LENGTH): string {
+export function truncate(text: string, max: number = MAX_FIELD_LENGTH): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + '\u2026';
 }
 
-function sanitizeField(text: string | undefined | null): string | undefined {
+export function sanitizeField(text: string | undefined | null): string | undefined {
   if (!text) return undefined;
   const trimmed = text.trim();
   if (trimmed.length < MIN_FIELD_LENGTH) return undefined;
@@ -67,7 +67,7 @@ function scheduleReconnect(): void {
   reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_MS);
 }
 
-function buildPresence(state: PlaybackState): Record<string, unknown> {
+export function buildPresence(state: PlaybackState): Record<string, unknown> {
   const presence: Record<string, unknown> = {
     details: sanitizeField(state.title) ?? 'Unknown Track',
     largeImageKey: 'shiranami',
