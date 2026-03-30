@@ -1,0 +1,22 @@
+{
+  "title": "Miksy",
+  "emptyLibrary": "Dodaj utwory do biblioteki, aby odblokować inteligentne miksy",
+  "playAll": "Odtwórz wszystko",
+  "shuffle": "Losowo",
+  "trackCount_one": "{{count}} utwór",
+  "trackCount_few": "{{count}} utwory",
+  "trackCount_many": "{{count}} utworów",
+  "trackCount_other": "{{count}} utworów",
+  "back": "Wróć do miksów",
+  "mostPlayed": "Najczęściej odtwarzane",
+  "mostPlayedDesc": "Twoje najczęściej odtwarzane utwory",
+  "recentlyAdded": "Ostatnio dodane",
+  "recentlyAddedDesc": "Najnowsze dodatki do biblioteki",
+  "recentlyPlayed": "Ostatnio odtwarzane",
+  "recentlyPlayedDesc": "Utwory, których ostatnio słuchałeś",
+  "neverPlayed": "Nigdy nie odtwarzane",
+  "neverPlayedDesc": "Nieodkryte utwory w bibliotece",
+  "emptyMix": "Brak utworów pasujących do tego miksu",
+  "emptyMostPlayed": "Odtwarzaj utwory, aby zobaczyć tutaj najczęściej odtwarzane",
+  "emptyRecentlyPlayed": "Ostatnio odtwarzane utwory pojawią się tutaj"
+}

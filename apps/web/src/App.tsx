@@ -15,6 +15,7 @@ const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView'));
 const HistoryView = lazy(() => import('@/components/history/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
+const MixesView = lazy(() => import('@/components/mixes/MixesView'));
 const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
@@ -129,6 +130,11 @@ function App() {
                       {activeView === 'history' && (
                         <Suspense fallback={null}>
                           <HistoryView />
+                        </Suspense>
+                      )}
+                      {activeView === 'mixes' && (
+                        <Suspense fallback={null}>
+                          <MixesView />
                         </Suspense>
                       )}
                       {activeView === 'search' && (

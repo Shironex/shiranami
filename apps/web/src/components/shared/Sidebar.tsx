@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ListPlus,
+  Sparkles,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
@@ -28,6 +29,7 @@ const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
   { id: 'playlists', key: 'playlists', icon: ListMusic },
   { id: 'favorites', key: 'favorites', icon: Heart },
   { id: 'history', key: 'history', icon: History },
+  { id: 'mixes', key: 'mixes', icon: Sparkles },
   { id: 'search', key: 'search', icon: Search },
   { id: 'import-playlist', key: 'importPlaylist', icon: ListPlus },
   { id: 'radio', key: 'radio', icon: Radio },

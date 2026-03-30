@@ -1,0 +1,20 @@
+{
+  "title": "Mixes",
+  "emptyLibrary": "Add tracks to your library to unlock smart mixes",
+  "playAll": "Play All",
+  "shuffle": "Shuffle",
+  "trackCount_one": "{{count}} track",
+  "trackCount_other": "{{count}} tracks",
+  "back": "Back to mixes",
+  "mostPlayed": "Most Played",
+  "mostPlayedDesc": "Your top tracks by play count",
+  "recentlyAdded": "Recently Added",
+  "recentlyAddedDesc": "Latest additions to your library",
+  "recentlyPlayed": "Recently Played",
+  "recentlyPlayedDesc": "Tracks you listened to recently",
+  "neverPlayed": "Never Played",
+  "neverPlayedDesc": "Undiscovered tracks in your library",
+  "emptyMix": "No tracks match this mix yet",
+  "emptyMostPlayed": "Play some tracks to see your most played here",
+  "emptyRecentlyPlayed": "Your recently played tracks will appear here"
+}
