@@ -12,6 +12,7 @@ import {
   Play,
   Shuffle,
   ArrowLeft,
+  Music,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
@@ -26,7 +27,6 @@ interface MixDefinition {
   descKey: string;
   emptyKey: string;
   icon: typeof TrendingUp;
-  color: string;
 }
 
 const MIX_DEFINITIONS: MixDefinition[] = [
@@ -36,7 +36,6 @@ const MIX_DEFINITIONS: MixDefinition[] = [
     descKey: 'mostPlayedDesc',
     emptyKey: 'emptyMostPlayed',
     icon: TrendingUp,
-    color: 'from-orange-500/20 to-rose-500/10',
   },
   {
     id: 'recently-added',
@@ -44,7 +43,6 @@ const MIX_DEFINITIONS: MixDefinition[] = [
     descKey: 'recentlyAddedDesc',
     emptyKey: 'emptyMix',
     icon: Clock,
-    color: 'from-blue-500/20 to-cyan-500/10',
   },
   {
     id: 'recently-played',
@@ -52,7 +50,6 @@ const MIX_DEFINITIONS: MixDefinition[] = [
     descKey: 'recentlyPlayedDesc',
     emptyKey: 'emptyRecentlyPlayed',
     icon: Headphones,
-    color: 'from-violet-500/20 to-purple-500/10',
   },
   {
     id: 'never-played',
@@ -60,7 +57,6 @@ const MIX_DEFINITIONS: MixDefinition[] = [
     descKey: 'neverPlayedDesc',
     emptyKey: 'emptyMix',
     icon: EyeOff,
-    color: 'from-emerald-500/20 to-teal-500/10',
   },
 ];
 
@@ -68,8 +64,6 @@ const MIX_LIMIT = 50;
 
 function useMixTracks(mixId: MixId | null): Track[] {
   const library = usePlayerStore((s) => s.library);
-
-  // Fetch recent history for the "recently-played" mix
   const { data: historyData } = useHistoryQuery('all');
 
   return useMemo(() => {
@@ -94,7 +88,6 @@ function useMixTracks(mixId: MixId | null): Track[] {
 
       case 'recently-played': {
         if (!historyData?.recent?.length) return [];
-        // Deduplicate by trackId, keeping most recent play
         const seen = new Set<string>();
         const trackIds: string[] = [];
         for (const entry of historyData.recent) {
@@ -103,7 +96,6 @@ function useMixTracks(mixId: MixId | null): Track[] {
             trackIds.push(entry.trackId);
           }
         }
-        // Map to library tracks (preserves order)
         const libraryMap = new Map(library.map((t) => [t.id, t]));
         return trackIds
           .map((id) => libraryMap.get(id))
@@ -122,6 +114,28 @@ function useMixTracks(mixId: MixId | null): Track[] {
   }, [mixId, library, historyData]);
 }
 
+/** Get preview tracks for the mix grid (album art thumbnails). */
+function useMixPreviews(library: Track[]): Record<MixId, Track[]> {
+  return useMemo(() => ({
+    'most-played': [...library]
+      .filter((t) => (t.playCount ?? 0) > 0 && t.albumArt)
+      .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
+      .slice(0, 4),
+    'recently-added': [...library]
+      .filter((t) => t.createdAt && t.albumArt)
+      .sort((a, b) => {
+        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return db - da;
+      })
+      .slice(0, 4),
+    'recently-played': [],
+    'never-played': library
+      .filter((t) => (!t.playCount || t.playCount === 0) && t.albumArt)
+      .slice(0, 4),
+  }), [library]);
+}
+
 export function MixesView() {
   const { t } = useTranslation('mixes');
   const library = usePlayerStore((s) => s.library);
@@ -135,6 +149,7 @@ export function MixesView() {
   const mixTracks = useMixTracks(selectedMix);
   const mixTracksRef = useRef(mixTracks);
   mixTracksRef.current = mixTracks;
+  const previews = useMixPreviews(library);
 
   const handlePlayTrack = useCallback(
     (index: number) => {
@@ -179,7 +194,6 @@ export function MixesView() {
 
     return (
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="px-6 pt-2 pb-4 shrink-0 space-y-3">
           <div className="flex items-center gap-2">
             <motion.button
@@ -214,12 +228,12 @@ export function MixesView() {
             </motion.button>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${selectedDef.color} flex items-center justify-center shrink-0`}>
-              <Icon className="w-6 h-6 text-foreground/60" />
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-lg bg-accent/50 flex items-center justify-center shrink-0">
+              <Icon className="w-5 h-5 text-muted-foreground/60" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg font-semibold text-foreground">
+              <h2 className="font-display text-base font-semibold text-foreground">
                 {t(selectedDef.titleKey)}
               </h2>
               <p className="text-xs text-muted-foreground/50 mt-0.5">
@@ -229,7 +243,6 @@ export function MixesView() {
           </div>
         </div>
 
-        {/* Track list */}
         {mixTracks.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
             <Icon className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
@@ -264,47 +277,114 @@ export function MixesView() {
   // ── Mix grid (overview) ──
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-2 pb-4 shrink-0">
+      <div className="px-6 pt-2 pb-3 shrink-0">
         <h1 className="font-display text-lg font-semibold text-foreground">{t('title')}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
           {MIX_DEFINITIONS.map((mix) => {
             const Icon = mix.icon;
             const preview = getMixPreviewCount(mix.id, library);
+            const previewTracks = previews[mix.id];
 
             return (
               <motion.button
                 key={mix.id}
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => setSelectedMix(mix.id)}
-                className="text-left p-4 rounded-2xl border border-border/30 hover:border-border/50 hover:bg-accent/30 transition-all group"
+                className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-accent/40 transition-colors group text-left"
               >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${mix.color} flex items-center justify-center mb-3`}>
-                  <Icon className="w-5 h-5 text-foreground/60" />
+                {/* Album art mosaic or icon fallback */}
+                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-accent/30">
+                  {previewTracks.length >= 4 ? (
+                    <div className="grid grid-cols-2 w-full h-full">
+                      {previewTracks.slice(0, 4).map((track, i) => (
+                        <img
+                          key={i}
+                          src={track.albumArt}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ))}
+                    </div>
+                  ) : previewTracks.length > 0 ? (
+                    <img
+                      src={previewTracks[0].albumArt}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-muted-foreground/30" />
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm font-medium text-foreground group-hover:text-foreground">
-                  {t(mix.titleKey)}
-                </p>
-                <p className="text-xs text-muted-foreground/50 mt-0.5">
-                  {t(mix.descKey)}
-                </p>
-                {preview > 0 && (
-                  <p className="text-[10px] text-muted-foreground/40 mt-2">
-                    {t('trackCount', { count: preview })}
+
+                {/* Text */}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {t(mix.titleKey)}
                   </p>
-                )}
+                  <p className="text-xs text-muted-foreground/40 truncate mt-0.5">
+                    {t(mix.descKey)}
+                  </p>
+                </div>
+
+                {/* Track count + play hint */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {preview > 0 && (
+                    <span className="text-[11px] text-muted-foreground/30 tabular-nums">
+                      {t('trackCount', { count: preview })}
+                    </span>
+                  )}
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10">
+                    <Play className="w-3 h-3 text-primary fill-current" />
+                  </div>
+                </div>
               </motion.button>
             );
           })}
+        </div>
+
+        {/* Subtle divider and track art collage */}
+        <div className="mt-6 pt-5 border-t border-border/10">
+          <ArtCollage library={library} />
         </div>
       </div>
     </div>
   );
 }
 
-/** Quick preview count for the mix grid (no heavy computation). */
+/** A quiet decorative collage of album art from the library. */
+function ArtCollage({ library }: { library: Track[] }) {
+  const artTracks = useMemo(
+    () => library.filter((t) => t.albumArt).slice(0, 12),
+    [library]
+  );
+
+  if (artTracks.length < 4) return null;
+
+  return (
+    <div className="flex gap-1.5 overflow-hidden rounded-xl opacity-40">
+      {artTracks.map((track, i) => (
+        <div
+          key={i}
+          className="w-14 h-14 shrink-0 rounded-md overflow-hidden bg-accent/20"
+        >
+          {track.albumArt ? (
+            <img src={track.albumArt} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Music className="w-4 h-4 text-muted-foreground/20" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getMixPreviewCount(mixId: MixId, library: Track[]): number {
   switch (mixId) {
     case 'most-played':
@@ -314,7 +394,7 @@ function getMixPreviewCount(mixId: MixId, library: Track[]): number {
     case 'never-played':
       return Math.min(MIX_LIMIT, library.filter((t) => !t.playCount || t.playCount === 0).length);
     case 'recently-played':
-      return 0; // Requires async data, skip preview
+      return 0;
     default:
       return 0;
   }
