@@ -69,6 +69,50 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.11.0',
+    date: '2026-03-30',
+    title: l(
+      'Smart Mixes, new visualizers, and queue drag-and-drop',
+      'Inteligentne miksy, nowe wizualizatory i przeciąganie w kolejce'
+    ),
+    description: l(
+      'Auto-generated smart playlists surface your most played, recently added, and undiscovered tracks. Two new visualizer themes join the lineup, and the queue panel now supports drag-and-drop reordering.',
+      'Automatycznie generowane inteligentne playlisty wyświetlają najczęściej odtwarzane, ostatnio dodane i nieodkryte utwory. Dwa nowe style wizualizatora dołączają do zestawu, a panel kolejki obsługuje teraz zmianę kolejności przeciąganiem.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Smart Mixes — auto-generated playlists: Most Played, Recently Added, Recently Played, and Never Played',
+            'Inteligentne miksy — automatyczne playlisty: Najczęściej odtwarzane, Ostatnio dodane, Ostatnio odtwarzane i Nigdy nie odtwarzane'
+          ),
+          l(
+            'Circle and Wave visualizer themes with radial bars and smooth gradient waveform',
+            'Style wizualizatora Okrąg i Fala gradientowa z promieniowymi słupkami i płynną falą'
+          ),
+          l(
+            'Drag-and-drop reordering in the queue Up Next panel',
+            'Zmiana kolejności przeciąganiem w panelu Następne w kolejce'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Playlist detail view now shows total duration alongside track count',
+            'Widok szczegółów playlisty pokazuje teraz łączny czas trwania obok liczby utworów'
+          ),
+          l(
+            'Visualizer settings grid updated to a 2×2 layout for four themes',
+            'Siatka ustawień wizualizatora zaktualizowana do układu 2×2 dla czterech stylów'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.10.0',
     date: '2026-03-30',
     title: l(
