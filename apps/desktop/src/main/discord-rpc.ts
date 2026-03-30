@@ -85,6 +85,8 @@ function buildPresence(state: PlaybackState): Record<string, unknown> {
     presence.endTimestamp = new Date(Date.now() + remainingMs);
   }
 
+  presence.buttons = [{ label: 'Get Shiranami', url: 'https://shiranami.app' }];
+
   return presence;
 }
 
