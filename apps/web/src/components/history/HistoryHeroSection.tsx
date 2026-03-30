@@ -13,7 +13,7 @@ export function HistoryHeroSection({ selectedRange, onRangeChange }: HistoryHero
     <section className="relative overflow-hidden rounded-[28px] border border-border/25 bg-surface/35 p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(167,139,250,0.18),transparent_45%)]" />
       <div className="relative">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/55">
+        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground/55">
           {t('listeningHistory')}
         </p>
         <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-foreground">
