@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Search,
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { useSearch } from '@/hooks/useSearch';
 import { useSearchDependencies } from '@/hooks/useSearchDependencies';
+import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
 import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
 
@@ -23,9 +24,63 @@ export function SearchView() {
 
   const {
     query, setQuery, results, isSearching, searchError,
-    handleKeyDown, handleDownload, getDownloadState,
+    handleSearch, handleKeyDown: originalHandleKeyDown, handleDownload, getDownloadState,
     previewLoadingId, isPreviewPlaying, handlePreview,
   } = useSearch();
+
+  const {
+    suggestions, highlightedIndex, setHighlightedIndex,
+    isOpen: suggestionsOpen, setIsOpen: setSuggestionsOpen, close: closeSuggestions, dismiss: dismissSuggestions,
+  } = useSearchSuggestions(query);
+
+  const pendingSearchRef = useRef(false);
+
+  const selectAndSearch = useCallback((text: string) => {
+    setQuery(text);
+    dismissSuggestions();
+    pendingSearchRef.current = true;
+  }, [setQuery, dismissSuggestions]);
+
+  // Fire search when pendingSearchRef is set (after suggestion selection updates query)
+  useEffect(() => {
+    if (pendingSearchRef.current && query.trim()) {
+      pendingSearchRef.current = false;
+      handleSearch();
+    }
+  }, [query, handleSearch]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (suggestionsOpen && suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev < suggestions.length - 1 ? prev + 1 : 0
+          );
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHighlightedIndex(prev =>
+            prev > 0 ? prev - 1 : suggestions.length - 1
+          );
+          return;
+        }
+        if (e.key === 'Enter' && highlightedIndex >= 0) {
+          e.preventDefault();
+          selectAndSearch(suggestions[highlightedIndex]);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeSuggestions();
+          return;
+        }
+      }
+      originalHandleKeyDown(e);
+    },
+    [suggestionsOpen, suggestions, highlightedIndex, setHighlightedIndex, closeSuggestions, selectAndSearch, originalHandleKeyDown]
+  );
 
   const {
     dependencyState, dependencyInstallStatus, dependencyInstallError,
@@ -71,6 +126,8 @@ export function SearchView() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            onFocus={() => suggestions.length > 0 && setSuggestionsOpen(true)}
+            onBlur={() => closeSuggestions()}
             placeholder={t('placeholder')}
             className={cn(
               'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border border-border/50',
@@ -81,6 +138,35 @@ export function SearchView() {
           />
           {isSearching && (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
+          )}
+
+          {suggestionsOpen && suggestions.length > 0 && (
+            <ul
+              className="absolute z-50 top-full left-0 right-0 mt-1.5 rounded-xl border border-border/50 bg-card shadow-lg overflow-hidden"
+              role="listbox"
+            >
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={suggestion}
+                  role="option"
+                  aria-selected={index === highlightedIndex}
+                  className={cn(
+                    'flex items-center gap-3 px-3.5 py-2.5 text-sm cursor-pointer transition-colors',
+                    index === highlightedIndex
+                      ? 'bg-accent text-foreground'
+                      : 'text-foreground/80 hover:bg-accent/50'
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent input blur
+                    selectAndSearch(suggestion);
+                  }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                >
+                  <Search className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                  <span className="truncate">{suggestion}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 

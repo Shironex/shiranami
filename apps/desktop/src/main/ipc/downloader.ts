@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 import { logger } from '../logger';
+import { requestJson } from '../http';
 import {
   getYtDlpPath,
   isYtDlpInstalled,
@@ -265,6 +266,17 @@ export function registerDownloaderHandlers(): void {
     } catch (err) {
       logger.error('[downloader] Search error:', err);
       throw err;
+    }
+  });
+
+  ipcMain.handle('downloader:suggest', async (_event, query: string) => {
+    try {
+      const url = `https://clients1.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
+      const data = await requestJson<[string, string[]]>(url);
+      return Array.isArray(data[1]) ? data[1] : [];
+    } catch (err) {
+      logger.error('[downloader] Suggest error:', err);
+      return [];
     }
   });
 

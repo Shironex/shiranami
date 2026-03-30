@@ -22,5 +22,6 @@
   "viewsBillion": "{{count}} mld wyświetleń",
   "viewsMillion": "{{count}} mln wyświetleń",
   "viewsThousand": "{{count}} tys. wyświetleń",
-  "views": "{{count}} wyświetleń"
+  "views": "{{count}} wyświetleń",
+  "suggestion": "Sugestia"
 }

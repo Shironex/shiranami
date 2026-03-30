@@ -175,6 +175,7 @@ export interface ElectronAPI {
   };
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
+    suggest: (query: string) => Promise<string[]>;
     search: (query: string) => Promise<SearchResult[]>;
     download: (url: string) => Promise<string>;
     getDownloadLocation: () => Promise<{

@@ -64,6 +64,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'downloader:set-download-location',
   'downloader:check-dependencies',
   'downloader:search',
+  'downloader:suggest',
   'downloader:download',
   'downloader:install-ytdlp',
   'downloader:get-ytdlp-path',
@@ -263,6 +264,7 @@ export interface ElectronAPI {
   };
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
+    suggest: (query: string) => Promise<string[]>;
     search: (query: string) => Promise<Array<{
       id: string;
       title: string;
@@ -475,6 +477,7 @@ const electronAPI: ElectronAPI = {
     clearState: () => ipcRenderer.send('media:clear-state'),
   },
   downloader: {
+    suggest: (query: string) => ipcRenderer.invoke('downloader:suggest', query),
     search: (query: string) => ipcRenderer.invoke('downloader:search', query),
     getStreamUrl: (url: string) => ipcRenderer.invoke('downloader:get-stream-url', url),
     download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),

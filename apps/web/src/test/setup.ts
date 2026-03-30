@@ -112,6 +112,7 @@ function createElectronAPIMock(): ElectronAPI {
     },
     downloader: {
       getStreamUrl: asyncFn(''),
+      suggest: asyncFn([]),
       search: asyncFn([]),
       download: asyncFn(''),
       getDownloadLocation: asyncFn({ path: '', defaultPath: '', isDefault: true }),
