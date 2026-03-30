@@ -276,7 +276,7 @@ export function MixesView() {
   // ── Mix grid (overview) ──
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-2 pb-3 shrink-0">
+      <div className="px-6 pt-2 pb-4 shrink-0">
         <h1 className="font-display text-lg font-semibold text-foreground">{t('title')}</h1>
       </div>
 

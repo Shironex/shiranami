@@ -396,16 +396,33 @@ export function RadioView() {
       {/* Station list */}
       {error ? (
         <div className="flex-1 flex items-center justify-center px-6">
-          <div className="w-full max-w-md rounded-[28px] border border-border/20 bg-surface/20 px-8 py-10 text-center">
-            <Radio className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
+            <div className="relative">
+              <div className="w-28 h-28 rounded-[28px] bg-destructive/8 border border-destructive/10 flex items-center justify-center">
+                <img
+                  src="./mascot.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="w-[4.5rem] h-[4.5rem] object-contain opacity-50"
+                  draggable={false}
+                />
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
+                <Radio className="w-4 h-4 text-destructive" />
+              </div>
+            </div>
+            <div>
+              <p className="font-display text-base font-semibold text-foreground/85">
+                {error}
+              </p>
+            </div>
             <button
               onClick={() => {
                 if (activeTab === 'top') loadTopStations();
                 else if (activeTab === 'country') loadByCountry(selectedCountry);
                 else loadFavorites();
               }}
-              className="mt-4 px-4 py-2 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               {t('retry', { ns: 'common' })}
             </button>
