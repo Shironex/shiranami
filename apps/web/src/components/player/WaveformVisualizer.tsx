@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
+import { getPrimaryRGB } from '@/lib/utils';
 
 /**
  * Dense vertical-bar waveform visualizer inspired by ElevenLabs UI.
@@ -91,8 +92,9 @@ export function WaveformVisualizer() {
 
       const alpha = (0.4 + value * 0.5) * edgeFade;
 
-      // Color: consistent lavender
-      ctx.fillStyle = `rgba(155, 125, 235, ${alpha})`;
+      // Color: theme-derived
+      const [pr, pg, pb] = getPrimaryRGB();
+      ctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, ${alpha})`;
 
       // Center-aligned bar (grows from center up and down)
       ctx.beginPath();

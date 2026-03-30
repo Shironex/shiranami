@@ -131,10 +131,10 @@ export function SortableTrackRow({
             ) : track.albumArt ? (
               <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
             ) : isActive && isPlaying ? (
-              <div className="flex items-end gap-[3px] h-4">
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 1.2s ease-in-out infinite' }} />
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-2 1.4s ease-in-out 0.2s infinite' }} />
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-3 1.1s ease-in-out 0.4s infinite' }} />
+              <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
+                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-1" />
+                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-2" />
+                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-3" />
               </div>
             ) : (
               <Play className="w-3.5 h-3.5 text-muted-foreground/40" />

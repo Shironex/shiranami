@@ -29,6 +29,8 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-surface: var(--surface);
+  --color-favorite: var(--favorite);
+  --color-favorite-hover: var(--favorite-hover);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -126,6 +128,12 @@
   --sidebar-foreground: oklch(0.93 0.01 280);
 
   --surface: oklch(0.1 0.015 280);
+
+  --favorite: oklch(0.7 0.18 15);
+  --favorite-hover: oklch(0.75 0.16 15);
+
+  /* RGB triplet of --primary for canvas/inline usage */
+  --primary-rgb: 155, 125, 235;
 }
 
 /* Utility classes */
@@ -196,6 +204,18 @@
 
 @utility font-display {
   font-family: var(--font-display);
+}
+
+@utility eq-bar-1 {
+  animation: eq-bar-1 1.2s ease-in-out infinite;
+}
+
+@utility eq-bar-2 {
+  animation: eq-bar-2 1.4s ease-in-out 0.2s infinite;
+}
+
+@utility eq-bar-3 {
+  animation: eq-bar-3 1.1s ease-in-out 0.4s infinite;
 }
 
 /* Base styles */

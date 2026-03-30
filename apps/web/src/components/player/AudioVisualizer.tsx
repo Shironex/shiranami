@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
+import { getPrimaryRGB } from '@/lib/utils';
 
 /**
  * Canvas-based frequency visualizer with a soft lofi aesthetic.
@@ -88,11 +89,12 @@ export function AudioVisualizer() {
       const edgePos = i / barCount;
       const edgeFade = Math.min(1, Math.min(edgePos, 1 - edgePos) * 5);
 
-      // Color: soft lavender gradient across frequency range
+      // Color: theme-derived gradient across frequency range
+      const [pr, pg, pb] = getPrimaryRGB();
       const t = i / barCount;
-      const r = Math.round(110 + t * 50);
-      const g = Math.round(85 + t * 35);
-      const b = Math.round(190 + t * 45);
+      const r = Math.round(pr - 45 + t * 50);
+      const g = Math.round(pg - 40 + t * 35);
+      const b = Math.round(pb - 45 + t * 45);
       const alpha = (0.35 + value * 0.3) * edgeFade;
 
       // Subtle glow

@@ -119,7 +119,7 @@ export function PlayerBar() {
                     className={cn(
                       'shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
                       currentTrack.isFavorite
-                        ? 'text-pink-400 hover:text-pink-300'
+                        ? 'text-favorite hover:text-favorite-hover'
                         : 'text-muted-foreground/40 hover:text-muted-foreground'
                     )}
                     aria-label={currentTrack.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
+import { getPrimaryRGB } from '@/lib/utils';
 
 /**
  * Compact circular frequency visualizer.
@@ -95,11 +96,12 @@ export function CircleVisualizer() {
       const x2 = centerX + cos * (barBaseRadius + barLength);
       const y2 = centerY + sin * (barBaseRadius + barLength);
 
-      // Color: lavender with slight hue shift across the circle
+      // Color: theme-derived with slight hue shift across the circle
+      const [pr, pg, pb] = getPrimaryRGB();
       const t = i / barCount;
-      const r = Math.round(140 + t * 40);
-      const g = Math.round(100 + t * 25);
-      const b = Math.round(200 + t * 35);
+      const r = Math.round(pr - 15 + t * 40);
+      const g = Math.round(pg - 25 + t * 25);
+      const b = Math.round(pb - 35 + t * 35);
       const alpha = 0.35 + value * 0.5;
 
       ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
@@ -125,16 +127,18 @@ export function CircleVisualizer() {
 
       ctx.beginPath();
       ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(160, 130, 220, ${0.25 + avgEnergy * 0.35})`;
+      const [pr, pg, pb] = getPrimaryRGB();
+      ctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.25 + avgEnergy * 0.35})`;
       ctx.fill();
     }
 
     // ── Base ring line ──
+    const [pr, pg, pb] = getPrimaryRGB();
     ctx.beginPath();
     ctx.arc(centerX, centerY, barBaseRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(160, 130, 220, ${0.12 + avgEnergy * 0.2})`;
+    ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.12 + avgEnergy * 0.2})`;
     ctx.lineWidth = 1;
-    ctx.shadowColor = `rgba(160, 130, 220, ${0.15 + avgEnergy * 0.15})`;
+    ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, ${0.15 + avgEnergy * 0.15})`;
     ctx.shadowBlur = 4;
     ctx.stroke();
     ctx.shadowBlur = 0;

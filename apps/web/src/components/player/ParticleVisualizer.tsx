@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
+import { getPrimaryRGB } from '@/lib/utils';
 
 /**
  * Smooth wave visualizer with gradient fill.
@@ -107,9 +108,10 @@ export function ParticleVisualizer() {
     }
     const last = points[points.length - 1];
     ctx.lineTo(last.x, last.y);
-    ctx.strokeStyle = 'rgba(155, 125, 235, 0.5)';
+    const [pr, pg, pb] = getPrimaryRGB();
+    ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.5)`;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = 'rgba(155, 125, 235, 0.3)';
+    ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, 0.3)`;
     ctx.shadowBlur = 4;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -118,7 +120,7 @@ export function ParticleVisualizer() {
     ctx.beginPath();
     ctx.moveTo(0, centerY);
     ctx.lineTo(w, centerY);
-    ctx.strokeStyle = 'rgba(155, 125, 235, 0.06)';
+    ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.06)`;
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -177,8 +179,9 @@ function drawWaveFill(
   const gradStart = isMirror ? centerY + 15 : centerY - 15;
   const gradEnd = centerY;
   const grad = ctx.createLinearGradient(0, gradStart, 0, gradEnd);
-  grad.addColorStop(0, 'rgba(140, 110, 220, 0.15)');
-  grad.addColorStop(1, 'rgba(140, 110, 220, 0.0)');
+  const [pr, pg, pb] = getPrimaryRGB();
+  grad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
+  grad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
   ctx.fillStyle = grad;
   ctx.fill();
 }

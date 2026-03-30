@@ -114,9 +114,9 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
               <>
                 <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
                 <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-1 1.2s ease-in-out infinite' }} />
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-2 1.4s ease-in-out 0.2s infinite' }} />
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom" style={{ animation: 'eq-bar-3 1.1s ease-in-out 0.4s infinite' }} />
+                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-1" />
+                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-2" />
+                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-3" />
                 </div>
               </>
             ) : (
@@ -147,7 +147,7 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
             className={cn(
               'shrink-0 p-1 rounded-md transition-colors duration-150',
               track.isFavorite
-                ? 'text-red-400 hover:text-red-300'
+                ? 'text-favorite hover:text-favorite-hover'
                 : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
             )}
             aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
