@@ -17,7 +17,7 @@
     ]
   },
   "scripts": {
-    "dev": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on http://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
+    "dev": "pnpm build:packages && node scripts/rebuild-native.mjs && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
     "dev:web": "pnpm --filter @shiranami/web dev",
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",

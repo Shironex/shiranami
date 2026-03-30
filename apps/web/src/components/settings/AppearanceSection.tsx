@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Monitor } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
   useAppStore,
@@ -9,16 +10,33 @@ import {
   UI_SCALE_STEP,
   UI_SCALE_DEFAULT,
   UI_SCALE_PRESETS,
+  type AppView,
 } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
+const TOGGLEABLE_SIDEBAR_ITEMS: Array<{ id: AppView; key: string }> = [
+  { id: 'library', key: 'library' },
+  { id: 'playlists', key: 'playlists' },
+  { id: 'favorites', key: 'favorites' },
+  { id: 'history', key: 'history' },
+  { id: 'mixes', key: 'mixes' },
+  { id: 'search', key: 'search' },
+  { id: 'import-playlist', key: 'importPlaylist' },
+  { id: 'radio', key: 'radio' },
+];
+
 export function AppearanceSection() {
   const { t, i18n } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
+  const { t: ts } = useTranslation('sidebar');
   const uiScale = useAppStore((s) => s.uiScale);
   const setUiScale = useAppStore((s) => s.setUiScale);
   const resetUiScale = useAppStore((s) => s.resetUiScale);
+  const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
+  const toggleSidebarItem = useAppStore((s) => s.toggleSidebarItem);
+  const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
+  const setSidebarPlaylistsVisible = useAppStore((s) => s.setSidebarPlaylistsVisible);
 
   function handleLanguageChange(lang: SupportedLanguage) {
     i18n.changeLanguage(lang);
@@ -102,6 +120,41 @@ export function AppearanceSection() {
                 {tc('reset')}
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="px-3">
+          <p className="text-sm font-medium text-foreground mb-1">{t('app.sidebarTitle')}</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            {t('app.sidebarDesc')}
+          </p>
+          <div className="space-y-1">
+            {TOGGLEABLE_SIDEBAR_ITEMS.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-accent/30 transition-colors"
+              >
+                <p className="text-sm text-foreground">{ts(item.key)}</p>
+                <Switch
+                  checked={!sidebarHiddenItems.includes(item.id)}
+                  onChange={() => toggleSidebarItem(item.id)}
+                />
+              </div>
+            ))}
+
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-accent/30 transition-colors">
+              <div>
+                <p className="text-sm text-foreground">{t('app.sidebarPlaylists')}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t('app.sidebarPlaylistsDesc')}
+                </p>
+              </div>
+              <Switch
+                checked={sidebarPlaylistsVisible}
+                onChange={setSidebarPlaylistsVisible}
+              />
+            </div>
           </div>
         </div>
       </div>

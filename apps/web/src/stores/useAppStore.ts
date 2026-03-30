@@ -6,6 +6,8 @@ export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
+const SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY = 'shiranami.sidebar-hidden-items';
+const SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY = 'shiranami.sidebar-playlists-visible';
 const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
 const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
 const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
@@ -53,6 +55,32 @@ function persistSidebarCollapsed(sidebarCollapsed: boolean) {
   );
 }
 
+function getInitialSidebarHiddenItems(): AppView[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem(SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as AppView[];
+  } catch { /* noop */ }
+  return [];
+}
+
+function persistSidebarHiddenItems(items: AppView[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY, JSON.stringify(items));
+}
+
+function getInitialSidebarPlaylistsVisible(): boolean {
+  if (typeof window === 'undefined') return true;
+  const stored = window.localStorage.getItem(SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY);
+  if (stored === 'false') return false;
+  return true;
+}
+
+function persistSidebarPlaylistsVisible(visible: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY, visible ? 'true' : 'false');
+}
+
 function getInitialVisualizerStyle(): VisualizerStyle {
   if (typeof window === 'undefined') return 'bars';
   const stored = window.localStorage.getItem(VISUALIZER_STYLE_STORAGE_KEY);
@@ -97,6 +125,8 @@ interface AppState {
   sidebarCollapsed: boolean;
   compactMode: boolean;
   compactAlwaysOnTop: boolean;
+  sidebarHiddenItems: AppView[];
+  sidebarPlaylistsVisible: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
   uiScale: number;
@@ -112,6 +142,8 @@ interface AppActions {
   toggleCompactMode: () => Promise<void>;
   toggleCompactAlwaysOnTop: () => Promise<void>;
   toggleSidebarCollapsed: () => void;
+  toggleSidebarItem: (view: AppView) => void;
+  setSidebarPlaylistsVisible: (visible: boolean) => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
   setVisualizerStyle: (style: VisualizerStyle) => void;
@@ -124,6 +156,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   rightPanel: null,
   selectedPlaylistId: null,
   sidebarCollapsed: getInitialSidebarCollapsed(),
+  sidebarHiddenItems: getInitialSidebarHiddenItems(),
+  sidebarPlaylistsVisible: getInitialSidebarPlaylistsVisible(),
   compactMode: false,
   compactAlwaysOnTop: getInitialCompactAlwaysOnTop(),
   showVisualizer: getInitialVisualizerEnabled(),
@@ -191,6 +225,18 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     const sidebarCollapsed = !get().sidebarCollapsed;
     persistSidebarCollapsed(sidebarCollapsed);
     set({ sidebarCollapsed });
+  },
+  toggleSidebarItem: (view) => {
+    const current = get().sidebarHiddenItems;
+    const next = current.includes(view)
+      ? current.filter((v) => v !== view)
+      : [...current, view];
+    persistSidebarHiddenItems(next);
+    set({ sidebarHiddenItems: next });
+  },
+  setSidebarPlaylistsVisible: (visible) => {
+    persistSidebarPlaylistsVisible(visible);
+    set({ sidebarPlaylistsVisible: visible });
   },
   toggleRightPanel: (panel) => {
     const current = get().rightPanel;

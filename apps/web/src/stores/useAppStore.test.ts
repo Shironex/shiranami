@@ -15,6 +15,8 @@ describe('useAppStore', () => {
       rightPanel: null,
       selectedPlaylistId: null,
       sidebarCollapsed: false,
+      sidebarHiddenItems: [],
+      sidebarPlaylistsVisible: true,
       compactMode: false,
       compactAlwaysOnTop: false,
       showVisualizer: true,
@@ -35,6 +37,30 @@ describe('useAppStore', () => {
     await useAppStore.getState().setCompactMode(true);
 
     expect(useAppStore.getState().compactMode).toBe(false);
+  });
+
+  it('toggleSidebarItem adds and removes items from hidden list', () => {
+    const { toggleSidebarItem } = useAppStore.getState();
+
+    toggleSidebarItem('favorites');
+    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['favorites']);
+    expect(JSON.parse(localStorage.getItem('shiranami.sidebar-hidden-items')!)).toEqual(['favorites']);
+
+    toggleSidebarItem('history');
+    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['favorites', 'history']);
+
+    toggleSidebarItem('favorites');
+    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['history']);
+  });
+
+  it('persists sidebar playlists visibility to localStorage', () => {
+    useAppStore.getState().setSidebarPlaylistsVisible(false);
+    expect(useAppStore.getState().sidebarPlaylistsVisible).toBe(false);
+    expect(localStorage.getItem('shiranami.sidebar-playlists-visible')).toBe('false');
+
+    useAppStore.getState().setSidebarPlaylistsVisible(true);
+    expect(useAppStore.getState().sidebarPlaylistsVisible).toBe(true);
+    expect(localStorage.getItem('shiranami.sidebar-playlists-visible')).toBe('true');
   });
 
   it('rolls back compact always-on-top and localStorage when setAlwaysOnTop fails in compact mode', async () => {

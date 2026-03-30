@@ -41,6 +41,8 @@ export function Sidebar() {
   const activeView = useAppStore((s) => s.activeView);
   const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
+  const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
+  const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
   const navigateTo = useAppStore((s) => s.navigateTo);
   const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
   const version = useAppVersion();
@@ -111,7 +113,7 @@ export function Sidebar() {
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className={cn('py-2 shrink-0', sidebarCollapsed ? 'px-2' : 'px-3')}>
           <div className="space-y-0.5">
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter((item) => !sidebarHiddenItems.includes(item.id)).map((item) => {
               const isActive = activeView === item.id;
               const Icon = item.icon;
 
@@ -144,7 +146,7 @@ export function Sidebar() {
           </div>
         </nav>
 
-        {(isLoadingPlaylists || playlists.length > 0) && (
+        {sidebarPlaylistsVisible && (isLoadingPlaylists || playlists.length > 0) && (
           <div className={cn('min-h-0 flex flex-col pb-3', sidebarCollapsed ? 'px-2' : 'px-3')}>
             {sidebarCollapsed ? (
               <>

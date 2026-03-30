@@ -61,7 +61,11 @@
     "interfaceScale": "Interface scale",
     "scaleDesc": "Adjust the size of text and UI elements",
     "languageTitle": "Language",
-    "languageDesc": "Choose the display language for the app"
+    "languageDesc": "Choose the display language for the app",
+    "sidebarTitle": "Sidebar",
+    "sidebarDesc": "Choose which items appear in the sidebar",
+    "sidebarPlaylists": "Show playlists",
+    "sidebarPlaylistsDesc": "Display your playlists in the sidebar"
   },
   "dl": {
     "title": "Downloads",
