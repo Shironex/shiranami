@@ -69,6 +69,63 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.12.0',
+    date: '2026-03-31',
+    title: l(
+      'Customizable sidebar, better accessibility, and a lot of cleanup',
+      'Konfigurowalna nawigacja, lepsza dostępność i sporo porządków'
+    ),
+    description: l(
+      'You can now pick which sidebar items to show or hide entirely. We also spent time fixing accessibility issues, cleaning up inconsistent styling, and breaking the codebase into smaller reusable pieces.',
+      'Od teraz możesz wybrać, które elementy nawigacji bocznej mają być widoczne. Poprawiliśmy też dostępność, uporządkowaliśmy niespójne style i rozbiliśmy kod na mniejsze, wielokrotnie używane części.'
+    ),
+    categories: [
+      {
+        label: l('New', 'Nowości'),
+        entries: [
+          l(
+            'Sidebar can be customized — toggle individual items on or off from settings',
+            'Pasek boczny do konfiguracji — włączaj i wyłączaj poszczególne pozycje w ustawieniach'
+          ),
+        ],
+      },
+      {
+        label: l('Fixes & Accessibility', 'Poprawki i dostępność'),
+        entries: [
+          l(
+            'Better touch targets and the sidebar now auto-collapses on small screens',
+            'Większe cele dotykowe, a nawigacja automatycznie zwija się na małych ekranach'
+          ),
+          l(
+            'Consistent empty states, button sizes, and colors across all views',
+            'Spójne puste stany, rozmiary przycisków i kolory we wszystkich widokach'
+          ),
+          l(
+            'Fixed oversized update buttons in settings',
+            'Naprawiono za duże przyciski aktualizacji w ustawieniach'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'Extracted 7 shared components and hooks to cut down on duplicated code',
+            'Wyodrębniono 7 współdzielonych komponentów i hooków, żeby ograniczyć duplikację'
+          ),
+          l(
+            'Hard-coded colors and animations moved to design tokens',
+            'Zakodowane na sztywno kolory i animacje przeniesione do tokenów projektowych'
+          ),
+          l(
+            'Added 212 tests across the project',
+            'Dodano 212 testów w całym projekcie'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.11.0',
     date: '2026-03-30',
     title: l(
