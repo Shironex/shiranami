@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ListMusic, Play, Shuffle } from 'lucide-react';
@@ -9,7 +9,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { shuffleItems } from '@/lib/playlists';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import type { ContextMenuPosition } from './TrackContextMenu';
+import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 
 interface PlaylistContextMenuProps {
   playlist: Playlist;
@@ -47,62 +47,9 @@ export function PlaylistContextMenu({
   const { t } = useTranslation('contextMenu');
   const { t: tToast } = useTranslation('toast');
   const menuRef = useRef<HTMLDivElement>(null);
-  const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
   const navigateTo = useAppStore((s) => s.navigateTo);
   const setQueue = usePlayerStore((s) => s.setQueue);
-
-  useEffect(() => {
-    if (!menuRef.current) return;
-
-    const rect = menuRef.current.getBoundingClientRect();
-    let { x, y } = position;
-
-    if (x + rect.width > window.innerWidth) {
-      x = window.innerWidth - rect.width - 8;
-    }
-    if (y + rect.height > window.innerHeight) {
-      y = window.innerHeight - rect.height - 8;
-    }
-    if (x < 0) x = 8;
-    if (y < 0) y = 8;
-
-    setAdjustedPosition({ x, y });
-  }, [position]);
-
-  useEffect(() => {
-    const handleMouseDown = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    const timer = window.setTimeout(() => {
-      document.addEventListener('mousedown', handleMouseDown);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timer);
-      document.removeEventListener('mousedown', handleMouseDown);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    const handleScroll = () => onClose();
-
-    document.addEventListener('keydown', handleEscape);
-    window.addEventListener('scroll', handleScroll, true);
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('scroll', handleScroll, true);
-    };
-  }, [onClose]);
 
   const loadPlaylistTracks = useCallback(async () => {
     if (!IS_ELECTRON) return [];

@@ -17,7 +17,7 @@ import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
-import { useClickOutside } from '@/hooks/useClickOutside';
+import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 import {
   usePlaylistsQuery,
   useCreatePlaylistMutation,
@@ -27,10 +27,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 
-export interface ContextMenuPosition {
-  x: number;
-  y: number;
-}
+export type { ContextMenuPosition };
 
 interface TrackContextMenuProps {
   track: Track;
@@ -246,7 +243,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const { t } = useTranslation('contextMenu');
   const { t: tToast } = useTranslation('toast');
   const menuRef = useRef<HTMLDivElement>(null);
-  const [adjustedPosition, setAdjustedPosition] = useState(position);
+  const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
 
   const playNext = usePlayerStore((s) => s.playNext);
   const addToQueue = usePlayerStore((s) => s.addToQueue);
@@ -268,40 +265,6 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const count = targetTrackIds.length;
 
   const isFavorite = queue.find((t) => t.id === track.id)?.isFavorite ?? track.isFavorite;
-
-  // Adjust position so menu stays within viewport
-  useEffect(() => {
-    if (!menuRef.current) return;
-    const rect = menuRef.current.getBoundingClientRect();
-    let { x, y } = position;
-    if (x + rect.width > window.innerWidth) {
-      x = window.innerWidth - rect.width - 8;
-    }
-    if (y + rect.height > window.innerHeight) {
-      y = window.innerHeight - rect.height - 8;
-    }
-    if (x < 0) x = 8;
-    if (y < 0) y = 8;
-    setAdjustedPosition({ x, y });
-  }, [position]);
-
-  useClickOutside(menuRef, onClose);
-
-  // Close on scroll
-  useEffect(() => {
-    const handler = () => onClose();
-    window.addEventListener('scroll', handler, true);
-    return () => window.removeEventListener('scroll', handler, true);
-  }, [onClose]);
-
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
 
   const handlePlayNext = useCallback(() => {
     for (const t of targetTracks) {
