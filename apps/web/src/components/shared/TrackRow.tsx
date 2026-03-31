@@ -1,15 +1,6 @@
-import { useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { type Track } from '@/stores/usePlayerStore';
-import { useSelectionStore } from '@/stores/useSelectionStore';
-import { Heart, Play, X, Check } from 'lucide-react';
-import { formatDuration } from '@shiranami/shared';
-import { cn } from '@/lib/utils';
-import { motion } from 'motion/react';
 import { type RowComponentProps } from 'react-window';
-import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
-import { EqBars } from '@/components/shared/EqBars';
-import { TrackContextMenu, type ContextMenuPosition } from '@/components/shared/TrackContextMenu';
+import { TrackRowContent } from './TrackRowContent';
 
 export interface TrackRowProps {
   queue: Track[];
@@ -33,149 +24,23 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
     onRemoveFromPlaylist,
     showAddToPlaylist,
   } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
-  const { t } = useTranslation('contextMenu');
+
   const track = queue[index];
-  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
-
-  const isSelected = useSelectionStore((s) => s.selectedTrackIds.has(track?.id ?? ''));
-  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const toggleTrack = useSelectionStore((s) => s.toggleTrack);
-  const selectRange = useSelectionStore((s) => s.selectRange);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
-
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // If right-clicking a track not in selection, clear selection
-    if (hasSelection && track && !selectedTrackIds.has(track.id)) {
-      clearSelection();
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  }, [hasSelection, track, selectedTrackIds, clearSelection]);
-
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (!track) return;
-
-    const isMod = e.metaKey || e.ctrlKey;
-    const isShift = e.shiftKey;
-
-    if (isMod) {
-      e.preventDefault();
-      toggleTrack(track.id, index);
-      return;
-    }
-
-    if (isShift) {
-      e.preventDefault();
-      selectRange(index, queue);
-      return;
-    }
-
-    // Plain click: if we have a selection, clear it and play
-    if (hasSelection) {
-      clearSelection();
-    }
-    handlePlayTrack(index);
-  }, [track, index, queue, hasSelection, toggleTrack, selectRange, clearSelection, handlePlayTrack]);
-
   if (!track) return null;
-  const isActive = currentTrack?.id === track.id;
 
   return (
     <div style={style} className="px-0.5">
-      <div
-        onContextMenu={handleContextMenu}
-        className={cn(
-          'w-full flex items-center gap-3 px-3 h-[48px] rounded-xl text-left transition-all duration-200 group',
-          isSelected
-            ? 'bg-primary/[0.12] text-foreground ring-1 ring-primary/20'
-            : isActive
-              ? 'bg-primary/[0.08] text-foreground'
-              : 'hover:bg-accent text-foreground/80 hover:text-foreground'
-        )}
-      >
-        <button
-          onClick={handleClick}
-          className="flex items-center gap-3 min-w-0 flex-1"
-        >
-          <div className={cn(
-            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative',
-            isSelected ? 'bg-primary/20' : isActive ? 'bg-primary/15' : 'bg-surface'
-          )}>
-            {isSelected ? (
-              <Check className="w-4 h-4 text-primary" />
-            ) : track.albumArt ? (
-              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
-            ) : isActive && isPlaying ? (
-              <>
-                <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
-                <EqBars />
-              </>
-            ) : (
-              <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className={cn('text-sm font-medium truncate text-left', isActive && 'text-primary')}>{track.title}</p>
-            <p className="text-xs text-muted-foreground/60 truncate text-left">{track.artist}</p>
-          </div>
-        </button>
-
-        <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
-          {track.duration > 0 ? formatDuration(track.duration) : ''}
-        </span>
-
-        {showAddToPlaylist && (
-          <AddToPlaylistButton trackId={track.id} />
-        )}
-
-        {onToggleFavorite && (
-          <motion.button
-            whileTap={{ scale: 0.75 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(track.id);
-            }}
-            className={cn(
-              'shrink-0 p-1 rounded-md transition-colors duration-150',
-              track.isFavorite
-                ? 'text-favorite hover:text-favorite-hover'
-                : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
-            )}
-            aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
-          >
-            <Heart
-              className={cn('w-3.5 h-3.5 transition-all duration-150', track.isFavorite && 'fill-current')}
-            />
-          </motion.button>
-        )}
-
-        {onRemoveFromPlaylist && (
-          <motion.button
-            whileTap={{ scale: 0.75 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemoveFromPlaylist(track.id);
-            }}
-            className="shrink-0 p-1 rounded-md text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors duration-150"
-            aria-label={t('removeFromPlaylist')}
-          >
-            <X className="w-3.5 h-3.5" />
-          </motion.button>
-        )}
-      </div>
-      {contextMenu && (
-        <TrackContextMenu
-          track={track}
-          position={contextMenu}
-          onClose={handleCloseContextMenu}
-        />
-      )}
+      <TrackRowContent
+        track={track}
+        index={index}
+        queue={queue}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        handlePlayTrack={handlePlayTrack}
+        onToggleFavorite={onToggleFavorite}
+        onRemoveFromPlaylist={onRemoveFromPlaylist}
+        showAddToPlaylist={showAddToPlaylist}
+      />
     </div>
   );
 }
