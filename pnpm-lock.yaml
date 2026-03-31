@@ -94,6 +94,9 @@ importers:
       music-metadata:
         specifier: ^11.12.3
         version: 11.12.3
+      node-addon-api:
+        specifier: ^8.6.0
+        version: 8.7.0
     devDependencies:
       '@electron/rebuild':
         specifier: ^4.0.3
@@ -5370,6 +5373,10 @@ packages:
 
   node-addon-api@1.7.2:
     resolution: {integrity: sha512-ibPK3iA+vaY1eEjESkQkM0BbCqFOaZMiXRTtdB0u7b4djtY6JnsjvPdUHVMg6xQt3B8fpTTWHI9A+ADjM9frzg==}
+
+  node-addon-api@8.7.0:
+    resolution: {integrity: sha512-9MdFxmkKaOYVTV+XVRG8ArDwwQ77XIgIPyKASB1k3JPq3M8fGQQQE3YpMOrKm6g//Ktx8ivZr8xo1Qmtqub+GA==}
+    engines: {node: ^18 || ^20 || >= 21}
 
   node-api-version@0.2.1:
     resolution: {integrity: sha512-2xP/IGGMmmSQpI1+O/k72jF/ykvZ89JeuKX3TLJAYPDVLUalrshrLHkeVcCCZqG/eEa635cr8IBYzgnDvM2O8Q==}
@@ -12560,6 +12567,8 @@ snapshots:
 
   node-addon-api@1.7.2:
     optional: true
+
+  node-addon-api@8.7.0: {}
 
   node-api-version@0.2.1:
     dependencies:

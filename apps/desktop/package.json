@@ -1,6 +1,6 @@
 {
   "name": "@shiranami/desktop",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Shiranami desktop application",
   "author": {
     "name": "Shironex"
@@ -8,8 +8,11 @@
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
+    "predev": "node scripts/native-build.mjs",
     "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
-    "build": "node esbuild.config.mjs && node scripts/copy-renderer.mjs",
+    "build": "node scripts/native-build.mjs && node esbuild.config.mjs && node scripts/copy-renderer.mjs",
+    "native:build": "node scripts/native-build.mjs",
+    "native:clean": "node-gyp clean",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "node ../../scripts/run-vitest.mjs run --project desktop",
     "test:watch": "node ../../scripts/run-vitest.mjs --project desktop",
@@ -28,7 +31,8 @@
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3",
     "lrclib-api": "^2.0.4",
-    "music-metadata": "^11.12.3"
+    "music-metadata": "^11.12.3",
+    "node-addon-api": "^8.6.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
