@@ -180,17 +180,10 @@ function App() {
                     </div>
 
                     {/* Right panel */}
-                    {currentTrack && rightPanel === 'lyrics' && (
+                    {currentTrack && (rightPanel === 'lyrics' || rightPanel === 'queue') && (
                       <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
                         <Suspense fallback={null}>
-                          <LyricsPanel />
-                        </Suspense>
-                      </div>
-                    )}
-                    {currentTrack && rightPanel === 'queue' && (
-                      <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
-                        <Suspense fallback={null}>
-                          <QueuePanel />
+                          {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
                         </Suspense>
                       </div>
                     )}
