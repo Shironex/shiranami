@@ -144,7 +144,7 @@ describe('database ipc (integration)', () => {
   /* ------------------------------------------------------------------ */
 
   it('tracks:exists returns true for existing file path and false for unknown', async () => {
-    const track = await insertTrack({ filePath: '/music/exists.mp3' });
+    await insertTrack({ filePath: '/music/exists.mp3' });
 
     const exists = ipcHandlers.get('db:tracks:exists')!;
     expect(await exists(null as never, '/music/exists.mp3')).toBe(true);

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { CreateShareDto } from './dto/create-share.dto';
@@ -44,7 +45,7 @@ export class ShareService {
       data: {
         code,
         type: dto.type,
-        payload: dto.payload as any,
+        payload: dto.payload as Prisma.InputJsonValue,
         expiresAt,
       },
     });

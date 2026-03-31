@@ -8,6 +8,7 @@ import {
   BadRequestException,
   Header,
 } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { Throttle } from '@nestjs/throttler';
 import { ShareService } from './share.service';
 import { createShareSchema, type TrackPayload, type PlaylistPayload } from './dto/create-share.dto';
@@ -35,7 +36,7 @@ export class ShareController {
   @Get('s/:code')
   @Throttle({ default: { ttl: 60000, limit: 60 } })
   @Header('Content-Type', 'text/html; charset=utf-8')
-  async previewShare(@Param('code') code: string, @Res() reply: any) {
+  async previewShare(@Param('code') code: string, @Res() reply: FastifyReply) {
     const share = await this.shareService.findByCode(code);
     const html = this.renderPreview(share);
     return reply.type('text/html').send(html);
