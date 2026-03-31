@@ -8,9 +8,7 @@ import {
   Share2,
   FolderOpen,
   Trash2,
-  Plus,
   ChevronRight,
-  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
@@ -18,14 +16,9 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
-import {
-  usePlaylistsQuery,
-  useCreatePlaylistMutation,
-  useAddTrackToPlaylistMutation,
-} from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import type { Playlist } from '@/types/electron';
+import { PlaylistPickerContent } from './PlaylistPickerContent';
 
 export type { ContextMenuPosition };
 
@@ -67,19 +60,11 @@ function Divider() {
 
 function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: () => void }) {
   const { t } = useTranslation('contextMenu');
-  const { t: tToast } = useTranslation('toast');
-  const { t: tCommon } = useTranslation('common');
-  const { data: playlists = [], isLoading } = usePlaylistsQuery();
-  const addTrackMutation = useAddTrackToPlaylistMutation();
-  const createPlaylistMutation = useCreatePlaylistMutation();
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newName, setNewName] = useState('');
-  const submenuRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
+  const submenuRef = useRef<HTMLDivElement>(null);
   const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isBulk = trackIds.length > 1;
 
   const handleMouseEnter = useCallback(() => {
     if (closeTimerRef.current) {
@@ -110,40 +95,6 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
     }
   }, []);
 
-  const handleAddToPlaylist = useCallback(
-    async (playlist: Playlist) => {
-      try {
-        await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
-        if (isBulk) {
-          toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
-        } else {
-          toast.success(tToast('addedToPlaylist', { name: playlist.name }));
-        }
-        onClose();
-      } catch {
-        toast.error(tToast('failedAddToPlaylist'));
-      }
-    },
-    [trackIds, isBulk, addTrackMutation, onClose]
-  );
-
-  const handleCreateAndAdd = useCallback(async () => {
-    const name = newName.trim();
-    if (!name) return;
-    try {
-      const playlist = await createPlaylistMutation.mutateAsync({ name });
-      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
-      if (isBulk) {
-        toast.success(tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length }));
-      } else {
-        toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
-      }
-      onClose();
-    } catch {
-      toast.error(tToast('failedCreatePlaylist'));
-    }
-  }, [newName, trackIds, isBulk, createPlaylistMutation, addTrackMutation, onClose]);
-
   return (
     <div
       ref={parentRef}
@@ -172,67 +123,7 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
             submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'
           )}
         >
-        {isLoading ? (
-          <div className="flex items-center justify-center py-3">
-            <Loader2 className="w-4 h-4 text-muted-foreground/40 animate-spin" />
-          </div>
-        ) : (
-          <>
-            <div className="max-h-40 overflow-y-auto scrollbar-thin">
-              {playlists.length === 0 && !showNewForm && (
-                <p className="px-3 py-2 text-xs text-muted-foreground/50">{tCommon('noPlaylists')}</p>
-              )}
-              {playlists.map((pl) => (
-                <button
-                  key={pl.id}
-                  onClick={() => handleAddToPlaylist(pl)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground/80 hover:text-foreground hover:bg-accent transition-colors text-left"
-                >
-                  <ListPlus className="w-3 h-3 text-muted-foreground/40 shrink-0" />
-                  <span className="truncate">{pl.name}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="border-t border-border/30 mt-1 pt-1">
-              {showNewForm ? (
-                <div className="px-2 py-1 flex items-center gap-1">
-                  <input
-                    autoFocus
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                      if (e.key === 'Enter') handleCreateAndAdd();
-                      if (e.key === 'Escape') {
-                        setShowNewForm(false);
-                        setNewName('');
-                      }
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    placeholder={tCommon('namePlaceholder')}
-                    className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none min-w-0"
-                  />
-                  <button
-                    onClick={handleCreateAndAdd}
-                    disabled={!newName.trim()}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
-                  >
-                    {tCommon('add')}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowNewForm(true)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
-                  {tCommon('newPlaylist')}
-                </button>
-              )}
-            </div>
-          </>
-        )}
+          <PlaylistPickerContent trackIds={trackIds} onDone={onClose} />
         </div>
       )}
     </div>
