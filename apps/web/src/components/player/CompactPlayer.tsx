@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
@@ -9,13 +9,8 @@ import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TimeDisplay } from './TimeDisplay';
 import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
-
-const TimeDisplay = memo(function TimeDisplay() {
-  const currentTime = usePlayerStore(s => s.currentTime);
-  const scrubTime = usePlayerStore(s => s.scrubTime);
-  return <>{formatDuration(scrubTime ?? currentTime)}</>;
-});
 
 export function CompactPlayer() {
   const { t } = useTranslation('compact');

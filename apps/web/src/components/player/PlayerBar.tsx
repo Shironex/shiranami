@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
@@ -13,15 +12,9 @@ import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-rea
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl';
+import { TimeDisplay } from './TimeDisplay';
 
-/** Isolated component that subscribes to currentTime/scrubTime so
- *  the rest of PlayerBar doesn't re-render on every time update. */
-const TimeDisplay = memo(function TimeDisplay() {
-  const currentTime = usePlayerStore(s => s.currentTime);
-  const scrubTime = usePlayerStore(s => s.scrubTime);
-  return <>{formatDuration(scrubTime ?? currentTime)}</>;
-});
+const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl';
 
 export function PlayerBar() {
   const { t } = useTranslation('player');
