@@ -4,6 +4,7 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { X, Trash2, Music, Play, Pause, GripVertical } from 'lucide-react';
+import { EqBars } from '@/components/shared/EqBars';
 import { motion } from 'motion/react';
 import {
   DndContext,
@@ -322,11 +323,7 @@ const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, o
         ) : isActive && isPlaying ? (
           <>
             <span className="sr-only">{t('nowPlaying')}</span>
-            <div className="flex items-end gap-[2px] h-3" aria-hidden="true">
-              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom eq-bar-1" />
-              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom eq-bar-2" />
-              <div className="w-[2px] h-full rounded-full bg-primary origin-bottom eq-bar-3" />
-            </div>
+            <EqBars size="sm" />
           </>
         ) : isActive ? (
           <Pause className="w-3 h-3 text-primary" />

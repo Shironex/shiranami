@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { type RowComponentProps } from 'react-window';
 import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
+import { EqBars } from '@/components/shared/EqBars';
 import { TrackContextMenu, type ContextMenuPosition } from '@/components/shared/TrackContextMenu';
 
 export interface TrackRowProps {
@@ -113,11 +114,7 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
             ) : isActive && isPlaying ? (
               <>
                 <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
-                <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-1" />
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-2" />
-                  <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-3" />
-                </div>
+                <EqBars />
               </>
             ) : (
               <Play className="w-3.5 h-3.5 text-muted-foreground/40" />

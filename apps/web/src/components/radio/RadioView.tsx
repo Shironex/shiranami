@@ -23,6 +23,7 @@ import {
   Star,
 } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { EqBars } from '@/components/shared/EqBars';
 import { motion } from 'motion/react';
 import { List, type RowComponentProps } from 'react-window';
 import type { Station } from 'radio-browser-api';
@@ -183,17 +184,7 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
         {/* Play/Pause indicator */}
         <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center">
           {isActive && isPlaying ? (
-            <div className="flex items-end gap-[3px] h-4">
-              <div
-                className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-1"
-              />
-              <div
-                className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-2"
-              />
-              <div
-                className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-3"
-              />
-            </div>
+            <EqBars />
           ) : (
             <Play className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           )}

@@ -7,6 +7,7 @@ import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart, Play, X, Check, GripVertical } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
+import { EqBars } from '@/components/shared/EqBars';
 import { motion } from 'motion/react';
 import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
 import { TrackContextMenu, type ContextMenuPosition } from '@/components/shared/TrackContextMenu';
@@ -131,11 +132,10 @@ export function SortableTrackRow({
             ) : track.albumArt ? (
               <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
             ) : isActive && isPlaying ? (
-              <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-1" />
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-2" />
-                <div className="w-[3px] h-full rounded-full bg-primary origin-bottom eq-bar-3" />
-              </div>
+              <>
+                <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
+                <EqBars />
+              </>
             ) : (
               <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
             )}
