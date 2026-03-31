@@ -164,7 +164,7 @@ export function SortableTrackRow({
             className={cn(
               'shrink-0 p-1 rounded-md transition-colors duration-150',
               track.isFavorite
-                ? 'text-red-400 hover:text-red-300'
+                ? 'text-favorite hover:text-favorite-hover'
                 : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
             )}
             aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}

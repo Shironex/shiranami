@@ -395,7 +395,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         <MenuItem
           icon={
             <Heart
-              className={cn('w-4 h-4', !isBulk && isFavorite && 'fill-current text-red-400')}
+              className={cn('w-4 h-4', !isBulk && isFavorite && 'fill-current text-favorite')}
             />
           }
           label={
