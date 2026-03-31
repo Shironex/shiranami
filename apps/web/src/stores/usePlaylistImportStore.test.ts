@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { usePlaylistImportStore, type PlaylistTrack } from './usePlaylistImportStore';
+import { usePlaylistImportStore } from './usePlaylistImportStore';
 import type { SearchResult } from '@/types/electron';
 
 function makeSearchResult(id: string, overrides?: Partial<SearchResult>): SearchResult {
