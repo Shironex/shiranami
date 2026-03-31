@@ -12,12 +12,7 @@ import {
 } from '@/components/ui/command';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
-
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+import { formatDuration } from '@shiranami/shared';
 
 export function CommandPalette() {
   const { t } = useTranslation('commandPalette');

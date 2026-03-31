@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { cn } from '@/lib/utils';
+import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
@@ -14,10 +14,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl';
-
-function isRadioTrack(filePath: string): boolean {
-  return filePath.startsWith('shiranami-radio://');
-}
 
 /** Isolated component that subscribes to currentTime/scrubTime so
  *  the rest of PlayerBar doesn't re-render on every time update. */

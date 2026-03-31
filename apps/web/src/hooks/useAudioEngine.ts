@@ -10,6 +10,7 @@ import {
 } from '@/lib/audioAnalyser';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
+import { isRadioTrack } from '@/lib/utils';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
@@ -18,10 +19,6 @@ const MIN_HISTORY_COMPLETION_RATIO = 0.5;
 const MAX_SESSION_DELTA_SECONDS = 1;
 
 type Deck = 'A' | 'B';
-
-function isRadioTrack(filePath: string): boolean {
-  return filePath.startsWith('shiranami-radio://');
-}
 
 function getTrackSrc(track: Track): string {
   if (track.filePath.startsWith('shiranami-radio://')) return track.filePath;

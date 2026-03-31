@@ -2,7 +2,7 @@ import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { cn } from '@/lib/utils';
+import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
@@ -10,10 +10,6 @@ import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
-
-function isRadioTrack(filePath: string): boolean {
-  return filePath.startsWith('shiranami-radio://');
-}
 
 const TimeDisplay = memo(function TimeDisplay() {
   const currentTime = usePlayerStore(s => s.currentTime);

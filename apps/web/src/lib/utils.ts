@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Check if a track file path points to a radio stream. */
+export function isRadioTrack(filePath: string): boolean {
+  return filePath.startsWith('shiranami-radio://');
+}
+
 /** Read --primary-rgb from CSS and return as [r, g, b] tuple. Cached per call site. */
 let _primaryRGB: [number, number, number] | null = null;
 export function getPrimaryRGB(): [number, number, number] {
