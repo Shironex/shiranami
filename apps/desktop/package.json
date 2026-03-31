@@ -8,11 +8,8 @@
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
-    "predev": "node scripts/native-build.mjs",
     "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
-    "build": "node scripts/native-build.mjs && node esbuild.config.mjs && node scripts/copy-renderer.mjs",
-    "native:build": "node scripts/native-build.mjs",
-    "native:clean": "node-gyp clean",
+    "build": "node esbuild.config.mjs && node scripts/copy-renderer.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "node ../../scripts/run-vitest.mjs run --project desktop",
     "test:watch": "node ../../scripts/run-vitest.mjs --project desktop",
