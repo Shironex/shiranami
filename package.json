@@ -8,7 +8,9 @@
   "pnpm": {
     "overrides": {
       "h3": "1.15.9",
-      "undici": "6.24.1"
+      "undici": "6.24.1",
+      "path-to-regexp": "8.4.0",
+      "fastify": "5.8.3"
     },
     "onlyBuiltDependencies": [
       "electron",
