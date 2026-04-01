@@ -69,6 +69,30 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.12.1',
+    date: '2026-04-01',
+    title: l('Security patch', 'Łatka bezpieczeństwa'),
+    description: l(
+      'Patched transitive dependency vulnerabilities in the server via pnpm overrides.',
+      'Załatano podatności w zależnościach pośrednich serwera za pomocą pnpm overrides.'
+    ),
+    categories: [
+      {
+        label: l('Security', 'Bezpieczeństwo'),
+        entries: [
+          l(
+            'Fixed path-to-regexp ReDoS vulnerability via pnpm override (8.3.0 → 8.4.0)',
+            'Naprawiono podatność ReDoS w path-to-regexp przez pnpm override (8.3.0 → 8.4.0)'
+          ),
+          l(
+            'Fixed fastify request header spoofing vulnerability via pnpm override (5.8.2 → 5.8.3)',
+            'Naprawiono podatność na spoofing nagłówków w fastify przez pnpm override (5.8.2 → 5.8.3)'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.12.0',
     date: '2026-03-31',
     title: l(
