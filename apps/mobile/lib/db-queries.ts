@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
-import { randomUUID } from 'expo-crypto';
+import { randomUUID } from '@/lib/utils';
 
 // Types matching desktop schema (snake_case DB -> camelCase TS)
 

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Paths, File, Directory } from 'expo-file-system';
-import { randomUUID } from 'expo-crypto';
+import { randomUUID } from '@/lib/utils';
 
 const AUDIO_TYPES = [
   'audio/mpeg',

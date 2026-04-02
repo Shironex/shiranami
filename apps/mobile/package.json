@@ -21,7 +21,6 @@
     "clsx": "^2.1.1",
     "expo": "~54.0.29",
     "expo-constants": "~18.0.12",
-    "expo-crypto": "^55.0.10",
     "expo-document-picker": "^55.0.9",
     "expo-file-system": "^55.0.12",
     "expo-haptics": "~15.0.8",

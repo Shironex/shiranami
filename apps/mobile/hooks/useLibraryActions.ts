@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
-import { randomUUID } from 'expo-crypto';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useTracks } from '@/lib/db-queries';
 import { useDocumentPicker, type ImportedFile } from './useDocumentPicker';
