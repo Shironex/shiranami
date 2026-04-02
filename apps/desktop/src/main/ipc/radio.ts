@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron';
 import {
-  getDatabase,
   radioFavorites,
   eq,
   desc,
   type NewRadioFavorite,
 } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 
 export function registerRadioHandlers(): void {
   ipcMain.handle('radio:favorites:get-all', async () => {

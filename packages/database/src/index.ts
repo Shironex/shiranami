@@ -1,16 +1,8 @@
 /**
  * @shiranami/database
- * Database layer for Shiranami using Drizzle ORM with SQLite
+ * Schema, types, and Drizzle utilities — no native driver dependency.
+ * For the better-sqlite3 client, import from '@shiranami/database/client'.
  */
-
-// Client
-export {
-  initializeDatabase,
-  getDatabase,
-  closeDatabase,
-  isDatabaseInitialized,
-  type DatabaseOptions,
-} from './client.js';
 
 // Schema
 export * from './schema/index.js';

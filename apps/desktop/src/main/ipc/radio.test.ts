@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { closeDatabase, initializeDatabase } from '@shiranami/database';
+import { closeDatabase, initializeDatabase } from '@shiranami/database/client';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
 import { cleanupRadioHandlers, registerRadioHandlers } from './radio';
 

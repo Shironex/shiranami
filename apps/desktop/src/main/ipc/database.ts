@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron';
 import {
-  getDatabase,
   tracks,
   playHistory,
   folders,
@@ -16,6 +15,7 @@ import {
   type NewPlaylist,
   type NewPlayHistory,
 } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;

@@ -1,7 +1,8 @@
 import { ipcMain, net } from 'electron';
 import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
-import { getDatabase, eq, youtubeMappings, tracks } from '@shiranami/database';
+import { eq, youtubeMappings, tracks } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 import { getYtDlpPath } from '../ytdlp-manager';
 import { logger } from '../logger';
 

@@ -1,4 +1,5 @@
-import { getDatabase, tracks, eq, like } from '@shiranami/database';
+import { tracks, eq, like } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 import { saveAlbumArt } from './art-protocol';
 import { logger } from './logger';
 

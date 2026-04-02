@@ -11,7 +11,7 @@ import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
-import { initializeDatabase, closeDatabase } from '@shiranami/database';
+import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
 
 // Register shiranami:// deep link protocol for share imports.
 // Only register in packaged builds — dev mode can't resolve the Electron binary correctly on Windows.
