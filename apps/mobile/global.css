@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Midnight Lofi Cafe — matching shiranami desktop theme (oklch 280 hue -> HSL ~265) */
+    --background: 265 25% 8%;
+    --foreground: 265 10% 93%;
+    --card: 265 17% 12%;
+    --card-foreground: 265 10% 93%;
+    --popover: 265 20% 10%;
+    --popover-foreground: 265 10% 93%;
+    --primary: 265 50% 72%;
+    --primary-foreground: 265 25% 10%;
+    --secondary: 265 10% 14%;
+    --secondary-foreground: 265 10% 93%;
+    --muted: 265 15% 15%;
+    --muted-foreground: 265 10% 55%;
+    --accent: 265 10% 16%;
+    --accent-foreground: 265 10% 93%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 265 10% 18%;
+    --input: 265 17% 12%;
+    --ring: 265 50% 72%;
+    --radius: 0.75rem;
+    --favorite: 15 65% 60%;
+  }
+
+  .dark:root {
+    --background: 265 25% 8%;
+    --foreground: 265 10% 93%;
+    --card: 265 17% 12%;
+    --card-foreground: 265 10% 93%;
+    --popover: 265 20% 10%;
+    --popover-foreground: 265 10% 93%;
+    --primary: 265 50% 72%;
+    --primary-foreground: 265 25% 10%;
+    --secondary: 265 10% 14%;
+    --secondary-foreground: 265 10% 93%;
+    --muted: 265 15% 15%;
+    --muted-foreground: 265 10% 55%;
+    --accent: 265 10% 16%;
+    --accent-foreground: 265 10% 93%;
+    --destructive: 0 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 265 10% 18%;
+    --input: 265 17% 12%;
+    --ring: 265 50% 72%;
+    --radius: 0.75rem;
+    --favorite: 15 65% 60%;
+  }
+}

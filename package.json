@@ -22,6 +22,7 @@
     "dev": "pnpm build:packages && node scripts/rebuild-native.mjs && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
     "dev:web": "pnpm --filter @shiranami/web dev",
     "dev:landing": "pnpm --filter @shiranami/landing dev",
+    "dev:mobile": "pnpm --filter @shiranami/mobile dev",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",
     "build:packages": "pnpm --filter @shiranami/shared build && pnpm --filter @shiranami/database build",
     "build:landing": "pnpm --filter @shiranami/landing build",
