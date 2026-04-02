@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { migrateDbIfNeeded } from '@/lib/db';
 import { SettingsProvider } from '@/context/SettingsContext';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -33,10 +34,15 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
 
   const handleAppReady = useCallback(() => {
     SplashScreen.hideAsync();
     setAppReady(true);
+  }, []);
+
+  const handleSplashDismissed = useCallback(() => {
+    setSplashDone(true);
   }, []);
 
   return (
@@ -63,6 +69,7 @@ export default function RootLayout() {
           </SettingsProvider>
         </SQLiteProvider>
       </Suspense>
+      {!splashDone && <AnimatedSplash ready={appReady} onDismissed={handleSplashDismissed} />}
     </View>
   );
 }

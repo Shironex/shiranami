@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -5,6 +6,7 @@ import { Stack } from 'expo-router';
 import {
   ChevronDown,
   Heart,
+  Mic2,
   Music2,
   Pause,
   Play,
@@ -14,6 +16,7 @@ import {
   SkipBack,
   SkipForward,
 } from 'lucide-react-native';
+import { LyricsPanel } from '@/components/player/LyricsPanel';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -49,6 +52,7 @@ export default function PlayerScreen() {
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const seek = usePlayerStore(s => s.seek);
 
+  const [showLyrics, setShowLyrics] = useState(false);
   const playScale = useSharedValue(1);
   const playStyle = useAnimatedStyle(() => ({
     transform: [{ scale: playScale.value }],
@@ -89,14 +93,20 @@ export default function PlayerScreen() {
             <ChevronDown size={28} color={colors.foreground} />
           </Pressable>
           <Text style={s.topBarTitle}>Now Playing</Text>
-          <View style={{ width: 28 }} />
+          <Pressable onPress={() => setShowLyrics(v => !v)} hitSlop={12}>
+            <Mic2 size={22} color={showLyrics ? colors.primary : colors.mutedForeground} />
+          </Pressable>
         </View>
 
-        {/* Album art */}
+        {/* Album art / Lyrics */}
         <View style={s.artSection}>
-          <View style={s.artLarge}>
-            <Music2 size={64} color={colors.mutedForeground} />
-          </View>
+          {showLyrics ? (
+            <LyricsPanel />
+          ) : (
+            <View style={s.artLarge}>
+              <Music2 size={64} color={colors.mutedForeground} />
+            </View>
+          )}
         </View>
 
         {/* Track info */}
