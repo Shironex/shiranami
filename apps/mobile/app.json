@@ -18,7 +18,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.shiranami.mobile",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio"],
+        "NSAppleMusicUsageDescription": "Shiranami needs access to your music library to import tracks.",
+        "NSDocumentsFolderUsageDescription": "Shiranami needs access to your files to import music."
       }
     },
     "android": {
@@ -27,16 +29,46 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#110f1a"
       },
-      "package": "com.shiranami.mobile"
+      "package": "com.shiranami.mobile",
+      "permissions": [
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-sqlite"],
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": false,
+          "savePhotosPermission": false,
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }
