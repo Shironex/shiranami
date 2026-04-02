@@ -15,11 +15,17 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
+  const corsOrigins = [
+    'https://shiranami.app',
+    'http://localhost:15175',
+  ];
+  // Allow additional mobile/dev origins via env
+  const mobileOrigins = process.env.MOBILE_ORIGINS;
+  if (mobileOrigins) {
+    corsOrigins.push(...mobileOrigins.split(',').map(o => o.trim()));
+  }
   app.enableCors({
-    origin: [
-      'https://shiranami.app',
-      'http://localhost:15175',
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST'],
   });
 

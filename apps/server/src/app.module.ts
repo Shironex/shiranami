@@ -6,6 +6,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ShareModule } from './modules/share/share.module';
+import { YoutubeModule } from './modules/youtube/youtube.module';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -29,6 +30,7 @@ const isDev = process.env.NODE_ENV !== 'production';
     PrismaModule,
     RedisModule,
     ShareModule,
+    YoutubeModule,
   ],
 })
 export class AppModule {}

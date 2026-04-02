@@ -8,6 +8,8 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   SHARE_BASE_URL: z.string().default('https://api.shiranami.app'),
   SHARE_TTL_SECONDS: z.coerce.number().default(3600),
+  YTDLP_PATH: z.string().default('yt-dlp'),
+  API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
