@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "expo start -c",
-    "android": "expo start -c --android",
+    "dev": "EXPO_USE_FAST_RESOLVER=1 expo start -c",
+    "android": "EXPO_USE_FAST_RESOLVER=1 expo start -c --android",
     "android:release": "expo run:android --variant release",
     "ios": "expo start -c --ios",
     "typecheck": "tsc --noEmit"
