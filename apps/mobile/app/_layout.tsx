@@ -48,6 +48,14 @@ export default function RootLayout() {
               <StatusBar style="light" />
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="player"
+                  options={{
+                    headerShown: false,
+                    presentation: 'modal',
+                    animation: 'slide_from_bottom',
+                  }}
+                />
               </Stack>
               <PortalHost />
               <ReadySignal onReady={handleAppReady} />

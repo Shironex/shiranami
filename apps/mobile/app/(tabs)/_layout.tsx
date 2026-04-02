@@ -1,10 +1,17 @@
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { AnimatedTabBar } from '@/components/AnimatedTabBar';
+import { MiniPlayer } from '@/components/player/MiniPlayer';
 
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={props => <AnimatedTabBar {...props} />}
+      tabBar={props => (
+        <View>
+          <MiniPlayer />
+          <AnimatedTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
       }}
