@@ -8,7 +8,7 @@ export interface AppSettings {
 
 const DEFAULTS: AppSettings = {
   showLabels: true,
-  serverUrl: 'https://api.shiranami.app',
+  serverUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
 };
 
 export function useSettings() {

@@ -6,8 +6,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { ShareModule } from './modules/share/share.module';
-import { YoutubeModule } from './modules/youtube/youtube.module';
 
+// TODO: Reimport YoutubeModule when mobile app is ready
 const isDev = process.env.NODE_ENV !== 'production';
 
 @Module({
@@ -30,7 +30,6 @@ const isDev = process.env.NODE_ENV !== 'production';
     PrismaModule,
     RedisModule,
     ShareModule,
-    YoutubeModule,
   ],
 })
 export class AppModule {}

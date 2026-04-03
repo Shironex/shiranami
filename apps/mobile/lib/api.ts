@@ -1,7 +1,7 @@
 import type { SearchResult } from './types';
 
-let baseUrl = 'https://api.shiranami.app';
-let apiKey = '';
+let baseUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+let apiKey = process.env.EXPO_PUBLIC_API_KEY ?? '';
 
 export function configureApi(url: string, key?: string) {
   baseUrl = url.replace(/\/$/, '');
