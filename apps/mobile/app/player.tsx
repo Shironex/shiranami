@@ -50,8 +50,6 @@ export default function PlayerScreen() {
   const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
   const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
-  const seek = usePlayerStore(s => s.seek);
-
   const [showLyrics, setShowLyrics] = useState(false);
   const playScale = useSharedValue(1);
   const playStyle = useAnimatedStyle(() => ({

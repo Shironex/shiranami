@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Globe, Info, Moon, Tag } from 'lucide-react-native';
+import { Globe, Info, Tag } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Text } from '@/components/ui/text';
 import { useSettingsContext } from '@/context/SettingsContext';

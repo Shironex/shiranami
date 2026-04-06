@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useTracks } from '@/lib/db-queries';
-import { useDocumentPicker, type ImportedFile } from './useDocumentPicker';
+import { useDocumentPicker } from './useDocumentPicker';
 
 function parseTrackName(filename: string): { title: string; artist: string } {
   // Remove extension
