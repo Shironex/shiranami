@@ -67,7 +67,7 @@ const fallbackPublishedAtIso = new Date().toISOString();
     <div class="note-panel reveal">
       <h2 data-i18n="download.unsignedTitle">Unsigned build notes</h2>
       <p data-i18n="download.unsignedBody">Windows may show SmartScreen. macOS requires a Terminal command after each download before the app will launch.</p>
-      <pre><code>xattr -cr /Applications/Shiranami.app</code></pre>
+      <pre><code>xattr -rd com.apple.quarantine /Applications/Shiranami.app</code></pre>
     </div>
   </main>
   <Footer />
