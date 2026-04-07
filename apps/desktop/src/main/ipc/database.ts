@@ -60,9 +60,14 @@ export function registerDatabaseHandlers(): void {
   });
 
   ipcMain.handle('db:tracks:remove-many', async (_event, ids: string[]) => {
+    if (ids.length === 0) return;
     const db = getDatabase();
+    const CHUNK_SIZE = 500;
     db.transaction(tx => {
-      tx.delete(tracks).where(inArray(tracks.id, ids)).run();
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
+      }
     });
   });
 
