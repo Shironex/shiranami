@@ -113,17 +113,27 @@ export function registerLibraryHandlers(): void {
 
   // Validate which file paths still exist on disk (returns paths that are missing)
   ipcMain.handle('library:validate-files', async (_event, filePaths: string[]) => {
-    const results = await Promise.all(
-      filePaths.map(async (filePath) => {
-        try {
-          await fs.promises.access(filePath, fs.constants.F_OK);
-          return null;
-        } catch {
-          return filePath;
-        }
-      })
-    );
-    return results.filter((p): p is string => p !== null);
+    const VALIDATE_CONCURRENCY = 128;
+    const missing: string[] = [];
+
+    for (let i = 0; i < filePaths.length; i += VALIDATE_CONCURRENCY) {
+      const batch = filePaths.slice(i, i + VALIDATE_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (filePath) => {
+          try {
+            await fs.promises.access(filePath, fs.constants.F_OK);
+            return null;
+          } catch {
+            return filePath;
+          }
+        })
+      );
+      for (const p of results) {
+        if (p !== null) missing.push(p);
+      }
+    }
+
+    return missing;
   });
 
   // Scan a directory and return results grouped by immediate subfolder
