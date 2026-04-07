@@ -32,7 +32,7 @@ export function cleanTitleForSearch(title: string, artist: string): string {
     .replace(/[「」『』]/g, '')
     .replace(/【[^】]*】/g, '')
     // Pipe-separated suffixes: | ENGLISH ver | AmaLee
-    .replace(/\s*[\|｜]\s*.*/g, '')
+    .replace(/\s*[|｜]\s*.*/g, '')
     // Underscores → spaces
     .replace(/\s*_\s*/g, ' ')
     // "Nightcore - Song Name" → "Song Name" (the original song is what we want)
