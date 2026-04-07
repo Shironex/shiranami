@@ -189,8 +189,8 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         });
         set({ favorites: [...favorites, stationId] });
       }
-    } catch {
-      // Silently fail - favorites are non-critical
+    } catch (err) {
+      console.warn('[radio] Failed to toggle favorite:', err);
     }
   },
 

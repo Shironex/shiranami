@@ -345,7 +345,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set(updates);
 
     if (IS_ELECTRON) {
-      window.electronAPI.db.tracks.toggleFavorite(trackId).catch(() => {});
+      window.electronAPI.db.tracks.toggleFavorite(trackId).catch((err) => {
+        console.warn('[player] Failed to toggle favorite:', err);
+      });
     }
   },
 
