@@ -25,7 +25,7 @@ async function scanDirectoryRecursive(dirPath: string, maxDepth = 5, depth = 0):
       }
     }
   } catch (error) {
-    logger.warn('Failed to scan directory:', dirPath, error);
+    logger.warn('[library] Failed to scan directory:', dirPath, error);
   }
   return files;
 }
@@ -60,7 +60,7 @@ async function scanDirectoryGrouped(dirPath: string): Promise<{
       }
     }
   } catch (error) {
-    logger.warn('Failed to scan directory for grouping:', dirPath, error);
+    logger.warn('[library] Failed to scan directory for grouping:', dirPath, error);
   }
 
   return { rootFiles, subfolders };
@@ -94,15 +94,21 @@ export function registerLibraryHandlers(): void {
 
   // Scan a directory for audio files and parse their metadata
   ipcMain.handle('library:scan-folder', async (_event, dirPath: string) => {
-    logger.info('Scanning folder:', dirPath);
+    const start = Date.now();
+    logger.info(`[library] Scanning folder: ${dirPath}`);
     const filePaths = await scanDirectoryRecursive(dirPath);
-    logger.info(`Found ${filePaths.length} audio files`);
+    logger.info(`[library] Found ${filePaths.length} audio files in ${Date.now() - start}ms`);
 
-    return parseAudioFiles(filePaths);
+    const parseStart = Date.now();
+    const results = await parseAudioFiles(filePaths);
+    logger.info(`[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`);
+    return results;
   });
 
   // Validate which file paths still exist on disk (returns paths that are missing)
   ipcMain.handle('library:validate-files', async (_event, filePaths: string[]) => {
+    const start = Date.now();
+    logger.info(`[library] Validating ${filePaths.length} file paths`);
     const VALIDATE_CONCURRENCY = 128;
     const missing: string[] = [];
 
@@ -123,16 +129,22 @@ export function registerLibraryHandlers(): void {
       }
     }
 
+    if (missing.length > 0) {
+      logger.warn(`[library] Validation found ${missing.length} missing files out of ${filePaths.length} (${Date.now() - start}ms)`);
+    } else {
+      logger.info(`[library] Validation complete: all ${filePaths.length} files exist (${Date.now() - start}ms)`);
+    }
     return missing;
   });
 
   // Scan a directory and return results grouped by immediate subfolder
   ipcMain.handle('library:scan-folder-grouped', async (_event, dirPath: string) => {
-    logger.info('Scanning folder (grouped):', dirPath);
+    const start = Date.now();
+    logger.info(`[library] Scanning folder (grouped): ${dirPath}`);
     const { rootFiles, subfolders } = await scanDirectoryGrouped(dirPath);
 
     const totalFiles = rootFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
-    logger.info(`Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root)`);
+    logger.info(`[library] Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root) in ${Date.now() - start}ms`);
 
     const rootTracks = await parseAudioFiles(rootFiles);
 
@@ -149,6 +161,7 @@ export function registerLibraryHandlers(): void {
       parsedSubfolders.push(...results);
     }
 
+    logger.info(`[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`);
     return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
   });
 }
