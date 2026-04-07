@@ -198,6 +198,10 @@ function extractZipWin(zipPath: string, destDir: string): Promise<void> {
     const workerPath = getExtractWorkerPath();
     logger.info(`[ffmpeg-manager] Spawning extract worker: ${workerPath}`);
 
+    let settled = false;
+    const safeResolve = () => { if (!settled) { settled = true; resolve(); } };
+    const safeReject = (err: Error) => { if (!settled) { settled = true; reject(err); } };
+
     const worker = new Worker(workerPath, {
       workerData: { zipPath, destDir },
     });
@@ -205,20 +209,20 @@ function extractZipWin(zipPath: string, destDir: string): Promise<void> {
     worker.on('message', (msg: { success: boolean; method?: string; error?: string }) => {
       if (msg.success) {
         logger.info(`[ffmpeg-manager] Extraction succeeded via ${msg.method}`);
-        resolve();
+        safeResolve();
       } else {
-        reject(new Error(msg.error ?? 'Extraction failed in worker'));
+        safeReject(new Error(msg.error ?? 'Extraction failed in worker'));
       }
     });
 
     worker.on('error', (err) => {
       logger.error('[ffmpeg-manager] Extract worker error:', err);
-      reject(err);
+      safeReject(err);
     });
 
     worker.on('exit', (code) => {
       if (code !== 0) {
-        reject(new Error(`Extract worker exited with code ${code}`));
+        safeReject(new Error(`Extract worker exited with code ${code}`));
       }
     });
   });
