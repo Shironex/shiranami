@@ -12,6 +12,7 @@ import { folderKeys } from '@/hooks/queries/useFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
 import { removeTracksFromQueue } from '@/hooks/useRemoveFromLibrary';
+import { acquireScanLock, releaseScanLock, isScanLocked } from '@/lib/scanLock';
 import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 
 export function LibrarySection() {
@@ -32,7 +33,7 @@ export function LibrarySection() {
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
 
   const handleRescan = useCallback(async () => {
-    if (!IS_ELECTRON) return;
+    if (!IS_ELECTRON || !acquireScanLock()) return;
 
     let folders: WatchedFolder[];
     try {
@@ -42,10 +43,14 @@ export function LibrarySection() {
       });
     } catch {
       toast.error(tToast('failedLoadFolders'));
+      releaseScanLock();
       return;
     }
 
-    if (folders.length === 0) return;
+    if (folders.length === 0) {
+      releaseScanLock();
+      return;
+    }
     setIsScanning(true);
     let totalAdded = 0;
     const allDetectedSubfolders: SubfolderEntry[] = [];
@@ -164,6 +169,7 @@ export function LibrarySection() {
       toast.error(tToast('failedRescan'));
     } finally {
       setIsScanning(false);
+      releaseScanLock();
     }
   }, [addToLibrary, removeFromLibrary, tToast]);
 
@@ -202,7 +208,7 @@ export function LibrarySection() {
         <div className="flex gap-3">
           <button
             onClick={handleRescan}
-            disabled={isScanning}
+            disabled={isScanning || isScanLocked()}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isScanning ? (

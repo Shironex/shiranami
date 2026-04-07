@@ -10,6 +10,7 @@ import { useFoldersQuery, folderKeys } from '@/hooks/queries/useFolders';
 import { queryClient } from '@/lib/queryClient';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
+import { acquireScanLock, releaseScanLock, isScanLocked } from '@/lib/scanLock';
 
 export interface WatchedFolder {
   id: string;
@@ -30,15 +31,19 @@ export function MusicFoldersSection() {
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
 
   const handleAddFolder = useCallback(async () => {
-    if (!IS_ELECTRON) return;
+    if (!IS_ELECTRON || !acquireScanLock()) return;
     try {
       const dirPath = await window.electronAPI.dialog.openDirectory();
-      if (!dirPath) return;
+      if (!dirPath) {
+        releaseScanLock();
+        return;
+      }
 
       // Check if folder already exists
       const existing = folders.find(f => f.path === dirPath);
       if (existing) {
         toast.info(tToast('folderAlreadyExists'));
+        releaseScanLock();
         return;
       }
 
@@ -125,11 +130,13 @@ export function MusicFoldersSection() {
         }
       } finally {
         setIsScanning(false);
+        releaseScanLock();
       }
     } catch (err) {
       console.error('Failed to add folder:', err);
       toast.error(tToast('failedAddFolder'));
       setIsScanning(false);
+      releaseScanLock();
     }
   }, [addToLibrary, folders, tToast]);
 
@@ -185,7 +192,7 @@ export function MusicFoldersSection() {
 
             <button
               onClick={handleAddFolder}
-              disabled={isScanning}
+              disabled={isScanning || isScanLocked()}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-colors w-full justify-center border border-dashed border-border/40 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isScanning ? (
