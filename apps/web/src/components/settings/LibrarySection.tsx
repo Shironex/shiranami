@@ -28,6 +28,7 @@ export function LibrarySection() {
   const [isScanning, setIsScanning] = useState(false);
   const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
   const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderEntry[]>([]);
+  const [existingPlaylistNames, setExistingPlaylistNames] = useState<Set<string>>(new Set());
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
 
   const handleRescan = useCallback(async () => {
@@ -146,14 +147,14 @@ export function LibrarySection() {
       if (allDetectedSubfolders.length > 0) {
         try {
           const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
-          const existingNames = new Set(allPlaylists.map(p => p.name));
-          const newSubfolders = allDetectedSubfolders.filter(sf => !existingNames.has(sf.name));
+          const names = new Set(allPlaylists.map(p => p.name));
+          const newSubfolders = allDetectedSubfolders.filter(sf => !names.has(sf.name));
           if (newSubfolders.length > 0) {
+            setExistingPlaylistNames(names);
             setDetectedSubfolders(newSubfolders);
             setSubfolderDialogOpen(true);
           }
         } catch {
-          // On failure, show all subfolders and let the dialog handle it
           setDetectedSubfolders(allDetectedSubfolders);
           setSubfolderDialogOpen(true);
         }
@@ -259,6 +260,7 @@ export function LibrarySection() {
         onOpenChange={setSubfolderDialogOpen}
         subfolders={detectedSubfolders}
         onConfirm={handleSubfolderConfirm}
+        existingPlaylistNames={existingPlaylistNames}
       />
     </>
   );

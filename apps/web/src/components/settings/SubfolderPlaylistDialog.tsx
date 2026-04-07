@@ -25,6 +25,7 @@ interface SubfolderPlaylistDialogProps {
   onOpenChange: (open: boolean) => void;
   subfolders: SubfolderEntry[];
   onConfirm: (selectedSubfolders: SubfolderEntry[]) => void;
+  existingPlaylistNames?: Set<string>;
 }
 
 export function SubfolderPlaylistDialog({
@@ -32,6 +33,7 @@ export function SubfolderPlaylistDialog({
   onOpenChange,
   subfolders,
   onConfirm,
+  existingPlaylistNames,
 }: SubfolderPlaylistDialogProps) {
   const { t } = useTranslation('settings');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -39,7 +41,22 @@ export function SubfolderPlaylistDialog({
 
   // Check which subfolder names already exist as playlists
   useEffect(() => {
-    if (!open || !IS_ELECTRON || subfolders.length === 0) return;
+    if (!open || subfolders.length === 0) return;
+
+    // Use passed-in names if available, otherwise fetch
+    if (existingPlaylistNames) {
+      const existing = new Set<string>();
+      for (const sf of subfolders) {
+        if (existingPlaylistNames.has(sf.name)) existing.add(sf.name);
+      }
+      setExistingNames(existing);
+      setSelected(new Set(
+        subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
+      ));
+      return;
+    }
+
+    if (!IS_ELECTRON) return;
 
     let cancelled = false;
 
@@ -47,26 +64,24 @@ export function SubfolderPlaylistDialog({
       const existing = new Set<string>();
       try {
         const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
-        const existingPlaylistNames = new Set(allPlaylists.map(p => p.name));
+        const fetchedNames = new Set(allPlaylists.map(p => p.name));
         for (const sf of subfolders) {
-          if (existingPlaylistNames.has(sf.name)) existing.add(sf.name);
+          if (fetchedNames.has(sf.name)) existing.add(sf.name);
         }
       } catch {
         // ignore lookup failures
       }
       if (!cancelled) {
         setExistingNames(existing);
-        // Pre-select all subfolders that don't already exist
-        const initial = new Set(
+        setSelected(new Set(
           subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
-        );
-        setSelected(initial);
+        ));
       }
     }
 
     checkExisting();
     return () => { cancelled = true; };
-  }, [open, subfolders]);
+  }, [open, subfolders, existingPlaylistNames]);
 
   const toggleSubfolder = useCallback((path: string) => {
     setSelected(prev => {
