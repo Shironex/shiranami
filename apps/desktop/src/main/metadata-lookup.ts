@@ -132,8 +132,9 @@ async function searchItunes(
       ? bestMatch.artworkUrl100.replace('100x100bb', '600x600bb')
       : undefined;
 
-    const releaseYear = bestMatch.releaseDate
-      ? new Date(bestMatch.releaseDate).getFullYear()
+    const releaseDate = bestMatch.releaseDate ? new Date(bestMatch.releaseDate) : null;
+    const releaseYear = releaseDate && !isNaN(releaseDate.getTime())
+      ? releaseDate.getFullYear()
       : undefined;
 
     logger.info(`[metadata-lookup] iTunes match: "${bestMatch.trackName}" by "${bestMatch.artistName}" (score: ${bestScore.toFixed(2)}, album: "${bestMatch.collectionName}")`);

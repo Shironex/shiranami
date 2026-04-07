@@ -61,12 +61,12 @@ export function registerMetadataEnrichHandlers(): void {
     ): Promise<EnrichTrackResult[]> => {
       logger.info(`[metadata-enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`);
 
-      const mainWindow = getMainWindow();
       const results: EnrichTrackResult[] = [];
 
       const sendProgress = (progress: EnrichProgress) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('metadata:enrich-progress', progress);
+        const win = getMainWindow();
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('metadata:enrich-progress', progress);
         }
       };
 
@@ -151,7 +151,7 @@ export function registerMetadataEnrichHandlers(): void {
             try {
               coverImageBuffer = await downloadImage(lookup.coverImageUrl);
               // Determine MIME from URL or default to JPEG
-              coverImageMime = lookup.coverImageUrl.includes('.png')
+              coverImageMime = lookup.coverImageUrl.toLowerCase().includes('.png')
                 ? 'image/png'
                 : 'image/jpeg';
             } catch (dlError) {

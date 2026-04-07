@@ -143,18 +143,19 @@ async function writeTagsWithFFmpeg(
   const ext = path.extname(filePath);
   const dir = path.dirname(filePath);
   const baseName = path.basename(filePath, ext);
-  const tempPath = path.join(dir, `${baseName}.tmp${ext}`);
+  const timestamp = Date.now();
+  const tempPath = path.join(dir, `${baseName}.${timestamp}.tmp${ext}`);
+  const coverTempPath = options.coverImageBuffer
+    ? path.join(dir, `${baseName}.${timestamp}.tmp_cover.jpg`)
+    : null;
 
   const args: string[] = ['-i', filePath];
 
   // Add cover image input if provided
-  if (options.coverImageBuffer) {
-    const coverTempPath = path.join(dir, `${baseName}.tmp_cover.jpg`);
+  if (options.coverImageBuffer && coverTempPath) {
     await fs.promises.writeFile(coverTempPath, options.coverImageBuffer);
     args.push('-i', coverTempPath);
     args.push('-map', '0:a', '-map', '1:v', '-disposition:v', 'attached_pic');
-
-    // Clean up cover temp file after ffmpeg finishes (handled below)
   } else {
     args.push('-map', '0:a');
   }
@@ -170,10 +171,6 @@ async function writeTagsWithFFmpeg(
   if (options.trackNumber !== undefined) args.push('-metadata', `track=${options.trackNumber}`);
 
   args.push('-y', tempPath);
-
-  const coverTempPath = options.coverImageBuffer
-    ? path.join(dir, `${baseName}.tmp_cover.jpg`)
-    : null;
 
   try {
     await new Promise<void>((resolve, reject) => {
