@@ -89,7 +89,7 @@ function SortableQueueRow({ track, sortableId, queueIndex, onPlay, onRemove }: S
 
       <motion.button
         whileTap={{ scale: 0.75 }}
-        onClick={(e) => onRemove(e, queueIndex)}
+        onClick={(e: React.MouseEvent) => onRemove(e, queueIndex)}
         className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
         aria-label={t('remove')}
       >
@@ -345,7 +345,7 @@ const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, o
 
       <motion.button
         whileTap={{ scale: 0.75 }}
-        onClick={(e) => onRemove(e, index)}
+        onClick={(e: React.MouseEvent) => onRemove(e, index)}
         className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
         aria-label={t('remove')}
       >

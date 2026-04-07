@@ -96,7 +96,7 @@ export function PlaylistContextMenu({
           top: adjustedPosition.y,
           transformOrigin: 'top left',
         }}
-        onContextMenu={(event) => event.preventDefault()}
+        onContextMenu={(event: React.MouseEvent) => event.preventDefault()}
       >
         <MenuItem
           icon={<ListMusic className="w-4 h-4" />}
