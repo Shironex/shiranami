@@ -32,7 +32,8 @@ export function MetadataEnrichSection() {
       t.artist === 'Unknown Artist' ||
       t.album === 'Unknown Album' ||
       !t.albumArt ||
-      !t.genre
+      !t.genre ||
+      !t.year
   );
 
   // How many of those are skipped (already tried, no results)

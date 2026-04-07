@@ -108,7 +108,8 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
               t.artist === 'Unknown Artist' ||
               t.album === 'Unknown Album' ||
               !t.albumArt ||
-              !t.genre
+              !t.genre ||
+              !t.year
           )
         : library;
 
