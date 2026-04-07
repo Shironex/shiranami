@@ -94,7 +94,7 @@ async function searchItunes(
     }
 
     // Try to find the best match by comparing title similarity
-    const normalizedTitle = title.toLowerCase().trim();
+    const normalizedTitle = cleanedTitle.toLowerCase().trim();
     const normalizedArtist = artist.toLowerCase().trim();
 
     let bestMatch = data.results[0];
