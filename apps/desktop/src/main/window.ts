@@ -115,16 +115,23 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     logger.error(`[renderer] Failed to load: ${errorDescription} (code: ${errorCode})`);
   });
 
-  // Forward renderer console errors/warnings to main process log file
+  // Forward renderer console errors/warnings to main process log file.
+  // Uses the Event object API (positional args are deprecated in Electron 40+).
+  const NOISY_PATTERNS = [
+    'MediaImage src can only be of',       // Known Chromium limitation with custom protocols
+    'Electron Security Warning',           // Dev-only CSP warning
+  ];
+
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    // level: 0=debug, 1=info, 2=warn, 3=error
-    if (level >= 2) {
-      const source = sourceId ? `${sourceId}:${line}` : '';
-      if (level === 3) {
-        logger.error(`[renderer] ${message}`, source);
-      } else {
-        logger.warn(`[renderer] ${message}`, source);
-      }
+    // level: 0=verbose, 1=info, 2=warning, 3=error
+    if (level < 2) return;
+    if (NOISY_PATTERNS.some(p => message.includes(p))) return;
+
+    const source = sourceId ? `${sourceId}:${line}` : '';
+    if (level === 3) {
+      logger.error(`[renderer] ${message}`, source);
+    } else {
+      logger.warn(`[renderer] ${message}`, source);
     }
   });
 
