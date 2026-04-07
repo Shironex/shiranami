@@ -42,6 +42,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:tracks:get-favorites',
   'db:tracks:increment-play-count',
   'db:tracks:exists',
+  'db:tracks:exists-many',
   'db:history:record-play',
   'db:history:get-recent',
   'db:history:get-summary',
@@ -220,6 +221,7 @@ export interface ElectronAPI {
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
+      existsMany: (filePaths: string[]) => Promise<string[]>;
     };
     history: {
       recordPlay: (data: {
@@ -497,6 +499,7 @@ const electronAPI: ElectronAPI = {
       getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
       incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),
       exists: (filePath: string) => ipcRenderer.invoke('db:tracks:exists', filePath),
+      existsMany: (filePaths: string[]) => ipcRenderer.invoke('db:tracks:exists-many', filePaths) as Promise<string[]>,
     },
     history: {
       recordPlay: (data: {

@@ -149,6 +149,7 @@ export interface ElectronAPI {
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
+      existsMany: (filePaths: string[]) => Promise<string[]>;
     };
     history: {
       recordPlay: (data: {

@@ -111,6 +111,23 @@ export function registerDatabaseHandlers(): void {
     return !!row;
   });
 
+  ipcMain.handle('db:tracks:exists-many', async (_event, filePaths: string[]) => {
+    if (filePaths.length === 0) return new Set<string>();
+    const db = getDatabase();
+    const CHUNK_SIZE = 500;
+    const existing = new Set<string>();
+    for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
+      const chunk = filePaths.slice(i, i + CHUNK_SIZE);
+      const rows = db
+        .select({ filePath: tracks.filePath })
+        .from(tracks)
+        .where(inArray(tracks.filePath, chunk))
+        .all();
+      for (const row of rows) existing.add(row.filePath);
+    }
+    return [...existing];
+  });
+
   ipcMain.handle(
     'db:history:record-play',
     async (
@@ -463,6 +480,7 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:tracks:get-favorites');
   ipcMain.removeHandler('db:tracks:increment-play-count');
   ipcMain.removeHandler('db:tracks:exists');
+  ipcMain.removeHandler('db:tracks:exists-many');
   ipcMain.removeHandler('db:history:record-play');
   ipcMain.removeHandler('db:history:get-recent');
   ipcMain.removeHandler('db:history:get-summary');

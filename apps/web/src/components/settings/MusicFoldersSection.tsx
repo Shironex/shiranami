@@ -66,13 +66,10 @@ export function MusicFoldersSection() {
         const newResults = results.filter(r => !existingPaths.has(r.filePath));
 
         // Also check DB
-        const toCheck = await Promise.all(
-          newResults.map(async r => ({
-            result: r,
-            exists: await window.electronAPI.db.tracks.exists(r.filePath),
-          }))
+        const existsInDb = new Set(
+          await window.electronAPI.db.tracks.existsMany(newResults.map(r => r.filePath))
         );
-        const genuinelyNew = toCheck.filter(c => !c.exists).map(c => c.result);
+        const genuinelyNew = newResults.filter(r => !existsInDb.has(r.filePath));
 
         if (genuinelyNew.length === 0) {
           toast.info(tToast('allTracksExist'));
