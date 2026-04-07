@@ -105,7 +105,6 @@ export interface ElectronAPI {
   };
   library: {
     parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
-    parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolderGrouped: (dirPath: string) => Promise<{
       rootTracks: Array<{ filePath: string; metadata: TrackMetadata }>;

@@ -27,7 +27,6 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'dialog:open-directory',
   'dialog:open-file',
   'library:parse-metadata',
-  'library:parse-files',
   'library:scan-folder',
   'library:scan-folder-grouped',
   'library:validate-files',
@@ -197,7 +196,6 @@ export interface ElectronAPI {
   };
   library: {
     parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
-    parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolderGrouped: (dirPath: string) => Promise<{
       rootTracks: Array<{ filePath: string; metadata: TrackMetadata }>;
@@ -482,7 +480,6 @@ const electronAPI: ElectronAPI = {
   },
   library: {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
-    parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
     scanFolderGrouped: (dirPath: string) => ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
     validateFiles: (filePaths: string[]) => ipcRenderer.invoke('library:validate-files', filePaths) as Promise<string[]>,

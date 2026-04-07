@@ -92,16 +92,6 @@ export function registerLibraryHandlers(): void {
     return { filePath, metadata };
   });
 
-  // Parse metadata for multiple files
-  ipcMain.handle('library:parse-files', async (_event, filePaths: string[]) => {
-    const results: ScannedTrack[] = [];
-    for (const filePath of filePaths) {
-      const metadata = await parseAudioMetadata(filePath);
-      results.push({ filePath, metadata });
-    }
-    return results;
-  });
-
   // Scan a directory for audio files and parse their metadata
   ipcMain.handle('library:scan-folder', async (_event, dirPath: string) => {
     logger.info('Scanning folder:', dirPath);
@@ -165,7 +155,6 @@ export function registerLibraryHandlers(): void {
 
 export function cleanupLibraryHandlers(): void {
   ipcMain.removeHandler('library:parse-metadata');
-  ipcMain.removeHandler('library:parse-files');
   ipcMain.removeHandler('library:scan-folder');
   ipcMain.removeHandler('library:validate-files');
   ipcMain.removeHandler('library:scan-folder-grouped');
