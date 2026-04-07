@@ -136,7 +136,7 @@ export function TrackRowContent({
         {onToggleFavorite && (
           <motion.button
             whileTap={{ scale: 0.75 }}
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               onToggleFavorite(track.id);
             }}
@@ -157,7 +157,7 @@ export function TrackRowContent({
         {onRemoveFromPlaylist && (
           <motion.button
             whileTap={{ scale: 0.75 }}
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               onRemoveFromPlaylist(track.id);
             }}

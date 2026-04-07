@@ -166,7 +166,7 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
         {/* Favorite button */}
         <motion.button
           whileTap={{ scale: 0.75 }}
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent) => {
             e.stopPropagation();
             onToggleFavorite(station);
           }}

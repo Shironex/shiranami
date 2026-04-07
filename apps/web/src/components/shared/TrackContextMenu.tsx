@@ -220,7 +220,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
           top: adjustedPosition.y,
           transformOrigin: 'top left',
         }}
-        onContextMenu={(e) => e.preventDefault()}
+        onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
       >
         {isBulk && (
           <>

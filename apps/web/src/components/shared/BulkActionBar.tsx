@@ -36,7 +36,7 @@ function PlaylistPopover({ trackIds, onDone }: { trackIds: string[]; onDone: () 
       exit={{ opacity: 0, scale: 0.9, y: 4 }}
       transition={{ duration: 0.15 }}
       className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
     >
       <PlaylistPickerContent trackIds={trackIds} onDone={onDone} toastMode="bulk" />
     </motion.div>
