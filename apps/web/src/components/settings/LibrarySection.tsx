@@ -11,6 +11,7 @@ import { queryClient } from '@/lib/queryClient';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
+import { removeTracksFromQueue } from '@/hooks/useRemoveFromLibrary';
 import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 
 export function LibrarySection() {
@@ -125,32 +126,7 @@ export function LibrarySection() {
           if (staleIds.length > 0) {
             await window.electronAPI.db.tracks.removeMany(staleIds);
             removeFromLibrary(staleIds);
-            // Also clean up queue
-            const { queue, queueIndex, currentTrack } = usePlayerStore.getState();
-            const staleSet = new Set(staleIds);
-            const newQueue = queue.filter(t => !staleSet.has(t.id));
-            if (newQueue.length < queue.length) {
-              const isPlayingStale = currentTrack && staleSet.has(currentTrack.id);
-              let newIndex = queueIndex;
-              for (let i = 0; i < queueIndex && i < queue.length; i++) {
-                if (staleSet.has(queue[i].id)) newIndex--;
-              }
-              if (isPlayingStale) {
-                const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
-                usePlayerStore.setState({
-                  queue: newQueue,
-                  queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
-                  currentTrack: nextTrack,
-                  currentTime: 0,
-                  isPlaying: !!nextTrack,
-                });
-              } else {
-                usePlayerStore.setState({
-                  queue: newQueue,
-                  queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
-                });
-              }
-            }
+            removeTracksFromQueue(staleIds);
             totalRemoved = staleIds.length;
           }
         }
@@ -188,7 +164,7 @@ export function LibrarySection() {
     } finally {
       setIsScanning(false);
     }
-  }, [addToLibrary, tToast]);
+  }, [addToLibrary, removeFromLibrary, tToast]);
 
   const handleClearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
