@@ -41,8 +41,16 @@ export function registerDatabaseHandlers(): void {
     const db = getDatabase();
     const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
 
+    // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
+    // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
+    const CHUNK_SIZE = 100;
     return db.transaction(tx => {
-      return tx.insert(tracks).values(rows).returning().all();
+      const results: ReturnType<typeof tx.insert<typeof tracks>>[] = [];
+      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        results.push(...tx.insert(tracks).values(chunk).returning().all());
+      }
+      return results;
     });
   });
 
