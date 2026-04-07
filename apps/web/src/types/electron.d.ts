@@ -314,11 +314,12 @@ export interface ElectronAPI {
       source: string;
       error?: string;
     }>>;
+    cancelEnrichment: () => Promise<void>;
     onEnrichProgress: (callback: (data: {
       current: number;
       total: number;
       trackName: string;
-      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
     }) => void) => () => void;
   };
   share: {

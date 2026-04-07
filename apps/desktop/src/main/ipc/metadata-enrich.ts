@@ -35,8 +35,10 @@ export interface EnrichProgress {
   current: number;
   total: number;
   trackName: string;
-  status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+  status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
 }
+
+let enrichCancelled = false;
 
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
@@ -52,6 +54,12 @@ export function registerMetadataEnrichHandlers(): void {
     }
   );
 
+  // Cancel ongoing enrichment
+  ipcMain.handle('metadata:enrich-cancel', async () => {
+    enrichCancelled = true;
+    logger.info('[metadata-enrich] Cancellation requested');
+  });
+
   // Batch enrich multiple tracks
   ipcMain.handle(
     'metadata:enrich-tracks',
@@ -62,6 +70,7 @@ export function registerMetadataEnrichHandlers(): void {
     ): Promise<EnrichTrackResult[]> => {
       logger.info(`[metadata-enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`);
 
+      enrichCancelled = false;
       const results: EnrichTrackResult[] = [];
 
       const sendProgress = (progress: EnrichProgress) => {
@@ -72,6 +81,17 @@ export function registerMetadataEnrichHandlers(): void {
       };
 
       for (let i = 0; i < tracks.length; i++) {
+        if (enrichCancelled) {
+          logger.info(`[metadata-enrich] Cancelled at track ${i + 1}/${tracks.length}`);
+          sendProgress({
+            current: i + 1,
+            total: tracks.length,
+            trackName: tracks[i].title,
+            status: 'cancelled',
+          });
+          break;
+        }
+
         const track = tracks[i];
 
         sendProgress({
@@ -122,10 +142,6 @@ export function registerMetadataEnrichHandlers(): void {
             }
             if (!track.trackNumber && lookup.trackNumber) {
               updatedFields.trackNumber = lookup.trackNumber;
-            }
-            // Always update cover art if missing
-            if (!track.albumArt && lookup.coverImageUrl) {
-              // Will be handled below
             }
           } else {
             // Overwrite all fields with looked-up data
@@ -232,7 +248,7 @@ export function registerMetadataEnrichHandlers(): void {
 
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
-      logger.info(`[metadata-enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks`);
+      logger.info(`[metadata-enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${enrichCancelled ? ' (cancelled)' : ''}`);
 
       return results;
     }
@@ -241,5 +257,6 @@ export function registerMetadataEnrichHandlers(): void {
 
 export function cleanupMetadataEnrichHandlers(): void {
   ipcMain.removeHandler('metadata:lookup');
+  ipcMain.removeHandler('metadata:enrich-cancel');
   ipcMain.removeHandler('metadata:enrich-tracks');
 }

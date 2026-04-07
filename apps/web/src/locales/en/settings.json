@@ -40,6 +40,7 @@
     "enrichMetadata": "Find Missing Metadata",
     "enrichSubtitle": "Search online for missing cover art, artist, album, and genre information",
     "enriching": "Enriching...",
+    "enrichCancel": "Cancel",
     "enrichOnlyMissing": "Only fill missing fields",
     "enrichOnlyMissingDesc": "Keep existing metadata, only fill in blanks",
     "enrichWriteToFile": "Write tags to audio files",

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
-import { Search, Loader2, Disc3, Check, X } from 'lucide-react';
+import { Search, Loader2, Disc3, Check, X, Ban } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
 
@@ -15,6 +15,7 @@ export function MetadataEnrichSection() {
   const startEnrichment = useMetadataEnrichStore(s => s.startEnrichment);
   const skippedIds = useMetadataEnrichStore(s => s.skippedIds);
   const loadSkipped = useMetadataEnrichStore(s => s.loadSkipped);
+  const cancelEnrichment = useMetadataEnrichStore(s => s.cancelEnrichment);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
   const [writeToFile, setWriteToFile] = useState(true);
@@ -135,19 +136,30 @@ export function MetadataEnrichSection() {
           </div>
         )}
 
-        {/* Action button */}
-        <button
-          onClick={handleEnrich}
-          disabled={isEnriching || library.length === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 hover:bg-primary/25 text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isEnriching ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Search className="w-3.5 h-3.5" />
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleEnrich}
+            disabled={isEnriching || library.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 hover:bg-primary/25 text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isEnriching ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Search className="w-3.5 h-3.5" />
+            )}
+            {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
+          </button>
+          {isEnriching && (
+            <button
+              onClick={cancelEnrichment}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Ban className="w-3.5 h-3.5" />
+              {t('lib.enrichCancel')}
+            </button>
           )}
-          {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
-        </button>
+        </div>
       </div>
     </SettingsCard>
   );

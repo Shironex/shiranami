@@ -10,7 +10,7 @@ interface EnrichProgress {
   current: number;
   total: number;
   trackName: string;
-  status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+  status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
 }
 
 interface EnrichTrackResult {
@@ -42,6 +42,7 @@ interface MetadataEnrichActions {
   updateProgress: (progress: EnrichProgress) => void;
   loadSkipped: () => Promise<void>;
   clearSkipped: () => Promise<void>;
+  cancelEnrichment: () => Promise<void>;
   startEnrichment: (options: {
     onlyMissing: boolean;
     writeToFile: boolean;
@@ -88,6 +89,11 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     clearSkipped: async () => {
       set({ skippedIds: new Set() });
       await persistSkipped(new Set());
+    },
+
+    cancelEnrichment: async () => {
+      if (!IS_ELECTRON || !get().isEnriching) return;
+      await window.electronAPI.metadata.cancelEnrichment();
     },
 
     startEnrichment: async ({ onlyMissing, writeToFile, includeSkipped }) => {
