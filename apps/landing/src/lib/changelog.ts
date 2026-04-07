@@ -69,6 +69,96 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.13.1',
+    date: '2026-04-08',
+    title: l(
+      'Reliability & observability improvements',
+      'Poprawa niezawodności i obserwowalności'
+    ),
+    description: l(
+      'Hardened metadata enrichment with cancellation support and network timeouts, improved library scanning performance, and added comprehensive logging for better debugging.',
+      'Wzmocnione wzbogacanie metadanych z obsługą anulowania i limitami czasu sieci, poprawiona wydajność skanowania biblioteki oraz dodano kompleksowe logowanie dla lepszego debugowania.'
+    ),
+    categories: [
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Cancel button for metadata enrichment — stop long-running batch operations at any time',
+            'Przycisk anulowania wzbogacania metadanych — zatrzymaj długotrwałe operacje wsadowe w dowolnym momencie'
+          ),
+          l(
+            'Network requests now have 30-second timeouts and image downloads are capped at 10MB',
+            'Żądania sieciowe mają teraz limit 30 sekund, a pobieranie obrazów jest ograniczone do 10MB'
+          ),
+          l(
+            'Comprehensive logging across all features — startup diagnostics, database operations, library scanning with timing, and renderer error capture',
+            'Kompleksowe logowanie we wszystkich funkcjach — diagnostyka startu, operacje bazy danych, skanowanie biblioteki z pomiarami czasu oraz przechwytywanie błędów renderera'
+          ),
+          l(
+            'Open logs folder from the About section in settings for easier bug reporting',
+            'Otwieranie folderu logów z sekcji O aplikacji w ustawieniach dla łatwiejszego zgłaszania błędów'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Track number is no longer overwritten when enriching with "only fill missing" enabled',
+            'Numer utworu nie jest już nadpisywany podczas wzbogacania z włączoną opcją „tylko brakujące pola"'
+          ),
+          l(
+            'CJK bracket removal in title cleaning now preserves word spacing',
+            'Usuwanie nawiasów CJK w czyszczeniu tytułów teraz zachowuje odstępy między słowami'
+          ),
+          l(
+            'iTunes match scoring now uses the cleaned title for better accuracy',
+            'Ocena dopasowań iTunes teraz używa oczyszczonego tytułu dla lepszej trafności'
+          ),
+          l(
+            'Year field is now included in the "needs enrichment" filter',
+            'Pole roku jest teraz uwzględnione w filtrze „wymaga wzbogacenia"'
+          ),
+          l(
+            'Concurrent library scans are now prevented to avoid duplicate tracks',
+            'Jednoczesne skanowania biblioteki są teraz blokowane, aby uniknąć duplikatów utworów'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Bulk track existence check replaces N+1 IPC calls with a single batched query',
+            'Zbiorcze sprawdzanie istnienia utworów zastępuje N+1 wywołań IPC jednym zapytaniem wsadowym'
+          ),
+          l(
+            'Database updates during enrichment are now batched in a single transaction',
+            'Aktualizacje bazy danych podczas wzbogacania są teraz grupowane w jednej transakcji'
+          ),
+          l(
+            'File validation and subfolder parsing now run with bounded concurrency',
+            'Walidacja plików i parsowanie podfolderów teraz działają z ograniczoną współbieżnością'
+          ),
+        ],
+      },
+      {
+        label: l('Code Quality', 'Jakość kodu'),
+        entries: [
+          l(
+            'Removed dead IPC endpoints and deduplicated subfolder playlist logic',
+            'Usunięto martwe endpointy IPC i zdeduplikowano logikę playlist z podfolderów'
+          ),
+          l(
+            'Added test coverage for edge cases: empty arrays, chunk boundaries, and bulk deletion',
+            'Dodano pokrycie testowe dla przypadków brzegowych: puste tablice, granice chunków i masowe usuwanie'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.13.0',
     date: '2026-04-07',
     title: l(
