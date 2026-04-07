@@ -41,6 +41,7 @@
     "enrichSubtitle": "Wyszukaj brakujące okładki, artystów, albumy i gatunki w Internecie",
     "enriching": "Wzbogacanie...",
     "enrichCancel": "Anuluj",
+    "enrichCancelling": "Anulowanie...",
     "enrichOnlyMissing": "Tylko brakujące pola",
     "enrichOnlyMissingDesc": "Zachowaj istniejące metadane, uzupełnij tylko puste",
     "enrichWriteToFile": "Zapisz tagi w plikach audio",

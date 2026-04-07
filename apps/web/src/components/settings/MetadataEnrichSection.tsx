@@ -16,6 +16,7 @@ export function MetadataEnrichSection() {
   const skippedIds = useMetadataEnrichStore(s => s.skippedIds);
   const loadSkipped = useMetadataEnrichStore(s => s.loadSkipped);
   const cancelEnrichment = useMetadataEnrichStore(s => s.cancelEnrichment);
+  const isCancelling = useMetadataEnrichStore(s => s.isCancelling);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
   const [writeToFile, setWriteToFile] = useState(true);
@@ -154,10 +155,15 @@ export function MetadataEnrichSection() {
           {isEnriching && (
             <button
               onClick={cancelEnrichment}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              disabled={isCancelling}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Ban className="w-3.5 h-3.5" />
-              {t('lib.enrichCancel')}
+              {isCancelling ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Ban className="w-3.5 h-3.5" />
+              )}
+              {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
             </button>
           )}
         </div>

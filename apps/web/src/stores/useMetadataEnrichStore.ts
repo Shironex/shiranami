@@ -31,6 +31,7 @@ interface EnrichTrackResult {
 
 interface MetadataEnrichState {
   isEnriching: boolean;
+  isCancelling: boolean;
   progress: EnrichProgress | null;
   /** Track IDs that returned no results — persisted to electron-store */
   skippedIds: Set<string>;
@@ -58,6 +59,7 @@ async function persistSkipped(ids: Set<string>): Promise<void> {
 export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnrichActions>(
   (set, get) => ({
     isEnriching: false,
+    isCancelling: false,
     progress: null,
     skippedIds: new Set(),
     skippedLoaded: false,
@@ -92,7 +94,8 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     },
 
     cancelEnrichment: async () => {
-      if (!IS_ELECTRON || !get().isEnriching) return;
+      if (!IS_ELECTRON || !get().isEnriching || get().isCancelling) return;
+      set({ isCancelling: true });
       await window.electronAPI.metadata.cancelEnrichment();
     },
 
@@ -222,7 +225,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         console.error('Metadata enrichment failed:', err);
         toast.error(i18n.t('enrichFailed', { ns: 'toast' }));
       } finally {
-        set({ isEnriching: false, progress: null });
+        set({ isEnriching: false, isCancelling: false, progress: null });
       }
     },
   })
