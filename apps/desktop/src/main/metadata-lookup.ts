@@ -225,26 +225,73 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
   });
 }
 
+const IMAGE_TIMEOUT_MS = 30_000;
+const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+
 /**
  * Download an image from a URL and return it as a Buffer.
  */
 export function downloadImage(url: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
+    let settled = false;
     const request = net.request(url);
+
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        request.abort();
+        reject(new Error(`Image download timed out after ${IMAGE_TIMEOUT_MS}ms`));
+      }
+    }, IMAGE_TIMEOUT_MS);
 
     request.on('response', (response) => {
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        clearTimeout(timer);
+        settled = true;
         reject(new Error(`Image download failed with status ${response.statusCode}`));
         return;
       }
 
       const chunks: Buffer[] = [];
-      response.on('data', (chunk: Buffer) => chunks.push(chunk));
-      response.on('end', () => resolve(Buffer.concat(chunks)));
-      response.on('error', reject);
+      let totalSize = 0;
+
+      response.on('data', (chunk: Buffer) => {
+        totalSize += chunk.length;
+        if (totalSize > IMAGE_MAX_SIZE) {
+          clearTimeout(timer);
+          settled = true;
+          request.abort();
+          reject(new Error(`Image exceeds maximum size of ${IMAGE_MAX_SIZE} bytes`));
+          return;
+        }
+        chunks.push(chunk);
+      });
+
+      response.on('end', () => {
+        if (!settled) {
+          clearTimeout(timer);
+          settled = true;
+          resolve(Buffer.concat(chunks));
+        }
+      });
+
+      response.on('error', (err) => {
+        if (!settled) {
+          clearTimeout(timer);
+          settled = true;
+          reject(err);
+        }
+      });
     });
 
-    request.on('error', reject);
+    request.on('error', (err) => {
+      if (!settled) {
+        clearTimeout(timer);
+        settled = true;
+        reject(err);
+      }
+    });
+
     request.end();
   });
 }
