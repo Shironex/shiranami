@@ -69,6 +69,47 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.12.3',
+    date: '2026-04-07',
+    title: l('Large library & extraction fix', 'Poprawka dużych bibliotek i ekstrakcji'),
+    description: l(
+      'Fixed folder import failing for large music libraries and made ffmpeg extraction work on all Windows systems.',
+      'Naprawiono błąd importu folderów dla dużych bibliotek muzycznych oraz zapewniono działanie ekstrakcji ffmpeg na wszystkich systemach Windows.'
+    ),
+    categories: [
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Fixed "failed to add folder" when importing 3000+ tracks — bulk inserts are now chunked to stay within SQLite limits',
+            'Naprawiono błąd „nie udało się dodać folderu" przy importowaniu ponad 3000 utworów — masowe wstawienia są teraz dzielone na partie zgodne z limitami SQLite'
+          ),
+          l(
+            'Fixed ffmpeg extraction failing on systems without `tar` or `powershell` in PATH — now uses a 3-tier fallback: Node.js (adm-zip) → tar → PowerShell',
+            'Naprawiono błąd ekstrakcji ffmpeg na systemach bez `tar` lub `powershell` w PATH — teraz używany jest 3-etapowy fallback: Node.js (adm-zip) → tar → PowerShell'
+          ),
+          l(
+            'Fixed folder being saved to database before tracks were added, preventing ghost folder entries on import failure',
+            'Naprawiono zapisywanie folderu do bazy danych przed dodaniem utworów, zapobiegając tworzeniu pustych wpisów folderów przy błędzie importu'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Ffmpeg extraction now runs in a worker thread to keep the UI responsive during download',
+            'Ekstrakcja ffmpeg działa teraz w wątku roboczym, aby interfejs pozostawał responsywny podczas pobierania'
+          ),
+          l(
+            'Resolved `@types/react` version conflict in CI using `pnpm.packageExtensions` instead of hoist-pattern overrides',
+            'Rozwiązano konflikt wersji `@types/react` w CI używając `pnpm.packageExtensions` zamiast nadpisywania wzorców hoistowania'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.12.2',
     date: '2026-04-07',
     title: l('Windows compatibility fix', 'Poprawka kompatybilności z Windows'),
