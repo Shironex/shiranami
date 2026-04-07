@@ -9,9 +9,8 @@ import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
 import { folderKeys } from '@/hooks/queries/useFolders';
-import { useCreatePlaylistsFromSubfoldersMutation } from '@/hooks/queries/usePlaylists';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
-import type { TrackMetadata } from '@/types/electron';
+import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
 import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 
 export function LibrarySection() {
@@ -27,10 +26,8 @@ export function LibrarySection() {
   const [isClearing, setIsClearing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
-  const [detectedSubfolders, setDetectedSubfolders] = useState<
-    Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }>
-  >([]);
-  const createPlaylistsMutation = useCreatePlaylistsFromSubfoldersMutation();
+  const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderEntry[]>([]);
+  const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
 
   const handleRescan = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -49,7 +46,7 @@ export function LibrarySection() {
     if (folders.length === 0) return;
     setIsScanning(true);
     let totalAdded = 0;
-    const allDetectedSubfolders: Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }> = [];
+    const allDetectedSubfolders: SubfolderEntry[] = [];
 
     try {
       for (const folder of folders) {
@@ -192,37 +189,6 @@ export function LibrarySection() {
       setIsScanning(false);
     }
   }, [addToLibrary, tToast]);
-
-  const handleSubfolderConfirm = useCallback(
-    async (selectedSubfolders: Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }>) => {
-      if (!IS_ELECTRON) return;
-      try {
-        const libraryTracks = usePlayerStore.getState().library;
-        const pathToId = new Map(libraryTracks.map(t => [t.filePath, t.id]));
-
-        const subfolderData = selectedSubfolders.map(sf => ({
-          name: sf.name,
-          trackIds: sf.tracks
-            .map(track => pathToId.get(track.filePath))
-            .filter((id): id is string => !!id),
-        }));
-
-        const created = await createPlaylistsMutation.mutateAsync(
-          subfolderData.filter(sf => sf.trackIds.length > 0)
-        );
-
-        if (created.length > 0) {
-          toast.success(tToast('playlistsCreatedFromSubfolders', { count: created.length }));
-        } else {
-          toast.info(tToast('noNewSubfolders'));
-        }
-      } catch (err) {
-        console.error('Failed to create playlists from subfolders:', err);
-        toast.error(tToast('playlistsCreationFailed'));
-      }
-    },
-    [createPlaylistsMutation, tToast]
-  );
 
   const handleClearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
