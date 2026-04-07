@@ -155,6 +155,7 @@
     "version": "Version {{version}}",
     "tagline": "Your personal music sanctuary",
     "madeWithLove": "Made with \u2665",
-    "altMascot": "Shiranami mascot"
+    "altMascot": "Shiranami mascot",
+    "openLogs": "Open logs folder"
   }
 }

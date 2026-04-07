@@ -1,11 +1,19 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IS_ELECTRON } from '@/lib/platform';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { useAppVersion } from '@/hooks/useAppVersion';
-import { Info } from 'lucide-react';
+import { Info, FolderOpen } from 'lucide-react';
 
 export function AboutSection() {
   const { t } = useTranslation('settings');
   const version = useAppVersion();
+
+  const handleOpenLogs = useCallback(() => {
+    if (IS_ELECTRON) {
+      window.electronAPI.app.openLogsFolder();
+    }
+  }, []);
 
   return (
     <SettingsCard
@@ -35,6 +43,18 @@ export function AboutSection() {
           </p>
         </div>
       </div>
+
+      {IS_ELECTRON && (
+        <div className="px-3 pt-1 pb-2">
+          <button
+            onClick={handleOpenLogs}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            {t('abt.openLogs')}
+          </button>
+        </div>
+      )}
     </SettingsCard>
   );
 }
