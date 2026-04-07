@@ -1,4 +1,7 @@
 packages:
   - 'apps/*'
+  # Mobile excluded: its React Native deps break electron-builder packaging
+  # (pnpm list --depth Infinity exceeds Node.js string limits).
+  # Re-add when mobile is ready for release + upgrade web to React 19.
   - '!apps/mobile'
   - 'packages/*'
