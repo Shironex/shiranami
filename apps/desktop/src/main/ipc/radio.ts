@@ -6,6 +6,7 @@ import {
   type NewRadioFavorite,
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
+import { logger } from '../logger';
 
 export function registerRadioHandlers(): void {
   ipcMain.handle('radio:favorites:get-all', async () => {
@@ -14,12 +15,14 @@ export function registerRadioHandlers(): void {
   });
 
   ipcMain.handle('radio:favorites:add', async (_event, station: Omit<NewRadioFavorite, 'id'>) => {
+    logger.info(`[radio] Added favorite: "${station.name}" (${station.stationUuid})`);
     const db = getDatabase();
     const id = crypto.randomUUID();
     return db.insert(radioFavorites).values({ ...station, id }).returning().get();
   });
 
   ipcMain.handle('radio:favorites:remove', async (_event, stationUuid: string) => {
+    logger.info(`[radio] Removed favorite: ${stationUuid}`);
     const db = getDatabase();
     db.delete(radioFavorites).where(eq(radioFavorites.stationUuid, stationUuid)).run();
   });

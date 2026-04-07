@@ -27,7 +27,10 @@ async function getYoutubeId(trackId: string): Promise<string | null> {
 
   // Check cache first
   const cached = await db.select().from(youtubeMappings).where(eq(youtubeMappings.trackId, trackId)).get();
-  if (cached) return cached.youtubeId;
+  if (cached) {
+    logger.debug(`[share] YouTube ID cache hit for track ${trackId}`);
+    return cached.youtubeId;
+  }
 
   // Look up track info
   const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
@@ -108,6 +111,7 @@ export function registerShareHandlers(): void {
     const db = getDatabase();
     const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
     if (!track) throw new Error('Track not found');
+    logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
 
     const ytId = await getYoutubeId(trackId);
     if (!ytId) throw new Error('Could not find YouTube match for this track');
@@ -151,6 +155,7 @@ export function registerShareHandlers(): void {
     }
 
     if (trackRows.length === 0) throw new Error('Playlist has no tracks');
+    logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
 
     // Resolve YouTube IDs for all tracks
     const shareTracks = [];
@@ -165,6 +170,7 @@ export function registerShareHandlers(): void {
       }
     }
 
+    logger.info(`[share] Playlist "${playlist.name}": ${shareTracks.length}/${trackRows.length} tracks matched on YouTube`);
     if (shareTracks.length === 0) throw new Error('Could not find YouTube matches for any tracks');
 
     const result = await fetchApi('/api/share', {
@@ -183,6 +189,7 @@ export function registerShareHandlers(): void {
 
   // Import shared content (fetch share data by code)
   ipcMain.handle('share:import', async (_event, code: string) => {
+    logger.info(`[share] Importing share code: ${code}`);
     const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
     return result;
   });
