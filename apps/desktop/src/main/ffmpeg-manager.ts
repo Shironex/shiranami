@@ -1,7 +1,8 @@
 import { app, net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync, execFileSync } from 'child_process';
+import { execSync } from 'child_process';
+import { Worker } from 'node:worker_threads';
 import { logger } from './logger';
 import { requestJson, requestText } from './http';
 
@@ -176,6 +177,53 @@ async function downloadFFmpegMac(
   }
 }
 
+/**
+ * Resolve the path to the extract-worker script.
+ * In production it lives next to the bundled main process code inside the asar;
+ * in dev it's in dist/main after esbuild compiles it.
+ */
+function getExtractWorkerPath(): string {
+  if (app.isPackaged) {
+    return path.join(__dirname, 'extract-worker.js');
+  }
+  return path.join(app.getAppPath(), 'dist', 'main', 'extract-worker.js');
+}
+
+/**
+ * Extract a zip file on Windows using a worker thread (non-blocking).
+ * The worker tries 3 methods: adm-zip → tar → PowerShell.
+ */
+function extractZipWin(zipPath: string, destDir: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const workerPath = getExtractWorkerPath();
+    logger.info(`[ffmpeg-manager] Spawning extract worker: ${workerPath}`);
+
+    const worker = new Worker(workerPath, {
+      workerData: { zipPath, destDir },
+    });
+
+    worker.on('message', (msg: { success: boolean; method?: string; error?: string }) => {
+      if (msg.success) {
+        logger.info(`[ffmpeg-manager] Extraction succeeded via ${msg.method}`);
+        resolve();
+      } else {
+        reject(new Error(msg.error ?? 'Extraction failed in worker'));
+      }
+    });
+
+    worker.on('error', (err) => {
+      logger.error('[ffmpeg-manager] Extract worker error:', err);
+      reject(err);
+    });
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Extract worker exited with code ${code}`));
+      }
+    });
+  });
+}
+
 async function downloadFFmpegWin(
   binDir: string,
   onProgress?: (percent: number) => void
@@ -192,20 +240,11 @@ async function downloadFFmpegWin(
       onProgress?.(Math.round(pct * 0.9));
     });
 
-    // Extract using PowerShell Expand-Archive (universally available on Windows 10/11)
+    // Extract zip with 3-tier fallback: Node.js → tar → PowerShell
     onProgress?.(92);
     logger.info('[ffmpeg-manager] Extracting ffmpeg...');
     fs.mkdirSync(extractDir, { recursive: true });
-    execFileSync('powershell', [
-      '-NoProfile',
-      '-Command',
-      'Expand-Archive',
-      '-Path',
-      zipPath,
-      '-DestinationPath',
-      extractDir,
-      '-Force',
-    ], { timeout: 120000 });
+    await extractZipWin(zipPath, extractDir);
     fs.unlinkSync(zipPath);
 
     // Find ffmpeg.exe and ffprobe.exe inside the extracted directory

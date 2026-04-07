@@ -141,157 +141,50 @@ describe('ffmpeg-manager', () => {
       }
     });
 
-    it('uses PowerShell Expand-Archive instead of tar for extraction', async () => {
-      vi.resetModules();
+    // Helper: mock Worker to simulate extraction result
+    function createDownloadMocks(workerResponse: { success: boolean; method?: string; error?: string }) {
+      const mockWorkerConstructor = vi.fn();
+      const extractDir = path.join(tempDir, 'bin', '_ffmpeg_extract');
 
-      // Mock child_process at module level
-      const mockExecFileSync = vi.fn();
-      vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
-        execFileSync: mockExecFileSync,
+      vi.doMock('node:worker_threads', () => ({
+        Worker: vi.fn().mockImplementation(() => {
+          const handlers: Record<string, (...args: unknown[]) => void> = {};
+          mockWorkerConstructor();
+          // Simulate async worker message
+          setTimeout(() => handlers['message']?.(workerResponse), 0);
+          return {
+            on(event: string, cb: (...args: unknown[]) => void) {
+              handlers[event] = cb;
+              return this;
+            },
+          };
+        }),
       }));
 
-      // Mock electron app to use our temp dir
+      vi.doMock('child_process', () => ({ execSync: vi.fn() }));
+
       vi.doMock('electron', () => ({
-        app: {
-          isPackaged: true,
-          getPath: () => tempDir,
-          getAppPath: () => tempDir,
-        },
+        app: { isPackaged: true, getPath: () => tempDir, getAppPath: () => tempDir },
         net: {
           request: vi.fn(() => {
-            // Simulate a successful download that writes a zip file
             const handlers: Record<string, (...args: unknown[]) => void> = {};
             return {
-              on(event: string, cb: (...args: unknown[]) => void) {
-                handlers[event] = cb;
-              },
+              on(event: string, cb: (...args: unknown[]) => void) { handlers[event] = cb; },
               end() {
-                const responseHandlers: Record<string, (...args: unknown[]) => void> = {};
-                const response = {
+                const rh: Record<string, (...args: unknown[]) => void> = {};
+                handlers['response']!({
                   statusCode: 200,
                   headers: { 'content-length': '100' },
-                  on(event: string, cb: (...args: unknown[]) => void) {
-                    responseHandlers[event] = cb;
-                  },
-                };
-                handlers['response']!(response);
-                // Send data then end
-                responseHandlers['data']!(Buffer.alloc(100));
-                responseHandlers['end']!();
+                  on(event: string, cb: (...args: unknown[]) => void) { rh[event] = cb; },
+                });
+                rh['data']!(Buffer.alloc(100));
+                rh['end']!();
               },
             };
           }),
         },
       }));
 
-      // Mock fs operations for the extraction flow
-      const extractDir = path.join(tempDir, 'bin', '_ffmpeg_extract');
-
-      vi.doMock('fs', async () => {
-        const actualFs = await vi.importActual<typeof import('fs')>('fs');
-        return {
-          ...actualFs,
-          mkdirSync: vi.fn(),
-          unlinkSync: vi.fn(),
-          copyFileSync: vi.fn(),
-          rmSync: vi.fn(),
-          existsSync: vi.fn().mockReturnValue(true),
-          createWriteStream: vi.fn(() => ({
-            write: vi.fn(),
-            end: vi.fn((cb: () => void) => cb()),
-            destroy: vi.fn(),
-            on: vi.fn(),
-          })),
-          readdirSync: vi.fn((dir: string) => {
-            // Simulate the nested ffmpeg archive structure
-            if (dir === extractDir) {
-              return [
-                { name: 'ffmpeg-build', isFile: () => false, isDirectory: () => true },
-              ];
-            }
-            if (dir.includes('ffmpeg-build') && dir.endsWith('bin')) {
-              return [
-                { name: 'ffmpeg.exe', isFile: () => true, isDirectory: () => false },
-                { name: 'ffprobe.exe', isFile: () => true, isDirectory: () => false },
-              ];
-            }
-            if (dir.includes('ffmpeg-build')) {
-              return [
-                { name: 'bin', isFile: () => false, isDirectory: () => true },
-              ];
-            }
-            return [];
-          }),
-        };
-      });
-
-      const mod = await import('./ffmpeg-manager');
-      await mod.downloadFFmpeg();
-
-      // Verify PowerShell was called with separate args, NOT tar
-      expect(mockExecFileSync).toHaveBeenCalledTimes(1);
-      expect(mockExecFileSync).toHaveBeenCalledWith(
-        'powershell',
-        expect.arrayContaining([
-          '-NoProfile',
-          '-Command',
-          'Expand-Archive',
-          '-Path',
-          '-DestinationPath',
-          '-Force',
-        ]),
-        expect.objectContaining({ timeout: 120000 })
-      );
-
-      // Verify tar was NOT used
-      const calls = mockExecFileSync.mock.calls;
-      for (const call of calls) {
-        expect(call[0]).not.toBe('tar');
-      }
-    });
-
-    it('passes -Force flag to overwrite existing extraction', async () => {
-      vi.resetModules();
-
-      const mockExecFileSync = vi.fn();
-      vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
-        execFileSync: mockExecFileSync,
-      }));
-
-      vi.doMock('electron', () => ({
-        app: {
-          isPackaged: true,
-          getPath: () => tempDir,
-          getAppPath: () => tempDir,
-        },
-        net: {
-          request: vi.fn(() => {
-            const handlers: Record<string, (...args: unknown[]) => void> = {};
-            return {
-              on(event: string, cb: (...args: unknown[]) => void) {
-                handlers[event] = cb;
-              },
-              end() {
-                const responseHandlers: Record<string, (...args: unknown[]) => void> = {};
-                const response = {
-                  statusCode: 200,
-                  headers: { 'content-length': '100' },
-                  on(event: string, cb: (...args: unknown[]) => void) {
-                    responseHandlers[event] = cb;
-                  },
-                };
-                handlers['response']!(response);
-                responseHandlers['data']!(Buffer.alloc(100));
-                responseHandlers['end']!();
-              },
-            };
-          }),
-        },
-      }));
-
-      const extractDir = path.join(tempDir, 'bin', '_ffmpeg_extract');
       vi.doMock('fs', async () => {
         const actualFs = await vi.importActual<typeof import('fs')>('fs');
         return {
@@ -325,52 +218,73 @@ describe('ffmpeg-manager', () => {
         };
       });
 
+      return { mockWorkerConstructor };
+    }
+
+    it('spawns a worker thread for extraction', async () => {
+      vi.resetModules();
+      const { mockWorkerConstructor } = createDownloadMocks({ success: true, method: 'adm-zip' });
+
       const mod = await import('./ffmpeg-manager');
       await mod.downloadFFmpeg();
 
-      const powershellCommand = mockExecFileSync.mock.calls[0]![1 as number] as string[];
-      expect(powershellCommand.some((arg: string) => arg.includes('-Force'))).toBe(true);
+      expect(mockWorkerConstructor).toHaveBeenCalledTimes(1);
+    });
+
+    it('resolves when worker reports success', async () => {
+      vi.resetModules();
+      createDownloadMocks({ success: true, method: 'tar' });
+
+      const mod = await import('./ffmpeg-manager');
+      // Should not throw
+      await expect(mod.downloadFFmpeg()).resolves.toBeUndefined();
+    });
+
+    it('rejects when worker reports failure', async () => {
+      vi.resetModules();
+      createDownloadMocks({ success: false, error: 'all extractors failed' });
+
+      const mod = await import('./ffmpeg-manager');
+      await expect(mod.downloadFFmpeg()).rejects.toThrow('all extractors failed');
     });
 
     it('cleans up zip and extract dir on extraction failure', async () => {
       vi.resetModules();
 
-      const mockExecFileSync = vi.fn().mockImplementation(() => {
-        throw new Error('PowerShell failed');
-      });
       const mockUnlinkSync = vi.fn();
       const mockRmSync = vi.fn();
 
-      vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
-        execFileSync: mockExecFileSync,
+      vi.doMock('node:worker_threads', () => ({
+        Worker: vi.fn().mockImplementation(() => {
+          const handlers: Record<string, (...args: unknown[]) => void> = {};
+          setTimeout(() => handlers['message']?.({ success: false, error: 'extraction failed' }), 0);
+          return {
+            on(event: string, cb: (...args: unknown[]) => void) {
+              handlers[event] = cb;
+              return this;
+            },
+          };
+        }),
       }));
 
+      vi.doMock('child_process', () => ({ execSync: vi.fn() }));
+
       vi.doMock('electron', () => ({
-        app: {
-          isPackaged: true,
-          getPath: () => tempDir,
-          getAppPath: () => tempDir,
-        },
+        app: { isPackaged: true, getPath: () => tempDir, getAppPath: () => tempDir },
         net: {
           request: vi.fn(() => {
             const handlers: Record<string, (...args: unknown[]) => void> = {};
             return {
-              on(event: string, cb: (...args: unknown[]) => void) {
-                handlers[event] = cb;
-              },
+              on(event: string, cb: (...args: unknown[]) => void) { handlers[event] = cb; },
               end() {
-                const responseHandlers: Record<string, (...args: unknown[]) => void> = {};
-                const response = {
+                const rh: Record<string, (...args: unknown[]) => void> = {};
+                handlers['response']!({
                   statusCode: 200,
                   headers: { 'content-length': '100' },
-                  on(event: string, cb: (...args: unknown[]) => void) {
-                    responseHandlers[event] = cb;
-                  },
-                };
-                handlers['response']!(response);
-                responseHandlers['data']!(Buffer.alloc(100));
-                responseHandlers['end']!();
+                  on(event: string, cb: (...args: unknown[]) => void) { rh[event] = cb; },
+                });
+                rh['data']!(Buffer.alloc(100));
+                rh['end']!();
               },
             };
           }),
@@ -397,9 +311,8 @@ describe('ffmpeg-manager', () => {
 
       const mod = await import('./ffmpeg-manager');
 
-      await expect(mod.downloadFFmpeg()).rejects.toThrow('PowerShell failed');
+      await expect(mod.downloadFFmpeg()).rejects.toThrow('extraction failed');
 
-      // Should attempt cleanup of zip file and extract dir
       expect(mockUnlinkSync).toHaveBeenCalled();
       expect(mockRmSync).toHaveBeenCalled();
     });

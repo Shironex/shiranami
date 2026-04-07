@@ -29,10 +29,12 @@
     "electron-updater": "^6.8.3",
     "lrclib-api": "^2.0.4",
     "music-metadata": "^11.12.3",
+    "adm-zip": "^0.5.17",
     "node-addon-api": "^8.6.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
+    "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.2",
     "cross-env": "^10.1.0",

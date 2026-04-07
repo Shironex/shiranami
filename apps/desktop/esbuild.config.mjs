@@ -12,7 +12,7 @@ const external = [
 ];
 
 await build({
-  entryPoints: ['src/main/index.ts', 'src/main/preload.ts'],
+  entryPoints: ['src/main/index.ts', 'src/main/preload.ts', 'src/main/extract-worker.ts'],
   bundle: true,
   platform: 'node',
   target: 'node22',
