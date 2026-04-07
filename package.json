@@ -1,6 +1,6 @@
 {
   "name": "shiranami",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "private": true,
   "description": "Shiranami - Your personal music sanctuary",
   "license": "SEE LICENSE IN LICENSE",
@@ -18,7 +18,9 @@
           "@types/react": "*"
         },
         "peerDependenciesMeta": {
-          "@types/react": { "optional": true }
+          "@types/react": {
+            "optional": true
+          }
         }
       },
       "sonner": {
@@ -26,7 +28,9 @@
           "@types/react": "*"
         },
         "peerDependenciesMeta": {
-          "@types/react": { "optional": true }
+          "@types/react": {
+            "optional": true
+          }
         }
       },
       "cmdk": {
@@ -34,7 +38,9 @@
           "@types/react": "*"
         },
         "peerDependenciesMeta": {
-          "@types/react": { "optional": true }
+          "@types/react": {
+            "optional": true
+          }
         }
       },
       "react-window": {
@@ -42,7 +48,9 @@
           "@types/react": "*"
         },
         "peerDependenciesMeta": {
-          "@types/react": { "optional": true }
+          "@types/react": {
+            "optional": true
+          }
         }
       },
       "@dnd-kit/core": {
@@ -50,7 +58,9 @@
           "@types/react": "*"
         },
         "peerDependenciesMeta": {
-          "@types/react": { "optional": true }
+          "@types/react": {
+            "optional": true
+          }
         }
       }
     },
