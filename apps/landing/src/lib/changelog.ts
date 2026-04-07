@@ -69,6 +69,43 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.12.2',
+    date: '2026-04-07',
+    title: l('Windows compatibility fix', 'Poprawka kompatybilności z Windows'),
+    description: l(
+      'Fixed ffmpeg extraction failing on some Windows systems, improved test infrastructure, and resolved type-check issues.',
+      'Naprawiono błąd ekstrakcji ffmpeg na niektórych systemach Windows, ulepszono infrastrukturę testów i rozwiązano problemy z kontrolą typów.'
+    ),
+    categories: [
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Fixed ffmpeg dependency download failing on Windows systems where `tar` is not available — now uses PowerShell `Expand-Archive` instead',
+            'Naprawiono błąd pobierania zależności ffmpeg na systemach Windows, gdzie `tar` nie jest dostępny — teraz używany jest PowerShell `Expand-Archive`'
+          ),
+          l(
+            'Fixed `@types/react` version conflict between web and mobile workspaces causing type-check failures in CI',
+            'Naprawiono konflikt wersji `@types/react` między workspace\'ami web i mobile, powodujący błędy kontroli typów w CI'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Added pure-JS SQLite mock (`sql.js`) for integration tests — no longer depends on native `better-sqlite3` binary matching the Node ABI version',
+            'Dodano mock SQLite w czystym JS (`sql.js`) dla testów integracyjnych — nie wymaga już natywnej biblioteki `better-sqlite3` pasującej do wersji ABI Node'
+          ),
+          l(
+            'Added ffmpeg-manager test suite covering extraction, cleanup, and path helpers',
+            'Dodano zestaw testów ffmpeg-manager obejmujący ekstrakcję, czyszczenie i helpery ścieżek'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.12.1',
     date: '2026-04-01',
     title: l('Security patch', 'Łatka bezpieczeństwa'),
