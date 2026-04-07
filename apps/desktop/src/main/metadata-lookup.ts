@@ -29,7 +29,7 @@ export function cleanTitleForSearch(title: string, artist: string): string {
     // Square bracket noise: [Official Audio], [Looped], [+Lyrics], [male], [NMV], [Wave], etc.
     .replace(/\s*\[[^\]]*\]/g, '')
     // CJK brackets: 「...」【...】
-    .replace(/[「」『』]/g, '')
+    .replace(/[「」『』]/g, ' ')
     .replace(/【[^】]*】/g, '')
     // Pipe-separated suffixes: | ENGLISH ver | AmaLee
     .replace(/\s*[|｜]\s*.*/g, '')
@@ -39,6 +39,8 @@ export function cleanTitleForSearch(title: string, artist: string): string {
     .replace(/^Nightcore\s*[-–]\s*/i, '')
     // Strip "ft." / "feat." trailing credits for cleaner search
     .replace(/\s*(?:ft\.?|feat\.?)\s+.+$/i, '')
+    // Collapse multiple spaces
+    .replace(/\s+/g, ' ')
     .trim();
 
   return cleaned || title;

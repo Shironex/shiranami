@@ -87,9 +87,9 @@ describe('cleanTitleForSearch', () => {
         .toBe('star shopping');
     });
 
-    it('strips CJK brackets 「」', () => {
+    it('strips CJK brackets 「」 and preserves spacing', () => {
       expect(cleanTitleForSearch('In The End「Linkin Park」', 'Unknown Artist'))
-        .toBe('In The EndLinkin Park');
+        .toBe('In The End Linkin Park');
     });
 
     it('strips CJK brackets 【】with content', () => {
