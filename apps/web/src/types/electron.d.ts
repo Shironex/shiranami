@@ -264,6 +264,7 @@ export interface ElectronAPI {
   };
   app: {
     getVersion: () => Promise<string>;
+    openLogsFolder: () => Promise<void>;
   };
   playlist: {
     extract: (url: string) => Promise<SearchResult[]>;

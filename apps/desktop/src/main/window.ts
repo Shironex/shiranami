@@ -106,6 +106,28 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     }
   });
 
+  // Capture renderer crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    logger.error(`[renderer] Process gone: reason=${details.reason}, exitCode=${details.exitCode}`);
+  });
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    logger.error(`[renderer] Failed to load: ${errorDescription} (code: ${errorCode})`);
+  });
+
+  // Forward renderer console errors/warnings to main process log file
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    // level: 0=debug, 1=info, 2=warn, 3=error
+    if (level >= 2) {
+      const source = sourceId ? `${sourceId}:${line}` : '';
+      if (level === 3) {
+        logger.error(`[renderer] ${message}`, source);
+      } else {
+        logger.warn(`[renderer] ${message}`, source);
+      }
+    }
+  });
+
   if (isDev) {
     logger.info('Development mode - loading from Vite dev server');
     mainWindow.webContents.openDevTools();

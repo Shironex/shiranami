@@ -1,4 +1,5 @@
 import { join } from 'path';
+import * as os from 'os';
 import { app, BrowserWindow, protocol } from 'electron';
 import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
@@ -106,6 +107,9 @@ app.on('open-url', (event, url) => {
 
 async function bootstrap(): Promise<void> {
   logger.info(`Shiranami v${app.getVersion()} starting...`);
+  logger.info(`[system] OS: ${os.platform()} ${os.release()} (${os.arch()})`);
+  logger.info(`[system] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Node: ${process.versions.node}`);
+  logger.info(`[system] Memory: ${Math.round(os.totalmem() / 1024 / 1024)}MB, userData: ${app.getPath('userData')}`);
   logger.info(`[security] App packaged: ${app.isPackaged}`);
 
   initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });

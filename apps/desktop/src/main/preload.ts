@@ -24,6 +24,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'store:set',
   'store:delete',
   'app:get-version',
+  'app:open-logs-folder',
   'dialog:open-directory',
   'dialog:open-file',
   'library:parse-metadata',
@@ -193,6 +194,7 @@ export interface ElectronAPI {
   };
   app: {
     getVersion: () => Promise<string>;
+    openLogsFolder: () => Promise<void>;
   };
   library: {
     parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
@@ -477,6 +479,7 @@ const electronAPI: ElectronAPI = {
   },
   app: {
     getVersion: () => ipcRenderer.invoke('app:get-version'),
+    openLogsFolder: () => ipcRenderer.invoke('app:open-logs-folder'),
   },
   library: {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
