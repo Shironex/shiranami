@@ -1,4 +1,5 @@
 import { net } from 'electron';
+import { logger } from './logger';
 
 type RequestOptions = {
   headers?: Record<string, string>;
@@ -9,6 +10,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 
 export function requestText(url: string, options: RequestOptions = {}): Promise<string> {
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const startTime = Date.now();
 
   return new Promise<string>((resolve, reject) => {
     let settled = false;
@@ -18,6 +20,7 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
       if (!settled) {
         settled = true;
         request.abort();
+        logger.warn(`[http] Request timed out after ${timeout}ms: ${url}`);
         reject(new Error(`Request timed out after ${timeout}ms: ${url}`));
       }
     }, timeout);
@@ -32,7 +35,8 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
       if (statusCode < 200 || statusCode >= 300) {
         clearTimeout(timer);
         settled = true;
-        reject(new Error(`Request failed with status ${statusCode}`));
+        logger.warn(`[http] Request failed: ${url} - status ${statusCode}`);
+        reject(new Error(`Request failed with status ${statusCode}: ${url}`));
         return;
       }
 
@@ -46,6 +50,7 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
           resolve(Buffer.concat(chunks).toString('utf-8'));
         }
       });
@@ -54,6 +59,7 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          logger.warn(`[http] Response error: ${url}`, err.message);
           reject(err);
         }
       });
@@ -63,6 +69,7 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
       if (!settled) {
         clearTimeout(timer);
         settled = true;
+        logger.warn(`[http] Request error: ${url}`, err.message);
         reject(err);
       }
     });
