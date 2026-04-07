@@ -142,6 +142,51 @@ describe('database ipc (integration)', () => {
     expect(all).toHaveLength(250);
   });
 
+  it('tracks:add-many handles empty array', async () => {
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const result = (await addMany(null as never, [])) as unknown[];
+    expect(result).toHaveLength(0);
+  });
+
+  it('tracks:add-many handles exactly 100 tracks (one full chunk)', async () => {
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const incoming = Array.from({ length: 100 }, (_, i) => ({
+      filePath: `/music/exact-chunk-${i}.mp3`,
+      title: `Track ${i}`,
+      artist: 'Artist',
+      album: 'Album',
+      duration: 120,
+    }));
+
+    const result = (await addMany(null as never, incoming)) as Array<{ id: string }>;
+    expect(result).toHaveLength(100);
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as unknown[];
+    expect(all).toHaveLength(100);
+  });
+
+  it('tracks:remove-many handles chunked deletion', async () => {
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const incoming = Array.from({ length: 10 }, (_, i) => ({
+      filePath: `/music/remove-many-${i}.mp3`,
+      title: `Remove Track ${i}`,
+      artist: 'Artist',
+      album: 'Album',
+      duration: 120,
+    }));
+
+    const added = (await addMany(null as never, incoming)) as Array<{ id: string }>;
+    expect(added).toHaveLength(10);
+
+    const removeMany = ipcHandlers.get('db:tracks:remove-many')!;
+    await removeMany(null as never, added.map(t => t.id));
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as unknown[];
+    expect(all).toHaveLength(0);
+  });
+
   /* ------------------------------------------------------------------ */
   /*  tracks:remove                                                     */
   /* ------------------------------------------------------------------ */
