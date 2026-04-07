@@ -47,7 +47,7 @@ export function MetadataEnrichSection() {
     <SettingsCard icon={Disc3} title={
       <span className="flex items-center gap-2">
         {t('lib.enrichMetadata')}
-        <span className="px-1.5 py-0.5 rounded-md bg-orange-500/15 text-orange-400 text-[10px] font-semibold uppercase tracking-wider">
+        <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-orange-500/15 text-orange-400 text-[9px] font-semibold uppercase tracking-wider leading-none">
           {t('lib.experimental')}
         </span>
       </span>
