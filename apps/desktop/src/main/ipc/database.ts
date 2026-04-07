@@ -16,6 +16,7 @@ import {
   type NewPlayHistory,
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
+import { logger } from '../logger';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
@@ -38,13 +39,17 @@ export function registerDatabaseHandlers(): void {
   });
 
   ipcMain.handle('db:tracks:add-many', async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
+    const start = Date.now();
     const db = getDatabase();
     const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
+    const chunks = Math.ceil(rows.length / 100);
+
+    logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
 
     // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
     // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
     const CHUNK_SIZE = 100;
-    return db.transaction(tx => {
+    const results = db.transaction(tx => {
       const results = [];
       for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
         const chunk = rows.slice(i, i + CHUNK_SIZE);
@@ -52,6 +57,9 @@ export function registerDatabaseHandlers(): void {
       }
       return results;
     });
+
+    logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
+    return results;
   });
 
   ipcMain.handle('db:tracks:remove', async (_event, id: string) => {
@@ -61,6 +69,8 @@ export function registerDatabaseHandlers(): void {
 
   ipcMain.handle('db:tracks:remove-many', async (_event, ids: string[]) => {
     if (ids.length === 0) return;
+    logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
+    const start = Date.now();
     const db = getDatabase();
     const CHUNK_SIZE = 500;
     db.transaction(tx => {
@@ -69,6 +79,7 @@ export function registerDatabaseHandlers(): void {
         tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
       }
     });
+    logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
   });
 
   ipcMain.handle('db:tracks:update', async (_event, id: string, data: Partial<NewTrack>) => {
@@ -80,6 +91,7 @@ export function registerDatabaseHandlers(): void {
     'db:tracks:update-many',
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
       if (updates.length === 0) return [];
+      logger.info(`[database] tracks:update-many: updating ${updates.length} tracks`);
       const db = getDatabase();
       return db.transaction(tx => {
         return updates.map(({ id, data }) =>
@@ -304,6 +316,7 @@ export function registerDatabaseHandlers(): void {
   });
 
   ipcMain.handle('db:folders:add', async (_event, folderPath: string) => {
+    logger.info(`[database] folders:add: "${folderPath}"`);
     const db = getDatabase();
     const id = crypto.randomUUID();
     const row: NewFolder = { id, path: folderPath };
@@ -311,6 +324,7 @@ export function registerDatabaseHandlers(): void {
   });
 
   ipcMain.handle('db:folders:remove', async (_event, id: string) => {
+    logger.info(`[database] folders:remove: ${id}`);
     const db = getDatabase();
     db.delete(folders).where(eq(folders.id, id)).run();
   });
@@ -340,6 +354,7 @@ export function registerDatabaseHandlers(): void {
   ipcMain.handle(
     'db:playlists:create',
     async (_event, data: { name: string; description?: string; coverArt?: string }) => {
+      logger.info(`[database] playlists:create: "${data.name}"`);
       const db = getDatabase();
       const id = crypto.randomUUID();
       const row: NewPlaylist = { id, ...data };
@@ -365,6 +380,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   ipcMain.handle('db:playlists:delete', async (_event, id: string) => {
+    logger.info(`[database] playlists:delete: ${id}`);
     const db = getDatabase();
     db.delete(playlists).where(eq(playlists.id, id)).run();
   });
@@ -423,6 +439,7 @@ export function registerDatabaseHandlers(): void {
   ipcMain.handle(
     'db:playlists:create-with-tracks',
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
+      logger.info(`[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`);
       const db = getDatabase();
       return db.transaction(tx => {
         const playlistId = crypto.randomUUID();
