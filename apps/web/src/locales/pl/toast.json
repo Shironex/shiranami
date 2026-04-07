@@ -81,5 +81,13 @@
   "createdPlaylistAddedTracks": "Utworzono \"{{name}}\" i dodano {{count}} utworów",
   "removedTracksFromLibrary": "Usunięto {{count}} utworów z biblioteki",
   "movedTracksToRecycle": "Przeniesiono {{count}} utworów do kosza",
-  "removedTracksFromPlaylist": "Usunięto {{count}} utworów z playlisty"
+  "removedTracksFromPlaylist": "Usunięto {{count}} utworów z playlisty",
+  "removedStaleTracks_one": "Usunięto {{count}} brakujący utwór z biblioteki",
+  "removedStaleTracks_few": "Usunięto {{count}} brakujące utwory z biblioteki",
+  "removedStaleTracks_many": "Usunięto {{count}} brakujących utworów z biblioteki",
+  "removedStaleTracks_other": "Usunięto {{count}} brakujących utworów z biblioteki",
+  "rescanSummary": "Znaleziono {{added}} nowych, usunięto {{removed}} brakujących utworów",
+  "playlistsCreatedFromSubfolders": "Utworzono {{count}} playlist(ę/y) z podfolderów",
+  "playlistsCreationFailed": "Nie udało się utworzyć playlist z podfolderów",
+  "noNewSubfolders": "Nie znaleziono nowych podfolderów"
 }

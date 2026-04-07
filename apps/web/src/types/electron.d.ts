@@ -107,6 +107,15 @@ export interface ElectronAPI {
     parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
+    scanFolderGrouped: (dirPath: string) => Promise<{
+      rootTracks: Array<{ filePath: string; metadata: TrackMetadata }>;
+      subfolders: Array<{
+        name: string;
+        path: string;
+        tracks: Array<{ filePath: string; metadata: TrackMetadata }>;
+      }>;
+    }>;
+    validateFiles: (filePaths: string[]) => Promise<string[]>;
   };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;
@@ -158,7 +167,9 @@ export interface ElectronAPI {
     playlists: {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
+      getByName: (name: string) => Promise<Playlist | null>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<Playlist>;
       update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
       delete: (id: string) => Promise<void>;
       getTracks: (playlistId: string) => Promise<unknown[]>;

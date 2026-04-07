@@ -65,6 +65,8 @@ function createElectronAPIMock(): ElectronAPI {
       parseMetadata: vi.fn(),
       parseFiles: vi.fn(),
       scanFolder: vi.fn(),
+      scanFolderGrouped: asyncFn({ rootTracks: [], subfolders: [] }),
+      validateFiles: asyncFn([]),
     },
     media: {
       onCommand: vi.fn(() => noopUnsub()),
@@ -96,7 +98,9 @@ function createElectronAPIMock(): ElectronAPI {
       playlists: {
         getAll: asyncFn([]),
         get: vi.fn(),
+        getByName: asyncFn(null),
         create: vi.fn(),
+        createWithTracks: vi.fn(),
         update: vi.fn(),
         delete: asyncFn(undefined),
         getTracks: asyncFn([]),
