@@ -146,10 +146,17 @@ export function registerLibraryHandlers(): void {
 
     const rootTracks = await parseAudioFiles(rootFiles);
 
+    const SUBFOLDER_CONCURRENCY = 4;
     const parsedSubfolders = [];
-    for (const subfolder of subfolders) {
-      const tracks = await parseAudioFiles(subfolder.files);
-      parsedSubfolders.push({ name: subfolder.name, path: subfolder.path, tracks });
+    for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
+      const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map(async (subfolder) => {
+          const tracks = await parseAudioFiles(subfolder.files);
+          return { name: subfolder.name, path: subfolder.path, tracks };
+        })
+      );
+      parsedSubfolders.push(...results);
     }
 
     return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
