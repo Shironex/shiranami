@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@/lib/queryClient';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
+import { playlistKeys } from '@/hooks/queries/usePlaylists';
 
 /**
  * Encapsulates the logic for removing tracks from the library and cleaning up queue state.
@@ -59,6 +60,7 @@ export function useRemoveFromLibrary() {
       removeFromLibrary(ids);
       removeTracksFromQueue(ids);
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+      queryClient.invalidateQueries({ queryKey: playlistKeys.all });
       toast.success(
         ids.length > 1
           ? tToast('removedTracksFromLibrary', { count: ids.length })
@@ -92,6 +94,7 @@ export function useRemoveFromLibrary() {
       removeFromLibrary(ids);
       removeTracksFromQueue(ids);
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+      queryClient.invalidateQueries({ queryKey: playlistKeys.all });
 
       toast.success(
         ids.length > 1
