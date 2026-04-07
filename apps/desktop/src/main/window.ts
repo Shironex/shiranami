@@ -120,6 +120,9 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   const NOISY_PATTERNS = [
     'MediaImage src can only be of',       // Known Chromium limitation with custom protocols
     'Electron Security Warning',           // Dev-only CSP warning
+    '[vite]',                              // Vite HMR messages (dev-only noise)
+    'Download the React DevTools',         // React dev tools promo
+    'i18next is made possible',            // i18next promo
   ];
 
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
