@@ -164,10 +164,11 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         const successResults = results.filter(r => r.success);
         const failedCount = results.filter(r => !r.success).length;
 
-        for (const result of successResults) {
-          if (Object.keys(result.updatedFields).length > 0) {
-            await window.electronAPI.db.tracks.update(result.id, result.updatedFields);
-          }
+        const updates = successResults
+          .filter(r => Object.keys(r.updatedFields).length > 0)
+          .map(r => ({ id: r.id, data: r.updatedFields }));
+        if (updates.length > 0) {
+          await window.electronAPI.db.tracks.updateMany(updates);
         }
 
         // Refresh library from DB

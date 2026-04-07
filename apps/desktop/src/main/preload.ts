@@ -38,6 +38,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:tracks:remove',
   'db:tracks:remove-many',
   'db:tracks:update',
+  'db:tracks:update-many',
   'db:tracks:toggle-favorite',
   'db:tracks:get-favorites',
   'db:tracks:increment-play-count',
@@ -217,6 +218,7 @@ export interface ElectronAPI {
       remove: (id: string) => Promise<void>;
       removeMany: (ids: string[]) => Promise<void>;
       update: (id: string, data: unknown) => Promise<unknown>;
+      updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<unknown[]>;
       toggleFavorite: (id: string) => Promise<unknown>;
       getFavorites: () => Promise<unknown[]>;
       incrementPlayCount: (id: string) => Promise<unknown>;
@@ -495,6 +497,7 @@ const electronAPI: ElectronAPI = {
       remove: (id: string) => ipcRenderer.invoke('db:tracks:remove', id),
       removeMany: (ids: string[]) => ipcRenderer.invoke('db:tracks:remove-many', ids),
       update: (id: string, data: unknown) => ipcRenderer.invoke('db:tracks:update', id, data),
+      updateMany: (updates: Array<{ id: string; data: unknown }>) => ipcRenderer.invoke('db:tracks:update-many', updates),
       toggleFavorite: (id: string) => ipcRenderer.invoke('db:tracks:toggle-favorite', id),
       getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
       incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),

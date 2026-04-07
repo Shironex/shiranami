@@ -76,6 +76,19 @@ export function registerDatabaseHandlers(): void {
     return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
   });
 
+  ipcMain.handle(
+    'db:tracks:update-many',
+    async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
+      if (updates.length === 0) return [];
+      const db = getDatabase();
+      return db.transaction(tx => {
+        return updates.map(({ id, data }) =>
+          tx.update(tracks).set(data).where(eq(tracks.id, id)).returning().get()
+        );
+      });
+    }
+  );
+
   ipcMain.handle('db:tracks:toggle-favorite', async (_event, id: string) => {
     const db = getDatabase();
     return db
@@ -481,6 +494,7 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:tracks:remove');
   ipcMain.removeHandler('db:tracks:remove-many');
   ipcMain.removeHandler('db:tracks:update');
+  ipcMain.removeHandler('db:tracks:update-many');
   ipcMain.removeHandler('db:tracks:toggle-favorite');
   ipcMain.removeHandler('db:tracks:get-favorites');
   ipcMain.removeHandler('db:tracks:increment-play-count');
