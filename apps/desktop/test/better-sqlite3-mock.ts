@@ -38,58 +38,72 @@ class Statement {
   run(...params: unknown[]) {
     const flat = params.flat();
     const stmt = this.db.prepare(this.sql);
-    if (flat.length) stmt.bind(flat as SqlJs.BindParams);
-    stmt.step();
-    stmt.free();
+    try {
+      if (flat.length) stmt.bind(flat as SqlJs.BindParams);
+      stmt.step();
+    } finally {
+      stmt.free();
+    }
 
     const changesStmt = this.db.prepare('SELECT changes() as c, last_insert_rowid() as r');
-    changesStmt.step();
-    const row = changesStmt.get();
-    changesStmt.free();
-
-    return {
-      changes: row ? Number(row[0]) : 0,
-      lastInsertRowid: row ? Number(row[1]) : 0,
-    };
+    try {
+      changesStmt.step();
+      const row = changesStmt.get();
+      return {
+        changes: row ? Number(row[0]) : 0,
+        lastInsertRowid: row ? Number(row[1]) : 0,
+      };
+    } finally {
+      changesStmt.free();
+    }
   }
 
   all(...params: unknown[]) {
     const flat = params.flat();
     const stmt = this.db.prepare(this.sql);
-    if (flat.length) stmt.bind(flat as SqlJs.BindParams);
+    try {
+      if (flat.length) stmt.bind(flat as SqlJs.BindParams);
 
-    const rows: unknown[] = [];
-    while (stmt.step()) {
-      if (this._raw) {
-        rows.push([...stmt.get()]);
-      } else {
-        rows.push(stmt.getAsObject());
+      const rows: unknown[] = [];
+      while (stmt.step()) {
+        if (this._raw) {
+          rows.push([...stmt.get()]);
+        } else {
+          rows.push(stmt.getAsObject());
+        }
       }
+      return rows;
+    } finally {
+      stmt.free();
+      this._raw = false;
     }
-    stmt.free();
-    this._raw = false;
-    return rows;
   }
 
   get(...params: unknown[]) {
     const flat = params.flat();
     const stmt = this.db.prepare(this.sql);
-    if (flat.length) stmt.bind(flat as SqlJs.BindParams);
+    try {
+      if (flat.length) stmt.bind(flat as SqlJs.BindParams);
 
-    let result: unknown = undefined;
-    if (stmt.step()) {
-      result = this._raw ? [...stmt.get()] : stmt.getAsObject();
+      let result: unknown = undefined;
+      if (stmt.step()) {
+        result = this._raw ? [...stmt.get()] : stmt.getAsObject();
+      }
+      return result;
+    } finally {
+      stmt.free();
+      this._raw = false;
     }
-    stmt.free();
-    this._raw = false;
-    return result;
   }
 
   columns() {
     const stmt = this.db.prepare(this.sql);
-    const names = stmt.getColumnNames();
-    stmt.free();
-    return names.map((name) => ({ name }));
+    try {
+      const names = stmt.getColumnNames();
+      return names.map((name) => ({ name }));
+    } finally {
+      stmt.free();
+    }
   }
 }
 
@@ -137,16 +151,16 @@ class Database {
    * Drizzle calls: `this.client.transaction(fn)[behavior](tx)`
    */
   transaction<T extends (...args: unknown[]) => unknown>(fn: T) {
-    const self = this;
+    const db = this.db;
 
     const wrapped = (...args: Parameters<T>): ReturnType<T> => {
-      self.db.run('BEGIN');
+      db.run('BEGIN');
       try {
         const result = fn(...args) as ReturnType<T>;
-        self.db.run('COMMIT');
+        db.run('COMMIT');
         return result;
       } catch (e) {
-        self.db.run('ROLLBACK');
+        db.run('ROLLBACK');
         throw e;
       }
     };

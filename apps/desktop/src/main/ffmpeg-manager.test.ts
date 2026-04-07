@@ -186,10 +186,7 @@ describe('ffmpeg-manager', () => {
       }));
 
       // Mock fs operations for the extraction flow
-      const binDir = path.join(tempDir, 'bin');
-      const extractDir = path.join(binDir, '_ffmpeg_extract');
-      const ffmpegExe = path.join(extractDir, 'ffmpeg-build', 'bin', 'ffmpeg.exe');
-      const ffprobeExe = path.join(extractDir, 'ffmpeg-build', 'bin', 'ffprobe.exe');
+      const extractDir = path.join(tempDir, 'bin', '_ffmpeg_extract');
 
       vi.doMock('fs', async () => {
         const actualFs = await vi.importActual<typeof import('fs')>('fs');
@@ -232,14 +229,17 @@ describe('ffmpeg-manager', () => {
       const mod = await import('./ffmpeg-manager');
       await mod.downloadFFmpeg();
 
-      // Verify PowerShell was called, NOT tar
+      // Verify PowerShell was called with separate args, NOT tar
       expect(mockExecFileSync).toHaveBeenCalledTimes(1);
       expect(mockExecFileSync).toHaveBeenCalledWith(
         'powershell',
         expect.arrayContaining([
           '-NoProfile',
           '-Command',
-          expect.stringContaining('Expand-Archive'),
+          'Expand-Archive',
+          '-Path',
+          '-DestinationPath',
+          '-Force',
         ]),
         expect.objectContaining({ timeout: 120000 })
       );
@@ -328,7 +328,6 @@ describe('ffmpeg-manager', () => {
       const mod = await import('./ffmpeg-manager');
       await mod.downloadFFmpeg();
 
-      const expandCmd = mockExecFileSync.mock.calls[0]![2 as number];
       const powershellCommand = mockExecFileSync.mock.calls[0]![1 as number] as string[];
       expect(powershellCommand.some((arg: string) => arg.includes('-Force'))).toBe(true);
     });

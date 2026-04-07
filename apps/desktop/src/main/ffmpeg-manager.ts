@@ -199,7 +199,12 @@ async function downloadFFmpegWin(
     execFileSync('powershell', [
       '-NoProfile',
       '-Command',
-      `Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force`,
+      'Expand-Archive',
+      '-Path',
+      zipPath,
+      '-DestinationPath',
+      extractDir,
+      '-Force',
     ], { timeout: 120000 });
     fs.unlinkSync(zipPath);
 
