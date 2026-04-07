@@ -69,6 +69,59 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.13.0',
+    date: '2026-04-07',
+    title: l(
+      'Subfolder playlists & metadata enrichment',
+      'Playlisty z podfolderów i wzbogacanie metadanych'
+    ),
+    description: l(
+      'Automatically create playlists from subfolders when scanning music libraries, enrich local track metadata with cover art and details from online sources, and improved library scanning performance.',
+      'Automatyczne tworzenie playlist z podfolderów podczas skanowania bibliotek muzycznych, wzbogacanie metadanych lokalnych utworów o okładki i szczegóły ze źródeł online oraz poprawiona wydajność skanowania biblioteki.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Auto-create playlists from subfolders when scanning a music folder — each subfolder becomes its own playlist',
+            'Automatyczne tworzenie playlist z podfolderów podczas skanowania folderu z muzyką — każdy podfolder staje się osobną playlistą'
+          ),
+          l(
+            'Metadata enrichment for local tracks (experimental) — fetch cover art and track details from online sources',
+            'Wzbogacanie metadanych lokalnych utworów (eksperymentalne) — pobieranie okładek i szczegółów utworów ze źródeł online'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Stale tracks are now cleaned up during library rescan, removing entries for files that no longer exist on disk',
+            'Nieaktualne utwory są teraz usuwane podczas ponownego skanowania biblioteki, usuwając wpisy dla plików, które nie istnieją już na dysku'
+          ),
+          l(
+            'Playlist UI now refreshes correctly after removing a track from the library or disk',
+            'Interfejs playlist teraz poprawnie odświeża się po usunięciu utworu z biblioteki lub dysku'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Batched IPC calls and parallelized I/O operations for faster library scanning',
+            'Grupowanie wywołań IPC i równoległe operacje I/O dla szybszego skanowania biblioteki'
+          ),
+          l(
+            'Optimized desktop build packaging by reducing dependency tree size',
+            'Zoptymalizowano pakowanie kompilacji desktopowej poprzez zmniejszenie rozmiaru drzewa zależności'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.12.3',
     date: '2026-04-07',
     title: l('Large library & extraction fix', 'Poprawka dużych bibliotek i ekstrakcji'),
