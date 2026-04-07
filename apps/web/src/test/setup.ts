@@ -63,7 +63,6 @@ function createElectronAPIMock(): ElectronAPI {
     },
     library: {
       parseMetadata: vi.fn(),
-      parseFiles: vi.fn(),
       scanFolder: vi.fn(),
       scanFolderGrouped: asyncFn({ rootTracks: [], subfolders: [] }),
       validateFiles: asyncFn([]),

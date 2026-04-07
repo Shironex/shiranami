@@ -215,7 +215,7 @@ function extractZipWin(zipPath: string, destDir: string): Promise<void> {
       }
     });
 
-    worker.on('error', (err) => {
+    worker.on('error', (err: Error) => {
       logger.error('[ffmpeg-manager] Extract worker error:', err);
       safeReject(err);
     });
