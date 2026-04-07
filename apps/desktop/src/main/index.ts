@@ -106,11 +106,13 @@ app.on('open-url', (event, url) => {
 });
 
 async function bootstrap(): Promise<void> {
-  logger.info(`Shiranami v${app.getVersion()} starting...`);
+  logger.info('════════════════════════════════════════════════════════════');
+  logger.info(`  New session — Shiranami v${app.getVersion()}`);
   logger.info(`[system] OS: ${os.platform()} ${os.release()} (${os.arch()})`);
   logger.info(`[system] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Node: ${process.versions.node}`);
   logger.info(`[system] Memory: ${Math.round(os.totalmem() / 1024 / 1024)}MB, userData: ${app.getPath('userData')}`);
   logger.info(`[security] App packaged: ${app.isPackaged}`);
+  logger.info('════════════════════════════════════════════════════════════');
 
   initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
   logger.info('Database initialized');
