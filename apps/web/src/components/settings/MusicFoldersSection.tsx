@@ -36,10 +36,7 @@ export function MusicFoldersSection() {
         return;
       }
 
-      await window.electronAPI.db.folders.add(dirPath);
-      queryClient.invalidateQueries({ queryKey: folderKeys.all });
-
-      // Scan the new folder
+      // Scan the folder first, only persist to DB after tracks are added successfully
       setIsScanning(true);
       try {
         const results = await window.electronAPI.library.scanFolder(dirPath);
@@ -81,6 +78,10 @@ export function MusicFoldersSection() {
         )) as Record<string, unknown>[];
 
         const newTracks = mapDbTracksToTracks(dbTracks);
+
+        // Persist folder to DB only after tracks were added successfully
+        await window.electronAPI.db.folders.add(dirPath);
+        queryClient.invalidateQueries({ queryKey: folderKeys.all });
 
         addToLibrary(newTracks);
 
