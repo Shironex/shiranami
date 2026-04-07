@@ -44,13 +44,14 @@ export function SubfolderPlaylistDialog({
 
     async function checkExisting() {
       const existing = new Set<string>();
-      for (const sf of subfolders) {
-        try {
-          const playlist = await window.electronAPI.db.playlists.getByName(sf.name);
-          if (playlist) existing.add(sf.name);
-        } catch {
-          // ignore lookup failures
+      try {
+        const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
+        const existingPlaylistNames = new Set(allPlaylists.map(p => p.name));
+        for (const sf of subfolders) {
+          if (existingPlaylistNames.has(sf.name)) existing.add(sf.name);
         }
+      } catch {
+        // ignore lookup failures
       }
       if (!cancelled) {
         setExistingNames(existing);

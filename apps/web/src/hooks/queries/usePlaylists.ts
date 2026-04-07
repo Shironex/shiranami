@@ -125,8 +125,6 @@ export function useCreatePlaylistsFromSubfoldersMutation() {
     mutationFn: async (subfolders: Array<{ name: string; trackIds: string[] }>) => {
       const created: Playlist[] = [];
       for (const sf of subfolders) {
-        const existing = await window.electronAPI.db.playlists.getByName(sf.name);
-        if (existing) continue;
         const playlist = await window.electronAPI.db.playlists.createWithTracks({
           name: sf.name,
           trackIds: sf.trackIds,

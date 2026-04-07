@@ -114,17 +114,16 @@ export function MusicFoldersSection() {
 
         // Show subfolder playlist dialog only if there are subfolders without existing playlists
         if (scannedSubfolders.length > 0) {
-          const newSubfolders: typeof scannedSubfolders = [];
-          for (const sf of scannedSubfolders) {
-            try {
-              const existing = await window.electronAPI.db.playlists.getByName(sf.name);
-              if (!existing) newSubfolders.push(sf);
-            } catch {
-              newSubfolders.push(sf);
+          try {
+            const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
+            const existingNames = new Set(allPlaylists.map(p => p.name));
+            const newSubfolders = scannedSubfolders.filter(sf => !existingNames.has(sf.name));
+            if (newSubfolders.length > 0) {
+              setDetectedSubfolders(newSubfolders);
+              setSubfolderDialogOpen(true);
             }
-          }
-          if (newSubfolders.length > 0) {
-            setDetectedSubfolders(newSubfolders);
+          } catch {
+            setDetectedSubfolders(scannedSubfolders);
             setSubfolderDialogOpen(true);
           }
         }

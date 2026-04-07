@@ -66,11 +66,21 @@ async function scanDirectoryGrouped(dirPath: string): Promise<{
   return { rootFiles, subfolders };
 }
 
+const PARSE_CONCURRENCY = 16;
+
 async function parseAudioFiles(filePaths: string[]): Promise<ScannedTrack[]> {
-  const results: ScannedTrack[] = [];
-  for (const filePath of filePaths) {
-    const metadata = await parseAudioMetadata(filePath);
-    results.push({ filePath, metadata });
+  const results: ScannedTrack[] = new Array(filePaths.length);
+  for (let i = 0; i < filePaths.length; i += PARSE_CONCURRENCY) {
+    const batch = filePaths.slice(i, i + PARSE_CONCURRENCY);
+    const parsed = await Promise.all(
+      batch.map(async (filePath) => {
+        const metadata = await parseAudioMetadata(filePath);
+        return { filePath, metadata };
+      })
+    );
+    for (let j = 0; j < parsed.length; j++) {
+      results[i + j] = parsed[j];
+    }
   }
   return results;
 }
@@ -103,15 +113,17 @@ export function registerLibraryHandlers(): void {
 
   // Validate which file paths still exist on disk (returns paths that are missing)
   ipcMain.handle('library:validate-files', async (_event, filePaths: string[]) => {
-    const missing: string[] = [];
-    for (const filePath of filePaths) {
-      try {
-        await fs.promises.access(filePath, fs.constants.F_OK);
-      } catch {
-        missing.push(filePath);
-      }
-    }
-    return missing;
+    const results = await Promise.all(
+      filePaths.map(async (filePath) => {
+        try {
+          await fs.promises.access(filePath, fs.constants.F_OK);
+          return null;
+        } catch {
+          return filePath;
+        }
+      })
+    );
+    return results.filter((p): p is string => p !== null);
   });
 
   // Scan a directory and return results grouped by immediate subfolder

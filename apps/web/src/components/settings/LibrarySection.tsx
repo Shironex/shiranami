@@ -173,17 +173,17 @@ export function LibrarySection() {
 
       // Show subfolder playlist dialog only if there are subfolders without existing playlists
       if (allDetectedSubfolders.length > 0) {
-        const newSubfolders: typeof allDetectedSubfolders = [];
-        for (const sf of allDetectedSubfolders) {
-          try {
-            const existing = await window.electronAPI.db.playlists.getByName(sf.name);
-            if (!existing) newSubfolders.push(sf);
-          } catch {
-            newSubfolders.push(sf); // include on lookup failure
+        try {
+          const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
+          const existingNames = new Set(allPlaylists.map(p => p.name));
+          const newSubfolders = allDetectedSubfolders.filter(sf => !existingNames.has(sf.name));
+          if (newSubfolders.length > 0) {
+            setDetectedSubfolders(newSubfolders);
+            setSubfolderDialogOpen(true);
           }
-        }
-        if (newSubfolders.length > 0) {
-          setDetectedSubfolders(newSubfolders);
+        } catch {
+          // On failure, show all subfolders and let the dialog handle it
+          setDetectedSubfolders(allDetectedSubfolders);
           setSubfolderDialogOpen(true);
         }
       }
