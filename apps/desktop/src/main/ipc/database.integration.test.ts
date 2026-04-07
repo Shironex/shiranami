@@ -95,6 +95,54 @@ describe('database ipc (integration)', () => {
   });
 
   /* ------------------------------------------------------------------ */
+  /*  tracks:add-many (bulk insert with chunking)                       */
+  /* ------------------------------------------------------------------ */
+
+  it('tracks:add-many inserts a small batch and returns all rows', async () => {
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const incoming = Array.from({ length: 5 }, (_, i) => ({
+      filePath: `/music/batch-${i}.mp3`,
+      title: `Batch Track ${i}`,
+      artist: 'Batch Artist',
+      album: 'Batch Album',
+      duration: 180,
+    }));
+
+    const result = (await addMany(null as never, incoming)) as Array<{ id: string; title: string }>;
+
+    expect(result).toHaveLength(5);
+    expect(result[0]!.id).toBeDefined();
+    expect(result[0]!.title).toBe('Batch Track 0');
+    expect(result[4]!.title).toBe('Batch Track 4');
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as unknown[];
+    expect(all).toHaveLength(5);
+  });
+
+  it('tracks:add-many handles more than 100 tracks (chunk boundary)', async () => {
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const incoming = Array.from({ length: 250 }, (_, i) => ({
+      filePath: `/music/large-batch-${i}.mp3`,
+      title: `Track ${i}`,
+      artist: 'Artist',
+      album: 'Album',
+      duration: 120,
+    }));
+
+    const result = (await addMany(null as never, incoming)) as Array<{ id: string }>;
+
+    expect(result).toHaveLength(250);
+    // Every row should have a unique id
+    const ids = new Set(result.map(r => r.id));
+    expect(ids.size).toBe(250);
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as unknown[];
+    expect(all).toHaveLength(250);
+  });
+
+  /* ------------------------------------------------------------------ */
   /*  tracks:remove                                                     */
   /* ------------------------------------------------------------------ */
 

@@ -45,7 +45,7 @@ export function registerDatabaseHandlers(): void {
     // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
     const CHUNK_SIZE = 100;
     return db.transaction(tx => {
-      const results: ReturnType<typeof tx.insert<typeof tracks>>[] = [];
+      const results = [];
       for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
         const chunk = rows.slice(i, i + CHUNK_SIZE);
         results.push(...tx.insert(tracks).values(chunk).returning().all());
