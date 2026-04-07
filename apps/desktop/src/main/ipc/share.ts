@@ -90,7 +90,8 @@ async function fetchApi(path: string, options: { method: string; body?: unknown 
           } else {
             resolve(parsed);
           }
-        } catch {
+        } catch (parseErr) {
+          logger.warn(`[share] Failed to parse API response from ${path}:`, responseData.slice(0, 200));
           reject(new Error(`Failed to parse response from ${path}`));
         }
       });

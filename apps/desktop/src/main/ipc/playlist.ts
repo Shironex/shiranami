@@ -103,7 +103,8 @@ export function parseYtDlpJsonLines(stdout: string): SearchResult[] {
           view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
         };
         return result;
-      } catch {
+      } catch (err) {
+        logger.debug('[playlist] Failed to parse yt-dlp JSON line:', err);
         return null;
       }
     })
@@ -237,7 +238,8 @@ async function resolveSpotifyTrackOnYouTube(track: SpotifyTrack): Promise<Search
 
     const results = parseYtDlpJsonLines(stdout);
     return results[0] ?? null;
-  } catch {
+  } catch (err) {
+    logger.warn('[playlist] Failed to resolve Spotify track on YouTube:', err);
     return null;
   }
 }

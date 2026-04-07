@@ -218,7 +218,8 @@ export function registerDownloaderHandlers(): void {
   ipcMain.handle('downloader:check', async () => {
     try {
       return await getYtDlpStatus();
-    } catch {
+    } catch (err) {
+      logger.warn('[downloader] Failed to get yt-dlp status:', err);
       return { installed: isYtDlpInstalled() };
     }
   });
@@ -255,7 +256,8 @@ export function registerDownloaderHandlers(): void {
               view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
             };
             return result;
-          } catch {
+          } catch (err) {
+            logger.debug('[downloader] Failed to parse search result JSON:', err);
             return null;
           }
         })
@@ -457,7 +459,8 @@ export function registerDownloaderHandlers(): void {
   ipcMain.handle('downloader:check-ffmpeg', async () => {
     try {
       return await getFFmpegStatus();
-    } catch {
+    } catch (err) {
+      logger.warn('[downloader] Failed to get FFmpeg status:', err);
       return { installed: isFFmpegInstalled() };
     }
   });
