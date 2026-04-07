@@ -30,6 +30,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'library:parse-files',
   'library:scan-folder',
   'library:scan-folder-grouped',
+  'library:validate-files',
   'lyrics:fetch',
   'db:tracks:get-all',
   'db:tracks:add',
@@ -202,6 +203,7 @@ export interface ElectronAPI {
         tracks: Array<{ filePath: string; metadata: TrackMetadata }>;
       }>;
     }>;
+    validateFiles: (filePaths: string[]) => Promise<string[]>;
   };
   db: {
     tracks: {
@@ -430,6 +432,7 @@ const electronAPI: ElectronAPI = {
     parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
     scanFolderGrouped: (dirPath: string) => ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
+    validateFiles: (filePaths: string[]) => ipcRenderer.invoke('library:validate-files', filePaths) as Promise<string[]>,
   },
   db: {
     tracks: {

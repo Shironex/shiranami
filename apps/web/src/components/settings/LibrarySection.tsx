@@ -19,6 +19,7 @@ export function LibrarySection() {
   const { t: tToast } = useTranslation('toast');
   const library = usePlayerStore(s => s.library);
   const addToLibrary = usePlayerStore(s => s.addToLibrary);
+  const removeFromLibrary = usePlayerStore(s => s.removeFromLibrary);
   const clearQueue = usePlayerStore(s => s.clearQueue);
 
   const [confirmClear, setConfirmClear] = useState(false);
@@ -115,8 +116,57 @@ export function LibrarySection() {
         }
       }
 
-      if (totalAdded > 0) {
+      // Validate existing tracks — remove any whose files no longer exist on disk
+      let totalRemoved = 0;
+      const currentLibrary = usePlayerStore.getState().library;
+      if (currentLibrary.length > 0) {
+        const allPaths = currentLibrary.map(t => t.filePath);
+        const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
+        if (missingPaths.length > 0) {
+          const missingSet = new Set(missingPaths);
+          const staleIds = currentLibrary
+            .filter(t => missingSet.has(t.filePath))
+            .map(t => t.id);
+          if (staleIds.length > 0) {
+            await window.electronAPI.db.tracks.removeMany(staleIds);
+            removeFromLibrary(staleIds);
+            // Also clean up queue
+            const { queue, queueIndex, currentTrack } = usePlayerStore.getState();
+            const staleSet = new Set(staleIds);
+            const newQueue = queue.filter(t => !staleSet.has(t.id));
+            if (newQueue.length < queue.length) {
+              const isPlayingStale = currentTrack && staleSet.has(currentTrack.id);
+              let newIndex = queueIndex;
+              for (let i = 0; i < queueIndex && i < queue.length; i++) {
+                if (staleSet.has(queue[i].id)) newIndex--;
+              }
+              if (isPlayingStale) {
+                const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
+                usePlayerStore.setState({
+                  queue: newQueue,
+                  queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
+                  currentTrack: nextTrack,
+                  currentTime: 0,
+                  isPlaying: !!nextTrack,
+                });
+              } else {
+                usePlayerStore.setState({
+                  queue: newQueue,
+                  queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
+                });
+              }
+            }
+            totalRemoved = staleIds.length;
+          }
+        }
+      }
+
+      if (totalAdded > 0 && totalRemoved > 0) {
+        toast.success(tToast('rescanSummary', { added: totalAdded, removed: totalRemoved }));
+      } else if (totalAdded > 0) {
         toast.success(tToast('foundNewTracks', { count: totalAdded }));
+      } else if (totalRemoved > 0) {
+        toast.success(tToast('removedStaleTracks', { count: totalRemoved }));
       } else {
         toast.info(tToast('libraryUpToDate'));
       }

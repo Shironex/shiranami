@@ -115,6 +115,7 @@ export interface ElectronAPI {
         tracks: Array<{ filePath: string; metadata: TrackMetadata }>;
       }>;
     }>;
+    validateFiles: (filePaths: string[]) => Promise<string[]>;
   };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;

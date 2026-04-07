@@ -78,6 +78,9 @@
   "removedTracksFromLibrary": "Removed {{count}} tracks from library",
   "movedTracksToRecycle": "Moved {{count}} tracks to recycle bin",
   "removedTracksFromPlaylist": "Removed {{count}} tracks from playlist",
+  "removedStaleTracks_one": "Removed {{count}} missing track from library",
+  "removedStaleTracks_other": "Removed {{count}} missing tracks from library",
+  "rescanSummary": "Found {{added}} new, removed {{removed}} missing tracks",
   "playlistsCreatedFromSubfolders": "Created {{count}} playlist(s) from subfolders",
   "playlistsCreationFailed": "Failed to create playlists from subfolders",
   "noNewSubfolders": "No new subfolders found"

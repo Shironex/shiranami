@@ -101,6 +101,19 @@ export function registerLibraryHandlers(): void {
     return parseAudioFiles(filePaths);
   });
 
+  // Validate which file paths still exist on disk (returns paths that are missing)
+  ipcMain.handle('library:validate-files', async (_event, filePaths: string[]) => {
+    const missing: string[] = [];
+    for (const filePath of filePaths) {
+      try {
+        await fs.promises.access(filePath, fs.constants.F_OK);
+      } catch {
+        missing.push(filePath);
+      }
+    }
+    return missing;
+  });
+
   // Scan a directory and return results grouped by immediate subfolder
   ipcMain.handle('library:scan-folder-grouped', async (_event, dirPath: string) => {
     logger.info('Scanning folder (grouped):', dirPath);
@@ -125,5 +138,6 @@ export function cleanupLibraryHandlers(): void {
   ipcMain.removeHandler('library:parse-metadata');
   ipcMain.removeHandler('library:parse-files');
   ipcMain.removeHandler('library:scan-folder');
+  ipcMain.removeHandler('library:validate-files');
   ipcMain.removeHandler('library:scan-folder-grouped');
 }
