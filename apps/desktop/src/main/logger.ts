@@ -89,12 +89,12 @@ async function cleanupOldLogs(): Promise<void> {
         if (now - stat.mtimeMs > LOG_MAX_AGE_MS) {
           await fs.promises.unlink(filePath);
         }
-      } catch {
-        /* ignore */
+      } catch (err) {
+        console.error('[Logger] Failed to clean up log file:', file, err);
       }
     }
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.error('[Logger] Failed to read logs directory for cleanup:', err);
   }
 }
 
