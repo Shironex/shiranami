@@ -29,6 +29,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'library:parse-metadata',
   'library:parse-files',
   'library:scan-folder',
+  'library:scan-folder-grouped',
   'lyrics:fetch',
   'db:tracks:get-all',
   'db:tracks:add',
@@ -50,7 +51,9 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:folders:update-scanned',
   'db:playlists:get-all',
   'db:playlists:get',
+  'db:playlists:get-by-name',
   'db:playlists:create',
+  'db:playlists:create-with-tracks',
   'db:playlists:update',
   'db:playlists:delete',
   'db:playlists:get-tracks',
@@ -191,6 +194,14 @@ export interface ElectronAPI {
     parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
     parseFiles: (filePaths: string[]) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
     scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
+    scanFolderGrouped: (dirPath: string) => Promise<{
+      rootTracks: Array<{ filePath: string; metadata: TrackMetadata }>;
+      subfolders: Array<{
+        name: string;
+        path: string;
+        tracks: Array<{ filePath: string; metadata: TrackMetadata }>;
+      }>;
+    }>;
   };
   db: {
     tracks: {
@@ -228,7 +239,9 @@ export interface ElectronAPI {
     playlists: {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
+      getByName: (name: string) => Promise<unknown>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<unknown>;
       update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
       delete: (id: string) => Promise<void>;
       getTracks: (playlistId: string) => Promise<unknown[]>;
@@ -416,6 +429,7 @@ const electronAPI: ElectronAPI = {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
     parseFiles: (filePaths: string[]) => ipcRenderer.invoke('library:parse-files', filePaths),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
+    scanFolderGrouped: (dirPath: string) => ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
   },
   db: {
     tracks: {
@@ -453,8 +467,11 @@ const electronAPI: ElectronAPI = {
     playlists: {
       getAll: () => ipcRenderer.invoke('db:playlists:get-all'),
       get: (id: string) => ipcRenderer.invoke('db:playlists:get', id),
+      getByName: (name: string) => ipcRenderer.invoke('db:playlists:get-by-name', name),
       create: (data: { name: string; description?: string; coverArt?: string }) =>
         ipcRenderer.invoke('db:playlists:create', data),
+      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) =>
+        ipcRenderer.invoke('db:playlists:create-with-tracks', data),
       update: (id: string, data: { name?: string; description?: string; coverArt?: string }) =>
         ipcRenderer.invoke('db:playlists:update', id, data),
       delete: (id: string) => ipcRenderer.invoke('db:playlists:delete', id),

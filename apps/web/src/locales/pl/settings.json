@@ -15,7 +15,16 @@
     "empty": "Nie dodano jeszcze folderów",
     "remove": "Usuń folder",
     "scanning": "Skanowanie...",
-    "addFolder": "Dodaj folder"
+    "addFolder": "Dodaj folder",
+    "subfoldersDetected": "Wykryto podfoldery",
+    "subfoldersDetectedDescription": "Znaleziono {{count}} podfolder(ów) z plikami audio. Czy chcesz utworzyć playlistę dla każdego z nich?",
+    "subfolderName": "Podfolder",
+    "trackCount": "{{count}} utwór(ów)",
+    "createPlaylists": "Utwórz playlisty",
+    "skipPlaylists": "Pomiń",
+    "selectAll": "Zaznacz wszystko",
+    "deselectAll": "Odznacz wszystko",
+    "playlistAlreadyExists": "Playlista już istnieje"
   },
   "lib": {
     "title": "Biblioteka",

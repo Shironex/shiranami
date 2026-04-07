@@ -9,6 +9,9 @@ import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
 import { folderKeys } from '@/hooks/queries/useFolders';
+import { useCreatePlaylistsFromSubfoldersMutation } from '@/hooks/queries/usePlaylists';
+import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
+import type { TrackMetadata } from '@/types/electron';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
@@ -21,6 +24,11 @@ export function LibrarySection() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
+  const [detectedSubfolders, setDetectedSubfolders] = useState<
+    Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }>
+  >([]);
+  const createPlaylistsMutation = useCreatePlaylistsFromSubfoldersMutation();
 
   const handleRescan = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -39,11 +47,24 @@ export function LibrarySection() {
     if (folders.length === 0) return;
     setIsScanning(true);
     let totalAdded = 0;
+    const allDetectedSubfolders: Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }> = [];
 
     try {
       for (const folder of folders) {
         try {
-          const results = await window.electronAPI.library.scanFolder(folder.path);
+          const { rootTracks, subfolders: scannedSubfolders } =
+            await window.electronAPI.library.scanFolderGrouped(folder.path);
+
+          // Combine root tracks with all subfolder tracks for the flat track list
+          const results = [
+            ...rootTracks,
+            ...scannedSubfolders.flatMap(sf => sf.tracks),
+          ];
+
+          if (scannedSubfolders.length > 0) {
+            allDetectedSubfolders.push(...scannedSubfolders);
+          }
+
           if (results.length === 0) continue;
 
           const existingPaths = new Set(usePlayerStore.getState().library.map(t => t.filePath));
@@ -99,6 +120,23 @@ export function LibrarySection() {
       } else {
         toast.info(tToast('libraryUpToDate'));
       }
+
+      // Show subfolder playlist dialog only if there are subfolders without existing playlists
+      if (allDetectedSubfolders.length > 0) {
+        const newSubfolders: typeof allDetectedSubfolders = [];
+        for (const sf of allDetectedSubfolders) {
+          try {
+            const existing = await window.electronAPI.db.playlists.getByName(sf.name);
+            if (!existing) newSubfolders.push(sf);
+          } catch {
+            newSubfolders.push(sf); // include on lookup failure
+          }
+        }
+        if (newSubfolders.length > 0) {
+          setDetectedSubfolders(newSubfolders);
+          setSubfolderDialogOpen(true);
+        }
+      }
     } catch (err) {
       console.error('Rescan failed:', err);
       toast.error(tToast('failedRescan'));
@@ -106,6 +144,37 @@ export function LibrarySection() {
       setIsScanning(false);
     }
   }, [addToLibrary, tToast]);
+
+  const handleSubfolderConfirm = useCallback(
+    async (selectedSubfolders: Array<{ name: string; path: string; tracks: Array<{ filePath: string; metadata: TrackMetadata }> }>) => {
+      if (!IS_ELECTRON) return;
+      try {
+        const libraryTracks = usePlayerStore.getState().library;
+        const pathToId = new Map(libraryTracks.map(t => [t.filePath, t.id]));
+
+        const subfolderData = selectedSubfolders.map(sf => ({
+          name: sf.name,
+          trackIds: sf.tracks
+            .map(track => pathToId.get(track.filePath))
+            .filter((id): id is string => !!id),
+        }));
+
+        const created = await createPlaylistsMutation.mutateAsync(
+          subfolderData.filter(sf => sf.trackIds.length > 0)
+        );
+
+        if (created.length > 0) {
+          toast.success(tToast('playlistsCreatedFromSubfolders', { count: created.length }));
+        } else {
+          toast.info(tToast('noNewSubfolders'));
+        }
+      } catch (err) {
+        console.error('Failed to create playlists from subfolders:', err);
+        toast.error(tToast('playlistsCreationFailed'));
+      }
+    },
+    [createPlaylistsMutation, tToast]
+  );
 
   const handleClearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -128,6 +197,7 @@ export function LibrarySection() {
   }, [clearQueue, tToast]);
 
   return (
+    <>
     <SettingsCard icon={HardDrive} title={t('lib.title')} subtitle={t('lib.subtitle')}>
       <div className="space-y-4">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
@@ -191,5 +261,13 @@ export function LibrarySection() {
         </div>
       </div>
     </SettingsCard>
+
+      <SubfolderPlaylistDialog
+        open={subfolderDialogOpen}
+        onOpenChange={setSubfolderDialogOpen}
+        subfolders={detectedSubfolders}
+        onConfirm={handleSubfolderConfirm}
+      />
+    </>
   );
 }

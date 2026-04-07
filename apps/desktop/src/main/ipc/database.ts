@@ -385,6 +385,37 @@ export function registerDatabaseHandlers(): void {
     },
   );
 
+  ipcMain.handle('db:playlists:get-by-name', async (_event, name: string) => {
+    const db = getDatabase();
+    return db.select().from(playlists).where(eq(playlists.name, name)).get() ?? null;
+  });
+
+  ipcMain.handle(
+    'db:playlists:create-with-tracks',
+    async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      return db.transaction(tx => {
+        const playlistId = crypto.randomUUID();
+        const row: NewPlaylist = { id: playlistId, name: data.name, description: data.description };
+        const playlist = tx.insert(playlists).values(row).returning().get();
+
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < data.trackIds.length; i += CHUNK_SIZE) {
+          const chunk = data.trackIds.slice(i, i + CHUNK_SIZE);
+          const values = chunk.map((trackId, idx) => ({
+            id: crypto.randomUUID(),
+            playlistId,
+            trackId,
+            position: i + idx,
+          }));
+          tx.insert(playlistTracks).values(values).run();
+        }
+
+        return playlist;
+      });
+    },
+  );
+
   ipcMain.handle(
     'db:playlists:remove-track',
     async (_event, data: { playlistId: string; trackId: string }) => {
@@ -447,6 +478,8 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:playlists:delete');
   ipcMain.removeHandler('db:playlists:get-tracks');
   ipcMain.removeHandler('db:playlists:add-track');
+  ipcMain.removeHandler('db:playlists:get-by-name');
+  ipcMain.removeHandler('db:playlists:create-with-tracks');
   ipcMain.removeHandler('db:playlists:remove-track');
   ipcMain.removeHandler('db:playlists:reorder');
 }

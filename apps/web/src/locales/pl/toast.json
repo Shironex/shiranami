@@ -81,5 +81,8 @@
   "createdPlaylistAddedTracks": "Utworzono \"{{name}}\" i dodano {{count}} utworów",
   "removedTracksFromLibrary": "Usunięto {{count}} utworów z biblioteki",
   "movedTracksToRecycle": "Przeniesiono {{count}} utworów do kosza",
-  "removedTracksFromPlaylist": "Usunięto {{count}} utworów z playlisty"
+  "removedTracksFromPlaylist": "Usunięto {{count}} utworów z playlisty",
+  "playlistsCreatedFromSubfolders": "Utworzono {{count}} playlist(ę/y) z podfolderów",
+  "playlistsCreationFailed": "Nie udało się utworzyć playlist z podfolderów",
+  "noNewSubfolders": "Nie znaleziono nowych podfolderów"
 }

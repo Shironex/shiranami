@@ -77,5 +77,8 @@
   "createdPlaylistAddedTracks": "Created \"{{name}}\" and added {{count}} tracks",
   "removedTracksFromLibrary": "Removed {{count}} tracks from library",
   "movedTracksToRecycle": "Moved {{count}} tracks to recycle bin",
-  "removedTracksFromPlaylist": "Removed {{count}} tracks from playlist"
+  "removedTracksFromPlaylist": "Removed {{count}} tracks from playlist",
+  "playlistsCreatedFromSubfolders": "Created {{count}} playlist(s) from subfolders",
+  "playlistsCreationFailed": "Failed to create playlists from subfolders",
+  "noNewSubfolders": "No new subfolders found"
 }

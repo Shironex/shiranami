@@ -118,6 +118,29 @@ export function useRemoveTrackFromPlaylistMutation() {
   });
 }
 
+export function useCreatePlaylistsFromSubfoldersMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (subfolders: Array<{ name: string; trackIds: string[] }>) => {
+      const created: Playlist[] = [];
+      for (const sf of subfolders) {
+        const existing = await window.electronAPI.db.playlists.getByName(sf.name);
+        if (existing) continue;
+        const playlist = await window.electronAPI.db.playlists.createWithTracks({
+          name: sf.name,
+          trackIds: sf.trackIds,
+        });
+        created.push(playlist);
+      }
+      return created;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: playlistKeys.all });
+    },
+  });
+}
+
 export function useReorderPlaylistMutation() {
   const queryClient = useQueryClient();
 
