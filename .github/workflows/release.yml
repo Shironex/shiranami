@@ -72,12 +72,15 @@ jobs:
         run: pnpm exec electron-builder --mac --publish never -c.publish.channel=${{ steps.version.outputs.channel }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Package Windows
         if: matrix.platform == 'win'
         shell: bash
         working-directory: apps/desktop
         run: pnpm exec electron-builder --win --publish never -c.publish.channel=${{ steps.version.outputs.channel }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Upload macOS artifacts
         if: matrix.platform == 'mac'
