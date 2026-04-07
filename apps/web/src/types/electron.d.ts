@@ -169,7 +169,6 @@ export interface ElectronAPI {
     playlists: {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
-      getByName: (name: string) => Promise<Playlist | null>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
       createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<Playlist>;
       update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;

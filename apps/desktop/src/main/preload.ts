@@ -54,7 +54,6 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:folders:update-scanned',
   'db:playlists:get-all',
   'db:playlists:get',
-  'db:playlists:get-by-name',
   'db:playlists:create',
   'db:playlists:create-with-tracks',
   'db:playlists:update',
@@ -248,7 +247,6 @@ export interface ElectronAPI {
     playlists: {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
-      getByName: (name: string) => Promise<unknown>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
       createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<unknown>;
       update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
@@ -527,7 +525,6 @@ const electronAPI: ElectronAPI = {
     playlists: {
       getAll: () => ipcRenderer.invoke('db:playlists:get-all'),
       get: (id: string) => ipcRenderer.invoke('db:playlists:get', id),
-      getByName: (name: string) => ipcRenderer.invoke('db:playlists:get-by-name', name),
       create: (data: { name: string; description?: string; coverArt?: string }) =>
         ipcRenderer.invoke('db:playlists:create', data),
       createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) =>

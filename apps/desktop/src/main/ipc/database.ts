@@ -420,11 +420,6 @@ export function registerDatabaseHandlers(): void {
     },
   );
 
-  ipcMain.handle('db:playlists:get-by-name', async (_event, name: string) => {
-    const db = getDatabase();
-    return db.select().from(playlists).where(eq(playlists.name, name)).get() ?? null;
-  });
-
   ipcMain.handle(
     'db:playlists:create-with-tracks',
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
@@ -515,7 +510,6 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:playlists:delete');
   ipcMain.removeHandler('db:playlists:get-tracks');
   ipcMain.removeHandler('db:playlists:add-track');
-  ipcMain.removeHandler('db:playlists:get-by-name');
   ipcMain.removeHandler('db:playlists:create-with-tracks');
   ipcMain.removeHandler('db:playlists:remove-track');
   ipcMain.removeHandler('db:playlists:reorder');
