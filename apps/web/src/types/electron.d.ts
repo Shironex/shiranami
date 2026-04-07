@@ -296,6 +296,7 @@ export interface ElectronAPI {
         albumArt: string | null;
         genre: string;
         year: number | null;
+        trackNumber: number | null;
       }>,
       options: { writeToFile: boolean; onlyMissing: boolean }
     ) => Promise<Array<{

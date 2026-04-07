@@ -12,6 +12,7 @@ export interface EnrichTrackInput {
   albumArt: string | null;
   genre: string;
   year: number | null;
+  trackNumber: number | null;
 }
 
 export interface EnrichTrackResult {
@@ -119,7 +120,7 @@ export function registerMetadataEnrichHandlers(): void {
             if (!track.year && lookup.year) {
               updatedFields.year = lookup.year;
             }
-            if (lookup.trackNumber) {
+            if (!track.trackNumber && lookup.trackNumber) {
               updatedFields.trackNumber = lookup.trackNumber;
             }
             // Always update cover art if missing

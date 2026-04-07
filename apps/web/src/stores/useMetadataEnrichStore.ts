@@ -133,6 +133,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           albumArt: track.albumArt ?? null,
           genre: track.genre ?? '',
           year: track.year ?? null,
+          trackNumber: track.trackNumber ?? null,
         }));
 
         const results: EnrichTrackResult[] =
