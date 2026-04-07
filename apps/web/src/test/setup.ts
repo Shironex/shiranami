@@ -153,6 +153,11 @@ function createElectronAPIMock(): ElectronAPI {
         isFavorite: asyncFn(false),
       },
     },
+    metadata: {
+      lookup: asyncFn({ source: 'none', confidence: 0 }),
+      enrichTracks: asyncFn([]),
+      onEnrichProgress: vi.fn(() => noopUnsub()),
+    },
     share: {
       track: asyncFn({ code: 'abc', url: 'https://example.com/s/abc', expiresAt: new Date(Date.now() + 3600000).toISOString() }),
       playlist: asyncFn({ code: 'def', url: 'https://example.com/s/def', expiresAt: new Date(Date.now() + 3600000).toISOString() }),

@@ -274,6 +274,52 @@ export interface ElectronAPI {
       trackName: string;
     }) => void) => () => void;
   };
+  metadata: {
+    lookup: (title: string, artist: string) => Promise<{
+      title?: string;
+      artist?: string;
+      album?: string;
+      genre?: string;
+      year?: number;
+      trackNumber?: number;
+      coverImageUrl?: string;
+      source: 'itunes' | 'youtube' | 'none';
+      confidence: number;
+    }>;
+    enrichTracks: (
+      tracks: Array<{
+        id: string;
+        filePath: string;
+        title: string;
+        artist: string;
+        album: string;
+        albumArt: string | null;
+        genre: string;
+        year: number | null;
+      }>,
+      options: { writeToFile: boolean; onlyMissing: boolean }
+    ) => Promise<Array<{
+      id: string;
+      success: boolean;
+      updatedFields: Partial<{
+        title: string;
+        artist: string;
+        album: string;
+        genre: string;
+        year: number;
+        trackNumber: number;
+        albumArt: string;
+      }>;
+      source: string;
+      error?: string;
+    }>>;
+    onEnrichProgress: (callback: (data: {
+      current: number;
+      total: number;
+      trackName: string;
+      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+    }) => void) => () => void;
+  };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
     playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;

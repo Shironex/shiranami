@@ -10,6 +10,7 @@ const ALLOWED_STORE_KEYS = new Set([
   'theme',
   'window-bounds',
   'app.language',
+  'metadata-enrich.skippedIds',
 ]);
 
 export function registerStoreHandlers(): void {

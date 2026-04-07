@@ -28,6 +28,8 @@ import {
   cleanupPlaylistHandlers,
   registerShareHandlers,
   cleanupShareHandlers,
+  registerMetadataEnrichHandlers,
+  cleanupMetadataEnrichHandlers,
 } from './';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
@@ -45,6 +47,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerRadioHandlers();
   registerPlaylistHandlers();
   registerShareHandlers();
+  registerMetadataEnrichHandlers();
 }
 
 export function cleanupIpcHandlers(): void {
@@ -62,4 +65,5 @@ export function cleanupIpcHandlers(): void {
   cleanupRadioHandlers();
   cleanupPlaylistHandlers();
   cleanupShareHandlers();
+  cleanupMetadataEnrichHandlers();
 }

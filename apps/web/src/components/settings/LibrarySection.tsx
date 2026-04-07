@@ -12,6 +12,7 @@ import { folderKeys } from '@/hooks/queries/useFolders';
 import { useCreatePlaylistsFromSubfoldersMutation } from '@/hooks/queries/usePlaylists';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import type { TrackMetadata } from '@/types/electron';
+import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
@@ -311,6 +312,8 @@ export function LibrarySection() {
         </div>
       </div>
     </SettingsCard>
+
+      <MetadataEnrichSection />
 
       <SubfolderPlaylistDialog
         open={subfolderDialogOpen}

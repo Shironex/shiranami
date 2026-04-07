@@ -83,5 +83,9 @@
   "rescanSummary": "Found {{added}} new, removed {{removed}} missing tracks",
   "playlistsCreatedFromSubfolders": "Created {{count}} playlist(s) from subfolders",
   "playlistsCreationFailed": "Failed to create playlists from subfolders",
-  "noNewSubfolders": "No new subfolders found"
+  "noNewSubfolders": "No new subfolders found",
+  "enrichComplete": "Enriched {{count}} track(s) with new metadata",
+  "enrichNoneFound": "No matching metadata found for selected tracks",
+  "enrichFailed": "Failed to enrich metadata",
+  "enrichPartial": "Enriched {{success}} of {{total}} tracks ({{failed}} failed)"
 }
