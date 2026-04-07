@@ -47,7 +47,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerRadioHandlers();
   registerPlaylistHandlers();
   registerShareHandlers();
-  registerMetadataEnrichHandlers();
+  registerMetadataEnrichHandlers(mainWindow);
 }
 
 export function cleanupIpcHandlers(): void {

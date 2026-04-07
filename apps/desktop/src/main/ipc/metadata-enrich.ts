@@ -40,12 +40,7 @@ export interface EnrichProgress {
 
 let enrichCancelled = false;
 
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows();
-  return windows[0] ?? null;
-}
-
-export function registerMetadataEnrichHandlers(): void {
+export function registerMetadataEnrichHandlers(mainWindow: BrowserWindow): void {
   // Look up metadata for a single track (for preview / confirmation)
   ipcMain.handle(
     'metadata:lookup',
@@ -74,9 +69,8 @@ export function registerMetadataEnrichHandlers(): void {
       const results: EnrichTrackResult[] = [];
 
       const sendProgress = (progress: EnrichProgress) => {
-        const win = getMainWindow();
-        if (win && !win.isDestroyed()) {
-          win.webContents.send('metadata:enrich-progress', progress);
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('metadata:enrich-progress', progress);
         }
       };
 
