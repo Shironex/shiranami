@@ -1,7 +1,7 @@
 import { app, net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { logger } from './logger';
 import { requestJson, requestText } from './http';
 
@@ -192,13 +192,15 @@ async function downloadFFmpegWin(
       onProgress?.(Math.round(pct * 0.9));
     });
 
-    // Extract using tar (available on Windows 10+)
+    // Extract using PowerShell Expand-Archive (universally available on Windows 10/11)
     onProgress?.(92);
     logger.info('[ffmpeg-manager] Extracting ffmpeg...');
     fs.mkdirSync(extractDir, { recursive: true });
-    execSync(`tar -xf "${zipPath}" -C "${extractDir}"`, {
-      timeout: 120000,
-    });
+    execFileSync('powershell', [
+      '-NoProfile',
+      '-Command',
+      `Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force`,
+    ], { timeout: 120000 });
     fs.unlinkSync(zipPath);
 
     // Find ffmpeg.exe and ffprobe.exe inside the extracted directory

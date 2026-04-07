@@ -9,7 +9,7 @@ export default defineConfig({
     name: 'desktop',
     environment: 'node',
     globals: true,
-    setupFiles: ['./test/setup.ts'],
+    setupFiles: ['./test/setup-sqljs.ts', './test/setup.ts'],
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
@@ -19,6 +19,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      'better-sqlite3': resolve(root, 'test/better-sqlite3-mock.ts'),
+      '@shiranami/database/client': resolve(root, '../../packages/database/src/client.ts'),
       '@shiranami/database': resolve(root, '../../packages/database/src/index.ts'),
       '@shiranami/shared': resolve(root, '../../packages/shared/src/index.ts'),
     },
