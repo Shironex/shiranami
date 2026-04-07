@@ -88,6 +88,8 @@ function createElectronAPIMock(): ElectronAPI {
         getFavorites: asyncFn([]),
         incrementPlayCount: vi.fn(),
         exists: asyncFn(false),
+        existsMany: asyncFn([]),
+        updateMany: asyncFn([]),
       },
       history: {
         recordPlay: vi.fn(),
@@ -155,6 +157,7 @@ function createElectronAPIMock(): ElectronAPI {
     metadata: {
       lookup: asyncFn({ source: 'none', confidence: 0 }),
       enrichTracks: asyncFn([]),
+      cancelEnrichment: asyncFn(undefined),
       onEnrichProgress: vi.fn(() => noopUnsub()),
     },
     share: {
