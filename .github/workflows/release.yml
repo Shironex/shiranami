@@ -56,7 +56,8 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies (exclude mobile)
+        run: pnpm install --frozen-lockfile --filter '!@shiranami/mobile'
 
       - run: pnpm build:packages
 
