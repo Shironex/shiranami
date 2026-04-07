@@ -1,0 +1,192 @@
+import * as path from 'path';
+import * as fs from 'fs';
+import { execFile } from 'child_process';
+import { getFFmpegPath, isFFmpegInstalled } from './ffmpeg-manager';
+import { saveAlbumArt } from './art-protocol';
+import { logger } from './logger';
+
+export interface WriteMetadataOptions {
+  title?: string;
+  artist?: string;
+  album?: string;
+  genre?: string;
+  year?: number;
+  trackNumber?: number;
+  coverImageBuffer?: Buffer;
+  coverImageMime?: string;
+}
+
+/**
+ * Write metadata and/or cover art into an audio file.
+ * Returns the shiranami-art:// URL if cover art was saved, or null.
+ */
+export async function writeMetadataToFile(
+  filePath: string,
+  options: WriteMetadataOptions
+): Promise<string | null> {
+  const ext = path.extname(filePath).toLowerCase();
+  const fileName = path.basename(filePath);
+  logger.info(`[metadata-writer] Writing tags to "${fileName}" (${ext})`);
+
+  let albumArtUrl: string | null = null;
+
+  // Save cover art to disk cache regardless of format
+  if (options.coverImageBuffer && options.coverImageMime) {
+    albumArtUrl = await saveAlbumArt(
+      options.coverImageBuffer,
+      options.coverImageMime
+    );
+  }
+
+  try {
+    switch (ext) {
+      case '.mp3':
+        await writeMp3Tags(filePath, options);
+        break;
+      case '.flac':
+        await writeFlacTags(filePath, options);
+        break;
+      case '.m4a':
+      case '.ogg':
+      case '.opus':
+      case '.aac':
+      case '.wma':
+      case '.weba':
+      case '.webm':
+        await writeTagsWithFFmpeg(filePath, options);
+        break;
+      default:
+        logger.warn(`[metadata-writer] Unsupported format for writing: ${ext}`);
+        break;
+    }
+  } catch (error) {
+    logger.error(`[metadata-writer] Failed to write tags to ${filePath}:`, error);
+    // Don't throw — the DB update and album art save still succeed
+  }
+
+  return albumArtUrl;
+}
+
+async function writeMp3Tags(
+  filePath: string,
+  options: WriteMetadataOptions
+): Promise<void> {
+  // node-id3 is CJS — dynamic import wraps exports under .default in bundled contexts
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const NodeID3Module = await import('node-id3') as any;
+  const NodeID3 = NodeID3Module.default ?? NodeID3Module;
+
+  const tags: Record<string, unknown> = {};
+  if (options.title !== undefined) tags.title = options.title;
+  if (options.artist !== undefined) tags.artist = options.artist;
+  if (options.album !== undefined) tags.album = options.album;
+  if (options.genre !== undefined) tags.genre = options.genre;
+  if (options.year !== undefined) tags.year = String(options.year);
+  if (options.trackNumber !== undefined) tags.trackNumber = String(options.trackNumber);
+
+  if (options.coverImageBuffer) {
+    tags.image = {
+      mime: options.coverImageMime || 'image/jpeg',
+      type: { id: 3, name: 'front cover' },
+      description: 'Cover',
+      imageBuffer: options.coverImageBuffer,
+    };
+  }
+
+  if (Object.keys(tags).length === 0) return;
+
+  // update() preserves existing tags, write() replaces all
+  const result = NodeID3.update(tags, filePath);
+  if (result instanceof Error) {
+    throw result;
+  }
+}
+
+async function writeFlacTags(
+  filePath: string,
+  options: WriteMetadataOptions
+): Promise<void> {
+  const { writeFlacTags: writeFlac } = await import('flac-tagger');
+
+  const tagMap: Record<string, string> = {};
+  if (options.title !== undefined) tagMap.title = options.title;
+  if (options.artist !== undefined) tagMap.artist = options.artist;
+  if (options.album !== undefined) tagMap.album = options.album;
+  if (options.genre !== undefined) tagMap.genre = options.genre;
+  if (options.year !== undefined) tagMap.date = String(options.year);
+  if (options.trackNumber !== undefined) tagMap.tracknumber = String(options.trackNumber);
+
+  const tags: { tagMap: Record<string, string>; picture?: { buffer: Buffer } } = {
+    tagMap,
+  };
+
+  if (options.coverImageBuffer) {
+    tags.picture = {
+      buffer: options.coverImageBuffer,
+    };
+  }
+
+  if (Object.keys(tagMap).length === 0 && !tags.picture) return;
+
+  await writeFlac(tags, filePath);
+}
+
+async function writeTagsWithFFmpeg(
+  filePath: string,
+  options: WriteMetadataOptions
+): Promise<void> {
+  if (!isFFmpegInstalled()) {
+    logger.warn('[metadata-writer] ffmpeg not installed, skipping tag write for:', filePath);
+    return;
+  }
+
+  const ext = path.extname(filePath);
+  const dir = path.dirname(filePath);
+  const baseName = path.basename(filePath, ext);
+  const timestamp = Date.now();
+  const tempPath = path.join(dir, `${baseName}.${timestamp}.tmp${ext}`);
+  const coverTempPath = options.coverImageBuffer
+    ? path.join(dir, `${baseName}.${timestamp}.tmp_cover.jpg`)
+    : null;
+
+  const args: string[] = ['-i', filePath];
+
+  // Add cover image input if provided
+  if (options.coverImageBuffer && coverTempPath) {
+    await fs.promises.writeFile(coverTempPath, options.coverImageBuffer);
+    args.push('-i', coverTempPath);
+    args.push('-map', '0:a', '-map', '1:v', '-disposition:v', 'attached_pic');
+  } else {
+    args.push('-map', '0:a');
+  }
+
+  args.push('-c', 'copy');
+
+  // Add metadata flags
+  if (options.title !== undefined) args.push('-metadata', `title=${options.title}`);
+  if (options.artist !== undefined) args.push('-metadata', `artist=${options.artist}`);
+  if (options.album !== undefined) args.push('-metadata', `album=${options.album}`);
+  if (options.genre !== undefined) args.push('-metadata', `genre=${options.genre}`);
+  if (options.year !== undefined) args.push('-metadata', `date=${options.year}`);
+  if (options.trackNumber !== undefined) args.push('-metadata', `track=${options.trackNumber}`);
+
+  args.push('-y', tempPath);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      execFile(getFFmpegPath(), args, { timeout: 30000 }, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Atomic replace: rename temp over original
+    await fs.promises.rename(tempPath, filePath);
+  } finally {
+    // Clean up temp files
+    if (coverTempPath) {
+      try { await fs.promises.unlink(coverTempPath); } catch { /* ignore */ }
+    }
+    try { await fs.promises.unlink(tempPath); } catch { /* ignore */ }
+  }
+}

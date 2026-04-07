@@ -37,6 +37,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
+import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -78,6 +79,7 @@ function App() {
   const visualizerStyle = useAppStore(s => s.visualizerStyle);
   const compactMode = useAppStore(s => s.compactMode);
   const updateDependencyInstall = useDownloadStore((s) => s.updateDependencyInstall);
+  const updateEnrichProgress = useMetadataEnrichStore((s) => s.updateProgress);
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -86,6 +88,14 @@ function App() {
     });
     return cleanup;
   }, [updateDependencyInstall]);
+
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.metadata.onEnrichProgress((progress) => {
+      updateEnrichProgress(progress);
+    });
+    return cleanup;
+  }, [updateEnrichProgress]);
 
   return (
     <>

@@ -86,6 +86,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'share:playlist',
   'share:import',
   'share:cache-youtube-id',
+  'metadata:lookup',
+  'metadata:enrich-tracks',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -385,6 +387,52 @@ export interface ElectronAPI {
       trackName: string;
     }) => void) => () => void;
   };
+  metadata: {
+    lookup: (title: string, artist: string) => Promise<{
+      title?: string;
+      artist?: string;
+      album?: string;
+      genre?: string;
+      year?: number;
+      trackNumber?: number;
+      coverImageUrl?: string;
+      source: 'itunes' | 'youtube' | 'none';
+      confidence: number;
+    }>;
+    enrichTracks: (
+      tracks: Array<{
+        id: string;
+        filePath: string;
+        title: string;
+        artist: string;
+        album: string;
+        albumArt: string | null;
+        genre: string;
+        year: number | null;
+      }>,
+      options: { writeToFile: boolean; onlyMissing: boolean }
+    ) => Promise<Array<{
+      id: string;
+      success: boolean;
+      updatedFields: Partial<{
+        title: string;
+        artist: string;
+        album: string;
+        genre: string;
+        year: number;
+        trackNumber: number;
+        albumArt: string;
+      }>;
+      source: string;
+      error?: string;
+    }>>;
+    onEnrichProgress: (callback: (data: {
+      current: number;
+      total: number;
+      trackName: string;
+      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+    }) => void) => () => void;
+  };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
     playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
@@ -571,6 +619,29 @@ const electronAPI: ElectronAPI = {
       total: number;
       trackName: string;
     }>('playlist:extract-progress'),
+  },
+  metadata: {
+    lookup: (title: string, artist: string) =>
+      ipcRenderer.invoke('metadata:lookup', title, artist),
+    enrichTracks: (
+      tracks: Array<{
+        id: string;
+        filePath: string;
+        title: string;
+        artist: string;
+        album: string;
+        albumArt: string | null;
+        genre: string;
+        year: number | null;
+      }>,
+      options: { writeToFile: boolean; onlyMissing: boolean }
+    ) => ipcRenderer.invoke('metadata:enrich-tracks', tracks, options),
+    onEnrichProgress: createIpcListener<{
+      current: number;
+      total: number;
+      trackName: string;
+      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error';
+    }>('metadata:enrich-progress'),
   },
   share: {
     track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),

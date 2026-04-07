@@ -5,7 +5,7 @@ interface SettingsCardProps {
   children?: React.ReactNode;
   className?: string;
   icon?: LucideIcon;
-  title?: string;
+  title?: React.ReactNode;
   subtitle?: string;
 }
 

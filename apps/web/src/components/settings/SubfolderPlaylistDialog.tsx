@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { TrackMetadata } from '@/types/electron';
 
 interface SubfolderEntry {
@@ -137,12 +138,10 @@ export function SubfolderPlaylistDialog({
                       : 'bg-background/50 border border-border/20 hover:bg-accent/50'
                 }`}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selected.has(sf.path)}
                   disabled={alreadyExists}
-                  onChange={() => toggleSubfolder(sf.path)}
-                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary/50 accent-primary"
+                  onCheckedChange={() => toggleSubfolder(sf.path)}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

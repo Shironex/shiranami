@@ -89,5 +89,9 @@
   "rescanSummary": "Znaleziono {{added}} nowych, usunięto {{removed}} brakujących utworów",
   "playlistsCreatedFromSubfolders": "Utworzono {{count}} playlist(ę/y) z podfolderów",
   "playlistsCreationFailed": "Nie udało się utworzyć playlist z podfolderów",
-  "noNewSubfolders": "Nie znaleziono nowych podfolderów"
+  "noNewSubfolders": "Nie znaleziono nowych podfolderów",
+  "enrichComplete": "Wzbogacono {{count}} utwór(ów) o nowe metadane",
+  "enrichNoneFound": "Nie znaleziono metadanych dla wybranych utworów",
+  "enrichFailed": "Nie udało się wzbogacić metadanych",
+  "enrichPartial": "Wzbogacono {{success}} z {{total}} utworów ({{failed}} nie powiodło się)"
 }
