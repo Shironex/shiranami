@@ -24,7 +24,7 @@ vi.mock('@/lib/i18n', () => ({
 
 // Ensure HMR guard in the store module doesn't blow up during tests
 if (import.meta.hot) {
-  import.meta.hot.data ??= {};
+  (import.meta.hot as { data: Record<string, unknown> }).data ??= {};
 }
 
 // Must import after mocks are set up

@@ -295,6 +295,7 @@ describe('TrackRow', () => {
       <TrackRow
         index={5}
         style={{}}
+        ariaAttributes={{ 'aria-posinset': 6, 'aria-setsize': 1, role: 'listitem' }}
         queue={[track]}
         currentTrack={null}
         isPlaying={false}
@@ -312,6 +313,7 @@ describe('TrackRow', () => {
       <TrackRow
         index={0}
         style={{}}
+        ariaAttributes={{ 'aria-posinset': 1, 'aria-setsize': 1, role: 'listitem' }}
         queue={[track]}
         currentTrack={null}
         isPlaying={false}
