@@ -49,7 +49,11 @@ export function AlbumDetailView() {
 
   const handleShuffle = useCallback(() => {
     if (albumTracks.length === 0) return;
-    const shuffled = [...albumTracks].sort(() => Math.random() - 0.5);
+    const shuffled = [...albumTracks];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     setQueue(shuffled, 0);
   }, [albumTracks, setQueue]);
 

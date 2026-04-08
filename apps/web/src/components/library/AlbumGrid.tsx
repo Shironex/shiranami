@@ -15,6 +15,7 @@ export interface AlbumData {
 
 function groupTracksByAlbum(tracks: Track[]): AlbumData[] {
   const map = new Map<string, AlbumData>();
+  const artistSets = new Map<string, Set<string>>();
 
   for (const track of tracks) {
     const key = track.album || '';
@@ -25,11 +26,11 @@ function groupTracksByAlbum(tracks: Track[]): AlbumData[] {
       if (!existing.albumArt && track.albumArt) {
         existing.albumArt = track.albumArt;
       }
-      // Collect unique artists
-      if (!existing.artist.includes(track.artist)) {
-        existing.artist = existing.artist + ', ' + track.artist;
-      }
+      const artists = artistSets.get(key)!;
+      artists.add(track.artist);
+      existing.artist = Array.from(artists).join(', ');
     } else {
+      artistSets.set(key, new Set([track.artist]));
       map.set(key, {
         name: key || 'Unknown Album',
         artist: track.artist,
