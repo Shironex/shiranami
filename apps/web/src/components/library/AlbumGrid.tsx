@@ -57,15 +57,16 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const albumGridScrollTop = useAppStore(s => s.albumGridScrollTop);
   const setAlbumGridScrollTop = useAppStore(s => s.setAlbumGridScrollTop);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Skip entrance animation when returning from album detail (scroll will be restored)
+  // Capture scroll position at mount time — used to skip animation and restore scroll
+  const savedScrollTop = useRef(albumGridScrollTop);
   const isReturning = useRef(albumGridScrollTop > 0);
 
   // Restore scroll position on remount
   useEffect(() => {
-    if (scrollRef.current && albumGridScrollTop > 0) {
-      scrollRef.current.scrollTop = albumGridScrollTop;
+    if (scrollRef.current && savedScrollTop.current > 0) {
+      scrollRef.current.scrollTop = savedScrollTop.current;
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAlbumClick = useCallback((albumName: string) => {
     if (scrollRef.current) {
