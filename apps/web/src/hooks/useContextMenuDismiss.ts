@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useState, type RefObject } from 'react';
 import { useClickOutside } from './useClickOutside';
 
 export interface ContextMenuPosition {
@@ -6,30 +6,56 @@ export interface ContextMenuPosition {
   y: number;
 }
 
+export interface AdjustedContextMenu {
+  x: number;
+  y: number;
+  maxHeight?: number;
+}
+
+const VIEWPORT_PADDING = 8;
+
 /**
  * Bundles common context menu dismiss behaviors:
- * - Adjusts position to stay within viewport
+ * - Adjusts position to stay within viewport (before paint via useLayoutEffect)
+ * - Constrains height when menu would exceed viewport
  * - Closes on click outside, Escape, and scroll
  *
- * Returns the viewport-adjusted position.
+ * Returns the viewport-adjusted position and optional maxHeight.
  */
 export function useContextMenuDismiss(
   menuRef: RefObject<HTMLElement | null>,
   position: ContextMenuPosition,
   onClose: () => void,
-): ContextMenuPosition {
-  const [adjusted, setAdjusted] = useState(position);
+): AdjustedContextMenu {
+  const [adjusted, setAdjusted] = useState<AdjustedContextMenu>(position);
 
-  // Adjust position so menu stays within viewport
-  useEffect(() => {
+  // Adjust position so menu stays within viewport — runs before paint
+  useLayoutEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
     let { x, y } = position;
-    if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 8;
-    if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 8;
-    if (x < 0) x = 8;
-    if (y < 0) y = 8;
-    setAdjusted({ x, y });
+    let maxHeight: number | undefined;
+
+    // Horizontal: prefer right, fall back left
+    if (x + rect.width > vw) x = vw - rect.width - VIEWPORT_PADDING;
+    if (x < VIEWPORT_PADDING) x = VIEWPORT_PADDING;
+
+    // Vertical: prefer below click, fall back above, constrain if too tall
+    if (y + rect.height > vh) {
+      y = vh - rect.height - VIEWPORT_PADDING;
+    }
+    if (y < VIEWPORT_PADDING) {
+      y = VIEWPORT_PADDING;
+      // Menu is taller than available space — constrain height
+      const available = vh - VIEWPORT_PADDING * 2;
+      if (rect.height > available) {
+        maxHeight = available;
+      }
+    }
+
+    setAdjusted({ x, y, maxHeight });
   }, [position, menuRef]);
 
   useClickOutside(menuRef, onClose);
