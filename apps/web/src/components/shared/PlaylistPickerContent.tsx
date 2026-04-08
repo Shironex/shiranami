@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { ListPlus, Plus, Loader2 } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { ListPlus, Check, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
@@ -7,6 +7,8 @@ import {
   usePlaylistsQuery,
   useCreatePlaylistMutation,
   useAddTrackToPlaylistMutation,
+  useRemoveTrackFromPlaylistMutation,
+  useTrackPlaylistMembershipQuery,
 } from '@/hooks/queries/usePlaylists';
 
 interface PlaylistPickerContentProps {
@@ -23,26 +25,45 @@ export function PlaylistPickerContent({
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
   const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const { data: memberPlaylistIds = [] } = useTrackPlaylistMembershipQuery(trackIds);
   const addTrackMutation = useAddTrackToPlaylistMutation();
+  const removeTrackMutation = useRemoveTrackFromPlaylistMutation();
   const createPlaylistMutation = useCreatePlaylistMutation();
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
 
+  const memberSet = useMemo(() => new Set(memberPlaylistIds), [memberPlaylistIds]);
   const isBulk = toastMode === 'bulk' || (toastMode == null && trackIds.length > 1);
 
-  const handleAdd = useCallback(async (playlist: Playlist) => {
-    try {
-      await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
-      if (isBulk) {
-        toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
-      } else {
-        toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+  const handleToggle = useCallback(async (playlist: Playlist) => {
+    const isInPlaylist = memberSet.has(playlist.id);
+
+    if (isInPlaylist) {
+      try {
+        await removeTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
+        if (isBulk) {
+          toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length, name: playlist.name }));
+        } else {
+          toast.success(tToast('removedFromPlaylist', { name: playlist.name }));
+        }
+        onDone();
+      } catch {
+        toast.error(tToast('failedRemoveFromPlaylist'));
       }
-      onDone();
-    } catch {
-      toast.error(tToast('failedAddToPlaylist'));
+    } else {
+      try {
+        await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
+        if (isBulk) {
+          toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
+        } else {
+          toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+        }
+        onDone();
+      } catch {
+        toast.error(tToast('failedAddToPlaylist'));
+      }
     }
-  }, [trackIds, isBulk, addTrackMutation, onDone, tToast]);
+  }, [trackIds, isBulk, memberSet, addTrackMutation, removeTrackMutation, onDone, tToast]);
 
   const handleCreateAndAdd = useCallback(async () => {
     const name = newName.trim();
@@ -75,16 +96,27 @@ export function PlaylistPickerContent({
         {playlists.length === 0 && !showNewForm && (
           <p className="px-3 py-2 text-xs text-muted-foreground/50">{tCommon('noPlaylists')}</p>
         )}
-        {playlists.map((pl) => (
-          <button
-            key={pl.id}
-            onClick={(e) => { e.stopPropagation(); handleAdd(pl); }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground/80 hover:text-foreground hover:bg-accent transition-colors text-left"
-          >
-            <ListPlus className="w-3 h-3 text-muted-foreground/40 shrink-0" />
-            <span className="truncate">{pl.name}</span>
-          </button>
-        ))}
+        {playlists.map((pl) => {
+          const isInPlaylist = memberSet.has(pl.id);
+          return (
+            <button
+              key={pl.id}
+              onClick={(e) => { e.stopPropagation(); handleToggle(pl); }}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left ${
+                isInPlaylist
+                  ? 'text-primary/80 hover:text-primary hover:bg-accent'
+                  : 'text-foreground/80 hover:text-foreground hover:bg-accent'
+              }`}
+            >
+              {isInPlaylist ? (
+                <Check className="w-3 h-3 text-primary shrink-0" />
+              ) : (
+                <ListPlus className="w-3 h-3 text-muted-foreground/40 shrink-0" />
+              )}
+              <span className="truncate">{pl.name}</span>
+            </button>
+          );
+        })}
       </div>
       <div className="border-t border-border/30 mt-1 pt-1">
         {showNewForm ? (

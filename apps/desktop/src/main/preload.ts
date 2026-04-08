@@ -61,6 +61,7 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'db:playlists:get-tracks',
   'db:playlists:add-track',
   'db:playlists:remove-track',
+  'db:playlists:get-playlists-for-tracks',
   'db:playlists:reorder',
   'shell:show-in-folder',
   'shell:trash-file',
@@ -254,6 +255,7 @@ export interface ElectronAPI {
       getTracks: (playlistId: string) => Promise<unknown[]>;
       addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
       removeTrack: (playlistId: string, trackId: string) => Promise<void>;
+      getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
       reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
     };
   };
@@ -537,6 +539,8 @@ const electronAPI: ElectronAPI = {
         ipcRenderer.invoke('db:playlists:add-track', { playlistId, trackId }),
       removeTrack: (playlistId: string, trackId: string) =>
         ipcRenderer.invoke('db:playlists:remove-track', { playlistId, trackId }),
+      getPlaylistsForTracks: (trackIds: string[]) =>
+        ipcRenderer.invoke('db:playlists:get-playlists-for-tracks', trackIds),
       reorder: (playlistId: string, trackIds: string[]) =>
         ipcRenderer.invoke('db:playlists:reorder', { playlistId, trackIds }),
     },

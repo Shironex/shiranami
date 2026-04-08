@@ -34,17 +34,20 @@ export function useContextMenuDismiss(
 
   useClickOutside(menuRef, onClose);
 
-  // Close on Escape + scroll
+  // Close on Escape + scroll (ignore scrolls inside the menu itself)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    const onScroll = () => onClose();
+    const onScroll = (e: Event) => {
+      if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
+      onClose();
+    };
     document.addEventListener('keydown', onKey);
     window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('keydown', onKey);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, [onClose]);
+  }, [onClose, menuRef]);
 
   return adjusted;
 }

@@ -479,6 +479,25 @@ export function registerDatabaseHandlers(): void {
   );
 
   ipcMain.handle(
+    'db:playlists:get-playlists-for-tracks',
+    async (_event, trackIds: string[]) => {
+      const db = getDatabase();
+      const uniqueTrackIds = [...new Set(trackIds)];
+      if (uniqueTrackIds.length === 0) return [];
+
+      const rows = db
+        .select({ playlistId: playlistTracks.playlistId })
+        .from(playlistTracks)
+        .where(inArray(playlistTracks.trackId, uniqueTrackIds))
+        .groupBy(playlistTracks.playlistId)
+        .having(sql`COUNT(DISTINCT ${playlistTracks.trackId}) = ${uniqueTrackIds.length}`)
+        .all();
+
+      return rows.map((r) => r.playlistId);
+    },
+  );
+
+  ipcMain.handle(
     'db:playlists:reorder',
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
@@ -529,5 +548,6 @@ export function cleanupDatabaseHandlers(): void {
   ipcMain.removeHandler('db:playlists:add-track');
   ipcMain.removeHandler('db:playlists:create-with-tracks');
   ipcMain.removeHandler('db:playlists:remove-track');
+  ipcMain.removeHandler('db:playlists:get-playlists-for-tracks');
   ipcMain.removeHandler('db:playlists:reorder');
 }

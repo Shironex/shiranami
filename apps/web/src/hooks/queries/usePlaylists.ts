@@ -44,6 +44,17 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
   });
 }
 
+export function useTrackPlaylistMembershipQuery(trackIds: string[]) {
+  return useQuery({
+    queryKey: [...playlistKeys.all, 'membership', [...trackIds].sort()],
+    queryFn: async () => {
+      if (!IS_ELECTRON || trackIds.length === 0) return [];
+      return (await window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds)) as string[];
+    },
+    enabled: IS_ELECTRON && trackIds.length > 0,
+  });
+}
+
 // ── Mutations ──
 
 export function useCreatePlaylistMutation() {
@@ -99,6 +110,7 @@ export function useAddTrackToPlaylistMutation() {
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });
+      queryClient.invalidateQueries({ queryKey: [...playlistKeys.all, 'membership'] });
     },
   });
 }
@@ -114,6 +126,7 @@ export function useRemoveTrackFromPlaylistMutation() {
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });
+      queryClient.invalidateQueries({ queryKey: [...playlistKeys.all, 'membership'] });
     },
   });
 }

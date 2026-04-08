@@ -61,7 +61,7 @@ export function usePlaylistMutations({
       if (!playlistId) return;
       try {
         await removeTrackMutation.mutateAsync({ playlistId, trackIds: [trackId] });
-        toast.success(tToast('removedFromPlaylist'));
+        toast.success(tToast('removedFromPlaylist', { name: playlist?.name ?? '' }));
       } catch {
         toast.error(tToast('failedRemoveTrack'));
       }

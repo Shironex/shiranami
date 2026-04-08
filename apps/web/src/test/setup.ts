@@ -106,6 +106,7 @@ function createElectronAPIMock(): ElectronAPI {
         getTracks: asyncFn([]),
         addTrack: vi.fn(),
         removeTrack: asyncFn(undefined),
+        getPlaylistsForTracks: asyncFn([]),
         reorder: asyncFn(undefined),
       },
       folders: {
