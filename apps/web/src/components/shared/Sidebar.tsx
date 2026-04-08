@@ -150,17 +150,7 @@ export function Sidebar() {
           <div className={cn('min-h-0 flex flex-col pb-3', sidebarCollapsed ? 'px-2' : 'px-3')}>
             {sidebarCollapsed ? (
               <>
-                <div className="flex items-center justify-center pt-4 pb-2">
-                  <button
-                    onClick={() => navigateTo('playlists')}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    title={t('allPlaylists')}
-                    aria-label={t('allPlaylists')}
-                  >
-                    <ListMusic className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="min-h-0 overflow-y-auto scrollbar-thin space-y-1">
+                <div className="min-h-0 overflow-y-auto scrollbar-thin space-y-1 pt-3">
                   {isLoadingPlaylists ? (
                     <div className="flex items-center justify-center py-4 text-muted-foreground/40">
                       <Loader2 className="w-4 h-4 animate-spin" />
