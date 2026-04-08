@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
 import { type Track } from '@/stores/usePlayerStore';
@@ -54,6 +54,23 @@ interface AlbumGridProps {
 export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const { t } = useTranslation('library');
   const selectAlbum = useAppStore(s => s.selectAlbum);
+  const albumGridScrollTop = useAppStore(s => s.albumGridScrollTop);
+  const setAlbumGridScrollTop = useAppStore(s => s.setAlbumGridScrollTop);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Restore scroll position on remount
+  useEffect(() => {
+    if (scrollRef.current && albumGridScrollTop > 0) {
+      scrollRef.current.scrollTop = albumGridScrollTop;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAlbumClick = useCallback((albumName: string) => {
+    if (scrollRef.current) {
+      setAlbumGridScrollTop(scrollRef.current.scrollTop);
+    }
+    selectAlbum(albumName);
+  }, [selectAlbum, setAlbumGridScrollTop]);
 
   const albums = useMemo(() => groupTracksByAlbum(library), [library]);
 
@@ -80,7 +97,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
       {searchQuery.trim() && (
         <p className="text-xs text-muted-foreground/50 mb-3 px-1">
           {t('albumFilterCount', { filtered: filteredAlbums.length, total: albums.length })}
@@ -104,7 +121,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => selectAlbum(album.name)}
+            onClick={() => handleAlbumClick(album.name)}
             className="text-left p-4 rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group"
           >
             <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">

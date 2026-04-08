@@ -146,6 +146,7 @@ interface AppState {
   uiScale: number;
   libraryViewMode: LibraryViewMode;
   selectedAlbumName: string | null;
+  albumGridScrollTop: number;
 }
 
 interface AppActions {
@@ -167,6 +168,7 @@ interface AppActions {
   resetUiScale: () => void;
   setLibraryViewMode: (mode: LibraryViewMode) => void;
   selectAlbum: (name: string | null) => void;
+  setAlbumGridScrollTop: (scrollTop: number) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -183,6 +185,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   uiScale: getInitialUiScale(),
   libraryViewMode: getInitialLibraryViewMode(),
   selectedAlbumName: null,
+  albumGridScrollTop: 0,
 
   navigateTo: (view, playlistId) =>
     set({
@@ -284,9 +287,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   },
   setLibraryViewMode: (mode) => {
     persistLibraryViewMode(mode);
-    set({ libraryViewMode: mode, selectedAlbumName: null });
+    set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
   },
   selectAlbum: (name) => set({ selectedAlbumName: name }),
+  setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
 }));
 
 if (import.meta.hot) {
