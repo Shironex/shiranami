@@ -482,14 +482,15 @@ export function registerDatabaseHandlers(): void {
     'db:playlists:get-playlists-for-tracks',
     async (_event, trackIds: string[]) => {
       const db = getDatabase();
-      if (trackIds.length === 0) return [];
+      const uniqueTrackIds = [...new Set(trackIds)];
+      if (uniqueTrackIds.length === 0) return [];
 
       const rows = db
         .select({ playlistId: playlistTracks.playlistId })
         .from(playlistTracks)
-        .where(inArray(playlistTracks.trackId, trackIds))
+        .where(inArray(playlistTracks.trackId, uniqueTrackIds))
         .groupBy(playlistTracks.playlistId)
-        .having(sql`COUNT(DISTINCT ${playlistTracks.trackId}) = ${trackIds.length}`)
+        .having(sql`COUNT(DISTINCT ${playlistTracks.trackId}) = ${uniqueTrackIds.length}`)
         .all();
 
       return rows.map((r) => r.playlistId);

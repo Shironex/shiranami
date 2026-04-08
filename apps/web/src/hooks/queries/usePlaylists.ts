@@ -46,7 +46,7 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
 
 export function useTrackPlaylistMembershipQuery(trackIds: string[]) {
   return useQuery({
-    queryKey: [...playlistKeys.all, 'membership', ...trackIds],
+    queryKey: [...playlistKeys.all, 'membership', [...trackIds].sort()],
     queryFn: async () => {
       if (!IS_ELECTRON || trackIds.length === 0) return [];
       return (await window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds)) as string[];
