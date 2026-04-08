@@ -94,7 +94,6 @@ export function PlaylistContextMenu({
         style={{
           left: adjustedPosition.x,
           top: adjustedPosition.y,
-          maxHeight: adjustedPosition.maxHeight,
           transformOrigin: 'top left',
         }}
         onContextMenu={(event: React.MouseEvent) => event.preventDefault()}

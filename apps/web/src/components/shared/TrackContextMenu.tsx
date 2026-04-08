@@ -63,7 +63,6 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
   const parentRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
   const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
-  const [submenuOffset, setSubmenuOffset] = useState(0);
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -96,18 +95,6 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
     }
   }, []);
 
-  // Adjust submenu vertical position when it overflows viewport
-  useEffect(() => {
-    if (!isSubmenuOpen || !submenuRef.current) return;
-    const rect = submenuRef.current.getBoundingClientRect();
-    const padding = 8;
-    if (rect.bottom > window.innerHeight - padding) {
-      setSubmenuOffset(window.innerHeight - padding - rect.bottom);
-    } else if (rect.top < padding) {
-      setSubmenuOffset(padding - rect.top);
-    }
-  }, [isSubmenuOpen]);
-
   return (
     <div
       ref={parentRef}
@@ -132,10 +119,9 @@ function PlaylistSubmenu({ trackIds, onClose }: { trackIds: string[]; onClose: (
         <div
           ref={submenuRef}
           className={cn(
-            'absolute w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20',
+            'absolute top-0 w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20',
             submenuSide === 'right' ? 'left-full ml-0.5' : 'right-full mr-0.5'
           )}
-          style={{ top: submenuOffset }}
         >
           <PlaylistPickerContent trackIds={trackIds} onDone={onClose} />
         </div>
@@ -228,11 +214,10 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.12 }}
-        className="fixed z-50 min-w-[200px] py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/30 overflow-y-auto scrollbar-thin"
+        className="fixed z-50 min-w-[200px] py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/30"
         style={{
           left: adjustedPosition.x,
           top: adjustedPosition.y,
-          maxHeight: adjustedPosition.maxHeight,
           transformOrigin: 'top left',
         }}
         onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
