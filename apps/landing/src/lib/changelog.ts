@@ -69,6 +69,63 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.14.0',
+    date: '2026-04-08',
+    title: l(
+      'Album grid view & playlist membership',
+      'Widok siatki albumów i przynależność do playlist'
+    ),
+    description: l(
+      'Browse your library as album cover art cards, see which playlists a track belongs to from the context menu, and various UI polish improvements.',
+      'Przeglądaj swoją bibliotekę jako karty okładek albumów, sprawdzaj do których playlist należy utwór z menu kontekstowego oraz różne poprawki interfejsu.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Album grid view in library — toggle between track list and album cover cards, click an album to see its tracks, with scroll position preserved across navigation',
+            'Widok siatki albumów w bibliotece — przełączanie między listą utworów a kartami okładek, kliknij album aby zobaczyć jego utwory, z zachowaniem pozycji przewijania między nawigacjami'
+          ),
+          l(
+            'Playlist membership in context menu — right-click a track to see which playlists it belongs to, with checkmark indicators',
+            'Przynależność do playlist w menu kontekstowym — kliknij prawym przyciskiem na utwór, aby zobaczyć do których playlist należy, ze znacznikami wyboru'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Fixed context menu overflowing viewport on tracks near screen edges',
+            'Naprawiono wyświetlanie menu kontekstowego poza ekranem dla utworów blisko krawędzi'
+          ),
+          l(
+            'Fixed playlist popover scroll behavior with portal-based rendering',
+            'Naprawiono przewijanie popovera playlist z renderowaniem portalowym'
+          ),
+          l(
+            'Removed redundant playlists button from collapsed sidebar',
+            'Usunięto zbędny przycisk playlist ze zwiniętego paska bocznego'
+          ),
+          l(
+            'Used proper Fisher-Yates shuffle for better randomness in album track ordering',
+            'Użyto prawidłowego algorytmu Fisher-Yates dla lepszej losowości w kolejności utworów albumów'
+          ),
+        ],
+      },
+      {
+        label: l('Maintenance', 'Konserwacja'),
+        entries: [
+          l(
+            'Upgraded safe and moderate-effort dependencies to latest versions',
+            'Zaktualizowano bezpieczne i umiarkowanie wymagające zależności do najnowszych wersji'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.13.1',
     date: '2026-04-08',
     title: l(
