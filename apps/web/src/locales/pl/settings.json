@@ -128,7 +128,8 @@
     "ytdlpNotInstalled": "yt-dlp nie zainstalowany",
     "ffmpegInstalled": "ffmpeg zainstalowany",
     "ffmpegNotInstalled": "ffmpeg nie zainstalowany",
-    "recommended": "zalecany"
+    "recommended": "zalecany",
+    "refresh": "Odśwież status narzędzi"
   },
   "upd": {
     "title": "Aktualizacje",

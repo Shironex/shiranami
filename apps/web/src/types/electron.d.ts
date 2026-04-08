@@ -201,6 +201,20 @@ export interface ElectronAPI {
       isDefault: boolean;
     }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
+    getCachedToolStatus: () => Promise<{
+      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlpPath: string;
+      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+      timestamp: number;
+    } | null>;
+    refreshToolStatus: () => Promise<{
+      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlpPath: string;
+      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+      timestamp: number;
+    } | null>;
     check: () => Promise<{
       installed: boolean;
       version?: string;

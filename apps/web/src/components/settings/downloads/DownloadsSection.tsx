@@ -2,14 +2,16 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowDownToLine,
   Download,
-  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { DownloadLocationPanel } from '@/components/settings/downloads/DownloadLocationPanel';
+import { DownloadsSectionSkeleton } from '@/components/settings/downloads/DownloadsSectionSkeleton';
 import { InstallProgressBar } from '@/components/settings/downloads/InstallProgressBar';
 import { ToolStatusRow } from '@/components/settings/downloads/ToolStatusRow';
 import { ToolVersionBlock } from '@/components/settings/downloads/ToolVersionBlock';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
+import { cn } from '@/lib/utils';
 
 export function DownloadsSection() {
   const { t } = useTranslation('settings');
@@ -29,18 +31,28 @@ export function DownloadsSection() {
   const locationPathDisplay =
     s.downloadLocation || s.downloadLocationDefaultPath || t('dl.checking');
 
+  const refreshButton = (
+    <button
+      type="button"
+      onClick={s.handleRefresh}
+      disabled={s.isRefreshing || s.isCheckingDownloadTools}
+      title={t('dl.refresh')}
+      className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      <RefreshCw className={cn('w-3.5 h-3.5', s.isRefreshing && 'animate-spin')} />
+    </button>
+  );
+
   return (
     <SettingsCard
       icon={ArrowDownToLine}
       title={t('dl.title')}
       subtitle={t('dl.subtitle')}
+      headerRight={refreshButton}
     >
       <div className="space-y-3">
         {s.isCheckingDownloadTools ? (
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-background/50 border border-border/20 text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">{t('dl.checking')}</span>
-          </div>
+          <DownloadsSectionSkeleton />
         ) : (
           <>
             {s.hasMissingDownloadTools && (

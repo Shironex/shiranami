@@ -124,6 +124,8 @@ function createElectronAPIMock(): ElectronAPI {
       getDownloadLocation: asyncFn({ path: '', defaultPath: '', isDefault: true }),
       setDownloadLocation: asyncFn({ path: '', defaultPath: '', isDefault: true }),
       checkDependencies: asyncFn({ ytdlpInstalled: false, ffmpegInstalled: false }),
+      getCachedToolStatus: asyncFn(null),
+      refreshToolStatus: asyncFn(null),
       check: asyncFn({ installed: false }),
       onProgress: vi.fn(() => noopUnsub()),
       installYtDlp: asyncFn({ success: true }),

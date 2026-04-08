@@ -308,6 +308,20 @@ export interface ElectronAPI {
       isDefault: boolean;
     }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
+    getCachedToolStatus: () => Promise<{
+      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlpPath: string;
+      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+      timestamp: number;
+    } | null>;
+    refreshToolStatus: () => Promise<{
+      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlpPath: string;
+      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+      timestamp: number;
+    } | null>;
     check: () => Promise<{
       installed: boolean;
       version?: string;
@@ -563,6 +577,8 @@ const electronAPI: ElectronAPI = {
     setDownloadLocation: (downloadPath: string | null) =>
       ipcRenderer.invoke('downloader:set-download-location', downloadPath),
     checkDependencies: () => ipcRenderer.invoke('downloader:check-dependencies'),
+    getCachedToolStatus: () => ipcRenderer.invoke('downloader:get-cached-tool-status'),
+    refreshToolStatus: () => ipcRenderer.invoke('downloader:refresh-tool-status'),
     check: () => ipcRenderer.invoke('downloader:check'),
     onProgress: createIpcListener<{
       url: string;

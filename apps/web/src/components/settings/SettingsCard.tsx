@@ -7,9 +7,10 @@ interface SettingsCardProps {
   icon?: LucideIcon;
   title?: React.ReactNode;
   subtitle?: string;
+  headerRight?: React.ReactNode;
 }
 
-export function SettingsCard({ children, className, icon: Icon, title, subtitle }: SettingsCardProps) {
+export function SettingsCard({ children, className, icon: Icon, title, subtitle, headerRight }: SettingsCardProps) {
   return (
     <div className={cn('bg-surface/50 border border-border/30 rounded-2xl p-5', children && 'space-y-4', className)}>
       {Icon && title && (
@@ -21,6 +22,7 @@ export function SettingsCard({ children, className, icon: Icon, title, subtitle 
             <h3 className="text-sm font-medium text-foreground leading-tight">{title}</h3>
             {subtitle && <p className="text-xs text-muted-foreground/70">{subtitle}</p>}
           </div>
+          {headerRight && <div className="ml-auto">{headerRight}</div>}
         </div>
       )}
       {children}

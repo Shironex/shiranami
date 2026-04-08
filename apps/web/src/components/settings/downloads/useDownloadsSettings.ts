@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
@@ -27,6 +27,8 @@ export function useDownloadsSettings() {
   const [downloadLocationIsDefault, setDownloadLocationIsDefault] = useState(true);
   const [downloadLocationUpdating, setDownloadLocationUpdating] = useState(false);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const isDependencyInstallInProgress = useDownloadStore(s => s.isDependencyInstallInProgress);
   const dependencyInstallProgress = useDownloadStore(s => s.dependencyInstallProgress);
   const dependencyInstallLabel = useDownloadStore(s => s.dependencyInstallLabel);
@@ -37,41 +39,51 @@ export function useDownloadsSettings() {
   const hasMissingDownloadTools = ytdlpInstalled === false || ffmpegInstalled === false;
   const dependenciesInstalling = isDependencyInstallInProgress;
 
+  const mountedRef = useRef(true);
+
+  const applyCacheSnapshot = useCallback((cache: {
+    ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+    ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+    ytdlpPath: string;
+    downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+  }) => {
+    setYtdlpInstalled(cache.ytdlp.installed);
+    setYtdlpVersion(cache.ytdlp.version);
+    setYtdlpLatestVersion(cache.ytdlp.latestVersion);
+    setYtdlpUpdateAvailable(Boolean(cache.ytdlp.updateAvailable));
+    setYtdlpPath(cache.ytdlpPath);
+
+    setFfmpegInstalled(cache.ffmpeg.installed);
+    setFfmpegVersion(cache.ffmpeg.version);
+    setFfmpegLatestVersion(cache.ffmpeg.latestVersion);
+    setFfmpegUpdateAvailable(Boolean(cache.ffmpeg.updateAvailable));
+
+    setDownloadLocation(cache.downloadLocation.path);
+    setDownloadLocationDefaultPath(cache.downloadLocation.defaultPath);
+    setDownloadLocationIsDefault(cache.downloadLocation.isDefault);
+  }, []);
+
   const refreshDownloadToolStatus = useCallback(async () => {
     if (!IS_ELECTRON) {
-      return {
-        ytdlpInstalled: false,
-        ffmpegInstalled: false,
-      };
+      return { ytdlpInstalled: false, ffmpegInstalled: false };
     }
 
     try {
-      const [ytdlpResult, binPath, ffmpegResult, downloadLocationResult] = await Promise.all([
-        window.electronAPI.downloader.check(),
-        window.electronAPI.downloader.getYtDlpPath(),
-        window.electronAPI.downloader.checkFfmpeg(),
-        window.electronAPI.downloader.getDownloadLocation(),
-      ]);
+      const result = await window.electronAPI.downloader.refreshToolStatus();
+      if (!mountedRef.current) return { ytdlpInstalled: false, ffmpegInstalled: false };
 
-      setYtdlpInstalled(ytdlpResult.installed);
-      setYtdlpVersion(ytdlpResult.version);
-      setYtdlpLatestVersion(ytdlpResult.latestVersion);
-      setYtdlpUpdateAvailable(Boolean(ytdlpResult.updateAvailable));
-      setYtdlpPath(binPath);
+      if (result) {
+        applyCacheSnapshot(result);
+        return {
+          ytdlpInstalled: result.ytdlp.installed,
+          ffmpegInstalled: result.ffmpeg.installed,
+        };
+      }
 
-      setFfmpegInstalled(ffmpegResult.installed);
-      setFfmpegVersion(ffmpegResult.version);
-      setFfmpegLatestVersion(ffmpegResult.latestVersion);
-      setFfmpegUpdateAvailable(Boolean(ffmpegResult.updateAvailable));
-      setDownloadLocation(downloadLocationResult.path);
-      setDownloadLocationDefaultPath(downloadLocationResult.defaultPath);
-      setDownloadLocationIsDefault(downloadLocationResult.isDefault);
-
-      return {
-        ytdlpInstalled: ytdlpResult.installed,
-        ffmpegInstalled: ffmpegResult.installed,
-      };
+      return { ytdlpInstalled: false, ffmpegInstalled: false };
     } catch {
+      if (!mountedRef.current) return { ytdlpInstalled: false, ffmpegInstalled: false };
+
       setYtdlpInstalled(false);
       setYtdlpVersion(undefined);
       setYtdlpLatestVersion(undefined);
@@ -83,17 +95,59 @@ export function useDownloadsSettings() {
       setDownloadLocation('');
       setDownloadLocationDefaultPath('');
       setDownloadLocationIsDefault(true);
-      return {
-        ytdlpInstalled: false,
-        ffmpegInstalled: false,
-      };
+      return { ytdlpInstalled: false, ffmpegInstalled: false };
     }
-  }, []);
+  }, [applyCacheSnapshot]);
 
-  useEffect(() => {
+  const handleRefresh = useCallback(async () => {
     if (!IS_ELECTRON) return;
-    refreshDownloadToolStatus();
+    setIsRefreshing(true);
+    try {
+      await refreshDownloadToolStatus();
+    } finally {
+      if (mountedRef.current) setIsRefreshing(false);
+    }
   }, [refreshDownloadToolStatus]);
+
+  // On mount: load cached data instantly, then background refresh
+  useEffect(() => {
+    mountedRef.current = true;
+    if (!IS_ELECTRON) return;
+
+    let cancelled = false;
+
+    (async () => {
+      // Step 1: Try loading cached data for instant display
+      try {
+        const cached = await window.electronAPI.downloader.getCachedToolStatus();
+        if (cached && !cancelled) {
+          applyCacheSnapshot(cached);
+        }
+      } catch {
+        // no cache available, will show skeleton
+      }
+
+      // Step 2: Background refresh to get fresh data
+      if (!cancelled) {
+        setIsRefreshing(true);
+        try {
+          const fresh = await window.electronAPI.downloader.refreshToolStatus();
+          if (fresh && !cancelled) {
+            applyCacheSnapshot(fresh);
+          }
+        } catch {
+          // cache already applied if available
+        } finally {
+          if (!cancelled) setIsRefreshing(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+    };
+  }, [applyCacheSnapshot]);
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -253,11 +307,13 @@ export function useDownloadsSettings() {
 
   return {
     isCheckingDownloadTools,
+    isRefreshing,
     hasMissingDownloadTools,
     dependenciesInstalling,
     dependencyInstallProgress,
     dependencyInstallLabel,
     handleInstallMissingTools,
+    handleRefresh,
     ytdlpInstalled,
     ytdlpVersion,
     ytdlpLatestVersion,

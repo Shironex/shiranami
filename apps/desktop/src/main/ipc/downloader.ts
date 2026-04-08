@@ -59,6 +59,70 @@ interface DownloadLocationState {
 }
 
 const DOWNLOAD_LOCATION_STORE_KEY = 'downloads.location';
+const TOOL_STATUS_CACHE_KEY = 'downloads.toolStatusCache';
+
+interface ToolStatusCache {
+  ytdlp: BinaryStatus;
+  ffmpeg: BinaryStatus;
+  ytdlpPath: string;
+  downloadLocation: DownloadLocationState;
+  timestamp: number;
+}
+
+let toolStatusCache: ToolStatusCache | null = null;
+
+function loadCachedToolStatus(): ToolStatusCache | null {
+  if (toolStatusCache) {
+    logger.debug('[downloader] Returning in-memory tool status cache');
+    return toolStatusCache;
+  }
+
+  try {
+    const persisted = store.get(TOOL_STATUS_CACHE_KEY) as ToolStatusCache | undefined;
+    if (persisted && typeof persisted.timestamp === 'number') {
+      toolStatusCache = persisted;
+      logger.info(`[downloader] Loaded tool status from persistent cache (age: ${Date.now() - persisted.timestamp}ms)`);
+      return persisted;
+    }
+  } catch (err) {
+    logger.warn('[downloader] Failed to load cached tool status:', err);
+  }
+  return null;
+}
+
+function persistToolStatusCache(cache: ToolStatusCache): void {
+  toolStatusCache = cache;
+  store.set(TOOL_STATUS_CACHE_KEY, cache);
+  logger.debug('[downloader] Tool status cache persisted');
+}
+
+async function fetchAndCacheToolStatus(): Promise<ToolStatusCache> {
+  logger.info('[downloader] Fetching fresh tool status...');
+  const [ytdlp, ffmpeg, ytdlpPath, downloadLocation] = await Promise.all([
+    getYtDlpStatus(),
+    getFFmpegStatus(),
+    Promise.resolve(getYtDlpPath()),
+    Promise.resolve(getDownloadLocationState()),
+  ]);
+
+  const cache: ToolStatusCache = {
+    ytdlp,
+    ffmpeg,
+    ytdlpPath,
+    downloadLocation,
+    timestamp: Date.now(),
+  };
+
+  persistToolStatusCache(cache);
+  logger.info(`[downloader] Tool status refreshed — yt-dlp: ${ytdlp.installed ? 'installed' : 'missing'}, ffmpeg: ${ffmpeg.installed ? 'installed' : 'missing'}`);
+  return cache;
+}
+
+function invalidateToolStatusCache(): void {
+  toolStatusCache = null;
+  store.delete(TOOL_STATUS_CACHE_KEY);
+  logger.info('[downloader] Tool status cache invalidated');
+}
 
 function getMainWindow(): BrowserWindow | null {
   const windows = BrowserWindow.getAllWindows();
@@ -213,6 +277,19 @@ export function registerDownloaderHandlers(): void {
       ytdlpInstalled: isYtDlpInstalled(),
       ffmpegInstalled: isFFmpegInstalled(),
     };
+  });
+
+  ipcMain.handle('downloader:get-cached-tool-status', async () => {
+    return loadCachedToolStatus();
+  });
+
+  ipcMain.handle('downloader:refresh-tool-status', async () => {
+    try {
+      return await fetchAndCacheToolStatus();
+    } catch (err) {
+      logger.warn('[downloader] Failed to refresh tool status:', err);
+      return loadCachedToolStatus();
+    }
   });
 
   ipcMain.handle('downloader:check', async () => {
@@ -444,6 +521,7 @@ export function registerDownloaderHandlers(): void {
           mainWindow.webContents.send('downloader:install-progress', { percent });
         }
       });
+      invalidateToolStatusCache();
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Download failed';
@@ -473,6 +551,7 @@ export function registerDownloaderHandlers(): void {
           mainWindow.webContents.send('downloader:ffmpeg-install-progress', { percent });
         }
       });
+      invalidateToolStatusCache();
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Download failed';
@@ -541,6 +620,7 @@ export function registerDownloaderHandlers(): void {
         });
       }
 
+      invalidateToolStatusCache();
       return { success: true };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Dependency installation failed';
@@ -548,12 +628,19 @@ export function registerDownloaderHandlers(): void {
       return { success: false, error: errorMessage };
     }
   });
+
+  // Background refresh on startup — populate cache silently
+  fetchAndCacheToolStatus().catch((err) => {
+    logger.warn('[downloader] Background tool status refresh failed:', err);
+  });
 }
 
 export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler('downloader:get-download-location');
   ipcMain.removeHandler('downloader:set-download-location');
   ipcMain.removeHandler('downloader:check-dependencies');
+  ipcMain.removeHandler('downloader:get-cached-tool-status');
+  ipcMain.removeHandler('downloader:refresh-tool-status');
   ipcMain.removeHandler('downloader:check');
   ipcMain.removeHandler('downloader:search');
   ipcMain.removeHandler('downloader:download');
