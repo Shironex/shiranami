@@ -81,7 +81,7 @@ jobs:
 
       - name: Upload macOS artifacts
         if: matrix.platform == 'mac'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-builds
           path: |
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload Windows artifacts
         if: matrix.platform == 'win'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-builds
           path: |
@@ -108,19 +108,19 @@ jobs:
 
     steps:
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: macos-builds
           path: artifacts/macos-builds
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: windows-builds
           path: artifacts/windows-builds
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.6.1
         with:
           fail_on_unmatched_files: true
           files: |
