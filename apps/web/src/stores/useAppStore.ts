@@ -4,7 +4,21 @@ import { IS_ELECTRON } from '@/lib/platform';
 export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes' | 'search' | 'radio' | 'settings' | 'import-playlist';
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
+export type LibraryViewMode = 'tracks' | 'albums';
 
+function getInitialLibraryViewMode(): LibraryViewMode {
+  if (typeof window === 'undefined') return 'tracks';
+  const stored = window.localStorage.getItem(LIBRARY_VIEW_MODE_STORAGE_KEY);
+  if (stored === 'tracks' || stored === 'albums') return stored;
+  return 'tracks';
+}
+
+function persistLibraryViewMode(mode: LibraryViewMode) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LIBRARY_VIEW_MODE_STORAGE_KEY, mode);
+}
+
+const LIBRARY_VIEW_MODE_STORAGE_KEY = 'shiranami.library-view-mode';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
 const SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY = 'shiranami.sidebar-hidden-items';
 const SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY = 'shiranami.sidebar-playlists-visible';
@@ -130,6 +144,8 @@ interface AppState {
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
   uiScale: number;
+  libraryViewMode: LibraryViewMode;
+  selectedAlbumName: string | null;
 }
 
 interface AppActions {
@@ -149,6 +165,8 @@ interface AppActions {
   setVisualizerStyle: (style: VisualizerStyle) => void;
   setUiScale: (scale: number) => void;
   resetUiScale: () => void;
+  setLibraryViewMode: (mode: LibraryViewMode) => void;
+  selectAlbum: (name: string | null) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
@@ -163,6 +181,8 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   showVisualizer: getInitialVisualizerEnabled(),
   visualizerStyle: getInitialVisualizerStyle(),
   uiScale: getInitialUiScale(),
+  libraryViewMode: getInitialLibraryViewMode(),
+  selectedAlbumName: null,
 
   navigateTo: (view, playlistId) =>
     set({
@@ -262,6 +282,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     persistUiScale(UI_SCALE_DEFAULT);
     set({ uiScale: UI_SCALE_DEFAULT });
   },
+  setLibraryViewMode: (mode) => {
+    persistLibraryViewMode(mode);
+    set({ libraryViewMode: mode, selectedAlbumName: null });
+  },
+  selectAlbum: (name) => set({ selectedAlbumName: name }),
 }));
 
 if (import.meta.hot) {
