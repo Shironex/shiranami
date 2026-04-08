@@ -57,6 +57,8 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const albumGridScrollTop = useAppStore(s => s.albumGridScrollTop);
   const setAlbumGridScrollTop = useAppStore(s => s.setAlbumGridScrollTop);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Skip entrance animation when returning from album detail (scroll will be restored)
+  const isReturning = useRef(albumGridScrollTop > 0);
 
   // Restore scroll position on remount
   useEffect(() => {
@@ -105,10 +107,10 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
       )}
       <motion.div
         className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
-        initial="hidden"
+        initial={isReturning.current ? 'visible' : 'hidden'}
         animate="visible"
         variants={{
-          visible: { transition: { staggerChildren: 0.04 } },
+          visible: { transition: { staggerChildren: isReturning.current ? 0 : 0.04 } },
         }}
       >
         {filteredAlbums.map(album => (
@@ -118,7 +120,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
               hidden: { opacity: 0, y: 12 },
               visible: { opacity: 1, y: 0 },
             }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
+            transition={{ duration: isReturning.current ? 0 : 0.3, ease: 'easeOut' }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleAlbumClick(album.name)}
