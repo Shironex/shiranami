@@ -69,6 +69,42 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.14.1',
+    date: '2026-04-08',
+    title: l(
+      'Faster tool checks & UI polish',
+      'Szybsze sprawdzanie narzędzi i poprawki interfejsu'
+    ),
+    description: l(
+      'Download tool status is now cached in memory and electron-store for instant display on startup, with background refresh. Also fixed toast notification styling and significantly expanded test coverage.',
+      'Status narzędzi do pobrania jest teraz buforowany w pamięci i electron-store dla natychmiastowego wyświetlania przy starcie, z odświeżaniem w tle. Poprawiono również stylowanie powiadomień toast i znacząco rozszerzono pokrycie testami.'
+    ),
+    categories: [
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Download tool status (ffmpeg, yt-dlp) is now cached and shown instantly on startup with skeleton loading, instead of blocking the UI while checking',
+            'Status narzędzi do pobrania (ffmpeg, yt-dlp) jest teraz buforowany i wyświetlany natychmiast przy starcie ze szkieletowym ładowaniem, zamiast blokować interfejs podczas sprawdzania'
+          ),
+          l(
+            'Toast notifications now use app design tokens for consistent dark theme styling',
+            'Powiadomienia toast używają teraz tokenów projektowych aplikacji dla spójnego stylowania ciemnego motywu'
+          ),
+        ],
+      },
+      {
+        label: l('Testing', 'Testy'),
+        entries: [
+          l(
+            'Test coverage expanded from 266 to 632 tests across desktop and web packages',
+            'Pokrycie testami rozszerzone z 266 do 632 testów w pakietach desktop i web'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.14.0',
     date: '2026-04-08',
     title: l(
