@@ -1,10 +1,21 @@
 {
   "filterPlaceholder": "Filtruj utwory...",
+  "filterAlbumsPlaceholder": "Filtruj albumy...",
   "filterCount": "{{filtered}} z {{total}} utworów",
+  "albumFilterCount": "{{filtered}} z {{total}} albumów",
   "emptyTitle": "Brak utworów",
   "emptySubtitle": "Dodaj pliki lub folder, aby zacząć słuchać",
   "emptyHintSearch": "Szukaj na YouTube",
   "emptyHintImport": "Importuj playlistę",
   "noMatchesTitle": "Brak pasujących utworów",
-  "noMatchesSubtitle": "Spróbuj innej frazy"
+  "noMatchesSubtitle": "Spróbuj innej frazy",
+  "trackCount": "{{count}} utwór",
+  "trackCount_few": "{{count}} utwory",
+  "trackCount_many": "{{count}} utworów",
+  "trackCount_other": "{{count}} utworów",
+  "viewTracks": "Utwory",
+  "viewAlbums": "Albumy",
+  "playAll": "Odtwórz wszystko",
+  "shuffle": "Losowo",
+  "backToAlbums": "Powrót do albumów"
 }

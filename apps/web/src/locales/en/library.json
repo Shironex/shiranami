@@ -1,10 +1,19 @@
 {
   "filterPlaceholder": "Filter tracks...",
+  "filterAlbumsPlaceholder": "Filter albums...",
   "filterCount": "{{filtered}} of {{total}} tracks",
+  "albumFilterCount": "{{filtered}} of {{total}} albums",
   "emptyTitle": "No tracks yet",
   "emptySubtitle": "Add files or a folder to start listening",
   "emptyHintSearch": "Search YouTube",
   "emptyHintImport": "Import a playlist",
   "noMatchesTitle": "No matching tracks",
-  "noMatchesSubtitle": "Try a different search term"
+  "noMatchesSubtitle": "Try a different search term",
+  "trackCount": "{{count}} track",
+  "trackCount_other": "{{count}} tracks",
+  "viewTracks": "Tracks",
+  "viewAlbums": "Albums",
+  "playAll": "Play all",
+  "shuffle": "Shuffle",
+  "backToAlbums": "Back to albums"
 }
