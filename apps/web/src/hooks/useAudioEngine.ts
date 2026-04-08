@@ -420,6 +420,7 @@ export function useAudioEngine() {
     // If this track is already loaded on the active deck (crossfade completed
     // or same track), skip reloading
     if (deckTrackIdRef.current[activeDeckRef.current] === currentTrack.id) {
+      _setIsLoading(false);
       return;
     }
 
@@ -427,6 +428,7 @@ export function useAudioEngine() {
     const idleDeckId = getIdleDeckId();
     if (deckTrackIdRef.current[idleDeckId] === currentTrack.id) {
       activeDeckRef.current = idleDeckId;
+      _setIsLoading(false);
       return;
     }
 
@@ -511,6 +513,7 @@ export function useAudioEngine() {
       animationFrameRef.current = requestAnimationFrame(updateTime);
     } else {
       playbackSessionRef.current.lastTickAt = null;
+      _setIsLoading(false);
       active.pause();
       // Also pause incoming deck if crossfading
       if (crossfadeRef.current.active) {
@@ -519,7 +522,7 @@ export function useAudioEngine() {
       }
       cancelAnimationFrame(animationFrameRef.current);
     }
-  }, [isPlaying, updateTime, _setError, _setIsPlaying, volume, isMuted]);
+  }, [isPlaying, updateTime, _setError, _setIsPlaying, _setIsLoading, volume, isMuted]);
 
   // ── Sync volume ───────────────────────────────────────────────
 
