@@ -101,11 +101,11 @@ export function LibraryView() {
             </div>
 
             {/* View toggle */}
-            <div className="flex items-center rounded-lg border border-border/50 bg-card p-0.5">
+            <div className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5">
               <button
                 onClick={() => setLibraryViewMode('tracks')}
                 className={cn(
-                  'p-1.5 rounded-md transition-colors',
+                  'p-2 rounded-lg transition-colors',
                   libraryViewMode === 'tracks'
                     ? 'bg-primary/15 text-primary'
                     : 'text-muted-foreground/50 hover:text-foreground'
@@ -118,7 +118,7 @@ export function LibraryView() {
               <button
                 onClick={() => setLibraryViewMode('albums')}
                 className={cn(
-                  'p-1.5 rounded-md transition-colors',
+                  'p-2 rounded-lg transition-colors',
                   libraryViewMode === 'albums'
                     ? 'bg-primary/15 text-primary'
                     : 'text-muted-foreground/50 hover:text-foreground'
