@@ -57,9 +57,12 @@ export const useDownloadStore = create<DownloadState & DownloadActions>((set) =>
 }));
 
 if (import.meta.hot) {
-  if (import.meta.hot.data.store) {
-    useDownloadStore.setState(import.meta.hot.data.store.getState());
+  type HmrData = { store?: typeof useDownloadStore };
+  const hot = import.meta.hot;
+  const data = (hot.data ?? {}) as HmrData;
+  if (data.store) {
+    useDownloadStore.setState(data.store.getState());
   }
-  import.meta.hot.data.store = useDownloadStore;
-  import.meta.hot.accept();
+  data.store = useDownloadStore;
+  hot.accept();
 }

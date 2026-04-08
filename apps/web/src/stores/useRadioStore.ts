@@ -205,9 +205,12 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
 }));
 
 if (import.meta.hot) {
-  if (import.meta.hot.data.store) {
-    useRadioStore.setState(import.meta.hot.data.store.getState());
+  type HmrData = { store?: typeof useRadioStore };
+  const hot = import.meta.hot;
+  const data = (hot.data ?? {}) as HmrData;
+  if (data.store) {
+    useRadioStore.setState(data.store.getState());
   }
-  import.meta.hot.data.store = useRadioStore;
-  import.meta.hot.accept();
+  data.store = useRadioStore;
+  hot.accept();
 }
