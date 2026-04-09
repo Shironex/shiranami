@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
 
 const isMac = navigator.platform.toUpperCase().includes('MAC');
 const MOD = isMac ? '\u2318' : 'Ctrl';
@@ -45,14 +46,13 @@ function getShortcutCategories(): ShortcutCategory[] {
     {
       titleKey: 'navigation',
       glyph: '02',
+      // Numeric nav entries are derived from NAV_VIEWS so the help dialog
+      // can never drift out of sync with the keyboard handler again.
       shortcuts: [
-        { keys: ['1'], actionKey: 'library' },
-        { keys: ['2'], actionKey: 'playlists' },
-        { keys: ['3'], actionKey: 'favorites' },
-        { keys: ['4'], actionKey: 'history' },
-        { keys: ['5'], actionKey: 'download' },
-        { keys: ['6'], actionKey: 'radio' },
-        { keys: ['7'], actionKey: 'settings' },
+        ...NAV_VIEWS.map((entry, i) => ({
+          keys: [String(i + 1)],
+          actionKey: entry.labelKey,
+        })),
         { keys: [MOD, 'K'], actionKey: 'commandPalette' },
       ],
     },

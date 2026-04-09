@@ -3,14 +3,23 @@ import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
-const NAV_VIEWS: AppView[] = [
-  'library',
-  'playlists',
-  'favorites',
-  'history',
-  'search',
-  'radio',
-  'settings',
+/**
+ * Canonical navigation order for the number-key shortcuts and the
+ * shortcuts help dialog. Mirrors the visual order in the Sidebar
+ * (`NAV_ITEMS` in Sidebar.tsx). Each entry pairs the AppView with the
+ * i18n label key used in `locales/<lang>/shortcuts.json` so the help
+ * dialog can derive its Navigation list from this single source.
+ */
+export const NAV_VIEWS: Array<{ view: AppView; labelKey: string }> = [
+  { view: 'library', labelKey: 'library' },
+  { view: 'playlists', labelKey: 'playlists' },
+  { view: 'favorites', labelKey: 'favorites' },
+  { view: 'history', labelKey: 'history' },
+  { view: 'mixes', labelKey: 'mixes' },
+  { view: 'search', labelKey: 'search' },
+  { view: 'import-playlist', labelKey: 'importPlaylist' },
+  { view: 'radio', labelKey: 'radio' },
+  { view: 'settings', labelKey: 'settings' },
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -206,10 +215,13 @@ export function useKeyboardShortcuts() {
         case '4':
         case '5':
         case '6':
-        case '7': {
+        case '7':
+        case '8':
+        case '9': {
+          const entry = NAV_VIEWS[parseInt(e.key) - 1];
+          if (!entry) return;
           e.preventDefault();
-          const view = NAV_VIEWS[parseInt(e.key) - 1];
-          useAppStore.getState().navigateTo(view);
+          useAppStore.getState().navigateTo(entry.view);
           return;
         }
       }
