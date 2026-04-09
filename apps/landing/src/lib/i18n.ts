@@ -93,6 +93,19 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
       'Windows may show SmartScreen. macOS requires a Terminal command after each download before the app will launch.',
     'download.releasePage': 'Release page',
     'download.latestPublicBuild': 'Latest public build',
+    'download.headingAfter': 'Download started!',
+    'download.bodyAfter': 'Your build is on its way. See you in the app.',
+    'download.yourSystem': 'Your system',
+    'download.fetchFailed': 'Could not load the latest release.',
+    'download.getFromGithub': 'Get it from GitHub',
+    'download.changelog': 'Changelog',
+    'download.githubRelease': 'GitHub release',
+    'download.unsignedShortTitle': 'Unsigned build',
+    'download.unsignedShortBody':
+      'macOS requires a Terminal command after each download before the app will launch.',
+    'download.mascotAlt': 'Shiranami mascot',
+    'download.downloadStartedAnnouncement': 'Download started. See you in the app.',
+    'download.downloadAria': 'Download Shiranami for {platform} ({ext}, {size})',
 
     // Changelog page
     'changelog.label': 'Changelog',
@@ -190,6 +203,19 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
       'Windows może pokazać SmartScreen. Na macOS po każdym pobraniu trzeba wykonać jedno polecenie w Terminalu, zanim aplikacja wystartuje.',
     'download.releasePage': 'Strona wydania',
     'download.latestPublicBuild': 'Najnowsza publiczna wersja',
+    'download.headingAfter': 'Pobieranie rozpoczęte!',
+    'download.bodyAfter': 'Twoja wersja jest już w drodze. Do zobaczenia w aplikacji.',
+    'download.yourSystem': 'Twój system',
+    'download.fetchFailed': 'Nie udało się pobrać informacji o najnowszym wydaniu.',
+    'download.getFromGithub': 'Pobierz z GitHuba',
+    'download.changelog': 'Historia zmian',
+    'download.githubRelease': 'Wydanie na GitHubie',
+    'download.unsignedShortTitle': 'Niepodpisana aplikacja',
+    'download.unsignedShortBody':
+      'macOS wymaga jednego polecenia w Terminalu po każdym pobraniu, zanim aplikacja wystartuje.',
+    'download.mascotAlt': 'Maskotka Shiranami',
+    'download.downloadStartedAnnouncement': 'Pobieranie rozpoczęte. Do zobaczenia w aplikacji.',
+    'download.downloadAria': 'Pobierz Shiranami na {platform} ({ext}, {size})',
 
     // Changelog page
     'changelog.label': 'Historia zmian',
