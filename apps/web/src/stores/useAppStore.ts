@@ -27,6 +27,7 @@ const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
 const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
 const NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY = 'shiranami.now-playing-view-enabled';
 const NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY = 'shiranami.now-playing-lyrics-visible';
+const LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY = 'shiranami.library-hero-card-enabled';
 const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
 
 export const UI_SCALE_MIN = 80;
@@ -143,6 +144,18 @@ function persistNowPlayingLyricsVisible(visible: boolean) {
   window.localStorage.setItem(NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY, visible ? 'true' : 'false');
 }
 
+function getInitialLibraryHeroCardEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  const stored = window.localStorage.getItem(LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY);
+  if (stored === 'false') return false;
+  return true;
+}
+
+function persistLibraryHeroCardEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
+}
+
 function getInitialCompactAlwaysOnTop(): boolean {
   if (typeof window === 'undefined') return false;
   return window.localStorage.getItem(COMPACT_ALWAYS_ON_TOP_STORAGE_KEY) === 'true';
@@ -173,6 +186,7 @@ interface AppState {
   albumGridScrollTop: number;
   nowPlayingViewEnabled: boolean;
   nowPlayingLyricsVisible: boolean;
+  libraryHeroCardEnabled: boolean;
   previousView: AppView;
 }
 
@@ -182,6 +196,7 @@ interface AppActions {
   exitNowPlaying: () => void;
   setNowPlayingViewEnabled: (enabled: boolean) => void;
   toggleNowPlayingLyrics: () => void;
+  setLibraryHeroCardEnabled: (enabled: boolean) => void;
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
@@ -219,6 +234,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   albumGridScrollTop: 0,
   nowPlayingViewEnabled: getInitialNowPlayingViewEnabled(),
   nowPlayingLyricsVisible: getInitialNowPlayingLyricsVisible(),
+  libraryHeroCardEnabled: getInitialLibraryHeroCardEnabled(),
   previousView: 'library',
 
   navigateTo: (view, playlistId) =>
@@ -246,6 +262,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     const next = !get().nowPlayingLyricsVisible;
     persistNowPlayingLyricsVisible(next);
     set({ nowPlayingLyricsVisible: next });
+  },
+  setLibraryHeroCardEnabled: (enabled) => {
+    persistLibraryHeroCardEnabled(enabled);
+    set({ libraryHeroCardEnabled: enabled });
   },
   selectPlaylist: (id) => set({ selectedPlaylistId: id }),
   setRightPanel: (panel) => set({ rightPanel: panel }),

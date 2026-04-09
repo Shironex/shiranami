@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
@@ -19,6 +20,7 @@ export function FavoritesView() {
   const setQueue = usePlayerStore(s => s.setQueue);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
+  const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
 
   const favorites = useMemo(
     () => library.filter((t) => t.isFavorite),
@@ -37,7 +39,7 @@ export function FavoritesView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <NowPlayingHero show={showIfFavorite} />
+      {libraryHeroCardEnabled && <NowPlayingHero show={showIfFavorite} />}
 
       {favorites.length === 0 ? (
         <ViewEmptyState
