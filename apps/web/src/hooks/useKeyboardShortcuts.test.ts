@@ -11,9 +11,16 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
   IS_WINDOWS: true,
 }));
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
-}));
+// Use importOriginal so initReactI18next (and other exports) remain
+// available — @/lib/i18n.ts is now reachable from the hook via the
+// toast feedback path and needs the real plugin shape at module init.
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  return {
+    ...actual,
+    useTranslation: () => ({ t: (k: string) => k }),
+  };
+});
 
 function pressKey(
   key: string,

@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -85,16 +87,36 @@ export function useKeyboardShortcuts() {
           }
           case 'P':
           case 'p': {
-            // Ctrl/Cmd+Shift+P: toggle Now Playing view (setting-gated, requires a track)
+            // Ctrl/Cmd+Shift+P: toggle Now Playing view.
+            // Setting-gated and requires a track — both silent-failure
+            // paths now surface as toasts so the user always knows the
+            // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
               const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } = useAppStore.getState();
-              if (!nowPlayingViewEnabled) return;
+              if (!nowPlayingViewEnabled) {
+                toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
+                  id: 'now-playing-disabled',
+                  duration: 6000,
+                  action: {
+                    label: i18n.t('updateSettings', { ns: 'toast' }),
+                    onClick: () => useAppStore.getState().navigateTo('settings'),
+                  },
+                });
+                return;
+              }
               if (activeView === 'now-playing') {
                 exitNowPlaying();
-              } else if (usePlayerStore.getState().currentTrack) {
-                enterNowPlaying();
+                return;
               }
+              if (!usePlayerStore.getState().currentTrack) {
+                toast.info(i18n.t('nowPlayingNoTrack', { ns: 'toast' }), {
+                  id: 'now-playing-no-track',
+                  duration: 4000,
+                });
+                return;
+              }
+              enterNowPlaying();
               return;
             }
             break;
