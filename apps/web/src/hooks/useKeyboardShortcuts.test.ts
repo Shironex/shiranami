@@ -11,9 +11,16 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
   IS_WINDOWS: true,
 }));
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string) => k }),
-}));
+// Use importOriginal so initReactI18next (and other exports) remain
+// available — @/lib/i18n.ts is now reachable from the hook via the
+// toast feedback path and needs the real plugin shape at module init.
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  return {
+    ...actual,
+    useTranslation: () => ({ t: (k: string) => k }),
+  };
+});
 
 function pressKey(
   key: string,
@@ -254,15 +261,20 @@ describe('useKeyboardShortcuts', () => {
 
   // --- Navigation with number keys ---
 
-  describe('Number keys 1-7 - navigate to views', () => {
+  describe('Number keys 1-9 - navigate to views', () => {
+    // Mirrors NAV_VIEWS in useKeyboardShortcuts.ts and the visual order in
+    // Sidebar.tsx. Update both places together if the canonical nav order
+    // changes.
     const viewMap: Record<string, string> = {
       '1': 'library',
       '2': 'playlists',
       '3': 'favorites',
       '4': 'history',
-      '5': 'search',
-      '6': 'radio',
-      '7': 'settings',
+      '5': 'mixes',
+      '6': 'search',
+      '7': 'import-playlist',
+      '8': 'radio',
+      '9': 'settings',
     };
 
     for (const [key, view] of Object.entries(viewMap)) {

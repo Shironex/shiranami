@@ -1,16 +1,27 @@
 import { useEffect } from 'react';
+import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
-const NAV_VIEWS: AppView[] = [
-  'library',
-  'playlists',
-  'favorites',
-  'history',
-  'search',
-  'radio',
-  'settings',
+/**
+ * Canonical navigation order for the number-key shortcuts and the
+ * shortcuts help dialog. Mirrors the visual order in the Sidebar
+ * (`NAV_ITEMS` in Sidebar.tsx). Each entry pairs the AppView with the
+ * i18n label key used in `locales/<lang>/shortcuts.json` so the help
+ * dialog can derive its Navigation list from this single source.
+ */
+export const NAV_VIEWS: Array<{ view: AppView; labelKey: string }> = [
+  { view: 'library', labelKey: 'library' },
+  { view: 'playlists', labelKey: 'playlists' },
+  { view: 'favorites', labelKey: 'favorites' },
+  { view: 'history', labelKey: 'history' },
+  { view: 'mixes', labelKey: 'mixes' },
+  { view: 'search', labelKey: 'search' },
+  { view: 'import-playlist', labelKey: 'importPlaylist' },
+  { view: 'radio', labelKey: 'radio' },
+  { view: 'settings', labelKey: 'settings' },
 ];
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -76,16 +87,36 @@ export function useKeyboardShortcuts() {
           }
           case 'P':
           case 'p': {
-            // Ctrl/Cmd+Shift+P: toggle Now Playing view (setting-gated, requires a track)
+            // Ctrl/Cmd+Shift+P: toggle Now Playing view.
+            // Setting-gated and requires a track — both silent-failure
+            // paths now surface as toasts so the user always knows the
+            // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
               const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } = useAppStore.getState();
-              if (!nowPlayingViewEnabled) return;
+              if (!nowPlayingViewEnabled) {
+                toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
+                  id: 'now-playing-disabled',
+                  duration: 6000,
+                  action: {
+                    label: i18n.t('updateSettings', { ns: 'toast' }),
+                    onClick: () => useAppStore.getState().navigateTo('settings'),
+                  },
+                });
+                return;
+              }
               if (activeView === 'now-playing') {
                 exitNowPlaying();
-              } else if (usePlayerStore.getState().currentTrack) {
-                enterNowPlaying();
+                return;
               }
+              if (!usePlayerStore.getState().currentTrack) {
+                toast.info(i18n.t('nowPlayingNoTrack', { ns: 'toast' }), {
+                  id: 'now-playing-no-track',
+                  duration: 4000,
+                });
+                return;
+              }
+              enterNowPlaying();
               return;
             }
             break;
@@ -206,10 +237,13 @@ export function useKeyboardShortcuts() {
         case '4':
         case '5':
         case '6':
-        case '7': {
+        case '7':
+        case '8':
+        case '9': {
+          const entry = NAV_VIEWS[parseInt(e.key) - 1];
+          if (!entry) return;
           e.preventDefault();
-          const view = NAV_VIEWS[parseInt(e.key) - 1];
-          useAppStore.getState().navigateTo(view);
+          useAppStore.getState().navigateTo(entry.view);
           return;
         }
       }

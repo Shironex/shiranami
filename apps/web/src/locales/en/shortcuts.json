@@ -20,7 +20,9 @@
   "playlists": "Playlists",
   "favorites": "Favorites",
   "history": "History",
-  "download": "Download",
+  "mixes": "Mixes",
+  "search": "Search",
+  "importPlaylist": "Import playlist",
   "radio": "Radio",
   "settings": "Settings",
   "commandPalette": "Command palette",
@@ -31,5 +33,5 @@
   "toggleNowPlaying": "Toggle Now Playing view",
   "toggleVisualizer": "Toggle visualizer",
   "showHelp": "Show this help",
-  "closePanel": "Close panel"
+  "closePanel": "Clear selection / close panel"
 }
