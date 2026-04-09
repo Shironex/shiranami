@@ -69,6 +69,91 @@ export function getLocalizedChangelogTitle(
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '0.15.0',
+    date: '2026-04-09',
+    title: l(
+      'Immersive Now Playing view & low-performance mode',
+      'Imersyjny widok Teraz odtwarzane i tryb niskiej wydajności'
+    ),
+    description: l(
+      'A full-screen Now Playing experience with synced lyrics, a new low-performance mode for older hardware, finer control over the album grid, a smarter download page, and a safer default for metadata enrichment.',
+      'Pełnoekranowy widok Teraz odtwarzane z synchronizowanymi tekstami, nowy tryb niskiej wydajności dla starszego sprzętu, większa kontrola nad siatką albumów, inteligentniejsza strona pobierania oraz bezpieczniejsze domyślne ustawienie wzbogacania metadanych.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Immersive Now Playing view — double-click album art or press Ctrl+Shift+P to open a full-screen player with synced lyrics that scroll and highlight in time with the track; click any line to seek',
+            'Imersyjny widok Teraz odtwarzane — kliknij dwukrotnie okładkę lub naciśnij Ctrl+Shift+P, aby otworzyć pełnoekranowy odtwarzacz z synchronizowanymi tekstami, które przewijają się i podświetlają w rytm utworu; kliknięcie dowolnej linii przewija do danego miejsca'
+          ),
+          l(
+            'Low performance mode in Appearance settings — one toggle disables the visualizer, glass blur, background noise overlay and ambient gradients; recommended for older laptops or integrated graphics',
+            'Tryb niskiej wydajności w ustawieniach Wyglądu — jeden przełącznik wyłącza wizualizator, rozmycie szkła, nakładkę szumu tła i gradienty tła; zalecany na starszych laptopach lub ze zintegrowaną grafiką'
+          ),
+          l(
+            'Album grid density, sorting and disc number grouping — pick small, medium or large tiles (small finally shows 7–8 columns at 1920px), sort by name, artist or year, and see multi-disc albums grouped correctly with per-disc subheaders',
+            'Gęstość, sortowanie i grupowanie numerów płyt w siatce albumów — wybierz małe, średnie lub duże kafelki (małe pokazują wreszcie 7–8 kolumn przy szerokości 1920px), sortuj według nazwy, wykonawcy lub roku, a albumy wielopłytowe są poprawnie grupowane z nagłówkami dla każdej płyty'
+          ),
+          l(
+            'Download page on the landing site now detects your operating system and shows the matching installer directly, with no need to browse GitHub Releases',
+            'Strona pobierania na stronie internetowej wykrywa teraz Twój system operacyjny i od razu pokazuje pasujący instalator, bez konieczności przeglądania GitHub Releases'
+          ),
+          l(
+            'Redesigned keyboard shortcuts help dialog with tactile key caps and a cleaner editorial layout matching the app theme',
+            'Przeprojektowane okno pomocy skrótów klawiszowych z dotykowymi klawiszami i czytelniejszym edytorskim układem pasującym do motywu aplikacji'
+          ),
+          l(
+            'Mixes and Import Playlist now have keyboard shortcuts (5 and 7) — every item in the sidebar is now reachable from the keyboard',
+            'Miksy oraz Import playlisty mają teraz skróty klawiszowe (5 i 7) — każda pozycja z paska bocznego jest teraz dostępna z klawiatury'
+          ),
+          l(
+            'Now Playing banner above Library and Favorites can be hidden — turn it off in Appearance settings to give albums more room',
+            'Baner Teraz odtwarzane nad Biblioteką i Ulubionymi można ukryć — wyłącz go w ustawieniach Wyglądu, aby zyskać więcej miejsca na albumy'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Metadata enrichment is now safer by default — writing tags directly to audio files on disk is off by default, requires an explicit opt-in with warning styling, and asks for confirmation naming the exact file count before touching anything',
+            'Wzbogacanie metadanych jest teraz bezpieczniejsze domyślnie — zapisywanie tagów bezpośrednio do plików audio jest domyślnie wyłączone, wymaga świadomego włączenia z widocznym ostrzeżeniem i prosi o potwierdzenie z podaną liczbą plików przed jakąkolwiek zmianą'
+          ),
+          l(
+            'Silent keyboard shortcut failures now surface as toast notifications, so actions that did nothing no longer feel broken',
+            'Ciche błędy skrótów klawiszowych są teraz pokazywane jako powiadomienia, więc akcje, które nic nie robiły, nie wydają się już zepsute'
+          ),
+          l(
+            'Escape now closes the full-screen Now Playing view first, matching standard modal-style interaction',
+            'Klawisz Escape zamyka teraz najpierw pełnoekranowy widok Teraz odtwarzane, zgodnie ze standardowym zachowaniem widoków modalnych'
+          ),
+          l(
+            'Consistent spacing and alignment across Settings cards and Library view toggles',
+            'Spójne odstępy i wyrównanie między kartami Ustawień a przełącznikami widoku Biblioteki'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Downloader now surfaces clear, translated error messages when a track fails (age-restricted, unavailable, no compatible audio format) instead of the opaque "yt-dlp exited with code 1"',
+            'Moduł pobierania pokazuje teraz jasne, przetłumaczone komunikaty błędów, gdy pobieranie utworu się nie powiedzie (ograniczenie wiekowe, niedostępny, brak zgodnego formatu audio), zamiast nieczytelnego „yt-dlp exited with code 1"'
+          ),
+          l(
+            'Fixed a stuck loading spinner on player controls that could appear after a failed track load or buffering event',
+            'Naprawiono wieczny wskaźnik ładowania na kontrolkach odtwarzacza, który mógł się pojawić po nieudanym załadowaniu utworu lub zdarzeniu buforowania'
+          ),
+          l(
+            'Numeric sidebar navigation shortcuts (1–9) now match the actual sidebar order. Note: keys 5, 6 and 7 changed meaning — 5 is Mixes, 6 is Search, 7 is Import Playlist',
+            'Numeryczne skróty nawigacyjne paska bocznego (1–9) odpowiadają teraz rzeczywistej kolejności paska. Uwaga: klawisze 5, 6 i 7 zmieniły znaczenie — 5 to Miksy, 6 to Wyszukiwanie, 7 to Import playlisty'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '0.14.1',
     date: '2026-04-08',
     title: l(
