@@ -166,17 +166,24 @@ function createTables(database: Database.Database): void {
 /**
  * Apply incremental schema migrations for existing databases.
  *
- * SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS form, so each additive
- * migration is wrapped in a try/catch — failing silently when the column
- * already exists. Keep operations idempotent and append-only.
+ * SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS form, so existence is
+ * checked via PRAGMA table_info before each additive migration. Keep operations
+ * idempotent and append-only.
  */
 function migrateSchema(database: Database.Database): void {
   // disc_number: added for multi-disc album support
-  try {
+  if (!hasColumn(database, 'tracks', 'disc_number')) {
     database.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run();
-  } catch {
-    // column already exists — safe to ignore
   }
+}
+
+/**
+ * Returns true if `table` has a column named `column`. Uses PRAGMA table_info,
+ * which is the canonical SQLite introspection for schema existence checks.
+ */
+function hasColumn(database: Database.Database, table: string, column: string): boolean {
+  const rows = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return rows.some(row => row.name === column);
 }
 
 /**
