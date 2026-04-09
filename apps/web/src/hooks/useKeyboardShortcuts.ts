@@ -217,6 +217,15 @@ export function useKeyboardShortcuts() {
         }
         case 'Escape': {
           if (document.querySelector('[data-radix-portal]')) return;
+          // Now Playing is a modal-like full-screen view; Esc should
+          // dismiss it before any background-state cleanup. Standard
+          // modal interaction.
+          const appState = useAppStore.getState();
+          if (appState.activeView === 'now-playing') {
+            e.preventDefault();
+            appState.exitNowPlaying();
+            return;
+          }
           // Clear track selection first
           const { selectedTrackIds, clearSelection } = useSelectionStore.getState();
           if (selectedTrackIds.size > 0) {
@@ -224,10 +233,9 @@ export function useKeyboardShortcuts() {
             clearSelection();
             return;
           }
-          const { rightPanel, setRightPanel } = useAppStore.getState();
-          if (rightPanel !== null) {
+          if (appState.rightPanel !== null) {
             e.preventDefault();
-            setRightPanel(null);
+            appState.setRightPanel(null);
           }
           return;
         }
