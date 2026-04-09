@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
-import { Search, Loader2, Disc3, Check, X, Ban } from 'lucide-react';
+import { Search, Loader2, Disc3, Check, X, Ban, Info, AlertTriangle } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/ui/status-badge';
 
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   const library = usePlayerStore(s => s.library);
   const isEnriching = useMetadataEnrichStore(s => s.isEnriching);
   const progress = useMetadataEnrichStore(s => s.progress);
@@ -20,8 +21,10 @@ export function MetadataEnrichSection() {
   const isCancelling = useMetadataEnrichStore(s => s.isCancelling);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
-  const [writeToFile, setWriteToFile] = useState(true);
+  // Default OFF — writing to files is irreversible, so it must be an explicit opt-in (issue #37).
+  const [writeToFile, setWriteToFile] = useState(false);
   const [includeSkipped, setIncludeSkipped] = useState(false);
+  const [confirmWrite, setConfirmWrite] = useState(false);
 
   // Load persisted skip list on mount
   useEffect(() => {
@@ -42,8 +45,23 @@ export function MetadataEnrichSection() {
   const skippedCount = tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length;
 
   const handleEnrich = useCallback(() => {
+    // Gate destructive path behind inline confirm. Safe path (DB only) runs immediately.
+    if (writeToFile) {
+      setConfirmWrite(true);
+      return;
+    }
     startEnrichment({ onlyMissing, writeToFile, includeSkipped });
   }, [startEnrichment, onlyMissing, writeToFile, includeSkipped]);
+
+  const handleConfirmedEnrich = useCallback(() => {
+    setConfirmWrite(false);
+    startEnrichment({ onlyMissing, writeToFile, includeSkipped });
+  }, [startEnrichment, onlyMissing, writeToFile, includeSkipped]);
+
+  // If the user flips write-to-file off while the confirm is up, drop the confirm.
+  useEffect(() => {
+    if (!writeToFile && confirmWrite) setConfirmWrite(false);
+  }, [writeToFile, confirmWrite]);
 
   if (!IS_ELECTRON) return null;
 
@@ -70,6 +88,14 @@ export function MetadataEnrichSection() {
           </span>
         </div>
 
+        {/* Manual-only reassurance: the issue #37 user feared background auto-modification. */}
+        <div className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-primary/5 border border-primary/15">
+          <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {t('lib.enrichManualNotice')}
+          </p>
+        </div>
+
         {/* Options */}
         <div className="space-y-1">
           <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
@@ -80,10 +106,32 @@ export function MetadataEnrichSection() {
             <Switch checked={onlyMissing} onChange={setOnlyMissing} />
           </div>
 
-          <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('lib.enrichWriteToFile')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('lib.enrichWriteToFileDesc')}</p>
+          {/* Write-to-file: amber warning styling when enabled so users can't miss that files will be modified. */}
+          <div
+            className={
+              writeToFile
+                ? 'flex items-start justify-between gap-3 px-3 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 transition-colors'
+                : 'flex items-start justify-between gap-3 px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors'
+            }
+          >
+            <div className="flex items-start gap-2 min-w-0">
+              {writeToFile && (
+                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">{t('lib.enrichWriteToFile')}</p>
+                <p
+                  className={
+                    writeToFile
+                      ? 'text-xs text-amber-500/90 mt-0.5'
+                      : 'text-xs text-muted-foreground mt-0.5'
+                  }
+                >
+                  {writeToFile
+                    ? t('lib.enrichWriteToFileDestructive')
+                    : t('lib.enrichWriteToFileDesc')}
+                </p>
+              </div>
             </div>
             <Switch checked={writeToFile} onChange={setWriteToFile} />
           </div>
@@ -137,35 +185,68 @@ export function MetadataEnrichSection() {
           </div>
         )}
 
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleEnrich}
-            disabled={isEnriching || library.length === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 hover:bg-primary/25 text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isEnriching ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Search className="w-3.5 h-3.5" />
-            )}
-            {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
-          </button>
-          {isEnriching && (
+        {/* Action row — swaps to an inline confirmation when about to write to disk. */}
+        {confirmWrite && !isEnriching ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  {t('lib.enrichConfirmWriteTitle')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('lib.enrichConfirmWriteBody', {
+                    count: tracksNeedingEnrichment.length,
+                  })}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirmedEnrich}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-black hover:bg-amber-500/90 transition-colors"
+              >
+                <Search className="w-3.5 h-3.5" />
+                {t('lib.enrichYesWrite')}
+              </button>
+              <button
+                onClick={() => setConfirmWrite(false)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                {tc('cancel')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2">
             <button
-              onClick={cancelEnrichment}
-              disabled={isCancelling}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleEnrich}
+              disabled={isEnriching || library.length === 0}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 hover:bg-primary/25 text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCancelling ? (
+              {isEnriching ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <Ban className="w-3.5 h-3.5" />
+                <Search className="w-3.5 h-3.5" />
               )}
-              {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
+              {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
             </button>
-          )}
-        </div>
+            {isEnriching && (
+              <button
+                onClick={cancelEnrichment}
+                disabled={isCancelling}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Ban className="w-3.5 h-3.5" />
+                )}
+                {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </SettingsCard>
   );
