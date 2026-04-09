@@ -76,6 +76,7 @@ export function useLibraryActions() {
           genre: r.metadata.genre ?? null,
           year: r.metadata.year ?? null,
           trackNumber: r.metadata.trackNumber ?? null,
+          discNumber: r.metadata.discNumber ?? null,
           albumArt: r.metadata.albumArt ?? null,
         }))
       )) as Record<string, unknown>[];

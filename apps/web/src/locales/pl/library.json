@@ -17,5 +17,16 @@
   "viewAlbums": "Albumy",
   "playAll": "Odtwórz wszystko",
   "shuffle": "Losowo",
-  "backToAlbums": "Powrót do albumów"
+  "backToAlbums": "Powrót do albumów",
+  "sortBy": "Sortuj wg",
+  "sortByName": "Nazwa albumu",
+  "sortByArtist": "Artysta",
+  "sortByYear": "Rok",
+  "sortOrderAsc": "Rosnąco",
+  "sortOrderDesc": "Malejąco",
+  "gridSize": "Rozmiar siatki",
+  "gridSizeSmall": "Mały",
+  "gridSizeMedium": "Średni",
+  "gridSizeLarge": "Duży",
+  "discHeading": "Płyta {{n}}"
 }

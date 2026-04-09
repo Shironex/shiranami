@@ -38,6 +38,9 @@ export function initializeDatabase(
   // Create tables if they don't exist
   createTables(sqliteDb);
 
+  // Apply incremental schema migrations for existing databases
+  migrateSchema(sqliteDb);
+
   db = drizzle(sqliteDb, { schema });
 
   return db;
@@ -59,6 +62,7 @@ function createTables(database: Database.Database): void {
       genre TEXT,
       year INTEGER,
       track_number INTEGER,
+      disc_number INTEGER,
       album_art TEXT,
       is_favorite INTEGER DEFAULT 0,
       play_count INTEGER DEFAULT 0,
@@ -157,6 +161,22 @@ function createTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at);
     CREATE INDEX IF NOT EXISTS idx_youtube_mappings_track_id ON youtube_mappings(track_id);
   `);
+}
+
+/**
+ * Apply incremental schema migrations for existing databases.
+ *
+ * SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS form, so each additive
+ * migration is wrapped in a try/catch — failing silently when the column
+ * already exists. Keep operations idempotent and append-only.
+ */
+function migrateSchema(database: Database.Database): void {
+  // disc_number: added for multi-disc album support
+  try {
+    database.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run();
+  } catch {
+    // column already exists — safe to ignore
+  }
 }
 
 /**

@@ -39,6 +39,7 @@ const fakeScanResult = (filePath: string) => ({
     genre: 'Rock',
     year: 2024,
     trackNumber: 1,
+    discNumber: 1,
     albumArt: null,
   },
 });

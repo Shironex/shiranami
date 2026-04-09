@@ -15,5 +15,16 @@
   "viewAlbums": "Albums",
   "playAll": "Play all",
   "shuffle": "Shuffle",
-  "backToAlbums": "Back to albums"
+  "backToAlbums": "Back to albums",
+  "sortBy": "Sort by",
+  "sortByName": "Album name",
+  "sortByArtist": "Artist",
+  "sortByYear": "Year",
+  "sortOrderAsc": "Ascending",
+  "sortOrderDesc": "Descending",
+  "gridSize": "Grid size",
+  "gridSizeSmall": "Small",
+  "gridSizeMedium": "Medium",
+  "gridSizeLarge": "Large",
+  "discHeading": "Disc {{n}}"
 }
