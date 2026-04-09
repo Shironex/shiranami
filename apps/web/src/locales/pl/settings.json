@@ -99,6 +99,8 @@
     "sidebarDesc": "Wybierz, które elementy mają być widoczne w panelu bocznym",
     "nowPlayingView": "Widok Teraz odtwarzane",
     "nowPlayingViewDesc": "Kliknij dwukrotnie okładkę na pasku odtwarzacza lub karcie 'Teraz odtwarzane', albo naciśnij Ctrl+Shift+P, aby otworzyć widok pełnoekranowy",
+    "libraryHeroCard": "Baner odtwarzanego utworu",
+    "libraryHeroCardDesc": "Pokazuj dużą kartę nad Biblioteką i Ulubionymi. Wyłącz, aby zyskać więcej miejsca na albumy — pasek odtwarzacza i tak pokazuje informacje o utworze.",
     "new": "Nowość",
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym"

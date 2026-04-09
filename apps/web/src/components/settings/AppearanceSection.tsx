@@ -36,6 +36,8 @@ export function AppearanceSection() {
   const resetUiScale = useAppStore((s) => s.resetUiScale);
   const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
   const setNowPlayingViewEnabled = useAppStore((s) => s.setNowPlayingViewEnabled);
+  const libraryHeroCardEnabled = useAppStore((s) => s.libraryHeroCardEnabled);
+  const setLibraryHeroCardEnabled = useAppStore((s) => s.setLibraryHeroCardEnabled);
   const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
   const toggleSidebarItem = useAppStore((s) => s.toggleSidebarItem);
   const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
@@ -139,6 +141,20 @@ export function AppearanceSection() {
             <Switch
               checked={nowPlayingViewEnabled}
               onChange={setNowPlayingViewEnabled}
+            />
+          </div>
+        </div>
+
+        {/* Now Playing banner (hero card above Library/Favorites) */}
+        <div className="px-3">
+          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">{t('app.libraryHeroCard')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('app.libraryHeroCardDesc')}</p>
+            </div>
+            <Switch
+              checked={libraryHeroCardEnabled}
+              onChange={setLibraryHeroCardEnabled}
             />
           </div>
         </div>

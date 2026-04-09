@@ -26,6 +26,7 @@ export function LibraryView() {
   const libraryViewMode = useAppStore(s => s.libraryViewMode);
   const setLibraryViewMode = useAppStore(s => s.setLibraryViewMode);
   const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
+  const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
 
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +69,7 @@ export function LibraryView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" onKeyDown={handleKeyDown} tabIndex={-1}>
-      <NowPlayingHero />
+      {libraryHeroCardEnabled && <NowPlayingHero />}
 
       {/* Search bar + view toggle */}
       {library.length > 0 && (
