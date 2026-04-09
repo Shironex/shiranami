@@ -19,6 +19,7 @@ export function CompactPlayer() {
   const setCompactMode = useAppStore(s => s.setCompactMode);
   const compactAlwaysOnTop = useAppStore(s => s.compactAlwaysOnTop);
   const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const ambientColor = useAmbientColor();
 
   const handleExitCompact = useCallback(() => {
@@ -34,12 +35,14 @@ export function CompactPlayer() {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.08] transition-all duration-[2s]"
-        style={{
-          background: `radial-gradient(circle at 18% 24%, rgba(${ambientColor.rgb}, 0.95) 0%, transparent 48%)`,
-        }}
-      />
+      {!lowPerformanceMode && (
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08] transition-all duration-[2s]"
+          style={{
+            background: `radial-gradient(circle at 18% 24%, rgba(${ambientColor.rgb}, 0.95) 0%, transparent 48%)`,
+          }}
+        />
+      )}
 
       <div className="drag flex h-9 shrink-0 items-center justify-between border-b border-border/20 px-3">
         <div className="flex min-w-0 items-center gap-2">

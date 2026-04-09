@@ -101,6 +101,8 @@
     "nowPlayingViewDesc": "Double-click album art in the player bar or now-playing card, or press Ctrl+Shift+P, to open an immersive full view",
     "libraryHeroCard": "Now playing banner",
     "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room — the player bar still shows track info.",
+    "lowPerfMode": "Low performance mode",
+    "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
     "new": "New",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar"

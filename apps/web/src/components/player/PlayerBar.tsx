@@ -26,6 +26,7 @@ export function PlayerBar() {
   const toggleRightPanel = useAppStore(s => s.toggleRightPanel);
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const setCompactMode = useAppStore(s => s.setCompactMode);
   const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
@@ -45,13 +46,15 @@ export function PlayerBar() {
             'glass border-t border-border/30',
           )}
         >
-          {/* Ambient glow */}
-          <div
-            className="absolute inset-0 opacity-[0.06] pointer-events-none rounded-none transition-all duration-[2s]"
-            style={{
-              background: `radial-gradient(ellipse at 15% 50%, rgba(${ambientColor.rgb}, 0.9) 0%, transparent 60%)`,
-            }}
-          />
+          {/* Ambient glow — skipped in low performance mode */}
+          {!lowPerformanceMode && (
+            <div
+              className="absolute inset-0 opacity-[0.06] pointer-events-none rounded-none transition-all duration-[2s]"
+              style={{
+                background: `radial-gradient(ellipse at 15% 50%, rgba(${ambientColor.rgb}, 0.9) 0%, transparent 60%)`,
+              }}
+            />
+          )}
 
           {/* Track info - left */}
           <div className="flex items-center gap-3.5 w-[280px] min-w-0 relative">

@@ -38,6 +38,8 @@ export function AppearanceSection() {
   const setNowPlayingViewEnabled = useAppStore((s) => s.setNowPlayingViewEnabled);
   const libraryHeroCardEnabled = useAppStore((s) => s.libraryHeroCardEnabled);
   const setLibraryHeroCardEnabled = useAppStore((s) => s.setLibraryHeroCardEnabled);
+  const lowPerformanceMode = useAppStore((s) => s.lowPerformanceMode);
+  const setLowPerformanceMode = useAppStore((s) => s.setLowPerformanceMode);
   const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
   const toggleSidebarItem = useAppStore((s) => s.toggleSidebarItem);
   const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
@@ -155,6 +157,20 @@ export function AppearanceSection() {
             <Switch
               checked={libraryHeroCardEnabled}
               onChange={setLibraryHeroCardEnabled}
+            />
+          </div>
+        </div>
+
+        {/* Low performance mode — disables expensive visual effects */}
+        <div className="px-3">
+          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
+            <div className="pr-4">
+              <p className="text-sm font-medium text-foreground">{t('app.lowPerfMode')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('app.lowPerfModeDesc')}</p>
+            </div>
+            <Switch
+              checked={lowPerformanceMode}
+              onChange={setLowPerformanceMode}
             />
           </div>
         </div>

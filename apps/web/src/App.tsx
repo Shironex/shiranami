@@ -79,6 +79,7 @@ function App() {
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const visualizerStyle = useAppStore(s => s.visualizerStyle);
   const compactMode = useAppStore(s => s.compactMode);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const updateDependencyInstall = useDownloadStore((s) => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore((s) => s.updateProgress);
 
@@ -147,7 +148,7 @@ function App() {
                     'flex-1 flex overflow-hidden min-h-0',
                     activeView === 'now-playing'
                       ? ''
-                      : currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
+                      : currentTrack && showVisualizer && !lowPerformanceMode ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
                   )}>
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -207,8 +208,8 @@ function App() {
                     )}
                   </main>
 
-                  {/* Visualizer strip above player bar (hidden in now-playing view) */}
-                  {currentTrack && showVisualizer && activeView !== 'now-playing' && (
+                  {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
+                  {currentTrack && showVisualizer && !lowPerformanceMode && activeView !== 'now-playing' && (
                     <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
                       <Suspense fallback={null}>
                         {visualizerStyle === 'waveform' ? <WaveformVisualizer /> :
