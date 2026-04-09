@@ -88,7 +88,7 @@ export function SettingsView() {
 
       {/* Section content */}
       <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20" role="tabpanel">
-        <div className="max-w-xl">
+        <div className="max-w-xl space-y-4">
           <Panel />
         </div>
       </div>
