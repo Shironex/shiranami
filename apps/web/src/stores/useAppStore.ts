@@ -264,6 +264,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     set({ nowPlayingLyricsVisible: next });
   },
   setLibraryHeroCardEnabled: (enabled) => {
+    if (get().libraryHeroCardEnabled === enabled) return;
     persistLibraryHeroCardEnabled(enabled);
     set({ libraryHeroCardEnabled: enabled });
   },
