@@ -315,7 +315,36 @@ describe('useKeyboardShortcuts', () => {
 
   // --- Escape ---
 
-  describe('Escape - clear selection / close panel', () => {
+  describe('Escape - back / clear selection / close panel', () => {
+    it('exits Now Playing view first, before any other Esc handling', () => {
+      setup();
+      // Set up: in Now Playing with an open right panel. Esc should
+      // exit the immersive view and leave the panel alone (the handler
+      // takes the now-playing branch and returns before reaching the
+      // panel-close branch).
+      //
+      // Note: we can't usefully assert on selection here. `useSelectionStore`
+      // has a module-level subscription on `useAppStore` (see
+      // useSelectionStore.ts:67-74) that auto-clears selection any time
+      // `activeView` changes. So `exitNowPlaying()` clears the selection
+      // as a side effect regardless of which Esc branch the handler
+      // takes — selection is unobservable for distinguishing branches.
+      // The panel is the cleaner signal.
+      useAppStore.setState({
+        activeView: 'now-playing',
+        previousView: 'library',
+        rightPanel: 'queue',
+      });
+
+      pressKey('Escape');
+
+      // Exited back to previousView via exitNowPlaying()
+      expect(useAppStore.getState().activeView).toBe('library');
+      // Panel untouched — handler returned early, never reached the
+      // setRightPanel(null) branch.
+      expect(useAppStore.getState().rightPanel).toBe('queue');
+    });
+
     it('clears selection when tracks are selected', () => {
       setup();
       useSelectionStore.setState({

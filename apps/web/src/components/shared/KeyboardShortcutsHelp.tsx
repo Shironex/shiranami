@@ -11,6 +11,11 @@ import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
 const isMac = navigator.platform.toUpperCase().includes('MAC');
 const MOD = isMac ? '\u2318' : 'Ctrl';
 
+// Static film grain backdrop. Hoisted out of the JSX so the structural
+// markup stays scannable; this string never changes per render.
+const FILM_GRAIN_SVG =
+  "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
 interface Shortcut {
   keys: string[];
   actionKey: string;
@@ -22,9 +27,18 @@ interface ShortcutCategory {
   shortcuts: Shortcut[];
 }
 
-function getShortcutCategories(): ShortcutCategory[] {
-  return [
-    {
+// Returned as a keyed record (not an array) so consumers can destructure
+// by name without depending on positional order. Adding or reordering
+// categories here is now a compile-error if any consumer is missed.
+interface ShortcutCategories {
+  playback: ShortcutCategory;
+  navigation: ShortcutCategory;
+  panelsUi: ShortcutCategory;
+}
+
+function getShortcutCategories(): ShortcutCategories {
+  return {
+    playback: {
       titleKey: 'playback',
       glyph: '01',
       shortcuts: [
@@ -43,7 +57,7 @@ function getShortcutCategories(): ShortcutCategory[] {
         { keys: ['L'], actionKey: 'favoriteTrack' },
       ],
     },
-    {
+    navigation: {
       titleKey: 'navigation',
       glyph: '02',
       // Numeric nav entries are derived from NAV_VIEWS so the help dialog
@@ -56,7 +70,7 @@ function getShortcutCategories(): ShortcutCategory[] {
         { keys: [MOD, 'K'], actionKey: 'commandPalette' },
       ],
     },
-    {
+    panelsUi: {
       titleKey: 'panelsUi',
       glyph: '03',
       shortcuts: [
@@ -70,7 +84,7 @@ function getShortcutCategories(): ShortcutCategory[] {
         { keys: ['Esc'], actionKey: 'closePanel' },
       ],
     },
-  ];
+  };
 }
 
 function Kbd({ children }: { children: string }) {
@@ -158,15 +172,13 @@ function CategorySection({
 function KeyboardShortcutsHelp() {
   const { t } = useTranslation('shortcuts');
   const [open, setOpen] = useState(false);
-  const categories = useMemo(() => getShortcutCategories(), []);
+  const { playback, navigation, panelsUi } = useMemo(() => getShortcutCategories(), []);
 
   useEffect(() => {
     const handler = () => setOpen(true);
     window.addEventListener('open-shortcut-help', handler);
     return () => window.removeEventListener('open-shortcut-help', handler);
   }, []);
-
-  const [playback, navigation, panelsUi] = categories;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -187,10 +199,7 @@ function KeyboardShortcutsHelp() {
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-overlay"
-          style={{
-            backgroundImage:
-              "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          }}
+          style={{ backgroundImage: FILM_GRAIN_SVG }}
         />
 
         <div className="relative">
