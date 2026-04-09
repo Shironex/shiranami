@@ -4,6 +4,7 @@ import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
+import { translateYtDlpError } from '@/lib/ytdlpErrors';
 import type { SearchResult, DownloadProgress } from '@/types/electron';
 
 interface DownloadState {
@@ -102,7 +103,8 @@ export function useSearch() {
           toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        const raw = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        const msg = translateYtDlpError(raw);
         setDownloads(prev => ({
           ...prev,
           [url]: { progress: 0, status: 'error', error: msg },

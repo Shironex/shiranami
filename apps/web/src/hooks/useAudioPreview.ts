@@ -3,6 +3,7 @@ import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
+import { translateYtDlpError } from '@/lib/ytdlpErrors';
 
 export interface PreviewableItem {
   id: string;
@@ -61,7 +62,8 @@ export function useAudioPreview(albumLabel = i18n.t('previewSource', { ns: 'comm
 
         setQueue([previewTrack], 0);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        const raw = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+        const msg = translateYtDlpError(raw);
         toast.error(i18n.t('previewFailed', { ns: 'toast', error: msg }));
       } finally {
         setPreviewLoadingId(null);
