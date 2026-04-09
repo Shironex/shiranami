@@ -36,6 +36,7 @@ export function NowPlayingView() {
   const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
 
   const { data, isLoading: lyricsLoading } = useLyricsQuery(
     currentTrack?.id ?? null,
@@ -70,16 +71,18 @@ export function NowPlayingView() {
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
-      {/* Full ambient gradient background */}
-      <div
-        className="absolute inset-0 pointer-events-none transition-all duration-[2s]"
-        style={{
-          background: `
-            radial-gradient(ellipse at 20% 30%, rgba(${ambientColor.rgb}, 0.18) 0%, transparent 60%),
-            radial-gradient(ellipse at 80% 70%, rgba(${ambientColor.rgb}, 0.10) 0%, transparent 55%)
-          `,
-        }}
-      />
+      {/* Full ambient gradient background — skipped in low performance mode */}
+      {!lowPerformanceMode && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-all duration-[2s]"
+          style={{
+            background: `
+              radial-gradient(ellipse at 20% 30%, rgba(${ambientColor.rgb}, 0.18) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 70%, rgba(${ambientColor.rgb}, 0.10) 0%, transparent 55%)
+            `,
+          }}
+        />
+      )}
 
       {/* Header: back button + lyrics toggle */}
       <div className="relative px-6 @3xl:px-10 pt-4 pb-2 shrink-0 flex items-center justify-between">

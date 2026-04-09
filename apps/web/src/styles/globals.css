@@ -238,3 +238,15 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Low performance mode — disables expensive compositor effects.
+   Toggled via <html data-perf-mode="low"> from useAppStore.setLowPerformanceMode. */
+[data-perf-mode='low'] .glass {
+  backdrop-filter: none;
+  background: oklch(0.1 0.02 280 / 0.92);
+}
+
+[data-perf-mode='low'] .glass-subtle {
+  backdrop-filter: none;
+  background: oklch(0.08 0.02 280 / 0.88);
+}

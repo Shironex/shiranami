@@ -71,6 +71,7 @@ const NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY = 'shiranami.now-playing-view-enabled
 const NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY = 'shiranami.now-playing-lyrics-visible';
 const LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY = 'shiranami.library-hero-card-enabled';
 const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
+const LOW_PERFORMANCE_MODE_STORAGE_KEY = 'shiranami.low-performance-mode';
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -99,6 +100,28 @@ function getInitialUiScale(): number {
 function persistUiScale(scale: number) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(UI_SCALE_STORAGE_KEY, String(scale));
+}
+
+function applyLowPerformanceMode(enabled: boolean) {
+  if (typeof document === 'undefined') return;
+  if (enabled) {
+    document.documentElement.dataset.perfMode = 'low';
+  } else {
+    delete document.documentElement.dataset.perfMode;
+  }
+}
+
+function getInitialLowPerformanceMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const stored = window.localStorage.getItem(LOW_PERFORMANCE_MODE_STORAGE_KEY);
+  const enabled = stored === 'true';
+  applyLowPerformanceMode(enabled);
+  return enabled;
+}
+
+function persistLowPerformanceMode(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LOW_PERFORMANCE_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
 }
 
 function getInitialSidebarCollapsed() {
@@ -232,6 +255,7 @@ interface AppState {
   nowPlayingViewEnabled: boolean;
   nowPlayingLyricsVisible: boolean;
   libraryHeroCardEnabled: boolean;
+  lowPerformanceMode: boolean;
   previousView: AppView;
 }
 
@@ -242,6 +266,7 @@ interface AppActions {
   setNowPlayingViewEnabled: (enabled: boolean) => void;
   toggleNowPlayingLyrics: () => void;
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
+  setLowPerformanceMode: (enabled: boolean) => void;
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
@@ -286,6 +311,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   nowPlayingViewEnabled: getInitialNowPlayingViewEnabled(),
   nowPlayingLyricsVisible: getInitialNowPlayingLyricsVisible(),
   libraryHeroCardEnabled: getInitialLibraryHeroCardEnabled(),
+  lowPerformanceMode: getInitialLowPerformanceMode(),
   previousView: 'library',
 
   navigateTo: (view, playlistId) =>
@@ -317,6 +343,11 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   setLibraryHeroCardEnabled: (enabled) => {
     persistLibraryHeroCardEnabled(enabled);
     set({ libraryHeroCardEnabled: enabled });
+  },
+  setLowPerformanceMode: (enabled) => {
+    applyLowPerformanceMode(enabled);
+    persistLowPerformanceMode(enabled);
+    set({ lowPerformanceMode: enabled });
   },
   selectPlaylist: (id) => set({ selectedPlaylistId: id }),
   setRightPanel: (panel) => set({ rightPanel: panel }),

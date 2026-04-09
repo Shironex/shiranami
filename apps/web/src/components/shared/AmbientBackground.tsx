@@ -1,10 +1,14 @@
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function AmbientBackground() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+
+  if (lowPerformanceMode) return null;
 
   return (
     <>
