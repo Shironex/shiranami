@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as path from 'path';
-import { extractVersionSegments, hasUpdate } from './downloader';
+import {
+  extractVersionSegments,
+  hasUpdate,
+  tailOutput,
+  classifyYtDlpFailure,
+  YT_DLP_ERROR_CODES,
+} from './downloader';
 
 describe('extractVersionSegments', () => {
   it('parses standard semver', () => {
@@ -60,6 +66,61 @@ describe('hasUpdate', () => {
 
   it('handles different segment lengths', () => {
     expect(hasUpdate('1.0', '1.0.1')).toBe(true);
+  });
+});
+
+describe('tailOutput', () => {
+  it('returns the last N non-empty lines', () => {
+    const input = 'one\ntwo\n\nthree\nfour\nfive';
+    expect(tailOutput(input, 3)).toBe('three\nfour\nfive');
+  });
+
+  it('caps output to maxBytes from the end', () => {
+    const input = Array.from({ length: 50 }, (_, i) => `line-${i}`).join('\n');
+    const result = tailOutput(input, 50, 40);
+    expect(result.length).toBeLessThanOrEqual(40);
+    expect(result.endsWith('line-49')).toBe(true);
+  });
+
+  it('returns empty string for blank output', () => {
+    expect(tailOutput('\n\n   \n')).toBe('');
+  });
+});
+
+describe('classifyYtDlpFailure', () => {
+  it('detects age-restricted videos from yt-dlp error output', () => {
+    const stderr = `[youtube] 74S4rNnpHUE: Downloading webpage
+ERROR: [youtube] 74S4rNnpHUE: Sign in to confirm your age. This video may be inappropriate for some users.`;
+    expect(classifyYtDlpFailure(stderr)).toBe(YT_DLP_ERROR_CODES.AGE_RESTRICTED);
+  });
+
+  it('detects age-restriction from LOGIN_REQUIRED playability status', () => {
+    const stderr =
+      '[debug] [youtube] abc: android_vr player response playability status: LOGIN_REQUIRED';
+    expect(classifyYtDlpFailure(stderr)).toBe(YT_DLP_ERROR_CODES.AGE_RESTRICTED);
+  });
+
+  it('detects generic unavailability', () => {
+    expect(classifyYtDlpFailure('ERROR: Video unavailable')).toBe(
+      YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE,
+    );
+  });
+
+  it('detects format-not-available', () => {
+    expect(classifyYtDlpFailure('ERROR: Requested format is not available')).toBe(
+      YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT,
+    );
+  });
+
+  it('falls back to the tail of the output when no pattern matches', () => {
+    const stderr = 'some unknown yt-dlp failure mode\nwith a second line';
+    expect(classifyYtDlpFailure(stderr)).toBe(
+      'some unknown yt-dlp failure mode\nwith a second line',
+    );
+  });
+
+  it('returns a sentinel string for empty output', () => {
+    expect(classifyYtDlpFailure('')).toMatch(/without producing any output/i);
   });
 });
 

@@ -184,6 +184,64 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
   });
 }
 
+/**
+ * Extract the last N non-empty lines from mixed yt-dlp/ffmpeg output, capped
+ * to ~2KB. Used to build concise error messages — some yt-dlp failures (e.g.
+ * format enumeration) can emit hundreds of lines we don't want in the log.
+ */
+export function tailOutput(output: string, maxLines = 20, maxBytes = 2048): string {
+  const lines = output.split('\n').map((line) => line.trim()).filter(Boolean);
+  const tail = lines.slice(-maxLines).join('\n');
+  return tail.length > maxBytes ? tail.slice(-maxBytes) : tail;
+}
+
+/**
+ * Stable error codes returned by classifyYtDlpFailure for known failure
+ * modes. The renderer maps these to i18n strings (EN + PL) — see
+ * apps/web/src/lib/ytdlpErrors.ts. Unknown failures return the raw tail
+ * of yt-dlp/ffmpeg output, which is technical English from the tool itself.
+ *
+ * When adding a new code here, add a matching translation entry in
+ * toast.json (both locales) and map it in translateYtDlpError().
+ */
+export const YT_DLP_ERROR_CODES = {
+  AGE_RESTRICTED: 'yt_dlp_age_restricted',
+  VIDEO_UNAVAILABLE: 'yt_dlp_video_unavailable',
+  NO_AUDIO_FORMAT: 'yt_dlp_no_audio_format',
+} as const;
+
+/**
+ * Classify a yt-dlp failure from its captured stdout+stderr and return a
+ * stable error code (translated in the renderer) or a raw output tail for
+ * unknown cases. Age-restriction is the #1 cause of per-video failures in
+ * 2026 — YouTube will not hand out stream URLs or formats without sign-in
+ * cookies for videos flagged by the content classifier. The proper fix
+ * (browser cookie import) is tracked as a follow-up issue; here we only
+ * surface a clear, translated message.
+ */
+export function classifyYtDlpFailure(output: string): string {
+  const text = output.toLowerCase();
+
+  if (
+    text.includes('sign in to confirm your age') ||
+    text.includes('login_required') ||
+    text.includes('age-restricted')
+  ) {
+    return YT_DLP_ERROR_CODES.AGE_RESTRICTED;
+  }
+
+  if (text.includes('video unavailable') || text.includes('unplayable')) {
+    return YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE;
+  }
+
+  if (text.includes('requested format is not available')) {
+    return YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT;
+  }
+
+  const tail = tailOutput(output);
+  return tail || 'yt-dlp failed without producing any output';
+}
+
 export function extractVersionSegments(version: string | null | undefined): number[] {
   if (!version) return [];
 
@@ -455,9 +513,13 @@ export function registerDownloaderHandlers(): void {
 
         proc.on('close', (code) => {
           if (code !== 0) {
-            const errMsg = `yt-dlp exited with code ${code}`;
-            sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-            reject(new Error(errMsg));
+            const reason = classifyYtDlpFailure(allOutput);
+            logger.error(
+              `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
+              { outputTail: tailOutput(allOutput) }
+            );
+            sendProgress({ url, progress: 0, status: 'error', error: reason });
+            reject(new Error(reason));
             return;
           }
 
@@ -488,7 +550,7 @@ export function registerDownloaderHandlers(): void {
   ipcMain.handle('downloader:get-stream-url', async (_event, url: string) => {
     logger.info(`[downloader] Getting stream URL for: ${url}`);
     try {
-      const { stdout, code } = await spawnYtDlp([
+      const { stdout, stderr, code } = await spawnYtDlp([
         '-f',
         'bestaudio',
         '--get-url',
@@ -497,7 +559,12 @@ export function registerDownloaderHandlers(): void {
       ]);
 
       if (code !== 0) {
-        throw new Error('yt-dlp failed to extract stream URL');
+        const reason = classifyYtDlpFailure(`${stderr}\n${stdout}`);
+        logger.error(
+          `[downloader] yt-dlp failed to extract stream URL for ${url} (exit ${code}): ${reason}`,
+          { stderrTail: tailOutput(stderr) }
+        );
+        throw new Error(reason);
       }
 
       const streamUrl = stdout.trim().split('\n')[0];

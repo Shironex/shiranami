@@ -101,6 +101,21 @@ interface LogEntry {
   data?: unknown;
 }
 
+/**
+ * Error instances have non-enumerable `message`/`stack`, so they serialize to
+ * `{}` under JSON.stringify. Normalize them (and nested arrays/objects that
+ * contain them) into plain objects so file logs actually include the reason.
+ */
+function serializeForLog(value: unknown): unknown {
+  if (value instanceof Error) {
+    return { name: value.name, message: value.message, stack: value.stack };
+  }
+  if (Array.isArray(value)) {
+    return value.map(serializeForLog);
+  }
+  return value;
+}
+
 function formatFileLog(level: string, context: string, args: unknown[]): string {
   try {
     const firstArg = args.length > 0 ? args[0] : '';
@@ -112,7 +127,7 @@ function formatFileLog(level: string, context: string, args: unknown[]): string 
       message,
     };
     if (args.length > 1) {
-      entry.data = args.length === 2 ? args[1] : args.slice(1);
+      entry.data = serializeForLog(args.length === 2 ? args[1] : args.slice(1));
     }
     return JSON.stringify(entry) + '\n';
   } catch {
