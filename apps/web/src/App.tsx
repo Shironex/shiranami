@@ -148,7 +148,7 @@ function App() {
                     'flex-1 flex overflow-hidden min-h-0',
                     activeView === 'now-playing'
                       ? ''
-                      : currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
+                      : currentTrack && showVisualizer && !lowPerformanceMode ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
                   )}>
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">

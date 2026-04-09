@@ -240,7 +240,13 @@
 }
 
 /* Low performance mode — disables expensive compositor effects.
-   Toggled via <html data-perf-mode="low"> from useAppStore.setLowPerformanceMode. */
+   Toggled via <html data-perf-mode="low"> from useAppStore.setLowPerformanceMode.
+
+   These rules are intentionally OUTSIDE @layer so they always beat the
+   @utility definitions of .glass / .glass-subtle (which Tailwind v4 emits
+   into the utilities layer). Unlayered rules always win over layered rules
+   in CSS cascade, so the overrides apply reliably without needing !important
+   or raising specificity. Do not move these inside an @layer block. */
 [data-perf-mode='low'] .glass {
   backdrop-filter: none;
   background: oklch(0.1 0.02 280 / 0.92);

@@ -17,6 +17,7 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const ambientColor = useAmbientColor();
   const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
   const enterNowPlaying = useAppStore((s) => s.enterNowPlaying);
+  const lowPerformanceMode = useAppStore((s) => s.lowPerformanceMode);
 
   const visible = currentTrack && (!show || show(currentTrack));
 
@@ -36,7 +37,7 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
               background: `linear-gradient(135deg, rgba(${ambientColor.rgb}, 0.15) 0%, rgba(${ambientColor.rgb}, 0.05) 100%)`,
             }}
           >
-            {currentTrack.albumArt && (
+            {currentTrack.albumArt && !lowPerformanceMode && (
               <div
                 className="absolute inset-0 opacity-[0.08] blur-2xl scale-110"
                 style={{ backgroundImage: `url(${currentTrack.albumArt})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
