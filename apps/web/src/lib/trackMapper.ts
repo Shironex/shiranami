@@ -17,6 +17,7 @@ export function mapDbTrackToTrack(t: Record<string, unknown>): Track {
     genre: t.genre as string | null | undefined,
     year: t.year as number | null | undefined,
     trackNumber: t.trackNumber as number | null | undefined,
+    discNumber: t.discNumber as number | null | undefined,
     isFavorite: (t.isFavorite as boolean) ?? false,
     playCount: (t.playCount as number) ?? 0,
     createdAt: t.createdAt as string | undefined,

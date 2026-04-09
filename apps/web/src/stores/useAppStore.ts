@@ -5,6 +5,9 @@ export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 export type LibraryViewMode = 'tracks' | 'albums';
+export type AlbumGridSize = 'small' | 'medium' | 'large';
+export type AlbumSortMode = 'name' | 'artist' | 'year';
+export type AlbumSortOrder = 'asc' | 'desc';
 
 function getInitialLibraryViewMode(): LibraryViewMode {
   if (typeof window === 'undefined') return 'tracks';
@@ -18,7 +21,46 @@ function persistLibraryViewMode(mode: LibraryViewMode) {
   window.localStorage.setItem(LIBRARY_VIEW_MODE_STORAGE_KEY, mode);
 }
 
+function getInitialAlbumGridSize(): AlbumGridSize {
+  if (typeof window === 'undefined') return 'medium';
+  const stored = window.localStorage.getItem(ALBUM_GRID_SIZE_STORAGE_KEY);
+  if (stored === 'small' || stored === 'medium' || stored === 'large') return stored;
+  return 'medium';
+}
+
+function persistAlbumGridSize(size: AlbumGridSize) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ALBUM_GRID_SIZE_STORAGE_KEY, size);
+}
+
+function getInitialAlbumSortMode(): AlbumSortMode {
+  if (typeof window === 'undefined') return 'name';
+  const stored = window.localStorage.getItem(ALBUM_SORT_MODE_STORAGE_KEY);
+  if (stored === 'name' || stored === 'artist' || stored === 'year') return stored;
+  return 'name';
+}
+
+function persistAlbumSortMode(mode: AlbumSortMode) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ALBUM_SORT_MODE_STORAGE_KEY, mode);
+}
+
+function getInitialAlbumSortOrder(): AlbumSortOrder {
+  if (typeof window === 'undefined') return 'asc';
+  const stored = window.localStorage.getItem(ALBUM_SORT_ORDER_STORAGE_KEY);
+  if (stored === 'asc' || stored === 'desc') return stored;
+  return 'asc';
+}
+
+function persistAlbumSortOrder(order: AlbumSortOrder) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(ALBUM_SORT_ORDER_STORAGE_KEY, order);
+}
+
 const LIBRARY_VIEW_MODE_STORAGE_KEY = 'shiranami.library-view-mode';
+const ALBUM_GRID_SIZE_STORAGE_KEY = 'shiranami.album-grid-size';
+const ALBUM_SORT_MODE_STORAGE_KEY = 'shiranami.album-sort-mode';
+const ALBUM_SORT_ORDER_STORAGE_KEY = 'shiranami.album-sort-order';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
 const SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY = 'shiranami.sidebar-hidden-items';
 const SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY = 'shiranami.sidebar-playlists-visible';
@@ -182,6 +224,9 @@ interface AppState {
   visualizerStyle: VisualizerStyle;
   uiScale: number;
   libraryViewMode: LibraryViewMode;
+  albumGridSize: AlbumGridSize;
+  albumSortMode: AlbumSortMode;
+  albumSortOrder: AlbumSortOrder;
   selectedAlbumName: string | null;
   albumGridScrollTop: number;
   nowPlayingViewEnabled: boolean;
@@ -213,6 +258,9 @@ interface AppActions {
   setUiScale: (scale: number) => void;
   resetUiScale: () => void;
   setLibraryViewMode: (mode: LibraryViewMode) => void;
+  setAlbumGridSize: (size: AlbumGridSize) => void;
+  setAlbumSortMode: (mode: AlbumSortMode) => void;
+  setAlbumSortOrder: (order: AlbumSortOrder) => void;
   selectAlbum: (name: string | null) => void;
   setAlbumGridScrollTop: (scrollTop: number) => void;
 }
@@ -230,6 +278,9 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   visualizerStyle: getInitialVisualizerStyle(),
   uiScale: getInitialUiScale(),
   libraryViewMode: getInitialLibraryViewMode(),
+  albumGridSize: getInitialAlbumGridSize(),
+  albumSortMode: getInitialAlbumSortMode(),
+  albumSortOrder: getInitialAlbumSortOrder(),
   selectedAlbumName: null,
   albumGridScrollTop: 0,
   nowPlayingViewEnabled: getInitialNowPlayingViewEnabled(),
@@ -363,6 +414,20 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   setLibraryViewMode: (mode) => {
     persistLibraryViewMode(mode);
     set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
+  },
+  setAlbumGridSize: (size) => {
+    persistAlbumGridSize(size);
+    set({ albumGridSize: size });
+  },
+  setAlbumSortMode: (mode) => {
+    persistAlbumSortMode(mode);
+    // Scroll position is meaningless once album order changes.
+    set({ albumSortMode: mode, albumGridScrollTop: 0 });
+  },
+  setAlbumSortOrder: (order) => {
+    persistAlbumSortOrder(order);
+    // Scroll position is meaningless once album order changes.
+    set({ albumSortOrder: order, albumGridScrollTop: 0 });
   },
   selectAlbum: (name) => set({ selectedAlbumName: name }),
   setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),

@@ -31,6 +31,7 @@ export interface Track {
   genre?: string | null;
   year?: number | null;
   trackNumber?: number | null;
+  discNumber?: number | null;
   isFavorite?: boolean;
   playCount?: number;
   createdAt?: string;

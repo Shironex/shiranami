@@ -63,6 +63,34 @@ describe('useAppStore', () => {
     expect(localStorage.getItem('shiranami.sidebar-playlists-visible')).toBe('true');
   });
 
+  it('persists album grid size to localStorage', () => {
+    useAppStore.getState().setAlbumGridSize('small');
+    expect(useAppStore.getState().albumGridSize).toBe('small');
+    expect(localStorage.getItem('shiranami.album-grid-size')).toBe('small');
+  });
+
+  it('persists album sort mode and resets scroll position', () => {
+    useAppStore.setState({ albumGridScrollTop: 500 });
+    useAppStore.getState().setAlbumSortMode('artist');
+    expect(useAppStore.getState().albumSortMode).toBe('artist');
+    expect(useAppStore.getState().albumGridScrollTop).toBe(0);
+    expect(localStorage.getItem('shiranami.album-sort-mode')).toBe('artist');
+  });
+
+  it('persists album sort order and resets scroll position', () => {
+    useAppStore.setState({ albumGridScrollTop: 500 });
+    useAppStore.getState().setAlbumSortOrder('desc');
+    expect(useAppStore.getState().albumSortOrder).toBe('desc');
+    expect(useAppStore.getState().albumGridScrollTop).toBe(0);
+    expect(localStorage.getItem('shiranami.album-sort-order')).toBe('desc');
+  });
+
+  it('album grid size changes do not reset scroll position', () => {
+    useAppStore.setState({ albumGridScrollTop: 500 });
+    useAppStore.getState().setAlbumGridSize('large');
+    expect(useAppStore.getState().albumGridScrollTop).toBe(500);
+  });
+
   it('rolls back compact always-on-top and localStorage when setAlwaysOnTop fails in compact mode', async () => {
     await useAppStore.getState().setCompactMode(true);
     vi.mocked(window.electronAPI.window.setAlwaysOnTop).mockRejectedValueOnce(new Error('aot failed'));

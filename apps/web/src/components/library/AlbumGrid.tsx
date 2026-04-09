@@ -4,47 +4,9 @@ import { useAppStore } from '@/stores/useAppStore';
 import { type Track } from '@/stores/usePlayerStore';
 import { Disc3, Search } from 'lucide-react';
 import { motion } from 'motion/react';
+import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
 
-export interface AlbumData {
-  name: string;
-  artist: string;
-  albumArt?: string;
-  trackCount: number;
-  tracks: Track[];
-}
-
-function groupTracksByAlbum(tracks: Track[]): AlbumData[] {
-  const map = new Map<string, AlbumData>();
-  const artistSets = new Map<string, Set<string>>();
-
-  for (const track of tracks) {
-    const key = track.album || '';
-    const existing = map.get(key);
-    if (existing) {
-      existing.trackCount++;
-      existing.tracks.push(track);
-      if (!existing.albumArt && track.albumArt) {
-        existing.albumArt = track.albumArt;
-      }
-      const artists = artistSets.get(key)!;
-      artists.add(track.artist);
-      existing.artist = Array.from(artists).join(', ');
-    } else {
-      artistSets.set(key, new Set([track.artist]));
-      map.set(key, {
-        name: key || 'Unknown Album',
-        artist: track.artist,
-        albumArt: track.albumArt,
-        trackCount: 1,
-        tracks: [track],
-      });
-    }
-  }
-
-  return Array.from(map.values()).sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-}
+export type { AlbumData };
 
 interface AlbumGridProps {
   library: Track[];
@@ -56,6 +18,9 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const selectAlbum = useAppStore(s => s.selectAlbum);
   const albumGridScrollTop = useAppStore(s => s.albumGridScrollTop);
   const setAlbumGridScrollTop = useAppStore(s => s.setAlbumGridScrollTop);
+  const albumGridSize = useAppStore(s => s.albumGridSize);
+  const albumSortMode = useAppStore(s => s.albumSortMode);
+  const albumSortOrder = useAppStore(s => s.albumSortOrder);
   const scrollRef = useRef<HTMLDivElement>(null);
   // Capture scroll position at mount time — used to skip animation and restore scroll
   const savedScrollTop = useRef(albumGridScrollTop);
@@ -75,7 +40,10 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     selectAlbum(albumName);
   }, [selectAlbum, setAlbumGridScrollTop]);
 
-  const albums = useMemo(() => groupTracksByAlbum(library), [library]);
+  const albums = useMemo(
+    () => groupTracksByAlbum(library, albumSortMode, albumSortOrder),
+    [library, albumSortMode, albumSortOrder],
+  );
 
   const filteredAlbums = useMemo(() => {
     if (!searchQuery.trim()) return albums;
@@ -86,6 +54,21 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
         a.artist.toLowerCase().includes(q)
     );
   }, [albums, searchQuery]);
+
+  const gridClassName = useMemo(() => {
+    switch (albumGridSize) {
+      case 'small':
+        return 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2';
+      case 'large':
+        return 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4';
+      case 'medium':
+      default:
+        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3';
+    }
+  }, [albumGridSize]);
+
+  // Slightly smaller padding for the small grid so more info fits on screen.
+  const cardPaddingClass = albumGridSize === 'small' ? 'p-3' : 'p-4';
 
   if (filteredAlbums.length === 0) {
     return (
@@ -107,7 +90,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
         </p>
       )}
       <motion.div
-        className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+        className={gridClassName}
         initial={isReturning.current ? 'visible' : 'hidden'}
         animate="visible"
         variants={{
@@ -125,7 +108,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => handleAlbumClick(album.name)}
-            className="text-left p-4 rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group"
+            className={`text-left ${cardPaddingClass} rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group`}
           >
             <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
               {album.albumArt ? (

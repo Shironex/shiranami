@@ -15,6 +15,7 @@ export const tracks = sqliteTable('tracks', {
   genre: text('genre'),
   year: integer('year'),
   trackNumber: integer('track_number'),
+  discNumber: integer('disc_number'),
   albumArt: text('album_art'),
   isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
   playCount: integer('play_count').default(0),

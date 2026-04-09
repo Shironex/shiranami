@@ -10,6 +10,7 @@ export interface TrackMetadata {
   genre: string;
   year: number | null;
   trackNumber: number | null;
+  discNumber: number | null;
   albumArt: string | null; // shiranami-art:// protocol URL
 }
 
@@ -52,7 +53,8 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',
       year: common.year || null,
-      trackNumber: common.track?.no || null,
+      trackNumber: common.track?.no ?? null,
+      discNumber: common.disk?.no ?? null,
       albumArt,
     };
   } catch (error) {
@@ -66,6 +68,7 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
       genre: '',
       year: null,
       trackNumber: null,
+      discNumber: null,
       albumArt: null,
     };
   }

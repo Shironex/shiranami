@@ -32,6 +32,7 @@ export function useTrackImport() {
         genre: metadata.genre ?? null,
         year: metadata.year ?? null,
         trackNumber: metadata.trackNumber ?? null,
+        discNumber: metadata.discNumber ?? null,
         albumArt: metadata.albumArt ?? null,
       })) as Record<string, unknown>;
 

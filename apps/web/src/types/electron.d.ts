@@ -33,6 +33,7 @@ export interface TrackMetadata {
   genre: string;
   year: number | null;
   trackNumber: number | null;
+  discNumber: number | null;
   albumArt: string | null;
 }
 
