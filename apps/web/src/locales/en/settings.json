@@ -92,6 +92,9 @@
     "languageDesc": "Choose the display language for the app",
     "sidebarTitle": "Sidebar",
     "sidebarDesc": "Choose which items appear in the sidebar",
+    "nowPlayingView": "Now Playing view",
+    "nowPlayingViewDesc": "Double-click album art in the player bar or now-playing card, or press Ctrl+Shift+P, to open an immersive full view",
+    "new": "New",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar"
   },

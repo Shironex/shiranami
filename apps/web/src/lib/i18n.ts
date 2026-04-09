@@ -25,6 +25,7 @@ import splashEn from '@/locales/en/splash.json';
 import importEn from '@/locales/en/import.json';
 import shareEn from '@/locales/en/share.json';
 import mixesEn from '@/locales/en/mixes.json';
+import nowPlayingEn from '@/locales/en/nowPlaying.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -49,6 +50,7 @@ import splashPl from '@/locales/pl/splash.json';
 import importPl from '@/locales/pl/import.json';
 import sharePl from '@/locales/pl/share.json';
 import mixesPl from '@/locales/pl/mixes.json';
+import nowPlayingPl from '@/locales/pl/nowPlaying.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -79,7 +81,7 @@ const namespaces = [
   'common', 'sidebar', 'topbar', 'player', 'library', 'favorites',
   'playlists', 'search', 'radio', 'history', 'settings', 'queue',
   'lyrics', 'compact', 'commandPalette', 'shortcuts', 'sleepTimer',
-  'contextMenu', 'toast', 'splash', 'import', 'share', 'mixes',
+  'contextMenu', 'toast', 'splash', 'import', 'share', 'mixes', 'nowPlaying',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -108,6 +110,7 @@ i18n.use(initReactI18next).init({
       import: importEn,
       share: shareEn,
       mixes: mixesEn,
+      nowPlaying: nowPlayingEn,
     },
     pl: {
       common: commonPl,
@@ -133,6 +136,7 @@ i18n.use(initReactI18next).init({
       import: importPl,
       share: sharePl,
       mixes: mixesPl,
+      nowPlaying: nowPlayingPl,
     },
   },
   lng: getInitialLanguage(),

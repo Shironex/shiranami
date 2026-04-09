@@ -28,6 +28,7 @@
   "toggleLyrics": "Toggle lyrics",
   "toggleQueue": "Toggle queue",
   "compactMode": "Compact mode",
+  "toggleNowPlaying": "Toggle Now Playing view",
   "toggleVisualizer": "Toggle visualizer",
   "showHelp": "Show this help",
   "closePanel": "Close panel"

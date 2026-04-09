@@ -1,0 +1,272 @@
+import { useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useAppStore } from '@/stores/useAppStore';
+import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useLyricsQuery } from '@/hooks/queries/useLyrics';
+import { cn } from '@/lib/utils';
+import { formatDuration } from '@shiranami/shared';
+import { PlayerControls } from '@/components/player/PlayerControls';
+import { SeekBar } from '@/components/player/SeekBar';
+import { VolumeControl } from '@/components/player/VolumeControl';
+import { TimeDisplay } from '@/components/player/TimeDisplay';
+import { Music, ChevronDown, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
+function findActiveLine(lines: Array<{ time: number }>, currentTime: number): number {
+  let active = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].time <= currentTime) {
+      active = i;
+    } else {
+      break;
+    }
+  }
+  return active;
+}
+
+export function NowPlayingView() {
+  const { t } = useTranslation('nowPlaying');
+  const currentTrack = usePlayerStore(s => s.currentTrack);
+  const currentTime = usePlayerStore(s => s.currentTime);
+  const duration = usePlayerStore(s => s.duration);
+  const seek = usePlayerStore(s => s.seek);
+  const ambientColor = useAmbientColor();
+  const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
+  const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
+  const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
+
+  const { data, isLoading: lyricsLoading } = useLyricsQuery(
+    currentTrack?.id ?? null,
+    currentTrack?.title ?? '',
+    currentTrack?.artist ?? '',
+    currentTrack?.album,
+    currentTrack?.duration,
+  );
+
+  const synced = data?.synced ?? null;
+  const plain = data?.plain ?? null;
+  const activeLine = synced ? findActiveLine(synced, currentTime) : -1;
+
+  const activeLineRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (activeLineRef.current) {
+      activeLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [activeLine]);
+
+  const handleLineClick = useCallback((time: number) => seek(time), [seek]);
+
+  // Exit if no track is playing
+  useEffect(() => {
+    if (!currentTrack) {
+      exitNowPlaying();
+    }
+  }, [currentTrack, exitNowPlaying]);
+
+  if (!currentTrack) return null;
+
+  return (
+    <div className="@container flex-1 flex flex-col overflow-hidden relative">
+      {/* Full ambient gradient background */}
+      <div
+        className="absolute inset-0 pointer-events-none transition-all duration-[2s]"
+        style={{
+          background: `
+            radial-gradient(ellipse at 20% 30%, rgba(${ambientColor.rgb}, 0.18) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 70%, rgba(${ambientColor.rgb}, 0.10) 0%, transparent 55%)
+          `,
+        }}
+      />
+
+      {/* Header: back button + lyrics toggle */}
+      <div className="relative px-6 @3xl:px-10 pt-4 pb-2 shrink-0 flex items-center justify-between">
+        <button
+          onClick={exitNowPlaying}
+          className="flex items-center gap-2 text-muted-foreground/60 hover:text-foreground transition-colors group"
+        >
+          <ChevronDown className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
+          <span className="text-xs font-medium uppercase tracking-wider">{t('back')}</span>
+        </button>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleLyrics}
+              className={cn(
+                'size-9 flex items-center justify-center rounded-lg transition-colors',
+                lyricsVisible
+                  ? 'text-primary bg-primary/10 hover:bg-primary/15'
+                  : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent/40'
+              )}
+              aria-label={lyricsVisible ? t('hideLyrics') : t('showLyrics')}
+              aria-pressed={lyricsVisible}
+            >
+              {lyricsVisible ? <Mic2 className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {lyricsVisible ? t('hideLyrics') : t('showLyrics')}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Main content: stacked on narrow, side-by-side on wide */}
+      <div
+        className={cn(
+          'flex-1 min-h-0 relative flex',
+          'flex-col @3xl:flex-row',
+          lyricsVisible
+            ? 'gap-4 @3xl:gap-8 @5xl:gap-12 @7xl:gap-16 px-6 @3xl:px-10 @5xl:px-14 @7xl:px-20'
+            : 'justify-center px-8'
+        )}
+      >
+        {/* Left column / top section: Album art + info + controls */}
+        <div
+          className={cn(
+            'flex flex-col items-center shrink-0',
+            'gap-4 @3xl:gap-5 @5xl:gap-7 @7xl:gap-8',
+            // Narrow: stacked top, wide: vertically centered in left column
+            'justify-start @3xl:justify-center',
+            'py-4 @3xl:py-8 @5xl:py-10 @7xl:py-14',
+            // Narrow: full-width auto-centered; wide: fixed percentage that scales up
+            lyricsVisible
+              ? 'w-full max-w-[460px] mx-auto @3xl:mx-0 @3xl:w-[42%] @3xl:max-w-[420px] @5xl:max-w-[500px] @6xl:max-w-[580px] @7xl:max-w-[640px]'
+              : 'w-full max-w-[520px] @5xl:max-w-[580px] @7xl:max-w-[640px] py-6 @5xl:py-10'
+          )}
+        >
+          {/* Album art — scales dramatically with container */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTrack.id}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 250 }}
+              className={cn(
+                'aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
+                'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
+                lyricsVisible
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[300px] @5xl:max-w-[360px] @6xl:max-w-[420px] @7xl:max-w-[480px]'
+                  : 'w-full max-w-[320px] @5xl:max-w-[380px] @7xl:max-w-[440px]'
+              )}
+            >
+              {currentTrack.albumArt ? (
+                <img
+                  src={currentTrack.albumArt}
+                  alt={currentTrack.album}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Music className="w-16 h-16 text-muted-foreground/30" />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Track info */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTrack.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="text-center w-full max-w-[360px] @5xl:max-w-[420px] px-2"
+            >
+              <h1 className="font-display text-lg @5xl:text-2xl @7xl:text-3xl font-semibold text-foreground truncate">
+                {currentTrack.title}
+              </h1>
+              <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
+                {currentTrack.artist} — {currentTrack.album}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Seek bar + time */}
+          <div className="w-full max-w-[340px] @5xl:max-w-[400px] @7xl:max-w-[460px] px-2">
+            <SeekBar />
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums font-medium">
+                <TimeDisplay />
+              </span>
+              <span className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums font-medium">
+                {formatDuration(duration)}
+              </span>
+            </div>
+          </div>
+
+          {/* Controls + volume in one row */}
+          <div className="flex items-center gap-2 @5xl:gap-3 flex-wrap justify-center">
+            <PlayerControls />
+            <div className="w-px h-5 bg-border/30" />
+            <VolumeControl sliderClassName="w-16 @5xl:w-20 @7xl:w-24" />
+          </div>
+        </div>
+
+        {/* Right column / bottom section: Lyrics — always mounted when lyricsVisible to prevent layout shift on track change */}
+        {lyricsVisible && (
+          <div className="flex-1 min-w-0 flex flex-col min-h-0 pb-4 @3xl:py-8 @5xl:py-10 @7xl:py-14">
+            <div className="mb-2 @3xl:mb-4">
+              <h2 className="text-[10px] @5xl:text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/40">
+                {t('lyrics')}
+              </h2>
+            </div>
+
+            {lyricsLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex items-center gap-2.5 text-muted-foreground/50">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-xs font-medium">{t('findingLyrics')}</span>
+                </div>
+              </div>
+            ) : synced && synced.length > 0 ? (
+              <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
+                <div className="space-y-4 @5xl:space-y-5 @7xl:space-y-6">
+                  {synced.map((line, index) => {
+                    const isActive = index === activeLine;
+                    const isPast = index < activeLine;
+                    return (
+                      <button
+                        key={index}
+                        ref={isActive ? activeLineRef : null}
+                        onClick={() => handleLineClick(line.time)}
+                        type="button"
+                        className={cn(
+                          'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1',
+                          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                          'text-[14px] @5xl:text-[16px] @7xl:text-[18px]',
+                          isActive && 'text-foreground !text-[16px] @5xl:!text-[19px] @7xl:!text-[22px]',
+                          isPast && 'text-muted-foreground/20',
+                          !isActive && !isPast && 'text-muted-foreground/40 hover:text-muted-foreground/65'
+                        )}
+                      >
+                        {line.text}
+                      </button>
+                    );
+                  })}
+                  <div className="h-[40vh]" />
+                </div>
+              </div>
+            ) : plain ? (
+              <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
+                <pre className="text-[13px] @5xl:text-sm @7xl:text-base text-muted-foreground/45 whitespace-pre-wrap font-sans leading-relaxed">
+                  {plain}
+                </pre>
+              </div>
+            ) : (
+              /* Empty state — preserves column width so layout doesn't collapse */
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground/25">
+                <Music2 className="w-8 h-8" />
+                <span className="text-xs font-medium">{t('noLyrics')}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default NowPlayingView;

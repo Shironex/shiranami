@@ -74,6 +74,22 @@ export function useKeyboardShortcuts() {
             }
             break;
           }
+          case 'P':
+          case 'p': {
+            // Ctrl/Cmd+Shift+P: toggle Now Playing view (setting-gated, requires a track)
+            if (e.shiftKey) {
+              e.preventDefault();
+              const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } = useAppStore.getState();
+              if (!nowPlayingViewEnabled) return;
+              if (activeView === 'now-playing') {
+                exitNowPlaying();
+              } else if (usePlayerStore.getState().currentTrack) {
+                enterNowPlaying();
+              }
+              return;
+            }
+            break;
+          }
         }
         // Don't handle other modifier combos (e.g. Ctrl+K is CommandPalette)
         return;
