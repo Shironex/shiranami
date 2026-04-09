@@ -3,6 +3,7 @@ import { Settings2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useState, useEffect, useCallback } from 'react';
@@ -87,9 +88,7 @@ export function PlaybackSection() {
           <div>
             <p className="text-sm font-medium text-foreground flex items-center gap-2">
               {t('play.crossfade')}
-              <span className="px-1.5 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-semibold uppercase tracking-wider">
-                {t('play.beta')}
-              </span>
+              <StatusBadge variant="beta">{t('play.beta')}</StatusBadge>
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {t('play.crossfadeDesc')}

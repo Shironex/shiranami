@@ -17,6 +17,7 @@ const HistoryView = lazy(() => import('@/components/history/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
 const MixesView = lazy(() => import('@/components/mixes/MixesView'));
 const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
+const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
@@ -144,7 +145,9 @@ function App() {
 
                   <main id="main-content" aria-label={activeView} className={cn(
                     'flex-1 flex overflow-hidden min-h-0',
-                    currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
+                    activeView === 'now-playing'
+                      ? ''
+                      : currentTrack && showVisualizer ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
                   )}>
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -182,6 +185,11 @@ function App() {
                           <RadioView />
                         </Suspense>
                       )}
+                      {activeView === 'now-playing' && (
+                        <Suspense fallback={null}>
+                          <NowPlayingView />
+                        </Suspense>
+                      )}
                       {activeView === 'settings' && (
                         <Suspense fallback={null}>
                           <SettingsView />
@@ -189,8 +197,8 @@ function App() {
                       )}
                     </div>
 
-                    {/* Right panel */}
-                    {currentTrack && (rightPanel === 'lyrics' || rightPanel === 'queue') && (
+                    {/* Right panel (hidden in now-playing view — lyrics are inline) */}
+                    {currentTrack && activeView !== 'now-playing' && (rightPanel === 'lyrics' || rightPanel === 'queue') && (
                       <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
                         <Suspense fallback={null}>
                           {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
@@ -199,8 +207,8 @@ function App() {
                     )}
                   </main>
 
-                  {/* Visualizer strip above player bar */}
-                  {currentTrack && showVisualizer && (
+                  {/* Visualizer strip above player bar (hidden in now-playing view) */}
+                  {currentTrack && showVisualizer && activeView !== 'now-playing' && (
                     <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
                       <Suspense fallback={null}>
                         {visualizerStyle === 'waveform' ? <WaveformVisualizer /> :
@@ -211,8 +219,8 @@ function App() {
                     </div>
                   )}
 
-                  {/* Player bar */}
-                  <PlayerBar />
+                  {/* Player bar (hidden in now-playing view — controls are inline) */}
+                  {activeView !== 'now-playing' && <PlayerBar />}
                 </div>
               </>
             )}

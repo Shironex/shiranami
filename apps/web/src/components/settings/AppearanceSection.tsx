@@ -3,6 +3,7 @@ import { Monitor } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   useAppStore,
   UI_SCALE_MIN,
@@ -33,6 +34,8 @@ export function AppearanceSection() {
   const uiScale = useAppStore((s) => s.uiScale);
   const setUiScale = useAppStore((s) => s.setUiScale);
   const resetUiScale = useAppStore((s) => s.resetUiScale);
+  const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
+  const setNowPlayingViewEnabled = useAppStore((s) => s.setNowPlayingViewEnabled);
   const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
   const toggleSidebarItem = useAppStore((s) => s.toggleSidebarItem);
   const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
@@ -120,6 +123,23 @@ export function AppearanceSection() {
                 {tc('reset')}
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Now Playing view */}
+        <div className="px-3">
+          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
+            <div>
+              <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                {t('app.nowPlayingView')}
+                <StatusBadge variant="new">{t('app.new')}</StatusBadge>
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('app.nowPlayingViewDesc')}</p>
+            </div>
+            <Switch
+              checked={nowPlayingViewEnabled}
+              onChange={setNowPlayingViewEnabled}
+            />
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Search, Loader2, Disc3, Check, X, Ban } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Switch } from '@/components/ui/switch';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
@@ -50,9 +51,7 @@ export function MetadataEnrichSection() {
     <SettingsCard icon={Disc3} title={
       <span className="flex items-center gap-2">
         {t('lib.enrichMetadata')}
-        <span className="shrink-0 px-1.5 py-0.5 rounded-md bg-orange-500/15 text-orange-400 text-[9px] font-semibold uppercase tracking-wider leading-none">
-          {t('lib.experimental')}
-        </span>
+        <StatusBadge variant="experimental">{t('lib.experimental')}</StatusBadge>
       </span>
     } subtitle={t('lib.enrichSubtitle')}>
       <div className="space-y-4">

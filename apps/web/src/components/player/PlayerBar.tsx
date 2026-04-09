@@ -27,6 +27,8 @@ export function PlayerBar() {
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
   const setCompactMode = useAppStore(s => s.setCompactMode);
+  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
 
   return (
     <AnimatePresence>
@@ -60,7 +62,11 @@ export function PlayerBar() {
                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
                 exit={{ scale: 0.85, opacity: 0, rotate: 3 }}
                 transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-lg shadow-black/20"
+                onDoubleClick={nowPlayingViewEnabled ? enterNowPlaying : undefined}
+                className={cn(
+                  'w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-lg shadow-black/20',
+                  nowPlayingViewEnabled && 'cursor-pointer'
+                )}
               >
                 {currentTrack.albumArt ? (
                   <img

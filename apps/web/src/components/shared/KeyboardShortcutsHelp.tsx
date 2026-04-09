@@ -61,6 +61,7 @@ function getShortcutCategories(): ShortcutCategory[] {
         { keys: [MOD, 'L'], actionKey: 'toggleLyrics' },
         { keys: [MOD, 'Q'], actionKey: 'toggleQueue' },
         { keys: [MOD, 'Shift', 'M'], actionKey: 'compactMode' },
+        { keys: [MOD, 'Shift', 'P'], actionKey: 'toggleNowPlaying' },
         { keys: ['V'], actionKey: 'toggleVisualizer' },
         { keys: ['?'], actionKey: 'showHelp' },
         { keys: ['Esc'], actionKey: 'closePanel' },

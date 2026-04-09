@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { cn } from '@/lib/utils';
 
 interface NowPlayingHeroProps {
   /** Only render when this returns true for the current track. Defaults to always showing. */
@@ -13,6 +15,8 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const { t } = useTranslation('common');
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const ambientColor = useAmbientColor();
+  const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useAppStore((s) => s.enterNowPlaying);
 
   const visible = currentTrack && (!show || show(currentTrack));
 
@@ -46,7 +50,11 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-                className="w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center"
+                onDoubleClick={nowPlayingViewEnabled ? enterNowPlaying : undefined}
+                className={cn(
+                  'w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center',
+                  nowPlayingViewEnabled && 'cursor-pointer transition-transform hover:scale-[1.02]'
+                )}
               >
                 {currentTrack.albumArt ? (
                   <img src={currentTrack.albumArt} alt={currentTrack.title} className="w-full h-full object-cover" />

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { IS_ELECTRON } from '@/lib/platform';
 
-export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes' | 'search' | 'radio' | 'settings' | 'import-playlist';
+export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes' | 'search' | 'radio' | 'settings' | 'import-playlist' | 'now-playing';
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 export type LibraryViewMode = 'tracks' | 'albums';
@@ -25,6 +25,8 @@ const SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY = 'shiranami.sidebar-playlists-visib
 const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
 const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
 const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
+const NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY = 'shiranami.now-playing-view-enabled';
+const NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY = 'shiranami.now-playing-lyrics-visible';
 const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
 
 export const UI_SCALE_MIN = 80;
@@ -119,6 +121,28 @@ function persistVisualizerEnabled(enabled: boolean) {
   window.localStorage.setItem(VISUALIZER_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
 }
 
+function getInitialNowPlayingViewEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY) === 'true';
+}
+
+function persistNowPlayingViewEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
+}
+
+function getInitialNowPlayingLyricsVisible(): boolean {
+  if (typeof window === 'undefined') return true;
+  const stored = window.localStorage.getItem(NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY);
+  if (stored === 'false') return false;
+  return true;
+}
+
+function persistNowPlayingLyricsVisible(visible: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY, visible ? 'true' : 'false');
+}
+
 function getInitialCompactAlwaysOnTop(): boolean {
   if (typeof window === 'undefined') return false;
   return window.localStorage.getItem(COMPACT_ALWAYS_ON_TOP_STORAGE_KEY) === 'true';
@@ -147,10 +171,17 @@ interface AppState {
   libraryViewMode: LibraryViewMode;
   selectedAlbumName: string | null;
   albumGridScrollTop: number;
+  nowPlayingViewEnabled: boolean;
+  nowPlayingLyricsVisible: boolean;
+  previousView: AppView;
 }
 
 interface AppActions {
   navigateTo: (view: AppView, playlistId?: string | null) => void;
+  enterNowPlaying: () => void;
+  exitNowPlaying: () => void;
+  setNowPlayingViewEnabled: (enabled: boolean) => void;
+  toggleNowPlayingLyrics: () => void;
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
@@ -186,12 +217,36 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   libraryViewMode: getInitialLibraryViewMode(),
   selectedAlbumName: null,
   albumGridScrollTop: 0,
+  nowPlayingViewEnabled: getInitialNowPlayingViewEnabled(),
+  nowPlayingLyricsVisible: getInitialNowPlayingLyricsVisible(),
+  previousView: 'library',
 
   navigateTo: (view, playlistId) =>
     set({
       activeView: view,
       selectedPlaylistId: view === 'playlists' ? (playlistId ?? null) : null,
     }),
+  enterNowPlaying: () => {
+    const current = get().activeView;
+    if (current === 'now-playing') return;
+    set({ previousView: current, activeView: 'now-playing' });
+  },
+  exitNowPlaying: () => {
+    const prev = get().previousView;
+    set({ activeView: prev });
+  },
+  setNowPlayingViewEnabled: (enabled) => {
+    persistNowPlayingViewEnabled(enabled);
+    set({ nowPlayingViewEnabled: enabled });
+    if (!enabled && get().activeView === 'now-playing') {
+      get().exitNowPlaying();
+    }
+  },
+  toggleNowPlayingLyrics: () => {
+    const next = !get().nowPlayingLyricsVisible;
+    persistNowPlayingLyricsVisible(next);
+    set({ nowPlayingLyricsVisible: next });
+  },
   selectPlaylist: (id) => set({ selectedPlaylistId: id }),
   setRightPanel: (panel) => set({ rightPanel: panel }),
   setSidebarCollapsed: (sidebarCollapsed) => {
