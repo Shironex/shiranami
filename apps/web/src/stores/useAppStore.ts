@@ -33,6 +33,18 @@ function persistAlbumGridSize(size: AlbumGridSize) {
   window.localStorage.setItem(ALBUM_GRID_SIZE_STORAGE_KEY, size);
 }
 
+function getInitialPlaylistGridSize(): AlbumGridSize {
+  if (typeof window === 'undefined') return 'medium';
+  const stored = window.localStorage.getItem(PLAYLIST_GRID_SIZE_STORAGE_KEY);
+  if (stored === 'small' || stored === 'medium' || stored === 'large') return stored;
+  return 'medium';
+}
+
+function persistPlaylistGridSize(size: AlbumGridSize) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PLAYLIST_GRID_SIZE_STORAGE_KEY, size);
+}
+
 function getInitialAlbumSortMode(): AlbumSortMode {
   if (typeof window === 'undefined') return 'name';
   const stored = window.localStorage.getItem(ALBUM_SORT_MODE_STORAGE_KEY);
@@ -59,6 +71,7 @@ function persistAlbumSortOrder(order: AlbumSortOrder) {
 
 const LIBRARY_VIEW_MODE_STORAGE_KEY = 'shiranami.library-view-mode';
 const ALBUM_GRID_SIZE_STORAGE_KEY = 'shiranami.album-grid-size';
+const PLAYLIST_GRID_SIZE_STORAGE_KEY = 'shiranami.playlist-grid-size';
 const ALBUM_SORT_MODE_STORAGE_KEY = 'shiranami.album-sort-mode';
 const ALBUM_SORT_ORDER_STORAGE_KEY = 'shiranami.album-sort-order';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
@@ -248,6 +261,7 @@ interface AppState {
   uiScale: number;
   libraryViewMode: LibraryViewMode;
   albumGridSize: AlbumGridSize;
+  playlistGridSize: AlbumGridSize;
   albumSortMode: AlbumSortMode;
   albumSortOrder: AlbumSortOrder;
   selectedAlbumName: string | null;
@@ -284,6 +298,7 @@ interface AppActions {
   resetUiScale: () => void;
   setLibraryViewMode: (mode: LibraryViewMode) => void;
   setAlbumGridSize: (size: AlbumGridSize) => void;
+  setPlaylistGridSize: (size: AlbumGridSize) => void;
   setAlbumSortMode: (mode: AlbumSortMode) => void;
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
   selectAlbum: (name: string | null) => void;
@@ -304,6 +319,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   uiScale: getInitialUiScale(),
   libraryViewMode: getInitialLibraryViewMode(),
   albumGridSize: getInitialAlbumGridSize(),
+  playlistGridSize: getInitialPlaylistGridSize(),
   albumSortMode: getInitialAlbumSortMode(),
   albumSortOrder: getInitialAlbumSortOrder(),
   selectedAlbumName: null,
@@ -449,6 +465,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   setAlbumGridSize: (size) => {
     persistAlbumGridSize(size);
     set({ albumGridSize: size });
+  },
+  setPlaylistGridSize: (size) => {
+    persistPlaylistGridSize(size);
+    set({ playlistGridSize: size });
   },
   setAlbumSortMode: (mode) => {
     persistAlbumSortMode(mode);

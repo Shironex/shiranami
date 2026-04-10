@@ -20,5 +20,9 @@
   "uploadCustomImage": "Upload Custom Image",
   "useTrackArtwork": "Use Track Artwork",
   "removeCover": "Remove Cover",
-  "editCover": "Edit playlist cover"
+  "editCover": "Edit playlist cover",
+  "gridSize": "Grid size",
+  "gridSizeSmall": "Small",
+  "gridSizeMedium": "Medium",
+  "gridSizeLarge": "Large"
 }

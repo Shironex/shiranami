@@ -22,5 +22,9 @@
   "uploadCustomImage": "Wgraj własny obraz",
   "useTrackArtwork": "Użyj okładki utworu",
   "removeCover": "Usuń okładkę",
-  "editCover": "Edytuj okładkę playlisty"
+  "editCover": "Edytuj okładkę playlisty",
+  "gridSize": "Rozmiar siatki",
+  "gridSizeSmall": "Mały",
+  "gridSizeMedium": "Średni",
+  "gridSizeLarge": "Duży"
 }
