@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/stores/useAppStore';
-import { ListMusic, Plus, Loader2 } from 'lucide-react';
+import { useAppStore, type AlbumGridSize } from '@/stores/useAppStore';
+import { ListMusic, Plus, Loader2, Grid2x2, LayoutGrid, Grid3x3 } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { usePlaylistsQuery, useCreatePlaylistMutation } from '@/hooks/queries/usePlaylists';
 
 export function PlaylistsView() {
@@ -13,6 +14,8 @@ export function PlaylistsView() {
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
   const { data: playlists = [], isLoading } = usePlaylistsQuery();
   const createPlaylist = useCreatePlaylistMutation();
+  const playlistGridSize = useAppStore(s => s.playlistGridSize);
+  const setPlaylistGridSize = useAppStore(s => s.setPlaylistGridSize);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -40,6 +43,20 @@ export function PlaylistsView() {
     [handleCreate]
   );
 
+  const gridClassName = useMemo(() => {
+    switch (playlistGridSize) {
+      case 'small':
+        return 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2';
+      case 'large':
+        return 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4';
+      case 'medium':
+      default:
+        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3';
+    }
+  }, [playlistGridSize]);
+
+  const cardPaddingClass = playlistGridSize === 'small' ? 'p-3' : 'p-4';
+
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -60,6 +77,36 @@ export function PlaylistsView() {
           <Plus className="w-3.5 h-3.5" />
           {t('newPlaylist')}
         </motion.button>
+
+        <div className="flex-1" />
+
+        {/* Grid size toggle */}
+        <div
+          className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5"
+          role="group"
+          aria-label={t('gridSize')}
+        >
+          {([
+            { size: 'large', icon: Grid2x2, label: t('gridSizeLarge') },
+            { size: 'medium', icon: LayoutGrid, label: t('gridSizeMedium') },
+            { size: 'small', icon: Grid3x3, label: t('gridSizeSmall') },
+          ] as const).map(({ size, icon: Icon, label }) => (
+            <button
+              key={size}
+              onClick={() => setPlaylistGridSize(size as AlbumGridSize)}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                playlistGridSize === size
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-muted-foreground/50 hover:text-foreground'
+              )}
+              aria-label={label}
+              title={label}
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Inline create form */}
@@ -116,7 +163,7 @@ export function PlaylistsView() {
       ) : (
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
           <motion.div
-            className="grid grid-cols-2 lg:grid-cols-3 gap-3"
+            className={gridClassName}
             initial="hidden"
             animate="visible"
             variants={{
@@ -134,7 +181,7 @@ export function PlaylistsView() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => selectPlaylist(playlist.id)}
-                className="text-left p-4 rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group"
+                className={cn("text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group", cardPaddingClass)}
               >
                 <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
                   {playlist.coverArt ? (

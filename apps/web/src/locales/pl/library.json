@@ -1,6 +1,6 @@
 {
-  "filterPlaceholder": "Filtruj utwory...",
-  "filterAlbumsPlaceholder": "Filtruj albumy...",
+  "filterPlaceholder": "Szukaj utworów...",
+  "filterAlbumsPlaceholder": "Szukaj albumów...",
   "filterCount": "{{filtered}} z {{total}} utworów",
   "albumFilterCount": "{{filtered}} z {{total}} albumów",
   "emptyTitle": "Brak utworów",
