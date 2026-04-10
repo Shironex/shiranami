@@ -1,7 +1,8 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
 import { getPrimaryRGB } from '@/lib/utils';
+import { useRafLoop } from '@/hooks/useRafLoop';
 
 /**
  * Canvas-based frequency visualizer with a soft lofi aesthetic.
@@ -11,7 +12,6 @@ import { getPrimaryRGB } from '@/lib/utils';
  */
 export function AudioVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -23,7 +23,6 @@ export function AudioVisualizer() {
 
     const analyser = getAnalyser();
     if (!analyser) {
-      rafRef.current = requestAnimationFrame(draw);
       return;
     }
 
@@ -111,20 +110,9 @@ export function AudioVisualizer() {
       ctx.shadowBlur = 0;
     }
 
-    rafRef.current = requestAnimationFrame(draw);
   }, []);
 
-  useEffect(() => {
-    if (isPlaying && currentTrack) {
-      rafRef.current = requestAnimationFrame(draw);
-    } else {
-      cancelAnimationFrame(rafRef.current);
-    }
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [isPlaying, currentTrack, draw]);
+  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
   return (
     <canvas

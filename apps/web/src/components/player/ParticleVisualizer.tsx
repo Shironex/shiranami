@@ -1,5 +1,6 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useRafLoop } from '@/hooks/useRafLoop';
 import { getAnalyser } from '@/lib/audioAnalyser';
 import { getPrimaryRGB } from '@/lib/utils';
 
@@ -11,7 +12,6 @@ import { getPrimaryRGB } from '@/lib/utils';
  */
 export function ParticleVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -23,7 +23,6 @@ export function ParticleVisualizer() {
 
     const analyser = getAnalyser();
     if (!analyser) {
-      rafRef.current = requestAnimationFrame(draw);
       return;
     }
 
@@ -124,20 +123,9 @@ export function ParticleVisualizer() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    rafRef.current = requestAnimationFrame(draw);
   }, []);
 
-  useEffect(() => {
-    if (isPlaying && currentTrack) {
-      rafRef.current = requestAnimationFrame(draw);
-    } else {
-      cancelAnimationFrame(rafRef.current);
-    }
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [isPlaying, currentTrack, draw]);
+  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
   return (
     <canvas
