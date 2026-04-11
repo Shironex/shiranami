@@ -90,6 +90,7 @@ export function NowPlayingView() {
           whileTap={{ scale: 0.9 }}
           onClick={exitNowPlaying}
           className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          aria-label={t('back')}
         >
           <ArrowLeft className="w-4 h-4" />
         </motion.button>
@@ -240,7 +241,7 @@ export function NowPlayingView() {
                           'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1',
                           'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
                           'text-base @5xl:text-lg @7xl:text-xl',
-                          isActive && 'text-foreground !text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold',
+                          isActive && 'text-foreground text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold',
                           isPast && 'text-muted-foreground/20',
                           !isActive && !isPast && 'text-muted-foreground/40 hover:text-muted-foreground/65'
                         )}
