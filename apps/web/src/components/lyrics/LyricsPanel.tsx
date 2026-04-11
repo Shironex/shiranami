@@ -73,8 +73,8 @@ export function LyricsPanel() {
                 onClick={() => handleLineClick(line.time)}
                 type="button"
                 className={cn(
-                  'block w-full text-left text-[15px] leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
-                  isActive && 'text-foreground text-base',
+                  'block w-full text-left text-base leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                  isActive && 'text-foreground text-lg font-semibold',
                   isPast && 'text-muted-foreground/25',
                   !isActive && !isPast && 'text-muted-foreground/45 hover:text-muted-foreground/70'
                 )}
@@ -90,7 +90,7 @@ export function LyricsPanel() {
   } else if (plain) {
     content = (
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-6">
-        <pre className="text-xs text-muted-foreground/50 whitespace-pre-wrap font-sans leading-relaxed">
+        <pre className="text-sm text-muted-foreground/50 whitespace-pre-wrap font-sans leading-relaxed">
           {plain}
         </pre>
       </div>
