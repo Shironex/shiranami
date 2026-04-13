@@ -109,11 +109,14 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       const library = usePlayerStore.getState().library;
       const { skippedIds } = get();
 
+      const unknownArtist = i18n.t('unknownArtist', { ns: 'common' });
+      const unknownAlbum = i18n.t('unknownAlbum', { ns: 'common' });
+
       let candidates = onlyMissing
         ? library.filter(
             t =>
-              t.artist === 'Unknown Artist' ||
-              t.album === 'Unknown Album' ||
+              t.artist === unknownArtist ||
+              t.album === unknownAlbum ||
               !t.albumArt ||
               !t.genre ||
               !t.year

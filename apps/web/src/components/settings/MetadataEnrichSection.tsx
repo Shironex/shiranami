@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -31,15 +31,21 @@ export function MetadataEnrichSection() {
     loadSkipped();
   }, [loadSkipped]);
 
-  // Count tracks with missing metadata
-  const tracksNeedingEnrichment = library.filter(
-    t =>
-      t.artist === 'Unknown Artist' ||
-      t.album === 'Unknown Album' ||
-      !t.albumArt ||
-      !t.genre ||
-      !t.year
-  );
+  // Count tracks with missing metadata. Compare against localized fallbacks
+  // because trackMapper populates missing artist/album with the translated
+  // "Unknown Artist"/"Unknown Album" strings at DB-read time.
+  const tracksNeedingEnrichment = useMemo(() => {
+    const unknownArtist = tc('unknownArtist');
+    const unknownAlbum = tc('unknownAlbum');
+    return library.filter(
+      t =>
+        t.artist === unknownArtist ||
+        t.album === unknownAlbum ||
+        !t.albumArt ||
+        !t.genre ||
+        !t.year
+    );
+  }, [library, tc]);
 
   // How many of those are skipped (already tried, no results)
   const skippedCount = tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length;
