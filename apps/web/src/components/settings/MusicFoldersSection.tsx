@@ -1,16 +1,12 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
-import { toast } from 'sonner';
 import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
-import { useFoldersQuery, folderKeys } from '@/hooks/queries/useFolders';
-import { queryClient } from '@/lib/queryClient';
+import { useFoldersQuery } from '@/hooks/queries/useFolders';
+import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
-import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
-import { acquireScanLock, releaseScanLock, isScanLocked } from '@/lib/scanLock';
+import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
+import { isScanLocked } from '@/lib/scanLock';
 
 export interface WatchedFolder {
   id: string;
@@ -20,140 +16,32 @@ export interface WatchedFolder {
 
 export function MusicFoldersSection() {
   const { t } = useTranslation('settings');
-  const { t: tToast } = useTranslation('toast');
-  const addToLibrary = usePlayerStore(s => s.addToLibrary);
 
   const { data: folders = [], isLoading: foldersLoading } = useFoldersQuery();
-  const [isScanning, setIsScanning] = useState(false);
-  const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
-  const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderEntry[]>([]);
-  const [existingPlaylistNames, setExistingPlaylistNames] = useState<Set<string>>(new Set());
+  const {
+    isScanning,
+    addFolder,
+    removeFolder,
+    detectedSubfolders,
+    existingPlaylistNames,
+    clearDetectedSubfolders,
+  } = useLibraryFolders();
+
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
 
-  const handleAddFolder = useCallback(async () => {
-    if (!IS_ELECTRON || !acquireScanLock()) return;
-    try {
-      const dirPath = await window.electronAPI.dialog.openDirectory();
-      if (!dirPath) {
-        releaseScanLock();
-        return;
-      }
+  const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
 
-      // Check if folder already exists
-      const existing = folders.find(f => f.path === dirPath);
-      if (existing) {
-        toast.info(tToast('folderAlreadyExists'));
-        releaseScanLock();
-        return;
-      }
-
-      // Scan the folder first, only persist to DB after tracks are added successfully
-      setIsScanning(true);
-      try {
-        const { rootTracks, subfolders: scannedSubfolders } =
-          await window.electronAPI.library.scanFolderGrouped(dirPath);
-
-        // Combine root tracks with all subfolder tracks for the flat track list
-        const results = [
-          ...rootTracks,
-          ...scannedSubfolders.flatMap(sf => sf.tracks),
-        ];
-
-        if (results.length === 0) {
-          toast.info(tToast('noAudioInFolder'));
-          return;
-        }
-
-        // Filter out tracks already in library
-        const existingPaths = new Set(usePlayerStore.getState().library.map(t => t.filePath));
-        const newResults = results.filter(r => !existingPaths.has(r.filePath));
-
-        // Also check DB
-        const existsInDb = new Set(
-          await window.electronAPI.db.tracks.existsMany(newResults.map(r => r.filePath))
-        );
-        const genuinelyNew = newResults.filter(r => !existsInDb.has(r.filePath));
-
-        if (genuinelyNew.length === 0) {
-          toast.info(tToast('allTracksExist'));
-          return;
-        }
-
-        const dbTracks = (await window.electronAPI.db.tracks.addMany(
-          genuinelyNew.map(r => ({
-            filePath: r.filePath,
-            title: r.metadata.title,
-            artist: r.metadata.artist,
-            album: r.metadata.album,
-            duration: r.metadata.duration,
-            genre: r.metadata.genre ?? null,
-            year: r.metadata.year ?? null,
-            trackNumber: r.metadata.trackNumber ?? null,
-            albumArt: r.metadata.albumArt ?? null,
-          }))
-        )) as Record<string, unknown>[];
-
-        const newTracks = mapDbTracksToTracks(dbTracks);
-
-        // Persist folder to DB only after tracks were added successfully
-        await window.electronAPI.db.folders.add(dirPath);
-        queryClient.invalidateQueries({ queryKey: folderKeys.all });
-
-        addToLibrary(newTracks);
-
-        const currentQueue = usePlayerStore.getState().queue;
-        const currentPlaying = usePlayerStore.getState().currentTrack;
-        const combined = [...currentQueue, ...newTracks];
-        if (!currentPlaying) {
-          usePlayerStore.getState().setQueue(combined, 0);
-        } else {
-          usePlayerStore.setState({ queue: combined });
-        }
-
-        toast.success(tToast('addedTracks', { count: newTracks.length }));
-
-        // Show subfolder playlist dialog only if there are subfolders without existing playlists
-        if (scannedSubfolders.length > 0) {
-          try {
-            const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
-            const names = new Set(allPlaylists.map(p => p.name));
-            const newSubfolders = scannedSubfolders.filter(sf => !names.has(sf.name));
-            if (newSubfolders.length > 0) {
-              setExistingPlaylistNames(names);
-              setDetectedSubfolders(newSubfolders);
-              setSubfolderDialogOpen(true);
-            }
-          } catch {
-            setDetectedSubfolders(scannedSubfolders);
-            setSubfolderDialogOpen(true);
-          }
-        }
-      } finally {
-        setIsScanning(false);
-        releaseScanLock();
-      }
-    } catch (err) {
-      console.error('Failed to add folder:', err);
-      toast.error(tToast('failedAddFolder'));
-      setIsScanning(false);
-      releaseScanLock();
+  // Open the subfolder dialog whenever the hook reports new subfolders.
+  useEffect(() => {
+    if (detectedSubfolders.length > 0) {
+      setSubfolderDialogOpen(true);
     }
-  }, [addToLibrary, folders, tToast]);
+  }, [detectedSubfolders]);
 
-  const handleRemoveFolder = useCallback(
-    async (folder: WatchedFolder) => {
-      if (!IS_ELECTRON) return;
-      try {
-        await window.electronAPI.db.folders.remove(folder.id);
-        queryClient.invalidateQueries({ queryKey: folderKeys.all });
-        toast.success(tToast('folderRemoved'));
-      } catch (err) {
-        console.error('Failed to remove folder:', err);
-        toast.error(tToast('failedRemoveFolder'));
-      }
-    },
-    [tToast]
-  );
+  const handleDialogOpenChange = (open: boolean) => {
+    setSubfolderDialogOpen(open);
+    if (!open) clearDetectedSubfolders();
+  };
 
   return (
     <>
@@ -180,7 +68,7 @@ export function MusicFoldersSection() {
                     {folder.path}
                   </span>
                   <button
-                    onClick={() => handleRemoveFolder(folder)}
+                    onClick={() => removeFolder(folder.id)}
                     className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
                     title={t('folders.remove')}
                   >
@@ -191,7 +79,7 @@ export function MusicFoldersSection() {
             )}
 
             <button
-              onClick={handleAddFolder}
+              onClick={addFolder}
               disabled={isScanning || isScanLocked()}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-colors w-full justify-center border border-dashed border-border/40 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -208,7 +96,7 @@ export function MusicFoldersSection() {
 
       <SubfolderPlaylistDialog
         open={subfolderDialogOpen}
-        onOpenChange={setSubfolderDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         subfolders={detectedSubfolders}
         onConfirm={handleSubfolderConfirm}
         existingPlaylistNames={existingPlaylistNames}

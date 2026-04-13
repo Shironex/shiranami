@@ -1,197 +1,44 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
-import { toast } from 'sonner';
 import { HardDrive, Music, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
-import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
-import { queryClient } from '@/lib/queryClient';
-import { folderKeys } from '@/hooks/queries/useFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
-import { useSubfolderPlaylistConfirm, type SubfolderEntry } from '@/hooks/useSubfolderPlaylistConfirm';
-import { removeTracksFromQueue } from '@/hooks/useRemoveFromLibrary';
-import { acquireScanLock, releaseScanLock, isScanLocked } from '@/lib/scanLock';
+import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
+import { useLibraryRescan } from '@/hooks/useLibraryRescan';
+import { isScanLocked } from '@/lib/scanLock';
 import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const { t: tToast } = useTranslation('toast');
   const library = usePlayerStore(s => s.library);
-  const addToLibrary = usePlayerStore(s => s.addToLibrary);
-  const removeFromLibrary = usePlayerStore(s => s.removeFromLibrary);
-  const clearQueue = usePlayerStore(s => s.clearQueue);
 
-  const [confirmClear, setConfirmClear] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
-  const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderEntry[]>([]);
-  const [existingPlaylistNames, setExistingPlaylistNames] = useState<Set<string>>(new Set());
+  const {
+    isScanning,
+    isClearing,
+    confirmClear,
+    setConfirmClear,
+    rescan,
+    clearLibrary,
+    detectedSubfolders,
+    existingPlaylistNames,
+    clearDetectedSubfolders,
+  } = useLibraryRescan();
+
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
+  const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
 
-  const handleRescan = useCallback(async () => {
-    if (!IS_ELECTRON || !acquireScanLock()) return;
-
-    let folders: WatchedFolder[];
-    try {
-      folders = await queryClient.fetchQuery({
-        queryKey: folderKeys.all,
-        queryFn: async () => (await window.electronAPI.db.folders.getAll()) as WatchedFolder[],
-      });
-    } catch {
-      toast.error(tToast('failedLoadFolders'));
-      releaseScanLock();
-      return;
+  useEffect(() => {
+    if (detectedSubfolders.length > 0) {
+      setSubfolderDialogOpen(true);
     }
+  }, [detectedSubfolders]);
 
-    if (folders.length === 0) {
-      releaseScanLock();
-      return;
-    }
-    setIsScanning(true);
-    let totalAdded = 0;
-    const allDetectedSubfolders: SubfolderEntry[] = [];
-
-    try {
-      for (const folder of folders) {
-        try {
-          const { rootTracks, subfolders: scannedSubfolders } =
-            await window.electronAPI.library.scanFolderGrouped(folder.path);
-
-          // Combine root tracks with all subfolder tracks for the flat track list
-          const results = [
-            ...rootTracks,
-            ...scannedSubfolders.flatMap(sf => sf.tracks),
-          ];
-
-          if (scannedSubfolders.length > 0) {
-            allDetectedSubfolders.push(...scannedSubfolders);
-          }
-
-          if (results.length === 0) continue;
-
-          const existingPaths = new Set(usePlayerStore.getState().library.map(t => t.filePath));
-          const newResults = results.filter(r => !existingPaths.has(r.filePath));
-
-          const existsInDb = new Set(
-            await window.electronAPI.db.tracks.existsMany(newResults.map(r => r.filePath))
-          );
-          const genuinelyNew = newResults.filter(r => !existsInDb.has(r.filePath));
-          if (genuinelyNew.length === 0) continue;
-
-          const dbTracks = (await window.electronAPI.db.tracks.addMany(
-            genuinelyNew.map(r => ({
-              filePath: r.filePath,
-              title: r.metadata.title,
-              artist: r.metadata.artist,
-              album: r.metadata.album,
-              duration: r.metadata.duration,
-              genre: r.metadata.genre ?? null,
-              year: r.metadata.year ?? null,
-              trackNumber: r.metadata.trackNumber ?? null,
-              albumArt: r.metadata.albumArt ?? null,
-            }))
-          )) as Record<string, unknown>[];
-
-          const newTracks = mapDbTracksToTracks(dbTracks);
-
-          addToLibrary(newTracks);
-
-          const currentQueue = usePlayerStore.getState().queue;
-          const currentPlaying = usePlayerStore.getState().currentTrack;
-          const combined = [...currentQueue, ...newTracks];
-          if (!currentPlaying) {
-            usePlayerStore.getState().setQueue(combined, 0);
-          } else {
-            usePlayerStore.setState({ queue: combined });
-          }
-
-          totalAdded += newTracks.length;
-
-          // Update last scanned timestamp
-          await window.electronAPI.db.folders.updateScanned(folder.id);
-        } catch {
-          // Skip folders that fail to scan (e.g., deleted directories)
-        }
-      }
-
-      // Validate existing tracks — remove any whose files no longer exist on disk
-      let totalRemoved = 0;
-      const currentLibrary = usePlayerStore.getState().library;
-      if (currentLibrary.length > 0) {
-        const allPaths = currentLibrary.map(t => t.filePath);
-        const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
-        if (missingPaths.length > 0) {
-          const missingSet = new Set(missingPaths);
-          const staleIds = currentLibrary
-            .filter(t => missingSet.has(t.filePath))
-            .map(t => t.id);
-          if (staleIds.length > 0) {
-            await window.electronAPI.db.tracks.removeMany(staleIds);
-            removeFromLibrary(staleIds);
-            removeTracksFromQueue(staleIds);
-            totalRemoved = staleIds.length;
-          }
-        }
-      }
-
-      if (totalAdded > 0 && totalRemoved > 0) {
-        toast.success(tToast('rescanSummary', { added: totalAdded, removed: totalRemoved }));
-      } else if (totalAdded > 0) {
-        toast.success(tToast('foundNewTracks', { count: totalAdded }));
-      } else if (totalRemoved > 0) {
-        toast.success(tToast('removedStaleTracks', { count: totalRemoved }));
-      } else {
-        toast.info(tToast('libraryUpToDate'));
-      }
-
-      // Show subfolder playlist dialog only if there are subfolders without existing playlists
-      if (allDetectedSubfolders.length > 0) {
-        try {
-          const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
-          const names = new Set(allPlaylists.map(p => p.name));
-          const newSubfolders = allDetectedSubfolders.filter(sf => !names.has(sf.name));
-          if (newSubfolders.length > 0) {
-            setExistingPlaylistNames(names);
-            setDetectedSubfolders(newSubfolders);
-            setSubfolderDialogOpen(true);
-          }
-        } catch {
-          setDetectedSubfolders(allDetectedSubfolders);
-          setSubfolderDialogOpen(true);
-        }
-      }
-    } catch (err) {
-      console.error('Rescan failed:', err);
-      toast.error(tToast('failedRescan'));
-    } finally {
-      setIsScanning(false);
-      releaseScanLock();
-    }
-  }, [addToLibrary, removeFromLibrary, tToast]);
-
-  const handleClearLibrary = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    setIsClearing(true);
-    try {
-      const allTracks = usePlayerStore.getState().library;
-      if (allTracks.length > 0) {
-        await window.electronAPI.db.tracks.removeMany(allTracks.map(t => t.id));
-      }
-      clearQueue();
-      usePlayerStore.setState({ library: [] });
-      setConfirmClear(false);
-      toast.success(tToast('libraryCleared'));
-    } catch (err) {
-      console.error('Failed to clear library:', err);
-      toast.error(tToast('failedClearLibrary'));
-    } finally {
-      setIsClearing(false);
-    }
-  }, [clearQueue, tToast]);
+  const handleDialogOpenChange = (open: boolean) => {
+    setSubfolderDialogOpen(open);
+    if (!open) clearDetectedSubfolders();
+  };
 
   return (
     <>
@@ -207,7 +54,7 @@ export function LibrarySection() {
 
         <div className="flex gap-3">
           <button
-            onClick={handleRescan}
+            onClick={rescan}
             disabled={isScanning || isScanLocked()}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -235,7 +82,7 @@ export function LibrarySection() {
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={handleClearLibrary}
+                  onClick={clearLibrary}
                   disabled={isClearing}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
                 >
@@ -263,7 +110,7 @@ export function LibrarySection() {
 
       <SubfolderPlaylistDialog
         open={subfolderDialogOpen}
-        onOpenChange={setSubfolderDialogOpen}
+        onOpenChange={handleDialogOpenChange}
         subfolders={detectedSubfolders}
         onConfirm={handleSubfolderConfirm}
         existingPlaylistNames={existingPlaylistNames}

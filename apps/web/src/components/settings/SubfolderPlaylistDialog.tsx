@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
 import { FolderOpen } from 'lucide-react';
+import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
+import type { Playlist } from '@/types/electron';
 import {
   Dialog,
   DialogContent,
@@ -39,49 +40,25 @@ export function SubfolderPlaylistDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [existingNames, setExistingNames] = useState<Set<string>>(new Set());
 
+  // Fallback source for existing playlist names if the parent didn't pass them in.
+  const { data: fetchedPlaylists } = usePlaylistsQuery();
+
   // Check which subfolder names already exist as playlists
   useEffect(() => {
     if (!open || subfolders.length === 0) return;
 
-    // Use passed-in names if available, otherwise fetch
-    if (existingPlaylistNames) {
-      const existing = new Set<string>();
-      for (const sf of subfolders) {
-        if (existingPlaylistNames.has(sf.name)) existing.add(sf.name);
-      }
-      setExistingNames(existing);
-      setSelected(new Set(
-        subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
-      ));
-      return;
+    const sourceNames = existingPlaylistNames
+      ?? new Set((fetchedPlaylists as Playlist[] | undefined)?.map(p => p.name) ?? []);
+
+    const existing = new Set<string>();
+    for (const sf of subfolders) {
+      if (sourceNames.has(sf.name)) existing.add(sf.name);
     }
-
-    if (!IS_ELECTRON) return;
-
-    let cancelled = false;
-
-    async function checkExisting() {
-      const existing = new Set<string>();
-      try {
-        const allPlaylists = (await window.electronAPI.db.playlists.getAll()) as Array<{ name: string }>;
-        const fetchedNames = new Set(allPlaylists.map(p => p.name));
-        for (const sf of subfolders) {
-          if (fetchedNames.has(sf.name)) existing.add(sf.name);
-        }
-      } catch {
-        // ignore lookup failures
-      }
-      if (!cancelled) {
-        setExistingNames(existing);
-        setSelected(new Set(
-          subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
-        ));
-      }
-    }
-
-    checkExisting();
-    return () => { cancelled = true; };
-  }, [open, subfolders, existingPlaylistNames]);
+    setExistingNames(existing);
+    setSelected(new Set(
+      subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
+    ));
+  }, [open, subfolders, existingPlaylistNames, fetchedPlaylists]);
 
   const toggleSubfolder = useCallback((path: string) => {
     setSelected(prev => {

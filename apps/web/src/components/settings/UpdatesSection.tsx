@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import {
@@ -9,15 +9,13 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON } from '@/lib/platform';
-
-type UpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'downloading'
-  | 'ready'
-  | 'error';
+import {
+  useUpdaterEvents,
+  useCheckForUpdatesMutation,
+  useStartUpdateDownloadMutation,
+  useInstallUpdateMutation,
+  type UpdateStatus,
+} from '@/hooks/useUpdater';
 
 function updateStatusMessage(
   status: UpdateStatus,
@@ -48,87 +46,49 @@ function updateStatusMessage(
 
 export function UpdatesSection() {
   const { t } = useTranslation('settings');
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle');
-  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
-  const [updateProgress, setUpdateProgress] = useState<number>(0);
-  const [updateError, setUpdateError] = useState<string | null>(null);
+  const {
+    status,
+    version,
+    progress,
+    error,
+    isMac,
+    setStatus,
+    setProgress,
+    setError,
+  } = useUpdaterEvents();
 
-  const isMac = IS_ELECTRON && window.electronAPI.platform === 'darwin';
-
-  // Updater listeners
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    const updater = window.electronAPI.updater;
-    const unsubs = [
-      updater.onCheckingForUpdate(() => {
-        setUpdateStatus('checking');
-        setUpdateError(null);
-      }),
-      updater.onUpdateAvailable((info) => {
-        setUpdateStatus('available');
-        setUpdateVersion(info.version);
-        setUpdateError(null);
-      }),
-      updater.onUpdateNotAvailable(() => {
-        setUpdateStatus('idle');
-        setUpdateError(null);
-      }),
-      updater.onDownloadProgress((progress) => {
-        setUpdateStatus('downloading');
-        setUpdateProgress(Math.round(progress.percent));
-      }),
-      updater.onUpdateDownloaded((info) => {
-        setUpdateStatus('ready');
-        setUpdateVersion(info.version);
-      }),
-      updater.onUpdateError((message) => {
-        if (message === 'RELEASE_PENDING') {
-          setUpdateStatus('idle');
-          setUpdateError(null);
-        } else {
-          setUpdateStatus('error');
-          setUpdateError(message);
-        }
-      }),
-    ];
-    return () => unsubs.forEach((fn) => fn());
-  }, []);
+  const checkMutation = useCheckForUpdatesMutation();
+  const downloadMutation = useStartUpdateDownloadMutation();
+  const installMutation = useInstallUpdateMutation();
 
   const handleCheckForUpdates = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    setUpdateStatus('checking');
-    setUpdateError(null);
+    setStatus('checking');
+    setError(null);
     try {
-      const result = await window.electronAPI.updater.checkForUpdates();
-      if (!result.enabled) {
-        setUpdateStatus('idle');
+      const result = await checkMutation.mutateAsync();
+      if (!result?.enabled) {
+        setStatus('idle');
       }
     } catch {
-      setUpdateStatus('error');
-      setUpdateError(t('upd.checkFailed'));
+      setStatus('error');
+      setError(t('upd.checkFailed'));
     }
-  }, [t]);
+  }, [checkMutation, setStatus, setError, t]);
 
   const handleDownloadUpdate = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    setUpdateStatus('downloading');
-    setUpdateProgress(0);
+    setStatus('downloading');
+    setProgress(0);
     try {
-      await window.electronAPI.updater.startDownload();
+      await downloadMutation.mutateAsync();
     } catch {
-      setUpdateStatus('error');
-      setUpdateError(t('upd.downloadFailed'));
+      setStatus('error');
+      setError(t('upd.downloadFailed'));
     }
-  }, [t]);
+  }, [downloadMutation, setStatus, setProgress, setError, t]);
 
   const handleInstallUpdate = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    try {
-      await window.electronAPI.updater.installNow();
-    } catch (err) {
-      console.warn('Failed to install update', err);
-    }
-  }, []);
+    await installMutation.mutateAsync();
+  }, [installMutation]);
 
   return (
     <SettingsCard
@@ -157,11 +117,11 @@ export function UpdatesSection() {
             <button
               onClick={handleCheckForUpdates}
               disabled={
-                updateStatus === 'checking' || updateStatus === 'downloading'
+                status === 'checking' || status === 'downloading'
               }
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {updateStatus === 'checking' ? (
+              {status === 'checking' ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <RefreshCcw className="w-3.5 h-3.5" />
@@ -169,17 +129,17 @@ export function UpdatesSection() {
               {t('upd.check')}
             </button>
 
-            {updateStatus === 'available' && (
+            {status === 'available' && (
               <button
                 onClick={handleDownloadUpdate}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
-                {t('upd.downloadVersion', { version: updateVersion })}
+                {t('upd.downloadVersion', { version })}
               </button>
             )}
 
-            {updateStatus === 'ready' && (
+            {status === 'ready' && (
               <button
                 onClick={handleInstallUpdate}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -189,7 +149,7 @@ export function UpdatesSection() {
               </button>
             )}
 
-            {(updateStatus === 'available' || updateStatus === 'ready') && (
+            {(status === 'available' || status === 'ready') && (
               <a
                 href="https://shiranami.app/changelog"
                 target="_blank"
@@ -205,21 +165,17 @@ export function UpdatesSection() {
           <p
             className={cn(
               'text-xs',
-              updateStatus === 'error' ? 'text-red-400' : 'text-muted-foreground',
+              status === 'error' ? 'text-red-400' : 'text-muted-foreground',
             )}
           >
-            {updateStatusMessage(updateStatus, {
-              version: updateVersion,
-              progress: updateProgress,
-              error: updateError,
-            }, t)}
+            {updateStatusMessage(status, { version, progress, error }, t)}
           </p>
 
-          {updateStatus === 'downloading' && (
+          {status === 'downloading' && (
             <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${updateProgress}%` }}
+                style={{ width: `${progress}%` }}
               />
             </div>
           )}

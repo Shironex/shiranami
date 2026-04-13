@@ -6,61 +6,27 @@ import { Slider } from '@/components/ui/slider';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlayerStore } from '@/stores/usePlayerStore';
-import { useState, useEffect, useCallback } from 'react';
-
-interface ElectronSettings {
-  rememberPlaybackPosition: boolean;
-  discordRpc: boolean;
-}
-
-const DEFAULT_ELECTRON_SETTINGS: ElectronSettings = {
-  rememberPlaybackPosition: false,
-  discordRpc: false,
-};
+import {
+  useSettingsQuery,
+  useUpdateSettingsMutation,
+} from '@/hooks/queries/useSettings';
 
 export function PlaybackSection() {
   const { t } = useTranslation('settings');
-  const [electronSettings, setElectronSettings] = useState<ElectronSettings>(DEFAULT_ELECTRON_SETTINGS);
+  const { data: settings } = useSettingsQuery();
+  const updateSettings = useUpdateSettingsMutation();
+
+  const rememberPlaybackPosition = settings?.rememberPlaybackPosition ?? false;
+  const discordRpc = settings?.discordRpc ?? false;
 
   const crossfadeEnabled = usePlayerStore((s) => s.crossfadeEnabled);
   const crossfadeDuration = usePlayerStore((s) => s.crossfadeDuration);
   const setCrossfadeEnabled = usePlayerStore((s) => s.setCrossfadeEnabled);
   const setCrossfadeDuration = usePlayerStore((s) => s.setCrossfadeDuration);
 
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-
-    async function load() {
-      try {
-        const saved = await window.electronAPI.store.get<ElectronSettings & Record<string, unknown>>('settings');
-        if (saved) {
-          setElectronSettings({
-            rememberPlaybackPosition: saved.rememberPlaybackPosition ?? false,
-            discordRpc: saved.discordRpc ?? false,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to load playback settings:', err);
-      }
-    }
-
-    load();
-  }, []);
-
-  const updateElectronSetting = useCallback(
-    async (key: keyof ElectronSettings, value: boolean) => {
-      const updated = { ...electronSettings, [key]: value };
-      setElectronSettings(updated);
-      if (IS_ELECTRON) {
-        try {
-          await window.electronAPI.store.set('settings', updated);
-        } catch (err) {
-          console.error('Failed to save settings:', err);
-        }
-      }
-    },
-    [electronSettings],
-  );
+  const updateSetting = (key: 'rememberPlaybackPosition' | 'discordRpc', value: boolean) => {
+    updateSettings.mutate({ [key]: value });
+  };
 
   return (
     <SettingsCard
@@ -79,8 +45,8 @@ export function PlaybackSection() {
             </p>
           </div>
           <Switch
-            checked={electronSettings.rememberPlaybackPosition}
-            onChange={(v) => updateElectronSetting('rememberPlaybackPosition', v)}
+            checked={rememberPlaybackPosition}
+            onChange={(v) => updateSetting('rememberPlaybackPosition', v)}
           />
         </div>
 
@@ -133,8 +99,8 @@ export function PlaybackSection() {
               </p>
             </div>
             <Switch
-              checked={electronSettings.discordRpc}
-              onChange={(v) => updateElectronSetting('discordRpc', v)}
+              checked={discordRpc}
+              onChange={(v) => updateSetting('discordRpc', v)}
             />
           </div>
         )}
