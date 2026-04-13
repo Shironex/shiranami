@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { IS_ELECTRON } from '@/lib/platform';
+import { useEffect, useState } from 'react';
 import { ShareDialog } from './ShareDialog';
 import { ImportDialog } from './ImportDialog';
+import { useShareDeepLink } from '@/hooks/useShareDeepLink';
 
 interface ShareRequest {
   type: 'track' | 'playlist';
@@ -12,8 +12,7 @@ export default function ShareDialogManager() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareRequest, setShareRequest] = useState<ShareRequest | null>(null);
 
-  const [importOpen, setImportOpen] = useState(false);
-  const [importCode, setImportCode] = useState('');
+  const { importCode, importOpen, setImportOpen } = useShareDeepLink();
 
   // Listen for share dialog open events (from context menu / playlist header)
   useEffect(() => {
@@ -24,15 +23,6 @@ export default function ShareDialogManager() {
     };
     window.addEventListener('open-share-dialog', handler);
     return () => window.removeEventListener('open-share-dialog', handler);
-  }, []);
-
-  // Listen for deep link imports from Electron main process
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    return window.electronAPI.share.onDeepLink((code) => {
-      setImportCode(code);
-      setImportOpen(true);
-    });
   }, []);
 
   return (

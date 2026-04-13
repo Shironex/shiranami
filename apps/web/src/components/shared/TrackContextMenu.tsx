@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { useMutation } from '@tanstack/react-query';
 import {
   Play,
   ListPlus,
@@ -147,6 +148,16 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
 
+  const showInFolderMutation = useMutation({
+    mutationFn: async (filePath: string) => {
+      if (!IS_ELECTRON) return;
+      await window.electronAPI.shell.showInFolder(filePath);
+    },
+    onError: () => {
+      toast.error(tToast('failedOpenLocation'));
+    },
+  });
+
   // Determine if this is a bulk operation
   const isBulk = selectedTrackIds.size > 1 && selectedTrackIds.has(track.id);
   const targetTrackIds = isBulk ? Array.from(selectedTrackIds) : [track.id];
@@ -183,11 +194,9 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const handleShowInFolder = useCallback(() => {
     if (!IS_ELECTRON) return;
-    window.electronAPI.shell.showInFolder(track.filePath).catch(() => {
-      toast.error(tToast('failedOpenLocation'));
-    });
+    showInFolderMutation.mutate(track.filePath);
     onClose();
-  }, [track.filePath, onClose]);
+  }, [track.filePath, onClose, showInFolderMutation]);
 
   const onRemoveFromLibrary = useCallback(async () => {
     await handleRemoveFromLibrary(targetTrackIds);

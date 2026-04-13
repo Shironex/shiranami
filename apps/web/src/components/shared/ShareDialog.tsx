@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share2, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
+import { useShareLink } from '@/hooks/useShareLink';
 import {
   Dialog,
   DialogContent,
@@ -18,40 +18,21 @@ interface ShareDialogProps {
 
 export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) {
   const { t } = useTranslation('share');
-  const [state, setState] = useState<'loading' | 'success' | 'error'>('loading');
-  const [shareUrl, setShareUrl] = useState('');
-  const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [error, setError] = useState('');
+  const { state, shareUrl, expiresAt, error, shareTrack, sharePlaylist, reset } = useShareLink();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!open || !IS_ELECTRON) return;
-
-    let cancelled = false;
-
-    setState('loading');
-    setError('');
+    if (!open) return;
     setCopied(false);
-
-    const shareFn = type === 'track'
-      ? window.electronAPI.share.track(id)
-      : window.electronAPI.share.playlist(id);
-
-    shareFn
-      .then((result) => {
-        if (cancelled) return;
-        setShareUrl(result.url);
-        setExpiresAt(new Date(result.expiresAt));
-        setState('success');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message ?? t('shareError'));
-        setState('error');
-      });
-
-    return () => { cancelled = true; };
-  }, [open, type, id, t]);
+    if (type === 'track') {
+      void shareTrack(id);
+    } else {
+      void sharePlaylist(id);
+    }
+    return () => {
+      reset();
+    };
+  }, [open, type, id, shareTrack, sharePlaylist, reset]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -62,6 +43,8 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
       // fallback
     }
   }, [shareUrl]);
+
+  const displayError = error || t('shareError');
 
   const minutesLeft = expiresAt
     ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 60000))
@@ -77,7 +60,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
           </DialogTitle>
         </DialogHeader>
 
-        {state === 'loading' && (
+        {(state === 'loading' || state === 'idle') && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <p className="text-sm text-muted-foreground">{t('creating')}</p>
@@ -87,7 +70,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
         {state === 'error' && (
           <div className="flex flex-col items-center gap-3 py-8">
             <AlertCircle className="w-6 h-6 text-destructive" />
-            <p className="text-sm text-muted-foreground text-center">{error}</p>
+            <p className="text-sm text-muted-foreground text-center">{displayError}</p>
           </div>
         )}
 

@@ -1,29 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
-import { useTrackImport } from '@/hooks/useTrackImport';
-import { queryClient } from '@/lib/queryClient';
-import { playlistKeys } from '@/hooks/queries/usePlaylists';
+import { useShareImport } from '@/hooks/useShareImport';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-interface TrackPayload {
-  title: string;
-  artist: string;
-  ytId: string;
-}
-
-interface ImportData {
-  type: 'TRACK' | 'PLAYLIST';
-  payload: { title?: string; artist?: string; ytId?: string; name?: string; tracks?: TrackPayload[] };
-  code: string;
-  expiresAt: string;
-}
 
 interface ImportDialogProps {
   open: boolean;
@@ -33,86 +17,22 @@ interface ImportDialogProps {
 
 export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
   const { t } = useTranslation('share');
-  const { importTrack } = useTrackImport();
-  const [state, setState] = useState<'loading' | 'ready' | 'downloading' | 'done' | 'error'>('loading');
-  const [data, setData] = useState<ImportData | null>(null);
-  const [error, setError] = useState('');
-  const [playlistName, setPlaylistName] = useState('');
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [downloadTotal, setDownloadTotal] = useState(0);
+  const {
+    state,
+    data,
+    progress,
+    total,
+    playlistName,
+    setPlaylistName,
+    error,
+    loadShare,
+    startImport,
+  } = useShareImport();
 
   useEffect(() => {
-    if (!open || !IS_ELECTRON || !code) return;
-
-    let cancelled = false;
-    setState('loading');
-    setError('');
-
-    window.electronAPI.share.import(code)
-      .then((result) => {
-        if (cancelled) return;
-        const importData = result as ImportData;
-        setData(importData);
-        setPlaylistName(importData.type === 'PLAYLIST' ? (importData.payload.name ?? '') : '');
-        setState('ready');
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message ?? 'Failed to load shared content');
-        setState('error');
-      });
-
-    return () => { cancelled = true; };
-  }, [open, code]);
-
-  const handleDownloadAll = useCallback(async () => {
-    if (!data || !IS_ELECTRON) return;
-
-    const trackList = data.type === 'PLAYLIST'
-      ? data.payload.tracks ?? []
-      : [{ title: data.payload.title!, artist: data.payload.artist!, ytId: data.payload.ytId! }];
-
-    setState('downloading');
-    setDownloadTotal(trackList.length);
-    setDownloadProgress(0);
-
-    const importedTrackIds: string[] = [];
-
-    for (let i = 0; i < trackList.length; i++) {
-      try {
-        const url = `https://www.youtube.com/watch?v=${trackList[i].ytId}`;
-        const filePath = await window.electronAPI.downloader.download(url);
-        const track = await importTrack(filePath);
-        if (track) {
-          importedTrackIds.push(track.id);
-        } else {
-          // Track already exists — find it by searching the library
-          const allTracks = await window.electronAPI.db.tracks.getAll() as Array<{ id: string; filePath: string }>;
-          const existing = allTracks.find(t => t.filePath === filePath);
-          if (existing) importedTrackIds.push(existing.id);
-        }
-      } catch {
-        // Continue with remaining tracks
-      }
-      setDownloadProgress(i + 1);
-    }
-
-    // Create playlist if it's a playlist import and we have tracks
-    if (data.type === 'PLAYLIST' && importedTrackIds.length > 0) {
-      try {
-        const name = playlistName.trim() || data.payload.name || 'Imported Playlist';
-        const playlist = await window.electronAPI.db.playlists.create({ name }) as { id: string };
-        for (const trackId of importedTrackIds) {
-          await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
-        }
-        queryClient.invalidateQueries({ queryKey: playlistKeys.all });
-      } catch {
-        // Playlist creation failed but downloads succeeded
-      }
-    }
-
-    setState('done');
-  }, [data, playlistName, importTrack]);
+    if (!open) return;
+    return loadShare(code);
+  }, [open, code, loadShare]);
 
   const tracks = data?.type === 'PLAYLIST'
     ? data.payload.tracks ?? []
@@ -129,7 +49,7 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
         </DialogHeader>
 
         <div className="overflow-y-auto overflow-x-hidden scrollbar-thin max-h-[calc(80vh-5rem)]">
-        {state === 'loading' && (
+        {(state === 'loading' || state === 'idle') && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <p className="text-sm text-muted-foreground">{t('loadingShare')}</p>
@@ -164,9 +84,9 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
             {/* Track list */}
             <div className="space-y-1 max-h-[280px] overflow-y-auto scrollbar-thin">
               {tracks.map((track, i) => {
-                const isCompleted = (state === 'downloading' && i < downloadProgress) || state === 'done';
-                const isActive = state === 'downloading' && i === downloadProgress;
-                const isPending = state === 'downloading' && i > downloadProgress;
+                const isCompleted = (state === 'downloading' && i < progress) || state === 'done';
+                const isActive = state === 'downloading' && i === progress;
+                const isPending = state === 'downloading' && i > progress;
 
                 return (
                 <div
@@ -212,11 +132,11 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
                 <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${(downloadProgress / downloadTotal) * 100}%` }}
+                    style={{ width: `${(progress / total) * 100}%` }}
                   />
                 </div>
                 <p className="text-center text-xs text-muted-foreground">
-                  {t('downloadingProgress', { current: downloadProgress, total: downloadTotal })}
+                  {t('downloadingProgress', { current: progress, total })}
                 </p>
               </div>
             )}
@@ -224,7 +144,7 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
             {/* Actions */}
             {state === 'ready' && (
               <button
-                onClick={handleDownloadAll}
+                onClick={startImport}
                 className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
               >
                 <Download className="w-4 h-4 inline-block mr-2 -mt-0.5" />

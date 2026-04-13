@@ -8,6 +8,7 @@ import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useWindowControls } from '@/hooks/useWindowControls';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TimeDisplay } from './TimeDisplay';
 import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
@@ -22,13 +23,12 @@ export function CompactPlayer() {
   const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const ambientColor = useAmbientColor();
+  const { minimize: handleMinimize, close: handleClose } = useWindowControls();
 
   const handleExitCompact = useCallback(() => {
     void setCompactMode(false);
   }, [setCompactMode]);
 
-  const handleMinimize = useCallback(() => window.electronAPI?.window.minimize(), []);
-  const handleClose = useCallback(() => window.electronAPI?.window.close(), []);
   const handleToggleAlwaysOnTop = useCallback(() => {
     void toggleCompactAlwaysOnTop();
   }, [toggleCompactAlwaysOnTop]);

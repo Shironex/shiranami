@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Minus, Square, Copy, X, Plus, FolderOpen, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
+import { useWindowControls } from '@/hooks/useWindowControls';
 
 const VIEW_TITLE_KEYS: Record<string, string> = {
   library: 'library',
@@ -24,16 +25,9 @@ interface TopBarProps {
 export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const { t } = useTranslation('topbar');
   const activeView = useAppStore(s => s.activeView);
-  const [isMaximized, setIsMaximized] = useState(false);
+  const { isMaximized, minimize, maximize, close } = useWindowControls();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    window.electronAPI?.window.isMaximized().then(setIsMaximized);
-    const cleanup = window.electronAPI?.window.onMaximizedChange(setIsMaximized);
-    return cleanup;
-  }, []);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -46,10 +40,6 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [dropdownOpen]);
-
-  const handleMinimize = useCallback(() => window.electronAPI?.window.minimize(), []);
-  const handleMaximize = useCallback(() => window.electronAPI?.window.maximize(), []);
-  const handleClose = useCallback(() => window.electronAPI?.window.close(), []);
 
   return (
     <div className="drag h-11 flex items-center shrink-0 border-b border-border/20 relative z-10">
@@ -105,7 +95,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
         <div className="no-drag flex h-full items-center gap-1 pr-1.5">
           <button
             type="button"
-            onClick={handleMinimize}
+            onClick={minimize}
             className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
             aria-label={t('minimize')}
           >
@@ -113,7 +103,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
           </button>
           <button
             type="button"
-            onClick={handleMaximize}
+            onClick={maximize}
             className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
             aria-label={isMaximized ? t('restore') : t('maximize')}
           >
@@ -121,7 +111,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
           </button>
           <button
             type="button"
-            onClick={handleClose}
+            onClick={close}
             className={cn(
               'flex h-8 w-10 items-center justify-center rounded-md',
               'text-muted-foreground/55 transition-colors',

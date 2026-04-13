@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ListMusic, Play, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import { shuffleItems } from '@/lib/playlists';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
+import { playlistKeys } from '@/hooks/queries/usePlaylists';
 
 interface PlaylistContextMenuProps {
   playlist: Playlist;
@@ -50,12 +52,17 @@ export function PlaylistContextMenu({
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
   const navigateTo = useAppStore((s) => s.navigateTo);
   const setQueue = usePlayerStore((s) => s.setQueue);
+  const queryClient = useQueryClient();
 
   const loadPlaylistTracks = useCallback(async () => {
     if (!IS_ELECTRON) return [];
 
     try {
-      const tracks = (await window.electronAPI.db.playlists.getTracks(playlist.id)) as Track[];
+      const tracks = await queryClient.fetchQuery({
+        queryKey: playlistKeys.tracks(playlist.id),
+        queryFn: async () =>
+          (await window.electronAPI.db.playlists.getTracks(playlist.id)) as Track[],
+      });
       if (tracks.length === 0) {
         toast.info(tToast('playlistNoTracks', { name: playlist.name }));
       }
@@ -64,7 +71,7 @@ export function PlaylistContextMenu({
       console.warn('Failed to load playlist tracks', err);
       return [];
     }
-  }, [playlist.id, playlist.name, tToast]);
+  }, [playlist.id, playlist.name, tToast, queryClient]);
 
   const handleOpen = useCallback(() => {
     navigateTo('playlists', playlist.id);
