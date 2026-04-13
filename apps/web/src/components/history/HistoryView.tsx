@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { BarChart3, CheckCircle2, Clock3, Disc3, Music, PlayCircle } from 'lucide-react';
+import { AlertCircle, BarChart3, CheckCircle2, Clock3, Disc3, Music, PlayCircle } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { useListeningHistoryView } from '@/hooks/useListeningHistoryView';
 import { formatTotalTime, getRangeCopy } from '@/components/history/historyUtils';
 import { HistoryActivityGraph } from '@/components/history/HistoryActivityGraph';
@@ -11,6 +12,7 @@ import { HistoryViewSkeleton } from '@/components/history/HistoryViewSkeleton';
 
 export default function HistoryView() {
   const { t } = useTranslation('history');
+  const { t: tCommon } = useTranslation('common');
   const {
     selectedRange,
     setSelectedRange,
@@ -18,8 +20,22 @@ export default function HistoryView() {
     recent,
     activitySeries,
     isLoading,
+    isError,
+    refetch,
     handlePlayTrack,
   } = useListeningHistoryView();
+
+  if (isError) {
+    return (
+      <ViewEmptyState
+        variant="error"
+        title={t('errorTitle')}
+        subtitle={t('errorSubtitle')}
+        icon={AlertCircle}
+        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+      />
+    );
+  }
 
   if (isLoading) {
     return (

@@ -36,7 +36,9 @@ import {
   Sparkles,
   XCircle,
   GripVertical,
+  AlertCircle,
 } from 'lucide-react';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { formatDuration } from '@shiranami/shared';
 import { motion, AnimatePresence } from 'motion/react';
 import { SortableTrackRow } from '@/components/shared/SortableTrackRow';
@@ -73,6 +75,7 @@ function DragOverlayContent({ track }: { track: import('@/stores/usePlayerStore'
 
 export function PlaylistDetailView() {
   const { t } = useTranslation('playlists');
+  const { t: tCommon } = useTranslation('common');
   const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
   const selectPlaylist = useAppStore((s) => s.selectPlaylist);
   const setQueue = usePlayerStore((s) => s.setQueue);
@@ -82,7 +85,7 @@ export function PlaylistDetailView() {
   const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
 
   // Data fetching
-  const { playlist, tracks, displayTracks, isLoading } =
+  const { playlist, tracks, displayTracks, isLoading, isError, refetch } =
     usePlaylistDetailQuery(selectedPlaylistId);
 
   // Mutations
@@ -201,6 +204,18 @@ export function PlaylistDetailView() {
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ViewEmptyState
+        variant="error"
+        title={t('errorTitle')}
+        subtitle={t('errorSubtitle')}
+        icon={AlertCircle}
+        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+      />
     );
   }
 

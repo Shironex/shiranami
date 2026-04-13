@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AlbumGridSize } from '@/stores/useAppStore';
-import { ListMusic, Plus, Loader2, Grid2x2, LayoutGrid, Grid3x3 } from 'lucide-react';
+import { ListMusic, Plus, Loader2, Grid2x2, LayoutGrid, Grid3x3, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -10,9 +10,10 @@ import { usePlaylistsQuery, useCreatePlaylistMutation } from '@/hooks/queries/us
 
 export function PlaylistsView() {
   const { t } = useTranslation('playlists');
+  const { t: tCommon } = useTranslation('common');
   const { t: tToast } = useTranslation('toast');
   const selectPlaylist = useAppStore(s => s.selectPlaylist);
-  const { data: playlists = [], isLoading } = usePlaylistsQuery();
+  const { data: playlists = [], isLoading, isError, refetch } = usePlaylistsQuery();
   const createPlaylist = useCreatePlaylistMutation();
   const playlistGridSize = useAppStore(s => s.playlistGridSize);
   const setPlaylistGridSize = useAppStore(s => s.setPlaylistGridSize);
@@ -62,6 +63,18 @@ export function PlaylistsView() {
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ViewEmptyState
+        variant="error"
+        title={t('errorTitle')}
+        subtitle={t('errorSubtitle')}
+        icon={AlertCircle}
+        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+      />
     );
   }
 
