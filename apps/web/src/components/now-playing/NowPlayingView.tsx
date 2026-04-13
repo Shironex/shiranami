@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
@@ -23,6 +24,7 @@ const NP_IDLE = 'text-muted-foreground/40 hover:text-muted-foreground/65';
 
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
+  const { t: tToast } = useTranslation('toast');
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const duration = usePlayerStore(s => s.duration);
   const seek = usePlayerStore(s => s.seek);
@@ -30,13 +32,19 @@ export function NowPlayingView() {
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
 
-  const { data, isLoading: lyricsLoading } = useLyricsQuery(
+  const { data, isLoading: lyricsLoading, isError: lyricsError } = useLyricsQuery(
     currentTrack?.id ?? null,
     currentTrack?.title ?? '',
     currentTrack?.artist ?? '',
     currentTrack?.album,
     currentTrack?.duration,
   );
+
+  useEffect(() => {
+    if (lyricsError) {
+      toast.error(tToast('failedFetchLyrics'), { id: 'lyrics-fetch-error' });
+    }
+  }, [lyricsError, tToast]);
 
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;

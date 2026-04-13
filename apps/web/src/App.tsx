@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -47,11 +49,24 @@ function App() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDismissed = useCallback(() => setSplashDone(true), []);
 
+  const { t } = useTranslation();
+
   useAudioEngine();
   useMediaSession();
   usePlayerPreferences();
-  useLibrarySync();
+  const { isError: libraryError, refetch: refetchLibrary } = useLibrarySync();
   usePlaybackResume(splashDone);
+
+  useEffect(() => {
+    if (!libraryError) return;
+    toast.error(t('failedLoadLibrary', { ns: 'toast' }), {
+      id: 'library-load-error',
+      action: {
+        label: t('retry', { ns: 'common' }),
+        onClick: () => { void refetchLibrary(); },
+      },
+    });
+  }, [libraryError, refetchLibrary, t]);
   useUpdateNotifications();
   useKeyboardShortcuts();
 
