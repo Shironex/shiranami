@@ -3,13 +3,42 @@ import { vi } from 'vitest';
 import type { ElectronAPI } from '@/types/electron';
 
 
+// Test-accessible ResizeObserver mock. Captures the callback and target so
+// tests can trigger synthetic resize entries via `triggerResize(el, rect)`.
+interface ResizeObserverMockInstance {
+  callback: ResizeObserverCallback;
+  targets: Set<Element>;
+}
+const resizeObserverInstances = new Set<ResizeObserverMockInstance>();
+
 class ResizeObserverMock {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
+  private instance: ResizeObserverMockInstance;
+  constructor(callback: ResizeObserverCallback) {
+    this.instance = { callback, targets: new Set() };
+    resizeObserverInstances.add(this.instance);
+  }
+  observe(target: Element): void {
+    this.instance.targets.add(target);
+  }
+  unobserve(target: Element): void {
+    this.instance.targets.delete(target);
+  }
+  disconnect(): void {
+    this.instance.targets.clear();
+    resizeObserverInstances.delete(this.instance);
+  }
 }
 
-globalThis.ResizeObserver = ResizeObserverMock;
+globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
+
+export function triggerResize(target: Element, rect: { width: number; height: number }): void {
+  const contentRect = { ...rect, top: 0, left: 0, right: rect.width, bottom: rect.height, x: 0, y: 0 } as DOMRectReadOnly;
+  for (const inst of resizeObserverInstances) {
+    if (!inst.targets.has(target)) continue;
+    const entry = { target, contentRect, borderBoxSize: [], contentBoxSize: [], devicePixelContentBoxSize: [] } as unknown as ResizeObserverEntry;
+    inst.callback([entry], {} as ResizeObserver);
+  }
+}
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
