@@ -3,6 +3,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
 import { getPrimaryRGB } from '@/lib/utils';
 import { useRafLoop } from '@/hooks/useRafLoop';
+import { useCanvasSize } from '@/hooks/useCanvasSize';
 
 /**
  * Dense vertical-bar waveform visualizer inspired by ElevenLabs UI.
@@ -16,6 +17,7 @@ export function WaveformVisualizer() {
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -41,10 +43,9 @@ export function WaveformVisualizer() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const dpr = dprRef.current;
+    const w = widthRef.current;
+    const h = heightRef.current;
 
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
       canvas.width = Math.round(w * dpr);
@@ -101,7 +102,7 @@ export function WaveformVisualizer() {
       ctx.fill();
     }
 
-  }, []);
+  }, [widthRef, heightRef, dprRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 

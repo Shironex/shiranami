@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
+import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { getAnalyser } from '@/lib/audioAnalyser';
 import { getPrimaryRGB } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ export function ParticleVisualizer() {
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -40,10 +42,9 @@ export function ParticleVisualizer() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const dpr = dprRef.current;
+    const w = widthRef.current;
+    const h = heightRef.current;
 
     if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
       canvas.width = Math.round(w * dpr);
@@ -123,7 +124,7 @@ export function ParticleVisualizer() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-  }, []);
+  }, [widthRef, heightRef, dprRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
