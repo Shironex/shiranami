@@ -10,6 +10,22 @@ import { TrackRowContent } from '@/components/shared/TrackRowContent';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { sortAlbumTracks } from '@/lib/albumSort';
 
+function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  let best: T | undefined;
+  let maxCount = 0;
+  for (const v of values) {
+    if (v == null || v === '') continue;
+    const count = (counts.get(v as T) ?? 0) + 1;
+    counts.set(v as T, count);
+    if (count > maxCount) {
+      maxCount = count;
+      best = v as T;
+    }
+  }
+  return best;
+}
+
 export function AlbumDetailView() {
   const { t } = useTranslation('library');
   const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
@@ -57,6 +73,21 @@ export function AlbumDetailView() {
     const artists = new Set(albumTracks.map(t => t.artist));
     return Array.from(artists).join(', ');
   }, [albumTracks]);
+
+  const year = useMemo(
+    () => mostFrequent(albumTracks.map(t => t.year)),
+    [albumTracks]
+  );
+
+  const genre = useMemo(
+    () => mostFrequent(albumTracks.map(t => t.genre)),
+    [albumTracks]
+  );
+
+  const headerMeta = useMemo(
+    () => [artist, year?.toString(), genre].filter(Boolean).join(' · '),
+    [artist, year, genre]
+  );
 
   const totalDuration = useMemo(
     () => albumTracks.reduce((sum, t) => sum + t.duration, 0),
@@ -140,7 +171,7 @@ export function AlbumDetailView() {
             <p className="font-display text-lg font-semibold text-foreground truncate">
               {selectedAlbumName}
             </p>
-            <p className="text-sm text-muted-foreground/60 truncate">{artist}</p>
+            <p className="text-sm text-muted-foreground/60 truncate">{headerMeta}</p>
             <p className="text-xs text-muted-foreground/50 mt-0.5">
               {t('trackCount', { count: albumTracks.length })}
               {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
