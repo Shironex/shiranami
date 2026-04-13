@@ -7,13 +7,15 @@ export function AmbientBackground() {
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const noiseOverlayEnabled = useAppStore(s => s.noiseOverlayEnabled);
 
   if (lowPerformanceMode) return null;
 
   return (
     <>
-      {/* Noise texture overlay */}
-      <div className="noise fixed inset-0 z-[9998] pointer-events-none" />
+      {noiseOverlayEnabled && (
+        <div className="noise fixed inset-0 z-[9998] pointer-events-none" />
+      )}
 
       <AnimatePresence>
         {currentTrack && (
