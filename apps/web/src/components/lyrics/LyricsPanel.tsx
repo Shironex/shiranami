@@ -1,26 +1,21 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
-import { cn } from '@/lib/utils';
+import { useActiveLineIndex } from '@/lib/lyrics';
+import { LyricsList } from '@/components/lyrics/LyricsList';
 import { Loader2, Music2 } from 'lucide-react';
 
-function findActiveLine(lines: Array<{ time: number }>, currentTime: number): number {
-  let active = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].time <= currentTime) {
-      active = i;
-    } else {
-      break;
-    }
-  }
-  return active;
-}
+const PANEL_BASE =
+  'block w-full text-left text-base leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
+const PANEL_ACTIVE = 'text-foreground text-lg font-semibold';
+const PANEL_PAST = 'text-muted-foreground/25';
+const PANEL_IDLE = 'text-muted-foreground/45 hover:text-muted-foreground/70';
 
 export function LyricsPanel() {
   const { t } = useTranslation('lyrics');
   const currentTrack = usePlayerStore(s => s.currentTrack);
-  const currentTime = usePlayerStore(s => s.currentTime);
+  const seek = usePlayerStore(s => s.seek);
 
   const { data, isLoading } = useLyricsQuery(
     currentTrack?.id ?? null,
@@ -32,18 +27,8 @@ export function LyricsPanel() {
 
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;
+  const activeLine = useActiveLineIndex(synced);
 
-  const activeLineRef = useRef<HTMLButtonElement>(null);
-
-  const activeLine = synced ? findActiveLine(synced, currentTime) : -1;
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeLine]);
-
-  const seek = usePlayerStore(s => s.seek);
   const handleLineClick = useCallback((time: number) => seek(time), [seek]);
 
   if (!currentTrack) return null;
@@ -61,31 +46,18 @@ export function LyricsPanel() {
     );
   } else if (synced && synced.length > 0) {
     content = (
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-6">
-        <div className="space-y-4">
-          {synced.map((line, index) => {
-            const isActive = index === activeLine;
-            const isPast = index < activeLine;
-            return (
-              <button
-                key={index}
-                ref={isActive ? activeLineRef : null}
-                onClick={() => handleLineClick(line.time)}
-                type="button"
-                className={cn(
-                  'block w-full text-left text-base leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
-                  isActive && 'text-foreground text-lg font-semibold',
-                  isPast && 'text-muted-foreground/25',
-                  !isActive && !isPast && 'text-muted-foreground/45 hover:text-muted-foreground/70'
-                )}
-              >
-                {line.text}
-              </button>
-            );
-          })}
-          <div className="h-[50vh]" />
-        </div>
-      </div>
+      <LyricsList
+        lines={synced}
+        activeIndex={activeLine}
+        onLineClick={handleLineClick}
+        containerClassName="px-5 py-6"
+        spacingClassName="space-y-4"
+        bottomSpacerClassName="h-[50vh]"
+        baseClassName={PANEL_BASE}
+        activeClassName={PANEL_ACTIVE}
+        pastClassName={PANEL_PAST}
+        idleClassName={PANEL_IDLE}
+      />
     );
   } else if (plain) {
     content = (
