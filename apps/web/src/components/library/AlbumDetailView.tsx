@@ -39,9 +39,7 @@ export function AlbumDetailView() {
 
   const albumTracks = useMemo(() => {
     if (!selectedAlbumName) return [];
-    const filtered = library.filter(
-      t => (t.album || 'Unknown Album') === selectedAlbumName,
-    );
+    const filtered = library.filter(t => t.album === selectedAlbumName);
     return sortAlbumTracks(filtered);
   }, [library, selectedAlbumName]);
 
