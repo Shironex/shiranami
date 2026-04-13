@@ -223,7 +223,7 @@ export interface ElectronAPI {
       updateAvailable?: boolean;
     }>;
     onProgress: (callback: (data: DownloadProgress) => void) => () => void;
-    installYtDlp: () => Promise<{ success: boolean; error?: string }>;
+    installYtDlp: () => Promise<void>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
     checkFfmpeg: () => Promise<{
@@ -232,9 +232,11 @@ export interface ElectronAPI {
       latestVersion?: string;
       updateAvailable?: boolean;
     }>;
-    installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
+    installFfmpeg: () => Promise<void>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
-    installDependencies: () => Promise<{ success: boolean; error?: string }>;
+    installDependencies: () => Promise<{
+      results: Array<{ tool: 'ytdlp' | 'ffmpeg'; success: boolean; error?: string }>;
+    }>;
     onDependencyInstallProgress: (callback: (progress: {
       target: 'ytdlp' | 'ffmpeg';
       percent: number;

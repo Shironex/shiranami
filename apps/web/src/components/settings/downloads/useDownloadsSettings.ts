@@ -212,11 +212,31 @@ export function useDownloadsSettings() {
     startDependencyInstall();
 
     try {
-      await window.electronAPI.downloader.installDependencies();
+      const { results } = await window.electronAPI.downloader.installDependencies();
       await refreshDownloadToolStatus();
-      toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
-        id: 'dependency-install',
-      });
+
+      const failed = results.filter((r) => !r.success);
+      const succeeded = results.filter((r) => r.success);
+
+      if (failed.length === 0) {
+        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
+          id: 'dependency-install',
+        });
+      } else {
+        for (const r of failed) {
+          const toolName = r.tool === 'ytdlp' ? 'yt-dlp' : 'ffmpeg';
+          const msg = r.error ?? i18n.t('installationFailed', { ns: 'toast' });
+          toast.error(i18n.t('failedInstallToolsError', { ns: 'toast', error: `${toolName}: ${msg}` }), {
+            id: `dependency-install-${r.tool}`,
+          });
+        }
+        if (succeeded.length > 0) {
+          const names = succeeded.map((r) => (r.tool === 'ytdlp' ? 'yt-dlp' : 'ffmpeg')).join(', ');
+          toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }) + ` (${names})`, {
+            id: 'dependency-install-partial',
+          });
+        }
+      }
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });

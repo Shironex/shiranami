@@ -96,19 +96,26 @@ export function useSearchDependencies() {
     startDependencyInstall();
 
     try {
-      await window.electronAPI.downloader.installDependencies();
+      const { results } = await window.electronAPI.downloader.installDependencies();
       const snapshot = await refreshDependencies();
 
-      if (snapshot.ytdlpInstalled) {
+      const ytdlpResult = results.find((r) => r.tool === 'ytdlp');
+      const ytdlpFailed = ytdlpResult && !ytdlpResult.success;
+
+      if (!ytdlpFailed && snapshot.ytdlpInstalled) {
         setDependencyInstallStatus('done');
         toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), { id: 'dependency-install' });
         window.setTimeout(() => { setDependencyState('ready'); }, 700);
         return;
       }
 
-      const fallbackMsg = i18n.t('installationFailed', { ns: 'toast' });
+      const failedResults = results.filter((r) => !r.success);
+      const errorMsg = failedResults.length > 0
+        ? failedResults.map((r) => r.error ?? i18n.t('installationFailed', { ns: 'toast' })).join('; ')
+        : i18n.t('installationFailed', { ns: 'toast' });
+
       setDependencyInstallStatus('error');
-      setDependencyInstallError(fallbackMsg);
+      setDependencyInstallError(errorMsg);
       toast.error(i18n.t('failedInstallSearch', { ns: 'toast' }), { id: 'dependency-install' });
     } catch (err) {
       await refreshDependencies();

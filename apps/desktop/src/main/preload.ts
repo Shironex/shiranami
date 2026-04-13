@@ -4,6 +4,7 @@ import {
   SHARE_ERROR_CODES,
   PLAYLIST_ERROR_CODES,
 } from './ipc/errors';
+import type { InstallDependenciesResult } from './ipc/downloader';
 
 function createIpcListener<T>(channel: string): (callback: (data: T) => void) => () => void {
   return (callback: (data: T) => void) => {
@@ -351,7 +352,7 @@ export interface ElectronAPI {
     }>;
     installFfmpeg: () => Promise<void>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
-    installDependencies: () => Promise<void>;
+    installDependencies: () => Promise<InstallDependenciesResult>;
     onDependencyInstallProgress: (callback: (progress: {
       target: 'ytdlp' | 'ffmpeg';
       percent: number;

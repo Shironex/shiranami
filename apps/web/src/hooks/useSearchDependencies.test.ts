@@ -19,8 +19,8 @@ function mockCheckDependencies(result: { ytdlpInstalled: boolean; ffmpegInstalle
   vi.mocked(window.electronAPI.downloader.checkDependencies).mockResolvedValue(result);
 }
 
-function mockInstallDependencies(result: { success: boolean; error?: string }) {
-  vi.mocked(window.electronAPI.downloader.installDependencies).mockResolvedValue(result);
+function mockInstallDependencies(results: Array<{ tool: 'ytdlp' | 'ffmpeg'; success: boolean; error?: string }> = []) {
+  vi.mocked(window.electronAPI.downloader.installDependencies).mockResolvedValue({ results });
 }
 
 describe('useSearchDependencies', () => {
@@ -43,7 +43,7 @@ describe('useSearchDependencies', () => {
 
     // Default: nothing installed
     mockCheckDependencies({ ytdlpInstalled: false, ffmpegInstalled: false });
-    mockInstallDependencies({ success: true });
+    mockInstallDependencies();
   });
 
   afterEach(async () => {
@@ -143,7 +143,7 @@ describe('useSearchDependencies', () => {
     });
 
     // Now make install succeed and post-install check return installed
-    mockInstallDependencies({ success: true });
+    mockInstallDependencies();
     mockCheckDependencies({ ytdlpInstalled: true, ffmpegInstalled: true });
 
     await act(async () => {
@@ -169,7 +169,7 @@ describe('useSearchDependencies', () => {
       expect(result.current.dependencyState).toBe('needs-install');
     });
 
-    mockInstallDependencies({ success: true });
+    mockInstallDependencies();
     mockCheckDependencies({ ytdlpInstalled: true, ffmpegInstalled: true });
 
     await act(async () => {
@@ -181,7 +181,7 @@ describe('useSearchDependencies', () => {
     });
   });
 
-  it('shows toast.error when install partially fails (ytdlp ok, ffmpeg failed)', async () => {
+  it('shows toast.success when ytdlp ok even if ffmpeg failed (search still works)', async () => {
     mockCheckDependencies({ ytdlpInstalled: false, ffmpegInstalled: false });
 
     const { result } = renderHook(() => useSearchDependencies());
@@ -190,7 +190,10 @@ describe('useSearchDependencies', () => {
       expect(result.current.dependencyState).toBe('needs-install');
     });
 
-    mockInstallDependencies({ success: false, error: 'ffmpeg install failed' });
+    mockInstallDependencies([
+      { tool: 'ytdlp', success: true },
+      { tool: 'ffmpeg', success: false, error: 'ffmpeg install failed' },
+    ]);
     mockCheckDependencies({ ytdlpInstalled: true, ffmpegInstalled: false });
 
     await act(async () => {
@@ -198,7 +201,7 @@ describe('useSearchDependencies', () => {
     });
 
     expect(result.current.dependencyInstallStatus).toBe('done');
-    expect(toast.error).toHaveBeenCalledWith('ffmpeg install failed', {
+    expect(toast.success).toHaveBeenCalledWith('downloadToolsInstalled', {
       id: 'dependency-install',
     });
   });
@@ -216,7 +219,7 @@ describe('useSearchDependencies', () => {
       expect(result.current.dependencyState).toBe('needs-install');
     });
 
-    mockInstallDependencies({ success: false, error: 'yt-dlp download failed' });
+    mockInstallDependencies([{ tool: 'ytdlp', success: false, error: 'yt-dlp download failed' }]);
     // ytdlp still not installed after install attempt
     mockCheckDependencies({ ytdlpInstalled: false, ffmpegInstalled: false });
 
@@ -289,7 +292,7 @@ describe('useSearchDependencies', () => {
       expect(result.current.dependencyState).toBe('needs-install');
     });
 
-    mockInstallDependencies({ success: true });
+    mockInstallDependencies();
     mockCheckDependencies({ ytdlpInstalled: true, ffmpegInstalled: true });
 
     await act(async () => {

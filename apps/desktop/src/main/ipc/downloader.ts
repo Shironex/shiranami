@@ -54,6 +54,16 @@ interface DependencyInstallProgress {
   label: string;
 }
 
+export interface ToolInstallResult {
+  tool: 'ytdlp' | 'ffmpeg';
+  success: boolean;
+  error?: string;
+}
+
+export interface InstallDependenciesResult {
+  results: ToolInstallResult[];
+}
+
 interface DownloadLocationState {
   path: string;
   defaultPath: string;
@@ -611,7 +621,7 @@ export function registerDownloaderHandlers(): void {
     }
   });
 
-  ipcMain.handle('downloader:install-dependencies', async () => {
+  ipcMain.handle('downloader:install-dependencies', async (): Promise<InstallDependenciesResult> => {
     const mainWindow = getMainWindow();
     const targets: Array<'ytdlp' | 'ffmpeg'> = [];
 
@@ -623,7 +633,7 @@ export function registerDownloaderHandlers(): void {
     }
 
     if (targets.length === 0) {
-      return;
+      return { results: [] };
     }
 
     const stepWeight = 100 / targets.length;
@@ -633,52 +643,51 @@ export function registerDownloaderHandlers(): void {
       }
     };
 
-    try {
-      for (const [index, target] of targets.entries()) {
-        const offset = index * stepWeight;
+    const results: ToolInstallResult[] = [];
 
+    for (const [index, target] of targets.entries()) {
+      const offset = index * stepWeight;
+
+      try {
         if (target === 'ytdlp') {
           await downloadYtDlp((percent) => {
             sendProgress({
               target,
               percent,
-              overallPercent: Math.min(
-                100,
-                Math.round(offset + (percent / 100) * stepWeight)
-              ),
+              overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
               label:
                 targets.length > 1
                   ? `Installing yt-dlp (${index + 1}/${targets.length})`
                   : 'Installing yt-dlp',
             });
           });
-          continue;
+        } else {
+          await downloadFFmpeg((percent) => {
+            sendProgress({
+              target,
+              percent,
+              overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
+              label:
+                targets.length > 1
+                  ? `Installing ffmpeg (${index + 1}/${targets.length})`
+                  : 'Installing ffmpeg',
+            });
+          });
         }
 
-        await downloadFFmpeg((percent) => {
-          sendProgress({
-            target,
-            percent,
-            overallPercent: Math.min(
-              100,
-              Math.round(offset + (percent / 100) * stepWeight)
-            ),
-            label:
-              targets.length > 1
-                ? `Installing ffmpeg (${index + 1}/${targets.length})`
-                : 'Installing ffmpeg',
-          });
+        results.push({ tool: target, success: true });
+      } catch (err) {
+        logger.error(`[downloader] Failed to install ${target}:`, err);
+        results.push({
+          tool: target,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
-
-      invalidateToolStatusCache();
-    } catch (err) {
-      logger.error('[downloader] Failed to install dependencies:', err);
-      throw new IpcError(
-        'downloader.install_failed',
-        err instanceof Error ? err.message : String(err),
-      );
     }
+
+    invalidateToolStatusCache();
+    return { results };
   });
 
   // Background refresh on startup — populate cache silently
