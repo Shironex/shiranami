@@ -27,7 +27,7 @@ export function groupTracksByAlbum(
   const artistSets = new Map<string, Set<string>>();
 
   for (const track of tracks) {
-    const key = track.album || '';
+    const key = track.album;
     const existing = map.get(key);
     if (existing) {
       existing.trackCount++;
@@ -44,7 +44,7 @@ export function groupTracksByAlbum(
     } else {
       artistSets.set(key, new Set([track.artist]));
       map.set(key, {
-        name: key || 'Unknown Album',
+        name: key,
         artist: track.artist,
         year: track.year ?? null,
         albumArt: track.albumArt,

@@ -68,8 +68,10 @@ describe('groupTracksByAlbum', () => {
     expect(group.trackCount).toBe(2);
   });
 
-  it('uses Unknown Album when track has no album', () => {
-    const t = makeTrack({ id: 'x', album: '' });
+  it('uses the track album string verbatim as the group name', () => {
+    // trackMapper guarantees `album` is non-empty by populating a localized
+    // "Unknown Album" fallback at DB-read time, so albumSort trusts the value.
+    const t = makeTrack({ id: 'x', album: 'Unknown Album' });
     const [group] = groupTracksByAlbum([t]);
     expect(group.name).toBe('Unknown Album');
   });
