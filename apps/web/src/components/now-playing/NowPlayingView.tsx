@@ -10,7 +10,7 @@ import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
-import { Music, ChevronDown, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
+import { Music, ArrowLeft, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
@@ -86,13 +86,14 @@ export function NowPlayingView() {
 
       {/* Header: back button + lyrics toggle */}
       <div className="relative px-6 @3xl:px-10 pt-4 pb-2 shrink-0 flex items-center justify-between">
-        <button
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={exitNowPlaying}
-          className="flex items-center gap-2 text-muted-foreground/60 hover:text-foreground transition-colors group"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          aria-label={t('back')}
         >
-          <ChevronDown className="w-5 h-5 group-hover:translate-y-0.5 transition-transform" />
-          <span className="text-xs font-medium uppercase tracking-wider">{t('back')}</span>
-        </button>
+          <ArrowLeft className="w-4 h-4" />
+        </motion.button>
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -152,8 +153,8 @@ export function NowPlayingView() {
                 'aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
                 'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
                 lyricsVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[300px] @5xl:max-w-[360px] @6xl:max-w-[420px] @7xl:max-w-[480px]'
-                  : 'w-full max-w-[320px] @5xl:max-w-[380px] @7xl:max-w-[440px]'
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[clamp(280px,22vw,480px)]'
+                  : 'w-full max-w-[clamp(300px,24vw,440px)]'
               )}
             >
               {currentTrack.albumArt ? (
@@ -239,8 +240,8 @@ export function NowPlayingView() {
                         className={cn(
                           'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1',
                           'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
-                          'text-[14px] @5xl:text-[16px] @7xl:text-[18px]',
-                          isActive && 'text-foreground !text-[16px] @5xl:!text-[19px] @7xl:!text-[22px]',
+                          'text-base @5xl:text-lg @7xl:text-xl',
+                          isActive && 'text-foreground text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold',
                           isPast && 'text-muted-foreground/20',
                           !isActive && !isPast && 'text-muted-foreground/40 hover:text-muted-foreground/65'
                         )}
@@ -254,7 +255,7 @@ export function NowPlayingView() {
               </div>
             ) : plain ? (
               <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
-                <pre className="text-[13px] @5xl:text-sm @7xl:text-base text-muted-foreground/45 whitespace-pre-wrap font-sans leading-relaxed">
+                <pre className="text-sm @5xl:text-base @7xl:text-lg text-muted-foreground/45 whitespace-pre-wrap font-sans leading-relaxed">
                   {plain}
                 </pre>
               </div>
