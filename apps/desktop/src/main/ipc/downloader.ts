@@ -19,6 +19,8 @@ import {
   downloadFFmpeg,
 } from '../ffmpeg-manager';
 import { store } from '../store';
+import { handle, handleWithFallback } from './with-ipc-handler';
+import { IpcError } from './errors';
 
 export interface SearchResult {
   id: string;
@@ -341,81 +343,69 @@ export function registerDownloaderHandlers(): void {
     return loadCachedToolStatus();
   });
 
-  ipcMain.handle('downloader:refresh-tool-status', async () => {
-    try {
-      return await fetchAndCacheToolStatus();
-    } catch (err) {
-      logger.warn('[downloader] Failed to refresh tool status:', err);
-      return loadCachedToolStatus();
-    }
-  });
+  handleWithFallback(
+    'downloader:refresh-tool-status',
+    () => fetchAndCacheToolStatus(),
+    () => loadCachedToolStatus(),
+  );
 
-  ipcMain.handle('downloader:check', async () => {
-    try {
-      return await getYtDlpStatus();
-    } catch (err) {
-      logger.warn('[downloader] Failed to get yt-dlp status:', err);
-      return { installed: isYtDlpInstalled() };
-    }
-  });
+  handleWithFallback(
+    'downloader:check',
+    () => getYtDlpStatus(),
+    () => ({ installed: isYtDlpInstalled() }) as BinaryStatus,
+  );
 
-  ipcMain.handle('downloader:search', async (_event, query: string) => {
+  handle('downloader:search', async (_event, query: string) => {
     logger.info(`[downloader] Searching: ${query}`);
-    try {
-      const { stdout, code } = await spawnYtDlp([
-        '--flat-playlist',
-        '--dump-json',
-        '--no-warnings',
-        `ytsearch10:${query}`,
-      ]);
+    const { stdout, code } = await spawnYtDlp([
+      '--flat-playlist',
+      '--dump-json',
+      '--no-warnings',
+      `ytsearch10:${query}`,
+    ]);
 
-      if (code !== 0) {
-        throw new Error('yt-dlp search failed');
-      }
-
-      const results: SearchResult[] = stdout
-        .trim()
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => {
-          try {
-            const data = JSON.parse(line);
-            const result: SearchResult = {
-              id: data.id ?? '',
-              title: data.title ?? 'Unknown',
-              uploader: data.uploader ?? data.channel ?? 'Unknown',
-              duration: data.duration ?? 0,
-              thumbnail: data.thumbnail ?? data.thumbnails?.[0]?.url ?? '',
-              url: data.url ?? `https://www.youtube.com/watch?v=${data.id}`,
-              webpage_url: data.webpage_url ?? `https://www.youtube.com/watch?v=${data.id}`,
-              view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
-            };
-            return result;
-          } catch (err) {
-            logger.debug('[downloader] Failed to parse search result JSON:', err);
-            return null;
-          }
-        })
-        .filter((result): result is SearchResult => result !== null);
-
-      logger.info(`[downloader] Found ${results.length} results`);
-      return results;
-    } catch (err) {
-      logger.error('[downloader] Search error:', err);
-      throw err;
+    if (code !== 0) {
+      throw new Error('yt-dlp search failed');
     }
+
+    const results: SearchResult[] = stdout
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          const data = JSON.parse(line);
+          const result: SearchResult = {
+            id: data.id ?? '',
+            title: data.title ?? 'Unknown',
+            uploader: data.uploader ?? data.channel ?? 'Unknown',
+            duration: data.duration ?? 0,
+            thumbnail: data.thumbnail ?? data.thumbnails?.[0]?.url ?? '',
+            url: data.url ?? `https://www.youtube.com/watch?v=${data.id}`,
+            webpage_url: data.webpage_url ?? `https://www.youtube.com/watch?v=${data.id}`,
+            view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
+          };
+          return result;
+        } catch (err) {
+          logger.debug('[downloader] Failed to parse search result JSON:', err);
+          return null;
+        }
+      })
+      .filter((result): result is SearchResult => result !== null);
+
+    logger.info(`[downloader] Found ${results.length} results`);
+    return results;
   });
 
-  ipcMain.handle('downloader:suggest', async (_event, query: string) => {
-    try {
+  handleWithFallback(
+    'downloader:suggest',
+    async (_event, query: string) => {
       const url = `https://clients1.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
       const data = await requestJson<[string, string[]]>(url);
       return Array.isArray(data[1]) ? data[1] : [];
-    } catch (err) {
-      logger.error('[downloader] Suggest error:', err);
-      return [];
-    }
-  });
+    },
+    () => [] as string[],
+  );
 
   ipcMain.handle(
     'downloader:download',
@@ -547,37 +537,32 @@ export function registerDownloaderHandlers(): void {
     }
   );
 
-  ipcMain.handle('downloader:get-stream-url', async (_event, url: string) => {
+  handle('downloader:get-stream-url', async (_event, url: string) => {
     logger.info(`[downloader] Getting stream URL for: ${url}`);
-    try {
-      const { stdout, stderr, code } = await spawnYtDlp([
-        '-f',
-        'bestaudio',
-        '--get-url',
-        '--no-warnings',
-        url,
-      ]);
+    const { stdout, stderr, code } = await spawnYtDlp([
+      '-f',
+      'bestaudio',
+      '--get-url',
+      '--no-warnings',
+      url,
+    ]);
 
-      if (code !== 0) {
-        const reason = classifyYtDlpFailure(`${stderr}\n${stdout}`);
-        logger.error(
-          `[downloader] yt-dlp failed to extract stream URL for ${url} (exit ${code}): ${reason}`,
-          { stderrTail: tailOutput(stderr) }
-        );
-        throw new Error(reason);
-      }
-
-      const streamUrl = stdout.trim().split('\n')[0];
-      if (!streamUrl) {
-        throw new Error('No stream URL returned');
-      }
-
-      logger.info(`[downloader] Got stream URL for: ${url}`);
-      return streamUrl;
-    } catch (err) {
-      logger.error('[downloader] Stream URL extraction error:', err);
-      throw err;
+    if (code !== 0) {
+      const reason = classifyYtDlpFailure(`${stderr}\n${stdout}`);
+      logger.error(
+        `[downloader] yt-dlp failed to extract stream URL for ${url} (exit ${code}): ${reason}`,
+        { stderrTail: tailOutput(stderr) }
+      );
+      throw new IpcError(reason, reason);
     }
+
+    const streamUrl = stdout.trim().split('\n')[0];
+    if (!streamUrl) {
+      throw new IpcError('downloader.no_stream_url', 'No stream URL returned');
+    }
+
+    logger.info(`[downloader] Got stream URL for: ${url}`);
+    return streamUrl;
   });
 
   ipcMain.handle('downloader:install-ytdlp', async () => {
@@ -589,11 +574,12 @@ export function registerDownloaderHandlers(): void {
         }
       });
       invalidateToolStatusCache();
-      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Download failed';
       logger.error('[downloader] Failed to install yt-dlp:', err);
-      return { success: false, error: errorMessage };
+      throw new IpcError(
+        'downloader.install_failed',
+        err instanceof Error ? err.message : String(err),
+      );
     }
   });
 
@@ -601,14 +587,11 @@ export function registerDownloaderHandlers(): void {
     return getYtDlpPath();
   });
 
-  ipcMain.handle('downloader:check-ffmpeg', async () => {
-    try {
-      return await getFFmpegStatus();
-    } catch (err) {
-      logger.warn('[downloader] Failed to get FFmpeg status:', err);
-      return { installed: isFFmpegInstalled() };
-    }
-  });
+  handleWithFallback(
+    'downloader:check-ffmpeg',
+    () => getFFmpegStatus(),
+    () => ({ installed: isFFmpegInstalled() }) as BinaryStatus,
+  );
 
   ipcMain.handle('downloader:install-ffmpeg', async () => {
     try {
@@ -619,11 +602,12 @@ export function registerDownloaderHandlers(): void {
         }
       });
       invalidateToolStatusCache();
-      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Download failed';
       logger.error('[downloader] Failed to install ffmpeg:', err);
-      return { success: false, error: errorMessage };
+      throw new IpcError(
+        'downloader.install_failed',
+        err instanceof Error ? err.message : String(err),
+      );
     }
   });
 
@@ -639,7 +623,7 @@ export function registerDownloaderHandlers(): void {
     }
 
     if (targets.length === 0) {
-      return { success: true };
+      return;
     }
 
     const stepWeight = 100 / targets.length;
@@ -688,11 +672,12 @@ export function registerDownloaderHandlers(): void {
       }
 
       invalidateToolStatusCache();
-      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Dependency installation failed';
       logger.error('[downloader] Failed to install dependencies:', err);
-      return { success: false, error: errorMessage };
+      throw new IpcError(
+        'downloader.install_failed',
+        err instanceof Error ? err.message : String(err),
+      );
     }
   });
 
