@@ -2,6 +2,8 @@ import { ipcMain, BrowserWindow, net } from 'electron';
 import { spawn } from 'child_process';
 import { logger } from '../logger';
 import { getYtDlpPath } from '../ytdlp-manager';
+import { handle } from './with-ipc-handler';
+import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 
 interface SearchResult {
   id: string;
@@ -122,7 +124,7 @@ async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
   ]);
 
   if (code !== 0) {
-    throw new Error('yt-dlp failed to extract playlist');
+    throw new IpcError(PLAYLIST_ERROR_CODES.NO_TRACKS, 'yt-dlp failed to extract playlist');
   }
 
   const results = parseYtDlpJsonLines(stdout);
@@ -142,7 +144,10 @@ async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch Spotify embed page: ${response.status}`);
+    throw new IpcError(
+      PLAYLIST_ERROR_CODES.PRIVATE_PLAYLIST,
+      `Failed to fetch Spotify embed page: ${response.status}`,
+    );
   }
 
   const html = await response.text();
@@ -247,13 +252,14 @@ async function resolveSpotifyTrackOnYouTube(track: SpotifyTrack): Promise<Search
 async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
   const playlistId = extractSpotifyPlaylistId(url);
   if (!playlistId) {
-    throw new Error('Invalid Spotify playlist URL');
+    throw new IpcError(PLAYLIST_ERROR_CODES.UNSUPPORTED_URL, 'Invalid Spotify playlist URL');
   }
 
   const spotifyTracks = await fetchSpotifyEmbedTracks(playlistId);
   if (spotifyTracks.length === 0) {
-    throw new Error(
-      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.'
+    throw new IpcError(
+      PLAYLIST_ERROR_CODES.NO_TRACKS,
+      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.',
     );
   }
 
@@ -284,26 +290,22 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
 }
 
 export function registerPlaylistHandlers(): void {
-  ipcMain.handle('playlist:extract', async (_event, url: string) => {
+  handle('playlist:extract', async (_event, url: string) => {
     cancelledFlag = false;
 
     const playlistType = detectPlaylistType(url);
 
     if (playlistType === 'unknown') {
-      throw new Error(
-        'Unsupported URL. Please provide a YouTube or Spotify playlist URL.'
+      throw new IpcError(
+        PLAYLIST_ERROR_CODES.UNSUPPORTED_URL,
+        'Unsupported URL. Please provide a YouTube or Spotify playlist URL.',
       );
     }
 
-    try {
-      if (playlistType === 'youtube') {
-        return await extractYouTubePlaylist(url);
-      }
-      return await extractSpotifyPlaylist(url);
-    } catch (err) {
-      logger.error('[playlist] Extraction error:', err);
-      throw err;
+    if (playlistType === 'youtube') {
+      return await extractYouTubePlaylist(url);
     }
+    return await extractSpotifyPlaylist(url);
   });
 
   ipcMain.handle('playlist:cancel', async () => {

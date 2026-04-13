@@ -5,6 +5,7 @@ import { eq, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { getYtDlpPath } from '../ytdlp-manager';
 import { logger } from '../logger';
+import { IpcError, SHARE_ERROR_CODES } from './errors';
 
 const SHARE_API_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
@@ -111,11 +112,15 @@ export function registerShareHandlers(): void {
   ipcMain.handle('share:track', async (_event, trackId: string) => {
     const db = getDatabase();
     const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
-    if (!track) throw new Error('Track not found');
+    if (!track) throw new IpcError(SHARE_ERROR_CODES.TRACK_NOT_FOUND, 'Track not found');
     logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
 
     const ytId = await getYoutubeId(trackId);
-    if (!ytId) throw new Error('Could not find YouTube match for this track');
+    if (!ytId)
+      throw new IpcError(
+        SHARE_ERROR_CODES.NO_YOUTUBE_MATCH,
+        'Could not find YouTube match for this track',
+      );
 
     const result = await fetchApi('/api/share', {
       method: 'POST',
@@ -139,7 +144,8 @@ export function registerShareHandlers(): void {
     // Get playlist info
     const { playlists } = await import('@shiranami/database');
     const playlist = await db.select().from(playlists).where(eq(playlists.id, playlistId)).get();
-    if (!playlist) throw new Error('Playlist not found');
+    if (!playlist)
+      throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_NOT_FOUND, 'Playlist not found');
 
     // Get playlist tracks
     const { playlistTracks } = await import('@shiranami/database');
@@ -155,7 +161,8 @@ export function registerShareHandlers(): void {
       if (track) trackRows.push(track);
     }
 
-    if (trackRows.length === 0) throw new Error('Playlist has no tracks');
+    if (trackRows.length === 0)
+      throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_EMPTY, 'Playlist has no tracks');
     logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
 
     // Resolve YouTube IDs for all tracks
@@ -172,7 +179,11 @@ export function registerShareHandlers(): void {
     }
 
     logger.info(`[share] Playlist "${playlist.name}": ${shareTracks.length}/${trackRows.length} tracks matched on YouTube`);
-    if (shareTracks.length === 0) throw new Error('Could not find YouTube matches for any tracks');
+    if (shareTracks.length === 0)
+      throw new IpcError(
+        SHARE_ERROR_CODES.NO_MATCHES_FOR_ANY_TRACK,
+        'Could not find YouTube matches for any tracks',
+      );
 
     const result = await fetchApi('/api/share', {
       method: 'POST',
