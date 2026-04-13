@@ -4,10 +4,9 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
-import { usePlaylistDetail } from '@/hooks/usePlaylistDetail';
 import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
 import { usePlaylistCover } from '@/hooks/usePlaylistCover';
-import { useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
+import { usePlaylistDetailQuery, useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   DndContext,
@@ -84,7 +83,7 @@ export function PlaylistDetailView() {
 
   // Data fetching
   const { playlist, tracks, displayTracks, isLoading } =
-    usePlaylistDetail(selectedPlaylistId);
+    usePlaylistDetailQuery(selectedPlaylistId);
 
   // Mutations
   const { handleSaveName, handleDelete, handleRemoveTrack, handleBulkRemoveFromPlaylist } =
