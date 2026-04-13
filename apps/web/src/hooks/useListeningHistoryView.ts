@@ -14,7 +14,7 @@ export function useListeningHistoryView() {
   const setQueue = usePlayerStore((s) => s.setQueue);
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('all');
 
-  const { data, isLoading } = useHistoryQuery(selectedRange);
+  const { data, isLoading, isError, refetch } = useHistoryQuery(selectedRange);
 
   const summary = data?.summary ?? EMPTY_SUMMARY;
   const recent = data?.recent ?? [];
@@ -42,6 +42,8 @@ export function useListeningHistoryView() {
     recent,
     activitySeries,
     isLoading,
+    isError,
+    refetch,
     handlePlayTrack,
   };
 }

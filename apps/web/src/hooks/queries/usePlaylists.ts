@@ -53,17 +53,19 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
 export function usePlaylistDetailQuery(playlistId: string | null) {
   const library = usePlayerStore((s) => s.library);
 
-  const {
-    data: playlist,
-    isLoading: isLoadingPlaylist,
-  } = usePlaylistQuery(playlistId);
+  const playlistQuery = usePlaylistQuery(playlistId);
+  const tracksQuery = usePlaylistTracksQuery(playlistId);
 
-  const {
-    data: tracks = [],
-    isLoading: isLoadingTracks,
-  } = usePlaylistTracksQuery(playlistId);
+  const { data: playlist, isLoading: isLoadingPlaylist } = playlistQuery;
+  const { data: tracks = [], isLoading: isLoadingTracks } = tracksQuery;
 
   const isLoading = isLoadingPlaylist || isLoadingTracks;
+  const isError = playlistQuery.isError || tracksQuery.isError;
+  const error = playlistQuery.error ?? tracksQuery.error ?? null;
+
+  const refetch = async () => {
+    await Promise.all([playlistQuery.refetch(), tracksQuery.refetch()]);
+  };
 
   // Sync isFavorite from the store so hearts update in real-time
   const displayTracks = useMemo(() => {
@@ -74,7 +76,7 @@ export function usePlaylistDetailQuery(playlistId: string | null) {
     });
   }, [tracks, library]);
 
-  return { playlist: playlist ?? null, tracks, displayTracks, isLoading };
+  return { playlist: playlist ?? null, tracks, displayTracks, isLoading, isError, error, refetch };
 }
 
 export function useTrackPlaylistMembershipQuery(trackIds: string[]) {

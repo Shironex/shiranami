@@ -8,7 +8,7 @@ export const historyKeys = {
   data: (range: HistoryRange) => ['history', range] as const,
 };
 
-interface HistoryData {
+export interface HistoryData {
   summary: ListeningStatsSummary;
   recent: ListeningHistoryEntry[];
   activity: ListeningActivityPoint[];

@@ -18,7 +18,7 @@ import { libraryKeys } from '@/hooks/queries/useLibrary';
  * should no-op since mutations write Zustand directly).
  */
 export function useLibrarySync() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: libraryKeys.all,
     queryFn: async () => {
       if (!IS_ELECTRON) return [];
@@ -41,5 +41,5 @@ export function useLibrarySync() {
     }
   }, [data]);
 
-  return { isLoading };
+  return { isLoading, isError, error, refetch };
 }
