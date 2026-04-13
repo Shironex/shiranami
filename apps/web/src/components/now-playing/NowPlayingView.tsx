@@ -1,8 +1,10 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
+import { useActiveLineIndex } from '@/lib/lyrics';
+import { LyricsList } from '@/components/lyrics/LyricsList';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from '@/components/player/PlayerControls';
@@ -13,22 +15,15 @@ import { Music, ArrowLeft, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-function findActiveLine(lines: Array<{ time: number }>, currentTime: number): number {
-  let active = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].time <= currentTime) {
-      active = i;
-    } else {
-      break;
-    }
-  }
-  return active;
-}
+const NP_BASE =
+  'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 text-base @5xl:text-lg @7xl:text-xl';
+const NP_ACTIVE = 'text-foreground text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold';
+const NP_PAST = 'text-muted-foreground/20';
+const NP_IDLE = 'text-muted-foreground/40 hover:text-muted-foreground/65';
 
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
   const currentTrack = usePlayerStore(s => s.currentTrack);
-  const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
   const seek = usePlayerStore(s => s.seek);
   const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
@@ -45,15 +40,7 @@ export function NowPlayingView() {
 
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;
-  const activeLine = synced ? findActiveLine(synced, currentTime) : -1;
-
-  const activeLineRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (activeLineRef.current) {
-      activeLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeLine]);
+  const activeLine = useActiveLineIndex(synced);
 
   const handleLineClick = useCallback((time: number) => seek(time), [seek]);
 
@@ -212,33 +199,18 @@ export function NowPlayingView() {
                 </div>
               </div>
             ) : synced && synced.length > 0 ? (
-              <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
-                <div className="space-y-4 @5xl:space-y-5 @7xl:space-y-6">
-                  {synced.map((line, index) => {
-                    const isActive = index === activeLine;
-                    const isPast = index < activeLine;
-                    return (
-                      <button
-                        key={index}
-                        ref={isActive ? activeLineRef : null}
-                        onClick={() => handleLineClick(line.time)}
-                        type="button"
-                        className={cn(
-                          'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1',
-                          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
-                          'text-base @5xl:text-lg @7xl:text-xl',
-                          isActive && 'text-foreground text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold',
-                          isPast && 'text-muted-foreground/20',
-                          !isActive && !isPast && 'text-muted-foreground/40 hover:text-muted-foreground/65'
-                        )}
-                      >
-                        {line.text}
-                      </button>
-                    );
-                  })}
-                  <div className="h-[40vh]" />
-                </div>
-              </div>
+              <LyricsList
+                lines={synced}
+                activeIndex={activeLine}
+                onLineClick={handleLineClick}
+                containerClassName="pr-2 @3xl:pr-4"
+                spacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
+                bottomSpacerClassName="h-[40vh]"
+                baseClassName={NP_BASE}
+                activeClassName={NP_ACTIVE}
+                pastClassName={NP_PAST}
+                idleClassName={NP_IDLE}
+              />
             ) : plain ? (
               <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
                 <pre className="text-sm @5xl:text-base @7xl:text-lg text-muted-foreground/45 whitespace-pre-wrap font-sans leading-relaxed">
