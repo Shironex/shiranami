@@ -1,4 +1,9 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import {
+  isIpcError,
+  SHARE_ERROR_CODES,
+  PLAYLIST_ERROR_CODES,
+} from './ipc/errors';
 
 function createIpcListener<T>(channel: string): (callback: (data: T) => void) => () => void {
   return (callback: (data: T) => void) => {
@@ -335,7 +340,7 @@ export interface ElectronAPI {
       status: 'downloading' | 'converting' | 'done' | 'error';
       error?: string;
     }) => void) => () => void;
-    installYtDlp: () => Promise<{ success: boolean; error?: string }>;
+    installYtDlp: () => Promise<void>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
     checkFfmpeg: () => Promise<{
@@ -344,9 +349,9 @@ export interface ElectronAPI {
       latestVersion?: string;
       updateAvailable?: boolean;
     }>;
-    installFfmpeg: () => Promise<{ success: boolean; error?: string }>;
+    installFfmpeg: () => Promise<void>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
-    installDependencies: () => Promise<{ success: boolean; error?: string }>;
+    installDependencies: () => Promise<void>;
     onDependencyInstallProgress: (callback: (progress: {
       target: 'ytdlp' | 'ffmpeg';
       percent: number;
@@ -469,6 +474,11 @@ export interface ElectronAPI {
   };
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
+  };
+  errors: {
+    isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
+    SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
+    PLAYLIST_ERROR_CODES: typeof PLAYLIST_ERROR_CODES;
   };
   platform: NodeJS.Platform;
 }
@@ -682,6 +692,11 @@ const electronAPI: ElectronAPI = {
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>
       invokeWithTimeout<T>(channel, timeout, ...args),
+  },
+  errors: {
+    isIpcError,
+    SHARE_ERROR_CODES,
+    PLAYLIST_ERROR_CODES,
   },
   platform: process.platform,
 };
