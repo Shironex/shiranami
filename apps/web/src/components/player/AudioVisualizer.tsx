@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
-import { getPrimaryRGB } from '@/lib/utils';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
+import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 
 /**
  * Canvas-based frequency visualizer with a soft lofi aesthetic.
@@ -18,6 +18,7 @@ export function AudioVisualizer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
+  const { rgbRef } = usePrimaryRGB();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -68,6 +69,9 @@ export function AudioVisualizer() {
     // Slower easing for lofi smoothness
     const ease = 0.12;
 
+    // Hoist theme color once per frame (issue #49).
+    const [pr, pg, pb] = rgbRef.current;
+
     for (let i = 0; i < barCount; i++) {
       let sum = 0;
       const start = i * binsPerBar;
@@ -90,7 +94,6 @@ export function AudioVisualizer() {
       const edgeFade = Math.min(1, Math.min(edgePos, 1 - edgePos) * 5);
 
       // Color: theme-derived gradient across frequency range
-      const [pr, pg, pb] = getPrimaryRGB();
       const t = i / barCount;
       const r = Math.round(pr - 45 + t * 50);
       const g = Math.round(pg - 40 + t * 35);
@@ -111,7 +114,7 @@ export function AudioVisualizer() {
       ctx.shadowBlur = 0;
     }
 
-  }, [widthRef, heightRef, dprRef]);
+  }, [widthRef, heightRef, dprRef, rgbRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 

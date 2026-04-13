@@ -2,8 +2,8 @@ import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
+import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 import { getAnalyser } from '@/lib/audioAnalyser';
-import { getPrimaryRGB } from '@/lib/utils';
 
 /**
  * Smooth wave visualizer with gradient fill.
@@ -18,6 +18,16 @@ export function ParticleVisualizer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
+  const { rgbRef, versionRef } = usePrimaryRGB();
+
+  // Cached gradients for drawWaveFill. Invalidated when centerY, primary-rgb,
+  // or the canvas context changes — see issue #50. Pre-cache avoids allocating
+  // two CanvasGradient objects every frame (120/sec during playback).
+  const gradientCacheRef = useRef<{
+    grad: CanvasGradient | null;
+    key: string;
+    ctx: CanvasRenderingContext2D | null;
+  }>({ grad: null, key: '', ctx: null });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -62,6 +72,27 @@ export function ParticleVisualizer() {
     const centerY = h * 0.5;
     const maxAmp = h * 0.38;
 
+    // Hoist theme color once per frame (issue #49).
+    const [pr, pg, pb] = rgbRef.current;
+
+    // Rebuild gradient cache if centerY, theme color, or ctx identity changed.
+    // versionRef bumps on any primary-rgb change, so we don't need to stringify
+    // pr/pg/pb in the key.
+    const cache = gradientCacheRef.current;
+    const key = `${centerY}|${versionRef.current}`;
+    if (cache.key !== key || cache.ctx !== ctx) {
+      // Single gradient shared by both halves — the bottom wave is drawn with
+      // a scale(1,-1) transform, which mirrors the gradient's CTM-space
+      // endpoints automatically.
+      const grad = ctx.createLinearGradient(0, centerY - 15, 0, centerY);
+      grad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
+      grad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
+
+      cache.grad = grad;
+      cache.key = key;
+      cache.ctx = ctx;
+    }
+
     // Build smoothed data points
     const points: { x: number; y: number }[] = [];
 
@@ -87,15 +118,17 @@ export function ParticleVisualizer() {
       points.push({ x, y: centerY - amp });
     }
 
-    // ── Draw the mirrored wave (top half) ──
-    drawWaveFill(ctx, points, centerY, w, h, false);
+    // ── Top half ──
+    drawWaveFill(ctx, points, centerY, cache.grad!);
 
-    // ── Draw the mirrored wave (bottom half — reflected) ──
-    const mirrorPoints = points.map((p) => ({
-      x: p.x,
-      y: centerY + (centerY - p.y),
-    }));
-    drawWaveFill(ctx, mirrorPoints, centerY, w, h, true);
+    // ── Bottom half via canvas Y-mirror ──
+    // Reusing `points` with a transform avoids allocating ~64 new objects +
+    // an array per frame (~3800 allocs/sec at 60fps).
+    ctx.save();
+    ctx.translate(0, centerY * 2);
+    ctx.scale(1, -1);
+    drawWaveFill(ctx, points, centerY, cache.grad!);
+    ctx.restore();
 
     // ── Draw the wave stroke line (top) ──
     ctx.beginPath();
@@ -108,7 +141,6 @@ export function ParticleVisualizer() {
     }
     const last = points[points.length - 1];
     ctx.lineTo(last.x, last.y);
-    const [pr, pg, pb] = getPrimaryRGB();
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.5)`;
     ctx.lineWidth = 1.5;
     ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, 0.3)`;
@@ -124,7 +156,7 @@ export function ParticleVisualizer() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-  }, [widthRef, heightRef, dprRef]);
+  }, [widthRef, heightRef, dprRef, rgbRef, versionRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
@@ -137,14 +169,12 @@ export function ParticleVisualizer() {
   );
 }
 
-/** Draw a smooth bezier wave path with gradient fill toward centerY */
+/** Draw a smooth bezier wave path with a pre-built gradient fill toward centerY. */
 function drawWaveFill(
   ctx: CanvasRenderingContext2D,
   points: { x: number; y: number }[],
   centerY: number,
-  _w: number,
-  _h: number,
-  isMirror: boolean
+  gradient: CanvasGradient,
 ) {
   if (points.length < 2) return;
 
@@ -164,14 +194,7 @@ function drawWaveFill(
   ctx.lineTo(last.x, centerY);
   ctx.closePath();
 
-  // Gradient from wave peak toward center
-  const gradStart = isMirror ? centerY + 15 : centerY - 15;
-  const gradEnd = centerY;
-  const grad = ctx.createLinearGradient(0, gradStart, 0, gradEnd);
-  const [pr, pg, pb] = getPrimaryRGB();
-  grad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
-  grad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
-  ctx.fillStyle = grad;
+  ctx.fillStyle = gradient;
   ctx.fill();
 }
 

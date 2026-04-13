@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
-import { getPrimaryRGB } from '@/lib/utils';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
+import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 
 /**
  * Dense vertical-bar waveform visualizer inspired by ElevenLabs UI.
@@ -18,6 +18,7 @@ export function WaveformVisualizer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
+  const { rgbRef } = usePrimaryRGB();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -70,6 +71,9 @@ export function WaveformVisualizer() {
     const maxBarH = h * 0.4;
     const minBarH = 2;
 
+    // Hoist theme color once per frame — was ~120 CSS-var lookups/frame (issue #49).
+    const [pr, pg, pb] = rgbRef.current;
+
     for (let i = 0; i < barCount; i++) {
       // Map bar index to frequency bin (with interpolation)
       const binPos = (i / barCount) * binCount;
@@ -92,8 +96,6 @@ export function WaveformVisualizer() {
 
       const alpha = (0.4 + value * 0.5) * edgeFade;
 
-      // Color: theme-derived
-      const [pr, pg, pb] = getPrimaryRGB();
       ctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, ${alpha})`;
 
       // Center-aligned bar (grows from center up and down)
@@ -102,7 +104,7 @@ export function WaveformVisualizer() {
       ctx.fill();
     }
 
-  }, [widthRef, heightRef, dprRef]);
+  }, [widthRef, heightRef, dprRef, rgbRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
