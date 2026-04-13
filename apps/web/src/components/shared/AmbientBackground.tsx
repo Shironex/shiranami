@@ -13,9 +13,7 @@ export function AmbientBackground() {
 
   return (
     <>
-      {noiseOverlayEnabled && (
-        <div className="noise fixed inset-0 z-[9998] pointer-events-none" />
-      )}
+      {noiseOverlayEnabled && <div className="noise" />}
 
       <AnimatePresence>
         {currentTrack && (
