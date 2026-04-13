@@ -24,11 +24,10 @@ export function ParticleVisualizer() {
   // or the canvas context changes — see issue #50. Pre-cache avoids allocating
   // two CanvasGradient objects every frame (120/sec during playback).
   const gradientCacheRef = useRef<{
-    top: CanvasGradient | null;
-    bottom: CanvasGradient | null;
+    grad: CanvasGradient | null;
     key: string;
     ctx: CanvasRenderingContext2D | null;
-  }>({ top: null, bottom: null, key: '', ctx: null });
+  }>({ grad: null, key: '', ctx: null });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -77,19 +76,19 @@ export function ParticleVisualizer() {
     const [pr, pg, pb] = rgbRef.current;
 
     // Rebuild gradient cache if centerY, theme color, or ctx identity changed.
+    // versionRef bumps on any primary-rgb change, so we don't need to stringify
+    // pr/pg/pb in the key.
     const cache = gradientCacheRef.current;
-    const key = `${centerY}|${pr},${pg},${pb}|${versionRef.current}`;
+    const key = `${centerY}|${versionRef.current}`;
     if (cache.key !== key || cache.ctx !== ctx) {
-      const topGrad = ctx.createLinearGradient(0, centerY - 15, 0, centerY);
-      topGrad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
-      topGrad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
+      // Single gradient shared by both halves — the bottom wave is drawn with
+      // a scale(1,-1) transform, which mirrors the gradient's CTM-space
+      // endpoints automatically.
+      const grad = ctx.createLinearGradient(0, centerY - 15, 0, centerY);
+      grad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
+      grad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
 
-      const bottomGrad = ctx.createLinearGradient(0, centerY + 15, 0, centerY);
-      bottomGrad.addColorStop(0, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.15)`);
-      bottomGrad.addColorStop(1, `rgba(${pr - 15}, ${pg - 15}, ${pb - 15}, 0.0)`);
-
-      cache.top = topGrad;
-      cache.bottom = bottomGrad;
+      cache.grad = grad;
       cache.key = key;
       cache.ctx = ctx;
     }
@@ -119,15 +118,17 @@ export function ParticleVisualizer() {
       points.push({ x, y: centerY - amp });
     }
 
-    // ── Draw the mirrored wave (top half) ──
-    drawWaveFill(ctx, points, centerY, cache.top!);
+    // ── Top half ──
+    drawWaveFill(ctx, points, centerY, cache.grad!);
 
-    // ── Draw the mirrored wave (bottom half — reflected) ──
-    const mirrorPoints = points.map((p) => ({
-      x: p.x,
-      y: centerY + (centerY - p.y),
-    }));
-    drawWaveFill(ctx, mirrorPoints, centerY, cache.bottom!);
+    // ── Bottom half via canvas Y-mirror ──
+    // Reusing `points` with a transform avoids allocating ~64 new objects +
+    // an array per frame (~3800 allocs/sec at 60fps).
+    ctx.save();
+    ctx.translate(0, centerY * 2);
+    ctx.scale(1, -1);
+    drawWaveFill(ctx, points, centerY, cache.grad!);
+    ctx.restore();
 
     // ── Draw the wave stroke line (top) ──
     ctx.beginPath();

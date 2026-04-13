@@ -30,7 +30,9 @@ function readFromDocument(): [number, number, number] {
 }
 
 export function usePrimaryRGB(): UsePrimaryRGBResult {
-  const rgbRef = useRef<[number, number, number]>(FALLBACK);
+  // Read synchronously on first render so the very first RAF frame gets the
+  // real color — avoids a one-frame flash of the fallback purple.
+  const rgbRef = useRef<[number, number, number]>(readFromDocument());
   const versionRef = useRef(0);
 
   useEffect(() => {
