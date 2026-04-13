@@ -40,6 +40,8 @@ export function AppearanceSection() {
   const setLibraryHeroCardEnabled = useAppStore((s) => s.setLibraryHeroCardEnabled);
   const lowPerformanceMode = useAppStore((s) => s.lowPerformanceMode);
   const setLowPerformanceMode = useAppStore((s) => s.setLowPerformanceMode);
+  const noiseOverlayEnabled = useAppStore((s) => s.noiseOverlayEnabled);
+  const setNoiseOverlayEnabled = useAppStore((s) => s.setNoiseOverlayEnabled);
   const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
   const toggleSidebarItem = useAppStore((s) => s.toggleSidebarItem);
   const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
@@ -171,6 +173,20 @@ export function AppearanceSection() {
             <Switch
               checked={lowPerformanceMode}
               onChange={setLowPerformanceMode}
+            />
+          </div>
+        </div>
+
+        {/* Noise overlay — opt-in film-grain texture, forced off under low-perf mode */}
+        <div className="px-3">
+          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
+            <div className="pr-4">
+              <p className="text-sm font-medium text-foreground">{t('app.noiseOverlay')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('app.noiseOverlayDesc')}</p>
+            </div>
+            <Switch
+              checked={noiseOverlayEnabled}
+              onChange={setNoiseOverlayEnabled}
             />
           </div>
         </div>

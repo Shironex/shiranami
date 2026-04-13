@@ -153,13 +153,13 @@
 }
 
 @utility glass {
-  backdrop-filter: blur(16px) saturate(1.4);
-  background: oklch(0.1 0.02 280 / 0.7);
+  backdrop-filter: blur(8px) saturate(1.4);
+  background: oklch(0.1 0.02 280 / 0.82);
 }
 
 @utility glass-subtle {
-  backdrop-filter: blur(8px) saturate(1.2);
-  background: oklch(0.08 0.02 280 / 0.5);
+  backdrop-filter: blur(6px) saturate(1.2);
+  background: oklch(0.08 0.02 280 / 0.6);
 }
 
 @utility text-gradient {

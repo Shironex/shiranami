@@ -103,6 +103,8 @@
     "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room — the player bar still shows track info.",
     "lowPerfMode": "Low performance mode",
     "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
+    "noiseOverlay": "Noise texture",
+    "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default — adds a small amount of GPU work.",
     "new": "New",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar"

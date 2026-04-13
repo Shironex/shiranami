@@ -11,6 +11,7 @@ import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TimeDisplay } from './TimeDisplay';
 import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
   const { t } = useTranslation('compact');
@@ -36,12 +37,19 @@ export function CompactPlayer() {
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       {!lowPerformanceMode && (
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.08] transition-all duration-[2s]"
-          style={{
-            background: `radial-gradient(circle at 18% 24%, rgba(${ambientColor.rgb}, 0.95) 0%, transparent 48%)`,
-          }}
-        />
+        <AnimatePresence>
+          <motion.div
+            key={ambientColor.hex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.08 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2 }}
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(circle at 18% 24%, rgba(${ambientColor.rgb}, 0.95) 0%, transparent 48%)`,
+            }}
+          />
+        </AnimatePresence>
       )}
 
       <div className="drag flex h-9 shrink-0 items-center justify-between border-b border-border/20 px-3">

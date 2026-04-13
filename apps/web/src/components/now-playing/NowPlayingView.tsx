@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -32,11 +31,9 @@ export function NowPlayingView() {
   const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
   const seek = usePlayerStore(s => s.seek);
-  const ambientColor = useAmbientColor();
   const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
 
   const { data, isLoading: lyricsLoading } = useLyricsQuery(
     currentTrack?.id ?? null,
@@ -71,18 +68,7 @@ export function NowPlayingView() {
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
-      {/* Full ambient gradient background — skipped in low performance mode */}
-      {!lowPerformanceMode && (
-        <div
-          className="absolute inset-0 pointer-events-none transition-all duration-[2s]"
-          style={{
-            background: `
-              radial-gradient(ellipse at 20% 30%, rgba(${ambientColor.rgb}, 0.18) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 70%, rgba(${ambientColor.rgb}, 0.10) 0%, transparent 55%)
-            `,
-          }}
-        />
-      )}
+      {/* Ambient gradient is painted globally by <AmbientBackground /> — no local duplicate here. */}
 
       {/* Header: back button + lyrics toggle */}
       <div className="relative px-6 @3xl:px-10 pt-4 pb-2 shrink-0 flex items-center justify-between">

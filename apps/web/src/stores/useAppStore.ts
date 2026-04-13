@@ -85,6 +85,7 @@ const NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY = 'shiranami.now-playing-lyrics-vis
 const LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY = 'shiranami.library-hero-card-enabled';
 const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
 const LOW_PERFORMANCE_MODE_STORAGE_KEY = 'shiranami.low-performance-mode';
+const NOISE_OVERLAY_ENABLED_STORAGE_KEY = 'shiranami.noise-overlay-enabled';
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -135,6 +136,16 @@ function getInitialLowPerformanceMode(): boolean {
 function persistLowPerformanceMode(enabled: boolean) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(LOW_PERFORMANCE_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+}
+
+function getInitialNoiseOverlayEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.localStorage.getItem(NOISE_OVERLAY_ENABLED_STORAGE_KEY) === 'true';
+}
+
+function persistNoiseOverlayEnabled(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(NOISE_OVERLAY_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
 }
 
 function getInitialSidebarCollapsed() {
@@ -270,6 +281,7 @@ interface AppState {
   nowPlayingLyricsVisible: boolean;
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
+  noiseOverlayEnabled: boolean;
   previousView: AppView;
 }
 
@@ -281,6 +293,7 @@ interface AppActions {
   toggleNowPlayingLyrics: () => void;
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
+  setNoiseOverlayEnabled: (enabled: boolean) => void;
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
@@ -328,6 +341,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   nowPlayingLyricsVisible: getInitialNowPlayingLyricsVisible(),
   libraryHeroCardEnabled: getInitialLibraryHeroCardEnabled(),
   lowPerformanceMode: getInitialLowPerformanceMode(),
+  noiseOverlayEnabled: getInitialNoiseOverlayEnabled(),
   previousView: 'library',
 
   navigateTo: (view, playlistId) =>
@@ -364,6 +378,10 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
     applyLowPerformanceMode(enabled);
     persistLowPerformanceMode(enabled);
     set({ lowPerformanceMode: enabled });
+  },
+  setNoiseOverlayEnabled: (enabled) => {
+    persistNoiseOverlayEnabled(enabled);
+    set({ noiseOverlayEnabled: enabled });
   },
   selectPlaylist: (id) => set({ selectedPlaylistId: id }),
   setRightPanel: (panel) => set({ rightPanel: panel }),
