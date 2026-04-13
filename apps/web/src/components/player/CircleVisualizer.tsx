@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 import { getAnalyser } from '@/lib/audioAnalyser';
-import { getPrimaryRGB } from '@/lib/utils';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
+import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 
 /**
  * Compact circular frequency visualizer.
@@ -18,6 +18,7 @@ export function CircleVisualizer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
+  const { rgbRef } = usePrimaryRGB();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -70,6 +71,9 @@ export function CircleVisualizer() {
     // Compute average energy for the inner ring glow
     let totalEnergy = 0;
 
+    // Hoist theme color once per frame — was ~130 CSS-var lookups/frame (issue #49).
+    const [pr, pg, pb] = rgbRef.current;
+
     // ── Radial frequency bars (full 360°) ──
     for (let i = 0; i < barCount; i++) {
       let sum = 0;
@@ -97,7 +101,6 @@ export function CircleVisualizer() {
       const y2 = centerY + sin * (barBaseRadius + barLength);
 
       // Color: theme-derived with slight hue shift across the circle
-      const [pr, pg, pb] = getPrimaryRGB();
       const t = i / barCount;
       const r = Math.round(pr - 15 + t * 40);
       const g = Math.round(pg - 25 + t * 25);
@@ -127,13 +130,11 @@ export function CircleVisualizer() {
 
       ctx.beginPath();
       ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
-      const [pr, pg, pb] = getPrimaryRGB();
       ctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.25 + avgEnergy * 0.35})`;
       ctx.fill();
     }
 
     // ── Base ring line ──
-    const [pr, pg, pb] = getPrimaryRGB();
     ctx.beginPath();
     ctx.arc(centerX, centerY, barBaseRadius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.12 + avgEnergy * 0.2})`;
@@ -143,7 +144,7 @@ export function CircleVisualizer() {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-  }, [widthRef, heightRef, dprRef]);
+  }, [widthRef, heightRef, dprRef, rgbRef]);
 
   useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
 
