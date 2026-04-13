@@ -10,6 +10,22 @@ import { TrackRowContent } from '@/components/shared/TrackRowContent';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { sortAlbumTracks } from '@/lib/albumSort';
 
+function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  let best: T | undefined;
+  let maxCount = 0;
+  for (const v of values) {
+    if (v == null || v === '') continue;
+    const count = (counts.get(v as T) ?? 0) + 1;
+    counts.set(v as T, count);
+    if (count > maxCount) {
+      maxCount = count;
+      best = v as T;
+    }
+  }
+  return best;
+}
+
 export function AlbumDetailView() {
   const { t } = useTranslation('library');
   const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
@@ -57,23 +73,6 @@ export function AlbumDetailView() {
     const artists = new Set(albumTracks.map(t => t.artist));
     return Array.from(artists).join(', ');
   }, [albumTracks]);
-
-  const mostFrequent = <T,>(values: Array<T | null | undefined>): T | undefined => {
-    const counts = new Map<T, number>();
-    for (const v of values) {
-      if (v === null || v === undefined || v === '') continue;
-      counts.set(v as T, (counts.get(v as T) ?? 0) + 1);
-    }
-    let best: T | undefined;
-    let bestCount = 0;
-    for (const [value, count] of counts) {
-      if (count > bestCount) {
-        best = value;
-        bestCount = count;
-      }
-    }
-    return best;
-  };
 
   const year = useMemo(
     () => mostFrequent(albumTracks.map(t => t.year)),
