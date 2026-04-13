@@ -30,7 +30,7 @@ const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogMan
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
-import { useLibraryQuery } from '@/hooks/queries/useLibrary';
+import { useLibrarySync } from '@/hooks/useLibrarySync';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
@@ -50,7 +50,7 @@ function App() {
   useAudioEngine();
   useMediaSession();
   usePlayerPreferences();
-  useLibraryQuery();
+  useLibrarySync();
   usePlaybackResume(splashDone);
   useUpdateNotifications();
   useKeyboardShortcuts();
