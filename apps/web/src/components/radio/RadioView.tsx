@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { useRadioStore, type RadioSearchTab } from '@/stores/useRadioStore';
@@ -46,13 +45,13 @@ const COUNTRIES = [
   { code: 'IN', name: 'India', flag: '\u{1F1EE}\u{1F1F3}' },
 ];
 
-function stationToTrack(station: Station): Track {
+function stationToTrack(station: Station, liveRadioLabel: string): Track {
   const streamUrl = station.urlResolved || station.url;
   const tagsStr = Array.isArray(station.tags) ? station.tags.join(', ') : '';
   return {
     id: `radio:${station.id}`,
     title: station.name,
-    artist: i18n.t('liveRadio', { ns: 'common' }),
+    artist: liveRadioLabel,
     album: [station.country, station.codec, station.bitrate ? `${station.bitrate}kbps` : '']
       .filter(Boolean)
       .join(' \u00B7 '),
@@ -78,6 +77,7 @@ interface StationRowProps {
 }
 
 function StationRow(props: RowComponentProps<StationRowProps>) {
+  const { t } = useTranslation('radio');
   const {
     index,
     style,
@@ -176,7 +176,7 @@ function StationRow(props: RowComponentProps<StationRowProps>) {
               ? 'text-favorite hover:text-favorite-hover'
               : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
           )}
-          aria-label={isFav ? i18n.t('removeFavorite', { ns: 'radio' }) : i18n.t('addFavorite', { ns: 'radio' })}
+          aria-label={isFav ? t('removeFavorite') : t('addFavorite')}
         >
           <Heart className={cn('w-3.5 h-3.5 transition-all duration-150', isFav && 'fill-current')} />
         </motion.button>
@@ -223,6 +223,7 @@ function StationRowSkeleton() {
 
 export function RadioView() {
   const { t } = useTranslation('radio');
+  const { t: tCommon } = useTranslation('common');
   const stations = useRadioStore((s) => s.stations);
   const favorites = useRadioStore((s) => s.favorites);
   const isLoading = useRadioStore((s) => s.isLoading);
@@ -301,7 +302,10 @@ export function RadioView() {
     [setSelectedCountry, loadByCountry]
   );
 
-  const radioTracks = useMemo(() => stations.map(stationToTrack), [stations]);
+  const radioTracks = useMemo(
+    () => stations.map((s) => stationToTrack(s, tCommon('liveRadio'))),
+    [stations, tCommon]
+  );
 
   const handlePlayStation = useCallback(
     (index: number) => {

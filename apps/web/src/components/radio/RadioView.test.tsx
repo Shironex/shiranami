@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// Ensure i18n is initialised before RadioView imports (RadioView no longer
+// imports @/lib/i18n directly — it uses the useTranslation hook).
+import '@/lib/i18n';
 import { RadioView } from './RadioView';
 
 const loadTopStations = vi.fn();
