@@ -146,8 +146,9 @@ export async function fetchLyrics(
     let result: { syncedLyrics?: string | null; plainLyrics?: string | null } | null = null;
     try {
       result = await client.findLyrics(query);
-    } catch {
+    } catch (err) {
       // Any error (NotFound, NoResult, RequestError) — fall through to search
+      logger.debug('[lyrics] findLyrics failed, falling through to search', err);
     }
 
     if (!result || (!result.syncedLyrics && !result.plainLyrics)) {
@@ -167,8 +168,9 @@ export async function fetchLyrics(
             logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
             return lyricsResult;
           }
-        } catch {
+        } catch (err) {
           // This search variant failed, try next
+          logger.debug('[lyrics] search variant failed', err);
         }
       }
 
