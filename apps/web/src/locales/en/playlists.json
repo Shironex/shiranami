@@ -6,6 +6,8 @@
   "emptyTitle": "No playlists yet",
   "emptySubtitle": "Create one to get started",
   "emptyHintCreate": "Create a playlist",
+  "errorTitle": "Couldn't load playlists",
+  "errorSubtitle": "Something went wrong. Try again.",
   "back": "Back to playlists",
   "playAll": "Play All",
   "deletePlaylist": "Delete playlist",

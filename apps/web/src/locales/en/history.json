@@ -35,5 +35,7 @@
   "listenedMinutes": "{{minutes}}m listened",
   "listenedSeconds": "{{seconds}}s listened",
   "activityBarTitle": "{{label}}: {{count}} plays, {{minutes}}m listened",
-  "activityGraphLabel": "Listening activity: {{total}} plays over {{days}} days"
+  "activityGraphLabel": "Listening activity: {{total}} plays over {{days}} days",
+  "errorTitle": "Couldn't load listening history",
+  "errorSubtitle": "Something went wrong. Try again."
 }

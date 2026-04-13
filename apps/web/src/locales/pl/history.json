@@ -37,5 +37,7 @@
   "listenedMinutes": "{{minutes}} min słuchania",
   "listenedSeconds": "{{seconds}} sek. słuchania",
   "activityBarTitle": "{{label}}: {{count}} odtworzeń, {{minutes}} min słuchania",
-  "activityGraphLabel": "Aktywność słuchania: {{total}} odtworzeń w ciągu {{days}} dni"
+  "activityGraphLabel": "Aktywność słuchania: {{total}} odtworzeń w ciągu {{days}} dni",
+  "errorTitle": "Nie udało się załadować historii słuchania",
+  "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie."
 }

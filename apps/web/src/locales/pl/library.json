@@ -28,5 +28,7 @@
   "gridSizeSmall": "Mały",
   "gridSizeMedium": "Średni",
   "gridSizeLarge": "Duży",
-  "discHeading": "Płyta {{n}}"
+  "discHeading": "Płyta {{n}}",
+  "errorTitle": "Nie udało się załadować biblioteki",
+  "errorSubtitle": "Coś poszło nie tak podczas odczytu plików lokalnych. Spróbuj ponownie."
 }

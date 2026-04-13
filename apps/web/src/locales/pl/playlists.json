@@ -6,6 +6,8 @@
   "emptyTitle": "Brak playlist",
   "emptySubtitle": "Utwórz jedną, aby zacząć",
   "emptyHintCreate": "Utwórz playlistę",
+  "errorTitle": "Nie udało się załadować playlist",
+  "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie.",
   "back": "Wróć do playlist",
   "playAll": "Odtwórz wszystko",
   "deletePlaylist": "Usuń playlistę",

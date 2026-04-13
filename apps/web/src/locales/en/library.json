@@ -26,5 +26,7 @@
   "gridSizeSmall": "Small",
   "gridSizeMedium": "Medium",
   "gridSizeLarge": "Large",
-  "discHeading": "Disc {{n}}"
+  "discHeading": "Disc {{n}}",
+  "errorTitle": "Couldn't load your library",
+  "errorSubtitle": "Something went wrong reading local files. Try again."
 }

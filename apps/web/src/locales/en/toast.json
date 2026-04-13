@@ -93,5 +93,7 @@
   "enrichFailed": "Failed to enrich metadata",
   "enrichPartial": "Enriched {{success}} of {{total}} tracks ({{failed}} failed)",
   "nowPlayingDisabled": "Now Playing view is disabled — enable it in Appearance settings",
-  "nowPlayingNoTrack": "Play a track first to open Now Playing"
+  "nowPlayingNoTrack": "Play a track first to open Now Playing",
+  "failedLoadLibrary": "Failed to load library",
+  "failedLoadHistory": "Failed to load history"
 }

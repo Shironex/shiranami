@@ -99,5 +99,7 @@
   "enrichFailed": "Nie udało się wzbogacić metadanych",
   "enrichPartial": "Wzbogacono {{success}} z {{total}} utworów ({{failed}} nie powiodło się)",
   "nowPlayingDisabled": "Widok Teraz odtwarzane jest wyłączony — włącz go w ustawieniach Wygląd",
-  "nowPlayingNoTrack": "Najpierw odtwórz utwór, aby otworzyć Teraz odtwarzane"
+  "nowPlayingNoTrack": "Najpierw odtwórz utwór, aby otworzyć Teraz odtwarzane",
+  "failedLoadLibrary": "Nie udało się załadować biblioteki",
+  "failedLoadHistory": "Nie udało się załadować historii"
 }
