@@ -58,6 +58,38 @@ export function AlbumDetailView() {
     return Array.from(artists).join(', ');
   }, [albumTracks]);
 
+  const mostFrequent = <T,>(values: Array<T | null | undefined>): T | undefined => {
+    const counts = new Map<T, number>();
+    for (const v of values) {
+      if (v === null || v === undefined || v === '') continue;
+      counts.set(v as T, (counts.get(v as T) ?? 0) + 1);
+    }
+    let best: T | undefined;
+    let bestCount = 0;
+    for (const [value, count] of counts) {
+      if (count > bestCount) {
+        best = value;
+        bestCount = count;
+      }
+    }
+    return best;
+  };
+
+  const year = useMemo(
+    () => mostFrequent(albumTracks.map(t => t.year)),
+    [albumTracks]
+  );
+
+  const genre = useMemo(
+    () => mostFrequent(albumTracks.map(t => t.genre)),
+    [albumTracks]
+  );
+
+  const headerMeta = useMemo(
+    () => [artist, year?.toString(), genre].filter(Boolean).join(' · '),
+    [artist, year, genre]
+  );
+
   const totalDuration = useMemo(
     () => albumTracks.reduce((sum, t) => sum + t.duration, 0),
     [albumTracks]
@@ -140,7 +172,7 @@ export function AlbumDetailView() {
             <p className="font-display text-lg font-semibold text-foreground truncate">
               {selectedAlbumName}
             </p>
-            <p className="text-sm text-muted-foreground/60 truncate">{artist}</p>
+            <p className="text-sm text-muted-foreground/60 truncate">{headerMeta}</p>
             <p className="text-xs text-muted-foreground/50 mt-0.5">
               {t('trackCount', { count: albumTracks.length })}
               {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
