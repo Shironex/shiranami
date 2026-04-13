@@ -4,8 +4,6 @@ import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 
-const UNKNOWN_ERROR = () => i18n.t('unknownError', { ns: 'common' });
-
 export function useDownloadsSettings() {
   const [ytdlpInstalled, setYtdlpInstalled] = useState<boolean | null>(null);
   const [ytdlpVersion, setYtdlpVersion] = useState<string | undefined>();
@@ -175,18 +173,9 @@ export function useDownloadsSettings() {
     setYtdlpInstallProgress(0);
 
     try {
-      const result = await window.electronAPI.downloader.installYtDlp();
-      if (result.success) {
-        toast.success(i18n.t('ytdlpInstalled', { ns: 'toast' }), { id: 'ytdlp-install' });
-        await refreshDownloadToolStatus();
-      } else {
-        toast.error(
-          i18n.t('failedInstallYtdlp', { ns: 'toast', error: result.error ?? UNKNOWN_ERROR() }),
-          {
-            id: 'ytdlp-install',
-          }
-        );
-      }
+      await window.electronAPI.downloader.installYtDlp();
+      toast.success(i18n.t('ytdlpInstalled', { ns: 'toast' }), { id: 'ytdlp-install' });
+      await refreshDownloadToolStatus();
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
@@ -204,18 +193,9 @@ export function useDownloadsSettings() {
     setFfmpegInstallProgress(0);
 
     try {
-      const result = await window.electronAPI.downloader.installFfmpeg();
-      if (result.success) {
-        toast.success(i18n.t('ffmpegInstalled', { ns: 'toast' }), { id: 'ffmpeg-install' });
-        await refreshDownloadToolStatus();
-      } else {
-        toast.error(
-          i18n.t('failedInstallFfmpeg', { ns: 'toast', error: result.error ?? UNKNOWN_ERROR() }),
-          {
-            id: 'ffmpeg-install',
-          }
-        );
-      }
+      await window.electronAPI.downloader.installFfmpeg();
+      toast.success(i18n.t('ffmpegInstalled', { ns: 'toast' }), { id: 'ffmpeg-install' });
+      await refreshDownloadToolStatus();
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
@@ -232,22 +212,11 @@ export function useDownloadsSettings() {
     startDependencyInstall();
 
     try {
-      const result = await window.electronAPI.downloader.installDependencies();
-      const snapshot = await refreshDownloadToolStatus();
-
-      if (result.success) {
-        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
-          id: 'dependency-install',
-        });
-      } else if (snapshot.ytdlpInstalled) {
-        toast.error(result.error ?? i18n.t('failedInstallFfmpeg', { ns: 'toast', error: '' }), {
-          id: 'dependency-install',
-        });
-      } else {
-        toast.error(result.error ?? i18n.t('failedInstallTools', { ns: 'toast' }), {
-          id: 'dependency-install',
-        });
-      }
+      await window.electronAPI.downloader.installDependencies();
+      await refreshDownloadToolStatus();
+      toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
+        id: 'dependency-install',
+      });
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });

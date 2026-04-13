@@ -96,25 +96,20 @@ export function useSearchDependencies() {
     startDependencyInstall();
 
     try {
-      const result = await window.electronAPI.downloader.installDependencies();
+      await window.electronAPI.downloader.installDependencies();
       const snapshot = await refreshDependencies();
 
       if (snapshot.ytdlpInstalled) {
         setDependencyInstallStatus('done');
-
-        if (result.success) {
-          toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), { id: 'dependency-install' });
-        } else {
-          toast.error(result.error ?? i18n.t('failedInstallFfmpeg', { ns: 'toast', error: '' }), { id: 'dependency-install' });
-        }
-
+        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), { id: 'dependency-install' });
         window.setTimeout(() => { setDependencyState('ready'); }, 700);
         return;
       }
 
+      const fallbackMsg = i18n.t('installationFailed', { ns: 'toast' });
       setDependencyInstallStatus('error');
-      setDependencyInstallError(result.error ?? i18n.t('installationFailed', { ns: 'toast' }));
-      toast.error(result.error ?? i18n.t('failedInstallSearch', { ns: 'toast' }), { id: 'dependency-install' });
+      setDependencyInstallError(fallbackMsg);
+      toast.error(i18n.t('failedInstallSearch', { ns: 'toast' }), { id: 'dependency-install' });
     } catch (err) {
       await refreshDependencies();
       const msg = err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
