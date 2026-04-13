@@ -54,12 +54,17 @@ export function PlaylistContextMenu({
   const loadPlaylistTracks = useCallback(async () => {
     if (!IS_ELECTRON) return [];
 
-    const tracks = (await window.electronAPI.db.playlists.getTracks(playlist.id)) as Track[];
-    if (tracks.length === 0) {
-      toast.info(tToast('playlistNoTracks', { name: playlist.name }));
+    try {
+      const tracks = (await window.electronAPI.db.playlists.getTracks(playlist.id)) as Track[];
+      if (tracks.length === 0) {
+        toast.info(tToast('playlistNoTracks', { name: playlist.name }));
+      }
+      return tracks;
+    } catch (err) {
+      console.warn('Failed to load playlist tracks', err);
+      return [];
     }
-    return tracks;
-  }, [playlist.id, playlist.name]);
+  }, [playlist.id, playlist.name, tToast]);
 
   const handleOpen = useCallback(() => {
     navigateTo('playlists', playlist.id);

@@ -9,9 +9,12 @@ export function AboutSection() {
   const { t } = useTranslation('settings');
   const version = useAppVersion();
 
-  const handleOpenLogs = useCallback(() => {
-    if (IS_ELECTRON) {
-      window.electronAPI.app.openLogsFolder();
+  const handleOpenLogs = useCallback(async () => {
+    if (!IS_ELECTRON) return;
+    try {
+      await window.electronAPI.app.openLogsFolder();
+    } catch (err) {
+      console.warn('Failed to open logs folder', err);
     }
   }, []);
 

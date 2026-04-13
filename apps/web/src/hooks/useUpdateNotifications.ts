@@ -46,7 +46,9 @@ export function useUpdateNotifications() {
           action: {
             label: i18n.t('updateRestart', { ns: 'toast' }),
             onClick: () => {
-              window.electronAPI.updater.installNow();
+              window.electronAPI.updater.installNow().catch((err) => {
+                console.warn('Failed to install update', err);
+              });
             },
           },
         });

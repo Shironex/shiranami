@@ -96,7 +96,11 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     cancelEnrichment: async () => {
       if (!IS_ELECTRON || !get().isEnriching || get().isCancelling) return;
       set({ isCancelling: true });
-      await window.electronAPI.metadata.cancelEnrichment();
+      try {
+        await window.electronAPI.metadata.cancelEnrichment();
+      } catch (err) {
+        console.warn('Failed to cancel metadata enrichment', err);
+      }
     },
 
     startEnrichment: async ({ onlyMissing, writeToFile, includeSkipped }) => {

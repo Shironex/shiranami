@@ -123,7 +123,11 @@ export function UpdatesSection() {
 
   const handleInstallUpdate = useCallback(async () => {
     if (!IS_ELECTRON) return;
-    await window.electronAPI.updater.installNow();
+    try {
+      await window.electronAPI.updater.installNow();
+    } catch (err) {
+      console.warn('Failed to install update', err);
+    }
   }, []);
 
   return (
