@@ -1,3 +1,18 @@
+/**
+ * IPC handler registration.
+ *
+ * Error-handling contract (resolves #70):
+ *  - Handlers THROW on failure. ipcMain.handle propagates thrown errors as a
+ *    rejected promise on the renderer — no { success, error } envelope.
+ *  - Use `IpcError(code, message)` from `./errors` for any failure the renderer
+ *    needs to discriminate or translate. `code` is a stable machine-readable key.
+ *  - Wrap every handler with `handle()` from `./with-ipc-handler` — it logs
+ *    [ipc:<channel>] automatically; do not write try/catch/log/rethrow by hand.
+ *  - Handlers with a legitimate degraded fallback use `handleWithFallback()`.
+ *  - Renderer error classification: `isIpcError(e)` + code registries
+ *    (YT_DLP_ERROR_CODES, SHARE_ERROR_CODES, PLAYLIST_ERROR_CODES), all
+ *    re-exported through the preload.
+ */
 import { BrowserWindow } from 'electron';
 import {
   registerWindowHandlers,
