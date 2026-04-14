@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore, type AlbumGridSize } from '@/stores/useAppStore';
-import { ListMusic, Plus, Loader2, Grid2x2, LayoutGrid, Grid3x3, AlertCircle } from 'lucide-react';
+import { useAppStore } from '@/stores/useAppStore';
+import { ListMusic, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -93,33 +94,16 @@ export function PlaylistsView() {
 
         <div className="flex-1" />
 
-        {/* Grid size toggle */}
-        <div
-          className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5"
-          role="group"
-          aria-label={t('gridSize')}
-        >
-          {([
-            { size: 'large', icon: Grid2x2, label: t('gridSizeLarge') },
-            { size: 'medium', icon: LayoutGrid, label: t('gridSizeMedium') },
-            { size: 'small', icon: Grid3x3, label: t('gridSizeSmall') },
-          ] as const).map(({ size, icon: Icon, label }) => (
-            <button
-              key={size}
-              onClick={() => setPlaylistGridSize(size as AlbumGridSize)}
-              className={cn(
-                'p-2 rounded-lg transition-colors',
-                playlistGridSize === size
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-foreground/50 hover:text-foreground'
-              )}
-              aria-label={label}
-              title={label}
-            >
-              <Icon className="w-4 h-4" />
-            </button>
-          ))}
-        </div>
+        <GridSizeToggle
+          size={playlistGridSize}
+          onSizeChange={setPlaylistGridSize}
+          labels={{
+            group: t('gridSize'),
+            small: t('gridSizeSmall'),
+            medium: t('gridSizeMedium'),
+            large: t('gridSizeLarge'),
+          }}
+        />
       </div>
 
       {/* Inline create form */}

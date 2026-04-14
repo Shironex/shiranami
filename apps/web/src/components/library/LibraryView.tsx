@@ -1,19 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlayerStore } from '@/stores/usePlayerStore';
-import {
-  useAppStore,
-  type AlbumGridSize,
-  type AlbumSortMode,
-} from '@/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   Download,
-  Grid2x2,
-  Grid3x3,
   LayoutGrid,
   List,
   Music,
@@ -28,23 +19,9 @@ import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { AlbumGrid } from './AlbumGrid';
 import { AlbumDetailView } from './AlbumDetailView';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
+import { AlbumSortControl } from '@/components/shared/AlbumSortControl';
 import { cn } from '@/lib/utils';
-
-function sortLabel(
-  t: (key: string) => string,
-  mode: AlbumSortMode,
-): string {
-  switch (mode) {
-    case 'artist':
-      return t('sortByArtist');
-    case 'year':
-      return t('sortByYear');
-    case 'name':
-    default:
-      return t('sortByName');
-  }
-}
 
 export function LibraryView() {
   const { t } = useTranslation('library');
@@ -143,101 +120,31 @@ export function LibraryView() {
                 above, so rendering these only for 'albums' mode is enough. */}
             {libraryViewMode === 'albums' && (
               <>
-                {/* Sort control */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label={t('sortBy')}
-                      title={t('sortBy')}
-                    >
-                      <ArrowUpDown className="w-4 h-4" />
-                      <span className="hidden sm:inline">{sortLabel(t, albumSortMode)}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-52">
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 px-1">
-                        {t('sortBy')}
-                      </p>
-                      <div className="flex flex-col gap-0.5">
-                        {(['name', 'artist', 'year'] as const).map(mode => (
-                          <button
-                            key={mode}
-                            onClick={() => setAlbumSortMode(mode)}
-                            className={cn(
-                              'text-left px-2 py-1.5 rounded-md text-xs transition-colors',
-                              albumSortMode === mode
-                                ? 'bg-primary/15 text-primary'
-                                : 'text-foreground/80 hover:bg-accent'
-                            )}
-                          >
-                            {sortLabel(t, mode)}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="h-px bg-border/40 my-1" />
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setAlbumSortOrder('asc')}
-                          className={cn(
-                            'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
-                            albumSortOrder === 'asc'
-                              ? 'bg-primary/15 text-primary'
-                              : 'text-foreground/80 hover:bg-accent'
-                          )}
-                          aria-label={t('sortOrderAsc')}
-                          title={t('sortOrderAsc')}
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                          <span>{t('sortOrderAsc')}</span>
-                        </button>
-                        <button
-                          onClick={() => setAlbumSortOrder('desc')}
-                          className={cn(
-                            'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
-                            albumSortOrder === 'desc'
-                              ? 'bg-primary/15 text-primary'
-                              : 'text-foreground/80 hover:bg-accent'
-                          )}
-                          aria-label={t('sortOrderDesc')}
-                          title={t('sortOrderDesc')}
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                          <span>{t('sortOrderDesc')}</span>
-                        </button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <AlbumSortControl
+                  mode={albumSortMode}
+                  order={albumSortOrder}
+                  onModeChange={setAlbumSortMode}
+                  onOrderChange={setAlbumSortOrder}
+                  labels={{
+                    button: t('sortBy'),
+                    modeName: t('sortByName'),
+                    modeArtist: t('sortByArtist'),
+                    modeYear: t('sortByYear'),
+                    orderAsc: t('sortOrderAsc'),
+                    orderDesc: t('sortOrderDesc'),
+                  }}
+                />
 
-                {/* Grid size toggle */}
-                <div
-                  className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5"
-                  role="group"
-                  aria-label={t('gridSize')}
-                >
-                  {([
-                    { size: 'large', icon: Grid2x2, label: t('gridSizeLarge') },
-                    { size: 'medium', icon: LayoutGrid, label: t('gridSizeMedium') },
-                    { size: 'small', icon: Grid3x3, label: t('gridSizeSmall') },
-                  ] as const).map(({ size, icon: Icon, label }) => (
-                    <button
-                      key={size}
-                      onClick={() => setAlbumGridSize(size as AlbumGridSize)}
-                      className={cn(
-                        'p-2 rounded-lg transition-colors',
-                        albumGridSize === size
-                          ? 'bg-primary/15 text-primary'
-                          : 'text-muted-foreground/50 hover:text-foreground'
-                      )}
-                      aria-label={label}
-                      title={label}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </button>
-                  ))}
-                </div>
+                <GridSizeToggle
+                  size={albumGridSize}
+                  onSizeChange={setAlbumGridSize}
+                  labels={{
+                    group: t('gridSize'),
+                    small: t('gridSizeSmall'),
+                    medium: t('gridSizeMedium'),
+                    large: t('gridSizeLarge'),
+                  }}
+                />
               </>
             )}
 
