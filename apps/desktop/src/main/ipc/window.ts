@@ -10,11 +10,11 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   let normalBounds: Rectangle | null = null;
   let wasMaximizedBeforeCompact = false;
 
-  ipcMain.on('window:minimize', () => {
+  ipcMain.handle('window:minimize', () => {
     mainWindow.minimize();
   });
 
-  ipcMain.on('window:maximize', () => {
+  ipcMain.handle('window:maximize', () => {
     if (mainWindow.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -22,7 +22,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  ipcMain.on('window:close', () => {
+  ipcMain.handle('window:close', () => {
     mainWindow.close();
   });
 
@@ -78,9 +78,9 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
 }
 
 export function cleanupWindowHandlers(): void {
-  ipcMain.removeAllListeners('window:minimize');
-  ipcMain.removeAllListeners('window:maximize');
-  ipcMain.removeAllListeners('window:close');
+  ipcMain.removeHandler('window:minimize');
+  ipcMain.removeHandler('window:maximize');
+  ipcMain.removeHandler('window:close');
   ipcMain.removeHandler('window:is-maximized');
   ipcMain.removeHandler('window:set-always-on-top');
   ipcMain.removeHandler('window:set-compact-mode');
