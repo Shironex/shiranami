@@ -5,7 +5,7 @@ import type { PlaybackState } from '../media-controls';
 
 export function registerMediaHandlers(mainWindow: BrowserWindow): void {
   // Renderer sends playback state updates
-  ipcMain.on('media:playback-state', (_event, state: PlaybackState) => {
+  ipcMain.handle('media:playback-state', (_event, state: PlaybackState) => {
     // Update tray tooltip with now-playing info
     updateTrayWithPlaybackState(state);
 
@@ -25,7 +25,7 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
   });
 
   // Renderer requests to clear taskbar progress
-  ipcMain.on('media:clear-state', () => {
+  ipcMain.handle('media:clear-state', () => {
     if (!mainWindow.isDestroyed()) {
       mainWindow.setProgressBar(-1);
     }
@@ -35,6 +35,6 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
 }
 
 export function cleanupMediaHandlers(): void {
-  ipcMain.removeAllListeners('media:playback-state');
-  ipcMain.removeAllListeners('media:clear-state');
+  ipcMain.removeHandler('media:playback-state');
+  ipcMain.removeHandler('media:clear-state');
 }
