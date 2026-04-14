@@ -1,9 +1,10 @@
-import { BrowserWindow, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import { updateTrayWithPlaybackState } from '../tray';
 import { updateDiscordPresence } from '../discord-rpc';
+import { getMainWindow } from '../utils/window';
 import type { PlaybackState } from '../media-controls';
 
-export function registerMediaHandlers(mainWindow: BrowserWindow): void {
+export function registerMediaHandlers(): void {
   // Renderer sends playback state updates
   ipcMain.handle('media:playback-state', (_event, state: PlaybackState) => {
     // Update tray tooltip with now-playing info
@@ -13,7 +14,10 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
     updateDiscordPresence(state);
 
     // Update taskbar progress (Windows)
-    if (process.platform === 'win32' && !mainWindow.isDestroyed()) {
+    if (process.platform === 'win32') {
+      const mainWindow = getMainWindow();
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+
       if (state.isPlaying && state.duration > 0) {
         mainWindow.setProgressBar(state.currentTime / state.duration);
       } else if (!state.isPlaying && state.duration > 0) {
@@ -26,7 +30,8 @@ export function registerMediaHandlers(mainWindow: BrowserWindow): void {
 
   // Renderer requests to clear taskbar progress
   ipcMain.handle('media:clear-state', () => {
-    if (!mainWindow.isDestroyed()) {
+    const mainWindow = getMainWindow();
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setProgressBar(-1);
     }
     updateTrayWithPlaybackState(null);

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, net } from 'electron';
+import { ipcMain, net } from 'electron';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
@@ -7,6 +7,7 @@ import {
   parseYtDlpJsonLines,
   type SearchResult,
 } from '../utils/ytdlp-spawn';
+import { getMainWindow } from '../utils/window';
 
 export { parseYtDlpJsonLines };
 
@@ -18,11 +19,6 @@ interface SpotifyTrack {
 type PlaylistType = 'youtube' | 'spotify' | 'unknown';
 
 let cancelledFlag = false;
-
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows();
-  return windows[0] ?? null;
-}
 
 export function detectPlaylistType(url: string): PlaylistType {
   try {

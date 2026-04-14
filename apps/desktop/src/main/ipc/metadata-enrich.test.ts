@@ -3,6 +3,7 @@ import {
   ipcHandlers,
   createMainWindowMock,
   asBrowserWindow,
+  setMockMainWindow,
   type MainWindowMock,
 } from '../../../test/setup';
 import {
@@ -84,11 +85,13 @@ describe('metadata-enrich handlers', () => {
 
     win = createMainWindowMock();
     (win as unknown as { isDestroyed: ReturnType<typeof vi.fn> }).isDestroyed = vi.fn().mockReturnValue(false);
-    registerMetadataEnrichHandlers(asBrowserWindow(win));
+    setMockMainWindow(asBrowserWindow(win));
+    registerMetadataEnrichHandlers();
   });
 
   afterEach(() => {
     cleanupMetadataEnrichHandlers();
+    setMockMainWindow(null);
   });
 
   // ---------------------------------------------------------------

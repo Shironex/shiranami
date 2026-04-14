@@ -10,6 +10,14 @@ export const ipcHandlers = new Map<string, (...args: unknown[]) => unknown>();
 /** `ipcMain.on` listeners per channel. */
 export const ipcOnListeners = new Map<string, Set<(...args: unknown[]) => void>>();
 
+/** The current mock main window, returned by the stubbed BrowserWindow statics. */
+let mockMainWindow: BrowserWindow | null = null;
+
+/** Register a mock BrowserWindow so `getMainWindow()` resolves to it in tests. */
+export function setMockMainWindow(win: BrowserWindow | null): void {
+  mockMainWindow = win;
+}
+
 vi.mock('electron', () => ({
   ipcMain: {
     handle(channel: string, fn: (...args: unknown[]) => unknown) {
@@ -28,7 +36,14 @@ vi.mock('electron', () => ({
       ipcOnListeners.delete(channel);
     },
   },
-  BrowserWindow: class BrowserWindowStub {},
+  BrowserWindow: class BrowserWindowStub {
+    static getFocusedWindow() {
+      return mockMainWindow;
+    }
+    static getAllWindows() {
+      return mockMainWindow ? [mockMainWindow] : [];
+    }
+  },
 }));
 
 export function createMainWindowMock() {

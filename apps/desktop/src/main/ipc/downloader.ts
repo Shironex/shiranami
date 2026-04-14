@@ -1,4 +1,5 @@
-import { ipcMain, app, BrowserWindow } from 'electron';
+import { ipcMain, app } from 'electron';
+import { getMainWindow } from '../utils/window';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -126,11 +127,6 @@ function invalidateToolStatusCache(): void {
   toolStatusCache = null;
   store.delete(TOOL_STATUS_CACHE_KEY);
   logger.info('[downloader] Tool status cache invalidated');
-}
-
-function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows();
-  return windows[0] ?? null;
 }
 
 function getDefaultDownloadDir(): string {

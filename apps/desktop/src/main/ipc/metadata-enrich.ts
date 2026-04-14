@@ -1,7 +1,8 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain } from 'electron';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from '../metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { logger } from '../logger';
+import { getMainWindow } from '../utils/window';
 
 export interface EnrichTrackInput {
   id: string;
@@ -40,7 +41,7 @@ export interface EnrichProgress {
 
 let enrichCancelled = false;
 
-export function registerMetadataEnrichHandlers(mainWindow: BrowserWindow): void {
+export function registerMetadataEnrichHandlers(): void {
   // Look up metadata for a single track (for preview / confirmation)
   ipcMain.handle(
     'metadata:lookup',
@@ -69,7 +70,8 @@ export function registerMetadataEnrichHandlers(mainWindow: BrowserWindow): void 
       const results: EnrichTrackResult[] = [];
 
       const sendProgress = (progress: EnrichProgress) => {
-        if (!mainWindow.isDestroyed()) {
+        const mainWindow = getMainWindow();
+        if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('metadata:enrich-progress', progress);
         }
       };

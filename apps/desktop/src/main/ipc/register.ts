@@ -53,7 +53,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerAppHandlers();
   registerDialogHandlers(mainWindow);
   registerLibraryHandlers();
-  registerMediaHandlers(mainWindow);
+  registerMediaHandlers();
   registerLyricsHandlers();
   registerDatabaseHandlers();
   registerShellHandlers();
@@ -62,7 +62,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerRadioHandlers();
   registerPlaylistHandlers();
   registerShareHandlers();
-  registerMetadataEnrichHandlers(mainWindow);
+  registerMetadataEnrichHandlers();
 }
 
 export function cleanupIpcHandlers(): void {

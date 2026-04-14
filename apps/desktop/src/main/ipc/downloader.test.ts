@@ -180,6 +180,7 @@ vi.mock('electron', async () => {
     },
     BrowserWindow: {
       getAllWindows: vi.fn(() => []),
+      getFocusedWindow: vi.fn(() => null),
     },
   };
 });
