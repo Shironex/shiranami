@@ -1,9 +1,10 @@
-import { app, net } from 'electron';
+import { net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from './logger';
 import { requestJson } from './http';
+import { getBinDir } from './utils/bin-paths';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
 const GITHUB_RELEASE_API = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
@@ -25,32 +26,6 @@ function getAssetUrl(): string {
 
 function getBinaryName(): string {
   return process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp';
-}
-
-function getBinDir(): string {
-  if (app.isPackaged) {
-    return path.join(app.getPath('userData'), 'bin');
-  }
-  // Dev mode: navigate from app path up to monorepo root
-  // app.getAppPath() points to apps/desktop (or similar), walk up to monorepo root
-  let dir = app.getAppPath();
-  // Walk up until we find package.json with workspaces or hit root
-  while (dir !== path.dirname(dir)) {
-    const pkgPath = path.join(dir, 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-        if (pkg.workspaces || pkg.name === 'shiranami') {
-          return path.join(dir, 'bin');
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-    dir = path.dirname(dir);
-  }
-  // Fallback to userData even in dev
-  return path.join(app.getPath('userData'), 'bin');
 }
 
 export function getYtDlpPath(): string {

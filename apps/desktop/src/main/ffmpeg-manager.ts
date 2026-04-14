@@ -5,6 +5,7 @@ import { execSync } from 'child_process';
 import { Worker } from 'node:worker_threads';
 import { logger } from './logger';
 import { requestJson, requestText } from './http';
+import { getBinDir } from './utils/bin-paths';
 
 const FFMPEG_WINDOWS_VERSION_URL =
   'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip.ver';
@@ -12,29 +13,6 @@ const FFMPEG_MAC_INFO_URL = 'https://evermeet.cx/ffmpeg/info/ffmpeg/release';
 
 interface EvermeetReleaseResponse {
   version?: string;
-}
-
-function getBinDir(): string {
-  if (app.isPackaged) {
-    return path.join(app.getPath('userData'), 'bin');
-  }
-  // Dev mode: navigate from app path up to monorepo root
-  let dir = app.getAppPath();
-  while (dir !== path.dirname(dir)) {
-    const pkgPath = path.join(dir, 'package.json');
-    if (fs.existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-        if (pkg.workspaces || pkg.name === 'shiranami') {
-          return path.join(dir, 'bin');
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-    dir = path.dirname(dir);
-  }
-  return path.join(app.getPath('userData'), 'bin');
 }
 
 export function getFFmpegDir(): string {
