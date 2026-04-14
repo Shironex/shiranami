@@ -100,8 +100,8 @@ const ALLOWED_IPC_CHANNELS = new Set([
   'share:import',
   'share:cache-youtube-id',
   'metadata:lookup',
-  'metadata:enrich-tracks',
-  'metadata:enrich-cancel',
+  'metadata:enrich:tracks',
+  'metadata:enrich:cancel',
 ]);
 
 function assertAllowedChannel(channel: string): void {
@@ -679,14 +679,14 @@ const electronAPI: ElectronAPI = {
         trackNumber: number | null;
       }>,
       options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => ipcRenderer.invoke('metadata:enrich-tracks', tracks, options),
-    cancelEnrichment: () => ipcRenderer.invoke('metadata:enrich-cancel'),
+    ) => ipcRenderer.invoke('metadata:enrich:tracks', tracks, options),
+    cancelEnrichment: () => ipcRenderer.invoke('metadata:enrich:cancel'),
     onEnrichProgress: createIpcListener<{
       current: number;
       total: number;
       trackName: string;
       status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-    }>('metadata:enrich-progress'),
+    }>('metadata:enrich:progress'),
   },
   share: {
     track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),

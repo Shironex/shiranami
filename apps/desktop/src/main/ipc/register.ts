@@ -12,6 +12,21 @@
  *  - Renderer error classification: `isIpcError(e)` + code registries
  *    (YT_DLP_ERROR_CODES, SHARE_ERROR_CODES, PLAYLIST_ERROR_CODES), all
  *    re-exported through the preload.
+ *
+ * Channel naming convention (resolves #75):
+ *  - Default shape is two-segment: `<namespace>:<action-name>`
+ *    (e.g. `library:scan-folder`, `window:set-compact-mode`).
+ *  - Three-segment `<namespace>:<entity>:<action>` is allowed — and preferred —
+ *    when 2+ channels share a sub-feature:
+ *      db:tracks:*, db:history:*, db:folders:*, db:playlists:*
+ *      radio:favorites:*
+ *      metadata:enrich:*
+ *  - Do NOT flatten sub-namespaces with a hyphen (e.g. `metadata:enrich-tracks`);
+ *    use a third colon segment instead.
+ *  - Logger prefixes should mirror the channel namespace (e.g. `[metadata:enrich]`
+ *    for handlers in the `metadata:enrich:*` sub-feature). Auto-error logs from
+ *    `handle()` emit `[ipc:<full-channel>]`; informational logs use the bare
+ *    `[<namespace>]` or `[<namespace>:<entity>]` form.
  */
 import { BrowserWindow } from 'electron';
 import {
