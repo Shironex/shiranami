@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { IS_ELECTRON } from '@/lib/platform';
 
 export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes' | 'search' | 'radio' | 'settings' | 'import-playlist' | 'now-playing';
@@ -9,111 +10,39 @@ export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year';
 export type AlbumSortOrder = 'asc' | 'desc';
 
-function getInitialLibraryViewMode(): LibraryViewMode {
-  if (typeof window === 'undefined') return 'tracks';
-  const stored = window.localStorage.getItem(LIBRARY_VIEW_MODE_STORAGE_KEY);
-  if (stored === 'tracks' || stored === 'albums') return stored;
-  return 'tracks';
-}
-
-function persistLibraryViewMode(mode: LibraryViewMode) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LIBRARY_VIEW_MODE_STORAGE_KEY, mode);
-}
-
-function getInitialAlbumGridSize(): AlbumGridSize {
-  if (typeof window === 'undefined') return 'medium';
-  const stored = window.localStorage.getItem(ALBUM_GRID_SIZE_STORAGE_KEY);
-  if (stored === 'small' || stored === 'medium' || stored === 'large') return stored;
-  return 'medium';
-}
-
-function persistAlbumGridSize(size: AlbumGridSize) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ALBUM_GRID_SIZE_STORAGE_KEY, size);
-}
-
-function getInitialPlaylistGridSize(): AlbumGridSize {
-  if (typeof window === 'undefined') return 'medium';
-  const stored = window.localStorage.getItem(PLAYLIST_GRID_SIZE_STORAGE_KEY);
-  if (stored === 'small' || stored === 'medium' || stored === 'large') return stored;
-  return 'medium';
-}
-
-function persistPlaylistGridSize(size: AlbumGridSize) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(PLAYLIST_GRID_SIZE_STORAGE_KEY, size);
-}
-
-function getInitialAlbumSortMode(): AlbumSortMode {
-  if (typeof window === 'undefined') return 'name';
-  const stored = window.localStorage.getItem(ALBUM_SORT_MODE_STORAGE_KEY);
-  if (stored === 'name' || stored === 'artist' || stored === 'year') return stored;
-  return 'name';
-}
-
-function persistAlbumSortMode(mode: AlbumSortMode) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ALBUM_SORT_MODE_STORAGE_KEY, mode);
-}
-
-function getInitialAlbumSortOrder(): AlbumSortOrder {
-  if (typeof window === 'undefined') return 'asc';
-  const stored = window.localStorage.getItem(ALBUM_SORT_ORDER_STORAGE_KEY);
-  if (stored === 'asc' || stored === 'desc') return stored;
-  return 'asc';
-}
-
-function persistAlbumSortOrder(order: AlbumSortOrder) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(ALBUM_SORT_ORDER_STORAGE_KEY, order);
-}
-
-const LIBRARY_VIEW_MODE_STORAGE_KEY = 'shiranami.library-view-mode';
-const ALBUM_GRID_SIZE_STORAGE_KEY = 'shiranami.album-grid-size';
-const PLAYLIST_GRID_SIZE_STORAGE_KEY = 'shiranami.playlist-grid-size';
-const ALBUM_SORT_MODE_STORAGE_KEY = 'shiranami.album-sort-mode';
-const ALBUM_SORT_ORDER_STORAGE_KEY = 'shiranami.album-sort-order';
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shiranami.sidebar-collapsed';
-const SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY = 'shiranami.sidebar-hidden-items';
-const SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY = 'shiranami.sidebar-playlists-visible';
-const VISUALIZER_STYLE_STORAGE_KEY = 'shiranami.visualizer-style';
-const VISUALIZER_ENABLED_STORAGE_KEY = 'shiranami.visualizer-enabled';
-const COMPACT_ALWAYS_ON_TOP_STORAGE_KEY = 'shiranami.compact-always-on-top';
-const NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY = 'shiranami.now-playing-view-enabled';
-const NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY = 'shiranami.now-playing-lyrics-visible';
-const LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY = 'shiranami.library-hero-card-enabled';
-const UI_SCALE_STORAGE_KEY = 'shiranami.ui-scale';
-const LOW_PERFORMANCE_MODE_STORAGE_KEY = 'shiranami.low-performance-mode';
-const NOISE_OVERLAY_ENABLED_STORAGE_KEY = 'shiranami.noise-overlay-enabled';
-
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
 export const UI_SCALE_DEFAULT = 100;
 export const UI_SCALE_STEP = 5;
 export const UI_SCALE_PRESETS = [80, 90, 100, 110, 120] as const;
 
+const NEW_KEY = 'shiranami.app-store';
+
+const LEGACY_KEYS = {
+  sidebarCollapsed: 'shiranami.sidebar-collapsed',
+  sidebarHiddenItems: 'shiranami.sidebar-hidden-items',
+  sidebarPlaylistsVisible: 'shiranami.sidebar-playlists-visible',
+  compactAlwaysOnTop: 'shiranami.compact-always-on-top',
+  showVisualizer: 'shiranami.visualizer-enabled',
+  visualizerStyle: 'shiranami.visualizer-style',
+  uiScale: 'shiranami.ui-scale',
+  libraryViewMode: 'shiranami.library-view-mode',
+  albumGridSize: 'shiranami.album-grid-size',
+  playlistGridSize: 'shiranami.playlist-grid-size',
+  albumSortMode: 'shiranami.album-sort-mode',
+  albumSortOrder: 'shiranami.album-sort-order',
+  nowPlayingViewEnabled: 'shiranami.now-playing-view-enabled',
+  nowPlayingLyricsVisible: 'shiranami.now-playing-lyrics-visible',
+  libraryHeroCardEnabled: 'shiranami.library-hero-card-enabled',
+  lowPerformanceMode: 'shiranami.low-performance-mode',
+  noiseOverlayEnabled: 'shiranami.noise-overlay-enabled',
+} as const;
+
+// --- Side-effect helpers (applied on rehydrate and from setters) ---
+
 function applyUiScale(scale: number) {
   if (typeof document === 'undefined') return;
   document.documentElement.style.fontSize = `${scale}%`;
-}
-
-function getInitialUiScale(): number {
-  if (typeof window === 'undefined') return UI_SCALE_DEFAULT;
-  const stored = window.localStorage.getItem(UI_SCALE_STORAGE_KEY);
-  if (stored) {
-    const parsed = Number(stored);
-    if (!Number.isNaN(parsed) && parsed >= UI_SCALE_MIN && parsed <= UI_SCALE_MAX) {
-      applyUiScale(parsed);
-      return parsed;
-    }
-  }
-  return UI_SCALE_DEFAULT;
-}
-
-function persistUiScale(scale: number) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(UI_SCALE_STORAGE_KEY, String(scale));
 }
 
 function applyLowPerformanceMode(enabled: boolean) {
@@ -125,138 +54,150 @@ function applyLowPerformanceMode(enabled: boolean) {
   }
 }
 
-function getInitialLowPerformanceMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  const stored = window.localStorage.getItem(LOW_PERFORMANCE_MODE_STORAGE_KEY);
-  const enabled = stored === 'true';
-  applyLowPerformanceMode(enabled);
-  return enabled;
+// --- Coercion helpers (mirror the original getInitial* behavior) ---
+
+function coerceVisualizerStyle(v: unknown): VisualizerStyle {
+  return v === 'bars' || v === 'waveform' || v === 'circle' || v === 'particles' ? v : 'bars';
+}
+function coerceLibraryViewMode(v: unknown): LibraryViewMode {
+  return v === 'tracks' || v === 'albums' ? v : 'tracks';
+}
+function coerceGridSize(v: unknown): AlbumGridSize {
+  return v === 'small' || v === 'medium' || v === 'large' ? v : 'medium';
+}
+function coerceAlbumSortMode(v: unknown): AlbumSortMode {
+  return v === 'name' || v === 'artist' || v === 'year' ? v : 'name';
+}
+function coerceAlbumSortOrder(v: unknown): AlbumSortOrder {
+  return v === 'asc' || v === 'desc' ? v : 'asc';
+}
+function coerceUiScale(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
+  return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
+}
+// --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
+
+interface PersistedAppState {
+  sidebarCollapsed: boolean;
+  sidebarHiddenItems: AppView[];
+  sidebarPlaylistsVisible: boolean;
+  compactAlwaysOnTop: boolean;
+  showVisualizer: boolean;
+  visualizerStyle: VisualizerStyle;
+  uiScale: number;
+  libraryViewMode: LibraryViewMode;
+  albumGridSize: AlbumGridSize;
+  playlistGridSize: AlbumGridSize;
+  albumSortMode: AlbumSortMode;
+  albumSortOrder: AlbumSortOrder;
+  nowPlayingViewEnabled: boolean;
+  nowPlayingLyricsVisible: boolean;
+  libraryHeroCardEnabled: boolean;
+  lowPerformanceMode: boolean;
+  noiseOverlayEnabled: boolean;
 }
 
-function persistLowPerformanceMode(enabled: boolean) {
+function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
+  if (!persisted || typeof persisted !== 'object') return {};
+  const out: Partial<PersistedAppState> = {};
+  if (typeof persisted.sidebarCollapsed === 'boolean') out.sidebarCollapsed = persisted.sidebarCollapsed;
+  if (Array.isArray(persisted.sidebarHiddenItems)) out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
+  if (typeof persisted.sidebarPlaylistsVisible === 'boolean') out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
+  if (typeof persisted.compactAlwaysOnTop === 'boolean') out.compactAlwaysOnTop = persisted.compactAlwaysOnTop;
+  if (typeof persisted.showVisualizer === 'boolean') out.showVisualizer = persisted.showVisualizer;
+  if (persisted.visualizerStyle !== undefined) out.visualizerStyle = coerceVisualizerStyle(persisted.visualizerStyle);
+  if (persisted.uiScale !== undefined) out.uiScale = coerceUiScale(persisted.uiScale);
+  if (persisted.libraryViewMode !== undefined) out.libraryViewMode = coerceLibraryViewMode(persisted.libraryViewMode);
+  if (persisted.albumGridSize !== undefined) out.albumGridSize = coerceGridSize(persisted.albumGridSize);
+  if (persisted.playlistGridSize !== undefined) out.playlistGridSize = coerceGridSize(persisted.playlistGridSize);
+  if (persisted.albumSortMode !== undefined) out.albumSortMode = coerceAlbumSortMode(persisted.albumSortMode);
+  if (persisted.albumSortOrder !== undefined) out.albumSortOrder = coerceAlbumSortOrder(persisted.albumSortOrder);
+  if (typeof persisted.nowPlayingViewEnabled === 'boolean') out.nowPlayingViewEnabled = persisted.nowPlayingViewEnabled;
+  if (typeof persisted.nowPlayingLyricsVisible === 'boolean') out.nowPlayingLyricsVisible = persisted.nowPlayingLyricsVisible;
+  if (typeof persisted.libraryHeroCardEnabled === 'boolean') out.libraryHeroCardEnabled = persisted.libraryHeroCardEnabled;
+  if (typeof persisted.lowPerformanceMode === 'boolean') out.lowPerformanceMode = persisted.lowPerformanceMode;
+  if (typeof persisted.noiseOverlayEnabled === 'boolean') out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  return out;
+}
+
+// --- One-shot legacy import (runs at module load, before create()) ---
+
+function importLegacyAppStore() {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOW_PERFORMANCE_MODE_STORAGE_KEY, enabled ? 'true' : 'false');
+  const ls = window.localStorage;
+  if (ls.getItem(NEW_KEY)) return;
+  const hasAny = Object.values(LEGACY_KEYS).some((k) => ls.getItem(k) !== null);
+  if (!hasAny) return;
+
+  const state: Partial<PersistedAppState> = {};
+
+  const sidebarCollapsed = ls.getItem(LEGACY_KEYS.sidebarCollapsed);
+  if (sidebarCollapsed !== null) state.sidebarCollapsed = sidebarCollapsed === 'true';
+
+  const sidebarHiddenItemsRaw = ls.getItem(LEGACY_KEYS.sidebarHiddenItems);
+  if (sidebarHiddenItemsRaw !== null) {
+    try {
+      const parsed = JSON.parse(sidebarHiddenItemsRaw);
+      if (Array.isArray(parsed)) state.sidebarHiddenItems = parsed as AppView[];
+    } catch { /* noop */ }
+  }
+
+  const sidebarPlaylistsVisible = ls.getItem(LEGACY_KEYS.sidebarPlaylistsVisible);
+  if (sidebarPlaylistsVisible !== null) state.sidebarPlaylistsVisible = sidebarPlaylistsVisible !== 'false';
+
+  const compactAlwaysOnTop = ls.getItem(LEGACY_KEYS.compactAlwaysOnTop);
+  if (compactAlwaysOnTop !== null) state.compactAlwaysOnTop = compactAlwaysOnTop === 'true';
+
+  const showVisualizer = ls.getItem(LEGACY_KEYS.showVisualizer);
+  if (showVisualizer !== null) state.showVisualizer = showVisualizer !== 'false';
+
+  const visualizerStyle = ls.getItem(LEGACY_KEYS.visualizerStyle);
+  if (visualizerStyle !== null) state.visualizerStyle = coerceVisualizerStyle(visualizerStyle);
+
+  const uiScaleRaw = ls.getItem(LEGACY_KEYS.uiScale);
+  if (uiScaleRaw !== null) {
+    const parsed = Number(uiScaleRaw);
+    if (!Number.isNaN(parsed) && parsed >= UI_SCALE_MIN && parsed <= UI_SCALE_MAX) {
+      state.uiScale = parsed;
+    }
+  }
+
+  const libraryViewMode = ls.getItem(LEGACY_KEYS.libraryViewMode);
+  if (libraryViewMode !== null) state.libraryViewMode = coerceLibraryViewMode(libraryViewMode);
+
+  const albumGridSize = ls.getItem(LEGACY_KEYS.albumGridSize);
+  if (albumGridSize !== null) state.albumGridSize = coerceGridSize(albumGridSize);
+
+  const playlistGridSize = ls.getItem(LEGACY_KEYS.playlistGridSize);
+  if (playlistGridSize !== null) state.playlistGridSize = coerceGridSize(playlistGridSize);
+
+  const albumSortMode = ls.getItem(LEGACY_KEYS.albumSortMode);
+  if (albumSortMode !== null) state.albumSortMode = coerceAlbumSortMode(albumSortMode);
+
+  const albumSortOrder = ls.getItem(LEGACY_KEYS.albumSortOrder);
+  if (albumSortOrder !== null) state.albumSortOrder = coerceAlbumSortOrder(albumSortOrder);
+
+  const nowPlayingViewEnabled = ls.getItem(LEGACY_KEYS.nowPlayingViewEnabled);
+  if (nowPlayingViewEnabled !== null) state.nowPlayingViewEnabled = nowPlayingViewEnabled === 'true';
+
+  const nowPlayingLyricsVisible = ls.getItem(LEGACY_KEYS.nowPlayingLyricsVisible);
+  if (nowPlayingLyricsVisible !== null) state.nowPlayingLyricsVisible = nowPlayingLyricsVisible !== 'false';
+
+  const libraryHeroCardEnabled = ls.getItem(LEGACY_KEYS.libraryHeroCardEnabled);
+  if (libraryHeroCardEnabled !== null) state.libraryHeroCardEnabled = libraryHeroCardEnabled !== 'false';
+
+  const lowPerformanceMode = ls.getItem(LEGACY_KEYS.lowPerformanceMode);
+  if (lowPerformanceMode !== null) state.lowPerformanceMode = lowPerformanceMode === 'true';
+
+  const noiseOverlayEnabled = ls.getItem(LEGACY_KEYS.noiseOverlayEnabled);
+  if (noiseOverlayEnabled !== null) state.noiseOverlayEnabled = noiseOverlayEnabled === 'true';
+
+  ls.setItem(NEW_KEY, JSON.stringify({ state, version: 1 }));
+  Object.values(LEGACY_KEYS).forEach((k) => ls.removeItem(k));
 }
 
-function getInitialNoiseOverlayEnabled(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(NOISE_OVERLAY_ENABLED_STORAGE_KEY) === 'true';
-}
-
-function persistNoiseOverlayEnabled(enabled: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(NOISE_OVERLAY_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
-}
-
-function getInitialSidebarCollapsed() {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
-}
-
-function persistSidebarCollapsed(sidebarCollapsed: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(
-    SIDEBAR_COLLAPSED_STORAGE_KEY,
-    sidebarCollapsed ? 'true' : 'false'
-  );
-}
-
-function getInitialSidebarHiddenItems(): AppView[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = window.localStorage.getItem(SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as AppView[];
-  } catch { /* noop */ }
-  return [];
-}
-
-function persistSidebarHiddenItems(items: AppView[]) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(SIDEBAR_HIDDEN_ITEMS_STORAGE_KEY, JSON.stringify(items));
-}
-
-function getInitialSidebarPlaylistsVisible(): boolean {
-  if (typeof window === 'undefined') return true;
-  const stored = window.localStorage.getItem(SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY);
-  if (stored === 'false') return false;
-  return true;
-}
-
-function persistSidebarPlaylistsVisible(visible: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(SIDEBAR_PLAYLISTS_VISIBLE_STORAGE_KEY, visible ? 'true' : 'false');
-}
-
-function getInitialVisualizerStyle(): VisualizerStyle {
-  if (typeof window === 'undefined') return 'bars';
-  const stored = window.localStorage.getItem(VISUALIZER_STYLE_STORAGE_KEY);
-  if (stored === 'bars' || stored === 'waveform' || stored === 'circle' || stored === 'particles') return stored;
-  return 'bars';
-}
-
-function persistVisualizerStyle(style: VisualizerStyle) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(VISUALIZER_STYLE_STORAGE_KEY, style);
-}
-
-function getInitialVisualizerEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-  const stored = window.localStorage.getItem(VISUALIZER_ENABLED_STORAGE_KEY);
-  if (stored === 'false') return false;
-  return true;
-}
-
-function persistVisualizerEnabled(enabled: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(VISUALIZER_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
-}
-
-function getInitialNowPlayingViewEnabled(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY) === 'true';
-}
-
-function persistNowPlayingViewEnabled(enabled: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(NOW_PLAYING_VIEW_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
-}
-
-function getInitialNowPlayingLyricsVisible(): boolean {
-  if (typeof window === 'undefined') return true;
-  const stored = window.localStorage.getItem(NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY);
-  if (stored === 'false') return false;
-  return true;
-}
-
-function persistNowPlayingLyricsVisible(visible: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(NOW_PLAYING_LYRICS_VISIBLE_STORAGE_KEY, visible ? 'true' : 'false');
-}
-
-function getInitialLibraryHeroCardEnabled(): boolean {
-  if (typeof window === 'undefined') return true;
-  const stored = window.localStorage.getItem(LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY);
-  if (stored === 'false') return false;
-  return true;
-}
-
-function persistLibraryHeroCardEnabled(enabled: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LIBRARY_HERO_CARD_ENABLED_STORAGE_KEY, enabled ? 'true' : 'false');
-}
-
-function getInitialCompactAlwaysOnTop(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.localStorage.getItem(COMPACT_ALWAYS_ON_TOP_STORAGE_KEY) === 'true';
-}
-
-function persistCompactAlwaysOnTop(compactAlwaysOnTop: boolean) {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(
-    COMPACT_ALWAYS_ON_TOP_STORAGE_KEY,
-    compactAlwaysOnTop ? 'true' : 'false'
-  );
-}
+importLegacyAppStore();
 
 interface AppState {
   activeView: AppView;
@@ -318,189 +259,203 @@ interface AppActions {
   setAlbumGridScrollTop: (scrollTop: number) => void;
 }
 
-export const useAppStore = create<AppState & AppActions>((set, get) => ({
-  activeView: 'library',
-  rightPanel: null,
-  selectedPlaylistId: null,
-  sidebarCollapsed: getInitialSidebarCollapsed(),
-  sidebarHiddenItems: getInitialSidebarHiddenItems(),
-  sidebarPlaylistsVisible: getInitialSidebarPlaylistsVisible(),
-  compactMode: false,
-  compactAlwaysOnTop: getInitialCompactAlwaysOnTop(),
-  showVisualizer: getInitialVisualizerEnabled(),
-  visualizerStyle: getInitialVisualizerStyle(),
-  uiScale: getInitialUiScale(),
-  libraryViewMode: getInitialLibraryViewMode(),
-  albumGridSize: getInitialAlbumGridSize(),
-  playlistGridSize: getInitialPlaylistGridSize(),
-  albumSortMode: getInitialAlbumSortMode(),
-  albumSortOrder: getInitialAlbumSortOrder(),
-  selectedAlbumName: null,
-  albumGridScrollTop: 0,
-  nowPlayingViewEnabled: getInitialNowPlayingViewEnabled(),
-  nowPlayingLyricsVisible: getInitialNowPlayingLyricsVisible(),
-  libraryHeroCardEnabled: getInitialLibraryHeroCardEnabled(),
-  lowPerformanceMode: getInitialLowPerformanceMode(),
-  noiseOverlayEnabled: getInitialNoiseOverlayEnabled(),
-  previousView: 'library',
+export const useAppStore = create<AppState & AppActions>()(
+  persist(
+    (set, get) => ({
+      activeView: 'library',
+      rightPanel: null,
+      selectedPlaylistId: null,
+      sidebarCollapsed: false,
+      sidebarHiddenItems: [],
+      sidebarPlaylistsVisible: true,
+      compactMode: false,
+      compactAlwaysOnTop: false,
+      showVisualizer: true,
+      visualizerStyle: 'bars',
+      uiScale: UI_SCALE_DEFAULT,
+      libraryViewMode: 'tracks',
+      albumGridSize: 'medium',
+      playlistGridSize: 'medium',
+      albumSortMode: 'name',
+      albumSortOrder: 'asc',
+      selectedAlbumName: null,
+      albumGridScrollTop: 0,
+      nowPlayingViewEnabled: false,
+      nowPlayingLyricsVisible: true,
+      libraryHeroCardEnabled: true,
+      lowPerformanceMode: false,
+      noiseOverlayEnabled: false,
+      previousView: 'library',
 
-  navigateTo: (view, playlistId) =>
-    set({
-      activeView: view,
-      selectedPlaylistId: view === 'playlists' ? (playlistId ?? null) : null,
-    }),
-  enterNowPlaying: () => {
-    const current = get().activeView;
-    if (current === 'now-playing') return;
-    set({ previousView: current, activeView: 'now-playing' });
-  },
-  exitNowPlaying: () => {
-    const prev = get().previousView;
-    set({ activeView: prev });
-  },
-  setNowPlayingViewEnabled: (enabled) => {
-    persistNowPlayingViewEnabled(enabled);
-    set({ nowPlayingViewEnabled: enabled });
-    if (!enabled && get().activeView === 'now-playing') {
-      get().exitNowPlaying();
-    }
-  },
-  toggleNowPlayingLyrics: () => {
-    const next = !get().nowPlayingLyricsVisible;
-    persistNowPlayingLyricsVisible(next);
-    set({ nowPlayingLyricsVisible: next });
-  },
-  setLibraryHeroCardEnabled: (enabled) => {
-    persistLibraryHeroCardEnabled(enabled);
-    set({ libraryHeroCardEnabled: enabled });
-  },
-  setLowPerformanceMode: (enabled) => {
-    applyLowPerformanceMode(enabled);
-    persistLowPerformanceMode(enabled);
-    set({ lowPerformanceMode: enabled });
-  },
-  setNoiseOverlayEnabled: (enabled) => {
-    persistNoiseOverlayEnabled(enabled);
-    set({ noiseOverlayEnabled: enabled });
-  },
-  selectPlaylist: (id) => set({ selectedPlaylistId: id }),
-  setRightPanel: (panel) => set({ rightPanel: panel }),
-  setSidebarCollapsed: (sidebarCollapsed) => {
-    persistSidebarCollapsed(sidebarCollapsed);
-    set({ sidebarCollapsed });
-  },
-  setCompactMode: async (compactMode) => {
-    const previous = get().compactMode;
-    if (previous === compactMode) return;
-
-    set({ compactMode });
-
-    if (!IS_ELECTRON) return;
-
-    try {
-      await window.electronAPI.window.setCompactMode(compactMode);
-      if (get().compactAlwaysOnTop) {
-        await window.electronAPI.window.setAlwaysOnTop(compactMode);
-      }
-    } catch {
-      if (compactMode && get().compactAlwaysOnTop) {
-        try {
-          await window.electronAPI.window.setAlwaysOnTop(false);
-        } catch {
-          // noop
+      navigateTo: (view, playlistId) =>
+        set({
+          activeView: view,
+          selectedPlaylistId: view === 'playlists' ? (playlistId ?? null) : null,
+        }),
+      enterNowPlaying: () => {
+        const current = get().activeView;
+        if (current === 'now-playing') return;
+        set({ previousView: current, activeView: 'now-playing' });
+      },
+      exitNowPlaying: () => {
+        const prev = get().previousView;
+        set({ activeView: prev });
+      },
+      setNowPlayingViewEnabled: (enabled) => {
+        set({ nowPlayingViewEnabled: enabled });
+        if (!enabled && get().activeView === 'now-playing') {
+          get().exitNowPlaying();
         }
-      }
-      set({ compactMode: previous });
+      },
+      toggleNowPlayingLyrics: () => {
+        set({ nowPlayingLyricsVisible: !get().nowPlayingLyricsVisible });
+      },
+      setLibraryHeroCardEnabled: (enabled) => {
+        set({ libraryHeroCardEnabled: enabled });
+      },
+      setLowPerformanceMode: (enabled) => {
+        applyLowPerformanceMode(enabled);
+        set({ lowPerformanceMode: enabled });
+      },
+      setNoiseOverlayEnabled: (enabled) => {
+        set({ noiseOverlayEnabled: enabled });
+      },
+      selectPlaylist: (id) => set({ selectedPlaylistId: id }),
+      setRightPanel: (panel) => set({ rightPanel: panel }),
+      setSidebarCollapsed: (sidebarCollapsed) => {
+        set({ sidebarCollapsed });
+      },
+      setCompactMode: async (compactMode) => {
+        const previous = get().compactMode;
+        if (previous === compactMode) return;
+
+        set({ compactMode });
+
+        if (!IS_ELECTRON) return;
+
+        try {
+          await window.electronAPI.window.setCompactMode(compactMode);
+          if (get().compactAlwaysOnTop) {
+            await window.electronAPI.window.setAlwaysOnTop(compactMode);
+          }
+        } catch {
+          if (compactMode && get().compactAlwaysOnTop) {
+            try {
+              await window.electronAPI.window.setAlwaysOnTop(false);
+            } catch {
+              // noop
+            }
+          }
+          set({ compactMode: previous });
+        }
+      },
+      setCompactAlwaysOnTop: async (compactAlwaysOnTop) => {
+        const previous = get().compactAlwaysOnTop;
+        if (previous === compactAlwaysOnTop) return;
+
+        set({ compactAlwaysOnTop });
+
+        if (!IS_ELECTRON || !get().compactMode) return;
+
+        try {
+          await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
+        } catch {
+          set({ compactAlwaysOnTop: previous });
+        }
+      },
+      toggleCompactMode: async () => {
+        await get().setCompactMode(!get().compactMode);
+      },
+      toggleCompactAlwaysOnTop: async () => {
+        await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
+      },
+      toggleSidebarCollapsed: () => {
+        set({ sidebarCollapsed: !get().sidebarCollapsed });
+      },
+      toggleSidebarItem: (view) => {
+        const current = get().sidebarHiddenItems;
+        const next = current.includes(view)
+          ? current.filter((v) => v !== view)
+          : [...current, view];
+        set({ sidebarHiddenItems: next });
+      },
+      setSidebarPlaylistsVisible: (visible) => {
+        set({ sidebarPlaylistsVisible: visible });
+      },
+      toggleRightPanel: (panel) => {
+        const current = get().rightPanel;
+        set({ rightPanel: current === panel ? null : panel });
+      },
+      toggleVisualizer: () => {
+        set({ showVisualizer: !get().showVisualizer });
+      },
+      setVisualizerStyle: (style) => {
+        set({ visualizerStyle: style });
+      },
+      setUiScale: (scale) => {
+        const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
+        applyUiScale(clamped);
+        set({ uiScale: clamped });
+      },
+      resetUiScale: () => {
+        applyUiScale(UI_SCALE_DEFAULT);
+        set({ uiScale: UI_SCALE_DEFAULT });
+      },
+      setLibraryViewMode: (mode) => {
+        set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
+      },
+      setAlbumGridSize: (size) => {
+        set({ albumGridSize: size });
+      },
+      setPlaylistGridSize: (size) => {
+        set({ playlistGridSize: size });
+      },
+      setAlbumSortMode: (mode) => {
+        // Scroll position is meaningless once album order changes.
+        set({ albumSortMode: mode, albumGridScrollTop: 0 });
+      },
+      setAlbumSortOrder: (order) => {
+        // Scroll position is meaningless once album order changes.
+        set({ albumSortOrder: order, albumGridScrollTop: 0 });
+      },
+      selectAlbum: (name) => set({ selectedAlbumName: name }),
+      setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
+    }),
+    {
+      name: NEW_KEY,
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: (s) => ({
+        sidebarCollapsed: s.sidebarCollapsed,
+        sidebarHiddenItems: s.sidebarHiddenItems,
+        sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
+        compactAlwaysOnTop: s.compactAlwaysOnTop,
+        showVisualizer: s.showVisualizer,
+        visualizerStyle: s.visualizerStyle,
+        uiScale: s.uiScale,
+        libraryViewMode: s.libraryViewMode,
+        albumGridSize: s.albumGridSize,
+        playlistGridSize: s.playlistGridSize,
+        albumSortMode: s.albumSortMode,
+        albumSortOrder: s.albumSortOrder,
+        nowPlayingViewEnabled: s.nowPlayingViewEnabled,
+        nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
+        libraryHeroCardEnabled: s.libraryHeroCardEnabled,
+        lowPerformanceMode: s.lowPerformanceMode,
+        noiseOverlayEnabled: s.noiseOverlayEnabled,
+      }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...sanitize(persisted as Partial<PersistedAppState>),
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        applyUiScale(state.uiScale);
+        applyLowPerformanceMode(state.lowPerformanceMode);
+      },
     }
-  },
-  setCompactAlwaysOnTop: async (compactAlwaysOnTop) => {
-    const previous = get().compactAlwaysOnTop;
-    if (previous === compactAlwaysOnTop) return;
-
-    persistCompactAlwaysOnTop(compactAlwaysOnTop);
-    set({ compactAlwaysOnTop });
-
-    if (!IS_ELECTRON || !get().compactMode) return;
-
-    try {
-      await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
-    } catch {
-      persistCompactAlwaysOnTop(previous);
-      set({ compactAlwaysOnTop: previous });
-    }
-  },
-  toggleCompactMode: async () => {
-    await get().setCompactMode(!get().compactMode);
-  },
-  toggleCompactAlwaysOnTop: async () => {
-    await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
-  },
-  toggleSidebarCollapsed: () => {
-    const sidebarCollapsed = !get().sidebarCollapsed;
-    persistSidebarCollapsed(sidebarCollapsed);
-    set({ sidebarCollapsed });
-  },
-  toggleSidebarItem: (view) => {
-    const current = get().sidebarHiddenItems;
-    const next = current.includes(view)
-      ? current.filter((v) => v !== view)
-      : [...current, view];
-    persistSidebarHiddenItems(next);
-    set({ sidebarHiddenItems: next });
-  },
-  setSidebarPlaylistsVisible: (visible) => {
-    persistSidebarPlaylistsVisible(visible);
-    set({ sidebarPlaylistsVisible: visible });
-  },
-  toggleRightPanel: (panel) => {
-    const current = get().rightPanel;
-    set({ rightPanel: current === panel ? null : panel });
-  },
-  toggleVisualizer: () => {
-    const next = !get().showVisualizer;
-    persistVisualizerEnabled(next);
-    set({ showVisualizer: next });
-  },
-  setVisualizerStyle: (style) => {
-    persistVisualizerStyle(style);
-    set({ visualizerStyle: style });
-  },
-  setUiScale: (scale) => {
-    const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
-    applyUiScale(clamped);
-    persistUiScale(clamped);
-    set({ uiScale: clamped });
-  },
-  resetUiScale: () => {
-    applyUiScale(UI_SCALE_DEFAULT);
-    persistUiScale(UI_SCALE_DEFAULT);
-    set({ uiScale: UI_SCALE_DEFAULT });
-  },
-  setLibraryViewMode: (mode) => {
-    persistLibraryViewMode(mode);
-    set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
-  },
-  setAlbumGridSize: (size) => {
-    persistAlbumGridSize(size);
-    set({ albumGridSize: size });
-  },
-  setPlaylistGridSize: (size) => {
-    persistPlaylistGridSize(size);
-    set({ playlistGridSize: size });
-  },
-  setAlbumSortMode: (mode) => {
-    persistAlbumSortMode(mode);
-    // Scroll position is meaningless once album order changes.
-    set({ albumSortMode: mode, albumGridScrollTop: 0 });
-  },
-  setAlbumSortOrder: (order) => {
-    persistAlbumSortOrder(order);
-    // Scroll position is meaningless once album order changes.
-    set({ albumSortOrder: order, albumGridScrollTop: 0 });
-  },
-  selectAlbum: (name) => set({ selectedAlbumName: name }),
-  setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
-}));
+  )
+);
 
 if (import.meta.hot) {
   type HmrData = { store?: typeof useAppStore };
