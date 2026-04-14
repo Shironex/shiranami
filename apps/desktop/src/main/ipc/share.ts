@@ -1,27 +1,14 @@
 import { ipcMain, net } from 'electron';
-import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import { eq, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { getYtDlpPath } from '../ytdlp-manager';
 import { logger } from '../logger';
 import { IpcError, SHARE_ERROR_CODES } from './errors';
+import { spawnYtDlp } from '../utils/ytdlp-spawn';
 
 const SHARE_API_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
   : 'https://api.shiranami.app';
-
-function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
-    let stdout = '';
-    let stderr = '';
-    proc.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
-    proc.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
-    proc.on('error', (err) => reject(err));
-    proc.on('close', (code) => resolve({ stdout, stderr, code: code ?? 1 }));
-  });
-}
 
 async function getYoutubeId(trackId: string): Promise<string | null> {
   const db = getDatabase();

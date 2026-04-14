@@ -1,20 +1,14 @@
 import { ipcMain, BrowserWindow, net } from 'electron';
-import { spawn } from 'child_process';
 import { logger } from '../logger';
-import { getYtDlpPath } from '../ytdlp-manager';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
+import {
+  spawnYtDlp,
+  parseYtDlpJsonLines,
+  type SearchResult,
+} from '../utils/ytdlp-spawn';
 
-interface SearchResult {
-  id: string;
-  title: string;
-  uploader: string;
-  duration: number;
-  thumbnail: string;
-  url: string;
-  webpage_url: string;
-  view_count?: number;
-}
+export { parseYtDlpJsonLines };
 
 interface SpotifyTrack {
   title: string;
@@ -63,60 +57,10 @@ export function extractSpotifyPlaylistId(url: string): string | null {
   }
 }
 
-function spawnYtDlpForPlaylist(
-  args: string[]
-): Promise<{ stdout: string; stderr: string; code: number }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
-    let stdout = '';
-    let stderr = '';
-
-    proc.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-    proc.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-    proc.on('error', (err) => {
-      reject(err);
-    });
-    proc.on('close', (code) => {
-      resolve({ stdout, stderr, code: code ?? 1 });
-    });
-  });
-}
-
-export function parseYtDlpJsonLines(stdout: string): SearchResult[] {
-  return stdout
-    .trim()
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => {
-      try {
-        const data = JSON.parse(line);
-        const result: SearchResult = {
-          id: data.id ?? '',
-          title: data.title ?? 'Unknown',
-          uploader: data.uploader ?? data.channel ?? 'Unknown',
-          duration: data.duration ?? 0,
-          thumbnail: data.thumbnail ?? data.thumbnails?.[0]?.url ?? '',
-          url: data.url ?? `https://www.youtube.com/watch?v=${data.id}`,
-          webpage_url: data.webpage_url ?? `https://www.youtube.com/watch?v=${data.id}`,
-          view_count: typeof data.view_count === 'number' ? data.view_count : undefined,
-        };
-        return result;
-      } catch (err) {
-        logger.debug('[playlist] Failed to parse yt-dlp JSON line:', err);
-        return null;
-      }
-    })
-    .filter((result): result is SearchResult => result !== null);
-}
-
 async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
   logger.info(`[playlist] Extracting YouTube playlist: ${url}`);
 
-  const { stdout, code } = await spawnYtDlpForPlaylist([
+  const { stdout, code } = await spawnYtDlp([
     '--flat-playlist',
     '--dump-json',
     '--no-warnings',
@@ -232,7 +176,7 @@ async function resolveSpotifyTrackOnYouTube(track: SpotifyTrack): Promise<Search
   logger.info(`[playlist] Searching YouTube for: ${query}`);
 
   try {
-    const { stdout, code } = await spawnYtDlpForPlaylist([
+    const { stdout, code } = await spawnYtDlp([
       '--flat-playlist',
       '--dump-json',
       '--no-warnings',
