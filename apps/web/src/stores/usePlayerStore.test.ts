@@ -288,7 +288,10 @@ describe('usePlayerStore', () => {
 
     it('persists to localStorage', () => {
       usePlayerStore.getState().setCrossfadeDuration(7);
-      expect(localStorage.getItem('shiranami.crossfade-duration')).toBe('7');
+      const raw = localStorage.getItem('shiranami.player-store');
+      expect(raw).not.toBeNull();
+      const parsed = JSON.parse(raw!) as { state: { crossfadeDuration: number } };
+      expect(parsed.state.crossfadeDuration).toBe(7);
     });
   });
 
