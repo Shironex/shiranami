@@ -1,9 +1,8 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useRadioStore, type RadioSearchTab } from '@/stores/useRadioStore';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -16,210 +15,21 @@ import {
   Radio,
   Search,
   Heart,
-  Play,
   Globe,
   Loader2,
   Star,
 } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
-import { EqBars } from '@/components/shared/EqBars';
-import { motion } from 'motion/react';
-import { List, type RowComponentProps } from 'react-window';
-import type { Station } from 'radio-browser-api';
-
-const COUNTRIES = [
-  { code: 'US', name: 'United States', flag: '\u{1F1FA}\u{1F1F8}' },
-  { code: 'GB', name: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}' },
-  { code: 'PL', name: 'Poland', flag: '\u{1F1F5}\u{1F1F1}' },
-  { code: 'JP', name: 'Japan', flag: '\u{1F1EF}\u{1F1F5}' },
-  { code: 'DE', name: 'Germany', flag: '\u{1F1E9}\u{1F1EA}' },
-  { code: 'FR', name: 'France', flag: '\u{1F1EB}\u{1F1F7}' },
-  { code: 'ES', name: 'Spain', flag: '\u{1F1EA}\u{1F1F8}' },
-  { code: 'BR', name: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}' },
-  { code: 'KR', name: 'South Korea', flag: '\u{1F1F0}\u{1F1F7}' },
-  { code: 'AU', name: 'Australia', flag: '\u{1F1E6}\u{1F1FA}' },
-  { code: 'CA', name: 'Canada', flag: '\u{1F1E8}\u{1F1E6}' },
-  { code: 'IT', name: 'Italy', flag: '\u{1F1EE}\u{1F1F9}' },
-  { code: 'NL', name: 'Netherlands', flag: '\u{1F1F3}\u{1F1F1}' },
-  { code: 'RU', name: 'Russia', flag: '\u{1F1F7}\u{1F1FA}' },
-  { code: 'IN', name: 'India', flag: '\u{1F1EE}\u{1F1F3}' },
-];
-
-function stationToTrack(station: Station, liveRadioLabel: string): Track {
-  const streamUrl = station.urlResolved || station.url;
-  const tagsStr = Array.isArray(station.tags) ? station.tags.join(', ') : '';
-  return {
-    id: `radio:${station.id}`,
-    title: station.name,
-    artist: liveRadioLabel,
-    album: [station.country, station.codec, station.bitrate ? `${station.bitrate}kbps` : '']
-      .filter(Boolean)
-      .join(' \u00B7 '),
-    duration: 0,
-    filePath: `shiranami-radio://stream?url=${encodeURIComponent(streamUrl)}`,
-    albumArt: station.favicon || undefined,
-    genre: tagsStr.split(',')[0]?.trim() || null,
-  };
-}
-
-function getCountryFlag(countryCode: string): string {
-  const country = COUNTRIES.find((c) => c.code === countryCode);
-  return country?.flag ?? '';
-}
-
-interface StationRowProps {
-  stations: Station[];
-  currentTrackId: string | null;
-  isPlaying: boolean;
-  favorites: string[];
-  onPlay: (index: number) => void;
-  onToggleFavorite: (station: Station) => void;
-}
-
-function StationRow(props: RowComponentProps<StationRowProps>) {
-  const { t } = useTranslation('radio');
-  const {
-    index,
-    style,
-    stations,
-    currentTrackId,
-    isPlaying,
-    favorites,
-    onPlay,
-    onToggleFavorite,
-  } = props as RowComponentProps<StationRowProps> & StationRowProps;
-  const station = stations[index];
-
-  if (!station) return null;
-
-  const radioTrackId = `radio:${station.id}`;
-  const isActive = currentTrackId === radioTrackId;
-  const isFav = favorites.includes(station.id);
-  const tagsStr = Array.isArray(station.tags) ? station.tags.slice(0, 2).join(', ') : '';
-  const countryFlag = getCountryFlag(station.countryCode);
-
-  return (
-    <div style={style} className="px-0.5">
-      <div
-        className={cn(
-          'w-full flex items-center gap-3 px-3 h-[52px] rounded-xl text-left transition-all duration-200 group',
-          isActive
-            ? 'bg-primary/[0.08] text-foreground'
-            : 'hover:bg-accent text-foreground/80 hover:text-foreground'
-        )}
-      >
-        {/* Station info + play */}
-        <button
-          onClick={() => onPlay(index)}
-          className="flex items-center gap-3 min-w-0 flex-1"
-        >
-          <div
-            className={cn(
-              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
-              isActive ? 'bg-primary/15' : 'bg-surface'
-            )}
-          >
-            {station.favicon ? (
-              <img
-                src={station.favicon}
-                alt={station.name}
-                className="w-full h-full object-cover rounded-lg"
-                loading="lazy"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-            ) : null}
-            <Radio
-              className={cn(
-                'w-3.5 h-3.5 text-muted-foreground/40',
-                station.favicon ? 'hidden' : ''
-              )}
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className={cn('text-sm font-medium truncate text-left', isActive && 'text-primary')}>
-              {station.name}
-            </p>
-            {tagsStr && (
-              <p className="text-xs text-muted-foreground/50 truncate text-left">{tagsStr}</p>
-            )}
-          </div>
-        </button>
-
-        {/* Country + codec info */}
-        <div className="hidden sm:flex items-center gap-2 shrink-0">
-          {countryFlag && (
-            <span className="text-xs" title={station.country}>
-              {countryFlag}
-            </span>
-          )}
-          {station.codec && (
-            <span className="text-[10px] text-muted-foreground/40 tabular-nums font-medium px-1.5 py-0.5 rounded bg-muted/50">
-              {station.codec}
-              {station.bitrate > 0 ? ` ${station.bitrate}k` : ''}
-            </span>
-          )}
-        </div>
-
-        {/* Favorite button */}
-        <motion.button
-          whileTap={{ scale: 0.75 }}
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation();
-            onToggleFavorite(station);
-          }}
-          className={cn(
-            'shrink-0 p-1 rounded-md transition-colors duration-150',
-            isFav
-              ? 'text-favorite hover:text-favorite-hover'
-              : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
-          )}
-          aria-label={isFav ? t('removeFavorite') : t('addFavorite')}
-        >
-          <Heart className={cn('w-3.5 h-3.5 transition-all duration-150', isFav && 'fill-current')} />
-        </motion.button>
-
-        {/* Play/Pause indicator */}
-        <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center">
-          {isActive && isPlaying ? (
-            <EqBars />
-          ) : (
-            <Play className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+import { List } from 'react-window';
+import { COUNTRIES, stationToTrack } from './radioUtils';
+import { StationRow } from './StationRow';
+import { StationRowSkeleton, RADIO_SKELETON_ROWS } from './StationRowSkeleton';
 
 const TAB_IDS: Array<{ id: RadioSearchTab; labelKey: string; icon: typeof Radio }> = [
   { id: 'top', labelKey: 'topStations', icon: Star },
   { id: 'country', labelKey: 'byCountry', icon: Globe },
   { id: 'favorites', labelKey: 'favorites', icon: Heart },
 ];
-
-const RADIO_SKELETON_ROWS = 10;
-
-function StationRowSkeleton() {
-  return (
-    <div className="px-0.5">
-      <div className="flex h-[52px] items-center gap-3 rounded-xl px-3">
-        <Skeleton className="size-9 shrink-0 rounded-lg" />
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <Skeleton className="h-4 w-2/5" />
-          <Skeleton className="h-3 w-1/4" />
-        </div>
-        <div className="hidden shrink-0 items-center gap-2 sm:flex">
-          <Skeleton className="h-3 w-5 rounded-full" />
-          <Skeleton className="h-5 w-14 rounded-md" />
-        </div>
-        <Skeleton className="size-7 shrink-0 rounded-md" />
-      </div>
-    </div>
-  );
-}
 
 export function RadioView() {
   const { t } = useTranslation('radio');
