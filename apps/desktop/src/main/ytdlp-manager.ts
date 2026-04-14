@@ -1,10 +1,10 @@
-import { net } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from './logger';
 import { requestJson } from './http';
 import { getBinDir } from './utils/bin-paths';
+import { downloadFile } from './utils/net-download';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
 const GITHUB_RELEASE_API = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
@@ -131,63 +131,3 @@ export async function downloadYtDlp(
   }
 }
 
-async function downloadFile(
-  url: string,
-  destPath: string,
-  onProgress?: (percent: number) => void
-): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    const request = net.request(url);
-
-    request.on('response', (response) => {
-      // Follow redirects are handled automatically by net.request
-      const statusCode = response.statusCode;
-
-      if (statusCode < 200 || statusCode >= 300) {
-        reject(new Error(`Download failed with status ${statusCode}`));
-        return;
-      }
-
-      const contentLength = parseInt(
-        response.headers['content-length'] as string,
-        10
-      );
-      let downloaded = 0;
-
-      const writeStream = fs.createWriteStream(destPath);
-
-      response.on('data', (chunk: Buffer) => {
-        writeStream.write(chunk);
-        downloaded += chunk.length;
-        if (contentLength > 0 && onProgress) {
-          const percent = Math.min(
-            100,
-            Math.round((downloaded / contentLength) * 100)
-          );
-          onProgress(percent);
-        }
-      });
-
-      response.on('end', () => {
-        writeStream.end(() => {
-          resolve();
-        });
-      });
-
-      response.on('error', (err: Error) => {
-        writeStream.destroy();
-        reject(err);
-      });
-
-      writeStream.on('error', (err: Error) => {
-        reject(err);
-      });
-    });
-
-    request.on('error', (err: Error) => {
-      reject(err);
-    });
-
-    request.end();
-  });
-}
