@@ -14,18 +14,18 @@ describe('registerWindowHandlers', () => {
     vi.clearAllMocks();
   });
 
-  it('toggles maximize on window:maximize ipc listener', () => {
+  it('toggles maximize on window:maximize ipc handler', () => {
     const win = createMainWindowMock();
     win.isMaximized.mockReturnValue(false);
     registerWindowHandlers(asBrowserWindow(win));
 
-    const [maximizeListener] = [...(ipcOnListeners.get('window:maximize') ?? [])];
-    expect(maximizeListener).toBeDefined();
-    maximizeListener!();
+    const maximizeHandler = ipcHandlers.get('window:maximize');
+    expect(maximizeHandler).toBeDefined();
+    maximizeHandler!(null as never);
     expect(win.maximize).toHaveBeenCalledTimes(1);
 
     win.isMaximized.mockReturnValue(true);
-    maximizeListener!();
+    maximizeHandler!(null as never);
     expect(win.unmaximize).toHaveBeenCalledTimes(1);
   });
 
@@ -92,11 +92,11 @@ describe('registerWindowHandlers', () => {
     const win = createMainWindowMock();
     registerWindowHandlers(asBrowserWindow(win));
     expect(ipcHandlers.has('window:set-compact-mode')).toBe(true);
-    expect(ipcOnListeners.has('window:minimize')).toBe(true);
+    expect(ipcHandlers.has('window:minimize')).toBe(true);
 
     cleanupWindowHandlers();
 
     expect(ipcHandlers.has('window:set-compact-mode')).toBe(false);
-    expect(ipcOnListeners.has('window:minimize')).toBe(false);
+    expect(ipcHandlers.has('window:minimize')).toBe(false);
   });
 });
