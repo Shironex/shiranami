@@ -134,6 +134,10 @@
 
   /* RGB triplet of --primary for canvas/inline usage */
   --primary-rgb: 155, 125, 235;
+
+  /* RGB triplets for semantic status accents (badge shadows, callouts) */
+  --status-warning-rgb: 252, 211, 77;
+  --status-success-rgb: 110, 231, 183;
 }
 
 /* Sonner toast – override default dark-theme colors with app tokens */

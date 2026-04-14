@@ -54,7 +54,7 @@ export function CompactPlayer() {
 
       <div className="drag flex h-9 shrink-0 items-center justify-between border-b border-border/20 px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(167,139,250,0.45)]" />
+          <div className="size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(var(--primary-rgb),0.45)]" />
           <span className="shrink-0 font-display text-[11px] font-semibold text-foreground">
             {t('title')}
           </span>

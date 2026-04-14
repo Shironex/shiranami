@@ -19,19 +19,19 @@ const VARIANTS: Record<StatusBadgeVariant, VariantStyle> = {
     icon: Sparkles,
     // Amber — caution, "may change or be removed"
     classes:
-      'bg-amber-500/10 border-amber-400/25 text-amber-300 shadow-[inset_0_1px_0_rgba(252,211,77,0.12)]',
+      'bg-amber-500/10 border-amber-400/25 text-amber-300 shadow-[inset_0_1px_0_rgba(var(--status-warning-rgb),0.12)]',
   },
   beta: {
     icon: FlaskConical,
     // Primary purple — "feature-complete, stabilizing"
     classes:
-      'bg-primary/10 border-primary/30 text-primary shadow-[inset_0_1px_0_rgba(167,139,250,0.15)]',
+      'bg-primary/10 border-primary/30 text-primary shadow-[inset_0_1px_0_rgba(var(--primary-rgb),0.15)]',
   },
   new: {
     icon: Zap,
     // Emerald — "shipped recently, check it out"
     classes:
-      'bg-emerald-500/10 border-emerald-400/25 text-emerald-300 shadow-[inset_0_1px_0_rgba(110,231,183,0.12)]',
+      'bg-emerald-500/10 border-emerald-400/25 text-emerald-300 shadow-[inset_0_1px_0_rgba(var(--status-success-rgb),0.12)]',
   },
 };
 
