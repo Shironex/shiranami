@@ -21,11 +21,13 @@ import { AlbumGrid } from './AlbumGrid';
 import { AlbumDetailView } from './AlbumDetailView';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { AlbumSortControl } from '@/components/shared/AlbumSortControl';
+import { LibraryViewSkeleton } from './LibraryViewSkeleton';
 import { cn } from '@/lib/utils';
 
 export function LibraryView() {
   const { t } = useTranslation('library');
   const library = usePlayerStore(s => s.library);
+  const libraryLoaded = usePlayerStore(s => s.libraryLoaded);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -80,6 +82,12 @@ export function LibraryView() {
   // If an album is selected in albums mode, show the detail view
   if (libraryViewMode === 'albums' && selectedAlbumName) {
     return <AlbumDetailView />;
+  }
+
+  // Cold-start skeleton: the initial library query is still in flight and we
+  // have no cached tracks yet. Don't flash the empty-state hero.
+  if (!libraryLoaded && library.length === 0) {
+    return <LibraryViewSkeleton />;
   }
 
   return (

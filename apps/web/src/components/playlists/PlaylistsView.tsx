@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
-import { ListMusic, Plus, Loader2, AlertCircle } from 'lucide-react';
+import { ListMusic, Plus, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PlaylistsViewSkeleton } from './PlaylistsViewSkeleton';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
@@ -60,11 +61,7 @@ export function PlaylistsView() {
   const cardPaddingClass = playlistGridSize === 'small' ? 'p-3' : 'p-4';
 
   if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
-      </div>
-    );
+    return <PlaylistsViewSkeleton />;
   }
 
   if (isError) {

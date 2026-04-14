@@ -17,10 +17,12 @@ import { MIX_DEFINITIONS, type MixId } from './mixDefinitions';
 import { useMixTracks } from '@/hooks/queries/useMixTracks';
 import { useMixPreviews, getMixPreviewCount } from './mixUtils';
 import { ArtCollage } from './ArtCollage';
+import { MixesViewSkeleton } from './MixesViewSkeleton';
 
 export function MixesView() {
   const { t } = useTranslation('mixes');
   const library = usePlayerStore((s) => s.library);
+  const libraryLoaded = usePlayerStore((s) => s.libraryLoaded);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const setQueue = usePlayerStore((s) => s.setQueue);
@@ -56,6 +58,11 @@ export function MixesView() {
   const selectedDef = selectedMix
     ? MIX_DEFINITIONS.find((m) => m.id === selectedMix)
     : null;
+
+  // ── Cold-start skeleton ──
+  if (!libraryLoaded && library.length === 0) {
+    return <MixesViewSkeleton />;
+  }
 
   // ── Empty library state ──
   if (library.length === 0) {

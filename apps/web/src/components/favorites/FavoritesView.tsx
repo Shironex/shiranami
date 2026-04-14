@@ -9,12 +9,14 @@ import { NowPlayingHero } from '@/components/shared/NowPlayingHero';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
+import { FavoritesViewSkeleton } from './FavoritesViewSkeleton';
 
 const showIfFavorite = (track: { isFavorite?: boolean }) => !!track.isFavorite;
 
 export function FavoritesView() {
   const { t } = useTranslation('favorites');
   const library = usePlayerStore(s => s.library);
+  const libraryLoaded = usePlayerStore(s => s.libraryLoaded);
   const currentTrack = usePlayerStore(s => s.currentTrack);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const setQueue = usePlayerStore(s => s.setQueue);
@@ -36,6 +38,12 @@ export function FavoritesView() {
     },
     [setQueue]
   );
+
+  // Cold-start skeleton: library hasn't loaded yet, so we can't tell whether
+  // any favorites exist. Show skeleton rather than an empty-state flash.
+  if (!libraryLoaded && library.length === 0) {
+    return <FavoritesViewSkeleton />;
+  }
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
