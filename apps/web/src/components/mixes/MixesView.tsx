@@ -1,141 +1,22 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
-import { useHistoryQuery } from '@/hooks/queries/useHistory';
 import {
   Sparkles,
-  TrendingUp,
-  Clock,
-  Headphones,
-  EyeOff,
   Play,
   Shuffle,
   ArrowLeft,
-  Music,
 } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
-
-type MixId = 'most-played' | 'recently-added' | 'recently-played' | 'never-played';
-
-interface MixDefinition {
-  id: MixId;
-  titleKey: string;
-  descKey: string;
-  emptyKey: string;
-  icon: typeof TrendingUp;
-}
-
-const MIX_DEFINITIONS: MixDefinition[] = [
-  {
-    id: 'most-played',
-    titleKey: 'mostPlayed',
-    descKey: 'mostPlayedDesc',
-    emptyKey: 'emptyMostPlayed',
-    icon: TrendingUp,
-  },
-  {
-    id: 'recently-added',
-    titleKey: 'recentlyAdded',
-    descKey: 'recentlyAddedDesc',
-    emptyKey: 'emptyMix',
-    icon: Clock,
-  },
-  {
-    id: 'recently-played',
-    titleKey: 'recentlyPlayed',
-    descKey: 'recentlyPlayedDesc',
-    emptyKey: 'emptyRecentlyPlayed',
-    icon: Headphones,
-  },
-  {
-    id: 'never-played',
-    titleKey: 'neverPlayed',
-    descKey: 'neverPlayedDesc',
-    emptyKey: 'emptyMix',
-    icon: EyeOff,
-  },
-];
-
-const MIX_LIMIT = 50;
-
-function useMixTracks(mixId: MixId | null): Track[] {
-  const library = usePlayerStore((s) => s.library);
-  const { data: historyData } = useHistoryQuery('all');
-
-  return useMemo(() => {
-    if (!mixId) return [];
-
-    switch (mixId) {
-      case 'most-played':
-        return [...library]
-          .filter((t) => (t.playCount ?? 0) > 0)
-          .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
-          .slice(0, MIX_LIMIT);
-
-      case 'recently-added':
-        return [...library]
-          .filter((t) => t.createdAt)
-          .sort((a, b) => {
-            const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return db - da;
-          })
-          .slice(0, MIX_LIMIT);
-
-      case 'recently-played': {
-        if (!historyData?.recent?.length) return [];
-        const seen = new Set<string>();
-        const trackIds: string[] = [];
-        for (const entry of historyData.recent) {
-          if (!seen.has(entry.trackId)) {
-            seen.add(entry.trackId);
-            trackIds.push(entry.trackId);
-          }
-        }
-        const libraryMap = new Map(library.map((t) => [t.id, t]));
-        return trackIds
-          .map((id) => libraryMap.get(id))
-          .filter((t): t is Track => t != null)
-          .slice(0, MIX_LIMIT);
-      }
-
-      case 'never-played':
-        return library
-          .filter((t) => !t.playCount || t.playCount === 0)
-          .slice(0, MIX_LIMIT);
-
-      default:
-        return [];
-    }
-  }, [mixId, library, historyData]);
-}
-
-/** Get preview tracks for the mix grid (album art thumbnails). */
-function useMixPreviews(library: Track[]): Record<MixId, Track[]> {
-  return useMemo(() => ({
-    'most-played': [...library]
-      .filter((t) => (t.playCount ?? 0) > 0 && t.albumArt)
-      .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
-      .slice(0, 4),
-    'recently-added': [...library]
-      .filter((t) => t.createdAt && t.albumArt)
-      .sort((a, b) => {
-        const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return db - da;
-      })
-      .slice(0, 4),
-    'recently-played': [],
-    'never-played': library
-      .filter((t) => (!t.playCount || t.playCount === 0) && t.albumArt)
-      .slice(0, 4),
-  }), [library]);
-}
+import { MIX_DEFINITIONS, type MixId } from './mixDefinitions';
+import { useMixTracks } from '@/hooks/queries/useMixTracks';
+import { useMixPreviews, getMixPreviewCount } from './mixUtils';
+import { ArtCollage } from './ArtCollage';
 
 export function MixesView() {
   const { t } = useTranslation('mixes');
@@ -355,50 +236,6 @@ export function MixesView() {
       </div>
     </div>
   );
-}
-
-/** A quiet decorative collage of album art from the library. */
-function ArtCollage({ library }: { library: Track[] }) {
-  const artTracks = useMemo(
-    () => library.filter((t) => t.albumArt).slice(0, 12),
-    [library]
-  );
-
-  if (artTracks.length < 4) return null;
-
-  return (
-    <div className="flex gap-1.5 overflow-hidden rounded-xl opacity-40">
-      {artTracks.map((track, i) => (
-        <div
-          key={i}
-          className="w-14 h-14 shrink-0 rounded-md overflow-hidden bg-accent/20"
-        >
-          {track.albumArt ? (
-            <img src={track.albumArt} alt="" aria-hidden="true" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Music className="w-4 h-4 text-muted-foreground/20" />
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function getMixPreviewCount(mixId: MixId, library: Track[]): number {
-  switch (mixId) {
-    case 'most-played':
-      return Math.min(MIX_LIMIT, library.filter((t) => (t.playCount ?? 0) > 0).length);
-    case 'recently-added':
-      return Math.min(MIX_LIMIT, library.length);
-    case 'never-played':
-      return Math.min(MIX_LIMIT, library.filter((t) => !t.playCount || t.playCount === 0).length);
-    case 'recently-played':
-      return 0;
-    default:
-      return 0;
-  }
 }
 
 export default MixesView;
