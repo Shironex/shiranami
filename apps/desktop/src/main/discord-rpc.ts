@@ -20,7 +20,7 @@ let connectPromise: Promise<void> | null = null;
 
 function isEnabled(): boolean {
   try {
-    const settings = store.get('settings') as Record<string, unknown> | undefined;
+    const settings = store.get('settings');
     return settings?.discordRpc === true;
   } catch {
     return false;

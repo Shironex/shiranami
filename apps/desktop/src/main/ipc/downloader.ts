@@ -64,16 +64,16 @@ export interface InstallDependenciesResult {
   results: ToolInstallResult[];
 }
 
-interface DownloadLocationState {
+export interface DownloadLocationState {
   path: string;
   defaultPath: string;
   isDefault: boolean;
 }
 
-const DOWNLOAD_LOCATION_STORE_KEY = 'downloads.location';
-const TOOL_STATUS_CACHE_KEY = 'downloads.toolStatusCache';
+const DOWNLOAD_LOCATION_STORE_KEY = 'downloads.location' as const;
+const TOOL_STATUS_CACHE_KEY = 'downloads.toolStatusCache' as const;
 
-interface ToolStatusCache {
+export interface ToolStatusCache {
   ytdlp: BinaryStatus;
   ffmpeg: BinaryStatus;
   ytdlpPath: string;
@@ -90,7 +90,7 @@ function loadCachedToolStatus(): ToolStatusCache | null {
   }
 
   try {
-    const persisted = store.get(TOOL_STATUS_CACHE_KEY) as ToolStatusCache | undefined;
+    const persisted = store.get(TOOL_STATUS_CACHE_KEY);
     if (persisted && typeof persisted.timestamp === 'number') {
       toolStatusCache = persisted;
       logger.info(`[downloader] Loaded tool status from persistent cache (age: ${Date.now() - persisted.timestamp}ms)`);
