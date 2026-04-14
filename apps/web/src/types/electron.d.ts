@@ -87,9 +87,9 @@ export interface ListeningActivityPoint {
 
 export interface ElectronAPI {
   window: {
-    minimize: () => void;
-    maximize: () => void;
-    close: () => void;
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
     setCompactMode: (compactMode: boolean) => Promise<void>;
@@ -127,8 +127,8 @@ export interface ElectronAPI {
       duration: number;
       currentTime: number;
       albumArt: string | null;
-    }) => void;
-    clearState: () => void;
+    }) => Promise<void>;
+    clearState: () => Promise<void>;
   };
   lyrics: {
     fetch: (title: string, artist: string, album?: string, duration?: number) => Promise<{

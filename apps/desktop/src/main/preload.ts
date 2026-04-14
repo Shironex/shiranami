@@ -23,9 +23,14 @@ const UPDATER_IPC_CHANNELS = new Set([
 ]);
 
 const ALLOWED_IPC_CHANNELS = new Set([
+  'window:minimize',
+  'window:maximize',
+  'window:close',
   'window:is-maximized',
   'window:set-always-on-top',
   'window:set-compact-mode',
+  'media:playback-state',
+  'media:clear-state',
   'store:get',
   'store:set',
   'store:delete',
@@ -183,9 +188,9 @@ interface ListeningActivityPoint {
 
 export interface ElectronAPI {
   window: {
-    minimize: () => void;
-    maximize: () => void;
-    close: () => void;
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
     setCompactMode: (compactMode: boolean) => Promise<void>;
@@ -288,8 +293,8 @@ export interface ElectronAPI {
       duration: number;
       currentTime: number;
       albumArt: string | null;
-    }) => void;
-    clearState: () => void;
+    }) => Promise<void>;
+    clearState: () => Promise<void>;
   };
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
@@ -486,9 +491,9 @@ export interface ElectronAPI {
 
 const electronAPI: ElectronAPI = {
   window: {
-    minimize: () => ipcRenderer.send('window:minimize'),
-    maximize: () => ipcRenderer.send('window:maximize'),
-    close: () => ipcRenderer.send('window:close'),
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     setAlwaysOnTop: (alwaysOnTop: boolean) =>
       ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
@@ -577,8 +582,8 @@ const electronAPI: ElectronAPI = {
   },
   media: {
     onCommand: createIpcListener<string>('media:command'),
-    sendPlaybackState: (state) => ipcRenderer.send('media:playback-state', state),
-    clearState: () => ipcRenderer.send('media:clear-state'),
+    sendPlaybackState: (state) => ipcRenderer.invoke('media:playback-state', state),
+    clearState: () => ipcRenderer.invoke('media:clear-state'),
   },
   downloader: {
     suggest: (query: string) => ipcRenderer.invoke('downloader:suggest', query),
