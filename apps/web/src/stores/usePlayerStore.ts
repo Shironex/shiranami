@@ -79,6 +79,12 @@ export type RepeatMode = 'off' | 'all' | 'one';
 interface PlayerState {
   // Library (persistent collection of all tracks)
   library: Track[];
+  /**
+   * True once the initial library query has settled (success, empty, or error).
+   * Not persisted — resets to false on every app boot so views can show a
+   * skeleton during the cold-start fetch rather than a flash of empty state.
+   */
+  libraryLoaded: boolean;
 
   // Current track
   currentTrack: Track | null;
@@ -183,6 +189,7 @@ export const usePlayerStore = create<PlayerStore>()(
     (set, get) => ({
       // Initial state
       library: [],
+      libraryLoaded: false,
       currentTrack: null,
       queue: [],
       queueIndex: -1,

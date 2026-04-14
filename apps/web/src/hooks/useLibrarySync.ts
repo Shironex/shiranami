@@ -41,5 +41,17 @@ export function useLibrarySync() {
     }
   }, [data]);
 
+  // Flip `libraryLoaded` once the query settles (success, empty, or error) so
+  // views can swap from skeleton to content/empty-state. In non-Electron mode
+  // the query is disabled, so mark loaded immediately.
+  useEffect(() => {
+    if (!IS_ELECTRON) {
+      usePlayerStore.setState({ libraryLoaded: true });
+      return;
+    }
+    if (isLoading) return;
+    usePlayerStore.setState({ libraryLoaded: true });
+  }, [isLoading]);
+
   return { isLoading, isError, error, refetch };
 }
