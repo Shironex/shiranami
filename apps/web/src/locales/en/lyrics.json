@@ -1,5 +1,11 @@
 {
   "title": "Lyrics",
   "finding": "Finding lyrics...",
-  "notFound": "No lyrics found"
+  "notFound": "No lyrics found",
+  "source": {
+    "local": "Local",
+    "embedded": "Embedded",
+    "lrclib": "LRCLIB",
+    "tooltip": "Lyrics source"
+  }
 }

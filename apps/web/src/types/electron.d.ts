@@ -131,10 +131,16 @@ export interface ElectronAPI {
     clearState: () => void;
   };
   lyrics: {
-    fetch: (title: string, artist: string, album?: string, duration?: number) => Promise<{
+    fetch: (
+      title: string,
+      artist: string,
+      album?: string,
+      duration?: number,
+      filePath?: string,
+    ) => Promise<{
       synced: Array<{ time: number; text: string }> | null;
       plain: string | null;
-      source: 'lrclib' | 'cache' | null;
+      source: 'lrclib' | 'cache' | 'local-lrc' | 'local-txt' | 'embedded' | null;
     }>;
   };
   db: {

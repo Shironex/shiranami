@@ -3,6 +3,7 @@
   "library": "Biblioteka",
   "downloads": "Pobieranie",
   "playback": "Odtwarzanie",
+  "lyricsSection": "Teksty",
   "visualizer": "Wizualizator",
   "appearance": "Wygląd",
   "updates": "Aktualizacje",
@@ -72,6 +73,14 @@
     "duration": "Czas trwania",
     "discordRpc": "Discord Rich Presence",
     "discordDesc": "Pokazuj aktualnie odtwarzany utwór w Discordzie"
+  },
+  "lyrics": {
+    "title": "Teksty",
+    "subtitle": "Zarządzaj źródłami tekstów dla Twoich utworów",
+    "preferSyncedOverLocalPlain": {
+      "label": "Preferuj zsynchronizowane teksty z LRCLIB zamiast lokalnego pliku tekstowego",
+      "description": "Gdy włączone, lokalny plik .txt zostanie zastąpiony, jeśli LRCLIB ma zsynchronizowaną wersję. Lokalne pliki .lrc zawsze mają priorytet."
+    }
   },
   "vis": {
     "title": "Wizualizator",

@@ -23,10 +23,20 @@ export function LyricsPanel() {
     currentTrack?.artist ?? '',
     currentTrack?.album,
     currentTrack?.duration,
+    currentTrack?.filePath,
   );
 
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;
+  const source = data?.source ?? null;
+  const sourceLabel =
+    source === 'local-lrc' || source === 'local-txt'
+      ? t('source.local')
+      : source === 'embedded'
+        ? t('source.embedded')
+        : source === 'lrclib'
+          ? t('source.lrclib')
+          : null;
   const activeLine = useActiveLineIndex(synced);
 
   const handleLineClick = useCallback((time: number) => seek(time), [seek]);
@@ -78,10 +88,18 @@ export function LyricsPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-3.5 border-b border-border/20 shrink-0">
+      <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between gap-2">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
           {t('title')}
         </h2>
+        {sourceLabel && (
+          <span
+            title={t('source.tooltip')}
+            className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-border/30 bg-muted/20 text-[9px] font-semibold uppercase tracking-[0.1em] leading-none text-muted-foreground/70"
+          >
+            {sourceLabel}
+          </span>
+        )}
       </div>
       {content}
     </div>

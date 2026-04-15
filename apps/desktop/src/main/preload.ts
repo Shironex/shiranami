@@ -265,11 +265,12 @@ export interface ElectronAPI {
       title: string,
       artist: string,
       album?: string,
-      duration?: number
+      duration?: number,
+      filePath?: string
     ) => Promise<{
       synced: Array<{ time: number; text: string }> | null;
       plain: string | null;
-      source: 'lrclib' | 'cache' | null;
+      source: 'lrclib' | 'cache' | 'local-lrc' | 'local-txt' | 'embedded' | null;
     }>;
   };
   media: {
@@ -561,8 +562,8 @@ const electronAPI: ElectronAPI = {
     },
   },
   lyrics: {
-    fetch: (title: string, artist: string, album?: string, duration?: number) =>
-      ipcRenderer.invoke('lyrics:fetch', title, artist, album, duration),
+    fetch: (title: string, artist: string, album?: string, duration?: number, filePath?: string) =>
+      ipcRenderer.invoke('lyrics:fetch', title, artist, album, duration, filePath),
   },
   media: {
     onCommand: createIpcListener<string>('media:command'),

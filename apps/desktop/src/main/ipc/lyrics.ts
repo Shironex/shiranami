@@ -9,9 +9,10 @@ export function registerLyricsHandlers(): void {
       title: string,
       artist: string,
       album?: string,
-      duration?: number
+      duration?: number,
+      filePath?: string
     ): Promise<LyricsResult> => {
-      return fetchLyrics(title, artist, album, duration);
+      return fetchLyrics(title, artist, album, duration, filePath);
     }
   );
 }

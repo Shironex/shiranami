@@ -3,6 +3,7 @@
   "library": "Library",
   "downloads": "Downloads",
   "playback": "Playback",
+  "lyricsSection": "Lyrics",
   "visualizer": "Visualizer",
   "appearance": "Appearance",
   "updates": "Updates",
@@ -72,6 +73,14 @@
     "duration": "Duration",
     "discordRpc": "Discord Rich Presence",
     "discordDesc": "Show currently playing track in Discord"
+  },
+  "lyrics": {
+    "title": "Lyrics",
+    "subtitle": "Control how lyrics are sourced for your tracks",
+    "preferSyncedOverLocalPlain": {
+      "label": "Prefer synced lyrics from LRCLIB over local plain text",
+      "description": "When enabled, a local .txt file will be overridden if LRCLIB has a synced version. Local .lrc files always win."
+    }
   },
   "vis": {
     "title": "Visualizer",

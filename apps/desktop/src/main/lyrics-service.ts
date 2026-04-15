@@ -1,4 +1,6 @@
+import path from 'path';
 import { logger } from './logger';
+import { store } from './store';
 
 export interface LyricLine {
   time: number; // seconds
@@ -8,14 +10,21 @@ export interface LyricLine {
 export interface LyricsResult {
   synced: LyricLine[] | null; // Timestamped lyrics
   plain: string | null; // Plain text lyrics
-  source: 'lrclib' | 'cache' | null;
+  source: 'lrclib' | 'cache' | 'local-lrc' | 'local-txt' | 'embedded' | null;
 }
 
 // In-memory cache for current session
 const lyricsCache = new Map<string, LyricsResult>();
 const LYRICS_CACHE_MAX = 200;
 
-function getCacheKey(title: string, artist: string): string {
+function getCacheKey(
+  title: string,
+  artist: string,
+  filePath?: string
+): string {
+  if (filePath) {
+    return `file::${path.normalize(filePath).toLowerCase()}`;
+  }
   return `${title.toLowerCase().trim()}::${artist.toLowerCase().trim()}`;
 }
 
@@ -112,24 +121,20 @@ export function buildSearchQueries(title: string, artist: string): string[] {
   return queries;
 }
 
-/**
- * Fetch lyrics for a track from LRCLIB.
- * Returns synced (timestamped) lyrics if available, otherwise plain text.
- */
-export async function fetchLyrics(
+function hasSynced(r: LyricsResult | null | undefined): boolean {
+  return !!r && Array.isArray(r.synced) && r.synced.length > 0;
+}
+
+function hasPlain(r: LyricsResult | null | undefined): boolean {
+  return !!r && typeof r.plain === 'string' && r.plain.length > 0;
+}
+
+async function fetchFromLrclib(
   title: string,
   artist: string,
   album?: string,
   duration?: number
-): Promise<LyricsResult> {
-  const key = getCacheKey(title, artist);
-
-  // Check memory cache
-  const cached = cacheGet(key);
-  if (cached) {
-    return { ...cached, source: 'cache' };
-  }
-
+): Promise<LyricsResult | null> {
   try {
     const { Client } = require('lrclib-api');
     const client = new Client();
@@ -163,7 +168,6 @@ export async function fetchLyrics(
               plain: best.plainLyrics || null,
               source: 'lrclib',
             };
-            cacheSet(key, lyricsResult);
             logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
             return lyricsResult;
           }
@@ -173,9 +177,7 @@ export async function fetchLyrics(
       }
 
       logger.debug(`[lyrics] No lyrics found for: ${title} - ${artist}`);
-      const empty: LyricsResult = { synced: null, plain: null, source: null };
-      cacheSet(key, empty);
-      return empty;
+      return null;
     }
 
     const lyricsResult: LyricsResult = {
@@ -183,10 +185,8 @@ export async function fetchLyrics(
       plain: result.plainLyrics || null,
       source: 'lrclib',
     };
-
-    cacheSet(key, lyricsResult);
     logger.info(
-      `[lyrics] Found ${lyricsResult.synced ? 'synced' : 'plain'} lyrics for: ${title} - ${artist}`
+      `[lyrics] Found ${lyricsResult.synced ? 'synced' : 'plain'} lyrics via lrclib for: ${title} - ${artist}`
     );
     return lyricsResult;
   } catch (error) {
@@ -194,6 +194,149 @@ export async function fetchLyrics(
       `[lyrics] Failed to fetch lyrics for: ${title} - ${artist}`,
       error
     );
-    return { synced: null, plain: null, source: null };
+    return null;
   }
+}
+
+function getPreferSynced(): boolean {
+  try {
+    const settings = store.get('settings') as Record<string, unknown> | undefined;
+    return settings?.preferSyncedOverLocalPlain !== false; // default true
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Fetch lyrics for a track. Precedence when `filePath` is provided:
+ *
+ *   preferSynced = true:
+ *     local(synced) → embedded(synced) → lrclib(synced) →
+ *     local(plain) → embedded(plain) → lrclib(plain)
+ *
+ *   preferSynced = false:
+ *     local(synced) → embedded(synced) → local(plain) → embedded(plain) →
+ *     lrclib(synced) → lrclib(plain)
+ *
+ * Without `filePath`, falls back to lrclib-only (legacy behavior).
+ */
+export async function fetchLyrics(
+  title: string,
+  artist: string,
+  album?: string,
+  duration?: number,
+  filePath?: string
+): Promise<LyricsResult> {
+  const key = getCacheKey(title, artist, filePath);
+
+  // Check memory cache
+  const cached = cacheGet(key);
+  if (cached) {
+    return { ...cached, source: 'cache' };
+  }
+
+  // Resolve local + embedded (in parallel) if filePath is provided
+  let local: LyricsResult | null = null;
+  let embedded: LyricsResult | null = null;
+
+  if (filePath) {
+    const [localRes, embeddedRes] = await Promise.all([
+      (async (): Promise<LyricsResult | null> => {
+        try {
+          const { loadLocalLyrics } = await import('./local-lyrics');
+          return (await loadLocalLyrics(filePath)) ?? null;
+        } catch (error) {
+          logger.debug(`[lyrics] loadLocalLyrics threw: ${String(error)}`);
+          return null;
+        }
+      })(),
+      (async (): Promise<LyricsResult | null> => {
+        try {
+          const { readEmbeddedLyrics } = await import('./embedded-lyrics');
+          return (await readEmbeddedLyrics(filePath)) ?? null;
+        } catch (error) {
+          logger.debug(`[lyrics] readEmbeddedLyrics threw: ${String(error)}`);
+          return null;
+        }
+      })(),
+    ]);
+    local = localRes;
+    embedded = embeddedRes;
+  }
+
+  const preferSynced = getPreferSynced();
+
+  // Short-circuit: local synced always wins, skip lrclib entirely.
+  if (hasSynced(local)) {
+    const winner = local as LyricsResult;
+    cacheSet(key, winner);
+    logger.info(`[lyrics] Using local synced lyrics for: ${title} - ${artist}`);
+    return winner;
+  }
+
+  // If preferSynced=false, any local/embedded content (synced or plain) beats
+  // lrclib — so we can skip the network call.
+  if (!preferSynced) {
+    const localPlainCandidate = hasPlain(local) ? local : null;
+    const embeddedSyncedCandidate = hasSynced(embedded) ? embedded : null;
+    const embeddedPlainCandidate = hasPlain(embedded) ? embedded : null;
+    const winner =
+      embeddedSyncedCandidate ??
+      localPlainCandidate ??
+      embeddedPlainCandidate ??
+      null;
+    if (winner) {
+      cacheSet(key, winner);
+      logger.info(
+        `[lyrics] Using ${winner.source} lyrics (preferSynced=false) for: ${title} - ${artist}`
+      );
+      return winner;
+    }
+  } else {
+    // preferSynced=true: embedded synced beats lrclib, so we can short-circuit.
+    if (hasSynced(embedded)) {
+      const winner = embedded as LyricsResult;
+      cacheSet(key, winner);
+      logger.info(
+        `[lyrics] Using embedded synced lyrics for: ${title} - ${artist}`
+      );
+      return winner;
+    }
+  }
+
+  // Need lrclib to complete the decision.
+  const lrclib = await fetchFromLrclib(title, artist, album, duration);
+
+  // Build ordered candidate list based on preferSynced.
+  const orderedCandidates: Array<LyricsResult | null> = preferSynced
+    ? [
+        hasSynced(local) ? local : null,
+        hasSynced(embedded) ? embedded : null,
+        hasSynced(lrclib) ? lrclib : null,
+        hasPlain(local) ? local : null,
+        hasPlain(embedded) ? embedded : null,
+        hasPlain(lrclib) ? lrclib : null,
+      ]
+    : [
+        hasSynced(local) ? local : null,
+        hasSynced(embedded) ? embedded : null,
+        hasPlain(local) ? local : null,
+        hasPlain(embedded) ? embedded : null,
+        hasSynced(lrclib) ? lrclib : null,
+        hasPlain(lrclib) ? lrclib : null,
+      ];
+
+  const winner = orderedCandidates.find((c): c is LyricsResult => c !== null);
+
+  if (winner) {
+    cacheSet(key, winner);
+    logger.info(
+      `[lyrics] Using ${winner.source} ${winner.synced ? 'synced' : 'plain'} lyrics for: ${title} - ${artist}`
+    );
+    return winner;
+  }
+
+  const empty: LyricsResult = { synced: null, plain: null, source: null };
+  cacheSet(key, empty);
+  return empty;
 }
