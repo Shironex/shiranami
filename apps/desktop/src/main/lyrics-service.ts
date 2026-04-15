@@ -52,7 +52,7 @@ export function parseLrc(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
   const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
 
-  const offsetMatch = lrc.match(/\[offset:\s*([+-]?\d+)\s*\]/i);
+  const offsetMatch = lrc.match(/^\[offset:\s*([+-]?\d+)\s*\]/im);
   const offsetMs = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
   const offsetSec = offsetMs / 1000;
 

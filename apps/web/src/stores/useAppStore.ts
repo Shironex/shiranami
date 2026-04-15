@@ -433,8 +433,7 @@ export const useAppStore = create<AppState & AppActions>()(
       selectAlbum: (name) => set({ selectedAlbumName: name }),
       setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
       setLyricsOffsetSeconds: (seconds) => {
-        const clamped = Math.min(5, Math.max(-5, seconds));
-        set({ lyricsOffsetSeconds: Math.round(clamped * 10) / 10 });
+        set({ lyricsOffsetSeconds: coerceLyricsOffset(seconds) });
       },
     }),
     {
