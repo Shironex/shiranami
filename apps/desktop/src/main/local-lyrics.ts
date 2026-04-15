@@ -27,7 +27,9 @@ function normalizeNewlines(content: string): string {
   return content.replace(/\r\n?/g, '\n');
 }
 
-const HEADER_LINE_RE = /^([A-Za-z][A-Za-z ]{0,30}):\s*(.+)$/;
+// Whitelist of known metadata keys so we don't strip dialogue/duet lines
+// like "He: Hello" or "She: Hi" that often appear at the top of lyrics.
+const HEADER_LINE_RE = /^(Artist|Title|Album|Author|Lyrics|By|Offset|Composer|Year|Writer|Track):\s*(.+)$/i;
 
 /**
  * Strip a leading "Key: Value" header block from plain text lyrics.

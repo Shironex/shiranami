@@ -240,28 +240,24 @@ export async function fetchLyrics(
   let embedded: LyricsResult | null = null;
 
   if (filePath) {
-    const [localRes, embeddedRes] = await Promise.all([
-      (async (): Promise<LyricsResult | null> => {
-        try {
-          const { loadLocalLyrics } = await import('./local-lyrics');
-          return (await loadLocalLyrics(filePath)) ?? null;
-        } catch (error) {
-          logger.debug(`[lyrics] loadLocalLyrics threw: ${String(error)}`);
-          return null;
-        }
-      })(),
-      (async (): Promise<LyricsResult | null> => {
-        try {
-          const { readEmbeddedLyrics } = await import('./embedded-lyrics');
-          return (await readEmbeddedLyrics(filePath)) ?? null;
-        } catch (error) {
-          logger.debug(`[lyrics] readEmbeddedLyrics threw: ${String(error)}`);
-          return null;
-        }
-      })(),
-    ]);
-    local = localRes;
-    embedded = embeddedRes;
+    try {
+      const { loadLocalLyrics } = await import('./local-lyrics');
+      local = (await loadLocalLyrics(filePath)) ?? null;
+    } catch (error) {
+      logger.debug(`[lyrics] loadLocalLyrics threw: ${String(error)}`);
+    }
+
+    // Skip embedded parse when local is already synced — it would be
+    // discarded by the precedence logic below, and music-metadata
+    // parseFile is expensive (disk I/O + tag parse).
+    if (!hasSynced(local)) {
+      try {
+        const { readEmbeddedLyrics } = await import('./embedded-lyrics');
+        embedded = (await readEmbeddedLyrics(filePath)) ?? null;
+      } catch (error) {
+        logger.debug(`[lyrics] readEmbeddedLyrics threw: ${String(error)}`);
+      }
+    }
   }
 
   const preferSynced = getPreferSynced();
