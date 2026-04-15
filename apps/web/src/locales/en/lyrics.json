@@ -1,5 +1,12 @@
 {
   "title": "Lyrics",
   "finding": "Finding lyrics...",
-  "notFound": "No lyrics found"
+  "notFound": "No lyrics found",
+  "offset": {
+    "label": "Sync offset",
+    "decrease": "Decrease offset by 0.1s",
+    "increase": "Increase offset by 0.1s",
+    "reset": "Reset",
+    "tooltip": "Adjust if lyrics are out of sync with audio"
+  }
 }

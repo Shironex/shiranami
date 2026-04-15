@@ -42,10 +42,19 @@ function cacheSet(key: string, value: LyricsResult): void {
 /**
  * Parse LRC format string into array of timed lyric lines.
  * Format: [mm:ss.xx]Lyric text
+ *
+ * Honors the optional `[offset:+N]` metadata tag (milliseconds). Per LRC
+ * convention a positive offset shifts lyrics earlier relative to the music,
+ * so we subtract `offsetMs` from each parsed timestamp. Negative offsets
+ * delay lyrics. Resulting times are clamped to >= 0 (line is preserved).
  */
 export function parseLrc(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
   const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
+
+  const offsetMatch = lrc.match(/\[offset:\s*([+-]?\d+)\s*\]/i);
+  const offsetMs = offsetMatch ? parseInt(offsetMatch[1], 10) : 0;
+  const offsetSec = offsetMs / 1000;
 
   for (const rawLine of lrc.split('\n')) {
     const match = rawLine.match(regex);
@@ -56,7 +65,8 @@ export function parseLrc(lrc: string): LyricLine[] {
         match[3].length === 2
           ? parseInt(match[3], 10) * 10
           : parseInt(match[3], 10);
-      const time = minutes * 60 + seconds + ms / 1000;
+      const rawTime = minutes * 60 + seconds + ms / 1000;
+      const time = Math.max(0, rawTime - offsetSec);
       const text = match[4].trim();
       if (text) {
         lines.push({ time, text });

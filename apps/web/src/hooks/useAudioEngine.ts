@@ -13,7 +13,7 @@ import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
-const STORE_UPDATE_INTERVAL = 250;
+const STORE_UPDATE_INTERVAL = 100;
 const MIN_HISTORY_SECONDS = 30;
 const MIN_HISTORY_COMPLETION_RATIO = 0.5;
 const MAX_SESSION_DELTA_SECONDS = 1;

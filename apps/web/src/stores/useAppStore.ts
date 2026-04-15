@@ -96,6 +96,14 @@ interface PersistedAppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  lyricsOffsetSeconds: number;
+}
+
+function coerceLyricsOffset(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(parsed)) return 0;
+  const clamped = Math.min(5, Math.max(-5, parsed));
+  return Math.round(clamped * 10) / 10;
 }
 
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
@@ -118,6 +126,7 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
   if (typeof persisted.libraryHeroCardEnabled === 'boolean') out.libraryHeroCardEnabled = persisted.libraryHeroCardEnabled;
   if (typeof persisted.lowPerformanceMode === 'boolean') out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean') out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (persisted.lyricsOffsetSeconds !== undefined) out.lyricsOffsetSeconds = coerceLyricsOffset(persisted.lyricsOffsetSeconds);
   return out;
 }
 
@@ -223,6 +232,7 @@ interface AppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  lyricsOffsetSeconds: number;
   previousView: AppView;
 }
 
@@ -257,6 +267,7 @@ interface AppActions {
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
   selectAlbum: (name: string | null) => void;
   setAlbumGridScrollTop: (scrollTop: number) => void;
+  setLyricsOffsetSeconds: (seconds: number) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -285,6 +296,7 @@ export const useAppStore = create<AppState & AppActions>()(
       libraryHeroCardEnabled: true,
       lowPerformanceMode: false,
       noiseOverlayEnabled: false,
+      lyricsOffsetSeconds: 0,
       previousView: 'library',
 
       navigateTo: (view, playlistId) =>
@@ -420,6 +432,10 @@ export const useAppStore = create<AppState & AppActions>()(
       },
       selectAlbum: (name) => set({ selectedAlbumName: name }),
       setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
+      setLyricsOffsetSeconds: (seconds) => {
+        const clamped = Math.min(5, Math.max(-5, seconds));
+        set({ lyricsOffsetSeconds: Math.round(clamped * 10) / 10 });
+      },
     }),
     {
       name: NEW_KEY,
@@ -443,6 +459,7 @@ export const useAppStore = create<AppState & AppActions>()(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
+        lyricsOffsetSeconds: s.lyricsOffsetSeconds,
       }),
       merge: (persisted, current) => ({
         ...current,

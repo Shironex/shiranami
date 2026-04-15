@@ -38,6 +38,42 @@ describe('parseLrc', () => {
     const result = parseLrc(lrc);
     expect(result).toEqual([{ time: 120, text: 'Has text' }]);
   });
+
+  it('applies positive [offset:+N] by shifting lyrics earlier', () => {
+    const lrc = '[offset:+2000]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 3.0, text: 'hello' }]);
+  });
+
+  it('applies negative [offset:-N] by delaying lyrics', () => {
+    const lrc = '[offset:-1500]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 6.5, text: 'hello' }]);
+  });
+
+  it('treats unsigned offset as positive', () => {
+    const lrc = '[offset:500]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 4.5, text: 'hello' }]);
+  });
+
+  it('clamps negative resulting times to 0', () => {
+    const lrc = '[offset:+20000]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 0, text: 'hello' }]);
+  });
+
+  it('ignores non-offset metadata tags like [ar:]', () => {
+    const lrc = '[offset:+1000]\n[ar:Foo]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 4.0, text: 'hello' }]);
+  });
+
+  it('matches [offset:] tag case-insensitively', () => {
+    const lrc = '[OFFSET:+1000]\n[00:05.00]hello';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 4.0, text: 'hello' }]);
+  });
 });
 
 describe('buildSearchQueries', () => {

@@ -1,5 +1,12 @@
 {
   "title": "Tekst piosenki",
   "finding": "Szukam tekstu...",
-  "notFound": "Nie znaleziono tekstu"
+  "notFound": "Nie znaleziono tekstu",
+  "offset": {
+    "label": "Przesunięcie synchronizacji",
+    "decrease": "Zmniejsz przesunięcie o 0.1s",
+    "increase": "Zwiększ przesunięcie o 0.1s",
+    "reset": "Resetuj",
+    "tooltip": "Dostosuj, jeśli tekst nie jest zsynchronizowany z dźwiękiem"
+  }
 }
