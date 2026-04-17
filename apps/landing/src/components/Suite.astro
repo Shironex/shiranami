@@ -1,0 +1,55 @@
+---
+const cards = [
+  {
+    kanji: '\u767D\u6CE2',
+    name: 'Shiranami',
+    roleKey: 'suite.shiranamiRole',
+    roleFallback: 'Music sanctuary \u00B7 you are here',
+    href: '#top',
+    self: true,
+  },
+  {
+    kanji: '\u767D\u30A2\u30CB',
+    name: 'ShiroAni',
+    roleKey: 'suite.shiroaniRole',
+    roleFallback: 'Anime tracker',
+    href: 'https://shiroani.app/',
+    self: false,
+  },
+  {
+    kanji: '\u7DBA\u9E97\u6F2B\u753B',
+    name: 'KireiManga',
+    roleKey: 'suite.kireimangaRole',
+    roleFallback: 'Manga reader',
+    href: 'https://kireimanga.app/',
+    self: false,
+  },
+];
+---
+
+<section class="section-shell section-stack" id="suite">
+  <div class="section-heading reveal">
+    <div class="pill" data-i18n="suite.pill">Shiro Suite</div>
+    <h2 data-i18n="suite.heading">One quiet shelf for manga, anime, and music.</h2>
+    <p data-i18n="suite.body">
+      Three sibling apps, one monorepo, one design language. All local-first, all
+      built to stay calm and easy to live with.
+    </p>
+  </div>
+
+  <div class="suite-grid reveal-stagger">
+    {cards.map((card) => (
+      <a
+        class={`suite-card reveal${card.self ? ' is-self' : ''}`}
+        href={card.href}
+        target={card.self ? '_self' : '_blank'}
+        rel={card.self ? undefined : 'noopener noreferrer'}
+        aria-current={card.self ? 'page' : undefined}
+      >
+        <span class="suite-kanji" aria-hidden="true">{card.kanji}</span>
+        <span class="suite-name">{card.name}</span>
+        <span class="suite-role" data-i18n={card.roleKey}>{card.roleFallback}</span>
+      </a>
+    ))}
+  </div>
+</section>

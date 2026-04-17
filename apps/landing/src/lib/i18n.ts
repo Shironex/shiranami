@@ -63,6 +63,15 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'preview.body': 'Your library, now playing, and queue, all in one calm view.',
     'preview.alt': 'Shiranami desktop app showing the library view with a track playing',
 
+    // Shiro Suite
+    'suite.pill': 'Shiro Suite',
+    'suite.heading': 'One quiet shelf for manga, anime, and music.',
+    'suite.body':
+      'Three sibling apps, one monorepo, one design language. All local-first, all built to stay calm and easy to live with.',
+    'suite.shiranamiRole': 'Music sanctuary · you are here',
+    'suite.shiroaniRole': 'Anime tracker',
+    'suite.kireimangaRole': 'Manga reader',
+
     // Download CTA
     'cta.versionPill': 'is out',
     'cta.heading': 'Ready to listen?',
@@ -172,6 +181,15 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'preview.heading': 'Zobacz, jak to wygląda.',
     'preview.body': 'Biblioteka, aktualnie grany utwór i kolejka w jednym spokojnym widoku.',
     'preview.alt': 'Aplikacja Shiranami pokazująca widok biblioteki z odtwarzanym utworem',
+
+    // Shiro Suite
+    'suite.pill': 'Shiro Suite',
+    'suite.heading': 'Jedna spokojna półka na mangę, anime i muzykę.',
+    'suite.body':
+      'Trzy siostrzane aplikacje, jedno monorepo, jeden język projektowy. Wszystkie działają lokalnie i są pomyślane tak, by dało się z nimi spokojnie żyć na co dzień.',
+    'suite.shiranamiRole': 'Przystań dla muzyki · jesteś tutaj',
+    'suite.shiroaniRole': 'Śledzenie anime',
+    'suite.kireimangaRole': 'Czytnik mangi',
 
     // Download CTA
     'cta.versionPill': 'już dostępna',
