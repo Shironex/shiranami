@@ -67,7 +67,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'suite.pill': 'Shiro Suite',
     'suite.heading': 'One quiet shelf for manga, anime, and music.',
     'suite.body':
-      'Three sibling apps, one monorepo, one design language. All local-first, all built to stay calm and easy to live with.',
+      'Shiranami is one of three sibling apps built around the same idea — local-first, calm, and easy to live with. Different repos, shared architecture and design language.',
     'suite.shiranamiRole': 'Music sanctuary · you are here',
     'suite.shiroaniRole': 'Anime tracker',
     'suite.kireimangaRole': 'Manga reader',
@@ -186,7 +186,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'suite.pill': 'Shiro Suite',
     'suite.heading': 'Jedna spokojna półka na mangę, anime i muzykę.',
     'suite.body':
-      'Trzy siostrzane aplikacje, jedno monorepo, jeden język projektowy. Wszystkie działają lokalnie i są pomyślane tak, by dało się z nimi spokojnie żyć na co dzień.',
+      'Shiranami to jedna z trzech siostrzanych aplikacji zbudowanych wokół tej samej idei — lokalnie, spokojnie, na co dzień. Różne repozytoria, wspólna architektura i język wizualny.',
     'suite.shiranamiRole': 'Przystań dla muzyki · jesteś tutaj',
     'suite.shiroaniRole': 'Śledzenie anime',
     'suite.kireimangaRole': 'Czytnik mangi',
