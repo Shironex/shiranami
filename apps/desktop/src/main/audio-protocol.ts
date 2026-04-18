@@ -2,6 +2,7 @@ import { protocol } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
+import { isPathAllowed } from './shared/folders-cache';
 
 /** Audio file extensions we allow serving */
 const ALLOWED_EXTENSIONS = new Set([
@@ -34,27 +35,31 @@ export function registerAudioProtocol(): void {
         return new Response('Bad request', { status: 400 });
       }
 
-      const normalizedPath = filePath;
-
-      logger.debug(`[audio-protocol] Request for: ${normalizedPath}`);
+      logger.debug(`[audio-protocol] Request for: ${filePath}`);
 
       // Security: validate extension
-      const ext = path.extname(normalizedPath).toLowerCase();
+      const ext = path.extname(filePath).toLowerCase();
       if (!ALLOWED_EXTENSIONS.has(ext)) {
         logger.warn(`[audio-protocol] Blocked non-audio extension: ${ext}`);
+        return new Response('Forbidden', { status: 403 });
+      }
+
+      // Security: containment — reject paths outside allowed roots/known tracks.
+      if (!(await isPathAllowed(filePath))) {
+        logger.warn(`[audio-protocol] blocked path outside allowed roots: ${filePath}`);
         return new Response('Forbidden', { status: 403 });
       }
 
       // Security: verify file exists and is a file (not directory/symlink to sensitive path)
       let stat: fs.Stats;
       try {
-        stat = await fs.promises.stat(normalizedPath);
+        stat = await fs.promises.stat(filePath);
         if (!stat.isFile()) {
-          logger.warn(`[audio-protocol] Not a file: ${normalizedPath}`);
+          logger.warn(`[audio-protocol] Not a file: ${filePath}`);
           return new Response('Not a file', { status: 403 });
         }
       } catch (err) {
-        logger.warn(`[audio-protocol] File not found: ${normalizedPath}`, err);
+        logger.warn(`[audio-protocol] File not found: ${filePath}`, err);
         return new Response('Not found', { status: 404 });
       }
 
@@ -76,7 +81,7 @@ export function registerAudioProtocol(): void {
           const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
           const chunkSize = end - start + 1;
 
-          const stream = fs.createReadStream(normalizedPath, { start, end });
+          const stream = fs.createReadStream(filePath, { start, end });
           const readable = new ReadableStream({
             start(controller) {
               stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));
@@ -99,7 +104,7 @@ export function registerAudioProtocol(): void {
       }
 
       // No Range header — return full file
-      const stream = fs.createReadStream(normalizedPath);
+      const stream = fs.createReadStream(filePath);
       const readable = new ReadableStream({
         start(controller) {
           stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));

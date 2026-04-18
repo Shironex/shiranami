@@ -23,6 +23,11 @@ vi.mock('./logger', () => ({
   },
 }));
 
+const mockIsPathAllowed = vi.fn<(p: string) => Promise<boolean>>();
+vi.mock('./shared/folders-cache', () => ({
+  isPathAllowed: (p: string) => mockIsPathAllowed(p),
+}));
+
 import { registerAudioProtocol, toAudioUrl } from './audio-protocol';
 
 describe('audio-protocol', () => {
@@ -49,6 +54,9 @@ describe('audio-protocol', () => {
     beforeEach(() => {
       capturedHandler = null;
       tempDir = makeTempDir();
+      mockIsPathAllowed.mockReset();
+      // Default: containment passes so existing tests exercise their assertions.
+      mockIsPathAllowed.mockResolvedValue(true);
       registerAudioProtocol();
     });
 
@@ -110,6 +118,24 @@ describe('audio-protocol', () => {
       const url = toAudioUrl(path.join(tempDir, 'sub.mp3'));
       // Create a directory at that path
       fs.mkdirSync(path.join(tempDir, 'sub.mp3'));
+      const res = await capturedHandler!(makeRequest(url));
+      expect(res.status).toBe(403);
+    });
+
+    it('returns 403 when isPathAllowed denies the path (even with valid extension/file)', async () => {
+      mockIsPathAllowed.mockResolvedValue(false);
+      const filePath = path.join(tempDir, 'denied.mp3');
+      fs.writeFileSync(filePath, Buffer.from('ID3FAKE'));
+      const url = toAudioUrl(filePath);
+      const res = await capturedHandler!(makeRequest(url));
+      expect(res.status).toBe(403);
+    });
+
+    it('does not stat the file when isPathAllowed denies (containment runs first)', async () => {
+      mockIsPathAllowed.mockResolvedValue(false);
+      // Path looks like an audio file but does not exist — would normally 404.
+      // Containment short-circuits to 403 before the stat call.
+      const url = toAudioUrl(path.join(tempDir, 'never-created.mp3'));
       const res = await capturedHandler!(makeRequest(url));
       expect(res.status).toBe(403);
     });
