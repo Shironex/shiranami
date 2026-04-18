@@ -62,6 +62,18 @@
     .nav-cta {
       display: none;
     }
+    .nav-row .brand-name {
+      font-size: 18px;
+    }
+    .nav-row .brand-sub {
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .nav-row .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+    }
     .nav-mobile {
       display: block;
       max-height: 0;
