@@ -80,10 +80,11 @@
     right: 0;
     bottom: -4px;
     height: 6px;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'><path d='M0,3 Q12,0 25,3 T50,3 T75,3 T100,3' fill='none' stroke='%23b294e3' stroke-width='1.5'/></svg>");
-    background-size: 80px 100%;
-    background-repeat: repeat-x;
-    opacity: 0.7;
+    background-color: var(--primary);
+    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'><path d='M0,3 Q12,0 25,3 T50,3 T75,3 T100,3' fill='none' stroke='black' stroke-width='1.5'/></svg>");
+    mask-size: 80px 100%;
+    mask-repeat: repeat-x;
+    opacity: 0.6;
   }
 
   .hero-sub {

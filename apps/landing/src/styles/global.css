@@ -23,7 +23,7 @@
   --bg-2: oklch(0.07 0.018 285);
   --ink: oklch(0.96 0.012 90);
   --ink-dim: oklch(0.72 0.015 90);
-  --ink-mute: oklch(0.5 0.012 285);
+  --ink-mute: oklch(0.62 0.015 285);
   --line: oklch(0.96 0.012 90 / 0.1);
   --line-strong: oklch(0.96 0.012 90 / 0.22);
   --primary: oklch(0.74 0.13 295);

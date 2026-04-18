@@ -110,7 +110,7 @@
       padding: 14px 18px;
       border-radius: 12px;
       background: var(--primary);
-      color: oklch(0.12 0.02 280);
+      color: var(--bg);
       font-family: var(--font-mono);
       font-size: 11px;
       letter-spacing: 0.18em;

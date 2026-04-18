@@ -9,7 +9,7 @@
     border-radius: 14px;
     overflow: hidden;
     border: 1px solid var(--line-strong);
-    background: oklch(0.05 0.012 285);
+    background: var(--bg-2);
     box-shadow: 0 60px 120px -40px oklch(0 0 0 / 0.7);
     position: relative;
   }
