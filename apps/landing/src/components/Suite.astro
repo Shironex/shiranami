@@ -1,0 +1,64 @@
+---
+const cards = [
+  {
+    kanji: '白波',
+    name: 'Shiranami',
+    domain: 'shiranami.app',
+    roleKey: 'suite.shiranami.role',
+    roleFallback: 'Music sanctuary · you are here',
+    descKey: 'suite.shiranami.desc',
+    descFallback:
+      'The desktop sanctuary for your local music library, synced lyrics, radio, and quiet downloads.',
+    self: true,
+  },
+  {
+    kanji: '白アニ',
+    name: 'ShiroAni',
+    domain: 'shiroani.app',
+    roleKey: 'suite.shiroani.role',
+    roleFallback: 'Anime tracker',
+    descKey: 'suite.shiroani.desc',
+    descFallback:
+      'A calm log for the shows you are watching, the ones you dropped, and the ones quietly waiting.',
+  },
+  {
+    kanji: '綺麗漫画',
+    name: 'KireiManga',
+    domain: 'kireimanga.app',
+    roleKey: 'suite.kireimanga.role',
+    roleFallback: 'Manga reader',
+    descKey: 'suite.kireimanga.desc',
+    descFallback:
+      'A quiet reader for chapters and tracked series — same dark lavender mood, different shelf.',
+  },
+];
+---
+
+<section id="suite" class="bay page">
+  <div class="section-head reveal">
+    <h2>
+      <span data-i18n="suite.headingLead">One app today.</span>
+      {' '}
+      <em data-i18n="suite.headingAccent">A small family</em>
+      {' '}
+      <span data-i18n="suite.headingTail">tomorrow.</span>
+    </h2>
+    <div class="meta">
+      <div>Section · 05</div>
+      <div><b data-i18n="suite.metaHeading">The suite</b></div>
+      <div data-i18n="suite.metaSub">Locally connected</div>
+    </div>
+  </div>
+
+  <div class="suite-grid reveal-stagger">
+    {cards.map((card) => (
+      <article class={`suite-card reveal${card.self ? ' is-self' : ''}`}>
+        <span class="suite-kanji" aria-hidden="true">{card.kanji}</span>
+        <span class="suite-name">{card.name}</span>
+        <span class="suite-role" data-i18n={card.roleKey}>{card.roleFallback}</span>
+        <p class="suite-desc" data-i18n={card.descKey}>{card.descFallback}</p>
+        <span class="suite-domain">{card.domain}</span>
+      </article>
+    ))}
+  </div>
+</section>

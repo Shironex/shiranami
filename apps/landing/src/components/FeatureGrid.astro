@@ -1,80 +1,202 @@
 ---
-const features = [
-  {
-    icon: '\u266B',
-    title: 'Library first',
-    body: 'Built around your own folders and files, not around pushing you into an online catalog.',
-    titleKey: 'features.libraryFirst',
-    bodyKey: 'features.libraryFirstBody',
-  },
-  {
-    icon: '\u2913',
-    title: 'Search & download',
-    body: 'Find tracks on YouTube, preview audio before downloading, and pull full YouTube or Spotify playlists in one go.',
-    titleKey: 'features.searchDownload',
-    bodyKey: 'features.searchDownloadBody',
-  },
-  {
-    icon: '\u25B6',
-    title: 'Crossfade & playback resume',
-    body: 'Dual-deck engine with smooth equal-power crossfade. Volume, queue, and position all survive restarts.',
-    titleKey: 'features.crossfade',
-    bodyKey: 'features.crossfadeBody',
-  },
-  {
-    icon: '\u2728',
-    title: 'Synced lyrics',
-    body: 'Timestamped lyrics scroll with the music. Click any line to seek. Falls back to plain text when needed.',
-    titleKey: 'features.lyrics',
-    bodyKey: 'features.lyricsBody',
-  },
-  {
-    icon: '\uD83C\uDFB5',
-    title: 'Internet radio',
-    body: 'Browse and stream stations from Radio Browser. Favorite the ones you like for quick access.',
-    titleKey: 'features.radio',
-    bodyKey: 'features.radioBody',
-  },
-  {
-    icon: '\uD83C\uDF19',
-    title: 'Sleep timer & compact mode',
-    body: 'Set a timer and let it auto-pause. Switch to a mini player with always-on-top when you want less screen.',
-    titleKey: 'features.sleepTimer',
-    bodyKey: 'features.sleepTimerBody',
-  },
-  {
-    icon: '\uD83C\uDFA8',
-    title: 'Ambient color & visualizer',
-    body: 'The UI tints itself to the album art. A frequency bar or waveform strip plays above the player bar.',
-    titleKey: 'features.ambient',
-    bodyKey: 'features.ambientBody',
-  },
-  {
-    icon: '\u2726',
-    title: 'Quiet interface touches',
-    body: 'Collapsible sidebar, command palette, listening history with stats, Discord Rich Presence, and adjustable UI scale.',
-    titleKey: 'features.quiet',
-    bodyKey: 'features.quietBody',
-  },
+import { Crossfade } from './tape/Crossfade';
+import { DownloadBar } from './tape/DownloadBar';
+import { LyricStrip } from './tape/LyricStrip';
+import { RadioDial } from './tape/RadioDial';
+
+const listeningStats = [
+  { v: '92', k: 'Plays · all time', key: 'features.library.stat1' },
+  { v: '2.6h', k: 'Listening', key: 'features.library.stat2' },
+  { v: '43', k: 'Unique tracks', key: 'features.library.stat3' },
+  { v: '16', k: 'Finished 95%+', key: 'features.library.stat4' },
+];
+
+const quietChips = [
+  '⌘K · jump',
+  '30 min · sleep',
+  'compact · on top',
+  '♥ favorites',
+  'media keys',
+  'tray icon',
+  'discord RPC',
+  'auto-resume',
+];
+
+const palette = [
+  'oklch(0.74 0.13 295)',
+  'oklch(0.65 0.18 320)',
+  'oklch(0.55 0.16 270)',
+  'oklch(0.78 0.14 65)',
+  'oklch(0.42 0.10 280)',
 ];
 ---
 
-<section class="section-shell section-stack" id="features">
-  <div class="section-heading reveal">
-    <div class="pill" data-i18n="features.pill">What makes it feel like Shiranami</div>
-    <h2 data-i18n="features.heading">Everything is aimed at a calmer listening flow.</h2>
-    <p data-i18n="features.subheading">
-      Less reloading, less setup repetition, and fewer panels fighting for attention while you listen.
-    </p>
+<section id="features" class="bay page">
+  <div class="section-head reveal">
+    <h2>
+      <span data-i18n="features.headingLead">A whole listening room,</span>
+      {' '}
+      <em data-i18n="features.headingAccent">folded</em>
+      {' '}
+      <span data-i18n="features.headingTail">into one window.</span>
+    </h2>
+    <div class="meta">
+      <div>Section · 02</div>
+      <div><b data-i18n="features.metaHeading">What's inside</b></div>
+      <div data-i18n="features.metaSub">19 quiet features</div>
+    </div>
   </div>
 
-  <div class="feature-grid reveal-stagger">
-    {features.map((feature) => (
-      <article class="feature-card reveal">
-        <span class="feature-icon" aria-hidden="true">{feature.icon}</span>
-        <h3 data-i18n={feature.titleKey}>{feature.title}</h3>
-        <p data-i18n={feature.bodyKey}>{feature.body}</p>
-      </article>
-    ))}
+  <div class="deck-grid reveal-stagger">
+    <article class="tape dk-6 reveal">
+      <div class="tape-meta">
+        <span>A1 · Library</span>
+        <b>● Local-first</b>
+      </div>
+      <h3>
+        <span data-i18n="features.library.titleLead">Your folders are the</span>
+        {' '}
+        <em data-i18n="features.library.titleAccent">catalog</em>.
+      </h3>
+      <p data-i18n="features.library.body">
+        Point Shiranami at a folder. It scans your files, reads the tags, lifts the cover art, and
+        quietly hands you back a real library — no upload, no account, no maybe-it-syncs.
+      </p>
+      <div class="tape-art">
+        <div class="stat-grid">
+          {listeningStats.map((stat) => (
+            <div class="s">
+              <div class="v">{stat.v}</div>
+              <div class="k" data-i18n={stat.key}>{stat.k}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
+
+    <article class="tape dk-6 reveal">
+      <div class="tape-meta">
+        <span>A2 · Lyrics</span>
+        <b>● Synced</b>
+      </div>
+      <h3>
+        <span data-i18n="features.lyrics.titleLead">Lyrics that</span>
+        {' '}
+        <em data-i18n="features.lyrics.titleAccent">scroll with you</em>.
+      </h3>
+      <p data-i18n="features.lyrics.body">
+        Time-synced lines glide past as the song plays. Click any line to seek there. The room dims;
+        the words stay legible.
+      </p>
+      <div class="tape-art">
+        <LyricStrip client:visible />
+      </div>
+    </article>
+
+    <article class="tape dk-4 reveal">
+      <div class="tape-meta">
+        <span>B1 · Radio</span>
+        <b>● 30k+ stations</b>
+      </div>
+      <h3>
+        <span data-i18n="features.radio.titleLead">A radio dial, still</span>
+        {' '}
+        <em data-i18n="features.radio.titleAccent">warm</em>.
+      </h3>
+      <p data-i18n="features.radio.body">
+        Browse, stream and favorite stations from Radio Browser. Soul out of Paris, lo-fi out of
+        Tokyo, talk out of nowhere in particular.
+      </p>
+      <div class="tape-art">
+        <RadioDial client:visible />
+      </div>
+    </article>
+
+    <article class="tape dk-4 reveal">
+      <div class="tape-meta">
+        <span>B2 · Crossfade</span>
+        <b>● 1–12s</b>
+      </div>
+      <h3>
+        <span data-i18n="features.crossfade.titleLead">Tracks</span>
+        {' '}
+        <em data-i18n="features.crossfade.titleAccent">melt</em>
+        <span data-i18n="features.crossfade.titleTail">, never bump.</span>
+      </h3>
+      <p data-i18n="features.crossfade.body">
+        Dual-deck engine with equal-power crossfade. Set it from one second to twelve and let songs
+        hand the room over to each other.
+      </p>
+      <div class="tape-art">
+        <Crossfade client:visible />
+      </div>
+    </article>
+
+    <article class="tape dk-4 reveal">
+      <div class="tape-meta">
+        <span>B3 · Import</span>
+        <b>● yt-dlp + ffmpeg</b>
+      </div>
+      <h3>
+        <span data-i18n="features.import.titleLead">Pull a playlist</span>
+        {' '}
+        <em data-i18n="features.import.titleAccent">down</em>.
+      </h3>
+      <p data-i18n="features.import.body">
+        Paste a YouTube or Spotify playlist URL. Shiranami pulls the whole list into a review queue,
+        then downloads the ones you keep.
+      </p>
+      <div class="tape-art">
+        <DownloadBar client:visible />
+      </div>
+    </article>
+
+    <article class="tape dk-7 reveal">
+      <div class="tape-meta">
+        <span>C1 · Ambient</span>
+        <b>● Album art tint</b>
+      </div>
+      <h3>
+        <span data-i18n="features.ambient.titleLead">The room takes the</span>
+        {' '}
+        <em data-i18n="features.ambient.titleAccent">color</em>
+        {' '}
+        <span data-i18n="features.ambient.titleTail">of the song.</span>
+      </h3>
+      <p data-i18n="features.ambient.body">
+        Shiranami sips the dominant color out of the cover art and washes it across the entire
+        interface. The app dresses for the music, not the other way around.
+      </p>
+      <div class="tape-art">
+        <div class="palette-strip" aria-hidden="true">
+          {palette.map((color) => (
+            <div class="pc" style={`background: ${color}`}></div>
+          ))}
+        </div>
+        <div
+          style="margin-top:8px; font-family: var(--font-mono); font-size:10px; color:var(--ink-mute); letter-spacing:0.18em; text-transform:uppercase;"
+          data-i18n="features.ambient.hint"
+        >
+          Extracted from album art · tints the entire UI
+        </div>
+      </div>
+    </article>
+
+    <article class="tape dk-5 reveal">
+      <div class="tape-meta">
+        <span>C2 · Quiet</span>
+        <b>● Always there</b>
+      </div>
+      <h3 data-i18n="features.quiet.title">Sleep timer, mini player, command palette.</h3>
+      <p data-i18n="features.quiet.body">
+        A quiet auto-pause when you fade out. A compact always-on-top window for when the screen is
+        busy. Ctrl+K to vault anywhere in the library without touching the mouse.
+      </p>
+      <div class="tape-art" style="display:flex; gap:8px; flex-wrap:wrap;">
+        {quietChips.map((chip) => (
+          <span class="quiet-chip">{chip}</span>
+        ))}
+      </div>
+    </article>
   </div>
 </section>

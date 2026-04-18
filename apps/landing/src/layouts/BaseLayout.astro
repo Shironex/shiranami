@@ -79,6 +79,11 @@ const { title, description } = Astro.props;
           if (dict[key] != null) el.setAttribute('aria-label', dict[key]);
         });
 
+        document.querySelectorAll<HTMLElement>('[data-i18n-en]').forEach((el) => {
+          const value = lang === 'pl' ? el.dataset.i18nPl : el.dataset.i18nEn;
+          if (value != null) el.textContent = value;
+        });
+
         document.querySelectorAll<HTMLElement>('[data-lang-toggle]').forEach((btn) => {
           btn.textContent = lang === 'en' ? 'PL' : 'EN';
         });

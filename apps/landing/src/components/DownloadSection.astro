@@ -2,22 +2,64 @@
 import { LANDING_VERSION } from '../lib/site';
 ---
 
-<section class="section-shell section-stack">
-  <div class="cta-card reveal">
-    <div>
-      <div class="pill cta-version-pill">
-        <span>v{LANDING_VERSION}</span>{' '}
-        <span data-i18n="cta.versionPill">is out</span>
+<section id="download" class="bay page">
+  <div class="download-block reveal">
+    <div class="download-grid">
+      <div>
+        <div class="label" style="margin-bottom:18px">
+          <span>● Section · 06 &nbsp;·&nbsp;</span>
+          <span data-i18n="download.eyebrow">Take it home</span>
+        </div>
+        <h2>
+          <span data-i18n="download.headingLead">Quiet, free, and</span>
+          {' '}
+          <em data-i18n="download.headingAccent">yours</em>.
+        </h2>
+        <p data-i18n="download.body">
+          Free to download. Source-available. Updates land in-app on Windows; macOS users grab them
+          from GitHub Releases.
+        </p>
+        <div class="download-meta">
+          <span>Latest · v{LANDING_VERSION}</span>
+          {' '}&nbsp;·&nbsp;{' '}
+          <span data-i18n="download.metaSize">~84 MB</span>
+          {' '}&nbsp;·&nbsp;{' '}
+          <span data-i18n="download.metaStack">Electron 40</span>
+        </div>
       </div>
-      <h2 data-i18n="cta.heading">Ready to listen?</h2>
-      <p data-i18n="cta.body">
-        Grab the latest build for Windows or macOS, or read what went into making it feel right.
-      </p>
-    </div>
 
-    <div class="cta-actions">
-      <a class="button-primary" href="/download" data-i18n="cta.getTheApp">Get the app</a>
-      <a class="button-secondary" href="/changelog" data-i18n="cta.releaseNotes">Release notes</a>
+      <div class="platforms">
+        <a href="/download" class="platform">
+          <div class="l">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M3 5l8-1v8H3V5zm0 9h8v8l-8-1v-7zm9-10l9-1v10h-9V4zm0 10h9v10l-9-1V14z" />
+            </svg>
+            <div>
+              <div class="pn">Windows</div>
+              <div class="ps" data-i18n="download.windowsTag">.exe · in-app updates</div>
+            </div>
+          </div>
+          <span class="r">
+            <span aria-hidden="true">↓</span>
+            <span data-i18n="download.action">Download</span>
+          </span>
+        </a>
+        <a href="/download" class="platform">
+          <div class="l">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M16.7 1.6c0 1.4-.5 2.7-1.5 3.8-1.1 1.2-2.4 1.9-3.7 1.8-.2-1.4.5-2.8 1.5-3.8 1-1.1 2.5-1.8 3.7-1.8zm4.2 17.6c-.7 1.6-1.1 2.3-2 3.7-1.3 1.9-3.1 4.3-5.4 4.3-2 0-2.5-1.3-5.2-1.3s-3.3 1.3-5.3 1.3c-2.3 0-4-2.2-5.3-4.1-3.7-5.4-4.1-11.7-1.8-15 1.6-2.4 4.2-3.8 6.6-3.8 2.5 0 4 1.4 6 1.4 1.9 0 3.1-1.4 6-1.4 2.2 0 4.5 1.2 6.1 3.3-5.4 3-4.5 10.7.3 11.6z" />
+            </svg>
+            <div>
+              <div class="pn">macOS</div>
+              <div class="ps" data-i18n="download.macosTag">.dmg · GitHub Releases</div>
+            </div>
+          </div>
+          <span class="r">
+            <span aria-hidden="true">↓</span>
+            <span data-i18n="download.action">Download</span>
+          </span>
+        </a>
+      </div>
     </div>
   </div>
 </section>

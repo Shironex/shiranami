@@ -1,0 +1,104 @@
+@layer components {
+  /* ===== PHILOSOPHY ===== */
+  .philo {
+    background: var(--paper);
+    border-radius: 24px;
+    padding: 80px 56px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+
+  .philo::before {
+    content: '白波';
+    position: absolute;
+    top: -60px;
+    right: -40px;
+    font-family: var(--font-kanji);
+    font-weight: 800;
+    font-size: 380px;
+    line-height: 0.8;
+    color: oklch(from var(--primary) l c h / 0.06);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .philo-grid {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 80px;
+    align-items: start;
+    position: relative;
+    z-index: 2;
+  }
+
+  .philo-side .vlabel {
+    margin-bottom: 24px;
+  }
+
+  .philo-kanji {
+    font-family: var(--font-kanji);
+    font-weight: 800;
+    font-size: 140px;
+    line-height: 0.85;
+    color: oklch(from var(--primary) l c h / 0.5);
+    letter-spacing: -0.03em;
+  }
+
+  .philo-defn {
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    white-space: pre-line;
+  }
+
+  .philo-quote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(32px, 3.6vw, 52px);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    text-wrap: pretty;
+  }
+
+  .philo-quote em {
+    color: var(--primary);
+    font-style: italic;
+  }
+
+  .philo-quote .dropcap {
+    font-family: var(--font-kanji);
+    font-style: normal;
+    font-weight: 800;
+    float: left;
+    font-size: 1.6em;
+    line-height: 0.9;
+    margin-right: 12px;
+    color: var(--primary);
+  }
+
+  .philo-byline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 36px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    flex-wrap: wrap;
+  }
+
+  .philo-byline .sep {
+    width: 24px;
+    height: 1px;
+    background: var(--ink-mute);
+  }
+}

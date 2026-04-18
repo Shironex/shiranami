@@ -1,40 +1,100 @@
 ---
-import { Image } from 'astro:assets';
-import mascotSrc from '../assets/mascot.png';
-import { LANDING_VERSION } from '../lib/site';
-
-const platforms = ['Windows', 'macOS'];
+const heroStats = [
+  { num: '0¥', label: 'Source-available', key: 'hero.stat1' },
+  { num: '2', label: 'Win · macOS', key: 'hero.stat2' },
+  { num: '19', label: 'Quiet features', key: 'hero.stat3' },
+];
 ---
 
-<section class="hero section-shell" id="top">
-  <div class="hero-panel reveal">
-    <div class="hero-copy">
-      <div class="hero-badges">
-        <div class="pill" data-i18n="hero.pill">Lofi desktop player</div>
-        <div class="version-badge">v{LANDING_VERSION}</div>
+<section class="hero page" id="top">
+  <div class="vlabel vlabel-l">A · 2026 · Edition · 白波</div>
+
+  <div class="hero-left">
+    <div>
+      <div class="hero-eyebrow">
+        <div class="eb-line" aria-hidden="true"></div>
+        <div class="label" data-i18n="hero.eyebrow">
+          Vol. I &nbsp;·&nbsp; A desktop player <span class="label-accent">·</span> Local-first
+        </div>
       </div>
-      <h1 data-i18n="hero.heading">A softer place for your music library.</h1>
-      <p data-i18n="hero.body">
-        Shiranami keeps your local collection, playlists, synced lyrics, internet radio, crossfade,
-        and new downloads in one calm desktop space — all in the same dark lavender mood.
+
+      <h1>
+        <span data-i18n="hero.headline.lead">A quieter place to listen, far from</span>{' '}<em><span class="underline-swirl" data-i18n="hero.headline.tail">the algorithm.</span></em>
+      </h1>
+
+      <p class="hero-sub" data-i18n="hero.sub">
+        Shiranami is the quiet desktop room where your own files, internet radio,
+        synced lyrics and YouTube imports finally share a single shelf — no streaming
+        account, no rented music, no recommendations whispered over your shoulder.
       </p>
 
-      <div class="hero-actions">
-        <a class="button-primary" href="/download" data-i18n="hero.ctaPrimary">Get the app</a>
-        <a class="button-secondary" href="/changelog" data-i18n="hero.ctaSecondary">Release notes</a>
+      <div class="hero-cta">
+        <a href="#download" class="btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span data-i18n="hero.ctaPrimary">Download · Free</span>
+        </a>
+        <a href="#preview" class="btn-ghost">
+          <span data-i18n="hero.ctaSecondary">See the room</span>
+          <span class="arr" aria-hidden="true">→</span>
+        </a>
       </div>
-
-      <p class="hero-platforms" data-i18n="hero.platforms">Available for {platforms.join(' and ')}</p>
     </div>
 
-    <div class="hero-mascot-wrap">
-      <Image class="hero-mascot" src={mascotSrc} alt="Shiranami mascot" data-i18n-alt="hero.mascotAlt" width={256} height={256} format="png" />
+    <div>
+      <div class="hero-meta">
+        {heroStats.map((cell) => (
+          <div class="hero-meta-cell">
+            <div class="num serif">{cell.num}</div>
+            <div class="lab" data-i18n={cell.key}>{cell.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 
-  <div class="lofi-divider reveal" aria-hidden="true">
-    {Array.from({ length: 72 }).map((_, index) => (
-      <span style={`animation-delay:${index * 0.05}s`} />
-    ))}
+  <div class="hero-right">
+    <div class="vinyl-stage">
+      <div class="kanji-watermark" aria-hidden="true">白波</div>
+      <div class="needle" aria-hidden="true"></div>
+      <div class="vinyl" aria-hidden="true">
+        <div class="vinyl-shine"></div>
+      </div>
+      <div class="vinyl-label" aria-hidden="true">
+        <div class="vl-inner">
+          <div class="a">白波</div>
+          <div class="b">Side A</div>
+        </div>
+        <div class="hole"></div>
+      </div>
+      <img
+        class="mascot-float"
+        src="/assets/mascot.png"
+        alt="Shiranami mascot — purple-haired listener with headphones"
+        data-i18n-alt="hero.mascotAlt"
+        width="180"
+        height="220"
+        loading="eager"
+      />
+      <aside class="np-card" aria-label="Now playing preview" data-i18n-aria-label="hero.np.aria">
+        <div class="np-head">
+          <span class="np-led" aria-hidden="true"></span>
+          <span class="now" data-i18n="hero.np.status">Now playing · 03:14 a.m.</span>
+        </div>
+        <div class="np-title">Kuusou Mesorogiwi</div>
+        <div class="np-artist">LeeandLie · Future Diary OST</div>
+        <div class="np-bars" aria-hidden="true">
+          {Array.from({ length: 12 }).map(() => <span></span>)}
+        </div>
+        <div class="np-progress">
+          <span>1:14</span>
+          <div class="bar" aria-hidden="true"><i></i></div>
+          <span>3:42</span>
+        </div>
+      </aside>
+    </div>
   </div>
+
+  <div class="vlabel vlabel-r">No&nbsp;ads · No&nbsp;telemetry · No&nbsp;hurry</div>
 </section>

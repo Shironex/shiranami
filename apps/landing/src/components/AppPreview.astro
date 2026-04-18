@@ -1,24 +1,41 @@
 ---
-import { Image } from 'astro:assets';
-import previewSrc from '../assets/app-preview.png';
 ---
 
-<section class="section-shell section-stack" id="preview">
-  <div class="section-heading reveal">
-    <div class="pill" data-i18n="preview.pill">The app</div>
-    <h2 data-i18n="preview.heading">This is what it looks like.</h2>
-    <p data-i18n="preview.body">
-      Your library, now playing, and queue — all in one calm view.
-    </p>
+<section id="preview" class="bay page">
+  <div class="section-head reveal">
+    <h2>
+      <span data-i18n="preview.headingLead">The app,</span>
+      {' '}
+      <em data-i18n="preview.headingAccent">shown</em>
+      {' '}
+      <span data-i18n="preview.headingTail">at three a.m.</span>
+    </h2>
+    <div class="meta">
+      <div>Section · 03</div>
+      <div><b data-i18n="preview.metaHeading">The room</b></div>
+      <div data-i18n="preview.metaSub">Dark lavender · always</div>
+    </div>
   </div>
 
-  <div class="app-frame reveal">
-    <Image
-      src={previewSrc}
-      alt="Shiranami desktop app showing the library view with a track playing"
-      data-i18n-alt="preview.alt"
-      width={1100}
-      quality={85}
-    />
+  <div class="preview-wrap reveal">
+    <div class="preview-tag t1">
+      <b aria-hidden="true">●</b>
+      <span data-i18n="preview.tagNow">Now playing — drown · easton corbin</span>
+    </div>
+    <div class="preview-tag t2" data-i18n="preview.tagCount">12 tracks · 41:56</div>
+    <div class="preview-frame">
+      <div class="preview-chrome">
+        <div class="lights" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="title">shiranami · biblioteka</div>
+        <div style="width:60px"></div>
+      </div>
+      <img
+        class="preview-img"
+        src="/assets/library.png"
+        alt="Shiranami app — library view"
+        data-i18n-alt="preview.alt"
+        loading="lazy"
+      />
+    </div>
   </div>
 </section>

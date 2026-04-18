@@ -22,20 +22,27 @@ const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
 <link rel="icon" type="image/png" href="/favicon.png" />
 <link rel="sitemap" href="/sitemap-index.xml" />
 
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Shippori+Mincho:wght@400;500;700;800&display=swap"
+  rel="stylesheet"
+/>
+
 <title>{title}</title>
 <meta name="description" content={description} />
 
 <meta property="og:type" content="website" />
 <meta property="og:url" content={Astro.url} />
-<meta property="og:title" content="Shiranami - Your personal music sanctuary" />
+<meta property="og:title" content="Shiranami · white waves — a quiet place for your music" />
 <meta
   property="og:description"
-  content="Play your local collection, stream internet radio, crossfade between tracks, read synced lyrics, and keep everything in a calm late-night desktop space."
+  content="A local-first desktop sanctuary for your music library, internet radio, synced lyrics, crossfade, and one-step downloads — wrapped in a calm dark lavender theme."
 />
 <meta property="og:image" content={ogImage} />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Shiranami - Your personal music sanctuary" />
+<meta name="twitter:title" content="Shiranami · white waves — a quiet place for your music" />
 <meta
   name="twitter:description"
   content="A desktop player built for local libraries, playlists, internet radio, crossfade, downloads, and a softer late-night listening flow."
