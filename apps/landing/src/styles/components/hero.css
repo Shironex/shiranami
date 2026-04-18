@@ -226,6 +226,7 @@
       inset 0 0 0 1px oklch(from var(--primary) l c h / 0.2),
       inset 0 0 60px oklch(0 0 0 / 0.6),
       0 30px 80px -20px oklch(0 0 0 / 0.6);
+    will-change: transform;
     animation: spin 14s linear infinite;
   }
 
@@ -342,7 +343,16 @@
     width: 38%;
     z-index: 5;
     filter: drop-shadow(0 30px 40px oklch(0 0 0 / 0.5));
+    will-change: transform;
     animation: float 7s ease-in-out infinite;
+  }
+
+  .hero[data-visible='false'] .vinyl,
+  .hero[data-visible='false'] .vinyl-label,
+  .hero[data-visible='false'] .mascot-float,
+  .hero[data-visible='false'] .np-bars span,
+  .hero[data-visible='false'] .np-led {
+    animation-play-state: paused;
   }
 
   /* now-playing card */
@@ -359,6 +369,7 @@
     z-index: 6;
     box-shadow: 0 30px 60px -20px oklch(0 0 0 / 0.7);
     transform: rotate(2.5deg);
+    will-change: transform;
   }
 
   .np-card .np-head {

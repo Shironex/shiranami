@@ -6,7 +6,7 @@ const heroStats = [
 ];
 ---
 
-<section class="hero page" id="top">
+<section class="hero page" id="top" data-hero>
   <div class="vlabel vlabel-l">A · 2026 · Edition · 白波</div>
 
   <div class="hero-left">
@@ -98,3 +98,18 @@ const heroStats = [
 
   <div class="vlabel vlabel-r">No&nbsp;ads · No&nbsp;telemetry · No&nbsp;hurry</div>
 </section>
+
+<script>
+  function initHeroVisibility() {
+    const hero = document.querySelector<HTMLElement>('[data-hero]');
+    if (!hero) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        hero.dataset.visible = entry.isIntersecting ? 'true' : 'false';
+      },
+      { threshold: 0 }
+    );
+    io.observe(hero);
+  }
+  document.addEventListener('astro:page-load', initHeroVisibility);
+</script>
