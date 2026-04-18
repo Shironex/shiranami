@@ -103,21 +103,22 @@
       line-height: 1.55;
       color: var(--ink-dim);
     }
-    .nav-mobile-cta {
+    .nav-mobile-inner a.nav-mobile-cta,
+    .nav-mobile-inner a.nav-mobile-cta:hover {
       margin-top: 14px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 14px 18px;
+      padding: 16px 18px;
       border-radius: 12px;
       background: var(--primary);
-      color: var(--bg);
+      color: oklch(0.14 0.02 285);
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 700;
     }
     section.bay {
       padding: 56px 0;
