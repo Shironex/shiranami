@@ -230,6 +230,15 @@
     background: linear-gradient(90deg, var(--accent-2), oklch(from var(--accent-2) l c h / 0.2));
   }
 
+  .stat-grid-head {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+  }
+
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

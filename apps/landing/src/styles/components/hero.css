@@ -389,11 +389,23 @@
   }
 
   .np-card .now {
+    flex: 1;
     font-family: var(--font-mono);
     font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--ink-mute);
+  }
+
+  .np-card .np-hint {
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: oklch(from var(--primary) l c h / 0.16);
+    color: var(--primary);
+    font-family: var(--font-mono);
+    font-size: 8px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
   }
 
   .np-title {

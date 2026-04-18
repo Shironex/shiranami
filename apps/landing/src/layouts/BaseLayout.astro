@@ -86,6 +86,8 @@ const { title, description } = Astro.props;
 
         document.querySelectorAll<HTMLElement>('[data-lang-toggle]').forEach((btn) => {
           btn.textContent = lang === 'en' ? 'PL' : 'EN';
+          const nextKey = lang === 'en' ? 'nav.switchLanguageToPl' : 'nav.switchLanguageToEn';
+          if (dict[nextKey] != null) btn.setAttribute('aria-label', dict[nextKey]);
         });
 
         document.dispatchEvent(new CustomEvent('shiranami:lang-change', { detail: { lang } }));

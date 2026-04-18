@@ -31,7 +31,11 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'hero.stat2': 'Win · macOS',
     'hero.stat3': 'Quiet features',
     'hero.np.status': 'Now playing · 03:14 a.m.',
-    'hero.np.aria': 'Now playing preview',
+    'hero.np.aria': 'Example now playing card',
+    'hero.np.hint': 'Example',
+    'nav.switchLanguageToPl': 'Switch to Polish',
+    'nav.switchLanguageToEn': 'Switch to English',
+    'features.library.exampleHint': 'Example · your library',
 
     // Features
     'features.headingLead': 'A whole listening room,',
@@ -245,7 +249,11 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'hero.stat2': 'Windows · macOS',
     'hero.stat3': 'Ciche funkcje',
     'hero.np.status': 'Teraz gra · 03:14 w nocy',
-    'hero.np.aria': 'Podgląd — teraz gra',
+    'hero.np.aria': 'Przykładowa karta — teraz gra',
+    'hero.np.hint': 'Przykład',
+    'nav.switchLanguageToPl': 'Przełącz na polski',
+    'nav.switchLanguageToEn': 'Przełącz na angielski',
+    'features.library.exampleHint': 'Przykład · twoja biblioteka',
 
     // Features
     'features.headingLead': 'Cały pokój do słuchania,',
