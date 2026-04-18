@@ -141,6 +141,10 @@
     animation: pulse 2s infinite;
   }
 
+  .nav-cta-icon {
+    display: none;
+  }
+
   .nav-end {
     display: flex;
     align-items: center;

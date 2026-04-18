@@ -47,9 +47,12 @@ const ctaHref = isLanding ? '#download' : '/download';
     </div>
 
     <div class="nav-end">
-      <a class="nav-cta" href={ctaHref} data-i18n="nav.getTheApp">
+      <a class="nav-cta" href={ctaHref} aria-label="Get the app" data-i18n-aria-label="nav.getTheApp">
         <span class="dot" aria-hidden="true"></span>
-        Get the app
+        <span class="nav-cta-label" data-i18n="nav.getTheApp">Get the app</span>
+        <svg class="nav-cta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+        </svg>
       </a>
       <button
         class="lang-toggle"
@@ -62,6 +65,7 @@ const ctaHref = isLanding ? '#download' : '/download';
         type="button"
         aria-label="Toggle menu"
         aria-expanded="false"
+        aria-controls="nav-mobile-panel"
         data-i18n-aria-label="nav.toggleMenu"
       >
         <svg class="icon-menu" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -70,23 +74,12 @@ const ctaHref = isLanding ? '#download' : '/download';
     </div>
   </div>
 
-  <div class="nav-mobile" aria-hidden="true">
+  <div class="nav-mobile" aria-hidden="true" id="nav-mobile-panel">
     <div class="nav-mobile-inner">
-      <div class="nav-mobile-head">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true">
-            <img src="/assets/mascot.png" alt="" width="32" height="32" />
-          </span>
-          <div>
-            <div class="brand-name">Shiranami</div>
-            <div class="brand-sub">white waves · v{shortVersion}</div>
-          </div>
-        </div>
-        <p class="nav-mobile-blurb" data-i18n="footer.blurb">
-          "A calm desktop player for your local music library, synced lyrics, and a slow dial
-          across the radio."
-        </p>
-      </div>
+      <p class="nav-mobile-blurb" data-i18n="footer.blurb">
+        "A calm desktop player for your local music library, synced lyrics, and a slow dial
+        across the radio."
+      </p>
       {navItems.map((item) => (
         <a
           href={item.href}

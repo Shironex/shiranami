@@ -60,41 +60,43 @@
       display: inline-flex;
     }
     .nav-cta {
+      padding: 8px 10px;
+      gap: 6px;
+    }
+    .nav-cta-label {
       display: none;
     }
+    .nav-cta-icon {
+      display: inline-block;
+    }
     .nav-mobile {
-      display: grid;
-      grid-template-rows: 0fr;
+      display: block;
+      max-height: 0;
       overflow: hidden;
       opacity: 0;
+      visibility: hidden;
       transition:
-        grid-template-rows 250ms cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 200ms ease;
+        max-height 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 200ms ease,
+        visibility 0s linear 280ms;
     }
     .nav-mobile.is-open {
-      grid-template-rows: 1fr;
+      max-height: 90vh;
       opacity: 1;
+      visibility: visible;
+      transition:
+        max-height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 220ms ease,
+        visibility 0s linear 0s;
     }
     .nav-mobile-inner {
-      overflow: hidden;
-      min-height: 0;
-    }
-    nav.top:not(.is-open) .nav-mobile-inner > * {
-      visibility: hidden;
-    }
-    .nav-mobile-head {
-      padding: 18px 4px 16px;
-      margin-bottom: 6px;
-      border-bottom: 1px solid var(--line);
-    }
-    .nav-mobile-head .brand-name {
-      font-size: 26px;
-    }
-    .nav-mobile-head .brand-sub {
-      font-size: 10px;
+      padding: 10px 24px 22px;
+      gap: 2px;
     }
     .nav-mobile-blurb {
-      margin-top: 12px;
+      margin: 4px 0 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
       font-family: var(--font-display);
       font-style: italic;
       font-size: 14px;
