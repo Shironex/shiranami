@@ -17,6 +17,21 @@ import {
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../logger';
+import { handle } from './with-ipc-handler';
+import {
+  tracksGetAllArgs,
+  tracksAddArgs,
+  tracksAddManyArgs,
+  tracksRemoveArgs,
+  tracksRemoveManyArgs,
+  tracksUpdateArgs,
+  tracksUpdateManyArgs,
+  tracksToggleFavoriteArgs,
+  tracksGetFavoritesArgs,
+  tracksIncrementPlayCountArgs,
+  tracksExistsArgs,
+  tracksExistsManyArgs,
+} from './schemas/db-tracks';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
@@ -26,68 +41,92 @@ function buildHistorySinceFilter(since?: string | null) {
 export function registerDatabaseHandlers(): void {
   // Tracks
 
-  ipcMain.handle('db:tracks:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
-  });
+  handle(
+    'db:tracks:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
+    },
+    { schema: tracksGetAllArgs },
+  );
 
-  ipcMain.handle('db:tracks:add', async (_event, track: Omit<NewTrack, 'id'>) => {
-    const db = getDatabase();
-    const id = crypto.randomUUID();
-    const row: NewTrack = { ...track, id };
-    return db.insert(tracks).values(row).returning().get();
-  });
+  handle(
+    'db:tracks:add',
+    async (_event, track: Omit<NewTrack, 'id'>) => {
+      const db = getDatabase();
+      const id = crypto.randomUUID();
+      const row: NewTrack = { ...track, id };
+      return db.insert(tracks).values(row).returning().get();
+    },
+    { schema: tracksAddArgs },
+  );
 
-  ipcMain.handle('db:tracks:add-many', async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
-    const start = Date.now();
-    const db = getDatabase();
-    const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
-    const chunks = Math.ceil(rows.length / 100);
+  handle(
+    'db:tracks:add-many',
+    async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
+      const start = Date.now();
+      const db = getDatabase();
+      const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
+      const chunks = Math.ceil(rows.length / 100);
 
-    logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
+      logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
 
-    // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
-    // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
-    const CHUNK_SIZE = 100;
-    const results = db.transaction(tx => {
-      const results = [];
-      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-        const chunk = rows.slice(i, i + CHUNK_SIZE);
-        results.push(...tx.insert(tracks).values(chunk).returning().all());
-      }
+      // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
+      // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
+      const CHUNK_SIZE = 100;
+      const results = db.transaction(tx => {
+        const results = [];
+        for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+          const chunk = rows.slice(i, i + CHUNK_SIZE);
+          results.push(...tx.insert(tracks).values(chunk).returning().all());
+        }
+        return results;
+      });
+
+      logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
       return results;
-    });
+    },
+    { schema: tracksAddManyArgs },
+  );
 
-    logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
-    return results;
-  });
+  handle(
+    'db:tracks:remove',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      db.delete(tracks).where(eq(tracks.id, id)).run();
+    },
+    { schema: tracksRemoveArgs },
+  );
 
-  ipcMain.handle('db:tracks:remove', async (_event, id: string) => {
-    const db = getDatabase();
-    db.delete(tracks).where(eq(tracks.id, id)).run();
-  });
+  handle(
+    'db:tracks:remove-many',
+    async (_event, ids: string[]) => {
+      if (ids.length === 0) return;
+      logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
+      const start = Date.now();
+      const db = getDatabase();
+      const CHUNK_SIZE = 500;
+      db.transaction(tx => {
+        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+          const chunk = ids.slice(i, i + CHUNK_SIZE);
+          tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
+        }
+      });
+      logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
+    },
+    { schema: tracksRemoveManyArgs },
+  );
 
-  ipcMain.handle('db:tracks:remove-many', async (_event, ids: string[]) => {
-    if (ids.length === 0) return;
-    logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
-    const start = Date.now();
-    const db = getDatabase();
-    const CHUNK_SIZE = 500;
-    db.transaction(tx => {
-      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-        const chunk = ids.slice(i, i + CHUNK_SIZE);
-        tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
-      }
-    });
-    logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
-  });
+  handle(
+    'db:tracks:update',
+    async (_event, id: string, data: Partial<NewTrack>) => {
+      const db = getDatabase();
+      return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
+    },
+    { schema: tracksUpdateArgs },
+  );
 
-  ipcMain.handle('db:tracks:update', async (_event, id: string, data: Partial<NewTrack>) => {
-    const db = getDatabase();
-    return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
-  });
-
-  ipcMain.handle(
+  handle(
     'db:tracks:update-many',
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
       if (updates.length === 0) return [];
@@ -98,65 +137,86 @@ export function registerDatabaseHandlers(): void {
           tx.update(tracks).set(data).where(eq(tracks.id, id)).returning().get()
         );
       });
-    }
+    },
+    { schema: tracksUpdateManyArgs },
   );
 
-  ipcMain.handle('db:tracks:toggle-favorite', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(tracks)
-      .set({ isFavorite: sql`NOT ${tracks.isFavorite}` })
-      .where(eq(tracks.id, id))
-      .returning()
-      .get();
-  });
+  handle(
+    'db:tracks:toggle-favorite',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(tracks)
+        .set({ isFavorite: sql`NOT ${tracks.isFavorite}` })
+        .where(eq(tracks.id, id))
+        .returning()
+        .get();
+    },
+    { schema: tracksToggleFavoriteArgs },
+  );
 
-  ipcMain.handle('db:tracks:get-favorites', async () => {
-    const db = getDatabase();
-    return db
-      .select()
-      .from(tracks)
-      .where(eq(tracks.isFavorite, true))
-      .orderBy(desc(tracks.createdAt))
-      .all();
-  });
-
-  ipcMain.handle('db:tracks:increment-play-count', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(tracks)
-      .set({ playCount: sql`${tracks.playCount} + 1` })
-      .where(eq(tracks.id, id))
-      .returning()
-      .get();
-  });
-
-  ipcMain.handle('db:tracks:exists', async (_event, filePath: string) => {
-    const db = getDatabase();
-    const row = db
-      .select({ id: tracks.id })
-      .from(tracks)
-      .where(eq(tracks.filePath, filePath))
-      .get();
-    return !!row;
-  });
-
-  ipcMain.handle('db:tracks:exists-many', async (_event, filePaths: string[]) => {
-    if (filePaths.length === 0) return new Set<string>();
-    const db = getDatabase();
-    const CHUNK_SIZE = 500;
-    const existing = new Set<string>();
-    for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
-      const chunk = filePaths.slice(i, i + CHUNK_SIZE);
-      const rows = db
-        .select({ filePath: tracks.filePath })
+  handle(
+    'db:tracks:get-favorites',
+    async () => {
+      const db = getDatabase();
+      return db
+        .select()
         .from(tracks)
-        .where(inArray(tracks.filePath, chunk))
+        .where(eq(tracks.isFavorite, true))
+        .orderBy(desc(tracks.createdAt))
         .all();
-      for (const row of rows) existing.add(row.filePath);
-    }
-    return [...existing];
-  });
+    },
+    { schema: tracksGetFavoritesArgs },
+  );
+
+  handle(
+    'db:tracks:increment-play-count',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(tracks)
+        .set({ playCount: sql`${tracks.playCount} + 1` })
+        .where(eq(tracks.id, id))
+        .returning()
+        .get();
+    },
+    { schema: tracksIncrementPlayCountArgs },
+  );
+
+  handle(
+    'db:tracks:exists',
+    async (_event, filePath: string) => {
+      const db = getDatabase();
+      const row = db
+        .select({ id: tracks.id })
+        .from(tracks)
+        .where(eq(tracks.filePath, filePath))
+        .get();
+      return !!row;
+    },
+    { schema: tracksExistsArgs },
+  );
+
+  handle(
+    'db:tracks:exists-many',
+    async (_event, filePaths: string[]) => {
+      if (filePaths.length === 0) return new Set<string>();
+      const db = getDatabase();
+      const CHUNK_SIZE = 500;
+      const existing = new Set<string>();
+      for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
+        const chunk = filePaths.slice(i, i + CHUNK_SIZE);
+        const rows = db
+          .select({ filePath: tracks.filePath })
+          .from(tracks)
+          .where(inArray(tracks.filePath, chunk))
+          .all();
+        for (const row of rows) existing.add(row.filePath);
+      }
+      return [...existing];
+    },
+    { schema: tracksExistsManyArgs },
+  );
 
   ipcMain.handle(
     'db:history:record-play',
