@@ -41,10 +41,14 @@
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 10px;
+    gap: 4px;
   }
 
   .foot-col li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 6px 0;
     font-size: 14px;
     color: var(--ink-dim);
     transition: color 200ms;

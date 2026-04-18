@@ -151,7 +151,9 @@
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 500;
-    padding: 8px 10px;
+    min-width: 44px;
+    min-height: 40px;
+    padding: 8px 12px;
     border-radius: 999px;
     border: 1px solid var(--line);
     background: transparent;
@@ -173,8 +175,8 @@
     display: none;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 1px solid var(--line);
     border-radius: 999px;
