@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+import librarySrc from '../assets/library.png';
 ---
 
 <section id="preview" class="bay page">
@@ -28,12 +30,15 @@
         <div class="title">shiranami · biblioteka</div>
         <div style="width:60px"></div>
       </div>
-      <img
+      <Image
         class="preview-img"
-        src="/assets/library.png"
+        src={librarySrc}
         alt="Shiranami app — library view"
         data-i18n-alt="preview.alt"
         loading="lazy"
+        format="webp"
+        widths={[640, 960, 1280, 1920]}
+        sizes="(max-width: 720px) 92vw, (max-width: 1280px) 80vw, 1100px"
       />
     </div>
   </div>

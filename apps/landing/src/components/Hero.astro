@@ -1,4 +1,7 @@
 ---
+import { Image } from 'astro:assets';
+import mascotSrc from '../assets/mascot.png';
+
 const heroStats = [
   { num: '0¥', label: 'Source-available', key: 'hero.stat1' },
   { num: '2', label: 'Win · macOS', key: 'hero.stat2' },
@@ -68,14 +71,15 @@ const heroStats = [
         </div>
         <div class="hole"></div>
       </div>
-      <img
+      <Image
         class="mascot-float"
-        src="/assets/mascot.png"
+        src={mascotSrc}
         alt="Shiranami mascot — purple-haired listener with headphones"
         data-i18n-alt="hero.mascotAlt"
-        width="180"
-        height="220"
+        width={256}
+        height={256}
         loading="eager"
+        format="webp"
       />
       <aside class="np-card" aria-label="Example now playing card" data-i18n-aria-label="hero.np.aria">
         <div class="np-head">

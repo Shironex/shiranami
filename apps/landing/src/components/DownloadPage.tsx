@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import {
   type MouseEvent,
   useCallback,
@@ -259,7 +259,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
   );
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       {layer}
 
       <div className="download-block dl-block">
@@ -455,6 +455,6 @@ export function DownloadPage({ translations }: DownloadPageProps) {
           </a>
         )}
       </div>
-    </>
+    </MotionConfig>
   );
 }
