@@ -106,6 +106,7 @@
   }
 
   .nav-links a:hover::before,
+  .nav-links a:focus-visible::before,
   .nav-links a.is-active::before {
     opacity: 1;
   }

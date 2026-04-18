@@ -8,6 +8,7 @@
     grid-template-columns: 60px 1fr 1fr 60px;
     gap: 32px;
     align-items: stretch;
+    overflow: clip;
   }
 
   .hero .vlabel-l {

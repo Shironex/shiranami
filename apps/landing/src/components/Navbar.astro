@@ -120,6 +120,8 @@ const ctaHref = isLanding ? '#download' : '/download';
       mobile!.setAttribute('aria-hidden', 'false');
       toggle!.setAttribute('aria-expanded', 'true');
       nav!.classList.add('is-open');
+      const firstLink = mobile!.querySelector<HTMLElement>('a[data-nav-link]');
+      firstLink?.focus();
     }
 
     toggle.addEventListener('click', () => {

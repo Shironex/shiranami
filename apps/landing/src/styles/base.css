@@ -69,6 +69,23 @@
     max-width: 100%;
   }
 
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
+
   ::selection {
     background: oklch(from var(--primary) l c h / 0.4);
     color: var(--ink);
