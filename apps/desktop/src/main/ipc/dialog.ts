@@ -1,14 +1,20 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { handle } from './with-ipc-handler';
+import { dialogOpenDirectoryArgs, dialogOpenFileArgs } from './schemas/dialog';
 
 export function registerDialogHandlers(mainWindow: BrowserWindow): void {
-  ipcMain.handle('dialog:open-directory', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ['openDirectory'],
-    });
-    return result.canceled ? null : result.filePaths[0];
-  });
+  handle(
+    'dialog:open-directory',
+    async () => {
+      const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+      });
+      return result.canceled ? null : result.filePaths[0];
+    },
+    { schema: dialogOpenDirectoryArgs },
+  );
 
-  ipcMain.handle(
+  handle(
     'dialog:open-file',
     async (_event, options?: { filters?: Electron.FileFilter[] }) => {
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -22,7 +28,8 @@ export function registerDialogHandlers(mainWindow: BrowserWindow): void {
         ],
       });
       return result.canceled ? null : result.filePaths[0];
-    }
+    },
+    { schema: dialogOpenFileArgs },
   );
 }
 
