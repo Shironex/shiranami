@@ -45,6 +45,18 @@ import {
   playlistsGetPlaylistsForTracksArgs,
   playlistsReorderArgs,
 } from './schemas/db-playlists';
+import {
+  historyRecordPlayArgs,
+  historyGetRecentArgs,
+  historyGetSummaryArgs,
+  historyGetActivityArgs,
+} from './schemas/db-history';
+import {
+  foldersGetAllArgs,
+  foldersAddArgs,
+  foldersRemoveArgs,
+  foldersUpdateScannedArgs,
+} from './schemas/db-folders';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
@@ -231,7 +243,7 @@ export function registerDatabaseHandlers(): void {
     { schema: tracksExistsManyArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:history:record-play',
     async (
       _event,
@@ -268,9 +280,10 @@ export function registerDatabaseHandlers(): void {
         return historyEntry;
       });
     },
+    { schema: historyRecordPlayArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:history:get-recent',
     async (_event, options?: { limit?: number; since?: string | null }) => {
       const db = getDatabase();
@@ -300,117 +313,142 @@ export function registerDatabaseHandlers(): void {
         .limit(safeLimit)
         .all();
     },
+    { schema: historyGetRecentArgs },
   );
 
-  ipcMain.handle('db:history:get-summary', async (_event, options?: { since?: string | null }) => {
-    const db = getDatabase();
-    const sinceFilter = buildHistorySinceFilter(options?.since);
+  handle(
+    'db:history:get-summary',
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
 
-    const totalsQuery = db
-      .select({
-        totalPlays: sql<number>`COUNT(*)`,
-        totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
-        uniqueTracks: sql<number>`COUNT(DISTINCT ${playHistory.trackId})`,
-        uniqueArtists: sql<number>`COUNT(DISTINCT ${tracks.artist})`,
-        completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id));
-    const totals = (sinceFilter ? totalsQuery.where(sinceFilter) : totalsQuery).get();
+      const totalsQuery = db
+        .select({
+          totalPlays: sql<number>`COUNT(*)`,
+          totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+          uniqueTracks: sql<number>`COUNT(DISTINCT ${playHistory.trackId})`,
+          uniqueArtists: sql<number>`COUNT(DISTINCT ${tracks.artist})`,
+          completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id));
+      const totals = (sinceFilter ? totalsQuery.where(sinceFilter) : totalsQuery).get();
 
-    const topTracksQuery = db
-      .select({
-        trackId: tracks.id,
-        title: tracks.title,
-        artist: tracks.artist,
-        album: tracks.album,
-        albumArt: tracks.albumArt,
-        playCount: sql<number>`COUNT(*)`,
-        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
-        lastPlayedAt: sql<string>`MAX(${playHistory.playedAt})`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.id);
-    const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
-      .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
-      .limit(5)
-      .all();
+      const topTracksQuery = db
+        .select({
+          trackId: tracks.id,
+          title: tracks.title,
+          artist: tracks.artist,
+          album: tracks.album,
+          albumArt: tracks.albumArt,
+          playCount: sql<number>`COUNT(*)`,
+          listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+          lastPlayedAt: sql<string>`MAX(${playHistory.playedAt})`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .groupBy(tracks.id);
+      const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
+        .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
+        .limit(5)
+        .all();
 
-    const topArtistsQuery = db
-      .select({
-        artist: tracks.artist,
-        playCount: sql<number>`COUNT(*)`,
-        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.artist);
-    const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
-      .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
-      .limit(5)
-      .all();
+      const topArtistsQuery = db
+        .select({
+          artist: tracks.artist,
+          playCount: sql<number>`COUNT(*)`,
+          listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .groupBy(tracks.artist);
+      const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
+        .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
+        .limit(5)
+        .all();
 
-    return {
-      totalPlays: totals?.totalPlays ?? 0,
-      totalMinutes: totals?.totalMinutes ?? 0,
-      uniqueTracks: totals?.uniqueTracks ?? 0,
-      uniqueArtists: totals?.uniqueArtists ?? 0,
-      completedPlays: totals?.completedPlays ?? 0,
-      topTracks,
-      topArtists,
-    };
-  });
+      return {
+        totalPlays: totals?.totalPlays ?? 0,
+        totalMinutes: totals?.totalMinutes ?? 0,
+        uniqueTracks: totals?.uniqueTracks ?? 0,
+        uniqueArtists: totals?.uniqueArtists ?? 0,
+        completedPlays: totals?.completedPlays ?? 0,
+        topTracks,
+        topArtists,
+      };
+    },
+    { schema: historyGetSummaryArgs },
+  );
 
-  ipcMain.handle('db:history:get-activity', async (_event, options?: { since?: string | null }) => {
-    const db = getDatabase();
-    const sinceFilter = buildHistorySinceFilter(options?.since);
-    const dayExpression = sql<string>`substr(${playHistory.playedAt}, 1, 10)`;
+  handle(
+    'db:history:get-activity',
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
+      const dayExpression = sql<string>`substr(${playHistory.playedAt}, 1, 10)`;
 
-    const activityQuery = db
-      .select({
-        date: dayExpression,
-        playCount: sql<number>`COUNT(*)`,
-        listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
-      })
-      .from(playHistory)
-      .groupBy(dayExpression);
+      const activityQuery = db
+        .select({
+          date: dayExpression,
+          playCount: sql<number>`COUNT(*)`,
+          listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+        })
+        .from(playHistory)
+        .groupBy(dayExpression);
 
-    return (sinceFilter ? activityQuery.where(sinceFilter) : activityQuery)
-      .orderBy(dayExpression)
-      .all();
-  });
+      return (sinceFilter ? activityQuery.where(sinceFilter) : activityQuery)
+        .orderBy(dayExpression)
+        .all();
+    },
+    { schema: historyGetActivityArgs },
+  );
 
   // Folders
 
-  ipcMain.handle('db:folders:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(folders).all();
-  });
+  handle(
+    'db:folders:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(folders).all();
+    },
+    { schema: foldersGetAllArgs },
+  );
 
-  ipcMain.handle('db:folders:add', async (_event, folderPath: string) => {
-    logger.info(`[database] folders:add: "${folderPath}"`);
-    const db = getDatabase();
-    const id = crypto.randomUUID();
-    const row: NewFolder = { id, path: folderPath };
-    return db.insert(folders).values(row).returning().get();
-  });
+  handle(
+    'db:folders:add',
+    async (_event, folderPath: string) => {
+      logger.info(`[database] folders:add: "${folderPath}"`);
+      const db = getDatabase();
+      const id = crypto.randomUUID();
+      const row: NewFolder = { id, path: folderPath };
+      return db.insert(folders).values(row).returning().get();
+    },
+    { schema: foldersAddArgs },
+  );
 
-  ipcMain.handle('db:folders:remove', async (_event, id: string) => {
-    logger.info(`[database] folders:remove: ${id}`);
-    const db = getDatabase();
-    db.delete(folders).where(eq(folders.id, id)).run();
-  });
+  handle(
+    'db:folders:remove',
+    async (_event, id: string) => {
+      logger.info(`[database] folders:remove: ${id}`);
+      const db = getDatabase();
+      db.delete(folders).where(eq(folders.id, id)).run();
+    },
+    { schema: foldersRemoveArgs },
+  );
 
-  ipcMain.handle('db:folders:update-scanned', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(folders)
-      .set({ lastScanned: new Date().toISOString() })
-      .where(eq(folders.id, id))
-      .returning()
-      .get();
-  });
+  handle(
+    'db:folders:update-scanned',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(folders)
+        .set({ lastScanned: new Date().toISOString() })
+        .where(eq(folders.id, id))
+        .returning()
+        .get();
+    },
+    { schema: foldersUpdateScannedArgs },
+  );
 
   // Playlists
 
