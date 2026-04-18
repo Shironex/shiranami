@@ -1,13 +1,23 @@
 import { ipcMain, shell } from 'electron';
+import { handle } from './with-ipc-handler';
+import { showInFolderArgs, trashFileArgs } from './schemas/shell';
 
 export function registerShellHandlers(): void {
-  ipcMain.handle('shell:show-in-folder', (_event, filePath: string) => {
-    shell.showItemInFolder(filePath);
-  });
+  handle(
+    'shell:show-in-folder',
+    (_event, filePath: string) => {
+      shell.showItemInFolder(filePath);
+    },
+    { schema: showInFolderArgs },
+  );
 
-  ipcMain.handle('shell:trash-file', async (_event, filePath: string) => {
-    await shell.trashItem(filePath);
-  });
+  handle(
+    'shell:trash-file',
+    async (_event, filePath: string) => {
+      await shell.trashItem(filePath);
+    },
+    { schema: trashFileArgs },
+  );
 }
 
 export function cleanupShellHandlers(): void {
