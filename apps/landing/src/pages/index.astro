@@ -4,19 +4,25 @@ import DownloadSection from '../components/DownloadSection.astro';
 import FeatureGrid from '../components/FeatureGrid.astro';
 import Footer from '../components/Footer.astro';
 import Hero from '../components/Hero.astro';
+import Marquee from '../components/Marquee.astro';
 import Navbar from '../components/Navbar.astro';
+import Philosophy from '../components/Philosophy.astro';
+import Suite from '../components/Suite.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="Shiranami - Desktop music sanctuary"
-  description="A lofi desktop player for local music libraries, synced lyrics, playlists, internet radio, crossfade, and one-step downloads."
+  title="白波 · Shiranami — a quiet place for your music"
+  description="A local-first desktop sanctuary for your music library, internet radio, synced lyrics, crossfade, and one-step downloads — wrapped in a calm dark lavender theme."
 >
   <Navbar />
   <main id="main">
     <Hero />
+    <div class="page"><Marquee /></div>
     <FeatureGrid />
     <AppPreview />
+    <Philosophy />
+    <Suite />
     <DownloadSection />
   </main>
   <Footer />

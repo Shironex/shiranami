@@ -67,6 +67,56 @@ export function getLocalizedChangelogTitle(
   return release ? release.title[lang] : null;
 }
 
+// kanji assigned per release to give the changelog masthead a visual anchor
+const KANJI_BY_VERSION: Record<string, string> = {
+  '0.15.0': '白', // "white" — the named release
+  '0.14.1': '速', // "fast"
+  '0.14.0': '光', // "light" / ambient color
+  '0.13.1': '波', // "wave"
+  '0.13.0': '波', // "wave" — crossfade
+  '0.12.3': '詞', // "lyrics"
+  '0.12.2': '詞',
+  '0.12.1': '詞',
+  '0.12.0': '詞',
+  '0.11.0': '輸', // "import"
+  '0.10.0': '電', // "radio"
+  '0.9.0': '密', // "compact"
+  '0.8.0': '索', // "search"
+  '0.7.1': '愛',
+  '0.7.0': '愛', // "favorite / love"
+  '0.6.1': '視',
+  '0.6.0': '視', // "visual"
+  '0.5.1': '始',
+  '0.5.0': '始', // "beginning"
+  '0.4.0': '音', // "sound"
+  '0.3.1': '調',
+  '0.3.0': '調', // "tune"
+  '0.2.1': '静',
+  '0.2.0': '静', // "quiet"
+  '0.1.0': '初', // "first"
+};
+
+export function kanjiForVersion(version: string): string {
+  return KANJI_BY_VERSION[version] ?? '白';
+}
+
+export type ReleaseKind = 'feature' | 'fix' | 'perf' | 'polish';
+
+export function kindOfRelease(release: ResolvedChangelogRelease): ReleaseKind {
+  const labels = release.categories.map(c => c.label.toLowerCase()).join(' ');
+  if (labels.includes('new') || labels.includes('nowe')) return 'feature';
+  if (labels.includes('fix') || labels.includes('bug') || labels.includes('błę') || labels.includes('popraw')) return 'fix';
+  if (labels.includes('perf') || labels.includes('wydaj')) return 'perf';
+  return 'polish';
+}
+
+export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
+  return new Intl.DateTimeFormat(localeFor(lang), {
+    weekday: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
 export const changelog: ChangelogRelease[] = [
   {
     version: '0.15.0',

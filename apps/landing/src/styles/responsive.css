@@ -1,0 +1,219 @@
+@layer components {
+  /* responsive */
+  @media (max-width: 1024px) {
+    .hero {
+      grid-template-columns: 1fr;
+      padding: 48px 0;
+      gap: 56px;
+    }
+    .hero .vlabel-l,
+    .hero .vlabel-r {
+      display: none;
+    }
+    .hero-left,
+    .hero-right {
+      grid-column: 1;
+    }
+    .vinyl-stage {
+      width: min(420px, 90%);
+      margin: 0 auto;
+    }
+    .deck-grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+    .dk-6,
+    .dk-8,
+    .dk-7 {
+      grid-column: span 6;
+    }
+    .dk-4,
+    .dk-5 {
+      grid-column: span 6;
+    }
+    .dk-3 {
+      grid-column: span 3;
+    }
+    .download-grid,
+    .philo-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+    .suite-grid {
+      grid-template-columns: 1fr;
+    }
+    .foot-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .preview-tag.t1 {
+      left: 8px;
+    }
+    .preview-tag.t2 {
+      right: 8px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .nav-links {
+      display: none;
+    }
+    .nav-toggle {
+      display: inline-flex;
+    }
+    .nav-cta {
+      display: none;
+    }
+    .nav-row .brand-name {
+      font-size: 18px;
+    }
+    .nav-row .brand-sub {
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .nav-row .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+    }
+    .nav-mobile {
+      display: block;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        max-height 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 200ms ease,
+        visibility 0s linear 280ms;
+    }
+    .nav-mobile.is-open {
+      max-height: 90vh;
+      opacity: 1;
+      visibility: visible;
+      transition:
+        max-height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 220ms ease,
+        visibility 0s linear 0s;
+    }
+    .nav-mobile-inner {
+      padding: 10px 24px 22px;
+      gap: 2px;
+    }
+    .nav-mobile-blurb {
+      margin: 4px 0 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--ink-dim);
+    }
+    .nav-mobile-inner a.nav-mobile-cta,
+    .nav-mobile-inner a.nav-mobile-cta:hover {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: oklch(0.14 0.02 285);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    section.bay {
+      padding: 56px 0;
+    }
+    .philo,
+    .download-block {
+      padding: 36px 22px;
+    }
+    .platform-grid {
+      grid-template-columns: 1fr;
+    }
+    .download-hero {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .deck-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .deck-grid > .tape {
+      grid-column: 1 / -1;
+      padding: 24px 20px;
+    }
+    .foot-grid {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .hero {
+      padding: 36px 0 32px;
+      gap: 40px;
+    }
+    .hero h1 {
+      font-size: 48px;
+    }
+    .hero-meta {
+      grid-template-columns: 1fr 1fr;
+      row-gap: 20px;
+    }
+    .hero-meta-cell:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    .hero-sub {
+      font-size: 15px;
+    }
+    .section-head {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .section-head .meta {
+      text-align: left;
+    }
+    .masthead {
+      padding-top: 36px;
+      padding-bottom: 24px;
+    }
+    .mh-meta {
+      font-size: 10px;
+    }
+    .mh-center h1 {
+      font-size: 56px;
+    }
+    .mh-center .sub {
+      font-size: 14px;
+    }
+    .suite-grid {
+      gap: 16px;
+    }
+    .suite-card {
+      padding: 24px 22px;
+    }
+    .foot {
+      padding: 40px 0 32px;
+    }
+    .foot-brand .blurb {
+      max-width: none;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .page {
+      padding: 0 20px;
+    }
+    .hero h1 {
+      font-size: 40px;
+    }
+    .mh-center h1 {
+      font-size: 44px;
+    }
+    .section-head h2 {
+      font-size: 34px;
+    }
+  }
+}

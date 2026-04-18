@@ -1,0 +1,37 @@
+---
+const items = [
+  'Local library',
+  'Synced lyrics',
+  'Internet radio',
+  'Crossfade · 1–12s',
+  'Sleep timer',
+  'Compact mode',
+  'YouTube import',
+  'Spotify import',
+  'Discord rich presence',
+  'Ambient color',
+  'Listening history',
+  'Command palette',
+];
+---
+
+<div class="marquee-band" aria-hidden="true">
+  <div class="marquee">
+    <span>
+      {items.map((item) => (
+        <>
+          <span>{item}</span>
+          <span class="dot"></span>
+        </>
+      ))}
+    </span>
+    <span>
+      {items.map((item) => (
+        <>
+          <span>{item}</span>
+          <span class="dot"></span>
+        </>
+      ))}
+    </span>
+  </div>
+</div>

@@ -1,98 +1,145 @@
 ---
+import { ChangelogView, type ChangelogCopy, type ChangelogRow } from '../components/changelog/ChangelogView';
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { changelog, getLocalizedChangelog } from '../lib/changelog';
+import {
+  changelog,
+  formatChangelogDate,
+  getLocalizedChangelog,
+  kanjiForVersion,
+  kindOfRelease,
+  weekdayLabel,
+  type ChangelogLanguage,
+  type ReleaseKind,
+} from '../lib/changelog';
+import { translations } from '../lib/i18n';
 
-const initialChangelog = getLocalizedChangelog('en');
+function buildRows(language: ChangelogLanguage): ChangelogRow[] {
+  const localized = getLocalizedChangelog(language);
+  const kindLabelMap: Record<ReleaseKind, string> = {
+    feature: translations[language]['changelog.kind.feature'],
+    fix: translations[language]['changelog.kind.fix'],
+    perf: translations[language]['changelog.kind.perf'],
+    polish: translations[language]['changelog.kind.polish'],
+  };
+  return localized.map((release, index) => {
+    const raw = changelog[index];
+    const kind = kindOfRelease(release);
+    return {
+      version: release.version,
+      rawDate: raw.date,
+      date: release.date,
+      weekday: weekdayLabel(raw.date, language),
+      kanji: kanjiForVersion(release.version),
+      title: release.title,
+      description: release.description,
+      kind,
+      kindLabel: kindLabelMap[kind],
+      categories: release.categories,
+      entriesCount: release.categories.reduce((acc, c) => acc + c.entries.length, 0),
+    };
+  });
+}
+
+const rowsByLang: Record<ChangelogLanguage, ChangelogRow[]> = {
+  en: buildRows('en'),
+  pl: buildRows('pl'),
+};
+const rows = rowsByLang.en;
+const latest = rows[0];
+const first = rows[rows.length - 1];
+const latestPl = rowsByLang.pl[0];
+const firstPl = rowsByLang.pl[rowsByLang.pl.length - 1];
+
+function buildCopy(language: ChangelogLanguage): ChangelogCopy {
+  const d = translations[language];
+  return {
+    filters: {
+      all: d['changelog.filter.all'],
+      feature: d['changelog.filter.feature'],
+      fix: d['changelog.filter.fix'],
+      perf: d['changelog.filter.perf'],
+      polish: d['changelog.filter.polish'],
+    },
+    searchPlaceholder: d['changelog.search.placeholder'],
+    entry: d['changelog.entry'],
+    entryNumber: d['changelog.entryNumber'],
+    itemsSingular: d['changelog.items.one'],
+    itemsPlural: d['changelog.items.many'],
+    empty: d['changelog.empty'],
+    emptyHint: d['changelog.empty.hint'],
+    latest: d['changelog.latest'],
+    rowVersion: d['changelog.row.version'],
+    rowKind: d['changelog.row.kind'],
+    rowEntries: d['changelog.row.entries'],
+    rowSections: d['changelog.row.sections'],
+    jumpTitle: d['changelog.jump.title'],
+    stamp: d['changelog.stamp'],
+    quietNote: d['changelog.quietNote'],
+  };
+}
+
+const copyByLang: Record<ChangelogLanguage, ChangelogCopy> = {
+  en: buildCopy('en'),
+  pl: buildCopy('pl'),
+};
+
+const PRINTED_DATE_ISO = '2026-04-18';
+const printedDate = formatChangelogDate(PRINTED_DATE_ISO, 'en');
+const printedDatePl = formatChangelogDate(PRINTED_DATE_ISO, 'pl');
 ---
 
-<BaseLayout title="Changelog - Shiranami" description="Release notes and changes for Shiranami.">
+<BaseLayout title="白波 · Shiranami — Changelog" description="Release notes and changes for Shiranami.">
   <Navbar />
-  <main id="main" class="section-shell changelog-page">
-    <div class="changelog-header reveal">
-      <p class="changelog-label" data-i18n="changelog.label">Changelog</p>
-      <h1 data-i18n="changelog.heading">What's new?</h1>
-      <p class="changelog-subtitle" data-i18n="changelog.subtitle">Release history and changes in Shiranami.</p>
+
+  <header class="masthead page">
+    <div class="mh-row">
+      <div class="mh-meta">
+        <div class="line"><span data-i18n="changelog.mh.issue">Issue</span><b>№ 01</b></div>
+        <div class="line"><span data-i18n="changelog.mh.volume">Volume</span><b data-i18n="changelog.mh.volumeOne">One</b></div>
+        <div class="line"><span data-i18n="changelog.mh.releases">Releases</span><b>{rows.length}</b></div>
+        <div class="hr"></div>
+        <div class="line"><span data-i18n="changelog.mh.printed">Printed</span><b data-i18n-en={printedDate} data-i18n-pl={printedDatePl}>{printedDate}</b></div>
+        <div class="line"><span data-i18n="changelog.mh.edition">Edition</span><b data-i18n-en="EN" data-i18n-pl="PL">EN</b></div>
+      </div>
+
+      <div class="mh-center">
+        <div class="banner" data-i18n="changelog.mh.banner">━━━━━━━  The Shiranami Record  ━━━━━━━</div>
+        <h1>
+          <span data-i18n="changelog.mh.headingLead">A log of</span>
+          {' '}
+          <em data-i18n="changelog.mh.headingAccent">small, quiet</em>
+          {' '}
+          <span data-i18n="changelog.mh.headingTail">changes.</span>
+        </h1>
+        <p class="sub" data-i18n="changelog.mh.sub">
+          Every release since Shiranami opened its door — bug fixes at 3am, crossfade engines
+          that actually work, ambient colors poured in by hand. Read it as a diary, or search
+          the bits you need.
+        </p>
+      </div>
+
+      <div class="mh-meta mh-right">
+        <div class="line"><span data-i18n="changelog.mh.latest">Latest</span><b style="color:var(--primary)">v{latest.version}</b></div>
+        <div class="line"><span data-i18n="changelog.mh.released">Released</span><b data-i18n-en={latest.date} data-i18n-pl={latestPl.date}>{latest.date}</b></div>
+        <div class="line"><span data-i18n="changelog.mh.firstShip">First ship</span><b data-i18n-en={first.date} data-i18n-pl={firstPl.date}>{first.date}</b></div>
+        <div class="hr"></div>
+        <div class="line"><span data-i18n="changelog.mh.platform">Platform</span><b>Win · macOS</b></div>
+        <div class="line"><span data-i18n="changelog.mh.license">License</span><b data-i18n="changelog.mh.licenseValue">Source-avail.</b></div>
+      </div>
     </div>
 
-    <div class="release-list">
-      {initialChangelog.map((release, releaseIndex) => (
-        <article class="release-entry reveal" data-release-index={releaseIndex}>
-          <div class="release-meta">
-            <span class="release-version-dot">
-              <span class="dot-pulse" />
-              <span>v{release.version}</span>
-            </span>
-            <span class="release-date" data-release-date>{release.date}</span>
-          </div>
-          <h2 data-release-title>{release.title}</h2>
-          <p class="release-description" data-release-description>{release.description}</p>
-
-          <div class="category-list">
-            {release.categories.map((category, categoryIndex) => (
-              <div class="category-section" data-category-index={categoryIndex}>
-                <h3 class="category-label" data-category-label>{category.label}</h3>
-                <ul class="change-list">
-                  {category.entries.map((entry, entryIndex) => (
-                    <li data-entry-index={entryIndex}>
-                      <svg class="change-dot" width="6" height="6" viewBox="0 0 6 6" aria-hidden="true"><circle cx="3" cy="3" r="3" fill="currentColor" /></svg>
-                      <span data-entry-text>{entry}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </article>
-      ))}
+    <div class="mh-rule">
+      <span aria-hidden="true">白</span>
+      <div class="hr"></div>
+      <span data-i18n="changelog.mh.rule">Changelog · Section 01 · Archive</span>
+      <div class="hr"></div>
+      <span aria-hidden="true">波</span>
     </div>
-  </main>
+  </header>
+
+  <ChangelogView client:load releasesByLang={rowsByLang} copyByLang={copyByLang} initialLang="en" />
+
   <Footer />
-
-  <script is:inline define:vars={{ changelogData: changelog }}>
-    const formatLocalizedDate = (value, lang) =>
-      new Intl.DateTimeFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }).format(new Date(`${value}T00:00:00Z`));
-
-    const applyChangelogLanguage = () => {
-      const lang = document.documentElement.lang === 'pl' ? 'pl' : 'en';
-
-      document.querySelectorAll('[data-release-index]').forEach((article) => {
-        const releaseIndex = Number(article.getAttribute('data-release-index'));
-        const release = changelogData[releaseIndex];
-        if (!release) return;
-
-        const dateEl = article.querySelector('[data-release-date]');
-        const titleEl = article.querySelector('[data-release-title]');
-        const descEl = article.querySelector('[data-release-description]');
-
-        if (dateEl) dateEl.textContent = formatLocalizedDate(release.date, lang);
-        if (titleEl) titleEl.textContent = release.title[lang];
-        if (descEl) descEl.textContent = release.description[lang];
-
-        article.querySelectorAll('[data-category-index]').forEach((section) => {
-          const categoryIndex = Number(section.getAttribute('data-category-index'));
-          const category = release.categories[categoryIndex];
-          if (!category) return;
-
-          const labelEl = section.querySelector('[data-category-label]');
-          if (labelEl) labelEl.textContent = category.label[lang];
-
-          section.querySelectorAll('[data-entry-index]').forEach((entryItem) => {
-            const entryIndex = Number(entryItem.getAttribute('data-entry-index'));
-            const entry = category.entries[entryIndex];
-            const entryEl = entryItem.querySelector('[data-entry-text]');
-            if (entry && entryEl) entryEl.textContent = entry[lang];
-          });
-        });
-      });
-    };
-
-    document.addEventListener('astro:page-load', applyChangelogLanguage);
-    document.addEventListener('shiranami:lang-change', applyChangelogLanguage);
-  </script>
 </BaseLayout>

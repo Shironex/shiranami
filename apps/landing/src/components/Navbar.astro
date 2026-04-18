@@ -1,6 +1,7 @@
 ---
-import { Image } from 'astro:assets';
-import faviconSrc from '../assets/favicon.png';
+import { LANDING_VERSION } from '../lib/site';
+
+const shortVersion = LANDING_VERSION.split('.').slice(0, 2).join('.');
 
 const currentPath = Astro.url.pathname;
 const isLanding = currentPath === '/' || currentPath === '';
@@ -8,74 +9,115 @@ const isLanding = currentPath === '/' || currentPath === '';
 const navItems = isLanding
   ? [
       { href: '#features', label: 'Features', i18nKey: 'nav.features' },
+      { href: '#preview', label: 'The app', i18nKey: 'nav.preview' },
+      { href: '#philosophy', label: 'Philosophy', i18nKey: 'nav.philosophy' },
       { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
-      { href: '/download', label: 'Download', i18nKey: 'nav.download' },
     ]
   : [
       { href: '/', label: 'Home', i18nKey: 'nav.home' },
       { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
       { href: '/download', label: 'Download', i18nKey: 'nav.download' },
     ];
+
+const ctaHref = isLanding ? '#download' : '/download';
 ---
 
-<header class="nav-wrap">
-  <nav class="nav-shell" aria-label="Primary navigation" data-i18n-aria-label="nav.primary">
-    <a href="/" class="brand-mark">
-      <Image src={faviconSrc} alt="Shiranami icon" data-i18n-alt="brand.iconAlt" width={28} height={28} />
+<nav class="top" aria-label="Primary navigation" data-i18n-aria-label="nav.primary">
+  <div class="page nav-row">
+    <a href="/" class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <img src="/assets/mascot.png" alt="" width="32" height="32" />
+      </span>
       <div>
-        <p>Shiranami</p>
+        <div class="brand-name">Shiranami</div>
+        <div class="brand-sub">white waves · v{shortVersion}</div>
       </div>
     </a>
 
     <div class="nav-links">
       {navItems.map((item) => (
-        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-i18n={item.i18nKey}>{item.label}</a>
+        <a
+          href={item.href}
+          class={currentPath === item.href ? 'is-active' : ''}
+          data-i18n={item.i18nKey}
+        >
+          {item.label}
+        </a>
       ))}
     </div>
 
     <div class="nav-end">
-      <a class="button-primary compact nav-cta-desktop" href="/download" data-i18n="nav.getTheApp">Get the app</a>
-      <button class="lang-toggle" data-lang-toggle aria-label="Switch language" data-i18n-aria-label="nav.switchLanguage">PL</button>
-      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" data-i18n-aria-label="nav.toggleMenu">
-        <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-        <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+      <a class="nav-cta" href={ctaHref} aria-label="Get the app" data-i18n-aria-label="nav.getTheApp">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="nav-cta-label" data-i18n="nav.getTheApp">Get the app</span>
+        <svg class="nav-cta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+        </svg>
+      </a>
+      <button
+        class="lang-toggle"
+        type="button"
+        data-lang-toggle
+        aria-label="Switch to Polish"
+      >PL</button>
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-label="Toggle menu"
+        aria-expanded="false"
+        aria-controls="nav-mobile-panel"
+        data-i18n-aria-label="nav.toggleMenu"
+      >
+        <svg class="icon-menu" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        <svg class="icon-close" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
       </button>
     </div>
-  </nav>
+  </div>
 
-  <div class="nav-mobile" aria-hidden="true">
+  <div class="nav-mobile" aria-hidden="true" id="nav-mobile-panel">
     <div class="nav-mobile-inner">
+      <p class="nav-mobile-blurb" data-i18n="footer.blurb">
+        "A calm desktop player for your local music library, synced lyrics, and a slow dial
+        across the radio."
+      </p>
       {navItems.map((item) => (
-        <a href={item.href} class={currentPath === item.href ? 'is-active' : ''} data-nav-link data-i18n={item.i18nKey}>{item.label}</a>
+        <a
+          href={item.href}
+          class={currentPath === item.href ? 'is-active' : ''}
+          data-nav-link
+          data-i18n={item.i18nKey}
+        >{item.label}</a>
       ))}
+      <a href={ctaHref} data-nav-link data-i18n="nav.getTheApp" class="nav-mobile-cta">Get the app</a>
     </div>
   </div>
-</header>
+</nav>
 
 <script>
   function initMobileNav() {
-    const toggle = document.querySelector('.nav-toggle');
-    const mobile = document.querySelector('.nav-mobile') as HTMLElement | null;
-    const header = document.querySelector('.nav-wrap');
-    if (!toggle || !mobile || !header) return;
+    const nav = document.querySelector('nav.top');
+    const toggle = nav?.querySelector('.nav-toggle');
+    const mobile = nav?.querySelector('.nav-mobile') as HTMLElement | null;
+    if (!nav || !toggle || !mobile) return;
 
     function closeMenu() {
       mobile!.classList.remove('is-open');
       mobile!.setAttribute('aria-hidden', 'true');
       toggle!.setAttribute('aria-expanded', 'false');
-      header!.classList.remove('is-open');
+      nav!.classList.remove('is-open');
     }
 
     function openMenu() {
       mobile!.classList.add('is-open');
       mobile!.setAttribute('aria-hidden', 'false');
       toggle!.setAttribute('aria-expanded', 'true');
-      header!.classList.add('is-open');
+      nav!.classList.add('is-open');
+      const firstLink = mobile!.querySelector<HTMLElement>('a[data-nav-link]');
+      firstLink?.focus();
     }
 
     toggle.addEventListener('click', () => {
-      const isOpen = mobile.classList.contains('is-open');
-      if (isOpen) closeMenu();
+      if (mobile.classList.contains('is-open')) closeMenu();
       else openMenu();
     });
 
