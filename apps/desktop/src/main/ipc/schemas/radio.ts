@@ -5,12 +5,16 @@ const uuid = z.string().uuid();
 const nonEmpty = z.string().min(1);
 
 /**
- * Zod mirror of the `radioFavorites` row, minus the `id` (generated in the
- * main process). Drizzle nullability:
+ * Zod mirror of the `radioFavorites` row.
+ *
+ * Backend-managed fields excluded: `id` is generated in the main process and
+ * `createdAt` has a DB-level default — accepting either from the renderer
+ * would let a tampered caller spoof identity or back-date rows.
+ *
+ * Drizzle nullability for the remaining columns:
  *   stationUuid/name/url/urlResolved — notNull, no default
  *   homepage/favicon/country/countryCode/language/codec/tags — nullable
  *   bitrate — nullable (integer)
- *   createdAt — notNull with default (so optional on insert)
  */
 export const newRadioFavoriteInput = z.object({
   stationUuid: uuid,
@@ -25,7 +29,6 @@ export const newRadioFavoriteInput = z.object({
   codec: z.string().nullish(),
   bitrate: z.number().int().nullish(),
   tags: z.string().nullish(),
-  createdAt: z.string().optional(),
 });
 
 type _RadioInputFromSchema = z.infer<typeof newRadioFavoriteInput> & { id: string };

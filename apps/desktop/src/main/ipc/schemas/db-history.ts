@@ -5,7 +5,9 @@ const uuid = z.string().uuid();
 /**
  * Record-play payload. `trackId` is a UUID (all track ids go through
  * `crypto.randomUUID`). `duration` may legitimately be null (row column is
- * `real` with no notNull). `source` defaults to 'library' in the handler.
+ * `real` with no notNull) but the renderer always sends the key, so
+ * `.nullable()` — not `.nullish()` — matches the handler signature.
+ * `source` defaults to 'library' in the handler.
  */
 export const recordPlayInput = z.object({
   trackId: uuid,

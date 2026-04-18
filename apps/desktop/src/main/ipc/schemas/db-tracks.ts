@@ -10,9 +10,12 @@ const nonEmpty = z.string().min(1);
  * column definitions: `title` and `filePath` are notNull with no default;
  * other string fields either have defaults or are nullable.
  *
- * `id` is omitted from the base — renderer-created tracks go through the
- * `add` handler which generates the UUID server-side. The compile-time check
- * below catches drift between this schema and NewTrack.
+ * Backend-managed fields (`id`, `isFavorite`, `playCount`, `createdAt`,
+ * `updatedAt`) are excluded: `id` is generated in the main process, favorite
+ * and play-count state have dedicated handlers (`toggle-favorite`,
+ * `increment-play-count`), and the timestamp columns have DB-level defaults.
+ * Accepting them here would let a tampered renderer spoof them on insert or
+ * update.
  */
 export const newTrackSchema = z.object({
   filePath: nonEmpty,
@@ -25,16 +28,13 @@ export const newTrackSchema = z.object({
   trackNumber: z.number().int().nullish(),
   discNumber: z.number().int().nullish(),
   albumArt: z.string().nullish(),
-  isFavorite: z.boolean().nullish(),
-  playCount: z.number().int().nullish(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
 });
 
 export const updateTrackSchema = newTrackSchema.partial();
 
-// Compile-time drift guard: forces a rebuild if NewTrack gains/loses fields.
-// NewTrack includes `id`; we add it here purely for the assert.
+// Compile-time drift guard: forces a rebuild if NewTrack loses any of the
+// user-writable fields above. Backend-managed fields are optional on NewTrack,
+// so omitting them here keeps the assert valid.
 type _NewTrackFromSchema = z.infer<typeof newTrackSchema> & { id: string };
 const _assertNewTrack = (x: _NewTrackFromSchema): NewTrack => x;
 void _assertNewTrack;

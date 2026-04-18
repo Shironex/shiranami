@@ -53,10 +53,10 @@ export function handle<Args extends unknown[], R>(
 ): void {
   const schema = options?.schema;
   ipcMain.handle(channel, async (event, ...args) => {
+    const parsedArgs = schema
+      ? validateOrThrow(channel, schema, args)
+      : (args as Args);
     try {
-      const parsedArgs = schema
-        ? validateOrThrow(channel, schema, args)
-        : (args as Args);
       return await handler(event, ...parsedArgs);
     } catch (err) {
       logger.error(`[ipc:${channel}]`, err);
