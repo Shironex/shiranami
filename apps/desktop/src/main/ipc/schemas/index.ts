@@ -3,6 +3,7 @@
  * convenience. See ./README.md for conventions.
  */
 
+export * from './db-playlists';
 export * from './db-tracks';
 export * from './library';
 export * from './shell';

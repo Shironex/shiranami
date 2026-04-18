@@ -32,6 +32,19 @@ import {
   tracksExistsArgs,
   tracksExistsManyArgs,
 } from './schemas/db-tracks';
+import {
+  playlistsGetAllArgs,
+  playlistsGetArgs,
+  playlistsCreateArgs,
+  playlistsCreateWithTracksArgs,
+  playlistsUpdateArgs,
+  playlistsDeleteArgs,
+  playlistsGetTracksArgs,
+  playlistsAddTrackArgs,
+  playlistsRemoveTrackArgs,
+  playlistsGetPlaylistsForTracksArgs,
+  playlistsReorderArgs,
+} from './schemas/db-playlists';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
@@ -401,17 +414,25 @@ export function registerDatabaseHandlers(): void {
 
   // Playlists
 
-  ipcMain.handle('db:playlists:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
-  });
+  handle(
+    'db:playlists:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
+    },
+    { schema: playlistsGetAllArgs },
+  );
 
-  ipcMain.handle('db:playlists:get', async (_event, id: string) => {
-    const db = getDatabase();
-    return db.select().from(playlists).where(eq(playlists.id, id)).get();
-  });
+  handle(
+    'db:playlists:get',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db.select().from(playlists).where(eq(playlists.id, id)).get();
+    },
+    { schema: playlistsGetArgs },
+  );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:create',
     async (_event, data: { name: string; description?: string; coverArt?: string }) => {
       logger.info(`[database] playlists:create: "${data.name}"`);
@@ -420,9 +441,10 @@ export function registerDatabaseHandlers(): void {
       const row: NewPlaylist = { id, ...data };
       return db.insert(playlists).values(row).returning().get();
     },
+    { schema: playlistsCreateArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:update',
     async (
       _event,
@@ -437,27 +459,36 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
+    { schema: playlistsUpdateArgs },
   );
 
-  ipcMain.handle('db:playlists:delete', async (_event, id: string) => {
-    logger.info(`[database] playlists:delete: ${id}`);
-    const db = getDatabase();
-    db.delete(playlists).where(eq(playlists.id, id)).run();
-  });
+  handle(
+    'db:playlists:delete',
+    async (_event, id: string) => {
+      logger.info(`[database] playlists:delete: ${id}`);
+      const db = getDatabase();
+      db.delete(playlists).where(eq(playlists.id, id)).run();
+    },
+    { schema: playlistsDeleteArgs },
+  );
 
-  ipcMain.handle('db:playlists:get-tracks', async (_event, playlistId: string) => {
-    const db = getDatabase();
-    const rows = db
-      .select()
-      .from(tracks)
-      .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
-      .where(eq(playlistTracks.playlistId, playlistId))
-      .orderBy(playlistTracks.position)
-      .all();
-    return rows.map((row) => row.tracks);
-  });
+  handle(
+    'db:playlists:get-tracks',
+    async (_event, playlistId: string) => {
+      const db = getDatabase();
+      const rows = db
+        .select()
+        .from(tracks)
+        .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
+        .where(eq(playlistTracks.playlistId, playlistId))
+        .orderBy(playlistTracks.position)
+        .all();
+      return rows.map((row) => row.tracks);
+    },
+    { schema: playlistsGetTracksArgs },
+  );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:add-track',
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
@@ -494,9 +525,10 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
+    { schema: playlistsAddTrackArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:create-with-tracks',
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
       logger.info(`[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`);
@@ -521,9 +553,10 @@ export function registerDatabaseHandlers(): void {
         return playlist;
       });
     },
+    { schema: playlistsCreateWithTracksArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:remove-track',
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
@@ -536,9 +569,10 @@ export function registerDatabaseHandlers(): void {
         )
         .run();
     },
+    { schema: playlistsRemoveTrackArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:get-playlists-for-tracks',
     async (_event, trackIds: string[]) => {
       const db = getDatabase();
@@ -555,9 +589,10 @@ export function registerDatabaseHandlers(): void {
 
       return rows.map((r) => r.playlistId);
     },
+    { schema: playlistsGetPlaylistsForTracksArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:reorder',
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
@@ -575,6 +610,7 @@ export function registerDatabaseHandlers(): void {
         }
       });
     },
+    { schema: playlistsReorderArgs },
   );
 }
 
