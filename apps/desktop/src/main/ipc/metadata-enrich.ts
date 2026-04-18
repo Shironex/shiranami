@@ -3,6 +3,12 @@ import { lookupMetadata, downloadImage, type MetadataLookupResult } from '../met
 import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { logger } from '../logger';
 import { getMainWindow } from '../utils/window';
+import { handle } from './with-ipc-handler';
+import {
+  metadataLookupArgs,
+  metadataEnrichTracksArgs,
+  metadataEnrichCancelArgs,
+} from './schemas/metadata';
 
 export interface EnrichTrackInput {
   id: string;
@@ -43,21 +49,26 @@ let enrichCancelled = false;
 
 export function registerMetadataEnrichHandlers(): void {
   // Look up metadata for a single track (for preview / confirmation)
-  ipcMain.handle(
+  handle(
     'metadata:lookup',
     async (_event, title: string, artist: string): Promise<MetadataLookupResult> => {
       return lookupMetadata(title, artist);
-    }
+    },
+    { schema: metadataLookupArgs },
   );
 
   // Cancel ongoing enrichment
-  ipcMain.handle('metadata:enrich:cancel', async () => {
-    enrichCancelled = true;
-    logger.info('[metadata:enrich] Cancellation requested');
-  });
+  handle(
+    'metadata:enrich:cancel',
+    async () => {
+      enrichCancelled = true;
+      logger.info('[metadata:enrich] Cancellation requested');
+    },
+    { schema: metadataEnrichCancelArgs },
+  );
 
   // Batch enrich multiple tracks
-  ipcMain.handle(
+  handle(
     'metadata:enrich:tracks',
     async (
       _event,
@@ -247,7 +258,8 @@ export function registerMetadataEnrichHandlers(): void {
       logger.info(`[metadata:enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${enrichCancelled ? ' (cancelled)' : ''}`);
 
       return results;
-    }
+    },
+    { schema: metadataEnrichTracksArgs },
   );
 }
 

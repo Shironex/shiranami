@@ -38,3 +38,7 @@ export const PLAYLIST_ERROR_CODES = {
   PRIVATE_PLAYLIST: 'playlist.private',
   NO_TRACKS: 'playlist.no_tracks',
 } as const;
+
+export const VALIDATION_ERROR_CODES = {
+  BAD_REQUEST: 'BAD_REQUEST',
+} as const;

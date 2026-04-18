@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ipcHandlers } from '../../../test/setup';
 import { cleanupStoreHandlers, registerStoreHandlers } from './store';
 
@@ -13,6 +13,15 @@ vi.mock('../store', () => ({
     get: (...args: unknown[]) => mockStore.get(...args),
     set: (...args: unknown[]) => mockStore.set(...args),
     delete: (...args: unknown[]) => mockStore.delete(...args),
+  },
+}));
+
+vi.mock('../logger', () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -36,60 +45,63 @@ describe('store ipc', () => {
     'theme',
     'window-bounds',
     'app.language',
+    'metadata-enrich.skippedIds',
   ];
 
   describe('store:get', () => {
-    it('returns value for allowed keys', () => {
+    it('returns value for allowed keys', async () => {
       mockStore.get.mockReturnValue('dark');
       const get = ipcHandlers.get('store:get')!;
 
-      const result = get(null as never, 'theme');
+      const result = await get(null as never, 'theme');
       expect(result).toBe('dark');
       expect(mockStore.get).toHaveBeenCalledWith('theme');
     });
 
-    it('throws for disallowed key', () => {
+    it('throws BAD_REQUEST for disallowed key', async () => {
       const get = ipcHandlers.get('store:get')!;
-      expect(() => get(null as never, 'secret-key')).toThrow('Store key not allowed: "secret-key"');
+      await expect(get(null as never, 'secret-key')).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+      });
     });
   });
 
   describe('store:set', () => {
-    it('sets value for allowed keys', () => {
+    it('sets value for allowed keys', async () => {
       const set = ipcHandlers.get('store:set')!;
-      set(null as never, 'player.volume', 0.75);
+      await set(null as never, 'player.volume', 0.75);
 
       expect(mockStore.set).toHaveBeenCalledWith('player.volume', 0.75);
     });
 
-    it('throws for disallowed key', () => {
+    it('throws BAD_REQUEST for disallowed key', async () => {
       const set = ipcHandlers.get('store:set')!;
-      expect(() => set(null as never, 'admin.password', 'hunter2')).toThrow(
-        'Store key not allowed: "admin.password"',
-      );
+      await expect(
+        set(null as never, 'admin.password', 'hunter2'),
+      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     });
   });
 
   describe('store:delete', () => {
-    it('deletes an allowed key', () => {
+    it('deletes an allowed key', async () => {
       const del = ipcHandlers.get('store:delete')!;
-      del(null as never, 'window-bounds');
+      await del(null as never, 'window-bounds');
 
       expect(mockStore.delete).toHaveBeenCalledWith('window-bounds');
     });
 
-    it('throws for disallowed key', () => {
+    it('throws BAD_REQUEST for disallowed key', async () => {
       const del = ipcHandlers.get('store:delete')!;
-      expect(() => del(null as never, 'not-allowed')).toThrow(
-        'Store key not allowed: "not-allowed"',
-      );
+      await expect(del(null as never, 'not-allowed')).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+      });
     });
   });
 
-  it('every allowed key works with store:get without throwing', () => {
+  it('every allowed key works with store:get without throwing', async () => {
     const get = ipcHandlers.get('store:get')!;
     for (const key of ALLOWED_KEYS) {
-      expect(() => get(null as never, key)).not.toThrow();
+      await expect(Promise.resolve(get(null as never, key))).resolves.not.toThrow();
     }
   });
 });

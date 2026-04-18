@@ -17,6 +17,46 @@ import {
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../logger';
+import { handle } from './with-ipc-handler';
+import {
+  tracksGetAllArgs,
+  tracksAddArgs,
+  tracksAddManyArgs,
+  tracksRemoveArgs,
+  tracksRemoveManyArgs,
+  tracksUpdateArgs,
+  tracksUpdateManyArgs,
+  tracksToggleFavoriteArgs,
+  tracksGetFavoritesArgs,
+  tracksIncrementPlayCountArgs,
+  tracksExistsArgs,
+  tracksExistsManyArgs,
+} from './schemas/db-tracks';
+import {
+  playlistsGetAllArgs,
+  playlistsGetArgs,
+  playlistsCreateArgs,
+  playlistsCreateWithTracksArgs,
+  playlistsUpdateArgs,
+  playlistsDeleteArgs,
+  playlistsGetTracksArgs,
+  playlistsAddTrackArgs,
+  playlistsRemoveTrackArgs,
+  playlistsGetPlaylistsForTracksArgs,
+  playlistsReorderArgs,
+} from './schemas/db-playlists';
+import {
+  historyRecordPlayArgs,
+  historyGetRecentArgs,
+  historyGetSummaryArgs,
+  historyGetActivityArgs,
+} from './schemas/db-history';
+import {
+  foldersGetAllArgs,
+  foldersAddArgs,
+  foldersRemoveArgs,
+  foldersUpdateScannedArgs,
+} from './schemas/db-folders';
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
@@ -26,68 +66,92 @@ function buildHistorySinceFilter(since?: string | null) {
 export function registerDatabaseHandlers(): void {
   // Tracks
 
-  ipcMain.handle('db:tracks:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
-  });
+  handle(
+    'db:tracks:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
+    },
+    { schema: tracksGetAllArgs },
+  );
 
-  ipcMain.handle('db:tracks:add', async (_event, track: Omit<NewTrack, 'id'>) => {
-    const db = getDatabase();
-    const id = crypto.randomUUID();
-    const row: NewTrack = { ...track, id };
-    return db.insert(tracks).values(row).returning().get();
-  });
+  handle(
+    'db:tracks:add',
+    async (_event, track: Omit<NewTrack, 'id'>) => {
+      const db = getDatabase();
+      const id = crypto.randomUUID();
+      const row: NewTrack = { ...track, id };
+      return db.insert(tracks).values(row).returning().get();
+    },
+    { schema: tracksAddArgs },
+  );
 
-  ipcMain.handle('db:tracks:add-many', async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
-    const start = Date.now();
-    const db = getDatabase();
-    const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
-    const chunks = Math.ceil(rows.length / 100);
+  handle(
+    'db:tracks:add-many',
+    async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
+      const start = Date.now();
+      const db = getDatabase();
+      const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
+      const chunks = Math.ceil(rows.length / 100);
 
-    logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
+      logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
 
-    // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
-    // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
-    const CHUNK_SIZE = 100;
-    const results = db.transaction(tx => {
-      const results = [];
-      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-        const chunk = rows.slice(i, i + CHUNK_SIZE);
-        results.push(...tx.insert(tracks).values(chunk).returning().all());
-      }
+      // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
+      // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
+      const CHUNK_SIZE = 100;
+      const results = db.transaction(tx => {
+        const results = [];
+        for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+          const chunk = rows.slice(i, i + CHUNK_SIZE);
+          results.push(...tx.insert(tracks).values(chunk).returning().all());
+        }
+        return results;
+      });
+
+      logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
       return results;
-    });
+    },
+    { schema: tracksAddManyArgs },
+  );
 
-    logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
-    return results;
-  });
+  handle(
+    'db:tracks:remove',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      db.delete(tracks).where(eq(tracks.id, id)).run();
+    },
+    { schema: tracksRemoveArgs },
+  );
 
-  ipcMain.handle('db:tracks:remove', async (_event, id: string) => {
-    const db = getDatabase();
-    db.delete(tracks).where(eq(tracks.id, id)).run();
-  });
+  handle(
+    'db:tracks:remove-many',
+    async (_event, ids: string[]) => {
+      if (ids.length === 0) return;
+      logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
+      const start = Date.now();
+      const db = getDatabase();
+      const CHUNK_SIZE = 500;
+      db.transaction(tx => {
+        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+          const chunk = ids.slice(i, i + CHUNK_SIZE);
+          tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
+        }
+      });
+      logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
+    },
+    { schema: tracksRemoveManyArgs },
+  );
 
-  ipcMain.handle('db:tracks:remove-many', async (_event, ids: string[]) => {
-    if (ids.length === 0) return;
-    logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
-    const start = Date.now();
-    const db = getDatabase();
-    const CHUNK_SIZE = 500;
-    db.transaction(tx => {
-      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-        const chunk = ids.slice(i, i + CHUNK_SIZE);
-        tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
-      }
-    });
-    logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
-  });
+  handle(
+    'db:tracks:update',
+    async (_event, id: string, data: Partial<NewTrack>) => {
+      const db = getDatabase();
+      return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
+    },
+    { schema: tracksUpdateArgs },
+  );
 
-  ipcMain.handle('db:tracks:update', async (_event, id: string, data: Partial<NewTrack>) => {
-    const db = getDatabase();
-    return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
-  });
-
-  ipcMain.handle(
+  handle(
     'db:tracks:update-many',
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
       if (updates.length === 0) return [];
@@ -98,67 +162,88 @@ export function registerDatabaseHandlers(): void {
           tx.update(tracks).set(data).where(eq(tracks.id, id)).returning().get()
         );
       });
-    }
+    },
+    { schema: tracksUpdateManyArgs },
   );
 
-  ipcMain.handle('db:tracks:toggle-favorite', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(tracks)
-      .set({ isFavorite: sql`NOT ${tracks.isFavorite}` })
-      .where(eq(tracks.id, id))
-      .returning()
-      .get();
-  });
+  handle(
+    'db:tracks:toggle-favorite',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(tracks)
+        .set({ isFavorite: sql`NOT ${tracks.isFavorite}` })
+        .where(eq(tracks.id, id))
+        .returning()
+        .get();
+    },
+    { schema: tracksToggleFavoriteArgs },
+  );
 
-  ipcMain.handle('db:tracks:get-favorites', async () => {
-    const db = getDatabase();
-    return db
-      .select()
-      .from(tracks)
-      .where(eq(tracks.isFavorite, true))
-      .orderBy(desc(tracks.createdAt))
-      .all();
-  });
-
-  ipcMain.handle('db:tracks:increment-play-count', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(tracks)
-      .set({ playCount: sql`${tracks.playCount} + 1` })
-      .where(eq(tracks.id, id))
-      .returning()
-      .get();
-  });
-
-  ipcMain.handle('db:tracks:exists', async (_event, filePath: string) => {
-    const db = getDatabase();
-    const row = db
-      .select({ id: tracks.id })
-      .from(tracks)
-      .where(eq(tracks.filePath, filePath))
-      .get();
-    return !!row;
-  });
-
-  ipcMain.handle('db:tracks:exists-many', async (_event, filePaths: string[]) => {
-    if (filePaths.length === 0) return new Set<string>();
-    const db = getDatabase();
-    const CHUNK_SIZE = 500;
-    const existing = new Set<string>();
-    for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
-      const chunk = filePaths.slice(i, i + CHUNK_SIZE);
-      const rows = db
-        .select({ filePath: tracks.filePath })
+  handle(
+    'db:tracks:get-favorites',
+    async () => {
+      const db = getDatabase();
+      return db
+        .select()
         .from(tracks)
-        .where(inArray(tracks.filePath, chunk))
+        .where(eq(tracks.isFavorite, true))
+        .orderBy(desc(tracks.createdAt))
         .all();
-      for (const row of rows) existing.add(row.filePath);
-    }
-    return [...existing];
-  });
+    },
+    { schema: tracksGetFavoritesArgs },
+  );
 
-  ipcMain.handle(
+  handle(
+    'db:tracks:increment-play-count',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(tracks)
+        .set({ playCount: sql`${tracks.playCount} + 1` })
+        .where(eq(tracks.id, id))
+        .returning()
+        .get();
+    },
+    { schema: tracksIncrementPlayCountArgs },
+  );
+
+  handle(
+    'db:tracks:exists',
+    async (_event, filePath: string) => {
+      const db = getDatabase();
+      const row = db
+        .select({ id: tracks.id })
+        .from(tracks)
+        .where(eq(tracks.filePath, filePath))
+        .get();
+      return !!row;
+    },
+    { schema: tracksExistsArgs },
+  );
+
+  handle(
+    'db:tracks:exists-many',
+    async (_event, filePaths: string[]) => {
+      if (filePaths.length === 0) return new Set<string>();
+      const db = getDatabase();
+      const CHUNK_SIZE = 500;
+      const existing = new Set<string>();
+      for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
+        const chunk = filePaths.slice(i, i + CHUNK_SIZE);
+        const rows = db
+          .select({ filePath: tracks.filePath })
+          .from(tracks)
+          .where(inArray(tracks.filePath, chunk))
+          .all();
+        for (const row of rows) existing.add(row.filePath);
+      }
+      return [...existing];
+    },
+    { schema: tracksExistsManyArgs },
+  );
+
+  handle(
     'db:history:record-play',
     async (
       _event,
@@ -195,9 +280,10 @@ export function registerDatabaseHandlers(): void {
         return historyEntry;
       });
     },
+    { schema: historyRecordPlayArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:history:get-recent',
     async (_event, options?: { limit?: number; since?: string | null }) => {
       const db = getDatabase();
@@ -227,131 +313,164 @@ export function registerDatabaseHandlers(): void {
         .limit(safeLimit)
         .all();
     },
+    { schema: historyGetRecentArgs },
   );
 
-  ipcMain.handle('db:history:get-summary', async (_event, options?: { since?: string | null }) => {
-    const db = getDatabase();
-    const sinceFilter = buildHistorySinceFilter(options?.since);
+  handle(
+    'db:history:get-summary',
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
 
-    const totalsQuery = db
-      .select({
-        totalPlays: sql<number>`COUNT(*)`,
-        totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
-        uniqueTracks: sql<number>`COUNT(DISTINCT ${playHistory.trackId})`,
-        uniqueArtists: sql<number>`COUNT(DISTINCT ${tracks.artist})`,
-        completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id));
-    const totals = (sinceFilter ? totalsQuery.where(sinceFilter) : totalsQuery).get();
+      const totalsQuery = db
+        .select({
+          totalPlays: sql<number>`COUNT(*)`,
+          totalMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+          uniqueTracks: sql<number>`COUNT(DISTINCT ${playHistory.trackId})`,
+          uniqueArtists: sql<number>`COUNT(DISTINCT ${tracks.artist})`,
+          completedPlays: sql<number>`COALESCE(SUM(CASE WHEN ${playHistory.completed} THEN 1 ELSE 0 END), 0)`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id));
+      const totals = (sinceFilter ? totalsQuery.where(sinceFilter) : totalsQuery).get();
 
-    const topTracksQuery = db
-      .select({
-        trackId: tracks.id,
-        title: tracks.title,
-        artist: tracks.artist,
-        album: tracks.album,
-        albumArt: tracks.albumArt,
-        playCount: sql<number>`COUNT(*)`,
-        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
-        lastPlayedAt: sql<string>`MAX(${playHistory.playedAt})`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.id);
-    const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
-      .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
-      .limit(5)
-      .all();
+      const topTracksQuery = db
+        .select({
+          trackId: tracks.id,
+          title: tracks.title,
+          artist: tracks.artist,
+          album: tracks.album,
+          albumArt: tracks.albumArt,
+          playCount: sql<number>`COUNT(*)`,
+          listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+          lastPlayedAt: sql<string>`MAX(${playHistory.playedAt})`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .groupBy(tracks.id);
+      const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
+        .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
+        .limit(5)
+        .all();
 
-    const topArtistsQuery = db
-      .select({
-        artist: tracks.artist,
-        playCount: sql<number>`COUNT(*)`,
-        listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
-      })
-      .from(playHistory)
-      .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-      .groupBy(tracks.artist);
-    const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
-      .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
-      .limit(5)
-      .all();
+      const topArtistsQuery = db
+        .select({
+          artist: tracks.artist,
+          playCount: sql<number>`COUNT(*)`,
+          listenedSeconds: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}), 0)`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .groupBy(tracks.artist);
+      const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
+        .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
+        .limit(5)
+        .all();
 
-    return {
-      totalPlays: totals?.totalPlays ?? 0,
-      totalMinutes: totals?.totalMinutes ?? 0,
-      uniqueTracks: totals?.uniqueTracks ?? 0,
-      uniqueArtists: totals?.uniqueArtists ?? 0,
-      completedPlays: totals?.completedPlays ?? 0,
-      topTracks,
-      topArtists,
-    };
-  });
+      return {
+        totalPlays: totals?.totalPlays ?? 0,
+        totalMinutes: totals?.totalMinutes ?? 0,
+        uniqueTracks: totals?.uniqueTracks ?? 0,
+        uniqueArtists: totals?.uniqueArtists ?? 0,
+        completedPlays: totals?.completedPlays ?? 0,
+        topTracks,
+        topArtists,
+      };
+    },
+    { schema: historyGetSummaryArgs },
+  );
 
-  ipcMain.handle('db:history:get-activity', async (_event, options?: { since?: string | null }) => {
-    const db = getDatabase();
-    const sinceFilter = buildHistorySinceFilter(options?.since);
-    const dayExpression = sql<string>`substr(${playHistory.playedAt}, 1, 10)`;
+  handle(
+    'db:history:get-activity',
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
+      const dayExpression = sql<string>`substr(${playHistory.playedAt}, 1, 10)`;
 
-    const activityQuery = db
-      .select({
-        date: dayExpression,
-        playCount: sql<number>`COUNT(*)`,
-        listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
-      })
-      .from(playHistory)
-      .groupBy(dayExpression);
+      const activityQuery = db
+        .select({
+          date: dayExpression,
+          playCount: sql<number>`COUNT(*)`,
+          listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+        })
+        .from(playHistory)
+        .groupBy(dayExpression);
 
-    return (sinceFilter ? activityQuery.where(sinceFilter) : activityQuery)
-      .orderBy(dayExpression)
-      .all();
-  });
+      return (sinceFilter ? activityQuery.where(sinceFilter) : activityQuery)
+        .orderBy(dayExpression)
+        .all();
+    },
+    { schema: historyGetActivityArgs },
+  );
 
   // Folders
 
-  ipcMain.handle('db:folders:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(folders).all();
-  });
+  handle(
+    'db:folders:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(folders).all();
+    },
+    { schema: foldersGetAllArgs },
+  );
 
-  ipcMain.handle('db:folders:add', async (_event, folderPath: string) => {
-    logger.info(`[database] folders:add: "${folderPath}"`);
-    const db = getDatabase();
-    const id = crypto.randomUUID();
-    const row: NewFolder = { id, path: folderPath };
-    return db.insert(folders).values(row).returning().get();
-  });
+  handle(
+    'db:folders:add',
+    async (_event, folderPath: string) => {
+      logger.info(`[database] folders:add: "${folderPath}"`);
+      const db = getDatabase();
+      const id = crypto.randomUUID();
+      const row: NewFolder = { id, path: folderPath };
+      return db.insert(folders).values(row).returning().get();
+    },
+    { schema: foldersAddArgs },
+  );
 
-  ipcMain.handle('db:folders:remove', async (_event, id: string) => {
-    logger.info(`[database] folders:remove: ${id}`);
-    const db = getDatabase();
-    db.delete(folders).where(eq(folders.id, id)).run();
-  });
+  handle(
+    'db:folders:remove',
+    async (_event, id: string) => {
+      logger.info(`[database] folders:remove: ${id}`);
+      const db = getDatabase();
+      db.delete(folders).where(eq(folders.id, id)).run();
+    },
+    { schema: foldersRemoveArgs },
+  );
 
-  ipcMain.handle('db:folders:update-scanned', async (_event, id: string) => {
-    const db = getDatabase();
-    return db
-      .update(folders)
-      .set({ lastScanned: new Date().toISOString() })
-      .where(eq(folders.id, id))
-      .returning()
-      .get();
-  });
+  handle(
+    'db:folders:update-scanned',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db
+        .update(folders)
+        .set({ lastScanned: new Date().toISOString() })
+        .where(eq(folders.id, id))
+        .returning()
+        .get();
+    },
+    { schema: foldersUpdateScannedArgs },
+  );
 
   // Playlists
 
-  ipcMain.handle('db:playlists:get-all', async () => {
-    const db = getDatabase();
-    return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
-  });
+  handle(
+    'db:playlists:get-all',
+    async () => {
+      const db = getDatabase();
+      return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
+    },
+    { schema: playlistsGetAllArgs },
+  );
 
-  ipcMain.handle('db:playlists:get', async (_event, id: string) => {
-    const db = getDatabase();
-    return db.select().from(playlists).where(eq(playlists.id, id)).get();
-  });
+  handle(
+    'db:playlists:get',
+    async (_event, id: string) => {
+      const db = getDatabase();
+      return db.select().from(playlists).where(eq(playlists.id, id)).get();
+    },
+    { schema: playlistsGetArgs },
+  );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:create',
     async (_event, data: { name: string; description?: string; coverArt?: string }) => {
       logger.info(`[database] playlists:create: "${data.name}"`);
@@ -360,9 +479,10 @@ export function registerDatabaseHandlers(): void {
       const row: NewPlaylist = { id, ...data };
       return db.insert(playlists).values(row).returning().get();
     },
+    { schema: playlistsCreateArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:update',
     async (
       _event,
@@ -377,27 +497,36 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
+    { schema: playlistsUpdateArgs },
   );
 
-  ipcMain.handle('db:playlists:delete', async (_event, id: string) => {
-    logger.info(`[database] playlists:delete: ${id}`);
-    const db = getDatabase();
-    db.delete(playlists).where(eq(playlists.id, id)).run();
-  });
+  handle(
+    'db:playlists:delete',
+    async (_event, id: string) => {
+      logger.info(`[database] playlists:delete: ${id}`);
+      const db = getDatabase();
+      db.delete(playlists).where(eq(playlists.id, id)).run();
+    },
+    { schema: playlistsDeleteArgs },
+  );
 
-  ipcMain.handle('db:playlists:get-tracks', async (_event, playlistId: string) => {
-    const db = getDatabase();
-    const rows = db
-      .select()
-      .from(tracks)
-      .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
-      .where(eq(playlistTracks.playlistId, playlistId))
-      .orderBy(playlistTracks.position)
-      .all();
-    return rows.map((row) => row.tracks);
-  });
+  handle(
+    'db:playlists:get-tracks',
+    async (_event, playlistId: string) => {
+      const db = getDatabase();
+      const rows = db
+        .select()
+        .from(tracks)
+        .innerJoin(playlistTracks, eq(tracks.id, playlistTracks.trackId))
+        .where(eq(playlistTracks.playlistId, playlistId))
+        .orderBy(playlistTracks.position)
+        .all();
+      return rows.map((row) => row.tracks);
+    },
+    { schema: playlistsGetTracksArgs },
+  );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:add-track',
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
@@ -434,9 +563,10 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
+    { schema: playlistsAddTrackArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:create-with-tracks',
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
       logger.info(`[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`);
@@ -461,9 +591,10 @@ export function registerDatabaseHandlers(): void {
         return playlist;
       });
     },
+    { schema: playlistsCreateWithTracksArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:remove-track',
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
@@ -476,9 +607,10 @@ export function registerDatabaseHandlers(): void {
         )
         .run();
     },
+    { schema: playlistsRemoveTrackArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:get-playlists-for-tracks',
     async (_event, trackIds: string[]) => {
       const db = getDatabase();
@@ -495,9 +627,10 @@ export function registerDatabaseHandlers(): void {
 
       return rows.map((r) => r.playlistId);
     },
+    { schema: playlistsGetPlaylistsForTracksArgs },
   );
 
-  ipcMain.handle(
+  handle(
     'db:playlists:reorder',
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
@@ -515,6 +648,7 @@ export function registerDatabaseHandlers(): void {
         }
       });
     },
+    { schema: playlistsReorderArgs },
   );
 }
 

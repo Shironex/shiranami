@@ -2,6 +2,7 @@ import { ipcMain, net } from 'electron';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
+import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
 import {
   spawnYtDlp,
   parseYtDlpJsonLines,
@@ -230,28 +231,36 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
 }
 
 export function registerPlaylistHandlers(): void {
-  handle('playlist:extract', async (_event, url: string) => {
-    cancelledFlag = false;
+  handle(
+    'playlist:extract',
+    async (_event, url: string) => {
+      cancelledFlag = false;
 
-    const playlistType = detectPlaylistType(url);
+      const playlistType = detectPlaylistType(url);
 
-    if (playlistType === 'unknown') {
-      throw new IpcError(
-        PLAYLIST_ERROR_CODES.UNSUPPORTED_URL,
-        'Unsupported URL. Please provide a YouTube or Spotify playlist URL.',
-      );
-    }
+      if (playlistType === 'unknown') {
+        throw new IpcError(
+          PLAYLIST_ERROR_CODES.UNSUPPORTED_URL,
+          'Unsupported URL. Please provide a YouTube or Spotify playlist URL.',
+        );
+      }
 
-    if (playlistType === 'youtube') {
-      return await extractYouTubePlaylist(url);
-    }
-    return await extractSpotifyPlaylist(url);
-  });
+      if (playlistType === 'youtube') {
+        return await extractYouTubePlaylist(url);
+      }
+      return await extractSpotifyPlaylist(url);
+    },
+    { schema: playlistExtractArgs },
+  );
 
-  ipcMain.handle('playlist:cancel', async () => {
-    cancelledFlag = true;
-    logger.info('[playlist] Extraction cancelled');
-  });
+  handle(
+    'playlist:cancel',
+    async () => {
+      cancelledFlag = true;
+      logger.info('[playlist] Extraction cancelled');
+    },
+    { schema: playlistCancelArgs },
+  );
 }
 
 export function cleanupPlaylistHandlers(): void {

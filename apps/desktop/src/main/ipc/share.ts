@@ -5,6 +5,13 @@ import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../logger';
 import { IpcError, SHARE_ERROR_CODES } from './errors';
 import { spawnYtDlp } from '../utils/ytdlp-spawn';
+import { handle } from './with-ipc-handler';
+import {
+  shareTrackArgs,
+  sharePlaylistArgs,
+  shareImportArgs,
+  shareCacheYoutubeIdArgs,
+} from './schemas/share';
 
 const SHARE_API_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:3000'
@@ -96,115 +103,131 @@ async function fetchApi(path: string, options: { method: string; body?: unknown 
 
 export function registerShareHandlers(): void {
   // Share a single track
-  ipcMain.handle('share:track', async (_event, trackId: string) => {
-    const db = getDatabase();
-    const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
-    if (!track) throw new IpcError(SHARE_ERROR_CODES.TRACK_NOT_FOUND, 'Track not found');
-    logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
+  handle(
+    'share:track',
+    async (_event, trackId: string) => {
+      const db = getDatabase();
+      const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
+      if (!track) throw new IpcError(SHARE_ERROR_CODES.TRACK_NOT_FOUND, 'Track not found');
+      logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
 
-    const ytId = await getYoutubeId(trackId);
-    if (!ytId)
-      throw new IpcError(
-        SHARE_ERROR_CODES.NO_YOUTUBE_MATCH,
-        'Could not find YouTube match for this track',
-      );
+      const ytId = await getYoutubeId(trackId);
+      if (!ytId)
+        throw new IpcError(
+          SHARE_ERROR_CODES.NO_YOUTUBE_MATCH,
+          'Could not find YouTube match for this track',
+        );
 
-    const result = await fetchApi('/api/share', {
-      method: 'POST',
-      body: {
-        type: 'TRACK',
-        payload: {
-          title: track.title,
-          artist: track.artist ?? 'Unknown Artist',
-          ytId,
+      const result = await fetchApi('/api/share', {
+        method: 'POST',
+        body: {
+          type: 'TRACK',
+          payload: {
+            title: track.title,
+            artist: track.artist ?? 'Unknown Artist',
+            ytId,
+          },
         },
-      },
-    });
+      });
 
-    return result;
-  });
+      return result;
+    },
+    { schema: shareTrackArgs },
+  );
 
   // Share a playlist
-  ipcMain.handle('share:playlist', async (_event, playlistId: string) => {
-    const db = getDatabase();
+  handle(
+    'share:playlist',
+    async (_event, playlistId: string) => {
+      const db = getDatabase();
 
-    // Get playlist info
-    const { playlists } = await import('@shiranami/database');
-    const playlist = await db.select().from(playlists).where(eq(playlists.id, playlistId)).get();
-    if (!playlist)
-      throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_NOT_FOUND, 'Playlist not found');
+      // Get playlist info
+      const { playlists } = await import('@shiranami/database');
+      const playlist = await db.select().from(playlists).where(eq(playlists.id, playlistId)).get();
+      if (!playlist)
+        throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_NOT_FOUND, 'Playlist not found');
 
-    // Get playlist tracks
-    const { playlistTracks } = await import('@shiranami/database');
-    const ptRows = await db.select()
-      .from(playlistTracks)
-      .where(eq(playlistTracks.playlistId, playlistId))
-      .orderBy(playlistTracks.position)
-      .all();
+      // Get playlist tracks
+      const { playlistTracks } = await import('@shiranami/database');
+      const ptRows = await db.select()
+        .from(playlistTracks)
+        .where(eq(playlistTracks.playlistId, playlistId))
+        .orderBy(playlistTracks.position)
+        .all();
 
-    const trackRows = [];
-    for (const pt of ptRows) {
-      const track = await db.select().from(tracks).where(eq(tracks.id, pt.trackId)).get();
-      if (track) trackRows.push(track);
-    }
-
-    if (trackRows.length === 0)
-      throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_EMPTY, 'Playlist has no tracks');
-    logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
-
-    // Resolve YouTube IDs for all tracks
-    const shareTracks = [];
-    for (const track of trackRows) {
-      const ytId = await getYoutubeId(track.id);
-      if (ytId) {
-        shareTracks.push({
-          title: track.title,
-          artist: track.artist ?? 'Unknown Artist',
-          ytId,
-        });
+      const trackRows = [];
+      for (const pt of ptRows) {
+        const track = await db.select().from(tracks).where(eq(tracks.id, pt.trackId)).get();
+        if (track) trackRows.push(track);
       }
-    }
 
-    logger.info(`[share] Playlist "${playlist.name}": ${shareTracks.length}/${trackRows.length} tracks matched on YouTube`);
-    if (shareTracks.length === 0)
-      throw new IpcError(
-        SHARE_ERROR_CODES.NO_MATCHES_FOR_ANY_TRACK,
-        'Could not find YouTube matches for any tracks',
-      );
+      if (trackRows.length === 0)
+        throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_EMPTY, 'Playlist has no tracks');
+      logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
 
-    const result = await fetchApi('/api/share', {
-      method: 'POST',
-      body: {
-        type: 'PLAYLIST',
-        payload: {
-          name: playlist.name,
-          tracks: shareTracks,
+      // Resolve YouTube IDs for all tracks
+      const shareTracks = [];
+      for (const track of trackRows) {
+        const ytId = await getYoutubeId(track.id);
+        if (ytId) {
+          shareTracks.push({
+            title: track.title,
+            artist: track.artist ?? 'Unknown Artist',
+            ytId,
+          });
+        }
+      }
+
+      logger.info(`[share] Playlist "${playlist.name}": ${shareTracks.length}/${trackRows.length} tracks matched on YouTube`);
+      if (shareTracks.length === 0)
+        throw new IpcError(
+          SHARE_ERROR_CODES.NO_MATCHES_FOR_ANY_TRACK,
+          'Could not find YouTube matches for any tracks',
+        );
+
+      const result = await fetchApi('/api/share', {
+        method: 'POST',
+        body: {
+          type: 'PLAYLIST',
+          payload: {
+            name: playlist.name,
+            tracks: shareTracks,
+          },
         },
-      },
-    });
+      });
 
-    return result;
-  });
+      return result;
+    },
+    { schema: sharePlaylistArgs },
+  );
 
   // Import shared content (fetch share data by code)
-  ipcMain.handle('share:import', async (_event, code: string) => {
-    logger.info(`[share] Importing share code: ${code}`);
-    const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
-    return result;
-  });
+  handle(
+    'share:import',
+    async (_event, code: string) => {
+      logger.info(`[share] Importing share code: ${code}`);
+      const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
+      return result;
+    },
+    { schema: shareImportArgs },
+  );
 
   // Cache a known YouTube ID for a track (called after download from search)
-  ipcMain.handle('share:cache-youtube-id', async (_event, trackId: string, youtubeId: string) => {
-    const db = getDatabase();
-    await db.insert(youtubeMappings).values({
-      id: randomUUID(),
-      trackId,
-      youtubeId,
-    }).onConflictDoUpdate({
-      target: youtubeMappings.trackId,
-      set: { youtubeId, searchedAt: new Date().toISOString() },
-    });
-  });
+  handle(
+    'share:cache-youtube-id',
+    async (_event, trackId: string, youtubeId: string) => {
+      const db = getDatabase();
+      await db.insert(youtubeMappings).values({
+        id: randomUUID(),
+        trackId,
+        youtubeId,
+      }).onConflictDoUpdate({
+        target: youtubeMappings.trackId,
+        set: { youtubeId, searchedAt: new Date().toISOString() },
+      });
+    },
+    { schema: shareCacheYoutubeIdArgs },
+  );
 }
 
 export function cleanupShareHandlers(): void {

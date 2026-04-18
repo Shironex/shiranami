@@ -48,7 +48,7 @@ const mockedSaveAlbumArt = vi.mocked(saveAlbumArt);
 
 function makeTrack(overrides: Partial<EnrichTrackInput> = {}): EnrichTrackInput {
   return {
-    id: 'track-1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     filePath: '/music/song.mp3',
     title: 'My Song',
     artist: 'Unknown Artist',
@@ -200,9 +200,9 @@ describe('metadata-enrich handlers', () => {
       vi.useFakeTimers();
 
       const tracks = [
-        makeTrack({ id: 'track-1', title: 'Song 1' }),
-        makeTrack({ id: 'track-2', title: 'Song 2' }),
-        makeTrack({ id: 'track-3', title: 'Song 3' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Song 1' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Song 2' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440003', title: 'Song 3' }),
       ];
 
       mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
@@ -229,7 +229,7 @@ describe('metadata-enrich handlers', () => {
 
       // Should have processed track 1, then cancelled before track 3
       expect(results.length).toBeLessThan(tracks.length);
-      expect(results[0].id).toBe('track-1');
+      expect(results[0].id).toBe('550e8400-e29b-41d4-a716-446655440001');
       expect(results[0].success).toBe(true);
 
       // Should have sent a 'cancelled' progress event
@@ -306,8 +306,8 @@ describe('metadata-enrich handlers', () => {
       vi.useFakeTimers();
 
       const tracks = [
-        makeTrack({ id: 'track-1', title: 'Song 1' }),
-        makeTrack({ id: 'track-2', title: 'Song 2' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Song 1' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Song 2' }),
       ];
 
       mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
@@ -425,8 +425,8 @@ describe('metadata-enrich handlers', () => {
       vi.useFakeTimers();
 
       const tracks = [
-        makeTrack({ id: 'track-1', title: 'Failing Song' }),
-        makeTrack({ id: 'track-2', title: 'Good Song' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Failing Song' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Good Song' }),
       ];
 
       mockedLookup
@@ -445,13 +445,13 @@ describe('metadata-enrich handlers', () => {
       expect(results).toHaveLength(2);
 
       // First track failed
-      expect(results[0].id).toBe('track-1');
+      expect(results[0].id).toBe('550e8400-e29b-41d4-a716-446655440001');
       expect(results[0].success).toBe(false);
       expect(results[0].error).toBe('API timeout');
       expect(results[0].source).toBe('none');
 
       // Second track succeeded
-      expect(results[1].id).toBe('track-2');
+      expect(results[1].id).toBe('550e8400-e29b-41d4-a716-446655440002');
       expect(results[1].success).toBe(true);
       expect(results[1].source).toBe('itunes');
 

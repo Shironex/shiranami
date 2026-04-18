@@ -3,6 +3,7 @@ import {
   isIpcError,
   SHARE_ERROR_CODES,
   PLAYLIST_ERROR_CODES,
+  VALIDATION_ERROR_CODES,
 } from './ipc/errors';
 import type { InstallDependenciesResult } from './ipc/downloader';
 
@@ -485,6 +486,7 @@ export interface ElectronAPI {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
     SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
     PLAYLIST_ERROR_CODES: typeof PLAYLIST_ERROR_CODES;
+    VALIDATION_ERROR_CODES: typeof VALIDATION_ERROR_CODES;
   };
   platform: NodeJS.Platform;
 }
@@ -703,6 +705,7 @@ const electronAPI: ElectronAPI = {
     isIpcError,
     SHARE_ERROR_CODES,
     PLAYLIST_ERROR_CODES,
+    VALIDATION_ERROR_CODES,
   },
   platform: process.platform,
 };

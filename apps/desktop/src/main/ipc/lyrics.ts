@@ -1,8 +1,10 @@
 import { ipcMain } from 'electron';
 import { fetchLyrics, type LyricsResult } from '../lyrics-service';
+import { handle } from './with-ipc-handler';
+import { lyricsFetchArgs } from './schemas/lyrics';
 
 export function registerLyricsHandlers(): void {
-  ipcMain.handle(
+  handle(
     'lyrics:fetch',
     async (
       _event,
@@ -12,7 +14,8 @@ export function registerLyricsHandlers(): void {
       duration?: number
     ): Promise<LyricsResult> => {
       return fetchLyrics(title, artist, album, duration);
-    }
+    },
+    { schema: lyricsFetchArgs },
   );
 }
 

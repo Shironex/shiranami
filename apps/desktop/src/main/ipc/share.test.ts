@@ -224,7 +224,11 @@ describe('share ipc handlers', () => {
 
     it('throws TRACK_NOT_FOUND when track does not exist', async () => {
       const handler = ipcHandlers.get('share:track')!;
-      await expect(handler(null as never, 'nonexistent')).rejects.toMatchObject({
+      // Valid-shape UUID that simply isn't in the DB — otherwise we'd trip
+      // the zod validator and get BAD_REQUEST instead of TRACK_NOT_FOUND.
+      await expect(
+        handler(null as never, '00000000-0000-4000-8000-000000000000'),
+      ).rejects.toMatchObject({
         code: 'share.track_not_found',
       });
     });
@@ -258,7 +262,9 @@ describe('share ipc handlers', () => {
 
     it('throws PLAYLIST_NOT_FOUND for missing playlist', async () => {
       const handler = ipcHandlers.get('share:playlist')!;
-      await expect(handler(null as never, 'missing')).rejects.toMatchObject({
+      await expect(
+        handler(null as never, '00000000-0000-4000-8000-000000000000'),
+      ).rejects.toMatchObject({
         code: 'share.playlist_not_found',
       });
     });

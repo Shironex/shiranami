@@ -29,12 +29,12 @@ describe('registerWindowHandlers', () => {
     expect(win.unmaximize).toHaveBeenCalledTimes(1);
   });
 
-  it('returns maximized state from window:is-maximized', () => {
+  it('returns maximized state from window:is-maximized', async () => {
     const win = createMainWindowMock();
     win.isMaximized.mockReturnValue(true);
     registerWindowHandlers(asBrowserWindow(win));
 
-    const result = ipcHandlers.get('window:is-maximized')!(null as never);
+    const result = await ipcHandlers.get('window:is-maximized')!(null as never);
     expect(result).toBe(true);
   });
 
