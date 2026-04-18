@@ -3,6 +3,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
 import { logger } from '../logger';
+import { handle } from './with-ipc-handler';
+import {
+  parseMetadataArgs,
+  scanFolderArgs,
+  scanFolderGroupedArgs,
+  validateFilesArgs,
+} from './schemas/library';
 
 export interface ScannedTrack {
   filePath: string;
@@ -87,83 +94,99 @@ async function parseAudioFiles(filePaths: string[]): Promise<ScannedTrack[]> {
 
 export function registerLibraryHandlers(): void {
   // Parse metadata for a single file
-  ipcMain.handle('library:parse-metadata', async (_event, filePath: string) => {
-    const metadata = await parseAudioMetadata(filePath);
-    return { filePath, metadata };
-  });
+  handle(
+    'library:parse-metadata',
+    async (_event, filePath: string) => {
+      const metadata = await parseAudioMetadata(filePath);
+      return { filePath, metadata };
+    },
+    { schema: parseMetadataArgs },
+  );
 
   // Scan a directory for audio files and parse their metadata
-  ipcMain.handle('library:scan-folder', async (_event, dirPath: string) => {
-    const start = Date.now();
-    logger.info(`[library] Scanning folder: ${dirPath}`);
-    const filePaths = await scanDirectoryRecursive(dirPath);
-    logger.info(`[library] Found ${filePaths.length} audio files in ${Date.now() - start}ms`);
+  handle(
+    'library:scan-folder',
+    async (_event, dirPath: string) => {
+      const start = Date.now();
+      logger.info(`[library] Scanning folder: ${dirPath}`);
+      const filePaths = await scanDirectoryRecursive(dirPath);
+      logger.info(`[library] Found ${filePaths.length} audio files in ${Date.now() - start}ms`);
 
-    const parseStart = Date.now();
-    const results = await parseAudioFiles(filePaths);
-    logger.info(`[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`);
-    return results;
-  });
+      const parseStart = Date.now();
+      const results = await parseAudioFiles(filePaths);
+      logger.info(`[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`);
+      return results;
+    },
+    { schema: scanFolderArgs },
+  );
 
   // Validate which file paths still exist on disk (returns paths that are missing)
-  ipcMain.handle('library:validate-files', async (_event, filePaths: string[]) => {
-    const start = Date.now();
-    logger.info(`[library] Validating ${filePaths.length} file paths`);
-    const VALIDATE_CONCURRENCY = 128;
-    const missing: string[] = [];
+  handle(
+    'library:validate-files',
+    async (_event, filePaths: string[]) => {
+      const start = Date.now();
+      logger.info(`[library] Validating ${filePaths.length} file paths`);
+      const VALIDATE_CONCURRENCY = 128;
+      const missing: string[] = [];
 
-    for (let i = 0; i < filePaths.length; i += VALIDATE_CONCURRENCY) {
-      const batch = filePaths.slice(i, i + VALIDATE_CONCURRENCY);
-      const results = await Promise.all(
-        batch.map(async (filePath) => {
-          try {
-            await fs.promises.access(filePath, fs.constants.F_OK);
-            return null;
-          } catch {
-            return filePath;
-          }
-        })
-      );
-      for (const p of results) {
-        if (p !== null) missing.push(p);
+      for (let i = 0; i < filePaths.length; i += VALIDATE_CONCURRENCY) {
+        const batch = filePaths.slice(i, i + VALIDATE_CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async (filePath) => {
+            try {
+              await fs.promises.access(filePath, fs.constants.F_OK);
+              return null;
+            } catch {
+              return filePath;
+            }
+          })
+        );
+        for (const p of results) {
+          if (p !== null) missing.push(p);
+        }
       }
-    }
 
-    if (missing.length > 0) {
-      logger.warn(`[library] Validation found ${missing.length} missing files out of ${filePaths.length} (${Date.now() - start}ms)`);
-    } else {
-      logger.info(`[library] Validation complete: all ${filePaths.length} files exist (${Date.now() - start}ms)`);
-    }
-    return missing;
-  });
+      if (missing.length > 0) {
+        logger.warn(`[library] Validation found ${missing.length} missing files out of ${filePaths.length} (${Date.now() - start}ms)`);
+      } else {
+        logger.info(`[library] Validation complete: all ${filePaths.length} files exist (${Date.now() - start}ms)`);
+      }
+      return missing;
+    },
+    { schema: validateFilesArgs },
+  );
 
   // Scan a directory and return results grouped by immediate subfolder
-  ipcMain.handle('library:scan-folder-grouped', async (_event, dirPath: string) => {
-    const start = Date.now();
-    logger.info(`[library] Scanning folder (grouped): ${dirPath}`);
-    const { rootFiles, subfolders } = await scanDirectoryGrouped(dirPath);
+  handle(
+    'library:scan-folder-grouped',
+    async (_event, dirPath: string) => {
+      const start = Date.now();
+      logger.info(`[library] Scanning folder (grouped): ${dirPath}`);
+      const { rootFiles, subfolders } = await scanDirectoryGrouped(dirPath);
 
-    const totalFiles = rootFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
-    logger.info(`[library] Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root) in ${Date.now() - start}ms`);
+      const totalFiles = rootFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
+      logger.info(`[library] Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root) in ${Date.now() - start}ms`);
 
-    const rootTracks = await parseAudioFiles(rootFiles);
+      const rootTracks = await parseAudioFiles(rootFiles);
 
-    const SUBFOLDER_CONCURRENCY = 4;
-    const parsedSubfolders = [];
-    for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
-      const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
-      const results = await Promise.all(
-        batch.map(async (subfolder) => {
-          const tracks = await parseAudioFiles(subfolder.files);
-          return { name: subfolder.name, path: subfolder.path, tracks };
-        })
-      );
-      parsedSubfolders.push(...results);
-    }
+      const SUBFOLDER_CONCURRENCY = 4;
+      const parsedSubfolders = [];
+      for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
+        const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async (subfolder) => {
+            const tracks = await parseAudioFiles(subfolder.files);
+            return { name: subfolder.name, path: subfolder.path, tracks };
+          })
+        );
+        parsedSubfolders.push(...results);
+      }
 
-    logger.info(`[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`);
-    return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
-  });
+      logger.info(`[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`);
+      return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
+    },
+    { schema: scanFolderGroupedArgs },
+  );
 }
 
 export function cleanupLibraryHandlers(): void {

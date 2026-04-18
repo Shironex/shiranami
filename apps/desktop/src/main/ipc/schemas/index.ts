@@ -3,4 +3,5 @@
  * convenience. See ./README.md for conventions.
  */
 
+export * from './library';
 export * from './shell';
