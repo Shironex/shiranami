@@ -12,6 +12,7 @@ import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
+import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
 
 // Register shiranami:// deep link protocol for share imports.
@@ -120,6 +121,15 @@ async function bootstrap(): Promise<void> {
   registerAudioProtocol();
   registerRadioProtocol();
   registerArtProtocol();
+
+  // Build the path-containment cache eagerly so the first shell/audio
+  // request doesn't pay the rebuild cost. Failure here must not abort
+  // startup — the cache lazy-builds on first call as a fallback.
+  try {
+    prewarmFoldersCache();
+  } catch (err) {
+    logger.warn('Folders cache prewarm failed:', err);
+  }
 
   // Migrate legacy base64 album art to disk files
   migrateAlbumArtToDisk().catch(err => {
