@@ -22,6 +22,7 @@ import {
 import { store } from '../store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
+import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
 import {
   downloaderCheckArgs,
@@ -168,6 +169,15 @@ function getStoredDownloadDir(): string | null {
 
 function getDownloadDir(): string {
   return ensureDownloadDir(getStoredDownloadDir() ?? getDefaultDownloadDir());
+}
+
+/**
+ * Active download directory (without ensuring it exists). Exposed for
+ * other modules (e.g. folders-cache) that need the configured location
+ * without triggering directory creation.
+ */
+export function getCurrentDownloadDir(): string {
+  return getStoredDownloadDir() ?? getDefaultDownloadDir();
 }
 
 function getDownloadLocationState(): DownloadLocationState {
@@ -319,6 +329,7 @@ export function registerDownloaderHandlers(): void {
 
       if (typeof downloadDir !== 'string' || downloadDir.trim().length === 0) {
         store.delete(DOWNLOAD_LOCATION_STORE_KEY);
+        invalidateFoldersCache();
         return getDownloadLocationState();
       }
 
@@ -329,6 +340,7 @@ export function registerDownloaderHandlers(): void {
         store.set(DOWNLOAD_LOCATION_STORE_KEY, resolvedPath);
       }
 
+      invalidateFoldersCache();
       return getDownloadLocationState();
     },
     { schema: downloaderSetDownloadLocationArgs },

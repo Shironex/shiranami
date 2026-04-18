@@ -18,6 +18,7 @@ import {
 import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
+import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import {
   tracksGetAllArgs,
   tracksAddArgs,
@@ -421,7 +422,9 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       const id = crypto.randomUUID();
       const row: NewFolder = { id, path: folderPath };
-      return db.insert(folders).values(row).returning().get();
+      const inserted = db.insert(folders).values(row).returning().get();
+      invalidateFoldersCache();
+      return inserted;
     },
     { schema: foldersAddArgs },
   );
@@ -432,6 +435,7 @@ export function registerDatabaseHandlers(): void {
       logger.info(`[database] folders:remove: ${id}`);
       const db = getDatabase();
       db.delete(folders).where(eq(folders.id, id)).run();
+      invalidateFoldersCache();
     },
     { schema: foldersRemoveArgs },
   );
