@@ -12,6 +12,7 @@ import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
+import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView'));
@@ -120,127 +121,161 @@ function App() {
 
       {splashDone && (
         <AmbientColorProvider>
-          <div
-            className={cn(
-              'h-screen w-screen bg-background text-foreground overflow-hidden relative',
-              !compactMode && 'flex',
-              IS_ELECTRON && 'rounded-t-[10px]'
-            )}
-          >
-            <AmbientBackground />
-            <CommandPalette />
-            <Suspense fallback={null}>
-              <KeyboardShortcutsHelp />
-            </Suspense>
-            <Suspense fallback={null}>
-              <ShareDialogManager />
-            </Suspense>
+          <ErrorBoundary root viewName="Root">
+            <div
+              className={cn(
+                'h-screen w-screen bg-background text-foreground overflow-hidden relative',
+                !compactMode && 'flex',
+                IS_ELECTRON && 'rounded-t-[10px]'
+              )}
+            >
+              <AmbientBackground />
+              <CommandPalette />
+              <ErrorBoundary viewName="KeyboardShortcutsHelp">
+                <Suspense fallback={null}>
+                  <KeyboardShortcutsHelp />
+                </Suspense>
+              </ErrorBoundary>
+              <ErrorBoundary viewName="ShareDialogManager">
+                <Suspense fallback={null}>
+                  <ShareDialogManager />
+                </Suspense>
+              </ErrorBoundary>
 
-            {compactMode ? (
-              <CompactPlayer />
-            ) : (
-              <>
-                {/* Skip to content link for keyboard users */}
-                <a
-                  href="#main-content"
-                  className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium"
-                >
-                  Skip to main content
-                </a>
+              {compactMode ? (
+                <CompactPlayer />
+              ) : (
+                <>
+                  {/* Skip to content link for keyboard users */}
+                  <a
+                    href="#main-content"
+                    className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:text-sm focus:font-medium"
+                  >
+                    Skip to main content
+                  </a>
 
-                {/* Sidebar */}
-                <Sidebar />
+                  {/* Sidebar */}
+                  <Sidebar />
 
-                {/* Main content area */}
-                <div className="flex-1 flex flex-col min-w-0 relative">
-                  <TopBar
-                    onAddFile={handleOpenFile}
-                    onAddFolder={handleOpenFolder}
-                    isScanning={isScanning}
-                  />
+                  {/* Main content area */}
+                  <div className="flex-1 flex flex-col min-w-0 relative">
+                    <TopBar
+                      onAddFile={handleOpenFile}
+                      onAddFolder={handleOpenFolder}
+                      isScanning={isScanning}
+                    />
 
-                  <main id="main-content" aria-label={activeView} className={cn(
-                    'flex-1 flex overflow-hidden min-h-0',
-                    activeView === 'now-playing'
-                      ? ''
-                      : currentTrack && showVisualizer && !lowPerformanceMode ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
-                  )}>
-                    {/* Center content */}
-                    <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
-                      {activeView === 'library' && <LibraryView />}
-                      {activeView === 'playlists' && (
-                        selectedPlaylistId ? (
+                    <main id="main-content" aria-label={activeView} className={cn(
+                      'flex-1 flex overflow-hidden min-h-0',
+                      activeView === 'now-playing'
+                        ? ''
+                        : currentTrack && showVisualizer && !lowPerformanceMode ? 'pb-[136px]' : currentTrack ? 'pb-[88px]' : ''
+                    )}>
+                      {/* Center content */}
+                      <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
+                        {activeView === 'library' && (
+                          <ErrorBoundary viewName="LibraryView">
+                            <LibraryView />
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'playlists' && (
+                          <ErrorBoundary viewName="PlaylistsView">
+                            {selectedPlaylistId ? (
+                              <Suspense fallback={null}>
+                                <PlaylistDetailView />
+                              </Suspense>
+                            ) : <PlaylistsView />}
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'favorites' && (
+                          <ErrorBoundary viewName="FavoritesView">
+                            <FavoritesView />
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'history' && (
+                          <ErrorBoundary viewName="HistoryView">
+                            <Suspense fallback={null}>
+                              <HistoryView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'mixes' && (
+                          <ErrorBoundary viewName="MixesView">
+                            <Suspense fallback={null}>
+                              <MixesView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'search' && (
+                          <ErrorBoundary viewName="SearchView">
+                            <Suspense fallback={null}>
+                              <SearchView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'import-playlist' && (
+                          <ErrorBoundary viewName="PlaylistImportView">
+                            <Suspense fallback={null}>
+                              <PlaylistImportView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'radio' && (
+                          <ErrorBoundary viewName="RadioView">
+                            <Suspense fallback={null}>
+                              <RadioView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'now-playing' && (
+                          <ErrorBoundary viewName="NowPlayingView">
+                            <Suspense fallback={null}>
+                              <NowPlayingView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                        {activeView === 'settings' && (
+                          <ErrorBoundary viewName="SettingsView">
+                            <Suspense fallback={null}>
+                              <SettingsView />
+                            </Suspense>
+                          </ErrorBoundary>
+                        )}
+                      </div>
+
+                      {/* Right panel (hidden in now-playing view — lyrics are inline) */}
+                      {currentTrack && activeView !== 'now-playing' && (rightPanel === 'lyrics' || rightPanel === 'queue') && (
+                        <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
+                          <ErrorBoundary viewName="RightPanel">
+                            <Suspense fallback={null}>
+                              {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
+                            </Suspense>
+                          </ErrorBoundary>
+                        </div>
+                      )}
+                    </main>
+
+                    {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
+                    {currentTrack && showVisualizer && !lowPerformanceMode && activeView !== 'now-playing' && (
+                      <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
+                        <ErrorBoundary viewName="Visualizer">
                           <Suspense fallback={null}>
-                            <PlaylistDetailView />
+                            {visualizerStyle === 'waveform' ? <WaveformVisualizer /> :
+                             visualizerStyle === 'circle' ? <CircleVisualizer /> :
+                             visualizerStyle === 'particles' ? <ParticleVisualizer /> :
+                             <AudioVisualizer />}
                           </Suspense>
-                        ) : <PlaylistsView />
-                      )}
-                      {activeView === 'favorites' && <FavoritesView />}
-                      {activeView === 'history' && (
-                        <Suspense fallback={null}>
-                          <HistoryView />
-                        </Suspense>
-                      )}
-                      {activeView === 'mixes' && (
-                        <Suspense fallback={null}>
-                          <MixesView />
-                        </Suspense>
-                      )}
-                      {activeView === 'search' && (
-                        <Suspense fallback={null}>
-                          <SearchView />
-                        </Suspense>
-                      )}
-                      {activeView === 'import-playlist' && (
-                        <Suspense fallback={null}>
-                          <PlaylistImportView />
-                        </Suspense>
-                      )}
-                      {activeView === 'radio' && (
-                        <Suspense fallback={null}>
-                          <RadioView />
-                        </Suspense>
-                      )}
-                      {activeView === 'now-playing' && (
-                        <Suspense fallback={null}>
-                          <NowPlayingView />
-                        </Suspense>
-                      )}
-                      {activeView === 'settings' && (
-                        <Suspense fallback={null}>
-                          <SettingsView />
-                        </Suspense>
-                      )}
-                    </div>
-
-                    {/* Right panel (hidden in now-playing view — lyrics are inline) */}
-                    {currentTrack && activeView !== 'now-playing' && (rightPanel === 'lyrics' || rightPanel === 'queue') && (
-                      <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
-                        <Suspense fallback={null}>
-                          {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
-                        </Suspense>
+                        </ErrorBoundary>
                       </div>
                     )}
-                  </main>
 
-                  {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
-                  {currentTrack && showVisualizer && !lowPerformanceMode && activeView !== 'now-playing' && (
-                    <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
-                      <Suspense fallback={null}>
-                        {visualizerStyle === 'waveform' ? <WaveformVisualizer /> :
-                         visualizerStyle === 'circle' ? <CircleVisualizer /> :
-                         visualizerStyle === 'particles' ? <ParticleVisualizer /> :
-                         <AudioVisualizer />}
-                      </Suspense>
-                    </div>
-                  )}
-
-                  {/* Player bar (hidden in now-playing view — controls are inline) */}
-                  {activeView !== 'now-playing' && <PlayerBar />}
-                </div>
-              </>
-            )}
-          </div>
+                    {/* Player bar (hidden in now-playing view — controls are inline) */}
+                    {activeView !== 'now-playing' && <PlayerBar />}
+                  </div>
+                </>
+              )}
+            </div>
+          </ErrorBoundary>
         </AmbientColorProvider>
       )}
     </>

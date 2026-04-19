@@ -1,0 +1,11 @@
+{
+  "title": "Coś poszło nie tak",
+  "messageFallback": "Ten widok napotkał nieoczekiwany błąd.",
+  "reloadView": "Załaduj ponownie",
+  "report": "Zgłoś",
+  "reportCopied": "Szczegóły błędu skopiowane do schowka",
+  "reportFailed": "Nie udało się skopiować szczegółów błędu",
+  "rootTitle": "Shiranami uległ awarii",
+  "rootMessage": "Aplikacja napotkała krytyczny błąd. Spróbuj odświeżyć okno.",
+  "reloadApp": "Uruchom ponownie aplikację"
+}

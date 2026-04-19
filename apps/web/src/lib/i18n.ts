@@ -26,6 +26,7 @@ import importEn from '@/locales/en/import.json';
 import shareEn from '@/locales/en/share.json';
 import mixesEn from '@/locales/en/mixes.json';
 import nowPlayingEn from '@/locales/en/nowPlaying.json';
+import errorBoundaryEn from '@/locales/en/errorBoundary.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -51,6 +52,7 @@ import importPl from '@/locales/pl/import.json';
 import sharePl from '@/locales/pl/share.json';
 import mixesPl from '@/locales/pl/mixes.json';
 import nowPlayingPl from '@/locales/pl/nowPlaying.json';
+import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -82,6 +84,7 @@ const namespaces = [
   'playlists', 'search', 'radio', 'history', 'settings', 'queue',
   'lyrics', 'compact', 'commandPalette', 'shortcuts', 'sleepTimer',
   'contextMenu', 'toast', 'splash', 'import', 'share', 'mixes', 'nowPlaying',
+  'errorBoundary',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -111,6 +114,7 @@ i18n.use(initReactI18next).init({
       share: shareEn,
       mixes: mixesEn,
       nowPlaying: nowPlayingEn,
+      errorBoundary: errorBoundaryEn,
     },
     pl: {
       common: commonPl,
@@ -137,6 +141,7 @@ i18n.use(initReactI18next).init({
       share: sharePl,
       mixes: mixesPl,
       nowPlaying: nowPlayingPl,
+      errorBoundary: errorBoundaryPl,
     },
   },
   lng: getInitialLanguage(),
