@@ -27,6 +27,7 @@
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3",
     "flac-tagger": "^2.0.0",
+    "ipaddr.js": "^2.3.0",
     "lrclib-api": "^2.0.4",
     "music-metadata": "^11.12.3",
     "node-addon-api": "^8.6.0",
