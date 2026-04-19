@@ -94,11 +94,36 @@ function unbracket(hostname: string): string {
   return hostname;
 }
 
+const V6_PREFIX_ZERO = ipaddr.parse('::');
+
+/**
+ * Extract the embedded IPv4 from an IPv6 address that has 96 leading zero
+ * bits (the deprecated IPv4-compatible block, RFC 4291 §2.5.5.1) — the form
+ * `::d.d.d.d`. WHATWG URL canonicalization rewrites `::127.0.0.1` to
+ * `::7f00:1`, which `ipaddr.js` does NOT detect via `isIPv4MappedAddress()`,
+ * so without this unwrap a renderer could bypass the IPv4 loopback / RFC1918
+ * / metadata checks via the IPv6 syntax.
+ */
+function ipv4FromCompatV6(v6: ipaddr.IPv6): ipaddr.IPv4 {
+  const a = (v6.parts[6] >> 8) & 0xff;
+  const b = v6.parts[6] & 0xff;
+  const c = (v6.parts[7] >> 8) & 0xff;
+  const d = v6.parts[7] & 0xff;
+  return new ipaddr.IPv4([a, b, c, d]);
+}
+
 /**
  * Classify a single literal IP. Returns `'denied'` if it falls in any range
- * we refuse to proxy to, `'ok'` otherwise. IPv4-mapped IPv6 addresses
- * (`::ffff:127.0.0.1`) are unwrapped and re-classified as IPv4 — without that
- * unwrap an attacker could bypass the IPv4 loopback check via the IPv6 form.
+ * we refuse to proxy to, `'ok'` otherwise.
+ *
+ * IPv6-embedded IPv4 forms are unwrapped and re-classified as IPv4 so the
+ * loopback / RFC1918 / metadata checks can't be bypassed via the IPv6 syntax.
+ * Two forms are handled:
+ *   - IPv4-mapped (`::ffff:127.0.0.1`) via ipaddr.js's `isIPv4MappedAddress()`.
+ *   - IPv4-compatible (`::127.0.0.1`, deprecated per RFC 4291) via a manual
+ *     `::/96` containment check + lower-32-bit extraction. Needed because
+ *     WHATWG URL canonicalizes `::127.0.0.1` to `::7f00:1` and ipaddr.js
+ *     doesn't recognize that as IPv4-embedded.
  */
 function classifyAddress(address: string): 'ok' | 'denied' {
   let parsed: ReturnType<typeof ipaddr.parse>;
@@ -113,6 +138,10 @@ function classifyAddress(address: string): 'ok' | 'denied' {
     const v6 = parsed as ipaddr.IPv6;
     if (v6.isIPv4MappedAddress()) {
       const unwrapped = v6.toIPv4Address();
+      return DENIED_IPV4_RANGES.has(unwrapped.range()) ? 'denied' : 'ok';
+    }
+    if (v6.match(V6_PREFIX_ZERO, 96)) {
+      const unwrapped = ipv4FromCompatV6(v6);
       return DENIED_IPV4_RANGES.has(unwrapped.range()) ? 'denied' : 'ok';
     }
     return DENIED_IPV6_RANGES.has(v6.range()) ? 'denied' : 'ok';

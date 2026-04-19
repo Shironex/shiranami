@@ -138,6 +138,20 @@ describe('isStreamUrlAllowed — literal IPv6', () => {
     expect(r).toEqual({ ok: false, reason: 'private-ip' });
   });
 
+  it('rejects deprecated IPv4-compatible IPv6 [::127.0.0.1] form', async () => {
+    // ipaddr.js v2.x classifies this as `ipv4Mapped` and isIPv4MappedAddress()
+    // returns true, so the unwrap branch fires and we re-classify as IPv4
+    // loopback. This test guards against a future library version tightening
+    // that detection and silently letting `::127.0.0.1` through.
+    const r = await isStreamUrlAllowed('http://[::127.0.0.1]/');
+    expect(r).toEqual({ ok: false, reason: 'private-ip' });
+  });
+
+  it('rejects deprecated IPv4-compatible IPv6 form for AWS metadata IP', async () => {
+    const r = await isStreamUrlAllowed('http://[::169.254.169.254]/latest/meta-data/');
+    expect(r).toEqual({ ok: false, reason: 'private-ip' });
+  });
+
   it('rejects IPv6 link-local fe80::/10', async () => {
     const r = await isStreamUrlAllowed('http://[fe80::1]/');
     expect(r).toEqual({ ok: false, reason: 'private-ip' });
