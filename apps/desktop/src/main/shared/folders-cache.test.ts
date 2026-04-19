@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as fs from 'node:fs';
 import { join } from 'node:path';
 import * as path from 'node:path';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
@@ -190,6 +191,53 @@ describe('folders-cache', () => {
       closeDatabase();
       // Path outside roots so we hit the fallback path.
       await expect(isPathAllowed('/totally/unknown/file.mp3')).resolves.toBe(false);
+    });
+
+    it('rejects a symlink inside an allowed root that points outside', async () => {
+      // realpath resolution must catch this — without it, textual containment
+      // would pass but the downstream stat would happily serve the secret file.
+      const allowedRoot = fs.realpathSync(makeTempDir());
+      const outside = fs.realpathSync(makeTempDir());
+      const secret = path.join(outside, 'secret.mp3');
+      fs.writeFileSync(secret, 'x');
+      const link = path.join(allowedRoot, 'shortcut.mp3');
+      try {
+        fs.symlinkSync(secret, link);
+      } catch {
+        // Windows without elevation — skip.
+        return;
+      }
+
+      getDatabase()
+        .insert(folders)
+        .values({ id: crypto.randomUUID(), path: allowedRoot })
+        .run();
+      invalidate();
+
+      await expect(isPathAllowed(link)).resolves.toBe(false);
+
+      fs.rmSync(allowedRoot, { recursive: true, force: true });
+      fs.rmSync(outside, { recursive: true, force: true });
+    });
+
+    it('matches a known track when the renderer sends a path with collapsible segments', async () => {
+      // toAudioUrl forwards the renderer's path verbatim; on Windows it also
+      // forces forward slashes. path.resolve in the DB-lookup branch normalizes
+      // both, so a row stored as `.../standalone.mp3` still matches when the
+      // renderer asks for `.../foo/../standalone.mp3`.
+      const stored = path.resolve('/somewhere/else/standalone.mp3');
+      getDatabase()
+        .insert(tracks)
+        .values({
+          id: crypto.randomUUID(),
+          filePath: stored,
+          title: 'Standalone',
+          artist: 'X',
+        })
+        .run();
+
+      const messy = '/somewhere/else/foo/../standalone.mp3';
+      await expect(isPathAllowed(messy)).resolves.toBe(true);
     });
   });
 });

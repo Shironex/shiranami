@@ -31,8 +31,11 @@ import { isPathWithinAny, normalizePathForCompare } from './path-safety';
  * the user removes them explicitly.
  *
  * Symlinks: `fs.realpathSync` is called once per registered root at cache
- * build time, but `isPathAllowed` does NOT realpath each request. See
- * `path-safety.ts` for the full caveat.
+ * build time. `isPathAllowed` additionally calls `fs.promises.realpath` on
+ * the requested path before the containment check, so a symlink inside an
+ * allowed root that points outside is rejected — important because the
+ * audio-protocol's downstream `fs.stat` and `createReadStream` follow
+ * symlinks, so a textual containment check alone could be bypassed.
  */
 
 let cachedRoots: string[] | null = null;
@@ -118,29 +121,36 @@ export function getAllowedRoots(): string[] {
  * Return `true` when `filePath` is safe to expose via shell or audio handlers.
  *
  * Two-step check:
- *   1. Containment within any allowed root (the common case).
- *   2. Tracks-fallback: a row exists in `tracks` with the original
- *      (un-normalized) `file_path`. Covers standalone imports via
- *      `dialog:open-file` whose location is outside any folder root.
+ *   1. Resolve symlinks and confirm containment within an allowed root. The
+ *      audio protocol's downstream `fs.stat` and `createReadStream` follow
+ *      symlinks, so we must too — otherwise a symlink inside an allowed root
+ *      pointing at `/etc/passwd` would pass a textual containment check.
+ *   2. Tracks-fallback: a row exists in `tracks` matching the requested
+ *      path. Covers standalone imports via `dialog:open-file` whose location
+ *      is outside any folder root. Looked up with `path.resolve(filePath)`
+ *      so forward-slash inputs from URL params (`toAudioUrl` always uses
+ *      `/`) hit the row stored with native separators on Windows.
  *
  * Fails closed if the database is unavailable.
  */
 export async function isPathAllowed(filePath: string): Promise<boolean> {
   if (!filePath) return false;
 
-  if (isPathWithinAny(filePath, getAllowedRoots())) {
+  // realpath swallows ENOENT/EACCES — fall back to the textual path; the
+  // downstream stat will surface the real error to the renderer.
+  const resolved = await fs.promises.realpath(filePath).catch(() => filePath);
+
+  if (isPathWithinAny(resolved, getAllowedRoots())) {
     return true;
   }
 
-  // Fallback — query tracks.file_path with the path as the renderer stored
-  // it. We deliberately use the original (un-normalized) string because the
-  // column is stored verbatim from the import path.
   try {
     const db = getDatabase();
+    const dbKey = path.resolve(filePath);
     const row = db
       .select({ id: tracks.id })
       .from(tracks)
-      .where(eq(tracks.filePath, filePath))
+      .where(eq(tracks.filePath, dbKey))
       .limit(1)
       .get();
     return !!row;
