@@ -1,3 +1,4 @@
+import { getLrclibGate } from './http';
 import { logger } from './logger';
 
 export interface LyricLine {
@@ -143,9 +144,12 @@ export async function fetchLyrics(
 
     logger.debug(`[lyrics] Fetching lyrics for: ${title} - ${artist}`);
 
-    let result: { syncedLyrics?: string | null; plainLyrics?: string | null } | null = null;
+    type FindResult = { syncedLyrics?: string | null; plainLyrics?: string | null } | null;
+    let result: FindResult = null;
     try {
-      result = await client.findLyrics(query);
+      // lrclib-api uses global fetch; we can only enforce spacing here, not
+      // honor Retry-After the way the electron-net path does.
+      result = await getLrclibGate().run<FindResult>(() => client.findLyrics(query));
     } catch (err) {
       // Any error (NotFound, NoResult, RequestError) — fall through to search
       logger.debug('[lyrics] findLyrics failed, falling through to search', err);
@@ -156,7 +160,10 @@ export async function fetchLyrics(
       const searchQueries = buildSearchQueries(title, artist);
       for (const sq of searchQueries) {
         try {
-          const searchResults = await client.searchLyrics({ query: sq });
+          type SearchResult = Array<{ syncedLyrics?: string | null; plainLyrics?: string | null }>;
+          const searchResults = await getLrclibGate().run<SearchResult>(() =>
+            client.searchLyrics({ query: sq }),
+          );
           if (searchResults && searchResults.length > 0) {
             const best = searchResults[0];
             const lyricsResult: LyricsResult = {
