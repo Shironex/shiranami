@@ -1,0 +1,11 @@
+{
+  "title": "Something went wrong",
+  "messageFallback": "This view hit an unexpected error.",
+  "reloadView": "Reload view",
+  "report": "Report",
+  "reportCopied": "Error details copied to clipboard",
+  "reportFailed": "Failed to copy error details",
+  "rootTitle": "Shiranami crashed",
+  "rootMessage": "The app hit an unrecoverable error. Try reloading the window.",
+  "reloadApp": "Reload app"
+}
