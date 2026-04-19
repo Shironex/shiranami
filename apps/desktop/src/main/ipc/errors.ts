@@ -41,4 +41,5 @@ export const PLAYLIST_ERROR_CODES = {
 
 export const VALIDATION_ERROR_CODES = {
   BAD_REQUEST: 'BAD_REQUEST',
+  FORBIDDEN: 'FORBIDDEN',
 } as const;
