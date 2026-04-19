@@ -25,7 +25,12 @@ export class MinIntervalGate {
 
   constructor(options: MinIntervalGateOptions) {
     this.minIntervalMs = options.minIntervalMs;
-    this.now = options.now ?? (() => Date.now());
+    // Monotonic clock so gate spacing is immune to wall-clock jumps (NTP,
+    // manual changes). Retry-After / X-RateLimit-Reset values are parsed as
+    // durations against wall clock, then fed to `bumpBy`, which adds the
+    // duration to the monotonic clock — durations are clock-agnostic, so
+    // correctness holds either way.
+    this.now = options.now ?? (() => performance.now());
     this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
 
