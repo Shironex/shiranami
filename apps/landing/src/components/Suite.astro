@@ -50,14 +50,34 @@ const cards = [
   </div>
 
   <div class="suite-grid reveal-stagger">
-    {cards.map((card) => (
-      <article class={`suite-card reveal${card.self ? ' is-self' : ''}`}>
-        <span class="suite-kanji" aria-hidden="true">{card.kanji}</span>
-        <span class="suite-name">{card.name}</span>
-        <span class="suite-role" data-i18n={card.roleKey}>{card.roleFallback}</span>
-        <p class="suite-desc" data-i18n={card.descKey}>{card.descFallback}</p>
-        <span class="suite-domain">{card.domain}</span>
-      </article>
-    ))}
+    {cards.map((card) => {
+      const inner = (
+        <>
+          <span class="suite-kanji" aria-hidden="true">{card.kanji}</span>
+          <span class="suite-name">{card.name}</span>
+          <span class="suite-role" data-i18n={card.roleKey}>{card.roleFallback}</span>
+          <p class="suite-desc" data-i18n={card.descKey}>{card.descFallback}</p>
+          <span class="suite-domain">{card.domain}</span>
+        </>
+      );
+
+      if (card.self) {
+        return (
+          <article class="suite-card reveal is-self">{inner}</article>
+        );
+      }
+
+      return (
+        <a
+          class="suite-card reveal"
+          href={`https://${card.domain}`}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${card.name} — ${card.roleFallback}`}
+        >
+          {inner}
+        </a>
+      );
+    })}
   </div>
 </section>

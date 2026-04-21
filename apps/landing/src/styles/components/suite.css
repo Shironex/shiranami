@@ -16,6 +16,7 @@
     overflow: hidden;
     color: inherit;
     display: block;
+    text-decoration: none;
   }
 
   .suite-card:hover {
