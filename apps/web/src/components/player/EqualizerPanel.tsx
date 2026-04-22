@@ -63,6 +63,7 @@ interface VerticalBandSliderProps {
   onChange: (db: number) => void;
   disabled?: boolean;
   label: string;
+  bandName: string;
   gainLabel: string;
   heightClass?: string;
 }
@@ -73,6 +74,7 @@ function VerticalBandSlider({
   onChange,
   disabled,
   label,
+  bandName,
   gainLabel,
   heightClass = 'h-56',
 }: VerticalBandSliderProps) {
@@ -107,8 +109,9 @@ function VerticalBandSlider({
             </SliderPrimitive.Root>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="tabular-nums">
-          {gainLabel}
+        <TooltipContent side="top" className="text-center">
+          <div className="font-medium">{bandName}</div>
+          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">{gainLabel}</div>
         </TooltipContent>
       </Tooltip>
       <span className="text-[10px] text-muted-foreground/80 tabular-nums">
@@ -186,26 +189,44 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
         </Select>
       </div>
 
-      {/* Band strip */}
-      <div
-        className={cn(
-          'grid grid-cols-10 gap-1',
-          layout === 'section' && 'gap-2',
-          !enabled && 'opacity-60',
-        )}
-      >
-        {EQ_BANDS.map((freq, i) => (
-          <VerticalBandSlider
-            key={freq}
-            freq={freq}
-            value={gains[i] ?? 0}
-            onChange={(db) => setBandGain(i, db)}
-            disabled={!enabled}
-            label={formatBandLabel(t, freq)}
-            gainLabel={t('gainLabel', { gain: formatGain(gains[i] ?? 0) })}
-            heightClass={layout === 'section' ? 'h-64' : 'h-56'}
-          />
-        ))}
+      {/* Band strip with zone labels */}
+      <div className={cn(!enabled && 'opacity-60')}>
+        <div
+          className={cn(
+            'grid grid-cols-10 gap-1',
+            layout === 'section' && 'gap-2',
+          )}
+        >
+          {EQ_BANDS.map((freq, i) => (
+            <VerticalBandSlider
+              key={freq}
+              freq={freq}
+              value={gains[i] ?? 0}
+              onChange={(db) => setBandGain(i, db)}
+              disabled={!enabled}
+              label={formatBandLabel(t, freq)}
+              bandName={t(`bandName.${freq}`)}
+              gainLabel={t('gainLabel', { gain: formatGain(gains[i] ?? 0) })}
+              heightClass={layout === 'section' ? 'h-64' : 'h-56'}
+            />
+          ))}
+        </div>
+        <div
+          className={cn(
+            'grid grid-cols-10 mt-2',
+            layout === 'section' && 'mt-2.5',
+          )}
+        >
+          <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+            {t('zone.bass')}
+          </span>
+          <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5 mx-1">
+            {t('zone.mids')}
+          </span>
+          <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+            {t('zone.treble')}
+          </span>
+        </div>
       </div>
 
       {/* Preamp */}
