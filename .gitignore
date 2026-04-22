@@ -13,3 +13,5 @@ Thumbs.db
 .claude
 .mcp.json
 coverage
+.omniscribe
+.playwright-mcp
