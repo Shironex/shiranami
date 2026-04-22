@@ -8,6 +8,7 @@ import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { SleepTimer } from './SleepTimer';
 import { EqualizerPanel } from './EqualizerPanel';
+import { PlayerOverflowMenu } from './PlayerOverflowMenu';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,8 +58,8 @@ export function PlayerBar() {
             />
           )}
 
-          {/* Track info - left */}
-          <div className="flex items-center gap-3.5 w-[280px] min-w-0 relative">
+          {/* Track info - left (adaptive width) */}
+          <div className="flex items-center gap-3 min-[900px]:gap-3.5 w-[180px] min-[900px]:w-[220px] min-[1200px]:w-[280px] min-w-0 relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentTrack.id}
@@ -104,7 +105,7 @@ export function PlayerBar() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-xs text-muted-foreground truncate mt-0.5 hidden min-[900px]:block">
                   {currentTrack.artist}
                 </p>
               </motion.div>
@@ -149,40 +150,50 @@ export function PlayerBar() {
             )}
           </div>
 
-          {/* Right - volume + panel toggles */}
-          <div className="w-[264px] flex items-center justify-end gap-2.5 relative">
+          {/* Right - volume + panel toggles (adaptive) */}
+          <div className="shrink-0 min-[900px]:w-[264px] flex items-center justify-end gap-2 min-[900px]:gap-2.5 relative">
             <div className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1">
-              <SleepTimer />
-              <EqualizerPanel />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => void setCompactMode(true)}
-                    className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
-                    aria-label={t('compactMode')}
-                  >
-                    <Minimize2 className="w-3.5 h-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={toggleVisualizer}
-                    className={cn(
-                      'size-7 flex items-center justify-center rounded-lg transition-colors',
-                      showVisualizer
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
-                    )}
-                    aria-label={t('toggleVisualizer')}
-                  >
-                    <AudioLines className="w-3.5 h-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
-              </Tooltip>
+              {/* Collapsed into overflow on < 900px */}
+              <div className="flex items-center gap-0.5 min-[900px]:hidden">
+                <PlayerOverflowMenu />
+              </div>
+
+              {/* Expanded inline on >= 900px */}
+              <div className="hidden min-[900px]:flex items-center gap-0.5">
+                <SleepTimer />
+                <EqualizerPanel />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => void setCompactMode(true)}
+                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
+                      aria-label={t('compactMode')}
+                    >
+                      <Minimize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={toggleVisualizer}
+                      className={cn(
+                        'size-7 flex items-center justify-center rounded-lg transition-colors',
+                        showVisualizer
+                          ? 'text-primary bg-primary/10'
+                          : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                      )}
+                      aria-label={t('toggleVisualizer')}
+                    >
+                      <AudioLines className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* Always visible — highest-priority actions */}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button

@@ -13,6 +13,7 @@
   "lyricsTooltip": "Lyrics ({{shortcut}})",
   "toggleQueue": "Toggle queue",
   "queueTooltip": "Queue ({{shortcut}})",
+  "moreTooltip": "More",
   "shuffle": "Shuffle",
   "shuffleOn": "Shuffle on (S)",
   "shuffleOff": "Shuffle (S)",

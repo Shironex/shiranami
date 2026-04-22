@@ -13,6 +13,7 @@
   "lyricsTooltip": "Tekst piosenki ({{shortcut}})",
   "toggleQueue": "Przełącz kolejkę",
   "queueTooltip": "Kolejka ({{shortcut}})",
+  "moreTooltip": "Więcej",
   "shuffle": "Losowo",
   "shuffleOn": "Losowo wł. (S)",
   "shuffleOff": "Losowo (S)",
