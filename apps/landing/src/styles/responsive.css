@@ -52,7 +52,7 @@
     }
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 820px) {
     .nav-links {
       display: none;
     }
@@ -125,6 +125,9 @@
       text-transform: uppercase;
       font-weight: 700;
     }
+  }
+
+  @media (max-width: 720px) {
     section.bay {
       padding-block: 56px;
     }
