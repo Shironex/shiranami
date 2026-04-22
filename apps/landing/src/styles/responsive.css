@@ -131,6 +131,25 @@
     section.bay {
       padding-block: 56px;
     }
+    .preview-wrap {
+      display: grid;
+      gap: 10px;
+    }
+    .preview-tag {
+      position: static;
+      transform: none;
+    }
+    .preview-tag.t1 {
+      justify-self: start;
+      order: 1;
+    }
+    .preview-frame {
+      order: 2;
+    }
+    .preview-tag.t2 {
+      justify-self: end;
+      order: 3;
+    }
     .philo,
     .download-block {
       padding: 36px 22px;
