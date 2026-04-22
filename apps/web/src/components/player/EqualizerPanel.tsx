@@ -64,6 +64,7 @@ interface VerticalBandSliderProps {
   disabled?: boolean;
   label: string;
   gainLabel: string;
+  heightClass?: string;
 }
 
 function VerticalBandSlider({
@@ -73,12 +74,13 @@ function VerticalBandSlider({
   disabled,
   label,
   gainLabel,
+  heightClass = 'h-56',
 }: VerticalBandSliderProps) {
   return (
     <div className="flex flex-col items-center gap-1.5 min-w-0">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex-1 flex items-center justify-center h-36">
+          <div className={cn('flex-1 flex items-center justify-center', heightClass)}>
             <SliderPrimitive.Root
               orientation="vertical"
               min={EQ_MIN_DB}
@@ -201,6 +203,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
             disabled={!enabled}
             label={formatBandLabel(t, freq)}
             gainLabel={t('gainLabel', { gain: formatGain(gains[i] ?? 0) })}
+            heightClass={layout === 'section' ? 'h-64' : 'h-56'}
           />
         ))}
       </div>
@@ -268,7 +271,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
         <TooltipContent side="top">{tPlayer('eqTooltip')}</TooltipContent>
       </Tooltip>
 
-      <PopoverContent side="top" align="center" className="w-[360px]">
+      <PopoverContent side="top" align="center" className="w-[380px]">
         {controls}
       </PopoverContent>
     </Popover>
