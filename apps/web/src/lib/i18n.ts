@@ -27,6 +27,7 @@ import shareEn from '@/locales/en/share.json';
 import mixesEn from '@/locales/en/mixes.json';
 import nowPlayingEn from '@/locales/en/nowPlaying.json';
 import errorBoundaryEn from '@/locales/en/errorBoundary.json';
+import equalizerEn from '@/locales/en/equalizer.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -53,6 +54,7 @@ import sharePl from '@/locales/pl/share.json';
 import mixesPl from '@/locales/pl/mixes.json';
 import nowPlayingPl from '@/locales/pl/nowPlaying.json';
 import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
+import equalizerPl from '@/locales/pl/equalizer.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -84,7 +86,7 @@ const namespaces = [
   'playlists', 'search', 'radio', 'history', 'settings', 'queue',
   'lyrics', 'compact', 'commandPalette', 'shortcuts', 'sleepTimer',
   'contextMenu', 'toast', 'splash', 'import', 'share', 'mixes', 'nowPlaying',
-  'errorBoundary',
+  'errorBoundary', 'equalizer',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -115,6 +117,7 @@ i18n.use(initReactI18next).init({
       mixes: mixesEn,
       nowPlaying: nowPlayingEn,
       errorBoundary: errorBoundaryEn,
+      equalizer: equalizerEn,
     },
     pl: {
       common: commonPl,
@@ -142,6 +145,7 @@ i18n.use(initReactI18next).init({
       mixes: mixesPl,
       nowPlaying: nowPlayingPl,
       errorBoundary: errorBoundaryPl,
+      equalizer: equalizerPl,
     },
   },
   lng: getInitialLanguage(),

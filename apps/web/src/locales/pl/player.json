@@ -8,6 +8,7 @@
   "compactModeTooltip": "Tryb kompaktowy ({{shortcut}})",
   "toggleVisualizer": "Przełącz wizualizator",
   "visualizerTooltip": "Wizualizator (V)",
+  "eqTooltip": "Korektor",
   "toggleLyrics": "Przełącz tekst piosenki",
   "lyricsTooltip": "Tekst piosenki ({{shortcut}})",
   "toggleQueue": "Przełącz kolejkę",

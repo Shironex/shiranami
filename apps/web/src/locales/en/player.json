@@ -8,6 +8,7 @@
   "compactModeTooltip": "Compact mode ({{shortcut}})",
   "toggleVisualizer": "Toggle visualizer",
   "visualizerTooltip": "Visualizer (V)",
+  "eqTooltip": "Equalizer",
   "toggleLyrics": "Toggle lyrics",
   "lyricsTooltip": "Lyrics ({{shortcut}})",
   "toggleQueue": "Toggle queue",
