@@ -78,7 +78,7 @@ function VerticalBandSlider({
     <div className="flex flex-col items-center gap-1.5 min-w-0">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex-1 flex items-center justify-center h-28">
+          <div className="flex-1 flex items-center justify-center h-36">
             <SliderPrimitive.Root
               orientation="vertical"
               min={EQ_MIN_DB}
@@ -94,9 +94,13 @@ function VerticalBandSlider({
                 disabled && 'opacity-50 cursor-not-allowed',
               )}
             >
-              <SliderPrimitive.Track className="relative w-1 h-full grow overflow-hidden rounded-full bg-foreground/[0.06] group-hover:w-[5px] transition-all duration-200">
+              <SliderPrimitive.Track className="relative w-1 h-full grow overflow-hidden rounded-full bg-foreground/15 group-hover:w-[5px] transition-all duration-200">
                 <SliderPrimitive.Range className="absolute w-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200" />
               </SliderPrimitive.Track>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-1/2 h-px w-2.5 -translate-x-1/2 -translate-y-1/2 bg-foreground/25"
+              />
               <SliderPrimitive.Thumb className="block h-3 w-3 rounded-full bg-primary shadow-md shadow-primary/30 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none" />
             </SliderPrimitive.Root>
           </div>
