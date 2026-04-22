@@ -56,6 +56,7 @@ interface VerticalBandSliderProps {
   onChange: (db: number) => void;
   disabled?: boolean;
   label: string;
+  bandName: string;
   gainLabel: string;
 }
 
@@ -65,13 +66,14 @@ function VerticalBandSlider({
   onChange,
   disabled,
   label,
+  bandName,
   gainLabel,
 }: VerticalBandSliderProps) {
   return (
     <div className="flex flex-col items-center gap-2 min-w-0">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex-1 flex items-center justify-center h-36">
+          <div className="flex items-center justify-center shrink-0 h-64">
             <SliderPrimitive.Root
               orientation="vertical"
               min={EQ_MIN_DB}
@@ -87,15 +89,20 @@ function VerticalBandSlider({
                 disabled && 'opacity-50 cursor-not-allowed',
               )}
             >
-              <SliderPrimitive.Track className="relative w-1.5 h-full grow overflow-hidden rounded-full bg-foreground/[0.06] group-hover:w-2 transition-all duration-200">
+              <SliderPrimitive.Track className="relative w-1.5 h-full grow overflow-hidden rounded-full bg-foreground/15 group-hover:w-2 transition-all duration-200">
                 <SliderPrimitive.Range className="absolute w-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200" />
               </SliderPrimitive.Track>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-1/2 h-px w-3 -translate-x-1/2 -translate-y-1/2 bg-foreground/25"
+              />
               <SliderPrimitive.Thumb className="block h-3.5 w-3.5 rounded-full bg-primary shadow-md shadow-primary/30 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none" />
             </SliderPrimitive.Root>
           </div>
         </TooltipTrigger>
-        <TooltipContent side="top" className="tabular-nums">
-          {gainLabel}
+        <TooltipContent side="top" className="text-center">
+          <div className="font-medium">{bandName}</div>
+          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">{gainLabel}</div>
         </TooltipContent>
       </Tooltip>
       <span className="text-[10px] text-muted-foreground/80 tabular-nums">
@@ -172,7 +179,7 @@ export function EqualizerSection() {
           </div>
         </div>
 
-        {/* Band strip */}
+        {/* Band strip with zone labels */}
         <div className={cn('px-3', !enabled && 'opacity-60')}>
           <div className="grid grid-cols-10 gap-2">
             {EQ_BANDS.map((freq, i) => (
@@ -183,9 +190,21 @@ export function EqualizerSection() {
                 onChange={(db) => setBandGain(i, db)}
                 disabled={!enabled}
                 label={formatBandLabel(t, freq)}
+                bandName={t(`bandName.${freq}`)}
                 gainLabel={t('gainLabel', { gain: formatGain(gains[i] ?? 0) })}
               />
             ))}
+          </div>
+          <div className="grid grid-cols-10 mt-2.5">
+            <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+              {t('zone.bass')}
+            </span>
+            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5 mx-1">
+              {t('zone.mids')}
+            </span>
+            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+              {t('zone.treble')}
+            </span>
           </div>
         </div>
 
