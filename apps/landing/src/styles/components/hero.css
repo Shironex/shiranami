@@ -2,7 +2,7 @@
   /* ===== HERO ===== */
   .hero {
     position: relative;
-    padding: 72px 0 48px;
+    padding-block: 72px 48px;
     min-height: 90vh;
     display: grid;
     grid-template-columns: 60px 1fr 1fr 60px;
