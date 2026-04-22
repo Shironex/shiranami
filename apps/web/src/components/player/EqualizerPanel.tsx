@@ -80,7 +80,7 @@ function VerticalBandSlider({
     <div className="flex flex-col items-center gap-1.5 min-w-0">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={cn('flex-1 flex items-center justify-center', heightClass)}>
+          <div className={cn('flex items-center justify-center shrink-0', heightClass)}>
             <SliderPrimitive.Root
               orientation="vertical"
               min={EQ_MIN_DB}
