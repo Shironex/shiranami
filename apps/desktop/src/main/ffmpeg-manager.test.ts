@@ -317,4 +317,108 @@ describe('ffmpeg-manager', () => {
       expect(mockRmSync).toHaveBeenCalled();
     });
   });
+
+  describe('downloadFFmpeg (darwin extraction)', () => {
+    let tempDir: string;
+    let originalPlatform: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      tempDir = makeTempDir();
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    });
+
+    afterEach(() => {
+      cleanupTempDir(tempDir);
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+    });
+
+    function mockDarwinFs() {
+      const mockUnlinkSync = vi.fn();
+      const mockChmodSync = vi.fn();
+      vi.doMock('fs', async () => {
+        const actualFs = await vi.importActual<typeof import('fs')>('fs');
+        return {
+          ...actualFs,
+          mkdirSync: vi.fn(),
+          unlinkSync: mockUnlinkSync,
+          chmodSync: mockChmodSync,
+          existsSync: vi.fn().mockReturnValue(true),
+        };
+      });
+      return { mockUnlinkSync, mockChmodSync };
+    }
+
+    function mockDarwinDownload() {
+      const mockDownloadFile = vi.fn(async (_url: string, _dest: string, onProgress?: (p: number) => void) => {
+        onProgress?.(50);
+        onProgress?.(100);
+      });
+      vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
+      return mockDownloadFile;
+    }
+
+    it('unzips with execFileSync argv and strips quarantine on happy path', async () => {
+      vi.resetModules();
+      const mockExecFileSync = vi.fn();
+      const mockDownloadFile = mockDarwinDownload();
+      const { mockUnlinkSync, mockChmodSync } = mockDarwinFs();
+      vi.doMock('child_process', () => ({ execFileSync: mockExecFileSync }));
+
+      const onProgress = vi.fn();
+      const mod = await import('./ffmpeg-manager');
+      await mod.downloadFFmpeg(onProgress);
+
+      // Two downloads (ffmpeg + ffprobe)
+      expect(mockDownloadFile).toHaveBeenCalledTimes(2);
+
+      // Four execFileSync calls: unzip ffmpeg, unzip ffprobe, xattr ffmpeg, xattr ffprobe
+      expect(mockExecFileSync).toHaveBeenCalledTimes(4);
+
+      // Security regression net: assert argv shape, not template strings.
+      const calls = mockExecFileSync.mock.calls;
+      expect(calls[0]?.[0]).toBe('unzip');
+      expect(calls[0]?.[1]).toEqual(['-o', expect.stringContaining('ffmpeg.zip'), '-d', expect.any(String)]);
+      expect(calls[1]?.[0]).toBe('unzip');
+      expect(calls[1]?.[1]).toEqual(['-o', expect.stringContaining('ffprobe.zip'), '-d', expect.any(String)]);
+      expect(calls[2]?.[0]).toBe('xattr');
+      expect(calls[2]?.[1]).toEqual(['-d', 'com.apple.quarantine', expect.stringMatching(/ffmpeg$/)]);
+      expect(calls[3]?.[0]).toBe('xattr');
+      expect(calls[3]?.[1]).toEqual(['-d', 'com.apple.quarantine', expect.stringMatching(/ffprobe$/)]);
+
+      // Zip cleanup + chmod happened
+      expect(mockUnlinkSync).toHaveBeenCalledTimes(2);
+      expect(mockChmodSync).toHaveBeenCalledTimes(2);
+
+      // Progress reached ~98 (last call before chmod/xattr is 98)
+      const progressValues = onProgress.mock.calls.map((c) => c[0] as number);
+      expect(progressValues).toContain(98);
+      expect(progressValues).toContain(100);
+    });
+
+    it('swallows xattr failures and still resolves', async () => {
+      vi.resetModules();
+      const mockExecFileSync = vi.fn((bin: string) => {
+        if (bin === 'xattr') {
+          throw new Error('xattr: No such xattr: com.apple.quarantine');
+        }
+      });
+      mockDarwinDownload();
+      mockDarwinFs();
+      vi.doMock('child_process', () => ({ execFileSync: mockExecFileSync }));
+
+      const mod = await import('./ffmpeg-manager');
+
+      // Must resolve even though both xattr calls threw — the try/catch block
+      // in downloadFFmpegMac deliberately swallows xattr failures.
+      await expect(mod.downloadFFmpeg()).resolves.toBeUndefined();
+
+      // Confirm xattr was actually called (proves we hit the swallowed branch,
+      // not that we skipped it).
+      const xattrCalls = mockExecFileSync.mock.calls.filter((c) => c[0] === 'xattr');
+      expect(xattrCalls.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });
