@@ -33,13 +33,13 @@
     "test": "node ../../scripts/run-vitest.mjs run --project database"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.2",
-    "better-sqlite3": "^12.6.2"
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.5.2",
-    "drizzle-kit": "^0.31.8",
+    "@types/node": "^25.6.0",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3"
   }
 }

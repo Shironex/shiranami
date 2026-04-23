@@ -20,7 +20,7 @@
     "test": "node ../../scripts/run-vitest.mjs run --project shared"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
     "typescript": "^5.9.3"
   }
 }
