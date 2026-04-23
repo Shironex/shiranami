@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execFile, execFileSync } from 'child_process';
 import { Worker } from 'node:worker_threads';
 import { logger } from './logger';
 import { requestJson, requestText } from './http';
@@ -37,7 +37,6 @@ export function isFFmpegInstalled(): boolean {
 export async function getFFmpegVersion(): Promise<string | null> {
   if (!isFFmpegInstalled()) return null;
   try {
-    const { execFile } = await import('child_process');
     return new Promise((resolve) => {
       const child = execFile(
         getFFmpegPath(),
@@ -116,7 +115,7 @@ async function downloadFFmpegMac(
     // Extract ffmpeg (45-50%)
     onProgress?.(46);
     logger.info('[ffmpeg-manager] Extracting ffmpeg...');
-    execSync(`unzip -o "${ffmpegZipPath}" -d "${binDir}"`, { timeout: 30000 });
+    execFileSync('unzip', ['-o', ffmpegZipPath, '-d', binDir], { timeout: 30000 });
     fs.unlinkSync(ffmpegZipPath);
     onProgress?.(50);
 
@@ -129,7 +128,7 @@ async function downloadFFmpegMac(
     // Extract ffprobe (95-98%)
     onProgress?.(96);
     logger.info('[ffmpeg-manager] Extracting ffprobe...');
-    execSync(`unzip -o "${ffprobeZipPath}" -d "${binDir}"`, { timeout: 30000 });
+    execFileSync('unzip', ['-o', ffprobeZipPath, '-d', binDir], { timeout: 30000 });
     fs.unlinkSync(ffprobeZipPath);
     onProgress?.(98);
 
@@ -139,8 +138,8 @@ async function downloadFFmpegMac(
     fs.chmodSync(ffmpegBin, 0o755);
     fs.chmodSync(ffprobeBin, 0o755);
     try {
-      execSync(`xattr -d com.apple.quarantine "${ffmpegBin}"`, { timeout: 5000 });
-      execSync(`xattr -d com.apple.quarantine "${ffprobeBin}"`, { timeout: 5000 });
+      execFileSync('xattr', ['-d', 'com.apple.quarantine', ffmpegBin], { timeout: 5000 });
+      execFileSync('xattr', ['-d', 'com.apple.quarantine', ffprobeBin], { timeout: 5000 });
       logger.info('[ffmpeg-manager] Removed quarantine attributes');
     } catch {
       // xattr may fail if attribute doesn't exist
