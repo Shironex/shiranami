@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile, execFileSync } from 'child_process';
 import { logger } from './logger';
 import { requestJson } from './http';
 import { getBinDir } from './utils/bin-paths';
@@ -40,7 +40,6 @@ export function isYtDlpInstalled(): boolean {
 export async function getYtDlpVersion(): Promise<string | null> {
   if (!isYtDlpInstalled()) return null;
   try {
-    const { execFile } = await import('child_process');
     return new Promise((resolve) => {
       const child = execFile(
         getYtDlpPath(),

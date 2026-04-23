@@ -1,7 +1,7 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile, execFileSync } from 'child_process';
 import { Worker } from 'node:worker_threads';
 import { logger } from './logger';
 import { requestJson, requestText } from './http';
@@ -37,7 +37,6 @@ export function isFFmpegInstalled(): boolean {
 export async function getFFmpegVersion(): Promise<string | null> {
   if (!isFFmpegInstalled()) return null;
   try {
-    const { execFile } = await import('child_process');
     return new Promise((resolve) => {
       const child = execFile(
         getFFmpegPath(),
