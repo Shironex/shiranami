@@ -7,7 +7,12 @@ import {
   setDeckGain,
   isAnalyserReady,
   resumeAudioContext,
+  initEq,
+  applyEqPreset,
+  setEqEnabled,
+  setPreampDb,
 } from '@/lib/audioAnalyser';
+import { useEqStore } from '@/stores/useEqStore';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
@@ -486,11 +491,22 @@ export function useAudioEngine() {
       if (!analyserInitRef.current && deckARef.current && deckBRef.current) {
         try {
           initAnalyser(deckARef.current, deckBRef.current);
+          initEq();
           analyserInitRef.current = true;
           // Set initial gains
           const userVol = isMuted ? 0 : volume;
           setDeckGain(activeDeckRef.current, userVol);
           setDeckGain(getIdleDeckId(), 0);
+
+          // Replay the persisted EQ state into the newly-built chain.
+          const eq = useEqStore.getState();
+          applyEqPreset(eq.gains);
+          setPreampDb(eq.preampDb);
+          setEqEnabled(eq.enabled);
+          if (!eq.enabled) {
+            // Ensure bands are flat when disabled on boot.
+            applyEqPreset(new Array(eq.gains.length).fill(0));
+          }
         } catch {
           // Non-critical - visualiser just won't work
         }
@@ -534,6 +550,36 @@ export function useAudioEngine() {
     setVolume(activeDeckRef.current, userVol);
     setVolume(getIdleDeckId(), 0);
   }, [volume, isMuted, currentTrack]);
+
+  // ── Sync EQ store into the Web Audio chain ────────────────────
+
+  useEffect(() => {
+    // Capture previous values so we only forward what actually changed.
+    let prev = useEqStore.getState();
+    const unsub = useEqStore.subscribe((state) => {
+      if (!analyserInitRef.current) {
+        prev = state;
+        return;
+      }
+
+      if (state.enabled !== prev.enabled) {
+        if (state.enabled) {
+          applyEqPreset(state.gains);
+        } else {
+          setEqEnabled(false);
+        }
+      } else if (state.enabled && state.gains !== prev.gains) {
+        applyEqPreset(state.gains);
+      }
+
+      if (state.preampDb !== prev.preampDb) {
+        setPreampDb(state.preampDb);
+      }
+
+      prev = state;
+    });
+    return unsub;
+  }, []);
 
   // ── Handle seeks while paused ─────────────────────────────────
 

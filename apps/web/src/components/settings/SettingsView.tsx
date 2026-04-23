@@ -5,6 +5,7 @@ import {
   HardDrive,
   ArrowDownToLine,
   Settings2,
+  SlidersHorizontal,
   AudioLines,
   Monitor,
   RefreshCcw,
@@ -15,6 +16,7 @@ import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
 import { DownloadsSection } from '@/components/settings/downloads/DownloadsSection';
 import { PlaybackSection } from '@/components/settings/PlaybackSection';
+import { EqualizerSection } from '@/components/settings/EqualizerSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
@@ -25,6 +27,7 @@ type SettingsSection =
   | 'library'
   | 'downloads'
   | 'playback'
+  | 'equalizer'
   | 'visualizer'
   | 'appearance'
   | 'updates'
@@ -35,6 +38,7 @@ const SECTIONS: { id: SettingsSection; labelKey: string; Icon: typeof FolderOpen
   { id: 'library', labelKey: 'library', Icon: HardDrive },
   { id: 'downloads', labelKey: 'downloads', Icon: ArrowDownToLine },
   { id: 'playback', labelKey: 'playback', Icon: Settings2 },
+  { id: 'equalizer', labelKey: 'equalizer', Icon: SlidersHorizontal },
   { id: 'visualizer', labelKey: 'visualizer', Icon: AudioLines },
   { id: 'appearance', labelKey: 'appearance', Icon: Monitor },
   { id: 'updates', labelKey: 'updates', Icon: RefreshCcw },
@@ -46,6 +50,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   library: LibrarySection,
   downloads: DownloadsSection,
   playback: PlaybackSection,
+  equalizer: EqualizerSection,
   visualizer: VisualizerSection,
   appearance: AppearanceSection,
   updates: UpdatesSection,
