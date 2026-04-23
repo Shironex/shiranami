@@ -109,7 +109,7 @@ describe('ytdlp-manager', () => {
           cb(null, '2024.01.01\n');
           return { on: vi.fn() };
         }),
-        execSync: vi.fn(),
+        execFileSync: vi.fn(),
       }));
 
       const mod = await import('./ytdlp-manager');
@@ -127,7 +127,7 @@ describe('ytdlp-manager', () => {
           cb(new Error('boom'), '');
           return { on: vi.fn() };
         }),
-        execSync: vi.fn(),
+        execFileSync: vi.fn(),
       }));
 
       const mod = await import('./ytdlp-manager');
@@ -199,7 +199,7 @@ describe('ytdlp-manager', () => {
 
       vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
+        execFileSync: vi.fn(),
         execFile: vi.fn(),
       }));
       vi.doMock('fs', async () => {
@@ -235,7 +235,7 @@ describe('ytdlp-manager', () => {
 
       vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
+        execFileSync: vi.fn(),
         execFile: vi.fn(),
       }));
       vi.doMock('fs', async () => {
@@ -266,7 +266,7 @@ describe('ytdlp-manager', () => {
         downloadFile: vi.fn().mockRejectedValue(new Error('download failed')),
       }));
       vi.doMock('child_process', () => ({
-        execSync: vi.fn(),
+        execFileSync: vi.fn(),
         execFile: vi.fn(),
       }));
       vi.doMock('fs', async () => {

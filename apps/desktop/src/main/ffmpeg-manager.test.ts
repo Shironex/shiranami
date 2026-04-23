@@ -161,7 +161,7 @@ describe('ffmpeg-manager', () => {
         }),
       }));
 
-      vi.doMock('child_process', () => ({ execSync: vi.fn() }));
+      vi.doMock('child_process', () => ({ execFileSync: vi.fn() }));
 
       vi.doMock('electron', () => ({
         app: { isPackaged: true, getPath: () => tempDir, getAppPath: () => tempDir },
@@ -267,7 +267,7 @@ describe('ffmpeg-manager', () => {
         }),
       }));
 
-      vi.doMock('child_process', () => ({ execSync: vi.fn() }));
+      vi.doMock('child_process', () => ({ execFileSync: vi.fn() }));
 
       vi.doMock('electron', () => ({
         app: { isPackaged: true, getPath: () => tempDir, getAppPath: () => tempDir },
