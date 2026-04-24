@@ -166,6 +166,26 @@ describe('useLibraryStore', () => {
       expect(pb.isPlaying).toBe(true);
     });
 
+    it('sets queueIndex to -1 when the queue empties out while currentTrack is null', () => {
+      // currentTrack is null but queued tracks exist (e.g. user cleared playback
+      // but left queue populated) — removing all of them must collapse to -1,
+      // not 0.
+      const tracks = ['t1', 't2'].map((id) => makeTrack(id));
+      useLibraryStore.setState({ library: tracks });
+      usePlaybackStore.setState({
+        queue: tracks,
+        queueIndex: 0,
+        currentTrack: null,
+        isPlaying: false,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['t1', 't2']);
+
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue).toHaveLength(0);
+      expect(pb.queueIndex).toBe(-1);
+    });
+
     it('handles the radio/preview case where a queued track is not in the library', () => {
       const radioTrack = makeTrack('radio');
       // radioTrack is only in the queue, not in the library

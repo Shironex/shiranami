@@ -75,12 +75,13 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     for (let i = 0; i < queueIndex && i < queue.length; i++) {
       if (ids.has(queue[i].id)) newIndex--;
     }
+    const targetIndex = newQueue.length > 0 ? Math.min(newIndex, newQueue.length - 1) : -1;
 
     if (isCurrent) {
-      const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
+      const nextTrack = targetIndex !== -1 ? newQueue[targetIndex] : null;
       usePlaybackStore.setState({
         queue: newQueue,
-        queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
+        queueIndex: targetIndex,
         currentTrack: nextTrack,
         currentTime: 0,
         isPlaying: !!nextTrack,
@@ -88,7 +89,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     } else {
       usePlaybackStore.setState({
         queue: newQueue,
-        queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
+        queueIndex: targetIndex,
       });
     }
   },
