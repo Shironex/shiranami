@@ -42,7 +42,7 @@
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.30",
     "@types/node": "^25.6.0",
-    "prisma": "^6.19.3",
+    "prisma": "^7.8.0",
     "typescript": "^5.9.3"
   }
 }
