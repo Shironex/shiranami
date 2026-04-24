@@ -10,7 +10,6 @@ import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { playlistKeys, usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
-import { removeTracksFromQueue } from '@/hooks/useRemoveFromLibrary';
 import type { Playlist } from '@/types/electron';
 import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 
@@ -99,7 +98,6 @@ export function useLibraryRescan(): UseLibraryRescanResult {
           if (staleIds.length > 0) {
             await window.electronAPI.db.tracks.removeMany(staleIds);
             removeFromLibrary(staleIds);
-            removeTracksFromQueue(staleIds);
             totalRemoved = staleIds.length;
           }
         }

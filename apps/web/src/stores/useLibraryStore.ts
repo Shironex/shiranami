@@ -62,6 +62,36 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   removeFromLibrary: (trackIds) => {
     const ids = new Set(trackIds);
     set((s) => ({ library: s.library.filter((t) => !ids.has(t.id)) }));
+
+    const playback = usePlaybackStore.getState();
+    const { queue, queueIndex, currentTrack } = playback;
+
+    const inQueue = queue.some((t) => ids.has(t.id));
+    const isCurrent = currentTrack != null && ids.has(currentTrack.id);
+    if (!inQueue && !isCurrent) return;
+
+    const newQueue = queue.filter((t) => !ids.has(t.id));
+    let newIndex = queueIndex;
+    for (let i = 0; i < queueIndex && i < queue.length; i++) {
+      if (ids.has(queue[i].id)) newIndex--;
+    }
+    const targetIndex = newQueue.length > 0 ? Math.min(newIndex, newQueue.length - 1) : -1;
+
+    if (isCurrent) {
+      const nextTrack = targetIndex !== -1 ? newQueue[targetIndex] : null;
+      usePlaybackStore.setState({
+        queue: newQueue,
+        queueIndex: targetIndex,
+        currentTrack: nextTrack,
+        currentTime: 0,
+        isPlaying: !!nextTrack,
+      });
+    } else {
+      usePlaybackStore.setState({
+        queue: newQueue,
+        queueIndex: targetIndex,
+      });
+    }
   },
 
   toggleFavorite: (trackId) => {
