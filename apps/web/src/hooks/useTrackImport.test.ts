@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 
 vi.mock('@/lib/platform', () => ({ IS_ELECTRON: true }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -57,8 +59,8 @@ function resetMocks() {
 
 describe('useTrackImport', () => {
   beforeEach(() => {
-    usePlayerStore.setState({
-      library: [],
+    useLibraryStore.setState({ library: [] });
+    usePlaybackStore.setState({
       queue: [],
       queueIndex: -1,
       currentTrack: null,
@@ -102,9 +104,9 @@ describe('useTrackImport', () => {
     expect(track).not.toBeNull();
     expect(track!.id).toBe('track-1');
 
-    const state = usePlayerStore.getState();
-    expect(state.library).toHaveLength(1);
-    expect(state.library[0].id).toBe('track-1');
+    const libraryState = useLibraryStore.getState();
+    expect(libraryState.library).toHaveLength(1);
+    expect(libraryState.library[0].id).toBe('track-1');
   });
 
   it('appends track to queue and sets it as current when nothing is playing', async () => {
@@ -114,7 +116,7 @@ describe('useTrackImport', () => {
       await result.current.importTrack('/music/song.mp3');
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.queue).toHaveLength(1);
     expect(state.queue[0].id).toBe('track-1');
     // setQueue with startIndex = newQueue.length - 1 means currentTrack set
@@ -131,7 +133,7 @@ describe('useTrackImport', () => {
       filePath: '/music/existing.mp3',
     };
 
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       queue: [existingTrack],
       queueIndex: 0,
       currentTrack: existingTrack,
@@ -144,7 +146,7 @@ describe('useTrackImport', () => {
       await result.current.importTrack('/music/song.mp3');
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.queue).toHaveLength(2);
     expect(state.queue[1].id).toBe('track-1');
     // Current track should remain unchanged

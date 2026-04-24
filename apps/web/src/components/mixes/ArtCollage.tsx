@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Music } from 'lucide-react';
-import type { Track } from '@/stores/usePlayerStore';
+import type { Track } from '@/stores/types';
 
 /** A quiet decorative collage of album art from the library. */
 export function ArtCollage({ library }: { library: Track[] }) {

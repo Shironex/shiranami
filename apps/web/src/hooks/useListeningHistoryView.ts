@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useHistoryQuery } from '@/hooks/queries/useHistory';
 import {
   buildActivitySeries,
@@ -10,8 +11,8 @@ import {
 export type { HistoryRange } from '@/components/history/historyUtils';
 
 export function useListeningHistoryView() {
-  const library = usePlayerStore((s) => s.library);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const library = useLibraryStore((s) => s.library);
+  const setQueue = usePlaybackStore((s) => s.setQueue);
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('all');
 
   const { data, isLoading, isError, refetch } = useHistoryQuery(selectedRange);

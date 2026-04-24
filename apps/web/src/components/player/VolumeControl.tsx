@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { Volume2, Volume1, VolumeX } from 'lucide-react';
@@ -14,10 +14,10 @@ export const VolumeControl = memo(function VolumeControl({
   sliderClassName = 'w-24',
 }: VolumeControlProps) {
   const { t } = useTranslation('player');
-  const volume = usePlayerStore(s => s.volume);
-  const isMuted = usePlayerStore(s => s.isMuted);
-  const setVolume = usePlayerStore(s => s.setVolume);
-  const toggleMute = usePlayerStore(s => s.toggleMute);
+  const volume = usePlaybackStore(s => s.volume);
+  const isMuted = usePlaybackStore(s => s.isMuted);
+  const setVolume = usePlaybackStore(s => s.setVolume);
+  const toggleMute = usePlaybackStore(s => s.toggleMute);
 
   const handleVolumeChange = useCallback(
     (value: number[]) => {

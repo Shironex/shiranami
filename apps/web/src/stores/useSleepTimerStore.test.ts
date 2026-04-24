@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSleepTimerStore } from './useSleepTimerStore';
-import { usePlayerStore } from './usePlayerStore';
+import { usePlaybackStore } from './usePlaybackStore';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -69,14 +69,14 @@ describe('useSleepTimerStore', () => {
     });
 
     it('pauses player when timer reaches 0', () => {
-      usePlayerStore.setState({ isPlaying: true });
+      usePlaybackStore.setState({ isPlaying: true });
       useSleepTimerStore.getState().start(1);
 
       vi.advanceTimersByTime(60 * 1000);
 
       expect(useSleepTimerStore.getState().remaining).toBe(0);
       expect(useSleepTimerStore.getState().endTime).toBeNull();
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
     });
 
     it('does nothing if endTime is null', () => {

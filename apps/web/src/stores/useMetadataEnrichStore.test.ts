@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMetadataEnrichStore } from './useMetadataEnrichStore';
-import { usePlayerStore } from './usePlayerStore';
+import { useLibraryStore } from './useLibraryStore';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -59,7 +59,7 @@ describe('useMetadataEnrichStore', () => {
 
   it('loadSkipped loads from electron store and prunes stale IDs', async () => {
     // Set up library with only one matching track
-    usePlayerStore.setState({
+    useLibraryStore.setState({
       library: [
         { id: 'id-1', title: 'Track 1', artist: 'A', album: 'B', duration: 100, filePath: '/a.mp3' },
       ],
@@ -90,7 +90,7 @@ describe('useMetadataEnrichStore', () => {
   });
 
   it('startEnrichment shows toast when no tracks to enrich', async () => {
-    usePlayerStore.setState({ library: [] });
+    useLibraryStore.setState({ library: [] });
 
     await useMetadataEnrichStore.getState().startEnrichment({
       onlyMissing: true,
@@ -103,7 +103,7 @@ describe('useMetadataEnrichStore', () => {
   });
 
   it('startEnrichment filters out skipped tracks when includeSkipped is false', async () => {
-    usePlayerStore.setState({
+    useLibraryStore.setState({
       library: [
         { id: 'id-1', title: 'Track 1', artist: 'Unknown Artist', album: 'Unknown Album', duration: 100, filePath: '/a.mp3' },
         { id: 'id-2', title: 'Track 2', artist: 'Unknown Artist', album: 'Unknown Album', duration: 100, filePath: '/b.mp3' },

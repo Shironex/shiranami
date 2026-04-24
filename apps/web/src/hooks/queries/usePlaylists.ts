@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import type { Playlist } from '@/types/electron';
-import type { Track } from '@/stores/usePlayerStore';
+import type { Track } from '@/stores/types';
 
 // ── Query Keys ──
 
@@ -51,7 +51,7 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
  * Syncs isFavorite state from the library store in real-time.
  */
 export function usePlaylistDetailQuery(playlistId: string | null) {
-  const library = usePlayerStore((s) => s.library);
+  const library = useLibraryStore((s) => s.library);
 
   const playlistQuery = usePlaylistQuery(playlistId);
   const tracksQuery = usePlaylistTracksQuery(playlistId);

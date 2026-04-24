@@ -31,8 +31,8 @@ const mockState = vi.hoisted(() => ({
   cycleRepeatMode: vi.fn(),
 }));
 
-vi.mock('@/stores/usePlayerStore', () => ({
-  usePlayerStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
+vi.mock('@/stores/usePlaybackStore', () => ({
+  usePlaybackStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
 }));
 
 function renderControls() {

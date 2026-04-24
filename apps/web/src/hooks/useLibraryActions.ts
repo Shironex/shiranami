@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
@@ -10,7 +11,7 @@ import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { folderKeys } from '@/hooks/queries/useFolders';
 
 export function useLibraryActions() {
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const setQueue = usePlaybackStore(s => s.setQueue);
   const [isScanning, setIsScanning] = useState(false);
   const { importTrack } = useTrackImport();
 
@@ -46,7 +47,7 @@ export function useLibraryActions() {
       }
 
       // Filter out tracks that already exist in the library
-      const existingLibrary = usePlayerStore.getState().library;
+      const existingLibrary = useLibraryStore.getState().library;
       const existingPaths = new Set(existingLibrary.map(t => t.filePath));
 
       const newResults = results.filter(r => !existingPaths.has(r.filePath));
@@ -91,16 +92,16 @@ export function useLibraryActions() {
       }
 
       // Add to library
-      usePlayerStore.getState().addToLibrary(newTracks);
+      useLibraryStore.getState().addToLibrary(newTracks);
 
       // Also add to queue so they're immediately playable
-      const currentQueue = usePlayerStore.getState().queue;
-      const currentPlaying = usePlayerStore.getState().currentTrack;
+      const currentQueue = usePlaybackStore.getState().queue;
+      const currentPlaying = usePlaybackStore.getState().currentTrack;
       const combined = [...currentQueue, ...newTracks];
       if (!currentPlaying) {
         setQueue(combined, 0);
       } else {
-        usePlayerStore.setState({ queue: combined });
+        usePlaybackStore.setState({ queue: combined });
       }
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });

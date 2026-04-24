@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { PreviewableItem } from '@/hooks/useAudioPreview';
 
 vi.mock('@/lib/platform', () => ({ IS_ELECTRON: true }));
@@ -35,7 +35,7 @@ const fakeItem2: PreviewableItem = {
 
 describe('useAudioPreview', () => {
   beforeEach(() => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: null,
       isPlaying: false,
       queue: [],
@@ -67,7 +67,7 @@ describe('useAudioPreview', () => {
       fakeItem.webpage_url
     );
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.queue).toHaveLength(1);
     expect(state.queue[0]).toMatchObject({
       id: `preview-${fakeItem.id}`,
@@ -100,7 +100,7 @@ describe('useAudioPreview', () => {
   });
 
   it('toggles play when the same preview track is already current', async () => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: {
         id: `preview-${fakeItem.id}`,
         title: fakeItem.title,
@@ -121,11 +121,11 @@ describe('useAudioPreview', () => {
     // Should toggle, not fetch a new stream
     expect(window.electronAPI.downloader.getStreamUrl).not.toHaveBeenCalled();
     // isPlaying should have been toggled (was true, now false)
-    expect(usePlayerStore.getState().isPlaying).toBe(false);
+    expect(usePlaybackStore.getState().isPlaying).toBe(false);
   });
 
   it('isPreviewPlaying returns true when the preview track is playing', () => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: {
         id: `preview-${fakeItem.id}`,
         title: fakeItem.title,
@@ -149,7 +149,7 @@ describe('useAudioPreview', () => {
   });
 
   it('isPreviewPlaying returns false when a different track is playing', () => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: {
         id: `preview-${fakeItem2.id}`,
         title: fakeItem2.title,
@@ -167,7 +167,7 @@ describe('useAudioPreview', () => {
   });
 
   it('isPreviewPlaying returns false when track matches but is paused', () => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: {
         id: `preview-${fakeItem.id}`,
         title: fakeItem.title,
@@ -246,7 +246,7 @@ describe('useAudioPreview', () => {
       await result.current.handlePreview(fakeItem);
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.queue[0].album).toBe('Custom Album');
   });
 
@@ -257,7 +257,7 @@ describe('useAudioPreview', () => {
       await result.current.handlePreview(fakeItem);
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     // i18n.t mock returns the key as-is
     expect(state.queue[0].album).toBe('previewSource');
   });
@@ -274,7 +274,7 @@ describe('useAudioPreview', () => {
       await result.current.handlePreview(itemNoThumb);
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.queue[0].albumArt).toBeUndefined();
   });
 });

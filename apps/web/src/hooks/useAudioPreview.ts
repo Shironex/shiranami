@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
@@ -21,9 +22,9 @@ export interface PreviewableItem {
  */
 export function useAudioPreview(albumLabel = i18n.t('previewSource', { ns: 'common' })) {
   const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const setQueue = usePlaybackStore(s => s.setQueue);
 
   const isPreviewPlaying = useCallback(
     (item: { id: string }) => {
@@ -39,7 +40,7 @@ export function useAudioPreview(albumLabel = i18n.t('previewSource', { ns: 'comm
       const previewTrackId = `preview-${item.id}`;
 
       if (currentTrack?.id === previewTrackId) {
-        usePlayerStore.getState().togglePlay();
+        usePlaybackStore.getState().togglePlay();
         return;
       }
 

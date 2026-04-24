@@ -10,16 +10,18 @@ import {
   CommandItem,
   CommandSeparator,
 } from '@/components/ui/command';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { formatDuration } from '@shiranami/shared';
 
 export function CommandPalette() {
   const { t } = useTranslation('commandPalette');
   const [open, setOpen] = useState(false);
-  const library = usePlayerStore(s => s.library);
-  const setQueue = usePlayerStore(s => s.setQueue);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
+  const library = useLibraryStore(s => s.library);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const navigateTo = useAppStore(s => s.navigateTo);
 
   // Global Cmd+K / Ctrl+K listener

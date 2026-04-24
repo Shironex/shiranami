@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import {
   useSettingsQuery,
   useUpdateSettingsMutation,
@@ -19,10 +19,10 @@ export function PlaybackSection() {
   const rememberPlaybackPosition = settings?.rememberPlaybackPosition ?? false;
   const discordRpc = settings?.discordRpc ?? false;
 
-  const crossfadeEnabled = usePlayerStore((s) => s.crossfadeEnabled);
-  const crossfadeDuration = usePlayerStore((s) => s.crossfadeDuration);
-  const setCrossfadeEnabled = usePlayerStore((s) => s.setCrossfadeEnabled);
-  const setCrossfadeDuration = usePlayerStore((s) => s.setCrossfadeDuration);
+  const crossfadeEnabled = usePlaybackStore((s) => s.crossfadeEnabled);
+  const crossfadeDuration = usePlaybackStore((s) => s.crossfadeDuration);
+  const setCrossfadeEnabled = usePlaybackStore((s) => s.setCrossfadeEnabled);
+  const setCrossfadeDuration = usePlaybackStore((s) => s.setCrossfadeDuration);
 
   const updateSetting = (key: 'rememberPlaybackPosition' | 'discordRpc', value: boolean) => {
     updateSettings.mutate({ [key]: value });

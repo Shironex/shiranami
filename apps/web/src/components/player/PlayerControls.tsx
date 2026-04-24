@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { cn } from '@/lib/utils';
 import {
   Play,
@@ -17,16 +17,16 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 
 export const PlayerControls = memo(function PlayerControls() {
   const { t } = useTranslation('player');
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const isLoading = usePlayerStore(s => s.isLoading);
-  const isShuffled = usePlayerStore(s => s.isShuffled);
-  const repeatMode = usePlayerStore(s => s.repeatMode);
-  const togglePlay = usePlayerStore(s => s.togglePlay);
-  const next = usePlayerStore(s => s.next);
-  const previous = usePlayerStore(s => s.previous);
-  const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
-  const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const isLoading = usePlaybackStore(s => s.isLoading);
+  const isShuffled = usePlaybackStore(s => s.isShuffled);
+  const repeatMode = usePlaybackStore(s => s.repeatMode);
+  const togglePlay = usePlaybackStore(s => s.togglePlay);
+  const next = usePlaybackStore(s => s.next);
+  const previous = usePlaybackStore(s => s.previous);
+  const toggleShuffle = usePlaybackStore(s => s.toggleShuffle);
+  const cycleRepeatMode = usePlaybackStore(s => s.cycleRepeatMode);
   const showLoading = isLoading && !isPlaying;
 
   return (

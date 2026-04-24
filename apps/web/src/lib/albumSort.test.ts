@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { groupTracksByAlbum, sortAlbumTracks } from './albumSort';
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 
 function makeTrack(overrides: Partial<Track> & { id: string }): Track {
   const base: Track = {

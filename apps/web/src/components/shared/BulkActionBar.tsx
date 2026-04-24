@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useClickOutside } from '@/hooks/useClickOutside';
@@ -79,10 +81,10 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   const selectAll = useSelectionStore((s) => s.selectAll);
   const count = selectedTrackIds.size;
 
-  const addToQueue = usePlayerStore((s) => s.addToQueue);
-  const playNext = usePlayerStore((s) => s.playNext);
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
-  const library = usePlayerStore((s) => s.library);
+  const addToQueue = usePlaybackStore((s) => s.addToQueue);
+  const playNext = usePlaybackStore((s) => s.playNext);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
+  const library = useLibraryStore((s) => s.library);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
   const [showPlaylistPopover, setShowPlaylistPopover] = useState(false);

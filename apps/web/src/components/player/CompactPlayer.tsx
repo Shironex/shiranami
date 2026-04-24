@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -16,8 +16,8 @@ import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
   const { t } = useTranslation('compact');
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const duration = usePlayerStore(s => s.duration);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const duration = usePlaybackStore(s => s.duration);
   const setCompactMode = useAppStore(s => s.setCompactMode);
   const compactAlwaysOnTop = useAppStore(s => s.compactAlwaysOnTop);
   const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);

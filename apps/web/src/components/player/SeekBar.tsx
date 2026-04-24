@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
+import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
+import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
 import { formatDuration } from '@shiranami/shared';
 
 export function SeekBar() {
   const { t } = useTranslation('player');
-  const duration = usePlayerStore(s => s.duration);
-  const scrubTime = usePlayerStore(s => s.scrubTime);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const seek = usePlayerStore(s => s.seek);
-  const setScrubTime = usePlayerStore(s => s.setScrubTime);
+  const duration = usePlaybackStore(s => s.duration);
+  const scrubTime = usePlayerUIStore(s => s.scrubTime);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const seek = usePlaybackStore(s => s.seek);
+  const setScrubTime = usePlayerUIStore(s => s.setScrubTime);
 
   const trackRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<HTMLDivElement>(null);
@@ -48,6 +49,9 @@ export function SeekBar() {
         if (isDraggingRef.current) {
           const val = getValueFromPointer(ev.clientX);
           seek(val);
+          // scrubTime now lives in a separate UI store; clear it explicitly
+          // on commit so the display falls back to the real playback time.
+          setScrubTime(null);
           isDraggingRef.current = false;
         }
         target.releasePointerCapture(ev.pointerId);
@@ -84,7 +88,7 @@ export function SeekBar() {
   }, [isPlaying, scrubTime, duration]);
 
   // When paused or scrubbing, compute progress from store values
-  const storeTime = usePlayerStore(s => s.currentTime);
+  const storeTime = usePlaybackStore(s => s.currentTime);
   const displayTime = scrubTime ?? storeTime;
   const staticProgress = duration > 0 ? (displayTime / duration) * 100 : 0;
   const needsStaticStyle = !isPlaying || scrubTime !== null;

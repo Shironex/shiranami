@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { usePlayerStore, currentTimeRef, type Track } from '@/stores/usePlayerStore';
+import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
 import {
   initAnalyser,
@@ -82,19 +84,19 @@ export function useAudioEngine() {
     recorded: false,
   });
 
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const volume = usePlayerStore((s) => s.volume);
-  const isMuted = usePlayerStore((s) => s.isMuted);
-  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const volume = usePlaybackStore((s) => s.volume);
+  const isMuted = usePlaybackStore((s) => s.isMuted);
+  const repeatMode = usePlaybackStore((s) => s.repeatMode);
 
-  const _setCurrentTime = usePlayerStore((s) => s._setCurrentTime);
-  const _setDuration = usePlayerStore((s) => s._setDuration);
-  const _setIsPlaying = usePlayerStore((s) => s._setIsPlaying);
-  const _setIsLoading = usePlayerStore((s) => s._setIsLoading);
-  const _setError = usePlayerStore((s) => s._setError);
-  const _onTrackEnd = usePlayerStore((s) => s._onTrackEnd);
-  const incrementTrackPlayCount = usePlayerStore((s) => s.incrementTrackPlayCount);
+  const _setCurrentTime = usePlaybackStore((s) => s._setCurrentTime);
+  const _setDuration = usePlaybackStore((s) => s._setDuration);
+  const _setIsPlaying = usePlaybackStore((s) => s._setIsPlaying);
+  const _setIsLoading = usePlaybackStore((s) => s._setIsLoading);
+  const _setError = usePlaybackStore((s) => s._setError);
+  const _onTrackEnd = usePlaybackStore((s) => s._onTrackEnd);
+  const incrementTrackPlayCount = useLibraryStore((s) => s.incrementTrackPlayCount);
 
   function getDeck(deck: Deck) {
     return deck === 'A' ? deckARef.current : deckBRef.current;
@@ -142,7 +144,7 @@ export function useAudioEngine() {
     const session = playbackSessionRef.current;
     const track = session.track;
     const playedSeconds = session.listenedSeconds;
-    const duration = track?.duration ?? usePlayerStore.getState().duration ?? 0;
+    const duration = track?.duration ?? usePlaybackStore.getState().duration ?? 0;
     const completionRatio = duration > 0 ? playedSeconds / duration : 0;
     const shouldRecord =
       !!track &&
@@ -188,7 +190,7 @@ export function useAudioEngine() {
     // Guard: don't start a new crossfade while one is already in progress
     if (crossfadeRef.current.active) return;
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     const { queue, queueIndex, repeatMode: rm, crossfadeDuration } = state;
 
     // Determine next track
@@ -242,7 +244,7 @@ export function useAudioEngine() {
     const cf = crossfadeRef.current;
     if (!cf.active) return;
 
-    const userVol = usePlayerStore.getState().isMuted ? 0 : usePlayerStore.getState().volume;
+    const userVol = usePlaybackStore.getState().isMuted ? 0 : usePlaybackStore.getState().volume;
 
     // Ensure AudioContext is running before finalising
     resumeAudioContext();
@@ -280,8 +282,8 @@ export function useAudioEngine() {
     _setIsLoading(false);
 
     // Reset session for new track
-    const nextTrack = usePlayerStore.getState().queue[usePlayerStore.getState().queueIndex + 1]
-      ?? (usePlayerStore.getState().repeatMode === 'all' ? usePlayerStore.getState().queue[0] : null);
+    const nextTrack = usePlaybackStore.getState().queue[usePlaybackStore.getState().queueIndex + 1]
+      ?? (usePlaybackStore.getState().repeatMode === 'all' ? usePlaybackStore.getState().queue[0] : null);
     resetPlaybackSession(nextTrack);
 
     // Clear crossfade state before store update (prevents re-triggering)
@@ -289,7 +291,7 @@ export function useAudioEngine() {
 
     // Advance the store (this sets currentTrack, triggering the load effect —
     // the effect will see the track is already loaded on the new active deck and skip reload)
-    usePlayerStore.getState().next();
+    usePlaybackStore.getState().next();
   }, [resetPlaybackSession, _setDuration, _setIsLoading]);
 
   // ── Initialization ────────────────────────────────────────────
@@ -324,10 +326,10 @@ export function useAudioEngine() {
     const audio = getActiveDeck();
     if (audio) {
       // Handle pending seek
-      const { _seekTarget } = usePlayerStore.getState();
+      const { _seekTarget } = usePlaybackStore.getState();
       if (_seekTarget !== null && isFinite(_seekTarget)) {
         audio.currentTime = _seekTarget;
-        usePlayerStore.getState()._clearSeekTarget();
+        usePlaybackStore.getState()._clearSeekTarget();
         seekingRef.current = true;
         playbackSessionRef.current.lastTickAt = performance.now();
         setTimeout(() => {
@@ -367,7 +369,7 @@ export function useAudioEngine() {
 
       // ── Crossfade monitoring ──
       const cf = crossfadeRef.current;
-      const state = usePlayerStore.getState();
+      const state = usePlaybackStore.getState();
 
       if (cf.active) {
         // Update crossfade volumes
@@ -398,7 +400,7 @@ export function useAudioEngine() {
       }
     }
 
-    if (usePlayerStore.getState().isPlaying) {
+    if (usePlaybackStore.getState().isPlaying) {
       animationFrameRef.current = requestAnimationFrame(updateTime);
     }
   }, [_setCurrentTime, completeCrossfade, startCrossfade]);
@@ -453,7 +455,7 @@ export function useAudioEngine() {
     const onCanPlayOnce = () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
       _setIsLoading(false);
-      if (usePlayerStore.getState().isPlaying) {
+      if (usePlaybackStore.getState().isPlaying) {
         resumeAudioContext();
         audio.play().catch((err) => {
           if (err.name !== 'AbortError') {
@@ -584,16 +586,16 @@ export function useAudioEngine() {
   // ── Handle seeks while paused ─────────────────────────────────
 
   useEffect(() => {
-    const unsub = usePlayerStore.subscribe((state) => {
+    const unsub = usePlaybackStore.subscribe((state) => {
       const audio = getActiveDeck();
       if (
         audio &&
         state._seekTarget !== null &&
         isFinite(state._seekTarget) &&
-        !usePlayerStore.getState().isPlaying
+        !usePlaybackStore.getState().isPlaying
       ) {
         audio.currentTime = state._seekTarget;
-        usePlayerStore.getState()._clearSeekTarget();
+        usePlaybackStore.getState()._clearSeekTarget();
         _setCurrentTime(state._seekTarget);
       }
     });
@@ -630,9 +632,9 @@ export function useAudioEngine() {
       // Ignore ended events from a stale deck (e.g. outgoing deck whose
       // src was cleared by completeCrossfade but fired before cleanup)
       if (audio !== getActiveDeck()) return;
-      const endedTrack = usePlayerStore.getState().currentTrack;
+      const endedTrack = usePlaybackStore.getState().currentTrack;
       void flushPlaybackSession();
-      if (usePlayerStore.getState().repeatMode === 'one' && endedTrack) {
+      if (usePlaybackStore.getState().repeatMode === 'one' && endedTrack) {
         resetPlaybackSession(endedTrack);
       }
       _onTrackEnd();
@@ -647,7 +649,7 @@ export function useAudioEngine() {
 
     const onWaiting = () => {
       playbackSessionRef.current.lastTickAt = null;
-      if (usePlayerStore.getState().isPlaying) {
+      if (usePlaybackStore.getState().isPlaying) {
         _setIsLoading(true);
       }
     };

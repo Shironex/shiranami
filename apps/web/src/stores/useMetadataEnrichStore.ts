@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 
@@ -72,7 +73,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         const stored = await window.electronAPI.store.get<string[]>(SKIPPED_IDS_STORE_KEY);
         if (Array.isArray(stored) && stored.length > 0) {
           // Prune IDs for tracks that no longer exist in the library
-          const libraryIds = new Set(usePlayerStore.getState().library.map(t => t.id));
+          const libraryIds = new Set(useLibraryStore.getState().library.map(t => t.id));
           const pruned = stored.filter(id => libraryIds.has(id));
           const prunedSet = new Set(pruned);
           set({ skippedIds: prunedSet, skippedLoaded: true });
@@ -106,7 +107,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     startEnrichment: async ({ onlyMissing, writeToFile, includeSkipped }) => {
       if (!IS_ELECTRON || get().isEnriching) return;
 
-      const library = usePlayerStore.getState().library;
+      const library = useLibraryStore.getState().library;
       const { skippedIds } = get();
 
       const unknownArtist = i18n.t('unknownArtist', { ns: 'common' });
@@ -189,16 +190,16 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           const refreshedTracks = mapDbTracksToTracks(
             allDbTracks as Record<string, unknown>[]
           );
-          usePlayerStore.setState({ library: refreshedTracks });
+          useLibraryStore.setState({ library: refreshedTracks });
 
           // Update current track and queue if affected
           const updatedIds = new Set(successResults.map(r => r.id));
-          const { currentTrack, queue } = usePlayerStore.getState();
+          const { currentTrack, queue } = usePlaybackStore.getState();
 
           if (currentTrack && updatedIds.has(currentTrack.id)) {
             const updated = refreshedTracks.find(t => t.id === currentTrack.id);
             if (updated) {
-              usePlayerStore.setState({ currentTrack: updated });
+              usePlaybackStore.setState({ currentTrack: updated });
             }
           }
 
@@ -208,7 +209,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
             }
             return t;
           });
-          usePlayerStore.setState({ queue: newQueue });
+          usePlaybackStore.setState({ queue: newQueue });
         }
 
         // Show toast

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Track } from '@/stores/usePlayerStore';
+import type { Track } from '@/stores/types';
 import { MIX_LIMIT, type MixId } from './mixDefinitions';
 
 /** Get preview tracks for the mix grid (album art thumbnails). */

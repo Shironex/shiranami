@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
@@ -15,8 +15,8 @@ export function ParticleVisualizer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef, versionRef } = usePrimaryRGB();
 

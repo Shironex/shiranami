@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 
 interface SettingsData {
   rememberPlaybackPosition?: boolean;
@@ -17,7 +19,7 @@ interface PersistedPlayerState {
 const PLAYER_STATE_KEY = 'player-state';
 
 function buildPersistedState(): PersistedPlayerState | null {
-  const { currentTrack, queue, queueIndex, currentTime, isPlaying } = usePlayerStore.getState();
+  const { currentTrack, queue, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
 
   if (!currentTrack) {
     return null;
@@ -42,11 +44,11 @@ function restoreQueueFromPaths(library: Track[], persisted: PersistedPlayerState
 }
 
 export function usePlaybackResume(enabled = true) {
-  const library = usePlayerStore((s) => s.library);
-  const currentTrackPath = usePlayerStore((s) => s.currentTrack?.filePath ?? null);
-  const queue = usePlayerStore((s) => s.queue);
-  const queueIndex = usePlayerStore((s) => s.queueIndex);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const library = useLibraryStore((s) => s.library);
+  const currentTrackPath = usePlaybackStore((s) => s.currentTrack?.filePath ?? null);
+  const queue = usePlaybackStore((s) => s.queue);
+  const queueIndex = usePlaybackStore((s) => s.queueIndex);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
 
   const [isReady, setIsReady] = useState(!IS_ELECTRON);
   const [isRestoreResolved, setIsRestoreResolved] = useState(!IS_ELECTRON);
@@ -131,7 +133,7 @@ export function usePlaybackResume(enabled = true) {
             ? state.currentTime
             : 0;
 
-        usePlayerStore.setState({
+        usePlaybackStore.setState({
           queue: restoredQueue,
           queueIndex: restoredIndex,
           currentTrack: restoredQueue[restoredIndex],

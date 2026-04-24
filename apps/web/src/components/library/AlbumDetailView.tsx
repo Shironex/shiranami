@@ -1,7 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { ArrowLeft, Play, Shuffle, Disc3 } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
@@ -30,11 +32,11 @@ export function AlbumDetailView() {
   const { t } = useTranslation('library');
   const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
   const selectAlbum = useAppStore(s => s.selectAlbum);
-  const library = usePlayerStore(s => s.library);
-  const setQueue = usePlayerStore(s => s.setQueue);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const library = useLibraryStore(s => s.library);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const albumTracks = useMemo(() => {

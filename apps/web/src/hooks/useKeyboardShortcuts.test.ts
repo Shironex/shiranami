@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
-import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -34,7 +35,7 @@ function pressKey(
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
     // Reset player store to known defaults
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       isPlaying: false,
       volume: 0.5,
       isMuted: false,
@@ -71,13 +72,13 @@ describe('useKeyboardShortcuts', () => {
   describe('Space - toggle play/pause', () => {
     it('toggles play when pressed on document body', () => {
       setup();
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
 
       pressKey(' ');
-      expect(usePlayerStore.getState().isPlaying).toBe(true);
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
 
       pressKey(' ');
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
     });
 
     it('does NOT toggle play when target is an input element', () => {
@@ -86,7 +87,7 @@ describe('useKeyboardShortcuts', () => {
       document.body.appendChild(input);
 
       pressKey(' ', {}, input);
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
 
       document.body.removeChild(input);
     });
@@ -97,7 +98,7 @@ describe('useKeyboardShortcuts', () => {
       document.body.appendChild(button);
 
       pressKey(' ', {}, button);
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
 
       document.body.removeChild(button);
     });
@@ -108,7 +109,7 @@ describe('useKeyboardShortcuts', () => {
       document.body.appendChild(textarea);
 
       pressKey(' ', {}, textarea);
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
 
       document.body.removeChild(textarea);
     });
@@ -119,7 +120,7 @@ describe('useKeyboardShortcuts', () => {
   describe('ArrowRight / ArrowLeft - seek', () => {
     it('ArrowRight seeks forward 5 seconds', () => {
       setup();
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowRight');
       expect(seekSpy).toHaveBeenCalledWith(105); // 100 + 5
@@ -127,7 +128,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('ArrowRight+Shift seeks forward 10 seconds', () => {
       setup();
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowRight', { shiftKey: true });
       expect(seekSpy).toHaveBeenCalledWith(110); // 100 + 10
@@ -135,7 +136,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('ArrowLeft seeks backward 5 seconds', () => {
       setup();
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowLeft');
       expect(seekSpy).toHaveBeenCalledWith(95); // 100 - 5
@@ -143,7 +144,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('ArrowLeft+Shift seeks backward 10 seconds', () => {
       setup();
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowLeft', { shiftKey: true });
       expect(seekSpy).toHaveBeenCalledWith(90); // 100 - 10
@@ -152,7 +153,7 @@ describe('useKeyboardShortcuts', () => {
     it('seek does not go below 0', () => {
       setup();
       currentTimeRef.current = 3;
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowLeft');
       expect(seekSpy).toHaveBeenCalledWith(0);
@@ -161,7 +162,7 @@ describe('useKeyboardShortcuts', () => {
     it('seek does not exceed duration', () => {
       setup();
       currentTimeRef.current = 298;
-      const seekSpy = vi.spyOn(usePlayerStore.getState(), 'seek');
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
 
       pressKey('ArrowRight');
       expect(seekSpy).toHaveBeenCalledWith(300); // clamped to duration
@@ -174,27 +175,27 @@ describe('useKeyboardShortcuts', () => {
     it('ArrowUp increases volume by 0.05', () => {
       setup();
       pressKey('ArrowUp');
-      expect(usePlayerStore.getState().volume).toBeCloseTo(0.55);
+      expect(usePlaybackStore.getState().volume).toBeCloseTo(0.55);
     });
 
     it('ArrowDown decreases volume by 0.05', () => {
       setup();
       pressKey('ArrowDown');
-      expect(usePlayerStore.getState().volume).toBeCloseTo(0.45);
+      expect(usePlaybackStore.getState().volume).toBeCloseTo(0.45);
     });
 
     it('volume does not exceed 1', () => {
       setup();
-      usePlayerStore.setState({ volume: 0.98 });
+      usePlaybackStore.setState({ volume: 0.98 });
       pressKey('ArrowUp');
-      expect(usePlayerStore.getState().volume).toBeLessThanOrEqual(1);
+      expect(usePlaybackStore.getState().volume).toBeLessThanOrEqual(1);
     });
 
     it('volume does not go below 0', () => {
       setup();
-      usePlayerStore.setState({ volume: 0.02 });
+      usePlaybackStore.setState({ volume: 0.02 });
       pressKey('ArrowDown');
-      expect(usePlayerStore.getState().volume).toBeGreaterThanOrEqual(0);
+      expect(usePlaybackStore.getState().volume).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -203,13 +204,13 @@ describe('useKeyboardShortcuts', () => {
   describe('M - toggle mute', () => {
     it('toggles mute on and off', () => {
       setup();
-      expect(usePlayerStore.getState().isMuted).toBe(false);
+      expect(usePlaybackStore.getState().isMuted).toBe(false);
 
       pressKey('m');
-      expect(usePlayerStore.getState().isMuted).toBe(true);
+      expect(usePlaybackStore.getState().isMuted).toBe(true);
 
       pressKey('M');
-      expect(usePlayerStore.getState().isMuted).toBe(false);
+      expect(usePlaybackStore.getState().isMuted).toBe(false);
     });
   });
 
@@ -218,7 +219,7 @@ describe('useKeyboardShortcuts', () => {
   describe('N / P - next and previous', () => {
     it('N calls next()', () => {
       setup();
-      const nextSpy = vi.spyOn(usePlayerStore.getState(), 'next');
+      const nextSpy = vi.spyOn(usePlaybackStore.getState(), 'next');
 
       pressKey('n');
       expect(nextSpy).toHaveBeenCalledOnce();
@@ -226,7 +227,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('P calls previous()', () => {
       setup();
-      const prevSpy = vi.spyOn(usePlayerStore.getState(), 'previous');
+      const prevSpy = vi.spyOn(usePlaybackStore.getState(), 'previous');
 
       pressKey('p');
       expect(prevSpy).toHaveBeenCalledOnce();
@@ -238,7 +239,7 @@ describe('useKeyboardShortcuts', () => {
   describe('S - shuffle, R - repeat', () => {
     it('S toggles shuffle', () => {
       setup();
-      const shuffleSpy = vi.spyOn(usePlayerStore.getState(), 'toggleShuffle');
+      const shuffleSpy = vi.spyOn(usePlaybackStore.getState(), 'toggleShuffle');
 
       pressKey('s');
       expect(shuffleSpy).toHaveBeenCalledOnce();
@@ -246,16 +247,16 @@ describe('useKeyboardShortcuts', () => {
 
     it('R cycles repeat mode', () => {
       setup();
-      expect(usePlayerStore.getState().repeatMode).toBe('off');
+      expect(usePlaybackStore.getState().repeatMode).toBe('off');
 
       pressKey('r');
-      expect(usePlayerStore.getState().repeatMode).toBe('all');
+      expect(usePlaybackStore.getState().repeatMode).toBe('all');
 
       pressKey('r');
-      expect(usePlayerStore.getState().repeatMode).toBe('one');
+      expect(usePlaybackStore.getState().repeatMode).toBe('one');
 
       pressKey('r');
-      expect(usePlayerStore.getState().repeatMode).toBe('off');
+      expect(usePlaybackStore.getState().repeatMode).toBe('off');
     });
   });
 
@@ -294,7 +295,7 @@ describe('useKeyboardShortcuts', () => {
     it('calls toggleFavorite with the current track id', () => {
       setup();
       const favSpy = vi
-        .spyOn(usePlayerStore.getState(), 'toggleFavorite')
+        .spyOn(useLibraryStore.getState(), 'toggleFavorite')
         .mockImplementation(() => {});
 
       pressKey('l');
@@ -303,9 +304,9 @@ describe('useKeyboardShortcuts', () => {
 
     it('does nothing when there is no current track', () => {
       setup();
-      usePlayerStore.setState({ currentTrack: null });
+      usePlaybackStore.setState({ currentTrack: null });
       const favSpy = vi
-        .spyOn(usePlayerStore.getState(), 'toggleFavorite')
+        .spyOn(useLibraryStore.getState(), 'toggleFavorite')
         .mockImplementation(() => {});
 
       pressKey('l');
@@ -426,7 +427,7 @@ describe('useKeyboardShortcuts', () => {
       document.body.appendChild(input);
 
       pressKey('m', {}, input);
-      expect(usePlayerStore.getState().isMuted).toBe(false);
+      expect(usePlaybackStore.getState().isMuted).toBe(false);
 
       pressKey('n', {}, input);
       // next() should not have been called - isPlaying stays false as proxy
@@ -443,7 +444,7 @@ describe('useKeyboardShortcuts', () => {
 
       pressKey('s', {}, textarea);
       // toggleShuffle should not be called
-      const shuffleSpy = vi.spyOn(usePlayerStore.getState(), 'toggleShuffle');
+      const shuffleSpy = vi.spyOn(usePlaybackStore.getState(), 'toggleShuffle');
       pressKey('s', {}, textarea);
       expect(shuffleSpy).not.toHaveBeenCalled();
 
@@ -461,7 +462,7 @@ describe('useKeyboardShortcuts', () => {
 
       pressKey('r', {}, div);
       // repeatMode should remain 'off'
-      expect(usePlayerStore.getState().repeatMode).toBe('off');
+      expect(usePlaybackStore.getState().repeatMode).toBe('off');
 
       document.body.removeChild(div);
     });
@@ -516,9 +517,9 @@ describe('useKeyboardShortcuts', () => {
       unmount();
 
       // After unmount, pressing a key should not toggle play
-      usePlayerStore.setState({ isPlaying: false });
+      usePlaybackStore.setState({ isPlaying: false });
       pressKey(' ');
-      expect(usePlayerStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
     });
   });
 });

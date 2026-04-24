@@ -11,8 +11,8 @@ const mockState = vi.hoisted(() => ({
   toggleMute: vi.fn(),
 }));
 
-vi.mock('@/stores/usePlayerStore', () => ({
-  usePlayerStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
+vi.mock('@/stores/usePlaybackStore', () => ({
+  usePlaybackStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
 }));
 
 vi.mock('react-i18next', () => ({

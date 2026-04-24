@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { HardDrive, Music, RefreshCw, Trash2, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
@@ -12,7 +12,7 @@ import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSecti
 export function LibrarySection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const library = usePlayerStore(s => s.library);
+  const library = useLibraryStore(s => s.library);
 
   const {
     isScanning,

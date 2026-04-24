@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 
@@ -32,12 +33,11 @@ export function useLibrarySync() {
 
   useEffect(() => {
     if (!data || data.length === 0) return;
-    const current = usePlayerStore.getState();
-    if (current.library.length === 0) {
-      usePlayerStore.setState({ library: data });
+    if (useLibraryStore.getState().library.length === 0) {
+      useLibraryStore.setState({ library: data });
     }
-    if (current.queue.length === 0) {
-      usePlayerStore.setState({ queue: data });
+    if (usePlaybackStore.getState().queue.length === 0) {
+      usePlaybackStore.setState({ queue: data });
     }
   }, [data]);
 
@@ -46,11 +46,11 @@ export function useLibrarySync() {
   // the query is disabled, so mark loaded immediately.
   useEffect(() => {
     if (!IS_ELECTRON) {
-      usePlayerStore.setState({ libraryLoaded: true });
+      useLibraryStore.setState({ libraryLoaded: true });
       return;
     }
     if (isLoading) return;
-    usePlayerStore.setState({ libraryLoaded: true });
+    useLibraryStore.setState({ libraryLoaded: true });
   }, [isLoading]);
 
   return { isLoading, isError, error, refetch };

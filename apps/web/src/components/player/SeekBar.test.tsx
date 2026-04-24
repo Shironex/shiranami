@@ -3,29 +3,36 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SeekBar } from './SeekBar';
 
-const mockState = vi.hoisted(() => ({
+const playbackState = vi.hoisted(() => ({
   duration: 100,
-  scrubTime: null as number | null,
   isPlaying: false,
   currentTime: 0,
   seek: vi.fn(),
+}));
+
+const uiState = vi.hoisted(() => ({
+  scrubTime: null as number | null,
   setScrubTime: vi.fn(),
 }));
 
-vi.mock('@/stores/usePlayerStore', () => ({
-  usePlayerStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
+vi.mock('@/stores/usePlaybackStore', () => ({
+  usePlaybackStore: <T,>(selector: (s: typeof playbackState) => T) => selector(playbackState),
   currentTimeRef: { current: 0 },
+}));
+
+vi.mock('@/stores/usePlayerUIStore', () => ({
+  usePlayerUIStore: <T,>(selector: (s: typeof uiState) => T) => selector(uiState),
 }));
 
 describe('SeekBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState.duration = 100;
-    mockState.scrubTime = null;
-    mockState.isPlaying = false;
-    mockState.currentTime = 0;
-    mockState.seek.mockReset();
-    mockState.setScrubTime.mockReset();
+    playbackState.duration = 100;
+    playbackState.isPlaying = false;
+    playbackState.currentTime = 0;
+    playbackState.seek.mockReset();
+    uiState.scrubTime = null;
+    uiState.setScrubTime.mockReset();
   });
 
   it('updates scrub position and seeks on pointer up', async () => {
@@ -53,13 +60,16 @@ describe('SeekBar', () => {
       target: track,
       coords: { clientX: 100, clientY: 4 },
     });
-    expect(mockState.setScrubTime).toHaveBeenCalledWith(50);
+    expect(uiState.setScrubTime).toHaveBeenCalledWith(50);
 
     await user.pointer({
       keys: '[/MouseLeft]',
       target: track,
       coords: { clientX: 150, clientY: 4 },
     });
-    expect(mockState.seek).toHaveBeenCalledWith(75);
+    expect(playbackState.seek).toHaveBeenCalledWith(75);
+    // SeekBar now clears scrubTime explicitly on commit (used to live in the
+    // store's seek() action in the pre-split monolith).
+    expect(uiState.setScrubTime).toHaveBeenCalledWith(null);
   });
 });
