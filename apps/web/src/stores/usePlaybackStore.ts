@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { IS_ELECTRON } from '@/lib/platform';
+import type { Track, RepeatMode } from '@/stores/types';
 
 export const DEFAULT_CROSSFADE_DURATION = 5;
 
@@ -11,7 +11,7 @@ const LEGACY_KEYS = {
   crossfadeDuration: 'shiranami.crossfade-duration',
 } as const;
 
-interface PersistedPlayerState {
+interface PersistedPlaybackState {
   crossfadeEnabled: boolean;
   crossfadeDuration: number;
 }
@@ -22,9 +22,9 @@ function sanitizeCrossfadeDuration(v: unknown): number {
   return Math.round(Math.min(12, Math.max(1, parsed)));
 }
 
-function sanitize(persisted: Partial<PersistedPlayerState> | undefined): Partial<PersistedPlayerState> {
+function sanitize(persisted: Partial<PersistedPlaybackState> | undefined): Partial<PersistedPlaybackState> {
   if (!persisted || typeof persisted !== 'object') return {};
-  const out: Partial<PersistedPlayerState> = {};
+  const out: Partial<PersistedPlaybackState> = {};
   if (typeof persisted.crossfadeEnabled === 'boolean') out.crossfadeEnabled = persisted.crossfadeEnabled;
   if (persisted.crossfadeDuration !== undefined) out.crossfadeDuration = sanitizeCrossfadeDuration(persisted.crossfadeDuration);
   return out;
@@ -37,7 +37,7 @@ function importLegacyPlayerStore() {
   const hasAny = Object.values(LEGACY_KEYS).some((k) => ls.getItem(k) !== null);
   if (!hasAny) return;
 
-  const state: Partial<PersistedPlayerState> = {};
+  const state: Partial<PersistedPlaybackState> = {};
 
   const crossfadeEnabled = ls.getItem(LEGACY_KEYS.crossfadeEnabled);
   if (crossfadeEnabled !== null) state.crossfadeEnabled = crossfadeEnabled === 'true';
@@ -56,36 +56,7 @@ function importLegacyPlayerStore() {
 
 importLegacyPlayerStore();
 
-export interface Track {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  filePath: string;
-  albumArt?: string;
-  genre?: string | null;
-  year?: number | null;
-  trackNumber?: number | null;
-  discNumber?: number | null;
-  isFavorite?: boolean;
-  playCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export type RepeatMode = 'off' | 'all' | 'one';
-
-interface PlayerState {
-  // Library (persistent collection of all tracks)
-  library: Track[];
-  /**
-   * True once the initial library query has settled (success, empty, or error).
-   * Not persisted — resets to false on every app boot so views can show a
-   * skeleton during the cold-start fetch rather than a flash of empty state.
-   */
-  libraryLoaded: boolean;
-
+interface PlaybackState {
   // Current track
   currentTrack: Track | null;
   queue: Track[];
@@ -108,12 +79,13 @@ interface PlayerState {
   crossfadeEnabled: boolean;
   crossfadeDuration: number; // seconds
 
-  // UI state (not persisted)
-  scrubTime: number | null;
+  // Engine-internal signal: target time for a pending seek that
+  // `useAudioEngine` applies on its next RAF tick. Lives here (not in the
+  // UI store) because it's part of the playback pipeline.
   _seekTarget: number | null;
 }
 
-interface PlayerActions {
+interface PlaybackActions {
   // Playback controls
   play: () => void;
   pause: () => void;
@@ -127,22 +99,14 @@ interface PlayerActions {
   setVolume: (volume: number) => void;
   toggleMute: () => void;
 
-  // Library
-  setLibrary: (tracks: Track[]) => void;
-  addToLibrary: (tracks: Track[]) => void;
-  removeFromLibrary: (trackIds: string[]) => void;
-
   // Queue
   setQueue: (tracks: Track[], startIndex?: number) => void;
+  enqueueTracks: (tracks: Track[], startIfIdleAt: 'first' | 'last') => void;
   addToQueue: (tracks: Track[]) => void;
   playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   reorderQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
-
-  // Favorites
-  toggleFavorite: (trackId: string) => void;
-  incrementTrackPlayCount: (trackId: string) => void;
 
   // Modes
   toggleShuffle: () => void;
@@ -151,9 +115,6 @@ interface PlayerActions {
   // Crossfade
   setCrossfadeEnabled: (enabled: boolean) => void;
   setCrossfadeDuration: (duration: number) => void;
-
-  // Scrub
-  setScrubTime: (time: number | null) => void;
 
   // Internal (called by audio hook)
   _clearSeekTarget: () => void;
@@ -165,7 +126,7 @@ interface PlayerActions {
   _onTrackEnd: () => void;
 }
 
-export type PlayerStore = PlayerState & PlayerActions;
+export type PlaybackStore = PlaybackState & PlaybackActions;
 
 /**
  * Mutable ref holding the latest currentTime at ~60fps.
@@ -184,12 +145,10 @@ function shuffleArray<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-export const usePlayerStore = create<PlayerStore>()(
+export const usePlaybackStore = create<PlaybackStore>()(
   persist(
     (set, get) => ({
       // Initial state
-      library: [],
-      libraryLoaded: false,
       currentTrack: null,
       queue: [],
       queueIndex: -1,
@@ -204,7 +163,6 @@ export const usePlayerStore = create<PlayerStore>()(
       error: null,
       crossfadeEnabled: false,
       crossfadeDuration: DEFAULT_CROSSFADE_DURATION,
-      scrubTime: null,
       _seekTarget: null,
 
       // Playback controls
@@ -260,7 +218,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
       seek: (time: number) => {
         if (isFinite(time) && time >= 0) {
-          set({ currentTime: time, scrubTime: null, _seekTarget: time });
+          set({ currentTime: time, _seekTarget: time });
         }
       },
 
@@ -272,9 +230,7 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ crossfadeDuration: clamped });
       },
 
-      setScrubTime: (time) => set({ scrubTime: time }),
-
-      // Volume (persisted to electron store)
+      // Volume
       setVolume: (volume: number) => {
         const clamped = Math.max(0, Math.min(1, volume));
         set({ volume: clamped, isMuted: false });
@@ -282,17 +238,6 @@ export const usePlayerStore = create<PlayerStore>()(
       toggleMute: () => {
         const muted = !get().isMuted;
         set({ isMuted: muted });
-      },
-
-      // Library management
-      setLibrary: (tracks: Track[]) => set({ library: tracks }),
-
-      addToLibrary: (tracks: Track[]) =>
-        set((s) => ({ library: [...s.library, ...tracks] })),
-
-      removeFromLibrary: (trackIds: string[]) => {
-        const ids = new Set(trackIds);
-        set((s) => ({ library: s.library.filter((t) => !ids.has(t.id)) }));
       },
 
       // Queue management
@@ -305,6 +250,17 @@ export const usePlayerStore = create<PlayerStore>()(
           isPlaying: true,
           error: null,
         });
+      },
+
+      enqueueTracks: (tracks, startIfIdleAt) => {
+        const { queue, currentTrack, setQueue } = get();
+        const combined = [...queue, ...tracks];
+        if (!currentTrack) {
+          const startIndex = startIfIdleAt === 'last' ? combined.length - tracks.length : 0;
+          setQueue(combined, startIndex);
+        } else {
+          set({ queue: combined });
+        }
       },
 
       addToQueue: (tracks: Track[]) => set((s) => ({ queue: [...s.queue, ...tracks] })),
@@ -373,48 +329,6 @@ export const usePlayerStore = create<PlayerStore>()(
           duration: 0,
         }),
 
-      // Favorites - update track in both library and queue
-      toggleFavorite: (trackId: string) => {
-        const { library, queue, currentTrack } = get();
-        const toggle = (t: Track) =>
-          t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t;
-
-        const updates: Partial<PlayerState> = {
-          library: library.map(toggle),
-          queue: queue.map(toggle),
-        };
-        if (currentTrack?.id === trackId) {
-          updates.currentTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
-        }
-        set(updates);
-
-        if (IS_ELECTRON) {
-          window.electronAPI.db.tracks.toggleFavorite(trackId).catch((err) => {
-            console.warn('[player] Failed to toggle favorite:', err);
-          });
-        }
-      },
-
-      incrementTrackPlayCount: (trackId: string) => {
-        const { library, queue, currentTrack } = get();
-        const increment = (t: Track) =>
-          t.id === trackId ? { ...t, playCount: (t.playCount ?? 0) + 1 } : t;
-
-        const updates: Partial<PlayerState> = {
-          library: library.map(increment),
-          queue: queue.map(increment),
-        };
-
-        if (currentTrack?.id === trackId) {
-          updates.currentTrack = {
-            ...currentTrack,
-            playCount: (currentTrack.playCount ?? 0) + 1,
-          };
-        }
-
-        set(updates);
-      },
-
       // Modes
       toggleShuffle: () => {
         const { isShuffled, queue, currentTrack } = get();
@@ -467,7 +381,7 @@ export const usePlayerStore = create<PlayerStore>()(
       }),
       merge: (persisted, current) => ({
         ...current,
-        ...sanitize(persisted as Partial<PersistedPlayerState>),
+        ...sanitize(persisted as Partial<PersistedPlaybackState>),
       }),
     }
   )
@@ -475,18 +389,17 @@ export const usePlayerStore = create<PlayerStore>()(
 
 // Preserve store state across Vite HMR (dev only, tree-shaken in production)
 if (import.meta.hot) {
-  type HmrData = { store?: typeof usePlayerStore };
+  type HmrData = { store?: typeof usePlaybackStore };
   const hot = import.meta.hot;
   const data = (hot.data ?? {}) as HmrData;
   if (data.store) {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       ...data.store.getState(),
       isLoading: false,
       error: null,
-      scrubTime: null,
       _seekTarget: null,
     });
   }
-  data.store = usePlayerStore;
+  data.store = usePlaybackStore;
   hot.accept();
 }

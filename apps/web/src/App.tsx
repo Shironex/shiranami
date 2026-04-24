@@ -38,7 +38,7 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
@@ -90,7 +90,7 @@ function App() {
   }, [setSidebarCollapsed]);
 
   const { handleOpenFile, handleOpenFolder, isScanning } = useLibraryActions();
-  const currentTrack = usePlayerStore(s => s.currentTrack);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const activeView = useAppStore(s => s.activeView);
   const rightPanel = useAppStore(s => s.rightPanel);
   const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);

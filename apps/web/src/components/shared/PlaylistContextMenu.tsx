@@ -9,7 +9,8 @@ import type { Playlist } from '@/types/electron';
 import { IS_ELECTRON } from '@/lib/platform';
 import { shuffleItems } from '@/lib/playlists';
 import { useAppStore } from '@/stores/useAppStore';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 import { playlistKeys } from '@/hooks/queries/usePlaylists';
 
@@ -51,7 +52,7 @@ export function PlaylistContextMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
   const navigateTo = useAppStore((s) => s.navigateTo);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const setQueue = usePlaybackStore((s) => s.setQueue);
   const queryClient = useQueryClient();
 
   const loadPlaylistTracks = useCallback(async () => {

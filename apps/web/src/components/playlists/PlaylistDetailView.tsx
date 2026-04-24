@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAppStore } from '@/stores/useAppStore';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
 import { usePlaylistCover } from '@/hooks/usePlaylistCover';
@@ -49,10 +50,10 @@ export function PlaylistDetailView() {
   const { t: tCommon } = useTranslation('common');
   const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
   const selectPlaylist = useAppStore((s) => s.selectPlaylist);
-  const setQueue = usePlayerStore((s) => s.setQueue);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const setQueue = usePlaybackStore((s) => s.setQueue);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
   const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
 
   // Data fetching

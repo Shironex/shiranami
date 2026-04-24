@@ -1,4 +1,5 @@
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import type { TrackMetadata } from '@/types/electron';
 
@@ -38,7 +39,7 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
     return { addedCount: 0, subfolders: scannedSubfolders, empty: true, allExisted: false };
   }
 
-  const existingPaths = new Set(usePlayerStore.getState().library.map((t) => t.filePath));
+  const existingPaths = new Set(useLibraryStore.getState().library.map((t) => t.filePath));
   const newResults = results.filter((r) => !existingPaths.has(r.filePath));
 
   const existsInDb = new Set(
@@ -79,16 +80,9 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
     // Folder may already be registered, that's fine.
   }
 
-  usePlayerStore.getState().addToLibrary(newTracks);
+  useLibraryStore.getState().addToLibrary(newTracks);
 
-  const currentQueue = usePlayerStore.getState().queue;
-  const currentPlaying = usePlayerStore.getState().currentTrack;
-  const combined = [...currentQueue, ...newTracks];
-  if (!currentPlaying) {
-    usePlayerStore.getState().setQueue(combined, 0);
-  } else {
-    usePlayerStore.setState({ queue: combined });
-  }
+  usePlaybackStore.getState().enqueueTracks(newTracks, 'first');
 
   return {
     addedCount: newTracks.length,

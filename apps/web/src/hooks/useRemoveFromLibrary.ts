@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { queryClient } from '@/lib/queryClient';
@@ -13,7 +15,7 @@ import { playlistKeys } from '@/hooks/queries/usePlaylists';
  */
 export function removeTracksFromQueue(ids: string[]): void {
   const idsSet = new Set(ids);
-  const { queue, queueIndex, currentTrack } = usePlayerStore.getState();
+  const { queue, queueIndex, currentTrack } = usePlaybackStore.getState();
   const isCurrentlyPlaying = currentTrack != null && idsSet.has(currentTrack.id);
 
   const newQueue = queue.filter((t) => !idsSet.has(t.id));
@@ -26,7 +28,7 @@ export function removeTracksFromQueue(ids: string[]): void {
 
   if (isCurrentlyPlaying) {
     const nextTrack = newQueue[Math.min(newIndex, newQueue.length - 1)] ?? null;
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       queue: newQueue,
       queueIndex: nextTrack ? Math.min(newIndex, newQueue.length - 1) : -1,
       currentTrack: nextTrack,
@@ -34,7 +36,7 @@ export function removeTracksFromQueue(ids: string[]): void {
       isPlaying: !!nextTrack,
     });
   } else {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       queue: newQueue,
       queueIndex: Math.min(newIndex, Math.max(newQueue.length - 1, 0)),
     });
@@ -47,7 +49,7 @@ export function removeTracksFromQueue(ids: string[]): void {
  */
 export function useRemoveFromLibrary() {
   const { t: tToast } = useTranslation('toast');
-  const removeFromLibrary = usePlayerStore((s) => s.removeFromLibrary);
+  const removeFromLibrary = useLibraryStore((s) => s.removeFromLibrary);
 
   const removeFromDb = useCallback(async (ids: string[]) => {
     if (ids.length === 1) {

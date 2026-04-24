@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
@@ -16,8 +16,8 @@ const PANEL_IDLE = 'text-muted-foreground/45 hover:text-muted-foreground/70';
 export function LyricsPanel() {
   const { t } = useTranslation('lyrics');
   const { t: tToast } = useTranslation('toast');
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const seek = usePlayerStore(s => s.seek);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const seek = usePlaybackStore(s => s.seek);
 
   const { data, isLoading, isError } = useLyricsQuery(
     currentTrack?.id ?? null,

@@ -1,4 +1,4 @@
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 import { type AlbumSortMode, type AlbumSortOrder } from '@/stores/useAppStore';
 
 export interface AlbumData {

@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import i18n from '@/lib/i18n';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
 import { folderKeys } from '@/hooks/queries/useFolders';
@@ -28,8 +29,8 @@ export interface UseLibraryRescanResult {
 export function useLibraryRescan(): UseLibraryRescanResult {
   const queryClient = useQueryClient();
   const { data: playlists = [] } = usePlaylistsQuery();
-  const clearQueue = usePlayerStore((s) => s.clearQueue);
-  const removeFromLibrary = usePlayerStore((s) => s.removeFromLibrary);
+  const clearQueue = usePlaybackStore((s) => s.clearQueue);
+  const removeFromLibrary = useLibraryStore((s) => s.removeFromLibrary);
 
   const [isScanning, setIsScanning] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -86,7 +87,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
       // Validate existing tracks — remove any whose files no longer exist on disk
       let totalRemoved = 0;
-      const currentLibrary = usePlayerStore.getState().library;
+      const currentLibrary = useLibraryStore.getState().library;
       if (currentLibrary.length > 0) {
         const allPaths = currentLibrary.map((t) => t.filePath);
         const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
@@ -141,12 +142,12 @@ export function useLibraryRescan(): UseLibraryRescanResult {
     if (!IS_ELECTRON) return;
     setIsClearing(true);
     try {
-      const allTracks = usePlayerStore.getState().library;
+      const allTracks = useLibraryStore.getState().library;
       if (allTracks.length > 0) {
         await window.electronAPI.db.tracks.removeMany(allTracks.map((t) => t.id));
       }
       clearQueue();
-      usePlayerStore.setState({ library: [] });
+      useLibraryStore.setState({ library: [] });
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: playlistKeys.all });
       setConfirmClear(false);

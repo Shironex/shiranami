@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,7 @@ interface NowPlayingHeroProps {
 
 export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const { t } = useTranslation('common');
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
   const ambientColor = useAmbientColor();
   const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
   const enterNowPlaying = useAppStore((s) => s.enterNowPlaying);

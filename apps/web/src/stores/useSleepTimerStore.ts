@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 
 export const SLEEP_TIMER_PRESETS = [15, 30, 45, 60, 90] as const;
 
@@ -60,7 +60,7 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>(
       if (remaining <= 0) {
         clearTick();
         set({ endTime: null, duration: null, remaining: 0 });
-        usePlayerStore.getState().pause();
+        usePlaybackStore.getState().pause();
       } else {
         set({ remaining });
       }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
 
 /**
@@ -9,15 +9,15 @@ import { IS_ELECTRON } from '@/lib/platform';
  * 3. Sends playback state back to main process for tray/taskbar updates
  */
 export function useMediaSession() {
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const currentTime = usePlayerStore(s => s.currentTime);
-  const duration = usePlayerStore(s => s.duration);
-  const togglePlay = usePlayerStore(s => s.togglePlay);
-  const next = usePlayerStore(s => s.next);
-  const previous = usePlayerStore(s => s.previous);
-  const stop = usePlayerStore(s => s.stop);
-  const seek = usePlayerStore(s => s.seek);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const currentTime = usePlaybackStore(s => s.currentTime);
+  const duration = usePlaybackStore(s => s.duration);
+  const togglePlay = usePlaybackStore(s => s.togglePlay);
+  const next = usePlaybackStore(s => s.next);
+  const previous = usePlaybackStore(s => s.previous);
+  const stop = usePlaybackStore(s => s.stop);
+  const seek = usePlaybackStore(s => s.seek);
 
   // Throttle state updates to main process (every 1 second)
   const lastUpdateRef = useRef(0);
@@ -27,10 +27,10 @@ export function useMediaSession() {
     if (!('mediaSession' in navigator)) return;
 
     navigator.mediaSession.setActionHandler('play', () => {
-      if (!usePlayerStore.getState().isPlaying) togglePlay();
+      if (!usePlaybackStore.getState().isPlaying) togglePlay();
     });
     navigator.mediaSession.setActionHandler('pause', () => {
-      if (usePlayerStore.getState().isPlaying) togglePlay();
+      if (usePlaybackStore.getState().isPlaying) togglePlay();
     });
     navigator.mediaSession.setActionHandler('nexttrack', () => next());
     navigator.mediaSession.setActionHandler('previoustrack', () => previous());

@@ -1,6 +1,7 @@
 import { memo, useCallback, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { X, Trash2, Music, Play, Pause, GripVertical } from 'lucide-react';
@@ -129,15 +130,15 @@ function DragOverlayContent({ track }: { track: Track }) {
 
 export function QueuePanel() {
   const { t } = useTranslation('queue');
-  const queue = usePlayerStore(s => s.queue);
-  const queueIndex = usePlayerStore(s => s.queueIndex);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const setQueue = usePlayerStore(s => s.setQueue);
-  const removeFromQueue = usePlayerStore(s => s.removeFromQueue);
-  const reorderQueue = usePlayerStore(s => s.reorderQueue);
-  const clearQueue = usePlayerStore(s => s.clearQueue);
-  const togglePlay = usePlayerStore(s => s.togglePlay);
+  const queue = usePlaybackStore(s => s.queue);
+  const queueIndex = usePlaybackStore(s => s.queueIndex);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const removeFromQueue = usePlaybackStore(s => s.removeFromQueue);
+  const reorderQueue = usePlaybackStore(s => s.reorderQueue);
+  const clearQueue = usePlaybackStore(s => s.clearQueue);
+  const togglePlay = usePlaybackStore(s => s.togglePlay);
 
   const queueRef = useRef(queue);
   const queueIndexRef = useRef(queueIndex);

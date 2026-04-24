@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { FastAverageColor } from 'fast-average-color';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 
 const fac = new FastAverageColor();
 
@@ -19,7 +19,7 @@ export const DEFAULT_COLOR: AmbientColor = {
 const AmbientColorContext = createContext<AmbientColor>(DEFAULT_COLOR);
 
 export function AmbientColorProvider({ children }: { children: ReactNode }) {
-  const albumArt = usePlayerStore(s => s.currentTrack?.albumArt);
+  const albumArt = usePlaybackStore(s => s.currentTrack?.albumArt);
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
 
   useEffect(() => {

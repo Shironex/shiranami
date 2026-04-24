@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
@@ -25,9 +25,9 @@ const NP_IDLE = 'text-muted-foreground/40 hover:text-muted-foreground/65';
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
   const { t: tToast } = useTranslation('toast');
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const duration = usePlayerStore(s => s.duration);
-  const seek = usePlayerStore(s => s.seek);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const duration = usePlaybackStore(s => s.duration);
+  const seek = usePlaybackStore(s => s.seek);
   const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);

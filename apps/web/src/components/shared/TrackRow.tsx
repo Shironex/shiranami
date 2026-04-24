@@ -1,4 +1,4 @@
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 import { type RowComponentProps } from 'react-window';
 import { TrackRowContent } from './TrackRowContent';
 

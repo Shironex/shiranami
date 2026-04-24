@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
-import { usePlayerStore, currentTimeRef } from '@/stores/usePlayerStore';
+import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useAppStore, type AppView } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
@@ -109,7 +110,7 @@ export function useKeyboardShortcuts() {
                 exitNowPlaying();
                 return;
               }
-              if (!usePlayerStore.getState().currentTrack) {
+              if (!usePlaybackStore.getState().currentTrack) {
                 toast.info(i18n.t('nowPlayingNoTrack', { ns: 'toast' }), {
                   id: 'now-playing-no-track',
                   duration: 4000,
@@ -132,7 +133,7 @@ export function useKeyboardShortcuts() {
       if (e.key === ' ') {
         if (guarded || e.target instanceof HTMLButtonElement) return;
         e.preventDefault();
-        usePlayerStore.getState().togglePlay();
+        usePlaybackStore.getState().togglePlay();
         return;
       }
 
@@ -143,7 +144,7 @@ export function useKeyboardShortcuts() {
           e.preventDefault();
           const step = e.shiftKey ? 10 : 5;
           const currentTime = currentTimeRef.current;
-          const { duration, seek } = usePlayerStore.getState();
+          const { duration, seek } = usePlaybackStore.getState();
           seek(Math.min(currentTime + step, duration));
           return;
         }
@@ -151,57 +152,57 @@ export function useKeyboardShortcuts() {
           e.preventDefault();
           const step = e.shiftKey ? 10 : 5;
           const currentTime = currentTimeRef.current;
-          const { seek } = usePlayerStore.getState();
+          const { seek } = usePlaybackStore.getState();
           seek(Math.max(currentTime - step, 0));
           return;
         }
         case 'ArrowUp': {
           e.preventDefault();
-          const { volume, setVolume } = usePlayerStore.getState();
+          const { volume, setVolume } = usePlaybackStore.getState();
           setVolume(Math.min(volume + 0.05, 1));
           return;
         }
         case 'ArrowDown': {
           e.preventDefault();
-          const { volume, setVolume } = usePlayerStore.getState();
+          const { volume, setVolume } = usePlaybackStore.getState();
           setVolume(Math.max(volume - 0.05, 0));
           return;
         }
         case 'M':
         case 'm': {
           e.preventDefault();
-          usePlayerStore.getState().toggleMute();
+          usePlaybackStore.getState().toggleMute();
           return;
         }
         case 'N':
         case 'n': {
           e.preventDefault();
-          usePlayerStore.getState().next();
+          usePlaybackStore.getState().next();
           return;
         }
         case 'P':
         case 'p': {
           e.preventDefault();
-          usePlayerStore.getState().previous();
+          usePlaybackStore.getState().previous();
           return;
         }
         case 'S':
         case 's': {
           e.preventDefault();
-          usePlayerStore.getState().toggleShuffle();
+          usePlaybackStore.getState().toggleShuffle();
           return;
         }
         case 'R':
         case 'r': {
           e.preventDefault();
-          usePlayerStore.getState().cycleRepeatMode();
+          usePlaybackStore.getState().cycleRepeatMode();
           return;
         }
         case 'L':
         case 'l': {
           e.preventDefault();
-          const { currentTrack, toggleFavorite } = usePlayerStore.getState();
-          if (currentTrack) toggleFavorite(currentTrack.id);
+          const currentTrack = usePlaybackStore.getState().currentTrack;
+          if (currentTrack) useLibraryStore.getState().toggleFavorite(currentTrack.id);
           return;
         }
         case 'V':

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 
 vi.mock('@/lib/platform', () => ({ IS_ELECTRON: true }));
 
@@ -44,7 +46,7 @@ describe('buildPersistedState (via store state)', () => {
    */
   function buildPersistedState() {
     const { currentTrack, queue, queueIndex, currentTime, isPlaying } =
-      usePlayerStore.getState();
+      usePlaybackStore.getState();
 
     if (!currentTrack) {
       return null;
@@ -60,7 +62,7 @@ describe('buildPersistedState (via store state)', () => {
   }
 
   beforeEach(() => {
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: null,
       queue: [],
       queueIndex: -1,
@@ -75,7 +77,7 @@ describe('buildPersistedState (via store state)', () => {
 
   it('returns the correct shape when a track is playing', () => {
     const tracks = makeTracks(3);
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: tracks[1],
       queue: tracks,
       queueIndex: 1,
@@ -94,7 +96,7 @@ describe('buildPersistedState (via store state)', () => {
 
   it('clamps NaN currentTime to 0', () => {
     const tracks = makeTracks(1);
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: tracks[0],
       queue: tracks,
       queueIndex: 0,
@@ -107,7 +109,7 @@ describe('buildPersistedState (via store state)', () => {
 
   it('clamps Infinity currentTime to 0', () => {
     const tracks = makeTracks(1);
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: tracks[0],
       queue: tracks,
       queueIndex: 0,
@@ -120,7 +122,7 @@ describe('buildPersistedState (via store state)', () => {
 
   it('clamps negative currentTime to 0', () => {
     const tracks = makeTracks(1);
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: tracks[0],
       queue: tracks,
       queueIndex: 0,
@@ -191,9 +193,9 @@ describe('usePlaybackResume hook', () => {
   beforeEach(() => {
     vi.useFakeTimers();
 
-    // Reset store to clean state
-    usePlayerStore.setState({
-      library: [],
+    // Reset stores to clean state
+    useLibraryStore.setState({ library: [] });
+    usePlaybackStore.setState({
       currentTrack: null,
       queue: [],
       queueIndex: -1,
@@ -269,7 +271,7 @@ describe('usePlaybackResume hook', () => {
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
     // Set a current track so buildPersistedState returns non-null
-    usePlayerStore.setState({
+    usePlaybackStore.setState({
       currentTrack: tracks[0],
       queue: tracks,
       queueIndex: 0,
@@ -308,7 +310,7 @@ describe('usePlaybackResume hook', () => {
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
     // No current track -> buildPersistedState returns null
-    usePlayerStore.setState({ currentTrack: null });
+    usePlaybackStore.setState({ currentTrack: null });
 
     renderHook(() => usePlaybackResume(true));
 
@@ -352,14 +354,14 @@ describe('usePlaybackResume hook', () => {
 
     // Simulate library becoming available (e.g. after DB load)
     act(() => {
-      usePlayerStore.setState({ library: tracks });
+      useLibraryStore.setState({ library: tracks });
     });
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.currentTrack?.filePath).toBe('/music/track2.mp3');
     expect(state.queue).toHaveLength(3);
     expect(state.currentTime).toBe(42.5);
@@ -385,7 +387,7 @@ describe('usePlaybackResume hook', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    const state = usePlayerStore.getState();
+    const state = usePlaybackStore.getState();
     expect(state.currentTrack).toBeNull();
   });
 
@@ -408,18 +410,18 @@ describe('usePlaybackResume hook', () => {
 
     // Populate library to trigger restore
     act(() => {
-      usePlayerStore.setState({ library: tracks });
+      useLibraryStore.setState({ library: tracks });
     });
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(usePlayerStore.getState().currentTrack?.filePath).toBe('/music/track2.mp3');
+    expect(usePlaybackStore.getState().currentTrack?.filePath).toBe('/music/track2.mp3');
 
     // Manually clear the track and change library to try triggering a second restore
     act(() => {
-      usePlayerStore.setState({
+      usePlaybackStore.setState({
         currentTrack: null,
         queue: [],
         queueIndex: -1,
@@ -429,7 +431,7 @@ describe('usePlaybackResume hook', () => {
 
     // Re-set the library to trigger the effect dependencies
     act(() => {
-      usePlayerStore.setState({ library: [...tracks] });
+      useLibraryStore.setState({ library: [...tracks] });
     });
 
     rerender();
@@ -439,7 +441,7 @@ describe('usePlaybackResume hook', () => {
     });
 
     // Should NOT have restored again — currentTrack should remain null
-    expect(usePlayerStore.getState().currentTrack).toBeNull();
+    expect(usePlaybackStore.getState().currentTrack).toBeNull();
   });
 
   it('skips restore when currentTrackPath is not found in library', async () => {
@@ -456,7 +458,7 @@ describe('usePlaybackResume hook', () => {
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
     // Populate library right away
-    usePlayerStore.setState({ library: tracks });
+    useLibraryStore.setState({ library: tracks });
 
     renderHook(() => usePlaybackResume(true));
 
@@ -465,7 +467,7 @@ describe('usePlaybackResume hook', () => {
     });
 
     // Restore should have been attempted but skipped because currentTrackPath not found
-    expect(usePlayerStore.getState().currentTrack).toBeNull();
+    expect(usePlaybackStore.getState().currentTrack).toBeNull();
   });
 
   it('clamps non-finite persisted currentTime to 0 during restore', async () => {
@@ -479,7 +481,7 @@ describe('usePlaybackResume hook', () => {
 
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
-    usePlayerStore.setState({ library: tracks });
+    useLibraryStore.setState({ library: tracks });
 
     renderHook(() => usePlaybackResume(true));
 
@@ -487,8 +489,8 @@ describe('usePlaybackResume hook', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(usePlayerStore.getState().currentTime).toBe(0);
-    expect(usePlayerStore.getState()._seekTarget).toBe(0);
+    expect(usePlaybackStore.getState().currentTime).toBe(0);
+    expect(usePlaybackStore.getState()._seekTarget).toBe(0);
   });
 
   it('resolves restore immediately when rememberPlaybackPosition is off', async () => {
@@ -500,8 +502,8 @@ describe('usePlaybackResume hook', () => {
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
     const tracks2 = makeTracks(2);
-    usePlayerStore.setState({
-      library: tracks2,
+    useLibraryStore.setState({ library: tracks2 });
+    usePlaybackStore.setState({
       currentTrack: tracks2[0],
       queue: tracks2,
       queueIndex: 0,
@@ -540,6 +542,6 @@ describe('usePlaybackResume hook', () => {
     });
 
     // Should not throw; player should remain in default state
-    expect(usePlayerStore.getState().currentTrack).toBeNull();
+    expect(usePlaybackStore.getState().currentTrack).toBeNull();
   });
 });

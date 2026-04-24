@@ -1,6 +1,6 @@
 import { GripVertical, Play } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
-import type { Track } from '@/stores/usePlayerStore';
+import type { Track } from '@/stores/types';
 
 /** Overlay shown while dragging — matches SortableTrackRow layout */
 export function DragOverlayContent({ track }: { track: Track }) {

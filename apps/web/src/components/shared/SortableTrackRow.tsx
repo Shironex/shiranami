@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 import { GripVertical } from 'lucide-react';
 import { TrackRowContent } from './TrackRowContent';
 

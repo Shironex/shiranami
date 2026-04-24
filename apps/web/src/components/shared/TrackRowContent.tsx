@@ -1,6 +1,6 @@
 import { type ReactNode, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart, Play, X, Check } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';

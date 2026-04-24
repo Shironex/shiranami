@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -20,9 +21,9 @@ const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl'
 
 export function PlayerBar() {
   const { t } = useTranslation('player');
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const duration = usePlayerStore(s => s.duration);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const duration = usePlaybackStore(s => s.duration);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
   const rightPanel = useAppStore(s => s.rightPanel);
   const toggleRightPanel = useAppStore(s => s.toggleRightPanel);

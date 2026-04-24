@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useRadioStore, type RadioSearchTab } from '@/stores/useRadioStore';
 import {
   Select,
@@ -50,9 +50,9 @@ export function RadioView() {
   const setSelectedCountry = useRadioStore((s) => s.setSelectedCountry);
   const setActiveTab = useRadioStore((s) => s.setActiveTab);
 
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const setQueue = usePlayerStore((s) => s.setQueue);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const setQueue = usePlaybackStore((s) => s.setQueue);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();

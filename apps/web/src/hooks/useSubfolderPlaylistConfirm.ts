@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useCreatePlaylistsFromSubfoldersMutation } from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,7 @@ export function useSubfolderPlaylistConfirm() {
     async (selectedSubfolders: SubfolderEntry[]) => {
       if (!IS_ELECTRON) return;
       try {
-        const libraryTracks = usePlayerStore.getState().library;
+        const libraryTracks = useLibraryStore.getState().library;
         const pathToId = new Map(libraryTracks.map(t => [t.filePath, t.id]));
 
         const subfolderData = selectedSubfolders.map(sf => ({

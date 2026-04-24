@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import type { Track } from '@/stores/types';
 import { useHistoryQuery } from '@/hooks/queries/useHistory';
 import { MIX_LIMIT, type MixId } from '@/components/mixes/mixDefinitions';
 
 export function useMixTracks(mixId: MixId | null): Track[] {
-  const library = usePlayerStore((s) => s.library);
+  const library = useLibraryStore((s) => s.library);
   const { data: historyData } = useHistoryQuery('all');
 
   return useMemo(() => {

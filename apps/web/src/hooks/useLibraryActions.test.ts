@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 
 vi.mock('@/lib/platform', () => ({ IS_ELECTRON: true }));
 vi.mock('sonner', () => ({
@@ -62,8 +64,8 @@ const fakeDbTrack = (id: string, filePath: string): Record<string, unknown> => (
 });
 
 function resetStore() {
-  usePlayerStore.setState({
-    library: [],
+  useLibraryStore.setState({ library: [] });
+  usePlaybackStore.setState({
     queue: [],
     queueIndex: -1,
     currentTrack: null,
@@ -205,7 +207,7 @@ describe('useLibraryActions', () => {
         duration: 200,
         filePath: '/music/song1.mp3',
       };
-      usePlayerStore.setState({ library: [existingTrack] });
+      useLibraryStore.setState({ library: [existingTrack] });
 
       const scanResults = [fakeScanResult('/music/song1.mp3')];
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
@@ -249,9 +251,8 @@ describe('useLibraryActions', () => {
         ])
       );
 
-      const state = usePlayerStore.getState();
-      expect(state.library).toHaveLength(2);
-      expect(state.queue).toHaveLength(2);
+      expect(useLibraryStore.getState().library).toHaveLength(2);
+      expect(usePlaybackStore.getState().queue).toHaveLength(2);
     });
 
     it('saves the folder path to DB', async () => {
@@ -287,7 +288,7 @@ describe('useLibraryActions', () => {
         await result.current.handleOpenFolder();
       });
 
-      const state = usePlayerStore.getState();
+      const state = usePlaybackStore.getState();
       expect(state.queue).toHaveLength(1);
       expect(state.currentTrack).not.toBeNull();
     });
@@ -301,7 +302,7 @@ describe('useLibraryActions', () => {
         duration: 180,
         filePath: '/music/existing.mp3',
       };
-      usePlayerStore.setState({
+      usePlaybackStore.setState({
         queue: [existingTrack],
         queueIndex: 0,
         currentTrack: existingTrack,
@@ -322,7 +323,7 @@ describe('useLibraryActions', () => {
         await result.current.handleOpenFolder();
       });
 
-      const state = usePlayerStore.getState();
+      const state = usePlaybackStore.getState();
       expect(state.queue).toHaveLength(2);
       expect(state.currentTrack?.id).toBe('existing-1');
     });
@@ -448,7 +449,7 @@ describe('useLibraryActions', () => {
         duration: 200,
         filePath: '/music/song1.mp3',
       };
-      usePlayerStore.setState({ library: [existingTrack] });
+      useLibraryStore.setState({ library: [existingTrack] });
 
       const scanResults = [
         fakeScanResult('/music/song1.mp3'), // already in library
@@ -478,9 +479,8 @@ describe('useLibraryActions', () => {
         ])
       );
 
-      const state = usePlayerStore.getState();
       // Library should now have existing + new
-      expect(state.library).toHaveLength(2);
+      expect(useLibraryStore.getState().library).toHaveLength(2);
     });
 
     it('does not fail if folder add throws (folder may already exist)', async () => {
@@ -503,7 +503,7 @@ describe('useLibraryActions', () => {
 
       // Should still succeed despite folder add error
       expect(toast.success).toHaveBeenCalledWith('addedTracks');
-      expect(usePlayerStore.getState().library).toHaveLength(1);
+      expect(useLibraryStore.getState().library).toHaveLength(1);
     });
   });
 });

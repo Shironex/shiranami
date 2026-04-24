@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart } from 'lucide-react';
@@ -15,12 +16,12 @@ const showIfFavorite = (track: { isFavorite?: boolean }) => !!track.isFavorite;
 
 export function FavoritesView() {
   const { t } = useTranslation('favorites');
-  const library = usePlayerStore(s => s.library);
-  const libraryLoaded = usePlayerStore(s => s.libraryLoaded);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const setQueue = usePlayerStore(s => s.setQueue);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const library = useLibraryStore(s => s.library);
+  const libraryLoaded = useLibraryStore(s => s.libraryLoaded);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
   const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
 

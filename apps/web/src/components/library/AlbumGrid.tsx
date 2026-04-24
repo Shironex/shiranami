@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
-import { type Track } from '@/stores/usePlayerStore';
+import { type Track } from '@/stores/types';
 import { Disc3, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';

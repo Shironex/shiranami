@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
 import { mapDbTrackToTrack } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
@@ -11,8 +13,7 @@ import { libraryKeys } from '@/hooks/queries/useLibrary';
  * Returns the created Track, or null if the track already exists.
  */
 export function useTrackImport() {
-  const addToLibrary = usePlayerStore(s => s.addToLibrary);
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const addToLibrary = useLibraryStore(s => s.addToLibrary);
 
   const importTrack = useCallback(
     async (filePath: string): Promise<Track | null> => {
@@ -40,19 +41,12 @@ export function useTrackImport() {
 
       addToLibrary([track]);
 
-      const currentQueue = usePlayerStore.getState().queue;
-      const currentPlaying = usePlayerStore.getState().currentTrack;
-      const newQueue = [...currentQueue, track];
-      if (!currentPlaying) {
-        setQueue(newQueue, newQueue.length - 1);
-      } else {
-        usePlayerStore.setState({ queue: newQueue });
-      }
+      usePlaybackStore.getState().enqueueTracks([track], 'last');
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       return track;
     },
-    [addToLibrary, setQueue]
+    [addToLibrary]
   );
 
   return { importTrack };

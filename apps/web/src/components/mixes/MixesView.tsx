@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import {
   Sparkles,
@@ -21,12 +22,12 @@ import { MixesViewSkeleton } from './MixesViewSkeleton';
 
 export function MixesView() {
   const { t } = useTranslation('mixes');
-  const library = usePlayerStore((s) => s.library);
-  const libraryLoaded = usePlayerStore((s) => s.libraryLoaded);
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const setQueue = usePlayerStore((s) => s.setQueue);
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const library = useLibraryStore((s) => s.library);
+  const libraryLoaded = useLibraryStore((s) => s.libraryLoaded);
+  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const setQueue = usePlaybackStore((s) => s.setQueue);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
   const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
 
   const [selectedMix, setSelectedMix] = useState<MixId | null>(null);

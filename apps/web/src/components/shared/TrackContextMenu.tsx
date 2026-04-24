@@ -13,7 +13,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
@@ -137,11 +139,11 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
 
-  const playNext = usePlayerStore((s) => s.playNext);
-  const addToQueue = usePlayerStore((s) => s.addToQueue);
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
-  const queue = usePlayerStore((s) => s.queue);
-  const library = usePlayerStore((s) => s.library);
+  const playNext = usePlaybackStore((s) => s.playNext);
+  const addToQueue = usePlaybackStore((s) => s.addToQueue);
+  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
+  const queue = usePlaybackStore((s) => s.queue);
+  const library = useLibraryStore((s) => s.library);
 
   const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
   const clearSelection = useSelectionStore((s) => s.clearSelection);

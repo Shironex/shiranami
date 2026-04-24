@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Search, Loader2, Disc3, Check, X, Ban, Info, AlertTriangle } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const library = usePlayerStore(s => s.library);
+  const library = useLibraryStore(s => s.library);
   const isEnriching = useMetadataEnrichStore(s => s.isEnriching);
   const progress = useMetadataEnrichStore(s => s.progress);
   const startEnrichment = useMetadataEnrichStore(s => s.startEnrichment);

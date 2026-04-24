@@ -50,8 +50,8 @@ vi.mock('@/stores/useRadioStore', () => ({
     }),
 }));
 
-vi.mock('@/stores/usePlayerStore', () => ({
-  usePlayerStore: <T,>(
+vi.mock('@/stores/usePlaybackStore', () => ({
+  usePlaybackStore: <T,>(
     selector: (s: {
       currentTrack: null;
       isPlaying: boolean;

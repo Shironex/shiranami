@@ -1,4 +1,4 @@
-import type { Track } from '@/stores/usePlayerStore';
+import type { Track } from '@/stores/types';
 import type { Station } from 'radio-browser-api';
 
 export const COUNTRIES = [
