@@ -1,0 +1,53 @@
+# Path-based auto-labels for pull requests.
+# Label names match the existing repo taxonomy (gh label list).
+
+area:electron:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/desktop/**
+
+area:frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/web/**
+          - packages/shared/**
+
+area:landing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/landing/**
+          - Dockerfile.landing
+
+area:build:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - scripts/**
+          - electron-builder.json
+          - apps/desktop/electron-builder.json
+          - Dockerfile*
+          - docker-compose.yml
+          - eslint.config.mjs
+          - vitest.config.ts
+          - tsconfig.base.json
+          - .nvmrc
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - pnpm-lock.yaml
+          - apps/*/package.json
+          - packages/*/package.json
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**
+
+i18n:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/web/src/**/i18n/**
+          - apps/web/src/**/locales/**
