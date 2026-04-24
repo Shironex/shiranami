@@ -282,8 +282,8 @@ export function useAudioEngine() {
     _setIsLoading(false);
 
     // Reset session for new track
-    const nextTrack = usePlaybackStore.getState().queue[usePlaybackStore.getState().queueIndex + 1]
-      ?? (usePlaybackStore.getState().repeatMode === 'all' ? usePlaybackStore.getState().queue[0] : null);
+    const { queue, queueIndex, repeatMode } = usePlaybackStore.getState();
+    const nextTrack = queue[queueIndex + 1] ?? (repeatMode === 'all' ? queue[0] : null);
     resetPlaybackSession(nextTrack);
 
     // Clear crossfade state before store update (prevents re-triggering)
@@ -592,7 +592,7 @@ export function useAudioEngine() {
         audio &&
         state._seekTarget !== null &&
         isFinite(state._seekTarget) &&
-        !usePlaybackStore.getState().isPlaying
+        !state.isPlaying
       ) {
         audio.currentTime = state._seekTarget;
         usePlaybackStore.getState()._clearSeekTarget();

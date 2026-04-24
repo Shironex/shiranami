@@ -14,7 +14,6 @@ import { libraryKeys } from '@/hooks/queries/useLibrary';
  */
 export function useTrackImport() {
   const addToLibrary = useLibraryStore(s => s.addToLibrary);
-  const setQueue = usePlaybackStore(s => s.setQueue);
 
   const importTrack = useCallback(
     async (filePath: string): Promise<Track | null> => {
@@ -42,19 +41,12 @@ export function useTrackImport() {
 
       addToLibrary([track]);
 
-      const currentQueue = usePlaybackStore.getState().queue;
-      const currentPlaying = usePlaybackStore.getState().currentTrack;
-      const newQueue = [...currentQueue, track];
-      if (!currentPlaying) {
-        setQueue(newQueue, newQueue.length - 1);
-      } else {
-        usePlaybackStore.setState({ queue: newQueue });
-      }
+      usePlaybackStore.getState().enqueueTracks([track], 'last');
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       return track;
     },
-    [addToLibrary, setQueue]
+    [addToLibrary]
   );
 
   return { importTrack };

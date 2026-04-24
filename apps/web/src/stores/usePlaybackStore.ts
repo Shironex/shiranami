@@ -101,6 +101,7 @@ interface PlaybackActions {
 
   // Queue
   setQueue: (tracks: Track[], startIndex?: number) => void;
+  enqueueTracks: (tracks: Track[], startIfIdleAt: 'first' | 'last') => void;
   addToQueue: (tracks: Track[]) => void;
   playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
@@ -249,6 +250,17 @@ export const usePlaybackStore = create<PlaybackStore>()(
           isPlaying: true,
           error: null,
         });
+      },
+
+      enqueueTracks: (tracks, startIfIdleAt) => {
+        const { queue, currentTrack, setQueue } = get();
+        const combined = [...queue, ...tracks];
+        if (!currentTrack) {
+          const startIndex = startIfIdleAt === 'last' ? combined.length - tracks.length : 0;
+          setQueue(combined, startIndex);
+        } else {
+          set({ queue: combined });
+        }
       },
 
       addToQueue: (tracks: Track[]) => set((s) => ({ queue: [...s.queue, ...tracks] })),

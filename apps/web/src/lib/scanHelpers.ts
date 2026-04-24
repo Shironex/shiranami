@@ -82,14 +82,7 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
 
   useLibraryStore.getState().addToLibrary(newTracks);
 
-  const currentQueue = usePlaybackStore.getState().queue;
-  const currentPlaying = usePlaybackStore.getState().currentTrack;
-  const combined = [...currentQueue, ...newTracks];
-  if (!currentPlaying) {
-    usePlaybackStore.getState().setQueue(combined, 0);
-  } else {
-    usePlaybackStore.setState({ queue: combined });
-  }
+  usePlaybackStore.getState().enqueueTracks(newTracks, 'first');
 
   return {
     addedCount: newTracks.length,

@@ -11,7 +11,6 @@ import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { folderKeys } from '@/hooks/queries/useFolders';
 
 export function useLibraryActions() {
-  const setQueue = usePlaybackStore(s => s.setQueue);
   const [isScanning, setIsScanning] = useState(false);
   const { importTrack } = useTrackImport();
 
@@ -94,15 +93,7 @@ export function useLibraryActions() {
       // Add to library
       useLibraryStore.getState().addToLibrary(newTracks);
 
-      // Also add to queue so they're immediately playable
-      const currentQueue = usePlaybackStore.getState().queue;
-      const currentPlaying = usePlaybackStore.getState().currentTrack;
-      const combined = [...currentQueue, ...newTracks];
-      if (!currentPlaying) {
-        setQueue(combined, 0);
-      } else {
-        usePlaybackStore.setState({ queue: combined });
-      }
+      usePlaybackStore.getState().enqueueTracks(newTracks, 'first');
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
@@ -113,7 +104,7 @@ export function useLibraryActions() {
     } finally {
       setIsScanning(false);
     }
-  }, [setQueue]);
+  }, []);
 
   return { handleOpenFile, handleOpenFolder, isScanning };
 }

@@ -31,6 +31,7 @@ describe('useLibraryStore', () => {
       queueIndex: -1,
     });
     vi.mocked(window.electronAPI.db.tracks.toggleFavorite).mockResolvedValue(undefined);
+    vi.mocked(window.electronAPI.db.tracks.incrementPlayCount).mockResolvedValue(undefined);
   });
 
   // --- setLibrary / addToLibrary / removeFromLibrary ---
@@ -140,6 +141,12 @@ describe('useLibraryStore', () => {
       useLibraryStore.setState({ library: [t] });
       useLibraryStore.getState().incrementTrackPlayCount('x');
       expect(useLibraryStore.getState().library[0].playCount).toBe(1);
+    });
+
+    it('persists to the DB via electronAPI', () => {
+      useLibraryStore.setState({ library: [makeTrack('x')] });
+      useLibraryStore.getState().incrementTrackPlayCount('x');
+      expect(window.electronAPI.db.tracks.incrementPlayCount).toHaveBeenCalledWith('x');
     });
   });
 });

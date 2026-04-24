@@ -85,6 +85,11 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     if (IS_ELECTRON) {
       window.electronAPI.db.tracks.toggleFavorite(trackId).catch((err) => {
         console.warn('[player] Failed to toggle favorite:', err);
+        // Revert optimistic update so UI stays in sync with DB.
+        const revert = (t: Track) =>
+          t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t;
+        set((s) => ({ library: s.library.map(revert) }));
+        syncPlaybackTrack(trackId, (t) => ({ ...t, isFavorite: !t.isFavorite }));
       });
     }
   },
@@ -100,6 +105,12 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
       });
     }
     syncPlaybackTrack(trackId, increment);
+
+    if (IS_ELECTRON) {
+      window.electronAPI.db.tracks.incrementPlayCount(trackId).catch((err) => {
+        console.warn('[player] Failed to persist play count:', err);
+      });
+    }
   },
 }));
 
