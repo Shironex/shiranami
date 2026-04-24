@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - area:build
+    groups:
+      actions:
+        patterns:
+          - '*'
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 15
+    labels:
+      - dependencies
+    groups:
+      types:
+        patterns:
+          - '@types/*'
+      dev-dependencies:
+        dependency-type: development
+        exclude-patterns:
+          - '@types/*'
+      production-dependencies:
+        dependency-type: production
+    ignore:
+      # electron majors are coordinated with native-module rebuilds; bump manually
+      - dependency-name: 'electron'
+        update-types:
+          - 'version-update:semver-major'

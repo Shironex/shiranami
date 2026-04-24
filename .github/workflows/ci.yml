@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # skip husky install on CI
   HUSKY: 0
 
 jobs:
@@ -22,7 +23,7 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' }}
+      code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' || steps.filter.outputs.server == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
     steps:
       - name: Checkout
@@ -30,7 +31,7 @@ jobs:
 
       - name: Detect changed paths
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.3
         with:
           filters: |
             root:
@@ -56,6 +57,10 @@ jobs:
               - 'apps/web/**'
             desktop:
               - 'apps/desktop/**'
+            server:
+              - 'apps/server/**'
+              - 'Dockerfile.server'
+              - 'docker-compose.yml'
             landing:
               - 'apps/landing/**'
               - 'Dockerfile.landing'
@@ -70,19 +75,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Lint
         run: pnpm lint
@@ -96,19 +90,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Build shared packages
         run: pnpm build:packages
@@ -125,19 +108,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Build shared packages
         run: pnpm build:packages
@@ -154,19 +126,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Astro check
         run: pnpm check:landing

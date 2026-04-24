@@ -8,10 +8,13 @@ permissions:
   contents: write
 
 env:
+  # skip husky install on CI
   HUSKY: 0
 
 jobs:
   build:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -47,16 +50,8 @@ jobs:
         shell: bash
         run: bash ./scripts/set-version-ci.sh "${{ steps.version.outputs.version }}"
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.9.0
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - run: pnpm build:packages
 
@@ -105,6 +100,8 @@ jobs:
   upload:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Download macOS artifacts
@@ -120,7 +117,7 @@ jobs:
           path: artifacts/windows-builds
 
       - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2.6.1
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           fail_on_unmatched_files: true
           files: |

@@ -1,0 +1,74 @@
+name: Mirror Issue Labels
+
+on:
+  pull_request_target:
+    types: [opened, edited, ready_for_review, reopened]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: write
+
+jobs:
+  mirror:
+    name: Copy linked-issue labels onto PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror labels from linked issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PR_BODY:-}" ]; then
+            echo "PR body is empty; nothing to mirror."
+            exit 0
+          fi
+
+          # Extract linked issue numbers from Closes/Fixes/Resolves keywords.
+          # Matches same-repo refs only: "Closes #1", "fixes #23", "Resolves: #45".
+          # Cross-repo refs (e.g. "owner/repo#67") are intentionally not handled.
+          ISSUE_NUMBERS=$(printf '%s' "$PR_BODY" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]*#[0-9]+' | grep -oE '[0-9]+' | sort -u || true)
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "No linked issues found in PR body."
+            exit 0
+          fi
+
+          echo "Linked issues: $ISSUE_NUMBERS"
+
+          # Allowed label prefixes / exact matches to mirror.
+          LABEL_REGEX='^(P[0-3]-|area:|type:|security$|performance$|i18n$|dx$|refactor$|chore$|bug$|enhancement$)'
+
+          declare -a LABELS_TO_ADD=()
+
+          for n in $ISSUE_NUMBERS; do
+            mapfile -t ISSUE_LABELS < <(gh issue view "$n" --repo "$REPO" --json labels --jq '.labels[].name' 2>/dev/null || true)
+            for label in "${ISSUE_LABELS[@]:-}"; do
+              [ -z "$label" ] && continue
+              if echo "$label" | grep -qE "$LABEL_REGEX"; then
+                LABELS_TO_ADD+=("$label")
+              fi
+            done
+          done
+
+          if [ "${#LABELS_TO_ADD[@]}" -eq 0 ]; then
+            echo "No mirrorable labels found on linked issues."
+            exit 0
+          fi
+
+          # Deduplicate.
+          UNIQUE_LABELS=$(printf '%s\n' "${LABELS_TO_ADD[@]}" | sort -u)
+          echo "Mirroring labels:"
+          echo "$UNIQUE_LABELS"
+
+          # Apply each label individually so a missing label on the PR repo
+          # doesn't fail the whole batch.
+          while IFS= read -r label; do
+            [ -z "$label" ] && continue
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$label" || echo "::warning::Could not add label '$label'"
+          done <<< "$UNIQUE_LABELS"
