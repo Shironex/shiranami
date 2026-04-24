@@ -59,6 +59,133 @@ describe('useLibraryStore', () => {
       useLibraryStore.getState().removeFromLibrary(['b']);
       expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['a', 'c']);
     });
+
+    it('removes from library and prunes queue + currentTrack when currently playing', () => {
+      const tracks = ['t1', 't2', 't3'].map((id) => makeTrack(id));
+      useLibraryStore.setState({ library: tracks });
+      usePlaybackStore.setState({
+        queue: tracks,
+        queueIndex: 1,
+        currentTrack: tracks[1],
+        currentTime: 42,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['t2']);
+
+      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['t1', 't3']);
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue.map((t) => t.id)).toEqual(['t1', 't3']);
+      expect(pb.currentTrack?.id).toBe('t3');
+      expect(pb.queueIndex).toBe(1);
+      expect(pb.currentTime).toBe(0);
+      expect(pb.isPlaying).toBe(true);
+    });
+
+    it('adjusts queueIndex down when removing tracks before the current index', () => {
+      const tracks = ['t1', 't2', 't3', 't4', 't5'].map((id) => makeTrack(id));
+      useLibraryStore.setState({ library: tracks });
+      usePlaybackStore.setState({
+        queue: tracks,
+        queueIndex: 2,
+        currentTrack: tracks[2],
+        currentTime: 30,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['t1', 't2']);
+
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue.map((t) => t.id)).toEqual(['t3', 't4', 't5']);
+      expect(pb.queueIndex).toBe(0);
+      expect(pb.currentTrack?.id).toBe('t3');
+      expect(pb.currentTime).toBe(30);
+      expect(pb.isPlaying).toBe(true);
+    });
+
+    it('does not change queueIndex when removing tracks after the current index', () => {
+      const tracks = ['t1', 't2', 't3'].map((id) => makeTrack(id));
+      useLibraryStore.setState({ library: tracks });
+      usePlaybackStore.setState({
+        queue: tracks,
+        queueIndex: 0,
+        currentTrack: tracks[0],
+        currentTime: 10,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['t3']);
+
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue.map((t) => t.id)).toEqual(['t1', 't2']);
+      expect(pb.queueIndex).toBe(0);
+      expect(pb.currentTrack?.id).toBe('t1');
+      expect(pb.currentTime).toBe(10);
+    });
+
+    it('clears playback entirely when all queued tracks are removed', () => {
+      const tracks = ['t1', 't2'].map((id) => makeTrack(id));
+      useLibraryStore.setState({ library: tracks });
+      usePlaybackStore.setState({
+        queue: tracks,
+        queueIndex: 0,
+        currentTrack: tracks[0],
+        currentTime: 5,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['t1', 't2']);
+
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue).toHaveLength(0);
+      expect(pb.queueIndex).toBe(-1);
+      expect(pb.currentTrack).toBeNull();
+      expect(pb.isPlaying).toBe(false);
+    });
+
+    it('does nothing to playback when removed ids are not queued', () => {
+      const t = makeTrack('lib-only');
+      useLibraryStore.setState({ library: [t, makeTrack('queued')] });
+      const queued = makeTrack('queued');
+      usePlaybackStore.setState({
+        queue: [queued],
+        queueIndex: 0,
+        currentTrack: queued,
+        currentTime: 20,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['lib-only']);
+
+      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['queued']);
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue.map((t) => t.id)).toEqual(['queued']);
+      expect(pb.queueIndex).toBe(0);
+      expect(pb.currentTrack?.id).toBe('queued');
+      expect(pb.currentTime).toBe(20);
+      expect(pb.isPlaying).toBe(true);
+    });
+
+    it('handles the radio/preview case where a queued track is not in the library', () => {
+      const radioTrack = makeTrack('radio');
+      // radioTrack is only in the queue, not in the library
+      useLibraryStore.setState({ library: [] });
+      usePlaybackStore.setState({
+        queue: [radioTrack],
+        queueIndex: 0,
+        currentTrack: radioTrack,
+        currentTime: 15,
+        isPlaying: true,
+      });
+
+      useLibraryStore.getState().removeFromLibrary(['radio']);
+
+      const pb = usePlaybackStore.getState();
+      expect(pb.queue).toHaveLength(0);
+      expect(pb.queueIndex).toBe(-1);
+      expect(pb.currentTrack).toBeNull();
+      expect(pb.isPlaying).toBe(false);
+    });
   });
 
   // --- toggleFavorite (cross-store sync) ---
