@@ -66,6 +66,8 @@ Daily updates for `npm` and `github-actions` ecosystems. Updates are grouped:
 
 `dependabot-automerge.yml` auto-approves and enables `--auto` squash-merge for `version-update:semver-patch` updates only. Minor and major updates are reviewed manually. Auto-merge still requires CI to pass before the merge happens.
 
+**Required repo setting:** the auto-approve step runs `gh pr review --approve` as `github-actions[bot]`, which needs **Settings → Actions → General → Allow GitHub Actions to create and approve pull requests** to be enabled. Without it, auto-approve silently fails and `--auto` will never complete because branch protection blocks on the missing approval.
+
 ## Linked issues and labels
 
 Reference issues from PR bodies with `Closes #N`, `Fixes #N`, or `Resolves #N`. The `mirror-issue-labels` workflow copies the issue's `P0`–`P3`, `area:*`, `type:*`, and a whitelist of common labels (`security`, `performance`, `i18n`, `dx`, `refactor`, `chore`, `bug`, `enhancement`) onto the PR. The `labeler` workflow adds path-based area labels on top.

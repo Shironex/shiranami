@@ -30,7 +30,8 @@ jobs:
           fi
 
           # Extract linked issue numbers from Closes/Fixes/Resolves keywords.
-          # Matches: Closes #1, fixes #23, Resolves: #45, owner/repo#67
+          # Matches same-repo refs only: "Closes #1", "fixes #23", "Resolves: #45".
+          # Cross-repo refs (e.g. "owner/repo#67") are intentionally not handled.
           ISSUE_NUMBERS=$(printf '%s' "$PR_BODY" | grep -oiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]*:?[[:space:]]*#[0-9]+' | grep -oE '[0-9]+' | sort -u || true)
 
           if [ -z "$ISSUE_NUMBERS" ]; then
