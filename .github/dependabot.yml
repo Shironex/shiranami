@@ -12,6 +12,9 @@ updates:
       actions:
         patterns:
           - '*'
+        update-types:
+          - patch
+          - minor
 
   - package-ecosystem: npm
     directory: /
@@ -24,14 +27,47 @@ updates:
       types:
         patterns:
           - '@types/*'
+        update-types:
+          - patch
+          - minor
       dev-dependencies:
         dependency-type: development
         exclude-patterns:
           - '@types/*'
+        update-types:
+          - patch
+          - minor
       production-dependencies:
         dependency-type: production
+        update-types:
+          - patch
+          - minor
     ignore:
       # electron majors are coordinated with native-module rebuilds; bump manually
       - dependency-name: 'electron'
+        update-types:
+          - 'version-update:semver-major'
+      # React 19 lands with the mobile/web upgrade; desktop stays on 18 for now
+      - dependency-name: 'react'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'react-dom'
+        update-types:
+          - 'version-update:semver-major'
+      # TypeScript majors require tsconfig migration (moduleResolution etc.); do manually
+      - dependency-name: 'typescript'
+        update-types:
+          - 'version-update:semver-major'
+      # Expo SDK majors require coordinated mobile work; bump manually
+      - dependency-name: 'expo'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'expo-*'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'react-native'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'react-native-*'
         update-types:
           - 'version-update:semver-major'
