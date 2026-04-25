@@ -31,7 +31,7 @@
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-system-ui": "~6.0.9",
-    "lucide-react-native": "^0.545.0",
+    "lucide-react-native": "^1.11.0",
     "nativewind": "^4.2.1",
     "radio-browser-api": "^6.0.3",
     "react": "19.1.0",
