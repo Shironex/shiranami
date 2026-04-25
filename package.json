@@ -81,7 +81,7 @@
     "wait-on": "^9.0.5"
   },
   "dependencies": {
-    "i18next": "^25.10.10",
+    "i18next": "^26.0.8",
     "react-i18next": "^17.0.0"
   }
 }
