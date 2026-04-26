@@ -15,3 +15,4 @@ Thumbs.db
 coverage
 .omniscribe
 .playwright-mcp
+docs/release-announcement.md
