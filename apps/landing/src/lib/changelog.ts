@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.16.0': '等', // "equal" — equalizer release
   '0.15.0': '白', // "white" — the named release
   '0.14.1': '速', // "fast"
   '0.14.0': '光', // "light" / ambient color
@@ -105,7 +106,13 @@ export type ReleaseKind = 'feature' | 'fix' | 'perf' | 'polish';
 export function kindOfRelease(release: ResolvedChangelogRelease): ReleaseKind {
   const labels = release.categories.map(c => c.label.toLowerCase()).join(' ');
   if (labels.includes('new') || labels.includes('nowe')) return 'feature';
-  if (labels.includes('fix') || labels.includes('bug') || labels.includes('błę') || labels.includes('popraw')) return 'fix';
+  if (
+    labels.includes('fix') ||
+    labels.includes('bug') ||
+    labels.includes('błę') ||
+    labels.includes('popraw')
+  )
+    return 'fix';
   if (labels.includes('perf') || labels.includes('wydaj')) return 'perf';
   return 'polish';
 }
@@ -118,6 +125,125 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.16.0',
+    date: '2026-04-26',
+    title: l(
+      'Equalizer with 13 presets & a sturdier app',
+      'Equalizer z 13 presetami i solidniejsza aplikacja'
+    ),
+    description: l(
+      'A built-in 13-band equalizer with genre presets right in the player, plus a major reliability and security pass — graceful error screens with retry, smoother visualizer and UI, and a hardened internal layer that quietly makes the whole app safer.',
+      'Wbudowany 13-pasmowy equalizer z presetami gatunkowymi prosto w odtwarzaczu, a do tego duża fala usprawnień stabilności i bezpieczeństwa — eleganckie ekrany błędów z możliwością ponowienia, płynniejszy wizualizator i interfejs oraz wzmocniona warstwa wewnętrzna, która po cichu czyni aplikację bezpieczniejszą.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Built-in equalizer — open the EQ popover from the player bar to shape sound across 13 frequency bands grouped by musical role (bass, body, presence, air), with 13 ready-made genre presets (Rock, Pop, Jazz, Hip-Hop, Electronic, Classical, Vocal, Lo-Fi and more); the same equalizer is also available from a dedicated section in Settings',
+            'Wbudowany equalizer — otwórz popover EQ z paska odtwarzacza, aby kształtować dźwięk na 13 pasmach częstotliwości pogrupowanych według roli muzycznej (bas, ciało, obecność, powietrze), z 13 gotowymi presetami gatunkowymi (Rock, Pop, Jazz, Hip-Hop, Elektronika, Klasyka, Wokal, Lo-Fi i więcej); ten sam equalizer dostępny jest też z dedykowanej sekcji w Ustawieniach'
+          ),
+          l(
+            'Album header now shows year and dominant genre alongside the title',
+            'Nagłówek albumu pokazuje teraz rok i dominujący gatunek obok tytułu'
+          ),
+          l(
+            'Player bar adapts to narrow window widths — controls reflow gracefully instead of cramming together',
+            'Pasek odtwarzacza dostosowuje się do wąskich okien — kontrolki układają się elegancko zamiast się ściskać'
+          ),
+          l(
+            'Library, Playlists and Mixes show skeleton placeholders while the initial library loads, instead of a brief empty state',
+            'Biblioteka, Playlisty i Miksy pokazują szkieletowe placeholdery podczas pierwszego ładowania biblioteki, zamiast krótkiego pustego ekranu'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Every list view now has a proper error state with a retry button when something fails to load — no more blank screens',
+            'Każdy widok listy ma teraz właściwy ekran błędu z przyciskiem ponów, gdy coś nie zdąży się załadować — koniec z pustymi ekranami'
+          ),
+          l(
+            'Library sync errors and lyrics fetch failures surface as toast notifications instead of being silently swallowed',
+            'Błędy synchronizacji biblioteki i pobierania tekstów są pokazywane jako powiadomienia zamiast być po cichu zignorowane'
+          ),
+          l(
+            'A safety net catches unexpected crashes inside the app and shows a friendly fallback view with reload, instead of a white screen',
+            'Siatka bezpieczeństwa wyłapuje nieoczekiwane awarie wewnątrz aplikacji i pokazuje przyjazny ekran zastępczy z możliwością odświeżenia, zamiast białego ekranu'
+          ),
+          l(
+            'Fully redesigned shiranami.app landing page with a cleaner editorial layout, better mobile navigation, and improved readability',
+            'W pełni przeprojektowana strona shiranami.app z czytelniejszym edytorskim układem, lepszą nawigacją mobilną i poprawioną czytelnością'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'The visualizer pauses automatically when the window is hidden or scrolled out of view, freeing the CPU when nothing is on screen',
+            'Wizualizator zatrzymuje się automatycznie, gdy okno jest ukryte lub zjechane poza widok, oddając procesor, gdy nic nie jest pokazywane'
+          ),
+          l(
+            'Faster visualizer rendering — colors and gradients are cached instead of recomputed every frame',
+            'Szybsze rysowanie wizualizatora — kolory i gradienty są buforowane zamiast obliczane co klatkę'
+          ),
+          l(
+            'Smoother synced lyrics scrolling — only the active line re-renders instead of the whole list',
+            'Płynniejsze przewijanie zsynchronizowanych tekstów — przerysowuje się tylko aktywna linia, a nie cała lista'
+          ),
+          l(
+            'Lighter ambient background — reduced blur, deduplicated gradients and an opt-in noise overlay add up to a noticeably crisper UI',
+            'Lżejsze tło ambient — zmniejszone rozmycie, zdeduplikowane gradienty i opcjonalna nakładka szumu razem dają wyraźnie ostrzejszy interfejs'
+          ),
+          l(
+            'Outbound network requests are gently rate-limited per host, so background downloads no longer compete with playback',
+            'Wychodzące żądania sieciowe są delikatnie ograniczane dla każdego hosta, więc pobierania w tle nie rywalizują już z odtwarzaniem'
+          ),
+        ],
+      },
+      {
+        label: l('Security & Stability', 'Bezpieczeństwo i stabilność'),
+        entries: [
+          l(
+            'Hardened internal communication between the app window and its background process — every message is now strictly validated before being acted on',
+            'Wzmocniona komunikacja wewnętrzna między oknem aplikacji a procesem w tle — każda wiadomość jest teraz ściśle walidowana przed wykonaniem'
+          ),
+          l(
+            'File access is restricted to your library folders only — paths outside allowed locations are blocked',
+            'Dostęp do plików jest ograniczony wyłącznie do folderów Twojej biblioteki — ścieżki poza dozwolonymi lokalizacjami są blokowane'
+          ),
+          l(
+            'Internet radio streams are checked against trusted address ranges to prevent unsafe redirects to internal networks',
+            'Strumienie radia internetowego są sprawdzane względem zaufanych zakresów adresów, aby zapobiec niebezpiecznym przekierowaniom do sieci wewnętrznych'
+          ),
+          l(
+            'Improved stability and security of the underlying app components',
+            'Poprawiona stabilność i bezpieczeństwo komponentów składowych aplikacji'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Removing tracks from the library now also removes them from the active playback queue, instead of leaving phantom entries',
+            'Usuwanie utworów z biblioteki usuwa je teraz także z aktywnej kolejki odtwarzania, zamiast pozostawiać puste wpisy'
+          ),
+          l(
+            'Album grouping now compares names directly so multi-disc and same-titled albums are sorted predictably regardless of language settings',
+            'Grupowanie albumów porównuje teraz nazwy bezpośrednio, więc albumy wielopłytowe i o tej samej nazwie są sortowane przewidywalnie niezależnie od ustawień językowych'
+          ),
+          l(
+            'Landing page polish: clearer mobile menu, hamburger reaches readable contrast, fixed icon rendering on the macOS download tile, and 44px touch targets across the board',
+            'Poprawki strony: czytelniejsze menu mobilne, hamburger osiąga czytelny kontrast, naprawione renderowanie ikony na kafelku pobierania macOS oraz 44px wielkości elementów dotykowych w całej stronie'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.15.0',
     date: '2026-04-09',
@@ -299,10 +425,7 @@ export const changelog: ChangelogRelease[] = [
   {
     version: '0.13.1',
     date: '2026-04-08',
-    title: l(
-      'Reliability & observability improvements',
-      'Poprawa niezawodności i obserwowalności'
-    ),
+    title: l('Reliability & observability improvements', 'Poprawa niezawodności i obserwowalności'),
     description: l(
       'Hardened metadata enrichment with cancellation support and network timeouts, improved library scanning performance, and added comprehensive logging for better debugging.',
       'Wzmocnione wzbogacanie metadanych z obsługą anulowania i limitami czasu sieci, poprawiona wydajność skanowania biblioteki oraz dodano kompleksowe logowanie dla lepszego debugowania.'
@@ -498,7 +621,7 @@ export const changelog: ChangelogRelease[] = [
           ),
           l(
             'Fixed `@types/react` version conflict between web and mobile workspaces causing type-check failures in CI',
-            'Naprawiono konflikt wersji `@types/react` między workspace\'ami web i mobile, powodujący błędy kontroli typów w CI'
+            "Naprawiono konflikt wersji `@types/react` między workspace'ami web i mobile, powodujący błędy kontroli typów w CI"
           ),
         ],
       },
@@ -590,10 +713,7 @@ export const changelog: ChangelogRelease[] = [
             'Hard-coded colors and animations moved to design tokens',
             'Zakodowane na sztywno kolory i animacje przeniesione do tokenów projektowych'
           ),
-          l(
-            'Added 212 tests across the project',
-            'Dodano 212 testów w całym projekcie'
-          ),
+          l('Added 212 tests across the project', 'Dodano 212 testów w całym projekcie'),
         ],
       },
     ],
