@@ -58,11 +58,6 @@ export function CompactPlayer() {
           <span className="shrink-0 font-display text-[11px] font-semibold text-foreground">
             {t('title')}
           </span>
-          {currentTrack && (
-            <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground/70">
-              {currentTrack.title}
-            </span>
-          )}
         </div>
 
         <div className="no-drag flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
@@ -142,7 +137,12 @@ export function CompactPlayer() {
 
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="min-w-0">
-              <p className={cn('truncate text-sm font-semibold text-foreground', !currentTrack && 'text-muted-foreground')}>
+              <p
+                className={cn(
+                  'truncate text-sm font-semibold text-foreground',
+                  !currentTrack && 'text-muted-foreground'
+                )}
+              >
                 {currentTrack?.title ?? t('nothingPlaying')}
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
