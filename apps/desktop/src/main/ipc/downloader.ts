@@ -3,8 +3,8 @@ import { getMainWindow } from '../utils/window';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'node:os';
-import { randomUUID } from 'node:crypto';
+import * as os from 'os';
+import { randomUUID } from 'crypto';
 import { logger } from '../logger';
 import { requestJson } from '../http';
 import {
@@ -522,41 +522,51 @@ export function registerDownloaderHandlers(): void {
 
         proc.on('close', code => {
           void (async () => {
-            if (code !== 0) {
-              fs.promises.unlink(tmpFile).catch(() => {});
-              const reason = classifyYtDlpFailure(allOutput);
-              logger.error(
-                `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
-                { outputTail: tailOutput(allOutput) }
-              );
-              sendProgress({ url, progress: 0, status: 'error', error: reason });
-              reject(new Error(reason));
-              return;
-            }
-
             try {
-              const raw = await fs.promises.readFile(tmpFile, 'utf8');
-              downloadedFilePath = raw.trim();
-            } catch {
+              if (code !== 0) {
+                const reason = classifyYtDlpFailure(allOutput);
+                logger.error(
+                  `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
+                  { outputTail: tailOutput(allOutput) }
+                );
+                sendProgress({ url, progress: 0, status: 'error', error: reason });
+                reject(new Error(reason));
+                return;
+              }
+
+              try {
+                const raw = await fs.promises.readFile(tmpFile, 'utf8');
+                // --print-to-file appends a line per emitted filepath; take the last non-empty one.
+                const lines = raw
+                  .split('\n')
+                  .map(line => line.trim())
+                  .filter(Boolean);
+                downloadedFilePath = lines[lines.length - 1] ?? '';
+                if (downloadedFilePath) {
+                  await fs.promises.access(downloadedFilePath);
+                }
+              } catch {
+                const errMsg = 'Could not determine downloaded file path';
+                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
+                reject(new Error(errMsg));
+                return;
+              }
+
+              if (!downloadedFilePath) {
+                const errMsg = 'Could not determine downloaded file path';
+                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
+                reject(new Error(errMsg));
+                return;
+              }
+
+              logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
+              sendProgress({ url, progress: 100, status: 'done' });
+              resolve(downloadedFilePath);
+            } catch (unexpected) {
+              reject(unexpected instanceof Error ? unexpected : new Error(String(unexpected)));
+            } finally {
               fs.promises.unlink(tmpFile).catch(() => {});
-              const errMsg = 'Could not determine downloaded file path';
-              sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-              reject(new Error(errMsg));
-              return;
             }
-
-            fs.promises.unlink(tmpFile).catch(() => {});
-
-            if (!downloadedFilePath) {
-              const errMsg = 'Could not determine downloaded file path';
-              sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-              reject(new Error(errMsg));
-              return;
-            }
-
-            logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
-            sendProgress({ url, progress: 100, status: 'done' });
-            resolve(downloadedFilePath);
           })();
         });
       });
