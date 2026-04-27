@@ -75,6 +75,85 @@ describe('groupTracksByAlbum', () => {
     const [group] = groupTracksByAlbum([t]);
     expect(group.name).toBe('Unknown Album');
   });
+
+  describe('recentlyAdded sort', () => {
+    const old = makeTrack({
+      id: 'r1',
+      album: 'Old Album',
+      artist: 'Alice',
+      createdAt: '2023-01-01 10:00:00',
+    });
+    const mid = makeTrack({
+      id: 'r2',
+      album: 'Mid Album',
+      artist: 'Bob',
+      createdAt: '2023-06-15 12:00:00',
+    });
+    const newest = makeTrack({
+      id: 'r3',
+      album: 'New Album',
+      artist: 'Carol',
+      createdAt: '2024-03-20 08:00:00',
+    });
+    const noDate = makeTrack({ id: 'r4', album: 'No Date Album', artist: 'Dave' });
+
+    it('sorts oldest first under asc', () => {
+      const groups = groupTracksByAlbum([newest, old, mid], 'recentlyAdded', 'asc');
+      expect(groups.map(g => g.name)).toEqual(['Old Album', 'Mid Album', 'New Album']);
+    });
+
+    it('sorts newest first under desc', () => {
+      const groups = groupTracksByAlbum([old, newest, mid], 'recentlyAdded', 'desc');
+      expect(groups.map(g => g.name)).toEqual(['New Album', 'Mid Album', 'Old Album']);
+    });
+
+    it('tracks with missing createdAt sink to bottom under desc (treated as epoch 0)', () => {
+      const groups = groupTracksByAlbum([noDate, old, newest], 'recentlyAdded', 'desc');
+      expect(groups.map(g => g.name)).toEqual(['New Album', 'Old Album', 'No Date Album']);
+    });
+
+    it('breaks ties by album name when timestamps are equal', () => {
+      const alpha = makeTrack({
+        id: 't1',
+        album: 'Alpha',
+        artist: 'X',
+        createdAt: '2024-01-01 00:00:00',
+      });
+      const zeta = makeTrack({
+        id: 't2',
+        album: 'Zeta',
+        artist: 'Y',
+        createdAt: '2024-01-01 00:00:00',
+      });
+      const groups = groupTracksByAlbum([zeta, alpha], 'recentlyAdded', 'asc');
+      expect(groups.map(g => g.name)).toEqual(['Alpha', 'Zeta']);
+    });
+
+    it('album createdAt reflects the earliest of its tracks', () => {
+      const early = makeTrack({
+        id: 'e1',
+        album: 'Mixed',
+        artist: 'A',
+        createdAt: '2022-05-01 00:00:00',
+      });
+      const late = makeTrack({
+        id: 'e2',
+        album: 'Mixed',
+        artist: 'A',
+        createdAt: '2025-05-01 00:00:00',
+      });
+      const other = makeTrack({
+        id: 'e3',
+        album: 'Reference',
+        artist: 'B',
+        createdAt: '2023-01-01 00:00:00',
+      });
+      // Mixed album should sort as if it was added in 2022 (before Reference's 2023)
+      const groups = groupTracksByAlbum([late, early, other], 'recentlyAdded', 'asc');
+      expect(groups.map(g => g.name)).toEqual(['Mixed', 'Reference']);
+      expect(groups[0].createdAt).toBe('2022-05-01 00:00:00');
+    });
+  });
 });
 
 describe('sortAlbumTracks', () => {
@@ -111,10 +190,7 @@ describe('sortAlbumTracks', () => {
   });
 
   it('does not mutate the input array', () => {
-    const input = [
-      makeTrack({ id: '1', discNumber: 2 }),
-      makeTrack({ id: '2', discNumber: 1 }),
-    ];
+    const input = [makeTrack({ id: '1', discNumber: 2 }), makeTrack({ id: '2', discNumber: 1 })];
     const original = [...input];
     sortAlbumTracks(input);
     expect(input).toEqual(original);
