@@ -2,12 +2,22 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { IS_ELECTRON } from '@/lib/platform';
 
-export type AppView = 'library' | 'playlists' | 'favorites' | 'history' | 'mixes' | 'search' | 'radio' | 'settings' | 'import-playlist' | 'now-playing';
+export type AppView =
+  | 'library'
+  | 'playlists'
+  | 'favorites'
+  | 'history'
+  | 'mixes'
+  | 'search'
+  | 'radio'
+  | 'settings'
+  | 'import-playlist'
+  | 'now-playing';
 export type RightPanel = 'lyrics' | 'queue' | null;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
-export type AlbumSortMode = 'name' | 'artist' | 'year';
+export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
 
 export const UI_SCALE_MIN = 80;
@@ -66,7 +76,7 @@ function coerceGridSize(v: unknown): AlbumGridSize {
   return v === 'small' || v === 'medium' || v === 'large' ? v : 'medium';
 }
 function coerceAlbumSortMode(v: unknown): AlbumSortMode {
-  return v === 'name' || v === 'artist' || v === 'year' ? v : 'name';
+  return v === 'name' || v === 'artist' || v === 'year' || v === 'recentlyAdded' ? v : 'name';
 }
 function coerceAlbumSortOrder(v: unknown): AlbumSortOrder {
   return v === 'asc' || v === 'desc' ? v : 'asc';
@@ -101,23 +111,38 @@ interface PersistedAppState {
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
   if (!persisted || typeof persisted !== 'object') return {};
   const out: Partial<PersistedAppState> = {};
-  if (typeof persisted.sidebarCollapsed === 'boolean') out.sidebarCollapsed = persisted.sidebarCollapsed;
-  if (Array.isArray(persisted.sidebarHiddenItems)) out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
-  if (typeof persisted.sidebarPlaylistsVisible === 'boolean') out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
-  if (typeof persisted.compactAlwaysOnTop === 'boolean') out.compactAlwaysOnTop = persisted.compactAlwaysOnTop;
+  if (typeof persisted.sidebarCollapsed === 'boolean')
+    out.sidebarCollapsed = persisted.sidebarCollapsed;
+  if (Array.isArray(persisted.sidebarHiddenItems))
+    out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
+  if (typeof persisted.sidebarPlaylistsVisible === 'boolean')
+    out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
+  if (typeof persisted.compactAlwaysOnTop === 'boolean')
+    out.compactAlwaysOnTop = persisted.compactAlwaysOnTop;
   if (typeof persisted.showVisualizer === 'boolean') out.showVisualizer = persisted.showVisualizer;
-  if (persisted.visualizerStyle !== undefined) out.visualizerStyle = coerceVisualizerStyle(persisted.visualizerStyle);
+  if (persisted.visualizerStyle !== undefined)
+    out.visualizerStyle = coerceVisualizerStyle(persisted.visualizerStyle);
   if (persisted.uiScale !== undefined) out.uiScale = coerceUiScale(persisted.uiScale);
-  if (persisted.libraryViewMode !== undefined) out.libraryViewMode = coerceLibraryViewMode(persisted.libraryViewMode);
-  if (persisted.albumGridSize !== undefined) out.albumGridSize = coerceGridSize(persisted.albumGridSize);
-  if (persisted.playlistGridSize !== undefined) out.playlistGridSize = coerceGridSize(persisted.playlistGridSize);
-  if (persisted.albumSortMode !== undefined) out.albumSortMode = coerceAlbumSortMode(persisted.albumSortMode);
-  if (persisted.albumSortOrder !== undefined) out.albumSortOrder = coerceAlbumSortOrder(persisted.albumSortOrder);
-  if (typeof persisted.nowPlayingViewEnabled === 'boolean') out.nowPlayingViewEnabled = persisted.nowPlayingViewEnabled;
-  if (typeof persisted.nowPlayingLyricsVisible === 'boolean') out.nowPlayingLyricsVisible = persisted.nowPlayingLyricsVisible;
-  if (typeof persisted.libraryHeroCardEnabled === 'boolean') out.libraryHeroCardEnabled = persisted.libraryHeroCardEnabled;
-  if (typeof persisted.lowPerformanceMode === 'boolean') out.lowPerformanceMode = persisted.lowPerformanceMode;
-  if (typeof persisted.noiseOverlayEnabled === 'boolean') out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (persisted.libraryViewMode !== undefined)
+    out.libraryViewMode = coerceLibraryViewMode(persisted.libraryViewMode);
+  if (persisted.albumGridSize !== undefined)
+    out.albumGridSize = coerceGridSize(persisted.albumGridSize);
+  if (persisted.playlistGridSize !== undefined)
+    out.playlistGridSize = coerceGridSize(persisted.playlistGridSize);
+  if (persisted.albumSortMode !== undefined)
+    out.albumSortMode = coerceAlbumSortMode(persisted.albumSortMode);
+  if (persisted.albumSortOrder !== undefined)
+    out.albumSortOrder = coerceAlbumSortOrder(persisted.albumSortOrder);
+  if (typeof persisted.nowPlayingViewEnabled === 'boolean')
+    out.nowPlayingViewEnabled = persisted.nowPlayingViewEnabled;
+  if (typeof persisted.nowPlayingLyricsVisible === 'boolean')
+    out.nowPlayingLyricsVisible = persisted.nowPlayingLyricsVisible;
+  if (typeof persisted.libraryHeroCardEnabled === 'boolean')
+    out.libraryHeroCardEnabled = persisted.libraryHeroCardEnabled;
+  if (typeof persisted.lowPerformanceMode === 'boolean')
+    out.lowPerformanceMode = persisted.lowPerformanceMode;
+  if (typeof persisted.noiseOverlayEnabled === 'boolean')
+    out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
   return out;
 }
 
@@ -127,7 +152,7 @@ function importLegacyAppStore() {
   if (typeof window === 'undefined') return;
   const ls = window.localStorage;
   if (ls.getItem(NEW_KEY)) return;
-  const hasAny = Object.values(LEGACY_KEYS).some((k) => ls.getItem(k) !== null);
+  const hasAny = Object.values(LEGACY_KEYS).some(k => ls.getItem(k) !== null);
   if (!hasAny) return;
 
   const state: Partial<PersistedAppState> = {};
@@ -140,11 +165,14 @@ function importLegacyAppStore() {
     try {
       const parsed = JSON.parse(sidebarHiddenItemsRaw);
       if (Array.isArray(parsed)) state.sidebarHiddenItems = parsed as AppView[];
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }
 
   const sidebarPlaylistsVisible = ls.getItem(LEGACY_KEYS.sidebarPlaylistsVisible);
-  if (sidebarPlaylistsVisible !== null) state.sidebarPlaylistsVisible = sidebarPlaylistsVisible !== 'false';
+  if (sidebarPlaylistsVisible !== null)
+    state.sidebarPlaylistsVisible = sidebarPlaylistsVisible !== 'false';
 
   const compactAlwaysOnTop = ls.getItem(LEGACY_KEYS.compactAlwaysOnTop);
   if (compactAlwaysOnTop !== null) state.compactAlwaysOnTop = compactAlwaysOnTop === 'true';
@@ -179,13 +207,16 @@ function importLegacyAppStore() {
   if (albumSortOrder !== null) state.albumSortOrder = coerceAlbumSortOrder(albumSortOrder);
 
   const nowPlayingViewEnabled = ls.getItem(LEGACY_KEYS.nowPlayingViewEnabled);
-  if (nowPlayingViewEnabled !== null) state.nowPlayingViewEnabled = nowPlayingViewEnabled === 'true';
+  if (nowPlayingViewEnabled !== null)
+    state.nowPlayingViewEnabled = nowPlayingViewEnabled === 'true';
 
   const nowPlayingLyricsVisible = ls.getItem(LEGACY_KEYS.nowPlayingLyricsVisible);
-  if (nowPlayingLyricsVisible !== null) state.nowPlayingLyricsVisible = nowPlayingLyricsVisible !== 'false';
+  if (nowPlayingLyricsVisible !== null)
+    state.nowPlayingLyricsVisible = nowPlayingLyricsVisible !== 'false';
 
   const libraryHeroCardEnabled = ls.getItem(LEGACY_KEYS.libraryHeroCardEnabled);
-  if (libraryHeroCardEnabled !== null) state.libraryHeroCardEnabled = libraryHeroCardEnabled !== 'false';
+  if (libraryHeroCardEnabled !== null)
+    state.libraryHeroCardEnabled = libraryHeroCardEnabled !== 'false';
 
   const lowPerformanceMode = ls.getItem(LEGACY_KEYS.lowPerformanceMode);
   if (lowPerformanceMode !== null) state.lowPerformanceMode = lowPerformanceMode === 'true';
@@ -194,7 +225,7 @@ function importLegacyAppStore() {
   if (noiseOverlayEnabled !== null) state.noiseOverlayEnabled = noiseOverlayEnabled === 'true';
 
   ls.setItem(NEW_KEY, JSON.stringify({ state, version: 1 }));
-  Object.values(LEGACY_KEYS).forEach((k) => ls.removeItem(k));
+  Object.values(LEGACY_KEYS).forEach(k => ls.removeItem(k));
 }
 
 importLegacyAppStore();
@@ -301,7 +332,7 @@ export const useAppStore = create<AppState & AppActions>()(
         const prev = get().previousView;
         set({ activeView: prev });
       },
-      setNowPlayingViewEnabled: (enabled) => {
+      setNowPlayingViewEnabled: enabled => {
         set({ nowPlayingViewEnabled: enabled });
         if (!enabled && get().activeView === 'now-playing') {
           get().exitNowPlaying();
@@ -310,22 +341,22 @@ export const useAppStore = create<AppState & AppActions>()(
       toggleNowPlayingLyrics: () => {
         set({ nowPlayingLyricsVisible: !get().nowPlayingLyricsVisible });
       },
-      setLibraryHeroCardEnabled: (enabled) => {
+      setLibraryHeroCardEnabled: enabled => {
         set({ libraryHeroCardEnabled: enabled });
       },
-      setLowPerformanceMode: (enabled) => {
+      setLowPerformanceMode: enabled => {
         applyLowPerformanceMode(enabled);
         set({ lowPerformanceMode: enabled });
       },
-      setNoiseOverlayEnabled: (enabled) => {
+      setNoiseOverlayEnabled: enabled => {
         set({ noiseOverlayEnabled: enabled });
       },
-      selectPlaylist: (id) => set({ selectedPlaylistId: id }),
-      setRightPanel: (panel) => set({ rightPanel: panel }),
-      setSidebarCollapsed: (sidebarCollapsed) => {
+      selectPlaylist: id => set({ selectedPlaylistId: id }),
+      setRightPanel: panel => set({ rightPanel: panel }),
+      setSidebarCollapsed: sidebarCollapsed => {
         set({ sidebarCollapsed });
       },
-      setCompactMode: async (compactMode) => {
+      setCompactMode: async compactMode => {
         const previous = get().compactMode;
         if (previous === compactMode) return;
 
@@ -349,7 +380,7 @@ export const useAppStore = create<AppState & AppActions>()(
           set({ compactMode: previous });
         }
       },
-      setCompactAlwaysOnTop: async (compactAlwaysOnTop) => {
+      setCompactAlwaysOnTop: async compactAlwaysOnTop => {
         const previous = get().compactAlwaysOnTop;
         if (previous === compactAlwaysOnTop) return;
 
@@ -372,27 +403,25 @@ export const useAppStore = create<AppState & AppActions>()(
       toggleSidebarCollapsed: () => {
         set({ sidebarCollapsed: !get().sidebarCollapsed });
       },
-      toggleSidebarItem: (view) => {
+      toggleSidebarItem: view => {
         const current = get().sidebarHiddenItems;
-        const next = current.includes(view)
-          ? current.filter((v) => v !== view)
-          : [...current, view];
+        const next = current.includes(view) ? current.filter(v => v !== view) : [...current, view];
         set({ sidebarHiddenItems: next });
       },
-      setSidebarPlaylistsVisible: (visible) => {
+      setSidebarPlaylistsVisible: visible => {
         set({ sidebarPlaylistsVisible: visible });
       },
-      toggleRightPanel: (panel) => {
+      toggleRightPanel: panel => {
         const current = get().rightPanel;
         set({ rightPanel: current === panel ? null : panel });
       },
       toggleVisualizer: () => {
         set({ showVisualizer: !get().showVisualizer });
       },
-      setVisualizerStyle: (style) => {
+      setVisualizerStyle: style => {
         set({ visualizerStyle: style });
       },
-      setUiScale: (scale) => {
+      setUiScale: scale => {
         const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
         applyUiScale(clamped);
         set({ uiScale: clamped });
@@ -401,31 +430,31 @@ export const useAppStore = create<AppState & AppActions>()(
         applyUiScale(UI_SCALE_DEFAULT);
         set({ uiScale: UI_SCALE_DEFAULT });
       },
-      setLibraryViewMode: (mode) => {
+      setLibraryViewMode: mode => {
         set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
       },
-      setAlbumGridSize: (size) => {
+      setAlbumGridSize: size => {
         set({ albumGridSize: size });
       },
-      setPlaylistGridSize: (size) => {
+      setPlaylistGridSize: size => {
         set({ playlistGridSize: size });
       },
-      setAlbumSortMode: (mode) => {
+      setAlbumSortMode: mode => {
         // Scroll position is meaningless once album order changes.
         set({ albumSortMode: mode, albumGridScrollTop: 0 });
       },
-      setAlbumSortOrder: (order) => {
+      setAlbumSortOrder: order => {
         // Scroll position is meaningless once album order changes.
         set({ albumSortOrder: order, albumGridScrollTop: 0 });
       },
-      selectAlbum: (name) => set({ selectedAlbumName: name }),
-      setAlbumGridScrollTop: (scrollTop) => set({ albumGridScrollTop: scrollTop }),
+      selectAlbum: name => set({ selectedAlbumName: name }),
+      setAlbumGridScrollTop: scrollTop => set({ albumGridScrollTop: scrollTop }),
     }),
     {
       name: NEW_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({
+      partialize: s => ({
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarHiddenItems: s.sidebarHiddenItems,
         sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
@@ -448,7 +477,7 @@ export const useAppStore = create<AppState & AppActions>()(
         ...current,
         ...sanitize(persisted as Partial<PersistedAppState>),
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => state => {
         if (!state) return;
         applyUiScale(state.uiScale);
         applyLowPerformanceMode(state.lowPerformanceMode);
