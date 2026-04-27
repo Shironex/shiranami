@@ -3,6 +3,8 @@ import { getMainWindow } from '../utils/window';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { logger } from '../logger';
 import { requestJson } from '../http';
 import {
@@ -104,7 +106,9 @@ function loadCachedToolStatus(): ToolStatusCache | null {
     const persisted = store.get(TOOL_STATUS_CACHE_KEY);
     if (persisted && typeof persisted.timestamp === 'number') {
       toolStatusCache = persisted;
-      logger.info(`[downloader] Loaded tool status from persistent cache (age: ${Date.now() - persisted.timestamp}ms)`);
+      logger.info(
+        `[downloader] Loaded tool status from persistent cache (age: ${Date.now() - persisted.timestamp}ms)`
+      );
       return persisted;
     }
   } catch (err) {
@@ -137,7 +141,9 @@ async function fetchAndCacheToolStatus(): Promise<ToolStatusCache> {
   };
 
   persistToolStatusCache(cache);
-  logger.info(`[downloader] Tool status refreshed — yt-dlp: ${ytdlp.installed ? 'installed' : 'missing'}, ffmpeg: ${ffmpeg.installed ? 'installed' : 'missing'}`);
+  logger.info(
+    `[downloader] Tool status refreshed — yt-dlp: ${ytdlp.installed ? 'installed' : 'missing'}, ffmpeg: ${ffmpeg.installed ? 'installed' : 'missing'}`
+  );
   return cache;
 }
 
@@ -196,7 +202,10 @@ function getDownloadLocationState(): DownloadLocationState {
  * format enumeration) can emit hundreds of lines we don't want in the log.
  */
 export function tailOutput(output: string, maxLines = 20, maxBytes = 2048): string {
-  const lines = output.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
   const tail = lines.slice(-maxLines).join('\n');
   return tail.length > maxBytes ? tail.slice(-maxBytes) : tail;
 }
@@ -256,8 +265,8 @@ export function extractVersionSegments(version: string | null | undefined): numb
 
   return match[0]
     .split('.')
-    .map((part) => Number.parseInt(part, 10))
-    .filter((part) => Number.isFinite(part));
+    .map(part => Number.parseInt(part, 10))
+    .filter(part => Number.isFinite(part));
 }
 
 export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
@@ -319,7 +328,7 @@ export function registerDownloaderHandlers(): void {
     async () => {
       return getDownloadLocationState();
     },
-    { schema: downloaderGetDownloadLocationArgs },
+    { schema: downloaderGetDownloadLocationArgs }
   );
 
   handle(
@@ -343,7 +352,7 @@ export function registerDownloaderHandlers(): void {
       invalidateFoldersCache();
       return getDownloadLocationState();
     },
-    { schema: downloaderSetDownloadLocationArgs },
+    { schema: downloaderSetDownloadLocationArgs }
   );
 
   handle(
@@ -354,7 +363,7 @@ export function registerDownloaderHandlers(): void {
         ffmpegInstalled: isFFmpegInstalled(),
       };
     },
-    { schema: downloaderCheckDependenciesArgs },
+    { schema: downloaderCheckDependenciesArgs }
   );
 
   handle(
@@ -362,21 +371,21 @@ export function registerDownloaderHandlers(): void {
     async () => {
       return loadCachedToolStatus();
     },
-    { schema: downloaderGetCachedToolStatusArgs },
+    { schema: downloaderGetCachedToolStatusArgs }
   );
 
   handleWithFallback(
     'downloader:refresh-tool-status',
     () => fetchAndCacheToolStatus(),
     () => loadCachedToolStatus(),
-    { schema: downloaderRefreshToolStatusArgs },
+    { schema: downloaderRefreshToolStatusArgs }
   );
 
   handleWithFallback(
     'downloader:check',
     () => getYtDlpStatus(),
     () => ({ installed: isYtDlpInstalled() }) as BinaryStatus,
-    { schema: downloaderCheckArgs },
+    { schema: downloaderCheckArgs }
   );
 
   handle(
@@ -399,7 +408,7 @@ export function registerDownloaderHandlers(): void {
       logger.info(`[downloader] Found ${results.length} results`);
       return results;
     },
-    { schema: downloaderSearchArgs },
+    { schema: downloaderSearchArgs }
   );
 
   handleWithFallback(
@@ -410,7 +419,7 @@ export function registerDownloaderHandlers(): void {
       return Array.isArray(data[1]) ? data[1] : [];
     },
     () => [] as string[],
-    { schema: downloaderSuggestArgs },
+    { schema: downloaderSuggestArgs }
   );
 
   handle(
@@ -468,11 +477,14 @@ export function registerDownloaderHandlers(): void {
         } else {
           args.push('-f', 'bestaudio', '--add-metadata');
         }
+        const tmpFile = path.join(os.tmpdir(), `shiranami-ytdlp-${randomUUID()}.txt`);
+
         args.push(
           '--no-warnings',
           '--newline',
-          '--print',
+          '--print-to-file',
           'after_move:filepath',
+          tmpFile,
           '-o',
           outputTemplate,
           url
@@ -502,46 +514,54 @@ export function registerDownloaderHandlers(): void {
           allOutput += data.toString();
         });
 
-        proc.on('error', (err) => {
+        proc.on('error', err => {
+          fs.promises.unlink(tmpFile).catch(() => {});
           sendProgress({ url, progress: 0, status: 'error', error: err.message });
           reject(err);
         });
 
-        proc.on('close', (code) => {
-          if (code !== 0) {
-            const reason = classifyYtDlpFailure(allOutput);
-            logger.error(
-              `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
-              { outputTail: tailOutput(allOutput) }
-            );
-            sendProgress({ url, progress: 0, status: 'error', error: reason });
-            reject(new Error(reason));
-            return;
-          }
-
-          const lines = allOutput.trim().split('\n').filter(Boolean);
-          for (let index = lines.length - 1; index >= 0; index -= 1) {
-            const line = lines[index].trim();
-            if (line && !line.startsWith('[') && !line.startsWith('Deleting')) {
-              downloadedFilePath = line;
-              break;
+        proc.on('close', code => {
+          void (async () => {
+            if (code !== 0) {
+              fs.promises.unlink(tmpFile).catch(() => {});
+              const reason = classifyYtDlpFailure(allOutput);
+              logger.error(
+                `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
+                { outputTail: tailOutput(allOutput) }
+              );
+              sendProgress({ url, progress: 0, status: 'error', error: reason });
+              reject(new Error(reason));
+              return;
             }
-          }
 
-          if (!downloadedFilePath) {
-            const errMsg = 'Could not determine downloaded file path';
-            sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-            reject(new Error(errMsg));
-            return;
-          }
+            try {
+              const raw = await fs.promises.readFile(tmpFile, 'utf8');
+              downloadedFilePath = raw.trim();
+            } catch {
+              fs.promises.unlink(tmpFile).catch(() => {});
+              const errMsg = 'Could not determine downloaded file path';
+              sendProgress({ url, progress: 0, status: 'error', error: errMsg });
+              reject(new Error(errMsg));
+              return;
+            }
 
-          logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
-          sendProgress({ url, progress: 100, status: 'done' });
-          resolve(downloadedFilePath);
+            fs.promises.unlink(tmpFile).catch(() => {});
+
+            if (!downloadedFilePath) {
+              const errMsg = 'Could not determine downloaded file path';
+              sendProgress({ url, progress: 0, status: 'error', error: errMsg });
+              reject(new Error(errMsg));
+              return;
+            }
+
+            logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
+            sendProgress({ url, progress: 100, status: 'done' });
+            resolve(downloadedFilePath);
+          })();
         });
       });
     },
-    { schema: downloaderDownloadArgs },
+    { schema: downloaderDownloadArgs }
   );
 
   handle(
@@ -573,7 +593,7 @@ export function registerDownloaderHandlers(): void {
       logger.info(`[downloader] Got stream URL for: ${url}`);
       return streamUrl;
     },
-    { schema: downloaderGetStreamUrlArgs },
+    { schema: downloaderGetStreamUrlArgs }
   );
 
   handle(
@@ -581,7 +601,7 @@ export function registerDownloaderHandlers(): void {
     async () => {
       try {
         const mainWindow = getMainWindow();
-        await downloadYtDlp((percent) => {
+        await downloadYtDlp(percent => {
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('downloader:install-progress', { percent });
           }
@@ -591,11 +611,11 @@ export function registerDownloaderHandlers(): void {
         logger.error('[downloader] Failed to install yt-dlp:', err);
         throw new IpcError(
           'downloader.install_failed',
-          err instanceof Error ? err.message : String(err),
+          err instanceof Error ? err.message : String(err)
         );
       }
     },
-    { schema: downloaderInstallYtdlpArgs },
+    { schema: downloaderInstallYtdlpArgs }
   );
 
   handle(
@@ -603,14 +623,14 @@ export function registerDownloaderHandlers(): void {
     async () => {
       return getYtDlpPath();
     },
-    { schema: downloaderGetYtdlpPathArgs },
+    { schema: downloaderGetYtdlpPathArgs }
   );
 
   handleWithFallback(
     'downloader:check-ffmpeg',
     () => getFFmpegStatus(),
     () => ({ installed: isFFmpegInstalled() }) as BinaryStatus,
-    { schema: downloaderCheckFfmpegArgs },
+    { schema: downloaderCheckFfmpegArgs }
   );
 
   handle(
@@ -618,7 +638,7 @@ export function registerDownloaderHandlers(): void {
     async () => {
       try {
         const mainWindow = getMainWindow();
-        await downloadFFmpeg((percent) => {
+        await downloadFFmpeg(percent => {
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('downloader:ffmpeg-install-progress', { percent });
           }
@@ -628,88 +648,88 @@ export function registerDownloaderHandlers(): void {
         logger.error('[downloader] Failed to install ffmpeg:', err);
         throw new IpcError(
           'downloader.install_failed',
-          err instanceof Error ? err.message : String(err),
+          err instanceof Error ? err.message : String(err)
         );
       }
     },
-    { schema: downloaderInstallFfmpegArgs },
+    { schema: downloaderInstallFfmpegArgs }
   );
 
   handle(
     'downloader:install-dependencies',
     async (): Promise<InstallDependenciesResult> => {
-    const mainWindow = getMainWindow();
-    const targets: Array<'ytdlp' | 'ffmpeg'> = [];
+      const mainWindow = getMainWindow();
+      const targets: Array<'ytdlp' | 'ffmpeg'> = [];
 
-    if (!isYtDlpInstalled()) {
-      targets.push('ytdlp');
-    }
-    if (!isFFmpegInstalled()) {
-      targets.push('ffmpeg');
-    }
-
-    if (targets.length === 0) {
-      return { results: [] };
-    }
-
-    const stepWeight = 100 / targets.length;
-    const sendProgress = (progress: DependencyInstallProgress) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('downloader:dependency-install-progress', progress);
+      if (!isYtDlpInstalled()) {
+        targets.push('ytdlp');
       }
-    };
+      if (!isFFmpegInstalled()) {
+        targets.push('ffmpeg');
+      }
 
-    const results: ToolInstallResult[] = [];
+      if (targets.length === 0) {
+        return { results: [] };
+      }
 
-    for (const [index, target] of targets.entries()) {
-      const offset = index * stepWeight;
+      const stepWeight = 100 / targets.length;
+      const sendProgress = (progress: DependencyInstallProgress) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('downloader:dependency-install-progress', progress);
+        }
+      };
 
-      try {
-        if (target === 'ytdlp') {
-          await downloadYtDlp((percent) => {
-            sendProgress({
-              target,
-              percent,
-              overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
-              label:
-                targets.length > 1
-                  ? `Installing yt-dlp (${index + 1}/${targets.length})`
-                  : 'Installing yt-dlp',
+      const results: ToolInstallResult[] = [];
+
+      for (const [index, target] of targets.entries()) {
+        const offset = index * stepWeight;
+
+        try {
+          if (target === 'ytdlp') {
+            await downloadYtDlp(percent => {
+              sendProgress({
+                target,
+                percent,
+                overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
+                label:
+                  targets.length > 1
+                    ? `Installing yt-dlp (${index + 1}/${targets.length})`
+                    : 'Installing yt-dlp',
+              });
             });
-          });
-        } else {
-          await downloadFFmpeg((percent) => {
-            sendProgress({
-              target,
-              percent,
-              overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
-              label:
-                targets.length > 1
-                  ? `Installing ffmpeg (${index + 1}/${targets.length})`
-                  : 'Installing ffmpeg',
+          } else {
+            await downloadFFmpeg(percent => {
+              sendProgress({
+                target,
+                percent,
+                overallPercent: Math.min(100, Math.round(offset + (percent / 100) * stepWeight)),
+                label:
+                  targets.length > 1
+                    ? `Installing ffmpeg (${index + 1}/${targets.length})`
+                    : 'Installing ffmpeg',
+              });
             });
+          }
+
+          results.push({ tool: target, success: true });
+        } catch (err) {
+          logger.error(`[downloader] Failed to install ${target}:`, err);
+          results.push({
+            tool: target,
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
           });
         }
-
-        results.push({ tool: target, success: true });
-      } catch (err) {
-        logger.error(`[downloader] Failed to install ${target}:`, err);
-        results.push({
-          tool: target,
-          success: false,
-          error: err instanceof Error ? err.message : String(err),
-        });
       }
-    }
 
-    invalidateToolStatusCache();
-    return { results };
+      invalidateToolStatusCache();
+      return { results };
     },
-    { schema: downloaderInstallDependenciesArgs },
+    { schema: downloaderInstallDependenciesArgs }
   );
 
   // Background refresh on startup — populate cache silently
-  fetchAndCacheToolStatus().catch((err) => {
+  fetchAndCacheToolStatus().catch(err => {
     logger.warn('[downloader] Background tool status refresh failed:', err);
   });
 }
