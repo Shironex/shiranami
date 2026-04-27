@@ -32,12 +32,16 @@ export function NowPlayingView() {
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
 
-  const { data, isLoading: lyricsLoading, isError: lyricsError } = useLyricsQuery(
+  const {
+    data,
+    isLoading: lyricsLoading,
+    isError: lyricsError,
+  } = useLyricsQuery(
     currentTrack?.id ?? null,
     currentTrack?.title ?? '',
     currentTrack?.artist ?? '',
     currentTrack?.album,
-    currentTrack?.duration,
+    currentTrack?.duration
   );
 
   useEffect(() => {
@@ -131,11 +135,11 @@ export function NowPlayingView() {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', damping: 22, stiffness: 250 }}
               className={cn(
-                'aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
+                'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
                 'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
                 lyricsVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[clamp(280px,22vw,480px)]'
-                  : 'w-full max-w-[clamp(300px,24vw,440px)]'
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(48vh,22vw,480px)]'
+                  : 'w-full max-w-[min(52vh,24vw,440px)]'
               )}
             >
               {currentTrack.albumArt ? (
