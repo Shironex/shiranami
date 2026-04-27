@@ -138,8 +138,8 @@ export function NowPlayingView() {
                 'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
                 'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
                 lyricsVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(48vh,22vw,480px)]'
-                  : 'w-full max-w-[min(52vh,24vw,440px)]'
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(48vh,clamp(280px,22vw,480px))]'
+                  : 'w-full max-w-[min(52vh,clamp(300px,24vw,440px))]'
               )}
             >
               {currentTrack.albumArt ? (
