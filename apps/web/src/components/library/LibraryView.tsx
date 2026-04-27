@@ -4,14 +4,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
-import {
-  Download,
-  LayoutGrid,
-  List,
-  Music,
-  Search,
-  X,
-} from 'lucide-react';
+import { Download, LayoutGrid, List, Music, Search, X } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { NowPlayingHero } from '@/components/shared/NowPlayingHero';
 import { motion, AnimatePresence } from 'motion/react';
@@ -106,7 +99,11 @@ export function LibraryView() {
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder={libraryViewMode === 'albums' ? t('filterAlbumsPlaceholder') : t('filterPlaceholder')}
+                placeholder={
+                  libraryViewMode === 'albums'
+                    ? t('filterAlbumsPlaceholder')
+                    : t('filterPlaceholder')
+                }
                 className="w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-card border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors"
               />
               <AnimatePresence>
@@ -139,6 +136,7 @@ export function LibraryView() {
                     modeName: t('sortByName'),
                     modeArtist: t('sortByArtist'),
                     modeYear: t('sortByYear'),
+                    modeRecentlyAdded: t('sortByRecentlyAdded'),
                     orderAsc: t('sortOrderAsc'),
                     orderDesc: t('sortOrderDesc'),
                   }}
@@ -212,7 +210,9 @@ export function LibraryView() {
         <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
           <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
           <div>
-            <p className="font-display text-base font-medium text-muted-foreground">{t('noMatchesTitle')}</p>
+            <p className="font-display text-base font-medium text-muted-foreground">
+              {t('noMatchesTitle')}
+            </p>
             <p className="text-sm text-muted-foreground/50 mt-1">{t('noMatchesSubtitle')}</p>
           </div>
         </div>
@@ -225,7 +225,14 @@ export function LibraryView() {
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue: filteredLibrary, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
+            rowProps={{
+              queue: filteredLibrary,
+              currentTrack,
+              isPlaying,
+              handlePlayTrack,
+              onToggleFavorite: toggleFavorite,
+              showAddToPlaylist: true,
+            }}
           />
         </div>
       )}
