@@ -10,11 +10,11 @@
     "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.8",
+    "@astrojs/check": "^0.9.9",
     "@astrojs/react": "^5.0.4",
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.4",
-    "astro": "^6.1.9",
+    "astro": "^6.1.10",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "react": "^18.3.1",
