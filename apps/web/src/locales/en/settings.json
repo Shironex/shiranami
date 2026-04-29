@@ -68,7 +68,6 @@
     "rememberPosition": "Remember playback position",
     "rememberDesc": "Resume tracks from where you left off",
     "crossfade": "Crossfade",
-    "beta": "Beta",
     "crossfadeDesc": "Smooth volume transition between tracks",
     "duration": "Duration",
     "discordRpc": "Discord Rich Presence",
@@ -106,7 +105,6 @@
     "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
     "noiseOverlay": "Noise texture",
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default — adds a small amount of GPU work.",
-    "new": "New",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar"
   },
@@ -170,7 +168,8 @@
     "subtitle": "Application information",
     "version": "Version {{version}}",
     "tagline": "Your personal music sanctuary",
-    "madeWithLove": "Made with \u2665",
+    "madeWith": "Made with",
+    "byShiro": "by Shiro",
     "altMascot": "Shiranami mascot",
     "openLogs": "Open logs folder"
   }
