@@ -97,9 +97,10 @@ describe('ffmpeg-manager', () => {
         const actualFs = await vi.importActual<typeof import('fs')>('fs');
         return {
           ...actualFs,
-          existsSync: vi.fn()
-            .mockReturnValueOnce(false)  // ffmpeg
-            .mockReturnValueOnce(true),  // ffprobe
+          existsSync: vi
+            .fn()
+            .mockReturnValueOnce(false) // ffmpeg
+            .mockReturnValueOnce(true), // ffprobe
         };
       });
 
@@ -113,8 +114,9 @@ describe('ffmpeg-manager', () => {
         const actualFs = await vi.importActual<typeof import('fs')>('fs');
         return {
           ...actualFs,
-          existsSync: vi.fn()
-            .mockReturnValueOnce(true)   // ffmpeg
+          existsSync: vi
+            .fn()
+            .mockReturnValueOnce(true) // ffmpeg
             .mockReturnValueOnce(false), // ffprobe
         };
       });
@@ -142,12 +144,16 @@ describe('ffmpeg-manager', () => {
     });
 
     // Helper: mock Worker to simulate extraction result
-    function createDownloadMocks(workerResponse: { success: boolean; method?: string; error?: string }) {
+    function createDownloadMocks(workerResponse: {
+      success: boolean;
+      method?: string;
+      error?: string;
+    }) {
       const mockWorkerConstructor = vi.fn();
       const extractDir = path.join(tempDir, 'bin', '_ffmpeg_extract');
 
       vi.doMock('node:worker_threads', () => ({
-        Worker: vi.fn().mockImplementation(() => {
+        Worker: vi.fn().mockImplementation(function () {
           const handlers: Record<string, (...args: unknown[]) => void> = {};
           mockWorkerConstructor();
           // Simulate async worker message
@@ -169,13 +175,17 @@ describe('ffmpeg-manager', () => {
           request: vi.fn(() => {
             const handlers: Record<string, (...args: unknown[]) => void> = {};
             return {
-              on(event: string, cb: (...args: unknown[]) => void) { handlers[event] = cb; },
+              on(event: string, cb: (...args: unknown[]) => void) {
+                handlers[event] = cb;
+              },
               end() {
                 const rh: Record<string, (...args: unknown[]) => void> = {};
                 handlers['response']!({
                   statusCode: 200,
                   headers: { 'content-length': '100' },
-                  on(event: string, cb: (...args: unknown[]) => void) { rh[event] = cb; },
+                  on(event: string, cb: (...args: unknown[]) => void) {
+                    rh[event] = cb;
+                  },
                 });
                 rh['data']!(Buffer.alloc(100));
                 rh['end']!();
@@ -255,9 +265,12 @@ describe('ffmpeg-manager', () => {
       const mockRmSync = vi.fn();
 
       vi.doMock('node:worker_threads', () => ({
-        Worker: vi.fn().mockImplementation(() => {
+        Worker: vi.fn().mockImplementation(function () {
           const handlers: Record<string, (...args: unknown[]) => void> = {};
-          setTimeout(() => handlers['message']?.({ success: false, error: 'extraction failed' }), 0);
+          setTimeout(
+            () => handlers['message']?.({ success: false, error: 'extraction failed' }),
+            0
+          );
           return {
             on(event: string, cb: (...args: unknown[]) => void) {
               handlers[event] = cb;
@@ -275,13 +288,17 @@ describe('ffmpeg-manager', () => {
           request: vi.fn(() => {
             const handlers: Record<string, (...args: unknown[]) => void> = {};
             return {
-              on(event: string, cb: (...args: unknown[]) => void) { handlers[event] = cb; },
+              on(event: string, cb: (...args: unknown[]) => void) {
+                handlers[event] = cb;
+              },
               end() {
                 const rh: Record<string, (...args: unknown[]) => void> = {};
                 handlers['response']!({
                   statusCode: 200,
                   headers: { 'content-length': '100' },
-                  on(event: string, cb: (...args: unknown[]) => void) { rh[event] = cb; },
+                  on(event: string, cb: (...args: unknown[]) => void) {
+                    rh[event] = cb;
+                  },
                 });
                 rh['data']!(Buffer.alloc(100));
                 rh['end']!();
@@ -352,10 +369,12 @@ describe('ffmpeg-manager', () => {
     }
 
     function mockDarwinDownload() {
-      const mockDownloadFile = vi.fn(async (_url: string, _dest: string, onProgress?: (p: number) => void) => {
-        onProgress?.(50);
-        onProgress?.(100);
-      });
+      const mockDownloadFile = vi.fn(
+        async (_url: string, _dest: string, onProgress?: (p: number) => void) => {
+          onProgress?.(50);
+          onProgress?.(100);
+        }
+      );
       vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       return mockDownloadFile;
     }
@@ -380,20 +399,38 @@ describe('ffmpeg-manager', () => {
       // Security regression net: assert argv shape, not template strings.
       const calls = mockExecFileSync.mock.calls;
       expect(calls[0]?.[0]).toBe('unzip');
-      expect(calls[0]?.[1]).toEqual(['-o', expect.stringContaining('ffmpeg.zip'), '-d', expect.any(String)]);
+      expect(calls[0]?.[1]).toEqual([
+        '-o',
+        expect.stringContaining('ffmpeg.zip'),
+        '-d',
+        expect.any(String),
+      ]);
       expect(calls[1]?.[0]).toBe('unzip');
-      expect(calls[1]?.[1]).toEqual(['-o', expect.stringContaining('ffprobe.zip'), '-d', expect.any(String)]);
+      expect(calls[1]?.[1]).toEqual([
+        '-o',
+        expect.stringContaining('ffprobe.zip'),
+        '-d',
+        expect.any(String),
+      ]);
       expect(calls[2]?.[0]).toBe('xattr');
-      expect(calls[2]?.[1]).toEqual(['-d', 'com.apple.quarantine', expect.stringMatching(/ffmpeg$/)]);
+      expect(calls[2]?.[1]).toEqual([
+        '-d',
+        'com.apple.quarantine',
+        expect.stringMatching(/ffmpeg$/),
+      ]);
       expect(calls[3]?.[0]).toBe('xattr');
-      expect(calls[3]?.[1]).toEqual(['-d', 'com.apple.quarantine', expect.stringMatching(/ffprobe$/)]);
+      expect(calls[3]?.[1]).toEqual([
+        '-d',
+        'com.apple.quarantine',
+        expect.stringMatching(/ffprobe$/),
+      ]);
 
       // Zip cleanup + chmod happened
       expect(mockUnlinkSync).toHaveBeenCalledTimes(2);
       expect(mockChmodSync).toHaveBeenCalledTimes(2);
 
       // Progress reached ~98 (last call before chmod/xattr is 98)
-      const progressValues = onProgress.mock.calls.map((c) => c[0] as number);
+      const progressValues = onProgress.mock.calls.map(c => c[0] as number);
       expect(progressValues).toContain(98);
       expect(progressValues).toContain(100);
     });
@@ -417,7 +454,7 @@ describe('ffmpeg-manager', () => {
 
       // Confirm xattr was actually called (proves we hit the swallowed branch,
       // not that we skipped it).
-      const xattrCalls = mockExecFileSync.mock.calls.filter((c) => c[0] === 'xattr');
+      const xattrCalls = mockExecFileSync.mock.calls.filter(c => c[0] === 'xattr');
       expect(xattrCalls.length).toBeGreaterThanOrEqual(1);
     });
   });
