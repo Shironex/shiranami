@@ -13,6 +13,7 @@ export interface AlbumSortControlProps {
     modeName: string;
     modeArtist: string;
     modeYear: string;
+    modeRecentlyAdded: string;
     orderAsc: string;
     orderDesc: string;
   };
@@ -24,13 +25,21 @@ function modeLabel(mode: AlbumSortMode, labels: AlbumSortControlProps['labels'])
       return labels.modeArtist;
     case 'year':
       return labels.modeYear;
+    case 'recentlyAdded':
+      return labels.modeRecentlyAdded;
     case 'name':
     default:
       return labels.modeName;
   }
 }
 
-export function AlbumSortControl({ mode, order, onModeChange, onOrderChange, labels }: AlbumSortControlProps) {
+export function AlbumSortControl({
+  mode,
+  order,
+  onModeChange,
+  onOrderChange,
+  labels,
+}: AlbumSortControlProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -49,15 +58,13 @@ export function AlbumSortControl({ mode, order, onModeChange, onOrderChange, lab
             {labels.button}
           </p>
           <div className="flex flex-col gap-0.5">
-            {(['name', 'artist', 'year'] as const).map(m => (
+            {(['name', 'artist', 'year', 'recentlyAdded'] as const).map(m => (
               <button
                 key={m}
                 onClick={() => onModeChange(m)}
                 className={cn(
                   'text-left px-2 py-1.5 rounded-md text-xs transition-colors',
-                  mode === m
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-foreground/80 hover:bg-accent'
+                  mode === m ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-accent'
                 )}
               >
                 {modeLabel(m, labels)}

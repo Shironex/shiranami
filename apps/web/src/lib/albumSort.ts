@@ -5,6 +5,7 @@ export interface AlbumData {
   name: string;
   artist: string;
   year: number | null;
+  createdAt: string | null;
   albumArt?: string;
   trackCount: number;
   tracks: Track[];
@@ -21,7 +22,7 @@ export interface AlbumData {
 export function groupTracksByAlbum(
   tracks: Track[],
   sortMode: AlbumSortMode = 'name',
-  sortOrder: AlbumSortOrder = 'asc',
+  sortOrder: AlbumSortOrder = 'asc'
 ): AlbumData[] {
   const map = new Map<string, AlbumData>();
   const artistSets = new Map<string, Set<string>>();
@@ -38,6 +39,12 @@ export function groupTracksByAlbum(
       if (existing.year == null && track.year != null) {
         existing.year = track.year;
       }
+      const trackCreatedAt = track.createdAt ?? null;
+      if (trackCreatedAt !== null) {
+        if (existing.createdAt === null || trackCreatedAt < existing.createdAt) {
+          existing.createdAt = trackCreatedAt;
+        }
+      }
       const artists = artistSets.get(key)!;
       artists.add(track.artist);
       existing.artist = Array.from(artists).join(', ');
@@ -47,6 +54,7 @@ export function groupTracksByAlbum(
         name: key,
         artist: track.artist,
         year: track.year ?? null,
+        createdAt: track.createdAt ?? null,
         albumArt: track.albumArt,
         trackCount: 1,
         tracks: [track],
@@ -77,6 +85,14 @@ export function groupTracksByAlbum(
         const primary = (yearA - yearB) * direction;
         if (primary !== 0) return primary;
         // Secondary: album name (ascending)
+        return a.name.localeCompare(b.name);
+      }
+      case 'recentlyAdded': {
+        // SQLite `datetime('now')` is 'YYYY-MM-DD HH:MM:SS' — string compare avoids Date.parse NaN on Safari.
+        const ta = a.createdAt ?? '';
+        const tb = b.createdAt ?? '';
+        const primary = (ta < tb ? -1 : ta > tb ? 1 : 0) * direction;
+        if (primary !== 0) return primary;
         return a.name.localeCompare(b.name);
       }
       case 'name':

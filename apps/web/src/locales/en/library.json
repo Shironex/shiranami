@@ -20,6 +20,7 @@
   "sortByName": "Album name",
   "sortByArtist": "Artist",
   "sortByYear": "Year",
+  "sortByRecentlyAdded": "Recently added",
   "sortOrderAsc": "Ascending",
   "sortOrderDesc": "Descending",
   "gridSize": "Grid size",
