@@ -9,10 +9,13 @@ import { makeTempDir, cleanupTempDir } from '../../test/setup';
 
 type PostedMessage = { success: boolean; method?: string; error?: string };
 
-async function runWorker(workerData: { zipPath: string; destDir: string }, opts: {
-  admZipImpl?: () => { extractAllTo: (dest: string, overwrite: boolean) => void };
-  execFileSync?: (cmd: string, args: string[]) => Buffer | string;
-} = {}): Promise<PostedMessage> {
+async function runWorker(
+  workerData: { zipPath: string; destDir: string },
+  opts: {
+    admZipImpl?: () => { extractAllTo: (dest: string, overwrite: boolean) => void };
+    execFileSync?: (cmd: string, args: string[]) => Buffer | string;
+  } = {}
+): Promise<PostedMessage> {
   vi.resetModules();
 
   const messages: PostedMessage[] = [];
@@ -25,17 +28,21 @@ async function runWorker(workerData: { zipPath: string; destDir: string }, opts:
     workerData,
   }));
 
-  const admZipImpl = opts.admZipImpl ?? (() => ({
-    extractAllTo: vi.fn(),
-  }));
+  const admZipImpl =
+    opts.admZipImpl ??
+    function () {
+      return { extractAllTo: vi.fn() };
+    };
   vi.doMock('adm-zip', () => ({
     default: vi.fn().mockImplementation(admZipImpl),
   }));
 
   vi.doMock('node:child_process', () => ({
-    execFileSync: opts.execFileSync ?? vi.fn(() => {
-      throw new Error('no fallback configured');
-    }),
+    execFileSync:
+      opts.execFileSync ??
+      vi.fn(() => {
+        throw new Error('no fallback configured');
+      }),
   }));
 
   await import('./extract-worker');
@@ -66,14 +73,14 @@ describe('extract-worker', () => {
     const msg = await runWorker(
       { zipPath: '/fake.zip', destDir: tempDir },
       {
-        admZipImpl: () => {
+        admZipImpl: function () {
           throw new Error('adm-zip broken');
         },
         execFileSync: vi.fn((cmd: string) => {
           if (cmd === 'tar') return Buffer.from('');
           throw new Error('should not be called');
         }),
-      },
+      }
     );
     expect(msg).toEqual({ success: true, method: 'tar' });
   });
@@ -86,11 +93,11 @@ describe('extract-worker', () => {
     const msg = await runWorker(
       { zipPath: '/fake.zip', destDir: tempDir },
       {
-        admZipImpl: () => {
+        admZipImpl: function () {
           throw new Error('adm-zip broken');
         },
         execFileSync,
-      },
+      }
     );
     expect(msg).toEqual({ success: true, method: 'powershell' });
   });
@@ -99,13 +106,13 @@ describe('extract-worker', () => {
     const msg = await runWorker(
       { zipPath: '/fake.zip', destDir: tempDir },
       {
-        admZipImpl: () => {
+        admZipImpl: function () {
           throw new Error('adm-zip err');
         },
         execFileSync: vi.fn(() => {
           throw new Error('all failed');
         }),
-      },
+      }
     );
     expect(msg.success).toBe(false);
     expect(msg.error).toMatch(/All extraction methods failed/);
