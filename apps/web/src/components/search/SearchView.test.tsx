@@ -240,6 +240,52 @@ describe('SearchView', () => {
     expect(screen.getByText(/Installing ffmpeg in the background/)).toBeInTheDocument();
     expect(screen.getByText(/Downloading ffmpeg.*65%/)).toBeInTheDocument();
   });
+
+  it('calls dismiss and delegates to originalHandleKeyDown when Enter is pressed with suggestions open but none highlighted', async () => {
+    const user = userEvent.setup();
+    mockUseSearchSuggestions.suggestions = ['lofi beats', 'lofi hip hop'];
+    mockUseSearchSuggestions.isOpen = true;
+    mockUseSearchSuggestions.highlightedIndex = -1;
+    await renderSearchView();
+
+    const input = screen.getByPlaceholderText('Search for music...');
+    await user.click(input);
+    await user.keyboard('{Enter}');
+
+    expect(mockUseSearchSuggestions.dismiss).toHaveBeenCalledOnce();
+    expect(mockUseSearch.handleKeyDown).toHaveBeenCalled();
+  });
+
+  it('selects the highlighted suggestion and does not delegate to originalHandleKeyDown when Enter is pressed with a suggestion highlighted', async () => {
+    const user = userEvent.setup();
+    mockUseSearchSuggestions.suggestions = ['lofi beats', 'lofi hip hop'];
+    mockUseSearchSuggestions.isOpen = true;
+    mockUseSearchSuggestions.highlightedIndex = 0;
+    await renderSearchView();
+
+    const input = screen.getByPlaceholderText('Search for music...');
+    await user.click(input);
+    await user.keyboard('{Enter}');
+
+    // selectAndSearch calls dismiss + setQuery; originalHandleKeyDown must NOT be called
+    expect(mockUseSearch.setQuery).toHaveBeenCalledWith('lofi beats');
+    expect(mockUseSearch.handleKeyDown).not.toHaveBeenCalled();
+  });
+
+  it('does not call dismiss when Enter is pressed with suggestions closed', async () => {
+    const user = userEvent.setup();
+    mockUseSearchSuggestions.suggestions = ['lofi beats'];
+    mockUseSearchSuggestions.isOpen = false;
+    mockUseSearchSuggestions.highlightedIndex = -1;
+    await renderSearchView();
+
+    const input = screen.getByPlaceholderText('Search for music...');
+    await user.click(input);
+    await user.keyboard('{Enter}');
+
+    expect(mockUseSearchSuggestions.dismiss).not.toHaveBeenCalled();
+    expect(mockUseSearch.handleKeyDown).toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -260,7 +306,7 @@ describe('DependencyInstallCard', () => {
       installProgress: number;
       installLabel: string;
       onInstall: () => void;
-    }> = {},
+    }> = {}
   ) {
     const { DependencyInstallCard } = await import('./DependencyInstallCard');
     const defaults = {

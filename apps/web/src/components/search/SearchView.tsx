@@ -26,23 +26,40 @@ export function SearchView() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
-    query, setQuery, results, isSearching, searchError,
-    handleSearch, handleKeyDown: originalHandleKeyDown, handleDownload, getDownloadState,
-    previewLoadingId, isPreviewPlaying, handlePreview,
+    query,
+    setQuery,
+    results,
+    isSearching,
+    searchError,
+    handleSearch,
+    handleKeyDown: originalHandleKeyDown,
+    handleDownload,
+    getDownloadState,
+    previewLoadingId,
+    isPreviewPlaying,
+    handlePreview,
   } = useSearch();
 
   const {
-    suggestions, highlightedIndex, setHighlightedIndex,
-    isOpen: suggestionsOpen, setIsOpen: setSuggestionsOpen, close: closeSuggestions, dismiss: dismissSuggestions,
+    suggestions,
+    highlightedIndex,
+    setHighlightedIndex,
+    isOpen: suggestionsOpen,
+    setIsOpen: setSuggestionsOpen,
+    close: closeSuggestions,
+    dismiss: dismissSuggestions,
   } = useSearchSuggestions(query);
 
   const pendingSearchRef = useRef(false);
 
-  const selectAndSearch = useCallback((text: string) => {
-    setQuery(text);
-    dismissSuggestions();
-    pendingSearchRef.current = true;
-  }, [setQuery, dismissSuggestions]);
+  const selectAndSearch = useCallback(
+    (text: string) => {
+      setQuery(text);
+      dismissSuggestions();
+      pendingSearchRef.current = true;
+    },
+    [setQuery, dismissSuggestions]
+  );
 
   // Fire search when pendingSearchRef is set (after suggestion selection updates query)
   useEffect(() => {
@@ -57,22 +74,22 @@ export function SearchView() {
       if (suggestionsOpen && suggestions.length > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setHighlightedIndex(prev =>
-            prev < suggestions.length - 1 ? prev + 1 : 0
-          );
+          setHighlightedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0));
           return;
         }
         if (e.key === 'ArrowUp') {
           e.preventDefault();
-          setHighlightedIndex(prev =>
-            prev > 0 ? prev - 1 : suggestions.length - 1
-          );
+          setHighlightedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1));
           return;
         }
-        if (e.key === 'Enter' && highlightedIndex >= 0) {
-          e.preventDefault();
-          selectAndSearch(suggestions[highlightedIndex]);
-          return;
+        if (e.key === 'Enter') {
+          if (highlightedIndex >= 0) {
+            e.preventDefault();
+            selectAndSearch(suggestions[highlightedIndex]);
+            return;
+          }
+          dismissSuggestions();
+          // fall through to originalHandleKeyDown for the actual search
         }
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -82,24 +99,32 @@ export function SearchView() {
       }
       originalHandleKeyDown(e);
     },
-    [suggestionsOpen, suggestions, highlightedIndex, setHighlightedIndex, closeSuggestions, selectAndSearch, originalHandleKeyDown]
+    [
+      suggestionsOpen,
+      suggestions,
+      highlightedIndex,
+      setHighlightedIndex,
+      closeSuggestions,
+      dismissSuggestions,
+      selectAndSearch,
+      originalHandleKeyDown,
+    ]
   );
 
   const {
-    dependencyState, dependencyInstallStatus, dependencyInstallError,
-    dependenciesSnapshot, isDependencyInstallInProgress,
-    dependencyInstallProgress, dependencyInstallLabel, dependencyInstallTarget,
+    dependencyState,
+    dependencyInstallStatus,
+    dependencyInstallError,
+    dependenciesSnapshot,
+    isDependencyInstallInProgress,
+    dependencyInstallProgress,
+    dependencyInstallLabel,
+    dependencyInstallTarget,
     handleInstallDependencies,
   } = useSearchDependencies();
 
   if (dependencyState === 'checking') {
-    return (
-      <SearchStateCard
-        title={t('preparing')}
-        description={t('preparingDesc')}
-        loading
-      />
-    );
+    return <SearchStateCard title={t('preparing')} description={t('preparingDesc')} loading />;
   }
 
   if (dependencyState === 'needs-install') {
@@ -127,7 +152,7 @@ export function SearchView() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => suggestions.length > 0 && setSuggestionsOpen(true)}
             onBlur={() => closeSuggestions()}
@@ -142,18 +167,20 @@ export function SearchView() {
           />
           {isSearching ? (
             <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" />
-          ) : query && (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery('');
-                closeSuggestions();
-                inputRef.current?.focus();
-              }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+          ) : (
+            query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  closeSuggestions();
+                  inputRef.current?.focus();
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )
           )}
 
           {suggestionsOpen && suggestions.length > 0 && (
@@ -172,7 +199,7 @@ export function SearchView() {
                       ? 'bg-accent text-foreground'
                       : 'text-foreground/80 hover:bg-accent/50'
                   )}
-                  onMouseDown={(e) => {
+                  onMouseDown={e => {
                     e.preventDefault(); // Prevent input blur
                     selectAndSearch(suggestion);
                   }}
@@ -277,14 +304,12 @@ export function SearchView() {
               title={t('emptyTitle')}
               subtitle={t('emptySubtitle')}
               icon={Search}
-              hints={[
-                { icon: Keyboard, label: t('emptyHintEnter') },
-              ]}
+              hints={[{ icon: Keyboard, label: t('emptyHintEnter') }]}
             />
           )
         ) : (
           <div className="space-y-1">
-            {results.map((result) => {
+            {results.map(result => {
               const dlState = getDownloadState(result);
               const isDownloading =
                 dlState.status === 'downloading' || dlState.status === 'converting';
@@ -347,15 +372,29 @@ export function SearchView() {
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
                       {result.uploader}
                       {result.view_count != null && (
-                        <span className="text-muted-foreground/50"> · {
-                          result.view_count >= 1_000_000_000
-                            ? t('viewsBillion', { count: (result.view_count / 1_000_000_000).toFixed(1).replace(/\.0$/, '') })
+                        <span className="text-muted-foreground/50">
+                          {' '}
+                          ·{' '}
+                          {result.view_count >= 1_000_000_000
+                            ? t('viewsBillion', {
+                                count: (result.view_count / 1_000_000_000)
+                                  .toFixed(1)
+                                  .replace(/\.0$/, ''),
+                              })
                             : result.view_count >= 1_000_000
-                              ? t('viewsMillion', { count: (result.view_count / 1_000_000).toFixed(1).replace(/\.0$/, '') })
+                              ? t('viewsMillion', {
+                                  count: (result.view_count / 1_000_000)
+                                    .toFixed(1)
+                                    .replace(/\.0$/, ''),
+                                })
                               : result.view_count >= 1_000
-                                ? t('viewsThousand', { count: (result.view_count / 1_000).toFixed(1).replace(/\.0$/, '') })
-                                : t('views', { count: result.view_count })
-                        }</span>
+                                ? t('viewsThousand', {
+                                    count: (result.view_count / 1_000)
+                                      .toFixed(1)
+                                      .replace(/\.0$/, ''),
+                                  })
+                                : t('views', { count: result.view_count })}
+                        </span>
                       )}
                     </p>
                   </div>
