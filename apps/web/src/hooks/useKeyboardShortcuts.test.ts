@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, renderHook } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
@@ -15,7 +15,7 @@ vi.mock('@/lib/platform', () => ({
 // Use importOriginal so initReactI18next (and other exports) remain
 // available — @/lib/i18n.ts is now reachable from the hook via the
 // toast feedback path and needs the real plugin shape at module init.
-vi.mock('react-i18next', async (importOriginal) => {
+vi.mock('react-i18next', async importOriginal => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return {
     ...actual,
@@ -23,11 +23,7 @@ vi.mock('react-i18next', async (importOriginal) => {
   };
 });
 
-function pressKey(
-  key: string,
-  opts: Partial<KeyboardEventInit> = {},
-  target?: Element,
-) {
+function pressKey(key: string, opts: Partial<KeyboardEventInit> = {}, target?: Element) {
   const eventTarget = target ?? document;
   fireEvent.keyDown(eventTarget, { key, ...opts });
 }
@@ -61,6 +57,17 @@ describe('useKeyboardShortcuts', () => {
       selectedTrackIds: new Set(),
       lastClickedIndex: null,
     });
+  });
+
+  // Vitest 4 returns the same spy instance when vi.spyOn is called twice on
+  // the same target, and `restoreAllMocks` no longer clears spy call history
+  // — restore and clear are now independent. We need both: restore so the
+  // store method is back to its original, and clear so any spy that vitest
+  // still tracks for that target starts fresh.
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   function setup() {
@@ -384,10 +391,7 @@ describe('useKeyboardShortcuts', () => {
   describe('Modifier shortcuts (Ctrl/Cmd)', () => {
     it('Ctrl+B toggles sidebar', () => {
       setup();
-      const toggleSpy = vi.spyOn(
-        useAppStore.getState(),
-        'toggleSidebarCollapsed',
-      );
+      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true });
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -472,10 +476,7 @@ describe('useKeyboardShortcuts', () => {
       const input = document.createElement('input');
       document.body.appendChild(input);
 
-      const toggleSpy = vi.spyOn(
-        useAppStore.getState(),
-        'toggleSidebarCollapsed',
-      );
+      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true }, input);
       expect(toggleSpy).toHaveBeenCalledOnce();
