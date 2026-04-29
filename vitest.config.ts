@@ -11,7 +11,6 @@ export default defineConfig({
     ],
     coverage: {
       provider: 'v8',
-      all: true,
       include: [
         'apps/web/src/**/*.{ts,tsx}',
         'apps/desktop/src/main/**/*.{ts,tsx}',
