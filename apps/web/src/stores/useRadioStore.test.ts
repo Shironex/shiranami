@@ -6,10 +6,12 @@ const { mockSearchStations } = vi.hoisted(() => ({
 }));
 
 vi.mock('radio-browser-api', () => ({
-  RadioBrowserApi: vi.fn().mockImplementation(() => ({
-    searchStations: mockSearchStations,
-    getStationsByVotes: vi.fn(),
-  })),
+  RadioBrowserApi: vi.fn().mockImplementation(function () {
+    return {
+      searchStations: mockSearchStations,
+      getStationsByVotes: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('@/lib/platform', () => ({
@@ -126,13 +128,11 @@ describe('useRadioStore', () => {
 
       // First call resolves slowly, second resolves immediately
       let resolveFirst!: (value: Station[]) => void;
-      const firstPromise = new Promise<Station[]>((r) => {
+      const firstPromise = new Promise<Station[]>(r => {
         resolveFirst = r;
       });
 
-      mockSearchStations
-        .mockReturnValueOnce(firstPromise)
-        .mockResolvedValueOnce(freshStations);
+      mockSearchStations.mockReturnValueOnce(firstPromise).mockResolvedValueOnce(freshStations);
 
       const p1 = useRadioStore.getState().searchStations('old query');
       const p2 = useRadioStore.getState().searchStations('new query');
