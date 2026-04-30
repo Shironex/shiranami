@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.16.1': '磨', // "polish/refine"
   '0.16.0': '等', // "equal" — equalizer release
   '0.15.0': '白', // "white" — the named release
   '0.14.1': '速', // "fast"
@@ -125,6 +126,67 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.16.1',
+    date: '2026-04-30',
+    title: l(
+      'Polish pass — sort by recently added & smoother edges',
+      'Drobne szlify — sortowanie po ostatnio dodanych i wygładzone krawędzie'
+    ),
+    description: l(
+      'A small follow-up to 0.16 — a new "Recently added" sort for albums, several quality-of-life fixes across the player and full-screen view, and a fix for non-ASCII filenames that were quietly breaking the downloader.',
+      'Mały dodatek do 0.16 — nowa opcja sortowania albumów po ostatnio dodanych, kilka usprawnień jakości życia w odtwarzaczu i widoku pełnoekranowym oraz naprawione pobieranie utworów z polskimi i japońskimi znakami w nazwach.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Albums can now be sorted by "Recently added" — see your newest additions to the library at the top of the grid',
+            'Albumy można teraz sortować według „Ostatnio dodanych" — najnowsze pozycje z biblioteki pojawiają się na górze siatki'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Downloader now correctly handles tracks with Polish, Japanese and other non-Latin characters in the title — previously these names came back garbled and the file could not be saved',
+            'Moduł pobierania radzi sobie teraz poprawnie z utworami zawierającymi polskie, japońskie i inne znaki spoza alfabetu łacińskiego — wcześniej takie nazwy wracały zniekształcone i pliku nie dało się zapisać'
+          ),
+          l(
+            'Full-screen album art stays square at higher UI scaling levels instead of getting clipped',
+            'Okładka albumu w widoku pełnoekranowym pozostaje kwadratowa przy zwiększonej skali interfejsu, zamiast być przycinana'
+          ),
+          l(
+            'Full-screen album art keeps a sensible minimum size on narrow windows',
+            'Okładka albumu w widoku pełnoekranowym zachowuje rozsądny minimalny rozmiar na wąskich oknach'
+          ),
+          l(
+            'Compact mode no longer shows the track title twice in the header',
+            'Tryb kompaktowy nie pokazuje już dwukrotnie tytułu utworu w nagłówku'
+          ),
+          l(
+            'Search suggestions now close when you submit a search with Enter, instead of staying open over the results',
+            'Sugestie wyszukiwania zamykają się teraz po zatwierdzeniu wyszukiwania klawiszem Enter, zamiast pozostawać otwarte nad wynikami'
+          ),
+        ],
+      },
+      {
+        label: l('Improvements', 'Ulepszenia'),
+        entries: [
+          l(
+            'Preview badges removed from features that have settled in and are no longer experimental',
+            'Etykiety „Preview" zniknęły z funkcji, które się ustabilizowały i nie są już eksperymentalne'
+          ),
+          l(
+            'Updated About page with refreshed attribution',
+            'Zaktualizowana strona „O aplikacji" z odświeżonymi podziękowaniami'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.16.0',
     date: '2026-04-26',
