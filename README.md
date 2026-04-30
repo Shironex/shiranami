@@ -1,7 +1,7 @@
 <a name="top"></a>
 
 <div align="center">
-  <img src="assets/icon.png" alt="Shiranami" width="128" height="128" />
+  <img src="apps/landing/public/assets/icon.png" alt="Shiranami" width="128" height="128" />
 
   <h1>白波 &nbsp;·&nbsp; Shiranami</h1>
 
@@ -42,7 +42,7 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 ### Screenshot
 
 <p align="center">
-  <img src="assets/library.png" alt="Shiranami library view" width="720" />
+  <img src="apps/landing/src/assets/library.png" alt="Shiranami library view" width="720" />
   <br />
   <em>Your library, now playing, and queue — all in one calm view.</em>
 </p>
@@ -56,7 +56,7 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 | **Playlist import**          | Pull full YouTube or Spotify playlists into a review list before download      |
 | **Internet radio**           | Browse, stream, and favorite stations from Radio Browser                       |
 | **Synced lyrics**            | Lyrics that scroll with the music, click any line to seek                      |
-| **Search & download**        | Find tracks on YouTube, preview audio, and download with yt-dlp + ffmpeg      |
+| **Search & download**        | Find tracks on YouTube, preview audio, and download with yt-dlp + ffmpeg       |
 | **Crossfade**                | Dual-deck engine with equal-power crossfade, configurable from 1 to 12 seconds |
 | **Sleep timer**              | Preset durations with a live countdown and auto-pause when time is up          |
 | **Compact mode**             | Mini player with always-on-top, full controls in a smaller window              |
@@ -68,7 +68,7 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 | **Ambient color**            | Extracts the dominant color from album art and tints the entire UI             |
 | **Playback resume**          | Volume, queue, track, and position survive restarts                            |
 | **System tray & media keys** | Control playback from the tray icon or your keyboard's media keys              |
-| **UI scale**                 | Adjust the interface from 80 % to 120 % to match your display                 |
+| **UI scale**                 | Adjust the interface from 80 % to 120 % to match your display                  |
 | **Auto-updater**             | In-app updates on Windows, GitHub Releases link on macOS                       |
 | **Dark lavender mood**       | One quiet theme that matches the late-night listening vibe                     |
 
@@ -94,16 +94,16 @@ Grab the latest build from [Releases](https://github.com/Shironex/shiranami/rele
 
 ### Built with
 
-|          |                                              |
-| -------- | -------------------------------------------- |
-| Desktop  | Electron 40                                  |
-| Frontend | React 18, Vite 7, Tailwind CSS 4             |
-| Database | SQLite, better-sqlite3, Drizzle ORM          |
-| Landing  | Astro 6, Tailwind CSS 4                      |
-| UI       | Radix UI, Lucide Icons                       |
-| State    | Zustand                                      |
-| Quality  | ESLint, Prettier, Husky                      |
-| CI/CD    | GitHub Actions                               |
+|          |                                     |
+| -------- | ----------------------------------- |
+| Desktop  | Electron 40                         |
+| Frontend | React 18, Vite 7, Tailwind CSS 4    |
+| Database | SQLite, better-sqlite3, Drizzle ORM |
+| Landing  | Astro 6, Tailwind CSS 4             |
+| UI       | Radix UI, Lucide Icons              |
+| State    | Zustand                             |
+| Quality  | ESLint, Prettier, Husky             |
+| CI/CD    | GitHub Actions                      |
 
 ### Building from source
 
@@ -144,8 +144,7 @@ shiranami/
 ├── packages/
 │   ├── database/         # Drizzle schema and DB helpers
 │   └── shared/           # Shared types and constants
-├── scripts/              # Versioning and build helpers
-└── assets/               # Logo, screenshots
+└── scripts/              # Versioning and build helpers
 ```
 
 ---
