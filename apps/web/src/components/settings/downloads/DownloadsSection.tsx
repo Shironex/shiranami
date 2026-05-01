@@ -1,9 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import {
-  ArrowDownToLine,
-  Download,
-  RefreshCw,
-} from 'lucide-react';
+import { ArrowDownToLine, Download, RefreshCw } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { DownloadLocationPanel } from '@/components/settings/downloads/DownloadLocationPanel';
 import { DownloadsSectionSkeleton } from '@/components/settings/downloads/DownloadsSectionSkeleton';
@@ -11,6 +7,7 @@ import { InstallProgressBar } from '@/components/settings/downloads/InstallProgr
 import { ToolStatusRow } from '@/components/settings/downloads/ToolStatusRow';
 import { ToolVersionBlock } from '@/components/settings/downloads/ToolVersionBlock';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export function DownloadsSection() {
@@ -72,14 +69,14 @@ export function DownloadsSection() {
                     caption={`${s.dependencyInstallLabel}... ${s.dependencyInstallProgress}%`}
                   />
                 ) : (
-                  <button
+                  <Button
                     type="button"
                     onClick={s.handleInstallMissingTools}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    className="rounded-xl [&_svg]:size-3.5"
                   >
-                    <ArrowDownToLine className="w-3.5 h-3.5" />
+                    <ArrowDownToLine />
                     {t('dl.installMissing')}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -118,19 +115,18 @@ export function DownloadsSection() {
                 className="px-1"
               />
             ) : s.ytdlpInstalled && s.ytdlpUpdateAvailable ? (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={s.handleInstallYtDlp}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                className="rounded-xl [&_svg]:size-3.5"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download />
                 {t('dl.updateYtdlp')}
-              </button>
+              </Button>
             ) : (
               <p className="text-xs text-muted-foreground/60 px-1">
-                {s.ytdlpInstalled
-                  ? t('dl.ytdlpLatest')
-                  : t('dl.ytdlpInstallHint')}
+                {s.ytdlpInstalled ? t('dl.ytdlpLatest') : t('dl.ytdlpInstallHint')}
               </p>
             )}
 
@@ -162,19 +158,18 @@ export function DownloadsSection() {
                 className="px-1"
               />
             ) : s.ffmpegInstalled && s.ffmpegUpdateAvailable ? (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={s.handleInstallFfmpeg}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
+                className="rounded-xl [&_svg]:size-3.5"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download />
                 {t('dl.updateFfmpeg')}
-              </button>
+              </Button>
             ) : (
               <p className="text-xs text-muted-foreground/60 px-1">
-                {s.ffmpegInstalled
-                  ? t('dl.ffmpegLatest')
-                  : t('dl.ffmpegInstallHint')}
+                {s.ffmpegInstalled ? t('dl.ffmpegLatest') : t('dl.ffmpegInstallHint')}
               </p>
             )}
           </>
