@@ -1,0 +1,272 @@
+import { useTranslation } from 'react-i18next';
+import { PictureInPicture2 } from 'lucide-react';
+import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import {
+  useAppStore,
+  COMPACT_AMBIENT_INTENSITY_MIN,
+  COMPACT_AMBIENT_INTENSITY_MAX,
+  COMPACT_AMBIENT_INTENSITY_STEP,
+  COMPACT_AMBIENT_INTENSITY_DEFAULT,
+  COMPACT_SIZE_DEFAULT,
+  COMPACT_FONT_SIZE_DEFAULT,
+  type CompactSize,
+  type CompactFontSize,
+} from '@/stores/useAppStore';
+import { cn } from '@/lib/utils';
+
+const SIZES: CompactSize[] = ['sm', 'md', 'lg'];
+const FONT_SIZES: CompactFontSize[] = ['sm', 'md', 'lg'];
+
+export function CompactSection() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
+
+  const compactSize = useAppStore(s => s.compactSize);
+  const compactFontSize = useAppStore(s => s.compactFontSize);
+  const compactAmbientIntensity = useAppStore(s => s.compactAmbientIntensity);
+  const compactShowAlbumArt = useAppStore(s => s.compactShowAlbumArt);
+  const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
+  const compactShowSeek = useAppStore(s => s.compactShowSeek);
+  const compactShowVolume = useAppStore(s => s.compactShowVolume);
+  const compactShowQuickActions = useAppStore(s => s.compactShowQuickActions);
+  const compactDefaultAlwaysOnTop = useAppStore(s => s.compactDefaultAlwaysOnTop);
+
+  const setCompactSize = useAppStore(s => s.setCompactSize);
+  const setCompactFontSize = useAppStore(s => s.setCompactFontSize);
+  const setCompactAmbientIntensity = useAppStore(s => s.setCompactAmbientIntensity);
+  const setCompactShowAlbumArt = useAppStore(s => s.setCompactShowAlbumArt);
+  const setCompactShowAlbum = useAppStore(s => s.setCompactShowAlbum);
+  const setCompactShowSeek = useAppStore(s => s.setCompactShowSeek);
+  const setCompactShowVolume = useAppStore(s => s.setCompactShowVolume);
+  const setCompactShowQuickActions = useAppStore(s => s.setCompactShowQuickActions);
+  const setCompactDefaultAlwaysOnTop = useAppStore(s => s.setCompactDefaultAlwaysOnTop);
+  const resetCompactAppearance = useAppStore(s => s.resetCompactAppearance);
+
+  const isModified =
+    compactSize !== COMPACT_SIZE_DEFAULT ||
+    compactFontSize !== COMPACT_FONT_SIZE_DEFAULT ||
+    compactAmbientIntensity !== COMPACT_AMBIENT_INTENSITY_DEFAULT ||
+    !compactShowAlbumArt ||
+    !compactShowAlbum ||
+    !compactShowSeek ||
+    !compactShowVolume ||
+    compactShowQuickActions ||
+    compactDefaultAlwaysOnTop;
+
+  return (
+    <SettingsCard icon={PictureInPicture2} title={t('cmp.title')} subtitle={t('cmp.subtitle')}>
+      <div className="space-y-8">
+        {/* Size + typography */}
+        <div className="space-y-5">
+          <PresetControl
+            title={t('cmp.size.title')}
+            description={t('cmp.size.desc')}
+            options={SIZES}
+            labelKey="cmp.size"
+            value={compactSize}
+            onChange={setCompactSize}
+          />
+          <PresetControl
+            title={t('cmp.fontSize.title')}
+            description={t('cmp.fontSize.desc')}
+            options={FONT_SIZES}
+            labelKey="cmp.fontSize"
+            value={compactFontSize}
+            onChange={setCompactFontSize}
+          />
+          <OpacityControl
+            title={t('cmp.ambient.title')}
+            description={t('cmp.ambient.desc')}
+            value={compactAmbientIntensity}
+            min={COMPACT_AMBIENT_INTENSITY_MIN}
+            max={COMPACT_AMBIENT_INTENSITY_MAX}
+            step={COMPACT_AMBIENT_INTENSITY_STEP}
+            onChange={setCompactAmbientIntensity}
+          />
+        </div>
+
+        {/* Element visibility */}
+        <Subsection title={t('cmp.elements.title')} subtitle={t('cmp.elements.subtitle')}>
+          <SwitchRow
+            title={t('cmp.elements.albumArt')}
+            description={t('cmp.elements.albumArtDesc')}
+            checked={compactShowAlbumArt}
+            onChange={setCompactShowAlbumArt}
+          />
+          <SwitchRow
+            title={t('cmp.elements.album')}
+            description={t('cmp.elements.albumDesc')}
+            checked={compactShowAlbum}
+            onChange={setCompactShowAlbum}
+          />
+          <SwitchRow
+            title={t('cmp.elements.seek')}
+            description={t('cmp.elements.seekDesc')}
+            checked={compactShowSeek}
+            onChange={setCompactShowSeek}
+          />
+          <SwitchRow
+            title={t('cmp.elements.volume')}
+            description={t('cmp.elements.volumeDesc')}
+            checked={compactShowVolume}
+            onChange={setCompactShowVolume}
+          />
+          <SwitchRow
+            title={t('cmp.elements.quickActions')}
+            description={t('cmp.elements.quickActionsDesc')}
+            checked={compactShowQuickActions}
+            onChange={setCompactShowQuickActions}
+          />
+        </Subsection>
+
+        {/* Behavior */}
+        <Subsection title={t('cmp.behavior.title')} subtitle={t('cmp.behavior.subtitle')}>
+          <SwitchRow
+            title={t('cmp.behavior.defaultAlwaysOnTop')}
+            description={t('cmp.behavior.defaultAlwaysOnTopDesc')}
+            checked={compactDefaultAlwaysOnTop}
+            onChange={setCompactDefaultAlwaysOnTop}
+          />
+        </Subsection>
+
+        {isModified && (
+          <div className="px-3">
+            <button
+              onClick={resetCompactAppearance}
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {tc('reset')}
+            </button>
+          </div>
+        )}
+      </div>
+    </SettingsCard>
+  );
+}
+
+interface SubsectionProps {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}
+
+function Subsection({ title, subtitle, children }: SubsectionProps) {
+  return (
+    <div className="space-y-4">
+      <div className="px-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/80">
+          {title}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+
+interface PresetControlProps<T extends string> {
+  title: string;
+  description: string;
+  options: readonly T[];
+  /** i18n key prefix; the lookup is `${labelKey}.${option}`. */
+  labelKey: string;
+  value: T;
+  onChange: (value: T) => void;
+}
+
+function PresetControl<T extends string>({
+  title,
+  description,
+  options,
+  labelKey,
+  value,
+  onChange,
+}: PresetControlProps<T>) {
+  const { t } = useTranslation('settings');
+  return (
+    <div className="px-3">
+      <p className="mb-1 text-sm font-medium text-foreground">{title}</p>
+      <p className="mb-3 text-xs text-muted-foreground">{description}</p>
+      <div className="flex items-center gap-1.5">
+        {options.map(option => (
+          <button
+            key={option}
+            onClick={() => onChange(option)}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              value === option
+                ? 'border border-primary/40 bg-primary/15 text-primary'
+                : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+            )}
+          >
+            {t(`${labelKey}.${option}`)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+interface OpacityControlProps {
+  title: string;
+  description: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}
+
+function OpacityControl({
+  title,
+  description,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: OpacityControlProps) {
+  // Show as percent of max so users can read the slider as a 0–100 dial.
+  const percent = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="px-3">
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <span className="text-xs tabular-nums text-muted-foreground">{percent}%</span>
+      </div>
+      <p className="mb-4 text-xs text-muted-foreground">{description}</p>
+      <Slider
+        min={min}
+        max={max}
+        step={step}
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+      />
+    </div>
+  );
+}
+
+interface SwitchRowProps {
+  title: string;
+  description?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+function SwitchRow({ title, description, checked, onChange }: SwitchRowProps) {
+  return (
+    <div className="px-3">
+      <div className="-mx-3 flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/30">
+        <div className="pr-4">
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+        </div>
+        <Switch checked={checked} onCheckedChange={onChange} />
+      </div>
+    </div>
+  );
+}
+
+export default CompactSection;

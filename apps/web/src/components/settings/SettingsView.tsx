@@ -8,6 +8,7 @@ import {
   SlidersHorizontal,
   AudioLines,
   Captions,
+  PictureInPicture2,
   Monitor,
   RefreshCcw,
   Info,
@@ -22,6 +23,7 @@ import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
+import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
 
 type SettingsSection =
@@ -32,6 +34,7 @@ type SettingsSection =
   | 'equalizer'
   | 'visualizer'
   | 'lyrics'
+  | 'compact'
   | 'appearance'
   | 'updates'
   | 'about';
@@ -44,6 +47,7 @@ const SECTIONS: { id: SettingsSection; labelKey: string; Icon: typeof FolderOpen
   { id: 'equalizer', labelKey: 'equalizer', Icon: SlidersHorizontal },
   { id: 'visualizer', labelKey: 'visualizer', Icon: AudioLines },
   { id: 'lyrics', labelKey: 'lyrics', Icon: Captions },
+  { id: 'compact', labelKey: 'compact', Icon: PictureInPicture2 },
   { id: 'appearance', labelKey: 'appearance', Icon: Monitor },
   { id: 'updates', labelKey: 'updates', Icon: RefreshCcw },
   { id: 'about', labelKey: 'about', Icon: Info },
@@ -57,6 +61,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   equalizer: EqualizerSection,
   visualizer: VisualizerSection,
   lyrics: LyricsSection,
+  compact: CompactSection,
   appearance: AppearanceSection,
   updates: UpdatesSection,
   about: AboutSection,
