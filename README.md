@@ -80,7 +80,7 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 | **Low-perf mode**                  | Disables heavy animations and effects for older or lower-power machines                    |
 | **Noise overlay**                  | Subtle film-grain texture over the UI for a warmer aesthetic                               |
 | **UI scale**                       | Adjust the interface from 80 % to 120 % to match your display                              |
-| **EN + PL interface**              | Full English and Polish localisation, switchable at runtime                                |
+| **EN + PL interface**              | Full English and Polish localization, switchable at runtime                                |
 | **Ambient color**                  | Extracts the dominant color from album art and tints the entire UI                         |
 | **Playback resume**                | Volume, queue, track, and position survive restarts                                        |
 | **Discord Rich Presence**          | Shows the currently playing track in your Discord status                                   |
