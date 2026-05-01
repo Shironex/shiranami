@@ -8,6 +8,7 @@ import { ToolStatusRow } from '@/components/settings/downloads/ToolStatusRow';
 import { ToolVersionBlock } from '@/components/settings/downloads/ToolVersionBlock';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { cn } from '@/lib/utils';
 
 export function DownloadsSection() {
@@ -29,15 +30,14 @@ export function DownloadsSection() {
     s.downloadLocation || s.downloadLocationDefaultPath || t('dl.checking');
 
   const refreshButton = (
-    <button
-      type="button"
+    <IconButton
       onClick={s.handleRefresh}
       disabled={s.isRefreshing || s.isCheckingDownloadTools}
       title={t('dl.refresh')}
-      className="p-1.5 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      aria-label={t('dl.refresh')}
     >
-      <RefreshCw className={cn('w-3.5 h-3.5', s.isRefreshing && 'animate-spin')} />
-    </button>
+      <RefreshCw className={cn(s.isRefreshing && 'animate-spin')} />
+    </IconButton>
   );
 
   return (

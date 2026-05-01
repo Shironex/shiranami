@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
@@ -68,13 +69,14 @@ export function MusicFoldersSection() {
                   <span className="text-sm text-foreground truncate flex-1 font-mono">
                     {folder.path}
                   </span>
-                  <button
+                  <IconButton
                     onClick={() => removeFolder(folder.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                    className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive"
                     title={t('folders.remove')}
+                    aria-label={t('folders.remove')}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    <X />
+                  </IconButton>
                 </div>
               ))
             )}
