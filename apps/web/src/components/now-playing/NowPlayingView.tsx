@@ -248,8 +248,10 @@ export function NowPlayingView() {
                 className="contents"
                 style={
                   {
-                    '--lyrics-idle-opacity': lyricsSyncedDimOpacity,
-                    '--lyrics-past-opacity': lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO,
+                    '--lyrics-idle-opacity': String(lyricsSyncedDimOpacity),
+                    '--lyrics-past-opacity': String(
+                      lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO
+                    ),
                   } as React.CSSProperties
                 }
               >
