@@ -2,7 +2,8 @@ import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import type { LyricsFontSize } from '@/stores/useAppStore';
+import { useAppStore, LYRICS_SYNCED_PAST_RATIO } from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
@@ -17,11 +18,29 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 
-const NP_BASE =
-  'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 text-base @5xl:text-lg @7xl:text-xl';
-const NP_ACTIVE = 'text-foreground text-xl @5xl:!text-2xl @7xl:!text-3xl font-semibold';
-const NP_PAST = 'text-muted-foreground/20';
-const NP_IDLE = 'text-muted-foreground/40 hover:text-muted-foreground/65';
+const NP_PLAIN_SIZE_CLASS: Record<LyricsFontSize, string> = {
+  sm: 'text-xs @5xl:text-sm @7xl:text-base',
+  base: 'text-sm @5xl:text-base @7xl:text-lg',
+  lg: 'text-base @5xl:text-lg @7xl:text-xl',
+  xl: 'text-lg @5xl:text-xl @7xl:text-2xl',
+};
+
+const NP_SYNCED_BASE_SIZE_CLASS: Record<LyricsFontSize, string> = {
+  sm: 'text-sm @5xl:text-base @7xl:text-lg',
+  base: 'text-base @5xl:text-lg @7xl:text-xl',
+  lg: 'text-lg @5xl:text-xl @7xl:text-2xl',
+  xl: 'text-xl @5xl:text-2xl @7xl:text-3xl',
+};
+
+const NP_SYNCED_ACTIVE_SIZE_CLASS: Record<LyricsFontSize, string> = {
+  sm: 'text-lg @5xl:!text-xl @7xl:!text-2xl',
+  base: 'text-xl @5xl:!text-2xl @7xl:!text-3xl',
+  lg: 'text-2xl @5xl:!text-3xl @7xl:!text-4xl',
+  xl: 'text-3xl @5xl:!text-4xl @7xl:!text-4xl',
+};
+
+const NP_BASE_SHARED =
+  'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
 
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
@@ -32,6 +51,19 @@ export function NowPlayingView() {
   const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
+  const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
+  const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
+  const lyricsSyncedDimOpacity = useAppStore(s => s.lyricsSyncedDimOpacity);
+  const lyricsSyncedFontSize = useAppStore(s => s.lyricsSyncedFontSize);
+
+  const npBase = cn(NP_BASE_SHARED, NP_SYNCED_BASE_SIZE_CLASS[lyricsSyncedFontSize]);
+  const npActive = cn(
+    'text-foreground font-semibold',
+    NP_SYNCED_ACTIVE_SIZE_CLASS[lyricsSyncedFontSize]
+  );
+  const npIdle =
+    'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:opacity-100 transition-opacity';
+  const npPast = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
 
   const {
     data,
@@ -212,21 +244,37 @@ export function NowPlayingView() {
                 </div>
               </div>
             ) : synced && synced.length > 0 ? (
-              <LyricsList
-                lines={synced}
-                activeIndex={activeLine}
-                onLineClick={handleLineClick}
-                containerClassName="pr-2 @3xl:pr-4"
-                spacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
-                bottomSpacerClassName="h-[40vh]"
-                baseClassName={NP_BASE}
-                activeClassName={NP_ACTIVE}
-                pastClassName={NP_PAST}
-                idleClassName={NP_IDLE}
-              />
+              <div
+                className="contents"
+                style={
+                  {
+                    '--lyrics-idle-opacity': lyricsSyncedDimOpacity,
+                    '--lyrics-past-opacity': lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO,
+                  } as React.CSSProperties
+                }
+              >
+                <LyricsList
+                  lines={synced}
+                  activeIndex={activeLine}
+                  onLineClick={handleLineClick}
+                  containerClassName="pr-2 @3xl:pr-4"
+                  spacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
+                  bottomSpacerClassName="h-[40vh]"
+                  baseClassName={npBase}
+                  activeClassName={npActive}
+                  pastClassName={npPast}
+                  idleClassName={npIdle}
+                />
+              </div>
             ) : plain ? (
               <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
-                <pre className="text-sm @5xl:text-base @7xl:text-lg text-muted-foreground/45 whitespace-pre-wrap font-sans leading-relaxed">
+                <pre
+                  className={cn(
+                    'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em] leading-relaxed',
+                    NP_PLAIN_SIZE_CLASS[lyricsPlainFontSize]
+                  )}
+                  style={{ opacity: lyricsPlainOpacity }}
+                >
                   {plain}
                 </pre>
               </div>
