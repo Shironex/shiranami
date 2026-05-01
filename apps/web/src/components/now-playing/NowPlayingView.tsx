@@ -42,6 +42,9 @@ const NP_SYNCED_ACTIVE_SIZE_CLASS: Record<LyricsFontSize, string> = {
 const NP_BASE_SHARED =
   'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
 
+const NP_IDLE = 'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:opacity-100';
+const NP_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
+
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
   const { t: tToast } = useTranslation('toast');
@@ -61,9 +64,6 @@ export function NowPlayingView() {
     'text-foreground font-semibold',
     NP_SYNCED_ACTIVE_SIZE_CLASS[lyricsSyncedFontSize]
   );
-  const npIdle =
-    'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:opacity-100 transition-opacity';
-  const npPast = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
 
   const {
     data,
@@ -262,8 +262,8 @@ export function NowPlayingView() {
                   bottomSpacerClassName="h-[40vh]"
                   baseClassName={npBase}
                   activeClassName={npActive}
-                  pastClassName={npPast}
-                  idleClassName={npIdle}
+                  pastClassName={NP_PAST}
+                  idleClassName={NP_IDLE}
                 />
               </div>
             ) : plain ? (
