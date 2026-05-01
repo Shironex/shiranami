@@ -7,5 +7,6 @@
   "keepOnTop": "Keep on top",
   "disableOnTop": "Disable always on top",
   "exitCompactMode": "Exit compact mode",
-  "minimize": "Minimize"
+  "minimize": "Minimize",
+  "expandFromCompact": "Expand to full player"
 }

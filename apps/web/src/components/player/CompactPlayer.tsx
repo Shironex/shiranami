@@ -34,6 +34,20 @@ export function CompactPlayer() {
   const handleToggleAlwaysOnTop = useCallback(() => {
     void toggleCompactAlwaysOnTop();
   }, [toggleCompactAlwaysOnTop]);
+
+  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
+  const handleAlbumArtClick = useCallback(async () => {
+    // Mirror the Spotify/Apple Music mini-player gesture: clicking the art
+    // exits compact and surfaces the immersive Now Playing view if the user
+    // has it enabled. Otherwise just exit compact and let the regular full
+    // window come back into focus.
+    await setCompactMode(false);
+    if (nowPlayingViewEnabled && currentTrack) {
+      enterNowPlaying();
+    }
+  }, [setCompactMode, nowPlayingViewEnabled, enterNowPlaying, currentTrack]);
+
   const showSeekBar = !!currentTrack && !isRadioTrack(currentTrack.filePath);
 
   const titleText = currentTrack?.title ?? t('nothingPlaying');
@@ -106,17 +120,22 @@ export function CompactPlayer() {
 
       <div className="relative flex min-h-0 flex-1 items-center p-2.5">
         <div className="glass-subtle relative flex h-full w-full items-stretch gap-2.5 overflow-hidden rounded-[20px] border border-border/25 p-2.5">
-          <div className="flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20">
+          <button
+            type="button"
+            onClick={handleAlbumArtClick}
+            className="group/art flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label={t('expandFromCompact')}
+          >
             {currentTrack?.albumArt ? (
               <img
                 src={currentTrack.albumArt}
                 alt={currentTrack.album}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-opacity group-hover/art:opacity-90"
               />
             ) : (
-              <Music className="size-7 text-muted-foreground/45" />
+              <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />
             )}
-          </div>
+          </button>
 
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="min-w-0">
@@ -139,7 +158,7 @@ export function CompactPlayer() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-center gap-3.5">
                 <PlayerControls />
-                <VolumeControl sliderClassName="w-12" />
+                <VolumeControl sliderClassName="w-20" />
               </div>
 
               {showSeekBar ? (

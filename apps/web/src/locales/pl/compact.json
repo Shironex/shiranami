@@ -7,5 +7,6 @@
   "keepOnTop": "Zawsze na wierzchu",
   "disableOnTop": "Wyłącz zawsze na wierzchu",
   "exitCompactMode": "Wyjdź z trybu kompaktowego",
-  "minimize": "Minimalizuj"
+  "minimize": "Minimalizuj",
+  "expandFromCompact": "Rozwiń do pełnego odtwarzacza"
 }
