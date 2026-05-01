@@ -39,11 +39,7 @@ export function MetadataEnrichSection() {
     const unknownAlbum = tc('unknownAlbum');
     return library.filter(
       t =>
-        t.artist === unknownArtist ||
-        t.album === unknownAlbum ||
-        !t.albumArt ||
-        !t.genre ||
-        !t.year
+        t.artist === unknownArtist || t.album === unknownAlbum || !t.albumArt || !t.genre || !t.year
     );
   }, [library, tc]);
 
@@ -72,12 +68,16 @@ export function MetadataEnrichSection() {
   if (!IS_ELECTRON) return null;
 
   return (
-    <SettingsCard icon={Disc3} title={
-      <span className="flex items-center gap-2">
-        {t('lib.enrichMetadata')}
-        <StatusBadge variant="experimental">{t('lib.experimental')}</StatusBadge>
-      </span>
-    } subtitle={t('lib.enrichSubtitle')}>
+    <SettingsCard
+      icon={Disc3}
+      title={
+        <span className="flex items-center gap-2">
+          {t('lib.enrichMetadata')}
+          <StatusBadge variant="experimental">{t('lib.experimental')}</StatusBadge>
+        </span>
+      }
+      subtitle={t('lib.enrichSubtitle')}
+    >
       <div className="space-y-4">
         {/* Stats */}
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
@@ -88,7 +88,8 @@ export function MetadataEnrichSection() {
               : t('lib.noTracksToEnrich')}
             {skippedCount > 0 && (
               <span className="text-muted-foreground">
-                {' '}{t('lib.enrichSkippedInline', { count: skippedCount })}
+                {' '}
+                {t('lib.enrichSkippedInline', { count: skippedCount })}
               </span>
             )}
           </span>
@@ -107,9 +108,11 @@ export function MetadataEnrichSection() {
           <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
             <div>
               <p className="text-sm font-medium text-foreground">{t('lib.enrichOnlyMissing')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('lib.enrichOnlyMissingDesc')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t('lib.enrichOnlyMissingDesc')}
+              </p>
             </div>
-            <Switch checked={onlyMissing} onChange={setOnlyMissing} />
+            <Switch checked={onlyMissing} onCheckedChange={setOnlyMissing} />
           </div>
 
           {/* Write-to-file: amber warning styling when enabled so users can't miss that files will be modified. */}
@@ -121,9 +124,7 @@ export function MetadataEnrichSection() {
             }
           >
             <div className="flex items-start gap-2 min-w-0">
-              {writeToFile && (
-                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-              )}
+              {writeToFile && <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />}
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">{t('lib.enrichWriteToFile')}</p>
                 <p
@@ -139,18 +140,20 @@ export function MetadataEnrichSection() {
                 </p>
               </div>
             </div>
-            <Switch checked={writeToFile} onChange={setWriteToFile} />
+            <Switch checked={writeToFile} onCheckedChange={setWriteToFile} />
           </div>
 
           {skippedCount > 0 && (
             <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
               <div>
-                <p className="text-sm font-medium text-foreground">{t('lib.enrichIncludeSkipped')}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {t('lib.enrichIncludeSkipped')}
+                </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t('lib.enrichIncludeSkippedDesc', { count: skippedCount })}
                 </p>
               </div>
-              <Switch checked={includeSkipped} onChange={setIncludeSkipped} />
+              <Switch checked={includeSkipped} onCheckedChange={setIncludeSkipped} />
             </div>
           )}
         </div>
@@ -165,7 +168,8 @@ export function MetadataEnrichSection() {
               </span>
             </div>
             <div className="text-xs text-muted-foreground truncate">
-              {progress.status === 'searching' && t('lib.enrichSearching', { track: progress.trackName })}
+              {progress.status === 'searching' &&
+                t('lib.enrichSearching', { track: progress.trackName })}
               {progress.status === 'downloading' && t('lib.enrichDownloading')}
               {progress.status === 'writing' && t('lib.enrichWriting')}
               {progress.status === 'done' && (

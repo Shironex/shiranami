@@ -8,12 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
-import {
-  useEqStore,
-  EQ_MIN_DB,
-  EQ_MAX_DB,
-  type NamedEqPresetId,
-} from '@/stores/useEqStore';
+import { useEqStore, EQ_MIN_DB, EQ_MAX_DB, type NamedEqPresetId } from '@/stores/useEqStore';
 
 const PREAMP_MIN_DB = -12;
 const PREAMP_MAX_DB = 12;
@@ -36,10 +31,7 @@ const ORDERED_PRESETS: NamedEqPresetId[] = [
   'loudness',
 ];
 
-function formatBandLabel(
-  t: (key: string, opts?: Record<string, unknown>) => string,
-  freq: number,
-) {
+function formatBandLabel(t: (key: string, opts?: Record<string, unknown>) => string, freq: number) {
   if (freq >= 1000) return t('bandLabelKhz', { freq: freq / 1000 });
   return t('bandLabel', { freq });
 }
@@ -86,7 +78,7 @@ function VerticalBandSlider({
               className={cn(
                 'relative flex flex-col items-center justify-center touch-none select-none h-full',
                 'group cursor-pointer',
-                disabled && 'opacity-50 cursor-not-allowed',
+                disabled && 'opacity-50 cursor-not-allowed'
               )}
             >
               <SliderPrimitive.Track className="relative w-1.5 h-full grow overflow-hidden rounded-full bg-foreground/15 group-hover:w-2 transition-all duration-200">
@@ -102,7 +94,9 @@ function VerticalBandSlider({
         </TooltipTrigger>
         <TooltipContent side="top" className="text-center">
           <div className="font-medium">{bandName}</div>
-          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">{gainLabel}</div>
+          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">
+            {gainLabel}
+          </div>
         </TooltipContent>
       </Tooltip>
       <span className="text-[10px] text-muted-foreground/80 tabular-nums">
@@ -115,27 +109,23 @@ function VerticalBandSlider({
 export function EqualizerSection() {
   const { t } = useTranslation('equalizer');
 
-  const enabled = useEqStore((s) => s.enabled);
-  const preset = useEqStore((s) => s.preset);
-  const gains = useEqStore((s) => s.gains);
-  const preampDb = useEqStore((s) => s.preampDb);
-  const setEnabled = useEqStore((s) => s.setEnabled);
-  const setBandGain = useEqStore((s) => s.setBandGain);
-  const setPreampDb = useEqStore((s) => s.setPreampDb);
-  const applyPreset = useEqStore((s) => s.applyPreset);
-  const reset = useEqStore((s) => s.reset);
+  const enabled = useEqStore(s => s.enabled);
+  const preset = useEqStore(s => s.preset);
+  const gains = useEqStore(s => s.gains);
+  const preampDb = useEqStore(s => s.preampDb);
+  const setEnabled = useEqStore(s => s.setEnabled);
+  const setBandGain = useEqStore(s => s.setBandGain);
+  const setPreampDb = useEqStore(s => s.setPreampDb);
+  const applyPreset = useEqStore(s => s.applyPreset);
+  const reset = useEqStore(s => s.reset);
 
   const presetTiles = useMemo(
-    () => ORDERED_PRESETS.map((id) => ({ id, label: t(`preset.${id}`) })),
-    [t],
+    () => ORDERED_PRESETS.map(id => ({ id, label: t(`preset.${id}`) })),
+    [t]
   );
 
   return (
-    <SettingsCard
-      icon={SlidersHorizontal}
-      title={t('title')}
-      subtitle={t('subtitle')}
-    >
+    <SettingsCard icon={SlidersHorizontal} title={t('title')} subtitle={t('subtitle')}>
       <div className="space-y-5">
         {/* Enable switch */}
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
@@ -143,14 +133,14 @@ export function EqualizerSection() {
             <p className="text-sm font-medium text-foreground">{t('enable')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{t('enableDesc')}</p>
           </div>
-          <Switch checked={enabled} onChange={setEnabled} />
+          <Switch checked={enabled} onCheckedChange={setEnabled} />
         </div>
 
         {/* Preset tiles */}
         <div className="px-3">
           <p className="text-xs text-muted-foreground mb-3">{t('preset')}</p>
           <div className="grid grid-cols-3 gap-2">
-            {presetTiles.map((tile) => {
+            {presetTiles.map(tile => {
               const selected = preset === tile.id;
               return (
                 <button
@@ -161,7 +151,7 @@ export function EqualizerSection() {
                     'px-3 py-2 rounded-lg border text-center text-xs font-medium transition-all',
                     selected
                       ? 'border-primary/40 bg-primary/10 text-foreground'
-                      : 'border-border/30 text-muted-foreground hover:border-border/50 hover:bg-accent/30 hover:text-foreground/80',
+                      : 'border-border/30 text-muted-foreground hover:border-border/50 hover:bg-accent/30 hover:text-foreground/80'
                   )}
                 >
                   {tile.label}
@@ -187,7 +177,7 @@ export function EqualizerSection() {
                 key={freq}
                 freq={freq}
                 value={gains[i] ?? 0}
-                onChange={(db) => setBandGain(i, db)}
+                onChange={db => setBandGain(i, db)}
                 disabled={!enabled}
                 label={formatBandLabel(t, freq)}
                 bandName={t(`bandName.${freq}`)}

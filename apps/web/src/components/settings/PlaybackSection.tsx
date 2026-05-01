@@ -34,7 +34,7 @@ export function PlaybackSection() {
           </div>
           <Switch
             checked={rememberPlaybackPosition}
-            onChange={v => updateSetting('rememberPlaybackPosition', v)}
+            onCheckedChange={v => updateSetting('rememberPlaybackPosition', v)}
           />
         </div>
 
@@ -43,7 +43,7 @@ export function PlaybackSection() {
             <p className="text-sm font-medium text-foreground">{t('play.crossfade')}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{t('play.crossfadeDesc')}</p>
           </div>
-          <Switch checked={crossfadeEnabled} onChange={setCrossfadeEnabled} />
+          <Switch checked={crossfadeEnabled} onCheckedChange={setCrossfadeEnabled} />
         </div>
 
         {crossfadeEnabled && (
@@ -74,7 +74,7 @@ export function PlaybackSection() {
               <p className="text-sm font-medium text-foreground">{t('play.discordRpc')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{t('play.discordDesc')}</p>
             </div>
-            <Switch checked={discordRpc} onChange={v => updateSetting('discordRpc', v)} />
+            <Switch checked={discordRpc} onCheckedChange={v => updateSetting('discordRpc', v)} />
           </div>
         )}
       </div>
