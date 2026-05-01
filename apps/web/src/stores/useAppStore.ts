@@ -19,12 +19,26 @@ export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
+export type LyricsPlainFontSize = 'sm' | 'base' | 'lg' | 'xl';
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
 export const UI_SCALE_DEFAULT = 100;
 export const UI_SCALE_STEP = 5;
 export const UI_SCALE_PRESETS = [80, 90, 100, 110, 120] as const;
+
+export const LYRICS_PLAIN_OPACITY_MIN = 0.5;
+export const LYRICS_PLAIN_OPACITY_MAX = 1.0;
+export const LYRICS_PLAIN_OPACITY_STEP = 0.05;
+export const LYRICS_PLAIN_OPACITY_DEFAULT = 0.9;
+export const LYRICS_PLAIN_FONT_SIZE_DEFAULT: LyricsPlainFontSize = 'base';
+
+export const LYR_SIZE_CLASS: Record<LyricsPlainFontSize, string> = {
+  sm: 'text-sm leading-6',
+  base: 'text-base leading-7',
+  lg: 'text-lg leading-8',
+  xl: 'text-xl leading-9',
+};
 
 const NEW_KEY = 'shiranami.app-store';
 
@@ -86,6 +100,22 @@ function coerceUiScale(v: unknown): number {
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
   return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
 }
+function clampLyricsPlainOpacity(v: number): number {
+  const clamped = Math.min(LYRICS_PLAIN_OPACITY_MAX, Math.max(LYRICS_PLAIN_OPACITY_MIN, v));
+  // Round to nearest step to keep persisted values clean.
+  const steps = Math.round(clamped / LYRICS_PLAIN_OPACITY_STEP);
+  return Math.round(steps * LYRICS_PLAIN_OPACITY_STEP * 1000) / 1000;
+}
+function coerceLyricsPlainOpacity(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(parsed)) return LYRICS_PLAIN_OPACITY_DEFAULT;
+  return clampLyricsPlainOpacity(parsed);
+}
+function coerceLyricsPlainFontSize(v: unknown): LyricsPlainFontSize {
+  return v === 'sm' || v === 'base' || v === 'lg' || v === 'xl'
+    ? v
+    : LYRICS_PLAIN_FONT_SIZE_DEFAULT;
+}
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
 interface PersistedAppState {
@@ -106,6 +136,8 @@ interface PersistedAppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  lyricsPlainOpacity: number;
+  lyricsPlainFontSize: LyricsPlainFontSize;
 }
 
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
@@ -143,6 +175,10 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean')
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (persisted.lyricsPlainOpacity !== undefined)
+    out.lyricsPlainOpacity = coerceLyricsPlainOpacity(persisted.lyricsPlainOpacity);
+  if (persisted.lyricsPlainFontSize !== undefined)
+    out.lyricsPlainFontSize = coerceLyricsPlainFontSize(persisted.lyricsPlainFontSize);
   return out;
 }
 
@@ -254,6 +290,8 @@ interface AppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  lyricsPlainOpacity: number;
+  lyricsPlainFontSize: LyricsPlainFontSize;
   previousView: AppView;
 }
 
@@ -288,6 +326,9 @@ interface AppActions {
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
   selectAlbum: (name: string | null) => void;
   setAlbumGridScrollTop: (scrollTop: number) => void;
+  setLyricsPlainOpacity: (value: number) => void;
+  setLyricsPlainFontSize: (size: LyricsPlainFontSize) => void;
+  resetLyricsPlainAppearance: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -316,6 +357,8 @@ export const useAppStore = create<AppState & AppActions>()(
       libraryHeroCardEnabled: true,
       lowPerformanceMode: false,
       noiseOverlayEnabled: false,
+      lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+      lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
       previousView: 'library',
 
       navigateTo: (view, playlistId) =>
@@ -449,6 +492,18 @@ export const useAppStore = create<AppState & AppActions>()(
       },
       selectAlbum: name => set({ selectedAlbumName: name }),
       setAlbumGridScrollTop: scrollTop => set({ albumGridScrollTop: scrollTop }),
+      setLyricsPlainOpacity: value => {
+        set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
+      },
+      setLyricsPlainFontSize: size => {
+        set({ lyricsPlainFontSize: coerceLyricsPlainFontSize(size) });
+      },
+      resetLyricsPlainAppearance: () => {
+        set({
+          lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+          lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+        });
+      },
     }),
     {
       name: NEW_KEY,
@@ -472,6 +527,8 @@ export const useAppStore = create<AppState & AppActions>()(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
+        lyricsPlainOpacity: s.lyricsPlainOpacity,
+        lyricsPlainFontSize: s.lyricsPlainFontSize,
       }),
       merge: (persisted, current) => ({
         ...current,
