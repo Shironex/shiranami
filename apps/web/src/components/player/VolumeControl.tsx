@@ -39,8 +39,9 @@ export const VolumeControl = memo(function VolumeControl({
       lastWheelTimeRef.current = now;
       const step = -Math.sign(e.deltaY) * 0.05;
       if (step === 0) return;
-      const current = usePlaybackStore.getState().volume;
-      usePlaybackStore.getState().setVolume(current + step);
+      const { volume: current, isMuted: muted, setVolume } = usePlaybackStore.getState();
+      if (muted && step < 0) return;
+      setVolume(Math.round((current + step) * 100) / 100);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);

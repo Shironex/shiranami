@@ -166,4 +166,34 @@ describe('wheel volume control', () => {
     const ev = dispatchWheel(root, -120);
     expect(ev.defaultPrevented).toBe(true);
   });
+
+  it('rounds the new volume to 2 decimals to avoid floating-point drift', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.55;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.6);
+  });
+
+  it('scroll down while muted does NOT call setVolume (would otherwise unmute)', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.7;
+    mockState.isMuted = true;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, 120);
+    expect(mockState.setVolume).not.toHaveBeenCalled();
+  });
+
+  it('scroll up while muted DOES call setVolume (unmutes, matching keyboard ArrowUp)', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.7;
+    mockState.isMuted = true;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledOnce();
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.75);
+  });
 });
