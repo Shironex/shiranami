@@ -5,6 +5,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Search, Loader2, Disc3, Check, X, Ban, Info, AlertTriangle } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/ui/status-badge';
 
@@ -212,48 +213,44 @@ export function MetadataEnrichSection() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button
+              <Button
+                size="sm"
                 onClick={handleConfirmedEnrich}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-black hover:bg-amber-500/90 transition-colors"
+                className="gap-2 rounded-lg bg-amber-500 text-sm text-black shadow-none hover:bg-amber-500/90 [&_svg]:size-3.5"
               >
-                <Search className="w-3.5 h-3.5" />
+                <Search />
                 {t('lib.enrichYesWrite')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setConfirmWrite(false)}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="rounded-lg text-sm text-muted-foreground"
               >
                 {tc('cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={handleEnrich}
               disabled={isEnriching || library.length === 0}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary/15 hover:bg-primary/25 text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
             >
-              {isEnriching ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Search className="w-3.5 h-3.5" />
-              )}
+              {isEnriching ? <Loader2 className="animate-spin" /> : <Search />}
               {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
-            </button>
+            </Button>
             {isEnriching && (
-              <button
+              <Button
+                variant="destructiveGhost"
                 onClick={cancelEnrichment}
                 disabled={isCancelling}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-xl [&_svg]:size-3.5"
               >
-                {isCancelling ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Ban className="w-3.5 h-3.5" />
-                )}
+                {isCancelling ? <Loader2 className="animate-spin" /> : <Ban />}
                 {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
-              </button>
+              </Button>
             )}
           </div>
         )}
