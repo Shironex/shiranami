@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Timer, TimerOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,27 @@ export function SleepTimer() {
   const [mode, setMode] = useState<'presets' | 'custom'>('presets');
   const [customValue, setCustomValue] = useState('');
   const [customError, setCustomError] = useState(false);
+  const customInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mode !== 'custom') return;
+    const el = customInputRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (document.activeElement !== el) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      setCustomValue(prev => {
+        const n = parseInt(prev, 10);
+        const base = Number.isNaN(n) ? 0 : n;
+        return String(Math.min(600, Math.max(1, base + delta)));
+      });
+      setCustomError(false);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [mode]);
+
   const endTime = useSleepTimerStore(s => s.endTime);
   const remaining = useSleepTimerStore(s => s.remaining);
   const start = useSleepTimerStore(s => s.start);
@@ -129,6 +150,7 @@ export function SleepTimer() {
           ) : (
             <div className="space-y-2">
               <Input
+                ref={customInputRef}
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
