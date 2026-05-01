@@ -5,6 +5,7 @@ import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -265,20 +266,18 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
+            <IconButton
               className={cn(
-                'size-7 flex items-center justify-center rounded-lg transition-colors relative',
-                active
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                'relative',
+                active && 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
               )}
               aria-label={tPlayer('eqTooltip')}
             >
-              <SlidersVertical className="w-3.5 h-3.5" />
+              <SlidersVertical />
               {active && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}
-            </button>
+            </IconButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">{tPlayer('eqTooltip')}</TooltipContent>
