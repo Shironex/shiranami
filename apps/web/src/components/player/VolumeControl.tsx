@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { Slider } from '@/components/ui/slider';
@@ -26,10 +26,30 @@ export const VolumeControl = memo(function VolumeControl({
     [setVolume]
   );
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastWheelTimeRef = useRef(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const now = performance.now();
+      if (now - lastWheelTimeRef.current < 40) return;
+      lastWheelTimeRef.current = now;
+      const step = -Math.sign(e.deltaY) * 0.05;
+      if (step === 0) return;
+      const current = usePlaybackStore.getState().volume;
+      usePlaybackStore.getState().setVolume(current + step);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
-    <div className="flex items-center gap-2">
+    <div ref={containerRef} className="flex items-center gap-2">
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -40,7 +60,9 @@ export const VolumeControl = memo(function VolumeControl({
             <VolumeIcon className="w-4 h-4" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top">{isMuted ? t('unmuteTooltip') : t('muteTooltip')}</TooltipContent>
+        <TooltipContent side="top">
+          {isMuted ? t('unmuteTooltip') : t('muteTooltip')}
+        </TooltipContent>
       </Tooltip>
       <Slider
         value={[isMuted ? 0 : volume]}
