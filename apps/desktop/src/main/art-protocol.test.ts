@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mimeToExt, extToMime, toArtUrl } from './art-protocol';
 
 describe('mimeToExt', () => {
@@ -66,5 +66,113 @@ describe('toArtUrl', () => {
 
   it('preserves filename with extension', () => {
     expect(toArtUrl('deadbeef.png')).toBe('shiranami-art://art/deadbeef.png');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// downscaleImage — takes a NativeImage; each test builds a stub directly.
+// ---------------------------------------------------------------------------
+
+function makeImageStub({
+  width = 1000,
+  height = 1000,
+  jpegOutput = Buffer.from('jpeg-output'),
+}: {
+  width?: number;
+  height?: number;
+  jpegOutput?: Buffer;
+} = {}) {
+  const resizedStub = {
+    toJPEG: vi.fn().mockReturnValue(jpegOutput),
+  };
+  const stub = {
+    isEmpty: vi.fn().mockReturnValue(false),
+    getSize: vi.fn().mockReturnValue({ width, height }),
+    resize: vi.fn().mockReturnValue(resizedStub),
+    toJPEG: vi.fn().mockReturnValue(jpegOutput),
+  };
+  return { stub, resizedStub };
+}
+
+describe('downscaleImage', () => {
+  it('re-encodes to JPEG q=85 without resize when dimensions are within limit', async () => {
+    const jpeg = Buffer.from('small-jpeg');
+    const { stub } = makeImageStub({ width: 256, height: 256, jpegOutput: jpeg });
+
+    const { downscaleImage } = await import('./art-protocol');
+    const result = downscaleImage(stub as never);
+
+    expect(stub.resize).not.toHaveBeenCalled();
+    expect(stub.toJPEG).toHaveBeenCalledWith(85);
+    expect(result).toBe(jpeg);
+  });
+
+  it('resizes wide image so longest edge becomes 512', async () => {
+    const jpeg = Buffer.from('resized-wide');
+    const { stub, resizedStub } = makeImageStub({ width: 1024, height: 512, jpegOutput: jpeg });
+
+    const { downscaleImage } = await import('./art-protocol');
+    const result = downscaleImage(stub as never);
+
+    expect(stub.resize).toHaveBeenCalledWith({ width: 512, height: 256, quality: 'best' });
+    expect(resizedStub.toJPEG).toHaveBeenCalledWith(85);
+    expect(result).toBe(jpeg);
+  });
+
+  it('resizes tall image so longest edge becomes 512', async () => {
+    const jpeg = Buffer.from('resized-tall');
+    const { stub, resizedStub } = makeImageStub({ width: 400, height: 800, jpegOutput: jpeg });
+
+    const { downscaleImage } = await import('./art-protocol');
+    const result = downscaleImage(stub as never);
+
+    expect(stub.resize).toHaveBeenCalledWith({ width: 256, height: 512, quality: 'best' });
+    expect(resizedStub.toJPEG).toHaveBeenCalledWith(85);
+    expect(result).toBe(jpeg);
+  });
+
+  it('resizes square image so both edges become 512', async () => {
+    const jpeg = Buffer.from('resized-square');
+    const { stub, resizedStub } = makeImageStub({ width: 1000, height: 1000, jpegOutput: jpeg });
+
+    const { downscaleImage } = await import('./art-protocol');
+    downscaleImage(stub as never);
+
+    expect(stub.resize).toHaveBeenCalledWith({ width: 512, height: 512, quality: 'best' });
+    expect(resizedStub.toJPEG).toHaveBeenCalledWith(85);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// saveAlbumArt — mocks nativeImage via vi.mock (module-level).
+// ---------------------------------------------------------------------------
+
+vi.mock('electron', async importOriginal => {
+  const original = await importOriginal<typeof import('electron')>();
+  return {
+    ...original,
+    nativeImage: {
+      createFromBuffer: vi.fn(),
+    },
+  };
+});
+
+describe('saveAlbumArt', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns null for empty buffer', async () => {
+    const { saveAlbumArt } = await import('./art-protocol');
+    expect(await saveAlbumArt(Buffer.alloc(0), 'image/jpeg')).toBeNull();
+  });
+
+  it('returns null when nativeImage cannot decode the buffer', async () => {
+    const { nativeImage } = await import('electron');
+    const emptyStub = { isEmpty: vi.fn().mockReturnValue(true) };
+    vi.mocked(nativeImage.createFromBuffer).mockReturnValue(emptyStub as never);
+
+    const { saveAlbumArt } = await import('./art-protocol');
+    expect(await saveAlbumArt(Buffer.from('garbage'), 'image/jpeg')).toBeNull();
   });
 });
