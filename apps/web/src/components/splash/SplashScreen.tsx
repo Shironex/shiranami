@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 
@@ -156,13 +157,15 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
                 <AlertCircle className="w-5 h-5 text-destructive" aria-hidden="true" />
               </div>
               <p className="text-destructive text-sm">{error}</p>
-              <button
+              <Button
                 type="button"
-                className="text-sm text-primary hover:underline cursor-pointer"
+                variant="link"
+                size="sm"
+                className="h-auto cursor-pointer p-0 text-sm"
                 onClick={() => window.location.reload()}
               >
                 {t('tryAgain')}
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2.5 animate-[splash-fade-up_0.6s_ease-out_0.8s_both]">
