@@ -12,7 +12,7 @@ import { useWindowControls } from '@/hooks/useWindowControls';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TimeDisplay } from './TimeDisplay';
-import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
+import { Maximize2, Minimize2, Music, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
@@ -24,7 +24,7 @@ export function CompactPlayer() {
   const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const ambientColor = useAmbientColor();
-  const { minimize: handleMinimize, close: handleClose } = useWindowControls();
+  const { minimize: handleMinimize } = useWindowControls();
 
   const handleExitCompact = useCallback(() => {
     void setCompactMode(false);
@@ -97,10 +97,6 @@ export function CompactPlayer() {
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
           </Tooltip>
-
-          <IconButton variant="destructiveGhost" onClick={handleClose} aria-label={t('close')}>
-            <X />
-          </IconButton>
         </div>
       </div>
 
