@@ -3,6 +3,7 @@ import { Link, Loader2, AlertCircle, X, Download, ListMusic } from 'lucide-react
 import { ViewEmptyState } from '../shared/ViewEmptyState';
 import { List } from 'react-window';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { usePlaylistImport } from '@/hooks/usePlaylistImport';
@@ -94,13 +95,14 @@ export function PlaylistImportView() {
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
             {isExtracting && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
             {!isExtracting && !isImporting && !hasResults && (
-              <button
+              <Button
+                size="sm"
                 onClick={handleExtract}
                 disabled={!url.trim()}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg"
               >
                 {t('extract')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -149,24 +151,21 @@ export function PlaylistImportView() {
         {hasResults && (
           <div className="mt-3 max-w-2xl flex items-center gap-3">
             {!isImporting && !isFinished && (
-              <button
-                onClick={handleDownloadClick}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                <Download className="w-4 h-4" />
+              <Button onClick={handleDownloadClick} className="rounded-xl">
+                <Download />
                 {hasSelection
                   ? t('downloadSelected', { count: selectedPendingCount })
                   : t('downloadAll', { count: pendingCount })}
-              </button>
+              </Button>
             )}
             {isImporting && (
-              <button
+              <Button
                 onClick={handleCancel}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                className="rounded-xl bg-destructive/10 text-destructive shadow-none hover:bg-destructive/20 hover:text-destructive"
               >
-                <X className="w-4 h-4" />
+                <X />
                 {t('cancel')}
-              </button>
+              </Button>
             )}
             {(isImporting || isFinished) && (
               <div className="flex-1 min-w-0">
@@ -182,13 +181,15 @@ export function PlaylistImportView() {
                 </div>
               </div>
             )}
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleReset}
-              className="px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="rounded-xl text-muted-foreground"
               title={t('startOver')}
             >
               {t('newImport')}
-            </button>
+            </Button>
           </div>
         )}
       </div>
