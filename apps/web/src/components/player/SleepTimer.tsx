@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Timer, TimerOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { useSleepTimerStore, SLEEP_TIMER_PRESETS } from '@/stores/useSleepTimerStore';
@@ -127,7 +128,7 @@ export function SleepTimer() {
             </div>
           ) : (
             <div className="space-y-2">
-              <input
+              <Input
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -144,7 +145,7 @@ export function SleepTimer() {
                 }}
                 placeholder={t('customPlaceholder')}
                 aria-label={t('customLabel')}
-                className="w-full px-2.5 py-1.5 rounded-lg text-sm bg-accent/40 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors"
+                className="h-8 rounded-lg bg-accent/40 border-border/50 px-2.5 placeholder:text-muted-foreground/50 focus-visible:ring-primary/40"
               />
               {customError && <p className="text-[10px] text-red-400 px-1">{t('customError')}</p>}
               <div className="flex gap-1.5">
