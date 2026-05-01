@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 import { useSleepTimerStore, SLEEP_TIMER_PRESETS } from '@/stores/useSleepTimerStore';
 
 function formatRemaining(seconds: number): string {
@@ -81,20 +82,18 @@ export function SleepTimer() {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
+            <IconButton
               className={cn(
-                'size-7 flex items-center justify-center rounded-lg transition-colors relative',
-                isActive
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                'relative',
+                isActive && 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
               )}
               aria-label={t('label')}
             >
-              {isActive ? <TimerOff className="w-3.5 h-3.5" /> : <Timer className="w-3.5 h-3.5" />}
+              {isActive ? <TimerOff /> : <Timer />}
               {isActive && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}
-            </button>
+            </IconButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 
 export const PlayerControls = memo(function PlayerControls() {
   const { t } = useTranslation('player');
@@ -33,18 +34,19 @@ export const PlayerControls = memo(function PlayerControls() {
     <div className="flex items-center gap-2">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <IconButton
+            size="md"
             onClick={toggleShuffle}
             className={cn(
-              'w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200',
+              '[&_svg]:size-3.5',
               isShuffled
-                ? 'text-primary'
-                : 'text-muted-foreground/60 hover:text-muted-foreground'
+                ? 'text-primary hover:bg-transparent hover:text-primary'
+                : 'text-muted-foreground/60 hover:bg-transparent hover:text-muted-foreground'
             )}
             aria-label={t('shuffle')}
           >
-            <Shuffle className="w-3.5 h-3.5" />
-          </button>
+            <Shuffle />
+          </IconButton>
         </TooltipTrigger>
         <TooltipContent side="top">{isShuffled ? t('shuffleOn') : t('shuffleOff')}</TooltipContent>
       </Tooltip>
@@ -82,15 +84,33 @@ export const PlayerControls = memo(function PlayerControls() {
           >
             <AnimatePresence mode="wait" initial={false}>
               {showLoading ? (
-                <motion.div key="loading" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.12 }}>
+                <motion.div
+                  key="loading"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ duration: 0.12 }}
+                >
                   <Loader2 className="w-4.5 h-4.5 animate-spin" />
                 </motion.div>
               ) : isPlaying ? (
-                <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.12 }}>
+                <motion.div
+                  key="pause"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ duration: 0.12 }}
+                >
                   <Pause className="w-4.5 h-4.5 fill-current" />
                 </motion.div>
               ) : (
-                <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ duration: 0.12 }}>
+                <motion.div
+                  key="play"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  transition={{ duration: 0.12 }}
+                >
                   <Play className="w-4.5 h-4.5 fill-current ml-0.5" />
                 </motion.div>
               )}
@@ -116,25 +136,26 @@ export const PlayerControls = memo(function PlayerControls() {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <IconButton
+            size="md"
             onClick={cycleRepeatMode}
             className={cn(
-              'w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200',
+              '[&_svg]:size-3.5',
               repeatMode !== 'off'
-                ? 'text-primary'
-                : 'text-muted-foreground/60 hover:text-muted-foreground'
+                ? 'text-primary hover:bg-transparent hover:text-primary'
+                : 'text-muted-foreground/60 hover:bg-transparent hover:text-muted-foreground'
             )}
             aria-label={t('repeatAria', { mode: repeatMode })}
           >
-            {repeatMode === 'one' ? (
-              <Repeat1 className="w-3.5 h-3.5" />
-            ) : (
-              <Repeat className="w-3.5 h-3.5" />
-            )}
-          </button>
+            {repeatMode === 'one' ? <Repeat1 /> : <Repeat />}
+          </IconButton>
         </TooltipTrigger>
         <TooltipContent side="top">
-          {repeatMode === 'off' ? t('repeatOff') : repeatMode === 'all' ? t('repeatAll') : t('repeatOne')}
+          {repeatMode === 'off'
+            ? t('repeatOff')
+            : repeatMode === 'all'
+              ? t('repeatAll')
+              : t('repeatOne')}
         </TooltipContent>
       </Tooltip>
     </div>

@@ -11,14 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Radio,
-  Search,
-  Heart,
-  Globe,
-  Loader2,
-  Star,
-} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Radio, Search, Heart, Globe, Loader2, Star } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { List } from 'react-window';
 import { COUNTRIES, stationToTrack } from './radioUtils';
@@ -34,25 +29,25 @@ const TAB_IDS: Array<{ id: RadioSearchTab; labelKey: string; icon: typeof Radio 
 export function RadioView() {
   const { t } = useTranslation('radio');
   const { t: tCommon } = useTranslation('common');
-  const stations = useRadioStore((s) => s.stations);
-  const favorites = useRadioStore((s) => s.favorites);
-  const isLoading = useRadioStore((s) => s.isLoading);
-  const error = useRadioStore((s) => s.error);
-  const searchQuery = useRadioStore((s) => s.searchQuery);
-  const selectedCountry = useRadioStore((s) => s.selectedCountry);
-  const activeTab = useRadioStore((s) => s.activeTab);
-  const searchStations = useRadioStore((s) => s.searchStations);
-  const loadTopStations = useRadioStore((s) => s.loadTopStations);
-  const loadByCountry = useRadioStore((s) => s.loadByCountry);
-  const loadFavorites = useRadioStore((s) => s.loadFavorites);
-  const toggleFavorite = useRadioStore((s) => s.toggleFavorite);
-  const setSearchQuery = useRadioStore((s) => s.setSearchQuery);
-  const setSelectedCountry = useRadioStore((s) => s.setSelectedCountry);
-  const setActiveTab = useRadioStore((s) => s.setActiveTab);
+  const stations = useRadioStore(s => s.stations);
+  const favorites = useRadioStore(s => s.favorites);
+  const isLoading = useRadioStore(s => s.isLoading);
+  const error = useRadioStore(s => s.error);
+  const searchQuery = useRadioStore(s => s.searchQuery);
+  const selectedCountry = useRadioStore(s => s.selectedCountry);
+  const activeTab = useRadioStore(s => s.activeTab);
+  const searchStations = useRadioStore(s => s.searchStations);
+  const loadTopStations = useRadioStore(s => s.loadTopStations);
+  const loadByCountry = useRadioStore(s => s.loadByCountry);
+  const loadFavorites = useRadioStore(s => s.loadFavorites);
+  const toggleFavorite = useRadioStore(s => s.toggleFavorite);
+  const setSearchQuery = useRadioStore(s => s.setSearchQuery);
+  const setSelectedCountry = useRadioStore(s => s.setSelectedCountry);
+  const setActiveTab = useRadioStore(s => s.setActiveTab);
 
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const setQueue = usePlaybackStore((s) => s.setQueue);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const setQueue = usePlaybackStore(s => s.setQueue);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -88,7 +83,15 @@ export function RadioView() {
         else if (activeTab === 'favorites') loadFavorites();
       }
     },
-    [searchStations, activeTab, loadTopStations, loadByCountry, selectedCountry, loadFavorites, setSearchQuery]
+    [
+      searchStations,
+      activeTab,
+      loadTopStations,
+      loadByCountry,
+      selectedCountry,
+      loadFavorites,
+      setSearchQuery,
+    ]
   );
 
   const handleTabChange = useCallback(
@@ -113,7 +116,7 @@ export function RadioView() {
   );
 
   const radioTracks = useMemo(
-    () => stations.map((s) => stationToTrack(s, tCommon('liveRadio'))),
+    () => stations.map(s => stationToTrack(s, tCommon('liveRadio'))),
     [stations, tCommon]
   );
 
@@ -133,17 +136,17 @@ export function RadioView() {
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
             placeholder={t('searchPlaceholder')}
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border border-border/50',
+              'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border-border/50',
               'text-foreground placeholder:text-muted-foreground/50',
-              'focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40',
-              'transition-colors'
+              'focus-visible:ring-primary/40 focus-visible:border-primary/40',
+              'shadow-none'
             )}
           />
           {isLoading && (
@@ -153,7 +156,7 @@ export function RadioView() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mt-3">
-          {TAB_IDS.map((tab) => {
+          {TAB_IDS.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
             return (
@@ -176,16 +179,13 @@ export function RadioView() {
           {/* Country selector */}
           {activeTab === 'country' && (
             <div className="ml-2">
-              <Select
-                value={selectedCountry}
-                onValueChange={handleCountryChange}
-              >
+              <Select value={selectedCountry} onValueChange={handleCountryChange}>
                 <SelectTrigger className="w-[172px]">
                   <SelectValue placeholder={t('selectCountry')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {COUNTRIES.map((c) => (
+                    {COUNTRIES.map(c => (
                       <SelectItem key={c.code} value={c.code}>
                         {c.flag} {c.name}
                       </SelectItem>
@@ -217,20 +217,19 @@ export function RadioView() {
               </div>
             </div>
             <div>
-              <p className="font-display text-base font-semibold text-foreground/85">
-                {error}
-              </p>
+              <p className="font-display text-base font-semibold text-foreground/85">{error}</p>
             </div>
-            <button
+            <Button
+              size="sm"
               onClick={() => {
                 if (activeTab === 'top') loadTopStations();
                 else if (activeTab === 'country') loadByCountry(selectedCountry);
                 else loadFavorites();
               }}
-              className="px-4 py-2 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="rounded-xl px-4 py-2"
             >
               {t('retry', { ns: 'common' })}
-            </button>
+            </Button>
           </div>
         </div>
       ) : isLoading ? (

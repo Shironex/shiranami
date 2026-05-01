@@ -10,6 +10,7 @@ import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useWindowControls } from '@/hooks/useWindowControls';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 import { TimeDisplay } from './TimeDisplay';
 import { Maximize2, Minimize2, Music, Pin, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -63,19 +64,16 @@ export function CompactPlayer() {
         <div className="no-drag flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                type="button"
+              <IconButton
                 onClick={handleToggleAlwaysOnTop}
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-lg transition-colors',
-                  compactAlwaysOnTop
-                    ? 'bg-primary/15 text-primary hover:bg-primary/20'
-                    : 'text-muted-foreground/65 hover:bg-accent hover:text-foreground'
+                  compactAlwaysOnTop &&
+                    'bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary'
                 )}
                 aria-label={compactAlwaysOnTop ? t('disableAlwaysOnTop') : t('enableAlwaysOnTop')}
               >
-                <Pin className="size-3.5" />
-              </button>
+                <Pin />
+              </IconButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               {compactAlwaysOnTop ? t('disableOnTop') : t('keepOnTop')}
@@ -84,40 +82,25 @@ export function CompactPlayer() {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={handleExitCompact}
-                className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
-                aria-label={t('exitCompactMode')}
-              >
-                <Maximize2 className="size-3.5" />
-              </button>
+              <IconButton onClick={handleExitCompact} aria-label={t('exitCompactMode')}>
+                <Maximize2 />
+              </IconButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('exitCompactMode')}</TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={handleMinimize}
-                className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-accent hover:text-foreground"
-                aria-label={t('minimize')}
-              >
-                <Minimize2 className="size-3.5" />
-              </button>
+              <IconButton onClick={handleMinimize} aria-label={t('minimize')}>
+                <Minimize2 />
+              </IconButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
           </Tooltip>
 
-          <button
-            type="button"
-            onClick={handleClose}
-            className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/65 transition-colors hover:bg-red-500/85 hover:text-white"
-            aria-label={t('close')}
-          >
-            <X className="size-3.5" />
-          </button>
+          <IconButton variant="destructiveGhost" onClick={handleClose} aria-label={t('close')}>
+            <X />
+          </IconButton>
         </div>
       </div>
 

@@ -30,38 +30,27 @@ const VISUALIZER_STYLE_OPTIONS = [
 
 export function VisualizerSection() {
   const { t } = useTranslation('settings');
-  const visualizerStyle = useAppStore((s) => s.visualizerStyle);
-  const setVisualizerStyle = useAppStore((s) => s.setVisualizerStyle);
-  const showVisualizer = useAppStore((s) => s.showVisualizer);
-  const toggleVisualizer = useAppStore((s) => s.toggleVisualizer);
+  const visualizerStyle = useAppStore(s => s.visualizerStyle);
+  const setVisualizerStyle = useAppStore(s => s.setVisualizerStyle);
+  const showVisualizer = useAppStore(s => s.showVisualizer);
+  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
 
   return (
-    <SettingsCard
-      icon={AudioLines}
-      title={t('vis.title')}
-      subtitle={t('vis.subtitle')}
-    >
+    <SettingsCard icon={AudioLines} title={t('vis.title')} subtitle={t('vis.subtitle')}>
       <div className="space-y-4">
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
-            <p className="text-sm font-medium text-foreground">
-              {t('vis.show')}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {t('vis.showDesc')}
-            </p>
+            <p className="text-sm font-medium text-foreground">{t('vis.show')}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('vis.showDesc')}</p>
           </div>
-          <Switch
-            checked={showVisualizer}
-            onChange={() => toggleVisualizer()}
-          />
+          <Switch checked={showVisualizer} onCheckedChange={() => toggleVisualizer()} />
         </div>
 
         {showVisualizer && (
           <div className="px-3">
             <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
             <div className="grid grid-cols-2 gap-3">
-              {VISUALIZER_STYLE_OPTIONS.map((opt) => {
+              {VISUALIZER_STYLE_OPTIONS.map(opt => {
                 const selected = visualizerStyle === opt.value;
                 return (
                   <button
@@ -71,20 +60,18 @@ export function VisualizerSection() {
                       'flex-1 px-4 py-3 rounded-xl border text-left transition-all',
                       selected
                         ? 'border-primary/40 bg-primary/10'
-                        : 'border-border/30 hover:border-border/50 hover:bg-accent/30',
+                        : 'border-border/30 hover:border-border/50 hover:bg-accent/30'
                     )}
                   >
                     <p
                       className={cn(
                         'text-sm font-medium',
-                        selected ? 'text-foreground' : 'text-muted-foreground',
+                        selected ? 'text-foreground' : 'text-muted-foreground'
                       )}
                     >
                       {t(opt.labelKey)}
                     </p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      {t(opt.descKey)}
-                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">{t(opt.descKey)}</p>
                   </button>
                 );
               })}

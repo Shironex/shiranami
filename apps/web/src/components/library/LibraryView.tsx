@@ -16,6 +16,7 @@ import { AlbumDetailView } from './AlbumDetailView';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { AlbumSortControl } from '@/components/shared/AlbumSortControl';
 import { LibraryViewSkeleton } from './LibraryViewSkeleton';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function LibraryView() {
@@ -94,7 +95,7 @@ export function LibraryView() {
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
+              <Input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
@@ -104,7 +105,7 @@ export function LibraryView() {
                     ? t('filterAlbumsPlaceholder')
                     : t('filterPlaceholder')
                 }
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-card border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40 transition-colors"
+                className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-card border-border/50 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
               />
               <AnimatePresence>
                 {isFiltered && (

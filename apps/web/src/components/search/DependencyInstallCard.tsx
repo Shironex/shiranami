@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Check, ArrowDownToLine } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { SearchStateCard } from './SearchStateCard';
 
 interface DependencyInstallCardProps {
@@ -23,9 +24,7 @@ export function DependencyInstallCard({
 }: DependencyInstallCardProps) {
   const { t } = useTranslation('search');
   const description =
-    ffmpegInstalled === false
-      ? t('toolsMissingDescBoth')
-      : t('toolsMissingDescYtdlp');
+    ffmpegInstalled === false ? t('toolsMissingDescBoth') : t('toolsMissingDescYtdlp');
 
   return (
     <SearchStateCard title={t('toolsMissing')} description={description}>
@@ -49,13 +48,10 @@ export function DependencyInstallCard({
           </div>
         ) : (
           <>
-            <button
-              onClick={onInstall}
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <ArrowDownToLine className="w-4 h-4" />
+            <Button onClick={onInstall} className="h-auto w-full rounded-xl py-2.5">
+              <ArrowDownToLine />
               {t('installMissingTools')}
-            </button>
+            </Button>
             {installStatus === 'error' && installError && (
               <p className="text-xs text-destructive">{installError}</p>
             )}

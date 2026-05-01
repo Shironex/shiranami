@@ -128,7 +128,7 @@ export function AppearanceSection() {
               <p className="text-sm font-medium text-foreground">{t('app.nowPlayingView')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{t('app.nowPlayingViewDesc')}</p>
             </div>
-            <Switch checked={nowPlayingViewEnabled} onChange={setNowPlayingViewEnabled} />
+            <Switch checked={nowPlayingViewEnabled} onCheckedChange={setNowPlayingViewEnabled} />
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export function AppearanceSection() {
               <p className="text-sm font-medium text-foreground">{t('app.libraryHeroCard')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{t('app.libraryHeroCardDesc')}</p>
             </div>
-            <Switch checked={libraryHeroCardEnabled} onChange={setLibraryHeroCardEnabled} />
+            <Switch checked={libraryHeroCardEnabled} onCheckedChange={setLibraryHeroCardEnabled} />
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export function AppearanceSection() {
               <p className="text-sm font-medium text-foreground">{t('app.lowPerfMode')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{t('app.lowPerfModeDesc')}</p>
             </div>
-            <Switch checked={lowPerformanceMode} onChange={setLowPerformanceMode} />
+            <Switch checked={lowPerformanceMode} onCheckedChange={setLowPerformanceMode} />
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export function AppearanceSection() {
               <p className="text-sm font-medium text-foreground">{t('app.noiseOverlay')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{t('app.noiseOverlayDesc')}</p>
             </div>
-            <Switch checked={noiseOverlayEnabled} onChange={setNoiseOverlayEnabled} />
+            <Switch checked={noiseOverlayEnabled} onCheckedChange={setNoiseOverlayEnabled} />
           </div>
         </div>
 
@@ -178,7 +178,7 @@ export function AppearanceSection() {
                 <p className="text-sm text-foreground">{ts(item.key)}</p>
                 <Switch
                   checked={!sidebarHiddenItems.includes(item.id)}
-                  onChange={() => toggleSidebarItem(item.id)}
+                  onCheckedChange={() => toggleSidebarItem(item.id)}
                 />
               </div>
             ))}
@@ -190,7 +190,10 @@ export function AppearanceSection() {
                   {t('app.sidebarPlaylistsDesc')}
                 </p>
               </div>
-              <Switch checked={sidebarPlaylistsVisible} onChange={setSidebarPlaylistsVisible} />
+              <Switch
+                checked={sidebarPlaylistsVisible}
+                onCheckedChange={setSidebarPlaylistsVisible}
+              />
             </div>
           </div>
         </div>

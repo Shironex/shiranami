@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { ListPlus, Check, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import type { Playlist } from '@/types/electron';
 import {
   usePlaylistsQuery,
@@ -17,11 +18,7 @@ interface PlaylistPickerContentProps {
   toastMode?: 'single' | 'bulk';
 }
 
-export function PlaylistPickerContent({
-  trackIds,
-  onDone,
-  toastMode,
-}: PlaylistPickerContentProps) {
+export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistPickerContentProps) {
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
   const { data: playlists = [], isLoading } = usePlaylistsQuery();
@@ -35,35 +32,42 @@ export function PlaylistPickerContent({
   const memberSet = useMemo(() => new Set(memberPlaylistIds), [memberPlaylistIds]);
   const isBulk = toastMode === 'bulk' || (toastMode == null && trackIds.length > 1);
 
-  const handleToggle = useCallback(async (playlist: Playlist) => {
-    const isInPlaylist = memberSet.has(playlist.id);
+  const handleToggle = useCallback(
+    async (playlist: Playlist) => {
+      const isInPlaylist = memberSet.has(playlist.id);
 
-    if (isInPlaylist) {
-      try {
-        await removeTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
-        if (isBulk) {
-          toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length, name: playlist.name }));
-        } else {
-          toast.success(tToast('removedFromPlaylist', { name: playlist.name }));
+      if (isInPlaylist) {
+        try {
+          await removeTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
+          if (isBulk) {
+            toast.success(
+              tToast('removedTracksFromPlaylist', { count: trackIds.length, name: playlist.name })
+            );
+          } else {
+            toast.success(tToast('removedFromPlaylist', { name: playlist.name }));
+          }
+          onDone();
+        } catch {
+          toast.error(tToast('failedRemoveFromPlaylist'));
         }
-        onDone();
-      } catch {
-        toast.error(tToast('failedRemoveFromPlaylist'));
-      }
-    } else {
-      try {
-        await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
-        if (isBulk) {
-          toast.success(tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name }));
-        } else {
-          toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+      } else {
+        try {
+          await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
+          if (isBulk) {
+            toast.success(
+              tToast('addedTracksToPlaylist', { count: trackIds.length, name: playlist.name })
+            );
+          } else {
+            toast.success(tToast('addedToPlaylist', { name: playlist.name }));
+          }
+          onDone();
+        } catch {
+          toast.error(tToast('failedAddToPlaylist'));
         }
-        onDone();
-      } catch {
-        toast.error(tToast('failedAddToPlaylist'));
       }
-    }
-  }, [trackIds, isBulk, memberSet, addTrackMutation, removeTrackMutation, onDone, tToast]);
+    },
+    [trackIds, isBulk, memberSet, addTrackMutation, removeTrackMutation, onDone, tToast]
+  );
 
   const handleCreateAndAdd = useCallback(async () => {
     const name = newName.trim();
@@ -72,7 +76,9 @@ export function PlaylistPickerContent({
       const playlist = await createPlaylistMutation.mutateAsync({ name });
       await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
       if (isBulk) {
-        toast.success(tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length }));
+        toast.success(
+          tToast('createdPlaylistAddedTracks', { name: playlist.name, count: trackIds.length })
+        );
       } else {
         toast.success(tToast('createdPlaylistAdded', { name: playlist.name }));
       }
@@ -96,12 +102,15 @@ export function PlaylistPickerContent({
         {playlists.length === 0 && !showNewForm && (
           <p className="px-3 py-2 text-xs text-muted-foreground/50">{tCommon('noPlaylists')}</p>
         )}
-        {playlists.map((pl) => {
+        {playlists.map(pl => {
           const isInPlaylist = memberSet.has(pl.id);
           return (
             <button
               key={pl.id}
-              onClick={(e) => { e.stopPropagation(); handleToggle(pl); }}
+              onClick={e => {
+                e.stopPropagation();
+                handleToggle(pl);
+              }}
               className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left ${
                 isInPlaylist
                   ? 'text-primary/80 hover:text-primary hover:bg-accent'
@@ -124,8 +133,8 @@ export function PlaylistPickerContent({
             <input
               autoFocus
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => {
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => {
                 e.stopPropagation();
                 if (e.key === 'Enter') handleCreateAndAdd();
                 if (e.key === 'Escape') {
@@ -133,21 +142,28 @@ export function PlaylistPickerContent({
                   setNewName('');
                 }
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
               placeholder={tCommon('namePlaceholder')}
               className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none min-w-0"
             />
-            <button
-              onClick={(e) => { e.stopPropagation(); handleCreateAndAdd(); }}
+            <Button
+              size="sm"
+              onClick={e => {
+                e.stopPropagation();
+                handleCreateAndAdd();
+              }}
               disabled={!newName.trim()}
-              className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
+              className="h-auto rounded bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary shadow-none hover:bg-primary/30"
             >
               {tCommon('add')}
-            </button>
+            </Button>
           </div>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); setShowNewForm(true); }}
+            onClick={e => {
+              e.stopPropagation();
+              setShowNewForm(true);
+            }}
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
           >
             <Plus className="w-3 h-3" />

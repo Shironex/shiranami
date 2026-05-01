@@ -5,6 +5,7 @@ import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -95,7 +96,7 @@ function VerticalBandSlider({
               className={cn(
                 'relative flex flex-col items-center justify-center touch-none select-none h-full',
                 'group cursor-pointer',
-                disabled && 'opacity-50 cursor-not-allowed',
+                disabled && 'opacity-50 cursor-not-allowed'
               )}
             >
               <SliderPrimitive.Track className="relative w-1 h-full grow overflow-hidden rounded-full bg-foreground/15 group-hover:w-[5px] transition-all duration-200">
@@ -111,7 +112,9 @@ function VerticalBandSlider({
         </TooltipTrigger>
         <TooltipContent side="top" className="text-center">
           <div className="font-medium">{bandName}</div>
-          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">{gainLabel}</div>
+          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">
+            {gainLabel}
+          </div>
         </TooltipContent>
       </Tooltip>
       <span className="text-[10px] text-muted-foreground/80 tabular-nums">
@@ -137,21 +140,21 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
   const { t: tPlayer } = useTranslation('player');
   const [open, setOpen] = useState(false);
 
-  const enabled = useEqStore((s) => s.enabled);
-  const preset = useEqStore((s) => s.preset);
-  const gains = useEqStore((s) => s.gains);
-  const preampDb = useEqStore((s) => s.preampDb);
-  const setEnabled = useEqStore((s) => s.setEnabled);
-  const setBandGain = useEqStore((s) => s.setBandGain);
-  const setPreampDb = useEqStore((s) => s.setPreampDb);
-  const applyPreset = useEqStore((s) => s.applyPreset);
-  const reset = useEqStore((s) => s.reset);
+  const enabled = useEqStore(s => s.enabled);
+  const preset = useEqStore(s => s.preset);
+  const gains = useEqStore(s => s.gains);
+  const preampDb = useEqStore(s => s.preampDb);
+  const setEnabled = useEqStore(s => s.setEnabled);
+  const setBandGain = useEqStore(s => s.setBandGain);
+  const setPreampDb = useEqStore(s => s.setPreampDb);
+  const applyPreset = useEqStore(s => s.applyPreset);
+  const reset = useEqStore(s => s.reset);
 
   const active = enabled && preset !== 'flat';
 
   const presetOptions = useMemo(
-    () => ORDERED_PRESETS.map((id) => ({ id, label: t(`preset.${id}`) })),
-    [t],
+    () => ORDERED_PRESETS.map(id => ({ id, label: t(`preset.${id}`) })),
+    [t]
   );
 
   const handlePresetChange = (value: string) => {
@@ -167,7 +170,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
           <p className="text-sm font-medium text-foreground">{t('enable')}</p>
           <p className="text-xs text-muted-foreground/80 mt-0.5">{t('enableDesc')}</p>
         </div>
-        <Switch checked={enabled} onChange={setEnabled} />
+        <Switch checked={enabled} onCheckedChange={setEnabled} />
       </div>
 
       {/* Preset select */}
@@ -180,7 +183,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {presetOptions.map((opt) => (
+            {presetOptions.map(opt => (
               <SelectItem key={opt.id} value={opt.id}>
                 {opt.label}
               </SelectItem>
@@ -191,18 +194,13 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
 
       {/* Band strip with zone labels */}
       <div className={cn(!enabled && 'opacity-60')}>
-        <div
-          className={cn(
-            'grid grid-cols-10 gap-1',
-            layout === 'section' && 'gap-2',
-          )}
-        >
+        <div className={cn('grid grid-cols-10 gap-1', layout === 'section' && 'gap-2')}>
           {EQ_BANDS.map((freq, i) => (
             <VerticalBandSlider
               key={freq}
               freq={freq}
               value={gains[i] ?? 0}
-              onChange={(db) => setBandGain(i, db)}
+              onChange={db => setBandGain(i, db)}
               disabled={!enabled}
               label={formatBandLabel(t, freq)}
               bandName={t(`bandName.${freq}`)}
@@ -211,12 +209,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
             />
           ))}
         </div>
-        <div
-          className={cn(
-            'grid grid-cols-10 mt-2',
-            layout === 'section' && 'mt-2.5',
-          )}
-        >
+        <div className={cn('grid grid-cols-10 mt-2', layout === 'section' && 'mt-2.5')}>
           <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
             {t('zone.bass')}
           </span>
@@ -273,20 +266,18 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
+            <IconButton
               className={cn(
-                'size-7 flex items-center justify-center rounded-lg transition-colors relative',
-                active
-                  ? 'text-primary bg-primary/10'
-                  : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground',
+                'relative',
+                active && 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
               )}
               aria-label={tPlayer('eqTooltip')}
             >
-              <SlidersVertical className="w-3.5 h-3.5" />
+              <SlidersVertical />
               {active && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}
-            </button>
+            </IconButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">{tPlayer('eqTooltip')}</TooltipContent>

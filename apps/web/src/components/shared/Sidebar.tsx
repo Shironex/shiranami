@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { IconButton } from '@/components/ui/icon-button';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
 import type { ContextMenuPosition } from './TrackContextMenu';
 
@@ -38,13 +39,13 @@ const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
 
 export function Sidebar() {
   const { t } = useTranslation('sidebar');
-  const activeView = useAppStore((s) => s.activeView);
-  const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
-  const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed);
-  const sidebarHiddenItems = useAppStore((s) => s.sidebarHiddenItems);
-  const sidebarPlaylistsVisible = useAppStore((s) => s.sidebarPlaylistsVisible);
-  const navigateTo = useAppStore((s) => s.navigateTo);
-  const toggleSidebarCollapsed = useAppStore((s) => s.toggleSidebarCollapsed);
+  const activeView = useAppStore(s => s.activeView);
+  const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
+  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed);
+  const sidebarHiddenItems = useAppStore(s => s.sidebarHiddenItems);
+  const sidebarPlaylistsVisible = useAppStore(s => s.sidebarPlaylistsVisible);
+  const navigateTo = useAppStore(s => s.navigateTo);
+  const toggleSidebarCollapsed = useAppStore(s => s.toggleSidebarCollapsed);
   const version = useAppVersion();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylistsQuery();
   const [contextMenuState, setContextMenuState] = useState<{
@@ -52,7 +53,9 @@ export function Sidebar() {
     position: ContextMenuPosition;
   } | null>(null);
   const versionLabel = `v${version}`;
-  const sidebarVersionLabel = sidebarCollapsed ? versionLabel : `${t('shiranami', { ns: 'common' })} ${versionLabel}`;
+  const sidebarVersionLabel = sidebarCollapsed
+    ? versionLabel
+    : `${t('shiranami', { ns: 'common' })} ${versionLabel}`;
 
   return (
     <div
@@ -93,27 +96,21 @@ export function Sidebar() {
           )}
         </button>
 
-        <button
+        <IconButton
+          size={sidebarCollapsed ? 'sm' : 'md'}
           onClick={toggleSidebarCollapsed}
-          className={cn(
-            'no-drag rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
-            sidebarCollapsed ? 'w-7 h-7' : 'w-8 h-8'
-          )}
+          className="no-drag text-muted-foreground [&_svg]:size-4"
           aria-label={sidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
           title={sidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
         >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen className="w-4 h-4" />
-          ) : (
-            <PanelLeftClose className="w-4 h-4" />
-          )}
-        </button>
+          {sidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </IconButton>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className={cn('py-2 shrink-0', sidebarCollapsed ? 'px-2' : 'px-3')}>
           <div className="space-y-0.5">
-            {NAV_ITEMS.filter((item) => !sidebarHiddenItems.includes(item.id)).map((item) => {
+            {NAV_ITEMS.filter(item => !sidebarHiddenItems.includes(item.id)).map(item => {
               const isActive = activeView === item.id;
               const Icon = item.icon;
 
@@ -156,7 +153,7 @@ export function Sidebar() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     </div>
                   ) : (
-                    playlists.map((playlist) => {
+                    playlists.map(playlist => {
                       const isPlaylistActive =
                         activeView === 'playlists' && selectedPlaylistId === playlist.id;
 
@@ -164,7 +161,7 @@ export function Sidebar() {
                         <button
                           key={playlist.id}
                           onClick={() => navigateTo('playlists', playlist.id)}
-                          onContextMenu={(event) => {
+                          onContextMenu={event => {
                             event.preventDefault();
                             setContextMenuState({
                               playlist,
@@ -217,7 +214,7 @@ export function Sidebar() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     </div>
                   ) : (
-                    playlists.map((playlist) => {
+                    playlists.map(playlist => {
                       const isPlaylistActive =
                         activeView === 'playlists' && selectedPlaylistId === playlist.id;
 
@@ -225,7 +222,7 @@ export function Sidebar() {
                         <button
                           key={playlist.id}
                           onClick={() => navigateTo('playlists', playlist.id)}
-                          onContextMenu={(event) => {
+                          onContextMenu={event => {
                             event.preventDefault();
                             setContextMenuState({
                               playlist,
@@ -264,18 +261,15 @@ export function Sidebar() {
         )}
       </div>
 
-      <div
-        className={cn(
-          'py-4 border-t border-border/30',
-          sidebarCollapsed ? 'px-2' : 'px-5'
-        )}
-      >
+      <div className={cn('py-4 border-t border-border/30', sidebarCollapsed ? 'px-2' : 'px-5')}>
         <p
           className={cn(
             'text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase',
             sidebarCollapsed && 'text-center'
           )}
-          title={sidebarCollapsed ? `${t('shiranami', { ns: 'common' })} ${versionLabel}` : undefined}
+          title={
+            sidebarCollapsed ? `${t('shiranami', { ns: 'common' })} ${versionLabel}` : undefined
+          }
         >
           {sidebarVersionLabel}
         </p>

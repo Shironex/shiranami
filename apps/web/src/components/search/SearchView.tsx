@@ -12,6 +12,7 @@ import {
   X,
   Keyboard,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { useSearch } from '@/hooks/useSearch';
@@ -148,7 +149,7 @@ export function SearchView() {
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={query}
@@ -158,11 +159,11 @@ export function SearchView() {
             onBlur={() => closeSuggestions()}
             placeholder={t('placeholder')}
             className={cn(
-              'w-full pl-10 py-2.5 rounded-xl text-sm bg-card border border-border/50',
+              'h-auto w-full pl-10 py-2.5 rounded-xl text-sm bg-card border-border/50',
               query ? 'pr-10' : 'pr-4',
               'text-foreground placeholder:text-muted-foreground/50',
-              'focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40',
-              'transition-colors'
+              'focus-visible:ring-primary/40 focus-visible:border-primary/40',
+              'shadow-none'
             )}
           />
           {isSearching ? (

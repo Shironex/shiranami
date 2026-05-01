@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
@@ -67,29 +69,27 @@ export function MusicFoldersSection() {
                   <span className="text-sm text-foreground truncate flex-1 font-mono">
                     {folder.path}
                   </span>
-                  <button
+                  <IconButton
                     onClick={() => removeFolder(folder.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                    className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive"
                     title={t('folders.remove')}
+                    aria-label={t('folders.remove')}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    <X />
+                  </IconButton>
                 </div>
               ))
             )}
 
-            <button
+            <Button
+              variant="outline"
               onClick={addFolder}
               disabled={isScanning || isScanLocked()}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-colors w-full justify-center border border-dashed border-border/40 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-auto w-full rounded-xl border-dashed border-border/40 bg-transparent py-2.5 text-primary shadow-none hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
             >
-              {isScanning ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
+              {isScanning ? <Loader2 className="animate-spin" /> : <Plus />}
               {isScanning ? t('folders.scanning') : t('folders.addFolder')}
-            </button>
+            </Button>
           </div>
         )}
       </SettingsCard>

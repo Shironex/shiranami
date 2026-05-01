@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { FolderOpen, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 type DownloadLocationPanelProps = {
   pathDisplay: string;
@@ -28,35 +29,33 @@ export function DownloadLocationPanel({
           </span>
         </div>
         <p className="text-xs text-foreground font-mono break-all">{pathDisplay}</p>
-        <p className="text-[11px] text-muted-foreground/70">
-          {t('dl.locationHint')}
-        </p>
+        <p className="text-[11px] text-muted-foreground/70">{t('dl.locationHint')}</p>
       </div>
 
       <div className="flex gap-2">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={onChange}
           disabled={updating}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="gap-2 rounded-lg text-sm [&_svg]:size-3.5"
         >
-          {updating ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <FolderOpen className="w-3.5 h-3.5" />
-          )}
+          {updating ? <Loader2 className="animate-spin" /> : <FolderOpen />}
           {t('dl.changeLocation')}
-        </button>
+        </Button>
 
         {!isDefault && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onReset}
             disabled={updating}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg text-sm text-muted-foreground"
           >
             {t('dl.resetDefault')}
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -1,28 +1,30 @@
-import { motion } from 'motion/react';
+import * as React from 'react';
+import * as SwitchPrimitive from '@radix-ui/react-switch';
+import { cn } from '@/lib/utils';
 
-interface SwitchProps {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}
+const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitive.Root
+    ref={ref}
+    className={cn(
+      'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+      'disabled:cursor-not-allowed disabled:opacity-50',
+      'data-[state=checked]:bg-primary data-[state=unchecked]:bg-[oklch(0.2_0.02_280)]',
+      className
+    )}
+    {...props}
+  >
+    <SwitchPrimitive.Thumb
+      className={cn(
+        'pointer-events-none block h-5 w-5 rounded-full bg-foreground shadow-sm ring-0 transition-transform',
+        'data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0.5'
+      )}
+    />
+  </SwitchPrimitive.Root>
+));
+Switch.displayName = SwitchPrimitive.Root.displayName;
 
-export function Switch({ checked, onChange }: SwitchProps) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      style={{
-        backgroundColor: checked ? 'var(--primary)' : 'oklch(0.2 0.02 280)',
-      }}
-    >
-      <motion.span
-        className="pointer-events-none block h-5 w-5 rounded-full bg-foreground shadow-sm"
-        animate={{ x: checked ? 20 : 2 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        style={{ marginTop: 2 }}
-      />
-    </button>
-  );
-}
+export { Switch };

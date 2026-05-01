@@ -5,6 +5,7 @@ import { useEqStore } from '@/stores/useEqStore';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 import { SleepTimer } from './SleepTimer';
 import { EqualizerPanel } from './EqualizerPanel';
 
@@ -17,11 +18,11 @@ const MOD = navigator.platform.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl';
  */
 export function PlayerOverflowMenu() {
   const { t } = useTranslation('player');
-  const showVisualizer = useAppStore((s) => s.showVisualizer);
-  const toggleVisualizer = useAppStore((s) => s.toggleVisualizer);
-  const setCompactMode = useAppStore((s) => s.setCompactMode);
-  const eqEnabled = useEqStore((s) => s.enabled);
-  const eqPreset = useEqStore((s) => s.preset);
+  const showVisualizer = useAppStore(s => s.showVisualizer);
+  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
+  const setCompactMode = useAppStore(s => s.setCompactMode);
+  const eqEnabled = useEqStore(s => s.enabled);
+  const eqPreset = useEqStore(s => s.preset);
 
   const hasActive = showVisualizer || (eqEnabled && eqPreset !== 'flat');
 
@@ -30,19 +31,12 @@ export function PlayerOverflowMenu() {
       <Tooltip>
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                'size-7 flex items-center justify-center rounded-lg transition-colors relative',
-                'text-muted-foreground/75 hover:bg-accent hover:text-foreground',
-              )}
-              aria-label={t('moreTooltip')}
-            >
-              <MoreHorizontal className="w-3.5 h-3.5" />
+            <IconButton className="relative" aria-label={t('moreTooltip')}>
+              <MoreHorizontal />
               {hasActive && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
               )}
-            </button>
+            </IconButton>
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">{t('moreTooltip')}</TooltipContent>
@@ -54,14 +48,9 @@ export function PlayerOverflowMenu() {
           <EqualizerPanel />
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => void setCompactMode(true)}
-                className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
-                aria-label={t('compactMode')}
-              >
-                <Minimize2 className="w-3.5 h-3.5" />
-              </button>
+              <IconButton onClick={() => void setCompactMode(true)} aria-label={t('compactMode')}>
+                <Minimize2 />
+              </IconButton>
             </TooltipTrigger>
             <TooltipContent side="top">
               {t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}
@@ -69,19 +58,16 @@ export function PlayerOverflowMenu() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                type="button"
+              <IconButton
                 onClick={toggleVisualizer}
                 className={cn(
-                  'size-7 flex items-center justify-center rounded-lg transition-colors',
-                  showVisualizer
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground',
+                  showVisualizer &&
+                    'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
                 )}
                 aria-label={t('toggleVisualizer')}
               >
-                <AudioLines className="w-3.5 h-3.5" />
-              </button>
+                <AudioLines />
+              </IconButton>
             </TooltipTrigger>
             <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
           </Tooltip>
