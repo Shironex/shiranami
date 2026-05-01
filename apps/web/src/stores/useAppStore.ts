@@ -23,6 +23,9 @@ export type LyricsFontSize = 'sm' | 'base' | 'lg' | 'xl';
 /** @deprecated Use LyricsFontSize. Alias kept for back-compat with existing imports. */
 export type LyricsPlainFontSize = LyricsFontSize;
 
+export type CompactSize = 'sm' | 'md' | 'lg';
+export type CompactFontSize = 'sm' | 'md' | 'lg';
+
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
 export const UI_SCALE_DEFAULT = 100;
@@ -53,6 +56,43 @@ export const LYR_SIZE_CLASS: Record<LyricsFontSize, string> = {
   base: 'text-base leading-7',
   lg: 'text-lg leading-8',
   xl: 'text-xl leading-9',
+};
+
+// --- Compact mode dimension presets ---
+//
+// Width/height values are forwarded over IPC to the Electron main process
+// which applies them via setMinimumSize/setMaximumSize/setSize. Keep these
+// matched with `apps/desktop/src/main/ipc/window.ts` if either side moves.
+export const COMPACT_SIZE_DEFAULT: CompactSize = 'md';
+export const COMPACT_DIMENSIONS: Record<CompactSize, { width: number; height: number }> = {
+  sm: { width: 420, height: 200 },
+  md: { width: 500, height: 214 },
+  lg: { width: 600, height: 260 },
+};
+
+// --- Compact mode appearance prefs ---
+export const COMPACT_AMBIENT_INTENSITY_MIN = 0;
+export const COMPACT_AMBIENT_INTENSITY_MAX = 0.2;
+export const COMPACT_AMBIENT_INTENSITY_STEP = 0.01;
+export const COMPACT_AMBIENT_INTENSITY_DEFAULT = 0.08;
+
+export const COMPACT_FONT_SIZE_DEFAULT: CompactFontSize = 'md';
+
+/** Tailwind class lookups for the title / artist / album text in compact view. */
+export const CMP_TITLE_CLASS: Record<CompactFontSize, string> = {
+  sm: 'text-xs font-semibold',
+  md: 'text-sm font-semibold',
+  lg: 'text-base font-semibold',
+};
+export const CMP_ARTIST_CLASS: Record<CompactFontSize, string> = {
+  sm: 'text-[10px]',
+  md: 'text-xs',
+  lg: 'text-sm',
+};
+export const CMP_ALBUM_CLASS: Record<CompactFontSize, string> = {
+  sm: 'text-[10px]',
+  md: 'text-[11px]',
+  lg: 'text-xs',
 };
 
 const FONT_SIZE_ORDER: LyricsFontSize[] = ['sm', 'base', 'lg', 'xl'];
@@ -161,12 +201,32 @@ function coerceLyricsSyncedFontSize(v: unknown): LyricsFontSize {
     ? v
     : LYRICS_SYNCED_FONT_SIZE_DEFAULT;
 }
+function coerceCompactSize(v: unknown): CompactSize {
+  return v === 'sm' || v === 'md' || v === 'lg' ? v : COMPACT_SIZE_DEFAULT;
+}
+function coerceCompactFontSize(v: unknown): CompactFontSize {
+  return v === 'sm' || v === 'md' || v === 'lg' ? v : COMPACT_FONT_SIZE_DEFAULT;
+}
+function clampCompactAmbientIntensity(v: number): number {
+  const clamped = Math.min(
+    COMPACT_AMBIENT_INTENSITY_MAX,
+    Math.max(COMPACT_AMBIENT_INTENSITY_MIN, v)
+  );
+  const steps = Math.round(clamped / COMPACT_AMBIENT_INTENSITY_STEP);
+  return Math.round(steps * COMPACT_AMBIENT_INTENSITY_STEP * 1000) / 1000;
+}
+function coerceCompactAmbientIntensity(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(parsed)) return COMPACT_AMBIENT_INTENSITY_DEFAULT;
+  return clampCompactAmbientIntensity(parsed);
+}
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
 interface PersistedAppState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
   sidebarPlaylistsVisible: boolean;
+  compactMode: boolean;
   compactAlwaysOnTop: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
@@ -185,6 +245,15 @@ interface PersistedAppState {
   lyricsPlainFontSize: LyricsFontSize;
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
+  compactSize: CompactSize;
+  compactFontSize: CompactFontSize;
+  compactAmbientIntensity: number;
+  compactShowAlbumArt: boolean;
+  compactShowAlbum: boolean;
+  compactShowSeek: boolean;
+  compactShowVolume: boolean;
+  compactShowFavorite: boolean;
+  compactDefaultAlwaysOnTop: boolean;
 }
 
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
@@ -196,6 +265,7 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
   if (typeof persisted.sidebarPlaylistsVisible === 'boolean')
     out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
+  if (typeof persisted.compactMode === 'boolean') out.compactMode = persisted.compactMode;
   if (typeof persisted.compactAlwaysOnTop === 'boolean')
     out.compactAlwaysOnTop = persisted.compactAlwaysOnTop;
   if (typeof persisted.showVisualizer === 'boolean') out.showVisualizer = persisted.showVisualizer;
@@ -230,6 +300,24 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.lyricsSyncedDimOpacity = coerceLyricsSyncedDimOpacity(persisted.lyricsSyncedDimOpacity);
   if (persisted.lyricsSyncedFontSize !== undefined)
     out.lyricsSyncedFontSize = coerceLyricsSyncedFontSize(persisted.lyricsSyncedFontSize);
+  if (persisted.compactSize !== undefined)
+    out.compactSize = coerceCompactSize(persisted.compactSize);
+  if (persisted.compactFontSize !== undefined)
+    out.compactFontSize = coerceCompactFontSize(persisted.compactFontSize);
+  if (persisted.compactAmbientIntensity !== undefined)
+    out.compactAmbientIntensity = coerceCompactAmbientIntensity(persisted.compactAmbientIntensity);
+  if (typeof persisted.compactShowAlbumArt === 'boolean')
+    out.compactShowAlbumArt = persisted.compactShowAlbumArt;
+  if (typeof persisted.compactShowAlbum === 'boolean')
+    out.compactShowAlbum = persisted.compactShowAlbum;
+  if (typeof persisted.compactShowSeek === 'boolean')
+    out.compactShowSeek = persisted.compactShowSeek;
+  if (typeof persisted.compactShowVolume === 'boolean')
+    out.compactShowVolume = persisted.compactShowVolume;
+  if (typeof persisted.compactShowFavorite === 'boolean')
+    out.compactShowFavorite = persisted.compactShowFavorite;
+  if (typeof persisted.compactDefaultAlwaysOnTop === 'boolean')
+    out.compactDefaultAlwaysOnTop = persisted.compactDefaultAlwaysOnTop;
   return out;
 }
 
@@ -345,6 +433,15 @@ interface AppState {
   lyricsPlainFontSize: LyricsFontSize;
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
+  compactSize: CompactSize;
+  compactFontSize: CompactFontSize;
+  compactAmbientIntensity: number;
+  compactShowAlbumArt: boolean;
+  compactShowAlbum: boolean;
+  compactShowSeek: boolean;
+  compactShowVolume: boolean;
+  compactShowFavorite: boolean;
+  compactDefaultAlwaysOnTop: boolean;
   previousView: AppView;
 }
 
@@ -385,6 +482,16 @@ interface AppActions {
   setLyricsSyncedDimOpacity: (value: number) => void;
   setLyricsSyncedFontSize: (size: LyricsFontSize) => void;
   resetLyricsAppearance: () => void;
+  setCompactSize: (size: CompactSize) => void;
+  setCompactFontSize: (size: CompactFontSize) => void;
+  setCompactAmbientIntensity: (value: number) => void;
+  setCompactShowAlbumArt: (visible: boolean) => void;
+  setCompactShowAlbum: (visible: boolean) => void;
+  setCompactShowSeek: (visible: boolean) => void;
+  setCompactShowVolume: (visible: boolean) => void;
+  setCompactShowFavorite: (visible: boolean) => void;
+  setCompactDefaultAlwaysOnTop: (enabled: boolean) => void;
+  resetCompactAppearance: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -417,6 +524,15 @@ export const useAppStore = create<AppState & AppActions>()(
       lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
       lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
       lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+      compactSize: COMPACT_SIZE_DEFAULT,
+      compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
+      compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
+      compactShowAlbumArt: true,
+      compactShowAlbum: true,
+      compactShowSeek: true,
+      compactShowVolume: true,
+      compactShowFavorite: false,
+      compactDefaultAlwaysOnTop: false,
       previousView: 'library',
 
       navigateTo: (view, playlistId) =>
@@ -461,24 +577,38 @@ export const useAppStore = create<AppState & AppActions>()(
         const previous = get().compactMode;
         if (previous === compactMode) return;
 
+        // When the user has opted into "default to always-on-top in compact",
+        // seed the runtime flag on entry. We seed before persisting because
+        // setCompactAlwaysOnTop short-circuits when not yet in compact mode,
+        // so we just write the value directly here.
+        const previousAlwaysOnTop = get().compactAlwaysOnTop;
+        if (compactMode && get().compactDefaultAlwaysOnTop && !previousAlwaysOnTop) {
+          set({ compactAlwaysOnTop: true });
+        }
+
         set({ compactMode });
 
         if (!IS_ELECTRON) return;
 
         try {
-          await window.electronAPI.window.setCompactMode(compactMode);
-          if (get().compactAlwaysOnTop) {
-            await window.electronAPI.window.setAlwaysOnTop(compactMode);
-          }
+          const dims = COMPACT_DIMENSIONS[get().compactSize];
+          await window.electronAPI.window.setCompactMode(compactMode, dims);
         } catch {
-          if (compactMode && get().compactAlwaysOnTop) {
-            try {
-              await window.electronAPI.window.setAlwaysOnTop(false);
-            } catch {
-              // noop
-            }
+          // Compact-mode IPC failed: undo the store flips and bail before
+          // touching always-on-top so we don't pin a window the user thinks
+          // is still in normal mode.
+          set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
+          return;
+        }
+
+        if (get().compactAlwaysOnTop) {
+          try {
+            await window.electronAPI.window.setAlwaysOnTop(compactMode);
+          } catch {
+            // Compact succeeded but pin failed: only roll back the pin —
+            // the OS window is correctly in/out of compact mode now.
+            set({ compactAlwaysOnTop: previousAlwaysOnTop });
           }
-          set({ compactMode: previous });
         }
       },
       setCompactAlwaysOnTop: async compactAlwaysOnTop => {
@@ -576,6 +706,43 @@ export const useAppStore = create<AppState & AppActions>()(
           lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
         });
       },
+      setCompactSize: size => {
+        const next = coerceCompactSize(size);
+        set({ compactSize: next });
+        // If the window is currently in compact mode, push the new dimensions
+        // immediately so the preset switch is reflected without a re-toggle.
+        if (IS_ELECTRON && get().compactMode) {
+          const dims = COMPACT_DIMENSIONS[next];
+          window.electronAPI.window.setCompactMode(true, dims).catch(() => {
+            // Failure to resize is non-fatal; the next enter-compact will retry.
+          });
+        }
+      },
+      setCompactFontSize: size => {
+        set({ compactFontSize: coerceCompactFontSize(size) });
+      },
+      setCompactAmbientIntensity: value => {
+        set({ compactAmbientIntensity: coerceCompactAmbientIntensity(value) });
+      },
+      setCompactShowAlbumArt: visible => set({ compactShowAlbumArt: visible }),
+      setCompactShowAlbum: visible => set({ compactShowAlbum: visible }),
+      setCompactShowSeek: visible => set({ compactShowSeek: visible }),
+      setCompactShowVolume: visible => set({ compactShowVolume: visible }),
+      setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
+      setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
+      resetCompactAppearance: () => {
+        set({
+          compactSize: COMPACT_SIZE_DEFAULT,
+          compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
+          compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
+          compactShowAlbumArt: true,
+          compactShowAlbum: true,
+          compactShowSeek: true,
+          compactShowVolume: true,
+          compactShowFavorite: false,
+          compactDefaultAlwaysOnTop: false,
+        });
+      },
     }),
     {
       name: NEW_KEY,
@@ -585,6 +752,7 @@ export const useAppStore = create<AppState & AppActions>()(
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarHiddenItems: s.sidebarHiddenItems,
         sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
+        compactMode: s.compactMode,
         compactAlwaysOnTop: s.compactAlwaysOnTop,
         showVisualizer: s.showVisualizer,
         visualizerStyle: s.visualizerStyle,
@@ -603,6 +771,15 @@ export const useAppStore = create<AppState & AppActions>()(
         lyricsPlainFontSize: s.lyricsPlainFontSize,
         lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
         lyricsSyncedFontSize: s.lyricsSyncedFontSize,
+        compactSize: s.compactSize,
+        compactFontSize: s.compactFontSize,
+        compactAmbientIntensity: s.compactAmbientIntensity,
+        compactShowAlbumArt: s.compactShowAlbumArt,
+        compactShowAlbum: s.compactShowAlbum,
+        compactShowSeek: s.compactShowSeek,
+        compactShowVolume: s.compactShowVolume,
+        compactShowFavorite: s.compactShowFavorite,
+        compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
       }),
       merge: (persisted, current) => ({
         ...current,
@@ -612,6 +789,32 @@ export const useAppStore = create<AppState & AppActions>()(
         if (!state) return;
         applyUiScale(state.uiScale);
         applyLowPerformanceMode(state.lowPerformanceMode);
+        // Re-apply compact mode at the OS-window level after rehydrate so
+        // users who quit while in compact mode come back into compact mode.
+        // The renderer flag is restored by zustand-persist; here we just
+        // forward to Electron so the window itself resizes/locks again.
+        if (IS_ELECTRON && state.compactMode) {
+          // Sequence the IPCs: pin only after compact takes hold, otherwise
+          // we could end up pinning a window that didn't make it into
+          // compact mode. Mutating `state` here is ineffective (rehydration
+          // has already merged), so any rollback has to go through setState.
+          void (async () => {
+            const dims = COMPACT_DIMENSIONS[state.compactSize];
+            try {
+              await window.electronAPI.window.setCompactMode(true, dims);
+            } catch {
+              useAppStore.setState({ compactMode: false, compactAlwaysOnTop: false });
+              return;
+            }
+            if (state.compactAlwaysOnTop) {
+              try {
+                await window.electronAPI.window.setAlwaysOnTop(true);
+              } catch {
+                useAppStore.setState({ compactAlwaysOnTop: false });
+              }
+            }
+          })();
+        }
       },
     }
   )

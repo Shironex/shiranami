@@ -44,6 +44,16 @@ vi.mock('electron', () => ({
       return mockMainWindow ? [mockMainWindow] : [];
     }
   },
+  // A single virtual 1920x1080 display covering the origin. Tests that need
+  // bespoke geometry (e.g. validating off-screen rejection) can re-mock
+  // screen.getAllDisplays in their own beforeEach.
+  screen: {
+    getAllDisplays: () => [
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+      },
+    ],
+  },
 }));
 
 export function createMainWindowMock() {
@@ -63,6 +73,7 @@ export function createMainWindowMock() {
     setMaximumSize: vi.fn(),
     setSize: vi.fn(),
     setBounds: vi.fn(),
+    getBounds: vi.fn().mockReturnValue({ x: 100, y: 100, width: 500, height: 214 }),
     setAlwaysOnTop: vi.fn(),
     close: vi.fn(),
     minimize: vi.fn(),

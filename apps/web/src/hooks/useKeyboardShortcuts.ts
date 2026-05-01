@@ -86,6 +86,21 @@ export function useKeyboardShortcuts() {
             }
             break;
           }
+          case 'T':
+          case 't': {
+            // Ctrl/Cmd+Shift+T: toggle always-on-top. Useful for users who
+            // pin the mini-player above other windows (or want to unpin it
+            // without leaving the keyboard). Active in both compact and
+            // normal modes — the underlying setter is a no-op outside
+            // compact, but we still update the persisted preference so the
+            // pin sticks the next time compact is entered.
+            if (e.shiftKey) {
+              e.preventDefault();
+              void useAppStore.getState().toggleCompactAlwaysOnTop();
+              return;
+            }
+            break;
+          }
           case 'P':
           case 'p': {
             // Ctrl/Cmd+Shift+P: toggle Now Playing view.
@@ -94,7 +109,8 @@ export function useKeyboardShortcuts() {
             // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
-              const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } = useAppStore.getState();
+              const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } =
+                useAppStore.getState();
               if (!nowPlayingViewEnabled) {
                 toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
                   id: 'now-playing-disabled',

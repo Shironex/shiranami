@@ -6,6 +6,7 @@
   "equalizer": "Korektor",
   "visualizer": "Wizualizator",
   "lyrics": "Tekst piosenki",
+  "compact": "Tryb kompaktowy",
   "appearance": "Wygląd",
   "updates": "Aktualizacje",
   "about": "O aplikacji",
@@ -123,6 +124,48 @@
     "previewSyncedIdleA": "Strony piosenki, której nie skończyliśmy",
     "previewSyncedIdleB": "Światło przez zasłony, miękkie i spokojne",
     "previewSyncedPast": "Trzymam każdą zanikającą linię"
+  },
+  "cmp": {
+    "title": "Tryb kompaktowy",
+    "subtitle": "Układ, gęstość i przypinanie mini-odtwarzacza",
+    "size": {
+      "title": "Rozmiar okna",
+      "desc": "Wybierz, ile miejsca na ekranie zajmie mini-odtwarzacz",
+      "sm": "Mały",
+      "md": "Średni",
+      "lg": "Duży"
+    },
+    "fontSize": {
+      "title": "Rozmiar tekstu",
+      "desc": "Wielkość czcionki dla tytułu, wykonawcy i albumu",
+      "sm": "Mały",
+      "md": "Domyślny",
+      "lg": "Duży"
+    },
+    "ambient": {
+      "title": "Intensywność koloru tła",
+      "desc": "Siła poświaty z okładki albumu rozpływającej się za odtwarzaczem. Ustaw na 0, aby ją wyłączyć."
+    },
+    "elements": {
+      "title": "Widoczne elementy",
+      "subtitle": "Ukryj nieużywane elementy, aby mini-odtwarzacz był jeszcze gęstszy",
+      "albumArt": "Okładka albumu",
+      "albumArtDesc": "Kafelek okładki 72-pikselowy po lewej stronie",
+      "album": "Nazwa albumu",
+      "albumDesc": "Trzecia linia pod tytułem i wykonawcą",
+      "seek": "Pasek przewijania",
+      "seekDesc": "Czas + suwak na dole (i tak ukryty dla radia)",
+      "volume": "Suwak głośności",
+      "volumeDesc": "Suwak obok kontrolek odtwarzania",
+      "favorite": "Przycisk ulubionych",
+      "favoriteDesc": "Przycisk serca w pasku tytułu do dodawania bieżącego utworu do ulubionych"
+    },
+    "behavior": {
+      "title": "Zachowanie",
+      "subtitle": "Jak tryb kompaktowy działa przy wejściu i wyjściu",
+      "defaultAlwaysOnTop": "Domyślnie zawsze na wierzchu",
+      "defaultAlwaysOnTopDesc": "Automatycznie przypinaj mini-odtwarzacz nad innymi oknami przy przejściu do trybu kompaktowego"
+    }
   },
   "app": {
     "title": "Wygląd",

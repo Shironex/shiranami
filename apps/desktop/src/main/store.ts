@@ -25,6 +25,10 @@ export interface StoreSchema {
   'player-state': unknown;
   'window-bounds': unknown;
 
+  // Main-only: position of the compact mini-player. Persisted on exit-compact
+  // so the next enter-compact restores to the same screen corner.
+  'compact-window-bounds': { x: number; y: number };
+
   // Renderer-owned scalars.
   'player.volume': number;
   'player.isMuted': boolean;

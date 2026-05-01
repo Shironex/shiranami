@@ -62,6 +62,87 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().compactMode).toBe(false);
   });
 
+  it('rolls back only the pin when setAlwaysOnTop fails after compact succeeds', async () => {
+    // Default-pin-on seeds compactAlwaysOnTop=true on entry; if the pin IPC
+    // then fails, we want compact to stay (window is in compact mode) but
+    // the pin to revert (so the store doesn't claim a pin that didn't take).
+    useAppStore.setState({ compactDefaultAlwaysOnTop: true, compactAlwaysOnTop: false });
+    vi.mocked(window.electronAPI.window.setCompactMode).mockResolvedValueOnce(undefined);
+    vi.mocked(window.electronAPI.window.setAlwaysOnTop).mockRejectedValueOnce(
+      new Error('pin failed')
+    );
+
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(useAppStore.getState().compactMode).toBe(true);
+    expect(useAppStore.getState().compactAlwaysOnTop).toBe(false);
+  });
+
+  it('persists compact mode flag across reloads', async () => {
+    await useAppStore.getState().setCompactMode(true);
+    expect(useAppStore.getState().compactMode).toBe(true);
+    expect(readPersisted().compactMode).toBe(true);
+  });
+
+  it('forwards configured compact size dimensions over IPC', async () => {
+    useAppStore.setState({ compactSize: 'lg' });
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(window.electronAPI.window.setCompactMode).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ width: 600, height: 260 })
+    );
+  });
+
+  it('seeds compact always-on-top from compactDefaultAlwaysOnTop on entry', async () => {
+    useAppStore.setState({ compactDefaultAlwaysOnTop: true, compactAlwaysOnTop: false });
+
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(useAppStore.getState().compactAlwaysOnTop).toBe(true);
+    expect(window.electronAPI.window.setAlwaysOnTop).toHaveBeenCalledWith(true);
+  });
+
+  it('persists compactShowFavorite toggle to localStorage', () => {
+    useAppStore.getState().setCompactShowFavorite(true);
+    expect(useAppStore.getState().compactShowFavorite).toBe(true);
+    expect(readPersisted().compactShowFavorite).toBe(true);
+  });
+
+  it('persists and clamps compactAmbientIntensity within the allowed range', () => {
+    useAppStore.getState().setCompactAmbientIntensity(0.5);
+    // Clamped to max (0.2).
+    expect(useAppStore.getState().compactAmbientIntensity).toBe(0.2);
+    expect(readPersisted().compactAmbientIntensity).toBe(0.2);
+  });
+
+  it('resetCompactAppearance restores all compact prefs to defaults', () => {
+    useAppStore.setState({
+      compactSize: 'lg',
+      compactFontSize: 'sm',
+      compactAmbientIntensity: 0.15,
+      compactShowAlbumArt: false,
+      compactShowAlbum: false,
+      compactShowSeek: false,
+      compactShowVolume: false,
+      compactShowFavorite: true,
+      compactDefaultAlwaysOnTop: true,
+    });
+
+    useAppStore.getState().resetCompactAppearance();
+
+    const s = useAppStore.getState();
+    expect(s.compactSize).toBe('md');
+    expect(s.compactFontSize).toBe('md');
+    expect(s.compactAmbientIntensity).toBe(0.08);
+    expect(s.compactShowAlbumArt).toBe(true);
+    expect(s.compactShowAlbum).toBe(true);
+    expect(s.compactShowSeek).toBe(true);
+    expect(s.compactShowVolume).toBe(true);
+    expect(s.compactShowFavorite).toBe(false);
+    expect(s.compactDefaultAlwaysOnTop).toBe(false);
+  });
+
   it('toggleSidebarItem adds and removes items from hidden list', () => {
     const { toggleSidebarItem } = useAppStore.getState();
 

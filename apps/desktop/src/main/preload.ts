@@ -194,7 +194,10 @@ export interface ElectronAPI {
     close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
-    setCompactMode: (compactMode: boolean) => Promise<void>;
+    setCompactMode: (
+      compactMode: boolean,
+      dimensions?: { width: number; height: number }
+    ) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
   store: {
@@ -262,8 +265,15 @@ export interface ElectronAPI {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
-      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<unknown>;
-      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      createWithTracks: (data: {
+        name: string;
+        description?: string;
+        trackIds: string[];
+      }) => Promise<unknown>;
+      update: (
+        id: string,
+        data: { name?: string; description?: string; coverArt?: string }
+      ) => Promise<unknown>;
       delete: (id: string) => Promise<void>;
       getTracks: (playlistId: string) => Promise<unknown[]>;
       addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
@@ -300,15 +310,17 @@ export interface ElectronAPI {
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
     suggest: (query: string) => Promise<string[]>;
-    search: (query: string) => Promise<Array<{
-      id: string;
-      title: string;
-      uploader: string;
-      duration: number;
-      thumbnail: string;
-      url: string;
-      webpage_url: string;
-    }>>;
+    search: (query: string) => Promise<
+      Array<{
+        id: string;
+        title: string;
+        uploader: string;
+        duration: number;
+        thumbnail: string;
+        url: string;
+        webpage_url: string;
+      }>
+    >;
     download: (url: string) => Promise<string>;
     getDownloadLocation: () => Promise<{
       path: string;
@@ -322,15 +334,35 @@ export interface ElectronAPI {
     }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
     getCachedToolStatus: () => Promise<{
-      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlp: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ffmpeg: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
       ytdlpPath: string;
       downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
       timestamp: number;
     } | null>;
     refreshToolStatus: () => Promise<{
-      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlp: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ffmpeg: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
       ytdlpPath: string;
       downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
       timestamp: number;
@@ -341,12 +373,14 @@ export interface ElectronAPI {
       latestVersion?: string;
       updateAvailable?: boolean;
     }>;
-    onProgress: (callback: (data: {
-      url: string;
-      progress: number;
-      status: 'downloading' | 'converting' | 'done' | 'error';
-      error?: string;
-    }) => void) => () => void;
+    onProgress: (
+      callback: (data: {
+        url: string;
+        progress: number;
+        status: 'downloading' | 'converting' | 'done' | 'error';
+        error?: string;
+      }) => void
+    ) => () => void;
     installYtDlp: () => Promise<void>;
     onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     getYtDlpPath: () => Promise<string>;
@@ -359,22 +393,43 @@ export interface ElectronAPI {
     installFfmpeg: () => Promise<void>;
     onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
     installDependencies: () => Promise<InstallDependenciesResult>;
-    onDependencyInstallProgress: (callback: (progress: {
-      target: 'ytdlp' | 'ffmpeg';
-      percent: number;
-      overallPercent: number;
-      label: string;
-    }) => void) => () => void;
+    onDependencyInstallProgress: (
+      callback: (progress: {
+        target: 'ytdlp' | 'ffmpeg';
+        percent: number;
+        overallPercent: number;
+        label: string;
+      }) => void
+    ) => () => void;
   };
   updater: {
     checkForUpdates: () => Promise<{ enabled: boolean }>;
     startDownload: () => Promise<void>;
     installNow: () => Promise<void>;
     onCheckingForUpdate: (callback: () => void) => () => void;
-    onUpdateAvailable: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateAvailable: (
+      callback: (info: {
+        version: string;
+        releaseNotes: string | null;
+        releaseDate: string;
+      }) => void
+    ) => () => void;
     onUpdateNotAvailable: (callback: () => void) => () => void;
-    onDownloadProgress: (callback: (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => void) => () => void;
-    onUpdateDownloaded: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onDownloadProgress: (
+      callback: (progress: {
+        bytesPerSecond: number;
+        percent: number;
+        transferred: number;
+        total: number;
+      }) => void
+    ) => () => void;
+    onUpdateDownloaded: (
+      callback: (info: {
+        version: string;
+        releaseNotes: string | null;
+        releaseDate: string;
+      }) => void
+    ) => () => void;
     onUpdateError: (callback: (message: string) => void) => () => void;
   };
   shell: {
@@ -403,24 +458,27 @@ export interface ElectronAPI {
     };
   };
   playlist: {
-    extract: (url: string) => Promise<Array<{
-      id: string;
-      title: string;
-      uploader: string;
-      duration: number;
-      thumbnail: string;
-      url: string;
-      webpage_url: string;
-    }>>;
+    extract: (url: string) => Promise<
+      Array<{
+        id: string;
+        title: string;
+        uploader: string;
+        duration: number;
+        thumbnail: string;
+        url: string;
+        webpage_url: string;
+      }>
+    >;
     cancel: () => Promise<void>;
-    onExtractProgress: (callback: (data: {
-      current: number;
-      total: number;
-      trackName: string;
-    }) => void) => () => void;
+    onExtractProgress: (
+      callback: (data: { current: number; total: number; trackName: string }) => void
+    ) => () => void;
   };
   metadata: {
-    lookup: (title: string, artist: string) => Promise<{
+    lookup: (
+      title: string,
+      artist: string
+    ) => Promise<{
       title?: string;
       artist?: string;
       album?: string;
@@ -444,28 +502,32 @@ export interface ElectronAPI {
         trackNumber: number | null;
       }>,
       options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => Promise<Array<{
-      id: string;
-      success: boolean;
-      updatedFields: Partial<{
-        title: string;
-        artist: string;
-        album: string;
-        genre: string;
-        year: number;
-        trackNumber: number;
-        albumArt: string;
-      }>;
-      source: string;
-      error?: string;
-    }>>;
+    ) => Promise<
+      Array<{
+        id: string;
+        success: boolean;
+        updatedFields: Partial<{
+          title: string;
+          artist: string;
+          album: string;
+          genre: string;
+          year: number;
+          trackNumber: number;
+          albumArt: string;
+        }>;
+        source: string;
+        error?: string;
+      }>
+    >;
     cancelEnrichment: () => Promise<void>;
-    onEnrichProgress: (callback: (data: {
-      current: number;
-      total: number;
-      trackName: string;
-      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-    }) => void) => () => void;
+    onEnrichProgress: (
+      callback: (data: {
+        current: number;
+        total: number;
+        trackName: string;
+        status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
+      }) => void
+    ) => () => void;
   };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
@@ -499,8 +561,8 @@ const electronAPI: ElectronAPI = {
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     setAlwaysOnTop: (alwaysOnTop: boolean) =>
       ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
-    setCompactMode: (compactMode: boolean) =>
-      ipcRenderer.invoke('window:set-compact-mode', compactMode),
+    setCompactMode: (compactMode: boolean, dimensions?: { width: number; height: number }) =>
+      ipcRenderer.invoke('window:set-compact-mode', compactMode, dimensions),
     onMaximizedChange: createIpcListener<boolean>('window:maximized-change'),
   },
   store: {
@@ -519,8 +581,10 @@ const electronAPI: ElectronAPI = {
   library: {
     parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
     scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
-    scanFolderGrouped: (dirPath: string) => ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
-    validateFiles: (filePaths: string[]) => ipcRenderer.invoke('library:validate-files', filePaths) as Promise<string[]>,
+    scanFolderGrouped: (dirPath: string) =>
+      ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
+    validateFiles: (filePaths: string[]) =>
+      ipcRenderer.invoke('library:validate-files', filePaths) as Promise<string[]>,
   },
   db: {
     tracks: {
@@ -530,12 +594,14 @@ const electronAPI: ElectronAPI = {
       remove: (id: string) => ipcRenderer.invoke('db:tracks:remove', id),
       removeMany: (ids: string[]) => ipcRenderer.invoke('db:tracks:remove-many', ids),
       update: (id: string, data: unknown) => ipcRenderer.invoke('db:tracks:update', id, data),
-      updateMany: (updates: Array<{ id: string; data: unknown }>) => ipcRenderer.invoke('db:tracks:update-many', updates),
+      updateMany: (updates: Array<{ id: string; data: unknown }>) =>
+        ipcRenderer.invoke('db:tracks:update-many', updates),
       toggleFavorite: (id: string) => ipcRenderer.invoke('db:tracks:toggle-favorite', id),
       getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
       incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),
       exists: (filePath: string) => ipcRenderer.invoke('db:tracks:exists', filePath),
-      existsMany: (filePaths: string[]) => ipcRenderer.invoke('db:tracks:exists-many', filePaths) as Promise<string[]>,
+      existsMany: (filePaths: string[]) =>
+        ipcRenderer.invoke('db:tracks:exists-many', filePaths) as Promise<string[]>,
     },
     history: {
       recordPlay: (data: {
@@ -584,7 +650,7 @@ const electronAPI: ElectronAPI = {
   },
   media: {
     onCommand: createIpcListener<string>('media:command'),
-    sendPlaybackState: (state) => ipcRenderer.invoke('media:playback-state', state),
+    sendPlaybackState: state => ipcRenderer.invoke('media:playback-state', state),
     clearState: () => ipcRenderer.invoke('media:clear-state'),
   },
   downloader: {
@@ -610,7 +676,9 @@ const electronAPI: ElectronAPI = {
     getYtDlpPath: () => ipcRenderer.invoke('downloader:get-ytdlp-path'),
     checkFfmpeg: () => ipcRenderer.invoke('downloader:check-ffmpeg'),
     installFfmpeg: () => ipcRenderer.invoke('downloader:install-ffmpeg'),
-    onFfmpegInstallProgress: createIpcListener<{ percent: number }>('downloader:ffmpeg-install-progress'),
+    onFfmpegInstallProgress: createIpcListener<{ percent: number }>(
+      'downloader:ffmpeg-install-progress'
+    ),
     installDependencies: () => ipcRenderer.invoke('downloader:install-dependencies'),
     onDependencyInstallProgress: createIpcListener<{
       target: 'ytdlp' | 'ffmpeg';
@@ -624,10 +692,23 @@ const electronAPI: ElectronAPI = {
     startDownload: () => ipcRenderer.invoke('updater:start-download'),
     installNow: () => ipcRenderer.invoke('updater:install-now'),
     onCheckingForUpdate: createIpcListener<void>('updater:checking-for-update'),
-    onUpdateAvailable: createIpcListener<{ version: string; releaseNotes: string | null; releaseDate: string }>('updater:update-available'),
+    onUpdateAvailable: createIpcListener<{
+      version: string;
+      releaseNotes: string | null;
+      releaseDate: string;
+    }>('updater:update-available'),
     onUpdateNotAvailable: createIpcListener<void>('updater:update-not-available'),
-    onDownloadProgress: createIpcListener<{ bytesPerSecond: number; percent: number; transferred: number; total: number }>('updater:download-progress'),
-    onUpdateDownloaded: createIpcListener<{ version: string; releaseNotes: string | null; releaseDate: string }>('updater:update-downloaded'),
+    onDownloadProgress: createIpcListener<{
+      bytesPerSecond: number;
+      percent: number;
+      transferred: number;
+      total: number;
+    }>('updater:download-progress'),
+    onUpdateDownloaded: createIpcListener<{
+      version: string;
+      releaseNotes: string | null;
+      releaseDate: string;
+    }>('updater:update-downloaded'),
     onUpdateError: createIpcListener<string>('updater:error'),
   },
   shell: {
@@ -666,8 +747,7 @@ const electronAPI: ElectronAPI = {
     }>('playlist:extract-progress'),
   },
   metadata: {
-    lookup: (title: string, artist: string) =>
-      ipcRenderer.invoke('metadata:lookup', title, artist),
+    lookup: (title: string, artist: string) => ipcRenderer.invoke('metadata:lookup', title, artist),
     enrichTracks: (
       tracks: Array<{
         id: string;
@@ -694,7 +774,8 @@ const electronAPI: ElectronAPI = {
     track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),
     playlist: (playlistId: string) => ipcRenderer.invoke('share:playlist', playlistId),
     import: (code: string) => ipcRenderer.invoke('share:import', code),
-    cacheYoutubeId: (trackId: string, youtubeId: string) => ipcRenderer.invoke('share:cache-youtube-id', trackId, youtubeId),
+    cacheYoutubeId: (trackId: string, youtubeId: string) =>
+      ipcRenderer.invoke('share:cache-youtube-id', trackId, youtubeId),
     onDeepLink: createIpcListener<string>('share:deep-link'),
   },
   ipc: {

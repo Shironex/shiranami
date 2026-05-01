@@ -43,56 +43,146 @@
   --animate-slide-up: slideUp 0.3s ease-out;
   --animate-pulse-subtle: pulseSubtle 3s ease-in-out infinite;
 
+  /* Side-to-side scroll for overflow text. Translates the inner span between
+     0 and -(scrollWidth - clientWidth), which is set as a CSS custom property
+     `--marquee-shift` by the consumer. Pauses briefly at each end so users
+     can read both edges. Activated only when the consumer adds the
+     animate-marquee utility (typically on :hover). */
+  --animate-marquee: marquee 9s ease-in-out infinite;
+
   @keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  @keyframes marquee {
+    0%,
+    12% {
+      transform: translateX(0);
+    }
+    50%,
+    62% {
+      transform: translateX(var(--marquee-shift, 0px));
+    }
+    100% {
+      transform: translateX(0);
+    }
   }
   @keyframes slideUp {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes pulseSubtle {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
   @keyframes splash-float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-6px) rotate(1.5deg); }
-    50% { transform: translateY(-10px) rotate(0deg); }
-    75% { transform: translateY(-6px) rotate(-1.5deg); }
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    25% {
+      transform: translateY(-6px) rotate(1.5deg);
+    }
+    50% {
+      transform: translateY(-10px) rotate(0deg);
+    }
+    75% {
+      transform: translateY(-6px) rotate(-1.5deg);
+    }
   }
   @keyframes splash-bounce-in {
-    0% { opacity: 0; transform: scale(0) translateY(20px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
+    0% {
+      opacity: 0;
+      transform: scale(0) translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
   }
   @keyframes splash-fade-up {
-    0% { opacity: 0; transform: translateY(8px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes splash-twinkle {
-    0%, 100% { opacity: 0; transform: scale(0); }
-    20% { opacity: 0.8; transform: scale(1.2); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-    80% { opacity: 0.7; transform: scale(1); }
+    0%,
+    100% {
+      opacity: 0;
+      transform: scale(0);
+    }
+    20% {
+      opacity: 0.8;
+      transform: scale(1.2);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.8);
+    }
+    80% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
   }
   @keyframes splash-msg-swap {
-    0% { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
 /* EQ bar animations - must be outside @theme inline for Tailwind v4 */
 @keyframes eq-bar-1 {
-  0%, 100% { transform: scaleY(0.3); }
-  50% { transform: scaleY(1); }
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 @keyframes eq-bar-2 {
-  0%, 100% { transform: scaleY(0.5); }
-  50% { transform: scaleY(0.85); }
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(0.85);
+  }
 }
 @keyframes eq-bar-3 {
-  0%, 100% { transform: scaleY(0.35); }
-  50% { transform: scaleY(0.95); }
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(0.95);
+  }
 }
 
 /* Midnight Lofi Cafe Theme */
