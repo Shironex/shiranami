@@ -6,6 +6,7 @@
   "equalizer": "Equalizer",
   "visualizer": "Visualizer",
   "lyrics": "Lyrics",
+  "compact": "Compact mode",
   "appearance": "Appearance",
   "updates": "Updates",
   "about": "About",
@@ -123,6 +124,48 @@
     "previewSyncedIdleA": "Pages of a song we never finished",
     "previewSyncedIdleB": "Light through curtains, soft and unhurried",
     "previewSyncedPast": "Holding on to every fading line"
+  },
+  "cmp": {
+    "title": "Compact mode",
+    "subtitle": "Mini-player layout, density, and pin behavior",
+    "size": {
+      "title": "Window size",
+      "desc": "Choose how much screen real estate the mini-player takes up",
+      "sm": "Small",
+      "md": "Medium",
+      "lg": "Large"
+    },
+    "fontSize": {
+      "title": "Text size",
+      "desc": "Sizing for the title, artist, and album lines",
+      "sm": "Small",
+      "md": "Default",
+      "lg": "Large"
+    },
+    "ambient": {
+      "title": "Ambient color intensity",
+      "desc": "Strength of the album-art glow blooming behind the player. Set to 0 to turn it off."
+    },
+    "elements": {
+      "title": "Visible elements",
+      "subtitle": "Hide pieces you don't need to make the mini-player even denser",
+      "albumArt": "Album art",
+      "albumArtDesc": "72-pixel cover tile on the left",
+      "album": "Album name",
+      "albumDesc": "Third line beneath title and artist",
+      "seek": "Seek bar",
+      "seekDesc": "Time + scrubber along the bottom (hidden for radio anyway)",
+      "volume": "Volume slider",
+      "volumeDesc": "Inline slider next to the playback controls",
+      "quickActions": "Quick actions",
+      "quickActionsDesc": "Favorite, shuffle, and repeat buttons in the title bar"
+    },
+    "behavior": {
+      "title": "Behavior",
+      "subtitle": "How compact mode behaves when entering and exiting",
+      "defaultAlwaysOnTop": "Default to always-on-top",
+      "defaultAlwaysOnTopDesc": "Pin the mini-player above other windows automatically when you switch to compact"
+    }
   },
   "app": {
     "title": "Appearance",
