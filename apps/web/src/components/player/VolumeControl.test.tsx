@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { VolumeControl } from './VolumeControl';
 
@@ -11,9 +11,12 @@ const mockState = vi.hoisted(() => ({
   toggleMute: vi.fn(),
 }));
 
-vi.mock('@/stores/usePlaybackStore', () => ({
-  usePlaybackStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
-}));
+vi.mock('@/stores/usePlaybackStore', () => {
+  const mock = Object.assign(<T,>(selector: (s: typeof mockState) => T) => selector(mockState), {
+    getState: () => mockState,
+  });
+  return { usePlaybackStore: mock };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k }),
@@ -104,5 +107,93 @@ describe('VolumeControl', () => {
     renderVolumeControl();
     const slider = screen.getByRole('slider');
     expect(slider).toHaveAttribute('aria-valuenow', '0.42');
+  });
+});
+
+describe('wheel volume control', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockState.volume = 0.5;
+    mockState.isMuted = false;
+    mockState.setVolume.mockReset();
+    mockState.toggleMute.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function dispatchWheel(root: Element, deltaY: number): WheelEvent {
+    const ev = new WheelEvent('wheel', { deltaY, bubbles: true, cancelable: true });
+    root.dispatchEvent(ev);
+    return ev;
+  }
+
+  it('scroll up (deltaY < 0) calls setVolume with current + 0.05', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.5;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledOnce();
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.5 + 0.05);
+  });
+
+  it('scroll down (deltaY > 0) calls setVolume with current - 0.05', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.5;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, 120);
+    expect(mockState.setVolume).toHaveBeenCalledOnce();
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.5 - 0.05);
+  });
+
+  it('two wheel events within 40ms call setVolume only once (throttle)', () => {
+    vi.spyOn(performance, 'now').mockReturnValueOnce(10000).mockReturnValueOnce(10020);
+    mockState.volume = 0.5;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledOnce();
+  });
+
+  it('calls preventDefault on the wheel event', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    const ev = dispatchWheel(root, -120);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it('rounds the new volume to 2 decimals to avoid floating-point drift', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.55;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.6);
+  });
+
+  it('scroll down while muted does NOT call setVolume (would otherwise unmute)', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.7;
+    mockState.isMuted = true;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, 120);
+    expect(mockState.setVolume).not.toHaveBeenCalled();
+  });
+
+  it('scroll up while muted DOES call setVolume (unmutes, matching keyboard ArrowUp)', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(10000);
+    mockState.volume = 0.7;
+    mockState.isMuted = true;
+    const { container } = renderVolumeControl();
+    const root = container.querySelector('div')!;
+    dispatchWheel(root, -120);
+    expect(mockState.setVolume).toHaveBeenCalledOnce();
+    expect(mockState.setVolume).toHaveBeenCalledWith(0.75);
   });
 });
