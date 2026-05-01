@@ -156,6 +156,7 @@ function OpacityControl({
       </div>
       <p className="text-xs text-muted-foreground mb-4">{description}</p>
       <Slider
+        aria-label={title}
         min={min}
         max={max}
         step={step}
@@ -179,10 +180,13 @@ function FontSizeControl({ title, description, value, onChange }: FontSizeContro
     <div className="px-3">
       <p className="text-sm font-medium text-foreground mb-1">{title}</p>
       <p className="text-xs text-muted-foreground mb-3">{description}</p>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5" role="radiogroup" aria-label={title}>
         {FONT_SIZES.map(size => (
           <button
             key={size}
+            type="button"
+            role="radio"
+            aria-checked={value === size}
             onClick={() => onChange(size)}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
