@@ -593,18 +593,22 @@ export const useAppStore = create<AppState & AppActions>()(
         try {
           const dims = COMPACT_DIMENSIONS[get().compactSize];
           await window.electronAPI.window.setCompactMode(compactMode, dims);
-          if (get().compactAlwaysOnTop) {
-            await window.electronAPI.window.setAlwaysOnTop(compactMode);
-          }
         } catch {
-          if (compactMode && get().compactAlwaysOnTop) {
-            try {
-              await window.electronAPI.window.setAlwaysOnTop(false);
-            } catch {
-              // noop
-            }
-          }
+          // Compact-mode IPC failed: undo the store flips and bail before
+          // touching always-on-top so we don't pin a window the user thinks
+          // is still in normal mode.
           set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
+          return;
+        }
+
+        if (get().compactAlwaysOnTop) {
+          try {
+            await window.electronAPI.window.setAlwaysOnTop(compactMode);
+          } catch {
+            // Compact succeeded but pin failed: only roll back the pin —
+            // the OS window is correctly in/out of compact mode now.
+            set({ compactAlwaysOnTop: previousAlwaysOnTop });
+          }
         }
       },
       setCompactAlwaysOnTop: async compactAlwaysOnTop => {
@@ -790,16 +794,26 @@ export const useAppStore = create<AppState & AppActions>()(
         // The renderer flag is restored by zustand-persist; here we just
         // forward to Electron so the window itself resizes/locks again.
         if (IS_ELECTRON && state.compactMode) {
-          const dims = COMPACT_DIMENSIONS[state.compactSize];
-          window.electronAPI.window.setCompactMode(true, dims).catch(() => {
-            // If the IPC fails (e.g. preload bundling regression), fall back
-            // to the prior behavior: clear the flag so the user isn't stuck
-            // with a non-compact window claiming to be in compact mode.
-            state.compactMode = false;
-          });
-          if (state.compactAlwaysOnTop) {
-            window.electronAPI.window.setAlwaysOnTop(true).catch(() => {});
-          }
+          // Sequence the IPCs: pin only after compact takes hold, otherwise
+          // we could end up pinning a window that didn't make it into
+          // compact mode. Mutating `state` here is ineffective (rehydration
+          // has already merged), so any rollback has to go through setState.
+          void (async () => {
+            const dims = COMPACT_DIMENSIONS[state.compactSize];
+            try {
+              await window.electronAPI.window.setCompactMode(true, dims);
+            } catch {
+              useAppStore.setState({ compactMode: false, compactAlwaysOnTop: false });
+              return;
+            }
+            if (state.compactAlwaysOnTop) {
+              try {
+                await window.electronAPI.window.setAlwaysOnTop(true);
+              } catch {
+                useAppStore.setState({ compactAlwaysOnTop: false });
+              }
+            }
+          })();
         }
       },
     }

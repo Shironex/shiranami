@@ -62,6 +62,22 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().compactMode).toBe(false);
   });
 
+  it('rolls back only the pin when setAlwaysOnTop fails after compact succeeds', async () => {
+    // Default-pin-on seeds compactAlwaysOnTop=true on entry; if the pin IPC
+    // then fails, we want compact to stay (window is in compact mode) but
+    // the pin to revert (so the store doesn't claim a pin that didn't take).
+    useAppStore.setState({ compactDefaultAlwaysOnTop: true, compactAlwaysOnTop: false });
+    vi.mocked(window.electronAPI.window.setCompactMode).mockResolvedValueOnce(undefined);
+    vi.mocked(window.electronAPI.window.setAlwaysOnTop).mockRejectedValueOnce(
+      new Error('pin failed')
+    );
+
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(useAppStore.getState().compactMode).toBe(true);
+    expect(useAppStore.getState().compactAlwaysOnTop).toBe(false);
+  });
+
   it('persists compact mode flag across reloads', async () => {
     await useAppStore.getState().setCompactMode(true);
     expect(useAppStore.getState().compactMode).toBe(true);

@@ -144,6 +144,29 @@ describe('registerWindowHandlers', () => {
     expect(mockStore.set).toHaveBeenCalledWith('compact-window-bounds', { x: 1234, y: 567 });
   });
 
+  it('saves compact-window-bounds when window closes while in compact mode', async () => {
+    const win = createMainWindowMock();
+    win.getBounds.mockReturnValue({ x: 80, y: 90, width: 500, height: 214 });
+    registerWindowHandlers(asBrowserWindow(win));
+
+    await ipcHandlers.get('window:set-compact-mode')!(null as never, true);
+    const closeListener = win.on.mock.calls.find(([event]) => event === 'close')?.[1];
+    expect(closeListener).toBeDefined();
+    closeListener!();
+
+    expect(mockStore.set).toHaveBeenCalledWith('compact-window-bounds', { x: 80, y: 90 });
+  });
+
+  it('does not save compact-window-bounds when closing from normal mode', () => {
+    const win = createMainWindowMock();
+    registerWindowHandlers(asBrowserWindow(win));
+
+    const closeListener = win.on.mock.calls.find(([event]) => event === 'close')?.[1];
+    closeListener!();
+
+    expect(mockStore.set).not.toHaveBeenCalledWith('compact-window-bounds', expect.anything());
+  });
+
   it('restores compact-window-bounds on re-entry when position is on-screen', async () => {
     const win = createMainWindowMock();
     mockStore.get.mockReturnValue({ x: 200, y: 300 });

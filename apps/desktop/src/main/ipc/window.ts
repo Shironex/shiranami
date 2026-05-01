@@ -52,6 +52,21 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   let normalBounds: Rectangle | null = null;
   let wasMaximizedBeforeCompact = false;
 
+  const persistCompactBounds = () => {
+    if (!isCompactMode) return;
+    try {
+      const bounds = mainWindow.getBounds();
+      store.set(COMPACT_BOUNDS_KEY, { x: bounds.x, y: bounds.y });
+    } catch {
+      // ignore — bounds read can fail in unusual platform states
+    }
+  };
+
+  // Quitting from compact mode (taskbar, Alt+F4, system shortcut) bypasses
+  // the explicit exit-compact path, so we'd otherwise lose the user's last
+  // mini-player position. Snapshot here so the next session restores cleanly.
+  mainWindow.on('close', persistCompactBounds);
+
   handle(
     'window:minimize',
     () => {
@@ -139,16 +154,9 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
       }
 
       // Persist where the user parked the mini-player so the next session
-      // restores into the same screen corner. We snapshot before unlocking
-      // size constraints so a transient resize doesn't pollute the saved
-      // position.
-      try {
-        const bounds = mainWindow.getBounds();
-        store.set(COMPACT_BOUNDS_KEY, { x: bounds.x, y: bounds.y });
-      } catch {
-        // Bounds read can fail in unusual platform states; ignore so exiting
-        // compact mode never blocks on a persistence failure.
-      }
+      // restores into the same screen corner. Snapshot before unlocking size
+      // constraints so a transient resize doesn't pollute the saved position.
+      persistCompactBounds();
 
       mainWindow.setResizable(true);
       mainWindow.setMinimumSize(DEFAULT_MIN_WIDTH, DEFAULT_MIN_HEIGHT);

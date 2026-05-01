@@ -267,16 +267,19 @@ interface MarqueeTextProps {
  * mouse users in either mode.
  */
 function MarqueeText({ text, className }: MarqueeTextProps) {
-  const { ref, overflows, shift } = useMarqueeOnOverflow<HTMLSpanElement>(text);
+  // Ref must be on the clipped parent (`<p>`), not the inline-block span.
+  // scrollWidth/clientWidth on the unconstrained span are equal — the
+  // overflow signal lives on the constrained container.
+  const { ref, overflows, shift } = useMarqueeOnOverflow<HTMLParagraphElement>(text);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const animate = overflows && !lowPerformanceMode;
 
   return (
     <p
+      ref={ref}
+      tabIndex={overflows ? 0 : -1}
       className={cn(
-        'group/marquee block w-full overflow-hidden whitespace-nowrap',
-        // Fade right edge on overflow so the clip looks intentional. Vendor
-        // prefix kept for older WebKit; both unset when not overflowing.
+        'group/marquee block w-full overflow-hidden whitespace-nowrap focus:outline-none',
         overflows &&
           '[mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]',
         className
@@ -284,7 +287,6 @@ function MarqueeText({ text, className }: MarqueeTextProps) {
       title={overflows ? text : undefined}
     >
       <span
-        ref={ref}
         className={cn(
           'inline-block whitespace-nowrap will-change-transform',
           animate &&
