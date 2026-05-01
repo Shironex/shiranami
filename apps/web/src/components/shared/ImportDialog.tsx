@@ -68,8 +68,11 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
               {/* Playlist name */}
               {data.type === 'PLAYLIST' && (
                 <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground">{t('playlistName')}</label>
+                  <label htmlFor="playlist-name" className="text-xs text-muted-foreground">
+                    {t('playlistName')}
+                  </label>
                   <Input
+                    id="playlist-name"
                     type="text"
                     value={playlistName}
                     onChange={e => setPlaylistName(e.target.value)}
