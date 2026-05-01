@@ -2,9 +2,11 @@ import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useAppStore, LYR_SIZE_CLASS } from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
+import { cn } from '@/lib/utils';
 import { Loader2, Music2 } from 'lucide-react';
 
 const PANEL_BASE =
@@ -18,13 +20,15 @@ export function LyricsPanel() {
   const { t: tToast } = useTranslation('toast');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const seek = usePlaybackStore(s => s.seek);
+  const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
+  const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
 
   const { data, isLoading, isError } = useLyricsQuery(
     currentTrack?.id ?? null,
     currentTrack?.title ?? '',
     currentTrack?.artist ?? '',
     currentTrack?.album,
-    currentTrack?.duration,
+    currentTrack?.duration
   );
 
   useEffect(() => {
@@ -70,7 +74,13 @@ export function LyricsPanel() {
   } else if (plain) {
     content = (
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-6">
-        <pre className="text-sm text-muted-foreground/50 whitespace-pre-wrap font-sans leading-relaxed">
+        <pre
+          className={cn(
+            'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em]',
+            LYR_SIZE_CLASS[lyricsPlainFontSize]
+          )}
+          style={{ opacity: lyricsPlainOpacity }}
+        >
           {plain}
         </pre>
       </div>
