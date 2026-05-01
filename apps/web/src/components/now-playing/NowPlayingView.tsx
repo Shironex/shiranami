@@ -15,6 +15,7 @@ import { TimeDisplay } from '@/components/player/TimeDisplay';
 import { Music, ArrowLeft, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 
 const NP_BASE =
   'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 text-base @5xl:text-lg @7xl:text-xl';
@@ -82,19 +83,19 @@ export function NowPlayingView() {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <IconButton
+              size="lg"
               onClick={toggleLyrics}
               className={cn(
-                'size-9 flex items-center justify-center rounded-lg transition-colors',
                 lyricsVisible
-                  ? 'text-primary bg-primary/10 hover:bg-primary/15'
-                  : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent/40'
+                  ? 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+                  : 'text-muted-foreground/60 hover:bg-accent/40'
               )}
               aria-label={lyricsVisible ? t('hideLyrics') : t('showLyrics')}
               aria-pressed={lyricsVisible}
             >
-              {lyricsVisible ? <Mic2 className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-            </button>
+              {lyricsVisible ? <Mic2 /> : <MicOff />}
+            </IconButton>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             {lyricsVisible ? t('hideLyrics') : t('showLyrics')}
