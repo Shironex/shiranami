@@ -252,7 +252,7 @@ interface PersistedAppState {
   compactShowAlbum: boolean;
   compactShowSeek: boolean;
   compactShowVolume: boolean;
-  compactShowQuickActions: boolean;
+  compactShowFavorite: boolean;
   compactDefaultAlwaysOnTop: boolean;
 }
 
@@ -314,8 +314,8 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.compactShowSeek = persisted.compactShowSeek;
   if (typeof persisted.compactShowVolume === 'boolean')
     out.compactShowVolume = persisted.compactShowVolume;
-  if (typeof persisted.compactShowQuickActions === 'boolean')
-    out.compactShowQuickActions = persisted.compactShowQuickActions;
+  if (typeof persisted.compactShowFavorite === 'boolean')
+    out.compactShowFavorite = persisted.compactShowFavorite;
   if (typeof persisted.compactDefaultAlwaysOnTop === 'boolean')
     out.compactDefaultAlwaysOnTop = persisted.compactDefaultAlwaysOnTop;
   return out;
@@ -440,7 +440,7 @@ interface AppState {
   compactShowAlbum: boolean;
   compactShowSeek: boolean;
   compactShowVolume: boolean;
-  compactShowQuickActions: boolean;
+  compactShowFavorite: boolean;
   compactDefaultAlwaysOnTop: boolean;
   previousView: AppView;
 }
@@ -489,7 +489,7 @@ interface AppActions {
   setCompactShowAlbum: (visible: boolean) => void;
   setCompactShowSeek: (visible: boolean) => void;
   setCompactShowVolume: (visible: boolean) => void;
-  setCompactShowQuickActions: (visible: boolean) => void;
+  setCompactShowFavorite: (visible: boolean) => void;
   setCompactDefaultAlwaysOnTop: (enabled: boolean) => void;
   resetCompactAppearance: () => void;
 }
@@ -531,7 +531,7 @@ export const useAppStore = create<AppState & AppActions>()(
       compactShowAlbum: true,
       compactShowSeek: true,
       compactShowVolume: true,
-      compactShowQuickActions: false,
+      compactShowFavorite: false,
       compactDefaultAlwaysOnTop: false,
       previousView: 'library',
 
@@ -724,7 +724,7 @@ export const useAppStore = create<AppState & AppActions>()(
       setCompactShowAlbum: visible => set({ compactShowAlbum: visible }),
       setCompactShowSeek: visible => set({ compactShowSeek: visible }),
       setCompactShowVolume: visible => set({ compactShowVolume: visible }),
-      setCompactShowQuickActions: visible => set({ compactShowQuickActions: visible }),
+      setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
       setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
       resetCompactAppearance: () => {
         set({
@@ -735,7 +735,7 @@ export const useAppStore = create<AppState & AppActions>()(
           compactShowAlbum: true,
           compactShowSeek: true,
           compactShowVolume: true,
-          compactShowQuickActions: false,
+          compactShowFavorite: false,
           compactDefaultAlwaysOnTop: false,
         });
       },
@@ -774,7 +774,7 @@ export const useAppStore = create<AppState & AppActions>()(
         compactShowAlbum: s.compactShowAlbum,
         compactShowSeek: s.compactShowSeek,
         compactShowVolume: s.compactShowVolume,
-        compactShowQuickActions: s.compactShowQuickActions,
+        compactShowFavorite: s.compactShowFavorite,
         compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
       }),
       merge: (persisted, current) => ({

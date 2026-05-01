@@ -87,10 +87,10 @@ describe('useAppStore', () => {
     expect(window.electronAPI.window.setAlwaysOnTop).toHaveBeenCalledWith(true);
   });
 
-  it('persists compactShowQuickActions toggle to localStorage', () => {
-    useAppStore.getState().setCompactShowQuickActions(true);
-    expect(useAppStore.getState().compactShowQuickActions).toBe(true);
-    expect(readPersisted().compactShowQuickActions).toBe(true);
+  it('persists compactShowFavorite toggle to localStorage', () => {
+    useAppStore.getState().setCompactShowFavorite(true);
+    expect(useAppStore.getState().compactShowFavorite).toBe(true);
+    expect(readPersisted().compactShowFavorite).toBe(true);
   });
 
   it('persists and clamps compactAmbientIntensity within the allowed range', () => {
@@ -109,7 +109,7 @@ describe('useAppStore', () => {
       compactShowAlbum: false,
       compactShowSeek: false,
       compactShowVolume: false,
-      compactShowQuickActions: true,
+      compactShowFavorite: true,
       compactDefaultAlwaysOnTop: true,
     });
 
@@ -123,7 +123,7 @@ describe('useAppStore', () => {
     expect(s.compactShowAlbum).toBe(true);
     expect(s.compactShowSeek).toBe(true);
     expect(s.compactShowVolume).toBe(true);
-    expect(s.compactShowQuickActions).toBe(false);
+    expect(s.compactShowFavorite).toBe(false);
     expect(s.compactDefaultAlwaysOnTop).toBe(false);
   });
 

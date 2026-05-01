@@ -19,7 +19,7 @@ import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TimeDisplay } from './TimeDisplay';
-import { Heart, Maximize2, Minimize2, Music, Pin, Repeat, Repeat1, Shuffle } from 'lucide-react';
+import { Heart, Maximize2, Minimize2, Music, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
@@ -37,7 +37,7 @@ export function CompactPlayer() {
   const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
   const compactShowSeek = useAppStore(s => s.compactShowSeek);
   const compactShowVolume = useAppStore(s => s.compactShowVolume);
-  const compactShowQuickActions = useAppStore(s => s.compactShowQuickActions);
+  const compactShowFavorite = useAppStore(s => s.compactShowFavorite);
 
   const ambientColor = useAmbientColor();
   const { minimize: handleMinimize } = useWindowControls();
@@ -95,7 +95,7 @@ export function CompactPlayer() {
         </div>
 
         <div className="no-drag flex items-center gap-1">
-          {compactShowQuickActions && <QuickActionsCluster />}
+          {compactShowFavorite && <FavoriteButton />}
 
           <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
             <Tooltip>
@@ -212,75 +212,35 @@ export function CompactPlayer() {
 }
 
 /**
- * Compact-mode favorite/shuffle/repeat cluster. Lives next to the window
- * controls so power users can hit favorite-this-track without expanding the
- * window. Falls back gracefully when no track is playing (favorite button
- * is hidden, the others stay since shuffle/repeat are queue-level state).
+ * Compact-mode favorite button. Lives in the title bar so the user can heart
+ * the current track without expanding the window. Hidden for radio tracks and
+ * when nothing is playing. Shuffle/repeat are intentionally NOT here — they
+ * already live in the main PlayerControls row below to avoid duplication.
  */
-function QuickActionsCluster() {
+function FavoriteButton() {
   const { t: tp } = useTranslation('player');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const isShuffled = usePlaybackStore(s => s.isShuffled);
-  const repeatMode = usePlaybackStore(s => s.repeatMode);
-  const toggleShuffle = usePlaybackStore(s => s.toggleShuffle);
-  const cycleRepeatMode = usePlaybackStore(s => s.cycleRepeatMode);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
 
-  const showFavorite = !!currentTrack && !isRadioTrack(currentTrack.filePath);
+  if (!currentTrack || isRadioTrack(currentTrack.filePath)) return null;
 
   return (
     <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
-      {showFavorite && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <IconButton
-              onClick={() => toggleFavorite(currentTrack.id)}
-              className={cn(
-                currentTrack.isFavorite &&
-                  'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
-              )}
-              aria-label={
-                currentTrack.isFavorite ? tp('removeFromFavorites') : tp('addToFavorites')
-              }
-            >
-              <Heart className={cn(currentTrack.isFavorite && 'fill-current')} />
-            </IconButton>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {currentTrack.isFavorite ? tp('unfavorite') : tp('favorite')}
-          </TooltipContent>
-        </Tooltip>
-      )}
       <Tooltip>
         <TooltipTrigger asChild>
           <IconButton
-            onClick={toggleShuffle}
-            className={cn(isShuffled && 'text-primary')}
-            aria-label={tp('shuffle')}
+            onClick={() => toggleFavorite(currentTrack.id)}
+            className={cn(
+              currentTrack.isFavorite &&
+                'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
+            )}
+            aria-label={currentTrack.isFavorite ? tp('removeFromFavorites') : tp('addToFavorites')}
           >
-            <Shuffle />
+            <Heart className={cn(currentTrack.isFavorite && 'fill-current')} />
           </IconButton>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {isShuffled ? tp('shuffleOn') : tp('shuffleOff')}
-        </TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <IconButton
-            onClick={cycleRepeatMode}
-            className={cn(repeatMode !== 'off' && 'text-primary')}
-            aria-label={tp('repeatAria', { mode: repeatMode })}
-          >
-            {repeatMode === 'one' ? <Repeat1 /> : <Repeat />}
-          </IconButton>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">
-          {repeatMode === 'off'
-            ? tp('repeatOff')
-            : repeatMode === 'all'
-              ? tp('repeatAll')
-              : tp('repeatOne')}
+          {currentTrack.isFavorite ? tp('unfavorite') : tp('favorite')}
         </TooltipContent>
       </Tooltip>
     </div>

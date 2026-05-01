@@ -157,8 +157,8 @@
       "seekDesc": "Time + scrubber along the bottom (hidden for radio anyway)",
       "volume": "Volume slider",
       "volumeDesc": "Inline slider next to the playback controls",
-      "quickActions": "Quick actions",
-      "quickActionsDesc": "Favorite, shuffle, and repeat buttons in the title bar"
+      "favorite": "Favorite button",
+      "favoriteDesc": "Heart button in the title bar to favorite the current track"
     },
     "behavior": {
       "title": "Behavior",

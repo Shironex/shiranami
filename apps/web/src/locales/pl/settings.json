@@ -157,8 +157,8 @@
       "seekDesc": "Czas + suwak na dole (i tak ukryty dla radia)",
       "volume": "Suwak głośności",
       "volumeDesc": "Suwak obok kontrolek odtwarzania",
-      "quickActions": "Szybkie akcje",
-      "quickActionsDesc": "Przyciski ulubionych, losowego odtwarzania i powtarzania w pasku tytułu"
+      "favorite": "Przycisk ulubionych",
+      "favoriteDesc": "Przycisk serca w pasku tytułu do dodawania bieżącego utworu do ulubionych"
     },
     "behavior": {
       "title": "Zachowanie",

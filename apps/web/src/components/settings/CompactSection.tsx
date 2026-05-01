@@ -30,7 +30,7 @@ export function CompactSection() {
   const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
   const compactShowSeek = useAppStore(s => s.compactShowSeek);
   const compactShowVolume = useAppStore(s => s.compactShowVolume);
-  const compactShowQuickActions = useAppStore(s => s.compactShowQuickActions);
+  const compactShowFavorite = useAppStore(s => s.compactShowFavorite);
   const compactDefaultAlwaysOnTop = useAppStore(s => s.compactDefaultAlwaysOnTop);
 
   const setCompactSize = useAppStore(s => s.setCompactSize);
@@ -40,7 +40,7 @@ export function CompactSection() {
   const setCompactShowAlbum = useAppStore(s => s.setCompactShowAlbum);
   const setCompactShowSeek = useAppStore(s => s.setCompactShowSeek);
   const setCompactShowVolume = useAppStore(s => s.setCompactShowVolume);
-  const setCompactShowQuickActions = useAppStore(s => s.setCompactShowQuickActions);
+  const setCompactShowFavorite = useAppStore(s => s.setCompactShowFavorite);
   const setCompactDefaultAlwaysOnTop = useAppStore(s => s.setCompactDefaultAlwaysOnTop);
   const resetCompactAppearance = useAppStore(s => s.resetCompactAppearance);
 
@@ -52,7 +52,7 @@ export function CompactSection() {
     !compactShowAlbum ||
     !compactShowSeek ||
     !compactShowVolume ||
-    compactShowQuickActions ||
+    compactShowFavorite ||
     compactDefaultAlwaysOnTop;
 
   return (
@@ -114,10 +114,10 @@ export function CompactSection() {
             onChange={setCompactShowVolume}
           />
           <SwitchRow
-            title={t('cmp.elements.quickActions')}
-            description={t('cmp.elements.quickActionsDesc')}
-            checked={compactShowQuickActions}
-            onChange={setCompactShowQuickActions}
+            title={t('cmp.elements.favorite')}
+            description={t('cmp.elements.favoriteDesc')}
+            checked={compactShowFavorite}
+            onChange={setCompactShowFavorite}
           />
         </Subsection>
 
