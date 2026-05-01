@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
 import { ListMusic, Plus, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { Button } from '@/components/ui/button';
 import { PlaylistsViewSkeleton } from './PlaylistsViewSkeleton';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { motion, AnimatePresence } from 'motion/react';
@@ -71,7 +72,12 @@ export function PlaylistsView() {
         title={t('errorTitle')}
         subtitle={t('errorSubtitle')}
         icon={AlertCircle}
-        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+        action={{
+          label: tCommon('retry'),
+          onClick: () => {
+            void refetch();
+          },
+        }}
       />
     );
   }
@@ -123,22 +129,25 @@ export function PlaylistsView() {
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
                 disabled={createPlaylist.isPending}
               />
-              <button
+              <Button
+                size="sm"
                 onClick={handleCreate}
                 disabled={!newName.trim() || createPlaylist.isPending}
-                className="px-3 py-1 rounded-lg text-xs font-medium bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-40"
+                className="h-7 rounded-lg bg-primary/20 px-3 text-primary shadow-none hover:bg-primary/30"
               >
                 {createPlaylist.isPending ? t('creating') : t('create')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setShowNewForm(false);
                   setNewName('');
                 }}
-                className="px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="h-7 rounded-lg px-2 text-muted-foreground"
               >
                 {t('cancel', { ns: 'common' })}
-              </button>
+              </Button>
             </div>
           </motion.div>
         )}
@@ -150,9 +159,7 @@ export function PlaylistsView() {
           title={t('emptyTitle')}
           subtitle={t('emptySubtitle')}
           icon={ListMusic}
-          hints={[
-            { icon: Plus, label: t('emptyHintCreate') },
-          ]}
+          hints={[{ icon: Plus, label: t('emptyHintCreate') }]}
         />
       ) : (
         <div className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
@@ -175,11 +182,18 @@ export function PlaylistsView() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => selectPlaylist(playlist.id)}
-                className={cn("text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group", cardPaddingClass)}
+                className={cn(
+                  'text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group',
+                  cardPaddingClass
+                )}
               >
                 <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
                   {playlist.coverArt ? (
-                    <img src={playlist.coverArt} alt={playlist.name} className="w-full h-full object-cover" />
+                    <img
+                      src={playlist.coverArt}
+                      alt={playlist.name}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <ListMusic className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
                   )}
