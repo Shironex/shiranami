@@ -14,6 +14,7 @@ import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { IconButton } from '@/components/ui/icon-button';
 
 import { TimeDisplay } from './TimeDisplay';
 
@@ -46,7 +47,7 @@ export function PlayerBar() {
             'absolute bottom-0 left-0 right-0 z-50',
             'h-[88px] px-5',
             'flex items-center gap-5',
-            'glass border-t border-border/30',
+            'glass border-t border-border/30'
           )}
         >
           {/* Ambient glow — skipped in low performance mode */}
@@ -123,7 +124,9 @@ export function PlayerBar() {
                         ? 'text-favorite hover:text-favorite-hover'
                         : 'text-muted-foreground/40 hover:text-muted-foreground'
                     )}
-                    aria-label={currentTrack.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+                    aria-label={
+                      currentTrack.isFavorite ? t('removeFromFavorites') : t('addToFavorites')
+                    }
                   >
                     <Heart className={cn('w-4 h-4', currentTrack.isFavorite && 'fill-current')} />
                   </button>
@@ -165,30 +168,29 @@ export function PlayerBar() {
                 <EqualizerPanel />
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <IconButton
                       onClick={() => void setCompactMode(true)}
-                      className="size-7 flex items-center justify-center rounded-lg text-muted-foreground/75 hover:bg-accent hover:text-foreground transition-colors"
                       aria-label={t('compactMode')}
                     >
-                      <Minimize2 className="w-3.5 h-3.5" />
-                    </button>
+                      <Minimize2 />
+                    </IconButton>
                   </TooltipTrigger>
-                  <TooltipContent side="top">{t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}</TooltipContent>
+                  <TooltipContent side="top">
+                    {t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button
+                    <IconButton
                       onClick={toggleVisualizer}
                       className={cn(
-                        'size-7 flex items-center justify-center rounded-lg transition-colors',
-                        showVisualizer
-                          ? 'text-primary bg-primary/10'
-                          : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                        showVisualizer &&
+                          'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
                       )}
                       aria-label={t('toggleVisualizer')}
                     >
-                      <AudioLines className="w-3.5 h-3.5" />
-                    </button>
+                      <AudioLines />
+                    </IconButton>
                   </TooltipTrigger>
                   <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
                 </Tooltip>
@@ -197,37 +199,37 @@ export function PlayerBar() {
               {/* Always visible — highest-priority actions */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <IconButton
                     onClick={() => toggleRightPanel('lyrics')}
                     className={cn(
-                      'size-7 flex items-center justify-center rounded-lg transition-colors',
-                      rightPanel === 'lyrics'
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                      rightPanel === 'lyrics' &&
+                        'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
                     )}
                     aria-label={t('toggleLyrics')}
                   >
-                    <Mic2 className="w-3.5 h-3.5" />
-                  </button>
+                    <Mic2 />
+                  </IconButton>
                 </TooltipTrigger>
-                <TooltipContent side="top">{t('lyricsTooltip', { shortcut: `${MOD}+L` })}</TooltipContent>
+                <TooltipContent side="top">
+                  {t('lyricsTooltip', { shortcut: `${MOD}+L` })}
+                </TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <IconButton
                     onClick={() => toggleRightPanel('queue')}
                     className={cn(
-                      'size-7 flex items-center justify-center rounded-lg transition-colors',
-                      rightPanel === 'queue'
-                        ? 'text-primary bg-primary/10'
-                        : 'text-muted-foreground/75 hover:bg-accent hover:text-foreground'
+                      rightPanel === 'queue' &&
+                        'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
                     )}
                     aria-label={t('toggleQueue')}
                   >
-                    <ListMusic className="w-3.5 h-3.5" />
-                  </button>
+                    <ListMusic />
+                  </IconButton>
                 </TooltipTrigger>
-                <TooltipContent side="top">{t('queueTooltip', { shortcut: `${MOD}+Q` })}</TooltipContent>
+                <TooltipContent side="top">
+                  {t('queueTooltip', { shortcut: `${MOD}+Q` })}
+                </TooltipContent>
               </Tooltip>
             </div>
             <VolumeControl sliderClassName="w-20" />
