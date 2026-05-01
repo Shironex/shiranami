@@ -19,7 +19,9 @@ export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
-export type LyricsPlainFontSize = 'sm' | 'base' | 'lg' | 'xl';
+export type LyricsFontSize = 'sm' | 'base' | 'lg' | 'xl';
+/** @deprecated Use LyricsFontSize. Alias kept for back-compat with existing imports. */
+export type LyricsPlainFontSize = LyricsFontSize;
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -31,14 +33,39 @@ export const LYRICS_PLAIN_OPACITY_MIN = 0.5;
 export const LYRICS_PLAIN_OPACITY_MAX = 1.0;
 export const LYRICS_PLAIN_OPACITY_STEP = 0.05;
 export const LYRICS_PLAIN_OPACITY_DEFAULT = 0.9;
-export const LYRICS_PLAIN_FONT_SIZE_DEFAULT: LyricsPlainFontSize = 'base';
+export const LYRICS_PLAIN_FONT_SIZE_DEFAULT: LyricsFontSize = 'base';
 
-export const LYR_SIZE_CLASS: Record<LyricsPlainFontSize, string> = {
+export const LYRICS_SYNCED_DIM_OPACITY_MIN = 0.2;
+export const LYRICS_SYNCED_DIM_OPACITY_MAX = 1.0;
+export const LYRICS_SYNCED_DIM_OPACITY_STEP = 0.05;
+export const LYRICS_SYNCED_DIM_OPACITY_DEFAULT = 0.45;
+export const LYRICS_SYNCED_FONT_SIZE_DEFAULT: LyricsFontSize = 'base';
+
+/**
+ * Original synced view used past=0.25 / idle=0.45. We preserve that ratio
+ * (≈ 0.5556) so when the user dims idle, past dims proportionally and stays
+ * visibly fainter than idle.
+ */
+export const LYRICS_SYNCED_PAST_RATIO = 0.25 / 0.45;
+
+export const LYR_SIZE_CLASS: Record<LyricsFontSize, string> = {
   sm: 'text-sm leading-6',
   base: 'text-base leading-7',
   lg: 'text-lg leading-8',
   xl: 'text-xl leading-9',
 };
+
+const FONT_SIZE_ORDER: LyricsFontSize[] = ['sm', 'base', 'lg', 'xl'];
+
+/**
+ * Active synced line uses one step larger than the user-selected base, capped
+ * at xl. Mirrors the original hardcoded "base→lg active" behavior.
+ */
+export function nextLyricsFontSize(size: LyricsFontSize): LyricsFontSize {
+  const idx = FONT_SIZE_ORDER.indexOf(size);
+  if (idx < 0) return 'lg';
+  return FONT_SIZE_ORDER[Math.min(idx + 1, FONT_SIZE_ORDER.length - 1)];
+}
 
 const NEW_KEY = 'shiranami.app-store';
 
@@ -111,10 +138,28 @@ function coerceLyricsPlainOpacity(v: unknown): number {
   if (!Number.isFinite(parsed)) return LYRICS_PLAIN_OPACITY_DEFAULT;
   return clampLyricsPlainOpacity(parsed);
 }
-function coerceLyricsPlainFontSize(v: unknown): LyricsPlainFontSize {
+function coerceLyricsPlainFontSize(v: unknown): LyricsFontSize {
   return v === 'sm' || v === 'base' || v === 'lg' || v === 'xl'
     ? v
     : LYRICS_PLAIN_FONT_SIZE_DEFAULT;
+}
+function clampLyricsSyncedDimOpacity(v: number): number {
+  const clamped = Math.min(
+    LYRICS_SYNCED_DIM_OPACITY_MAX,
+    Math.max(LYRICS_SYNCED_DIM_OPACITY_MIN, v)
+  );
+  const steps = Math.round(clamped / LYRICS_SYNCED_DIM_OPACITY_STEP);
+  return Math.round(steps * LYRICS_SYNCED_DIM_OPACITY_STEP * 1000) / 1000;
+}
+function coerceLyricsSyncedDimOpacity(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (!Number.isFinite(parsed)) return LYRICS_SYNCED_DIM_OPACITY_DEFAULT;
+  return clampLyricsSyncedDimOpacity(parsed);
+}
+function coerceLyricsSyncedFontSize(v: unknown): LyricsFontSize {
+  return v === 'sm' || v === 'base' || v === 'lg' || v === 'xl'
+    ? v
+    : LYRICS_SYNCED_FONT_SIZE_DEFAULT;
 }
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
@@ -137,7 +182,9 @@ interface PersistedAppState {
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
   lyricsPlainOpacity: number;
-  lyricsPlainFontSize: LyricsPlainFontSize;
+  lyricsPlainFontSize: LyricsFontSize;
+  lyricsSyncedDimOpacity: number;
+  lyricsSyncedFontSize: LyricsFontSize;
 }
 
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
@@ -179,6 +226,10 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.lyricsPlainOpacity = coerceLyricsPlainOpacity(persisted.lyricsPlainOpacity);
   if (persisted.lyricsPlainFontSize !== undefined)
     out.lyricsPlainFontSize = coerceLyricsPlainFontSize(persisted.lyricsPlainFontSize);
+  if (persisted.lyricsSyncedDimOpacity !== undefined)
+    out.lyricsSyncedDimOpacity = coerceLyricsSyncedDimOpacity(persisted.lyricsSyncedDimOpacity);
+  if (persisted.lyricsSyncedFontSize !== undefined)
+    out.lyricsSyncedFontSize = coerceLyricsSyncedFontSize(persisted.lyricsSyncedFontSize);
   return out;
 }
 
@@ -291,7 +342,9 @@ interface AppState {
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
   lyricsPlainOpacity: number;
-  lyricsPlainFontSize: LyricsPlainFontSize;
+  lyricsPlainFontSize: LyricsFontSize;
+  lyricsSyncedDimOpacity: number;
+  lyricsSyncedFontSize: LyricsFontSize;
   previousView: AppView;
 }
 
@@ -327,8 +380,11 @@ interface AppActions {
   selectAlbum: (name: string | null) => void;
   setAlbumGridScrollTop: (scrollTop: number) => void;
   setLyricsPlainOpacity: (value: number) => void;
-  setLyricsPlainFontSize: (size: LyricsPlainFontSize) => void;
+  setLyricsPlainFontSize: (size: LyricsFontSize) => void;
   resetLyricsPlainAppearance: () => void;
+  setLyricsSyncedDimOpacity: (value: number) => void;
+  setLyricsSyncedFontSize: (size: LyricsFontSize) => void;
+  resetLyricsAppearance: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -359,6 +415,8 @@ export const useAppStore = create<AppState & AppActions>()(
       noiseOverlayEnabled: false,
       lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
       lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+      lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
+      lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
       previousView: 'library',
 
       navigateTo: (view, playlistId) =>
@@ -504,6 +562,20 @@ export const useAppStore = create<AppState & AppActions>()(
           lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
         });
       },
+      setLyricsSyncedDimOpacity: value => {
+        set({ lyricsSyncedDimOpacity: coerceLyricsSyncedDimOpacity(value) });
+      },
+      setLyricsSyncedFontSize: size => {
+        set({ lyricsSyncedFontSize: coerceLyricsSyncedFontSize(size) });
+      },
+      resetLyricsAppearance: () => {
+        set({
+          lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+          lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+          lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
+          lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+        });
+      },
     }),
     {
       name: NEW_KEY,
@@ -529,6 +601,8 @@ export const useAppStore = create<AppState & AppActions>()(
         noiseOverlayEnabled: s.noiseOverlayEnabled,
         lyricsPlainOpacity: s.lyricsPlainOpacity,
         lyricsPlainFontSize: s.lyricsPlainFontSize,
+        lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
+        lyricsSyncedFontSize: s.lyricsSyncedFontSize,
       }),
       merge: (persisted, current) => ({
         ...current,
