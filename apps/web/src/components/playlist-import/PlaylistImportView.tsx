@@ -1,14 +1,8 @@
 import { useRef, useCallback } from 'react';
-import {
-  Link,
-  Loader2,
-  AlertCircle,
-  X,
-  Download,
-  ListMusic,
-} from 'lucide-react';
+import { Link, Loader2, AlertCircle, X, Download, ListMusic } from 'lucide-react';
 import { ViewEmptyState } from '../shared/ViewEmptyState';
 import { List } from 'react-window';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { usePlaylistImport } from '@/hooks/usePlaylistImport';
@@ -20,25 +14,46 @@ export function PlaylistImportView() {
   const { t } = useTranslation('import');
   const inputRef = useRef<HTMLInputElement>(null);
   const {
-    url, setUrl, tracks, isExtracting, extractProgress, isImporting,
-    extractError, previewLoadingId, processedCount, totalCount, pendingCount,
-    overallProgress, hasResults, isFinished,
-    handleExtract, handleKeyDown, handleStartImport, handleStartImportSelected,
-    handleCancel, handleReset, handleRemoveTrack, handleRemoveTracks,
-    isPreviewPlaying, handlePreview,
+    url,
+    setUrl,
+    tracks,
+    isExtracting,
+    extractProgress,
+    isImporting,
+    extractError,
+    previewLoadingId,
+    processedCount,
+    totalCount,
+    pendingCount,
+    overallProgress,
+    hasResults,
+    isFinished,
+    handleExtract,
+    handleKeyDown,
+    handleStartImport,
+    handleStartImportSelected,
+    handleCancel,
+    handleReset,
+    handleRemoveTrack,
+    handleRemoveTracks,
+    isPreviewPlaying,
+    handlePreview,
   } = usePlaylistImport();
 
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
   const hasSelection = selectedTrackIds.size > 0;
 
   const selectedPendingCount = hasSelection
-    ? tracks.filter((t) => selectedTrackIds.has(t.id) && t.status === 'pending').length
+    ? tracks.filter(t => selectedTrackIds.has(t.id) && t.status === 'pending').length
     : 0;
 
-  const handleDownloadTrack = useCallback((id: string) => {
-    handleStartImportSelected(new Set([id]));
-  }, [handleStartImportSelected]);
+  const handleDownloadTrack = useCallback(
+    (id: string) => {
+      handleStartImportSelected(new Set([id]));
+    },
+    [handleStartImportSelected]
+  );
 
   const handleDownloadClick = useCallback(() => {
     if (hasSelection) {
@@ -47,7 +62,13 @@ export function PlaylistImportView() {
     } else {
       handleStartImport();
     }
-  }, [hasSelection, selectedTrackIds, handleStartImportSelected, handleStartImport, clearSelection]);
+  }, [
+    hasSelection,
+    selectedTrackIds,
+    handleStartImportSelected,
+    handleStartImport,
+    clearSelection,
+  ]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -55,25 +76,23 @@ export function PlaylistImportView() {
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
           <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={e => setUrl(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('urlPlaceholder')}
             disabled={isExtracting || isImporting}
             className={cn(
-              'w-full pl-10 pr-24 py-2.5 rounded-xl text-sm bg-card border border-border/50',
+              'h-auto w-full pl-10 pr-24 py-2.5 rounded-xl text-sm bg-card border-border/50',
               'text-foreground placeholder:text-muted-foreground/50',
-              'focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/40',
-              'transition-colors disabled:opacity-50'
+              'focus-visible:ring-primary/40 focus-visible:border-primary/40',
+              'shadow-none'
             )}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-            {isExtracting && (
-              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-            )}
+            {isExtracting && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
             {!isExtracting && !isImporting && !hasResults && (
               <button
                 onClick={handleExtract}
@@ -92,13 +111,19 @@ export function PlaylistImportView() {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               <span className="truncate">
-                {t('resolvingTrack', { current: extractProgress.current, total: extractProgress.total, name: extractProgress.trackName })}
+                {t('resolvingTrack', {
+                  current: extractProgress.current,
+                  total: extractProgress.total,
+                  name: extractProgress.trackName,
+                })}
               </span>
             </div>
             <div className="mt-2 w-full h-1.5 rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${Math.round((extractProgress.current / extractProgress.total) * 100)}%` }}
+                style={{
+                  width: `${Math.round((extractProgress.current / extractProgress.total) * 100)}%`,
+                }}
               />
             </div>
           </div>
@@ -146,9 +171,7 @@ export function PlaylistImportView() {
             {(isImporting || isFinished) && (
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>
-                    {t('processed', { done: processedCount, total: totalCount })}
-                  </span>
+                  <span>{t('processed', { done: processedCount, total: totalCount })}</span>
                   {isImporting && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
                 <div className="mt-1.5 w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -171,12 +194,7 @@ export function PlaylistImportView() {
       </div>
 
       {/* Track list or empty state */}
-      <div
-        className={cn(
-          'flex-1 min-h-0 px-6 pb-6',
-          !hasResults && 'flex overflow-y-auto'
-        )}
-      >
+      <div className={cn('flex-1 min-h-0 px-6 pb-6', !hasResults && 'flex overflow-y-auto')}>
         {!hasResults ? (
           <ViewEmptyState
             title={t('emptyTitle')}
