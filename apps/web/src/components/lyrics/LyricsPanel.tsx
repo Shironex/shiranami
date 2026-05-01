@@ -1,19 +1,31 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore, LYR_SIZE_CLASS } from '@/stores/useAppStore';
+import {
+  useAppStore,
+  LYR_SIZE_CLASS,
+  LYRICS_SYNCED_PAST_RATIO,
+  nextLyricsFontSize,
+} from '@/stores/useAppStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
 import { cn } from '@/lib/utils';
 import { Loader2, Music2 } from 'lucide-react';
 
-const PANEL_BASE =
-  'block w-full text-left text-base leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
-const PANEL_ACTIVE = 'text-foreground text-lg font-semibold';
-const PANEL_PAST = 'text-muted-foreground/25';
-const PANEL_IDLE = 'text-muted-foreground/45 hover:text-muted-foreground/70';
+// Common per-line affordances. Size + opacity come from user prefs and are
+// composed below via LYR_SIZE_CLASS + CSS custom properties.
+const PANEL_BASE_AFFORDANCES =
+  'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
+
+// Idle / past lines read their opacity from CSS vars set on the surrounding
+// container, so the values can change at runtime without re-tagging classes.
+// `hover:opacity-100` restores full contrast on pointer-over (the original
+// behavior used a hardcoded `hover:text-muted-foreground/70`).
+const PANEL_IDLE = 'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:opacity-100';
+const PANEL_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
+const PANEL_ACTIVE_AFFORDANCES = 'text-foreground font-semibold';
 
 export function LyricsPanel() {
   const { t } = useTranslation('lyrics');
@@ -22,6 +34,8 @@ export function LyricsPanel() {
   const seek = usePlaybackStore(s => s.seek);
   const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
+  const lyricsSyncedDimOpacity = useAppStore(s => s.lyricsSyncedDimOpacity);
+  const lyricsSyncedFontSize = useAppStore(s => s.lyricsSyncedFontSize);
 
   const { data, isLoading, isError } = useLyricsQuery(
     currentTrack?.id ?? null,
@@ -57,19 +71,30 @@ export function LyricsPanel() {
       </div>
     );
   } else if (synced && synced.length > 0) {
+    const baseSizeClass = LYR_SIZE_CLASS[lyricsSyncedFontSize];
+    const activeSizeClass = LYR_SIZE_CLASS[nextLyricsFontSize(lyricsSyncedFontSize)];
+    // CSS vars carry the dynamic opacity values; classes only ever reference
+    // them, so Tailwind's compile-time scanning still works.
+    const lyricsVars = {
+      '--lyrics-idle-opacity': String(lyricsSyncedDimOpacity),
+      '--lyrics-past-opacity': String(lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO),
+    } as CSSProperties;
+
     content = (
-      <LyricsList
-        lines={synced}
-        activeIndex={activeLine}
-        onLineClick={handleLineClick}
-        containerClassName="px-5 py-6"
-        spacingClassName="space-y-4"
-        bottomSpacerClassName="h-[50vh]"
-        baseClassName={PANEL_BASE}
-        activeClassName={PANEL_ACTIVE}
-        pastClassName={PANEL_PAST}
-        idleClassName={PANEL_IDLE}
-      />
+      <div className="flex-1 flex flex-col min-h-0" style={lyricsVars}>
+        <LyricsList
+          lines={synced}
+          activeIndex={activeLine}
+          onLineClick={handleLineClick}
+          containerClassName="px-5 py-6"
+          spacingClassName="space-y-4"
+          bottomSpacerClassName="h-[50vh]"
+          baseClassName={cn(PANEL_BASE_AFFORDANCES, baseSizeClass)}
+          activeClassName={cn(PANEL_ACTIVE_AFFORDANCES, activeSizeClass)}
+          pastClassName={PANEL_PAST}
+          idleClassName={PANEL_IDLE}
+        />
+      </div>
     );
   } else if (plain) {
     content = (
