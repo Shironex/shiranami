@@ -8,5 +8,11 @@
   "minutes_few": "{{count}} minuty",
   "minutes_many": "{{count}} minut",
   "minutes_other": "{{count}} minut",
-  "cancelTimer": "Anuluj czasomierz"
+  "cancelTimer": "Anuluj czasomierz",
+  "custom": "Własny",
+  "customLabel": "Minuty",
+  "customPlaceholder": "np. 25",
+  "customStart": "Uruchom",
+  "customBack": "Wstecz",
+  "customError": "Wprowadź liczbę od 1 do 600"
 }

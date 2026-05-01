@@ -6,5 +6,11 @@
   "remaining": "remaining",
   "minutes_one": "{{count}} minute",
   "minutes_other": "{{count}} minutes",
-  "cancelTimer": "Cancel timer"
+  "cancelTimer": "Cancel timer",
+  "custom": "Custom",
+  "customLabel": "Minutes",
+  "customPlaceholder": "e.g. 25",
+  "customStart": "Start",
+  "customBack": "Back",
+  "customError": "Enter a number between 1 and 600"
 }

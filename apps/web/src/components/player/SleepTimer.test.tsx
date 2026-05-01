@@ -8,7 +8,7 @@ function renderSleepTimer() {
   return render(
     <TooltipProvider>
       <SleepTimer />
-    </TooltipProvider>,
+    </TooltipProvider>
   );
 }
 
@@ -179,5 +179,94 @@ describe('SleepTimer', () => {
 
     await user.click(screen.getByRole('button', { name: 'label' }));
     expect(screen.getByText('1:05')).toBeInTheDocument();
+  });
+
+  it('renders Custom button in preset list', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.getByText('custom')).toBeInTheDocument();
+  });
+
+  it('clicking Custom switches to input view', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('custom'));
+
+    expect(screen.getByRole('spinbutton', { name: 'customLabel' })).toBeInTheDocument();
+    expect(screen.getByText('customStart')).toBeInTheDocument();
+    expect(screen.getByText('customBack')).toBeInTheDocument();
+    expect(screen.queryByText('minutes:15')).not.toBeInTheDocument();
+  });
+
+  it('submitting a valid value calls start with that number', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('custom'));
+    await user.type(screen.getByRole('spinbutton', { name: 'customLabel' }), '25');
+    await user.click(screen.getByText('customStart'));
+
+    expect(mockState.start).toHaveBeenCalledWith(25);
+  });
+
+  it('submitting an invalid value does not call start and shows error', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('custom'));
+
+    // empty input
+    await user.click(screen.getByText('customStart'));
+    expect(mockState.start).not.toHaveBeenCalled();
+    expect(screen.getByText('customError')).toBeInTheDocument();
+
+    // out of range
+    const input = screen.getByRole('spinbutton', { name: 'customLabel' });
+    await user.clear(input);
+    await user.type(input, '601');
+    await user.click(screen.getByText('customStart'));
+    expect(mockState.start).not.toHaveBeenCalled();
+
+    await user.clear(input);
+    await user.type(input, '0');
+    await user.click(screen.getByText('customStart'));
+    expect(mockState.start).not.toHaveBeenCalled();
+  });
+
+  it('Back returns to preset list without calling start', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('custom'));
+    await user.click(screen.getByText('customBack'));
+
+    expect(mockState.start).not.toHaveBeenCalled();
+    expect(screen.getByText('minutes:15')).toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'customLabel' })).not.toBeInTheDocument();
+  });
+
+  it('reopening popover resets to preset view', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    // open, switch to custom
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('custom'));
+    expect(screen.getByRole('spinbutton', { name: 'customLabel' })).toBeInTheDocument();
+
+    // close popover
+    await user.keyboard('{Escape}');
+
+    // reopen — should land on presets
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.queryByRole('spinbutton', { name: 'customLabel' })).not.toBeInTheDocument();
+    expect(screen.getByText('minutes:15')).toBeInTheDocument();
   });
 });
