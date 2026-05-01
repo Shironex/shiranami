@@ -4,6 +4,7 @@ import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
 import { useShareImport } from '@/hooks/useShareImport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface ImportDialogProps {
   open: boolean;
@@ -158,13 +159,10 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
 
               {/* Actions */}
               {state === 'ready' && (
-                <button
-                  onClick={startImport}
-                  className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
-                >
-                  <Download className="w-4 h-4 inline-block mr-2 -mt-0.5" />
+                <Button onClick={startImport} className="h-auto w-full rounded-xl py-2.5">
+                  <Download />
                   {t('downloadAll', { count: tracks.length })}
-                </button>
+                </Button>
               )}
 
               {state === 'done' && (
