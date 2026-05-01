@@ -7,6 +7,7 @@ import {
   Settings2,
   SlidersHorizontal,
   AudioLines,
+  Captions,
   Monitor,
   RefreshCcw,
   Info,
@@ -20,6 +21,7 @@ import { EqualizerSection } from '@/components/settings/EqualizerSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
+import { LyricsSection } from '@/components/settings/LyricsSection';
 import { AboutSection } from '@/components/settings/AboutSection';
 
 type SettingsSection =
@@ -29,6 +31,7 @@ type SettingsSection =
   | 'playback'
   | 'equalizer'
   | 'visualizer'
+  | 'lyrics'
   | 'appearance'
   | 'updates'
   | 'about';
@@ -40,6 +43,7 @@ const SECTIONS: { id: SettingsSection; labelKey: string; Icon: typeof FolderOpen
   { id: 'playback', labelKey: 'playback', Icon: Settings2 },
   { id: 'equalizer', labelKey: 'equalizer', Icon: SlidersHorizontal },
   { id: 'visualizer', labelKey: 'visualizer', Icon: AudioLines },
+  { id: 'lyrics', labelKey: 'lyrics', Icon: Captions },
   { id: 'appearance', labelKey: 'appearance', Icon: Monitor },
   { id: 'updates', labelKey: 'updates', Icon: RefreshCcw },
   { id: 'about', labelKey: 'about', Icon: Info },
@@ -52,6 +56,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   playback: PlaybackSection,
   equalizer: EqualizerSection,
   visualizer: VisualizerSection,
+  lyrics: LyricsSection,
   appearance: AppearanceSection,
   updates: UpdatesSection,
   about: AboutSection,
@@ -70,7 +75,7 @@ export function SettingsView() {
         role="tablist"
         aria-label="Settings sections"
       >
-        {SECTIONS.map((section) => (
+        {SECTIONS.map(section => (
           <button
             key={section.id}
             role="tab"
@@ -82,7 +87,7 @@ export function SettingsView() {
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               activeSection === section.id
                 ? 'bg-primary/15 text-primary font-medium'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80',
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80'
             )}
           >
             <section.Icon className="w-4 h-4 shrink-0" />
