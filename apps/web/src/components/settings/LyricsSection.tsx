@@ -37,10 +37,10 @@ export function LyricsSection() {
         {/* Opacity */}
         <div className="px-3">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-medium text-foreground">{t('lyr.opacityTitle')}</p>
+            <p className="text-sm font-medium text-foreground">{t('lyr.plain.opacityTitle')}</p>
             <span className="text-xs tabular-nums text-muted-foreground">{opacityPercent}%</span>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">{t('lyr.opacityDesc')}</p>
+          <p className="text-xs text-muted-foreground mb-4">{t('lyr.plain.opacityDesc')}</p>
 
           <Slider
             min={LYRICS_PLAIN_OPACITY_MIN}
@@ -53,8 +53,8 @@ export function LyricsSection() {
 
         {/* Font size */}
         <div className="px-3">
-          <p className="text-sm font-medium text-foreground mb-1">{t('lyr.fontSizeTitle')}</p>
-          <p className="text-xs text-muted-foreground mb-3">{t('lyr.fontSizeDesc')}</p>
+          <p className="text-sm font-medium text-foreground mb-1">{t('lyr.plain.fontSizeTitle')}</p>
+          <p className="text-xs text-muted-foreground mb-3">{t('lyr.plain.fontSizeDesc')}</p>
           <div className="flex items-center gap-1.5">
             {FONT_SIZES.map(size => (
               <button

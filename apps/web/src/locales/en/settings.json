@@ -91,11 +91,23 @@
   },
   "lyr": {
     "title": "Lyrics",
-    "subtitle": "Appearance of plain-text lyrics in the lyrics panel",
-    "opacityTitle": "Text opacity",
-    "opacityDesc": "How prominent the lyric text is against the background",
-    "fontSizeTitle": "Font size",
-    "fontSizeDesc": "Reading size for plain-text lyrics. Synced lyrics keep their own sizing.",
+    "subtitle": "Appearance of lyrics in the lyrics panel",
+    "plain": {
+      "title": "Plain text",
+      "subtitle": "Lyrics shown when no synced timing is available",
+      "opacityTitle": "Text opacity",
+      "opacityDesc": "How prominent the lyric text is against the background",
+      "fontSizeTitle": "Font size",
+      "fontSizeDesc": "Reading size for plain-text lyrics"
+    },
+    "synced": {
+      "title": "Synced lyrics",
+      "subtitle": "Per-line timed lyrics with the active line highlighted",
+      "opacityTitle": "Dim opacity",
+      "opacityDesc": "How visible non-active lines are. The current line stays at full contrast.",
+      "fontSizeTitle": "Font size",
+      "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically."
+    },
     "size": {
       "sm": "Small",
       "base": "Default",
@@ -106,7 +118,11 @@
     "previewLine1": "Whispered hopes inside a quiet morning",
     "previewLine2": "Pages of a song we never finished",
     "previewLine3": "Light through curtains, soft and unhurried",
-    "previewLine4": "Holding on to every fading line"
+    "previewLine4": "Holding on to every fading line",
+    "previewSyncedActive": "Whispered hopes inside a quiet morning",
+    "previewSyncedIdleA": "Pages of a song we never finished",
+    "previewSyncedIdleB": "Light through curtains, soft and unhurried",
+    "previewSyncedPast": "Holding on to every fading line"
   },
   "app": {
     "title": "Appearance",

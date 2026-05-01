@@ -92,10 +92,22 @@
   "lyr": {
     "title": "Tekst piosenki",
     "subtitle": "Wygląd tekstu piosenki w panelu lyrics",
-    "opacityTitle": "Przezroczystość tekstu",
-    "opacityDesc": "Jak wyraźny jest tekst na tle aplikacji",
-    "fontSizeTitle": "Rozmiar czcionki",
-    "fontSizeDesc": "Rozmiar czytania tekstu piosenki. Zsynchronizowany tekst zachowuje własne rozmiary.",
+    "plain": {
+      "title": "Tekst zwykły",
+      "subtitle": "Tekst pokazywany, gdy brak zsynchronizowanego timingu",
+      "opacityTitle": "Przezroczystość tekstu",
+      "opacityDesc": "Jak wyraźny jest tekst na tle aplikacji",
+      "fontSizeTitle": "Rozmiar czcionki",
+      "fontSizeDesc": "Rozmiar czytania zwykłego tekstu piosenki"
+    },
+    "synced": {
+      "title": "Zsynchronizowany tekst",
+      "subtitle": "Tekst z czasem dla każdej linii i podświetloną aktywną linią",
+      "opacityTitle": "Przezroczystość przyciemnienia",
+      "opacityDesc": "Jak widoczne są nieaktywne linie. Bieżąca linia pozostaje w pełnym kontraście.",
+      "fontSizeTitle": "Rozmiar czcionki",
+      "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie."
+    },
     "size": {
       "sm": "Mały",
       "base": "Domyślny",
@@ -106,7 +118,11 @@
     "previewLine1": "Szeptane nadzieje w cichy poranek",
     "previewLine2": "Strony piosenki, której nie skończyliśmy",
     "previewLine3": "Światło przez zasłony, miękkie i spokojne",
-    "previewLine4": "Trzymam każdą zanikającą linię"
+    "previewLine4": "Trzymam każdą zanikającą linię",
+    "previewSyncedActive": "Szeptane nadzieje w cichy poranek",
+    "previewSyncedIdleA": "Strony piosenki, której nie skończyliśmy",
+    "previewSyncedIdleB": "Światło przez zasłony, miękkie i spokojne",
+    "previewSyncedPast": "Trzymam każdą zanikającą linię"
   },
   "app": {
     "title": "Wygląd",
