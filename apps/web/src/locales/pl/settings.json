@@ -5,6 +5,7 @@
   "playback": "Odtwarzanie",
   "equalizer": "Korektor",
   "visualizer": "Wizualizator",
+  "lyrics": "Tekst piosenki",
   "appearance": "Wygląd",
   "updates": "Aktualizacje",
   "about": "O aplikacji",
@@ -87,6 +88,25 @@
     "circleDesc": "Promieniowy łuk częstotliwości",
     "particles": "Fala gradientowa",
     "particlesDesc": "Płynna fala z wypełnieniem gradientowym"
+  },
+  "lyr": {
+    "title": "Tekst piosenki",
+    "subtitle": "Wygląd tekstu piosenki w panelu lyrics",
+    "opacityTitle": "Przezroczystość tekstu",
+    "opacityDesc": "Jak wyraźny jest tekst na tle aplikacji",
+    "fontSizeTitle": "Rozmiar czcionki",
+    "fontSizeDesc": "Rozmiar czytania tekstu piosenki. Zsynchronizowany tekst zachowuje własne rozmiary.",
+    "size": {
+      "sm": "Mały",
+      "base": "Domyślny",
+      "lg": "Duży",
+      "xl": "Bardzo duży"
+    },
+    "previewTitle": "Podgląd",
+    "previewLine1": "Szeptane nadzieje w cichy poranek",
+    "previewLine2": "Strony piosenki, której nie skończyliśmy",
+    "previewLine3": "Światło przez zasłony, miękkie i spokojne",
+    "previewLine4": "Trzymam każdą zanikającą linię"
   },
   "app": {
     "title": "Wygląd",

@@ -5,6 +5,7 @@
   "playback": "Playback",
   "equalizer": "Equalizer",
   "visualizer": "Visualizer",
+  "lyrics": "Lyrics",
   "appearance": "Appearance",
   "updates": "Updates",
   "about": "About",
@@ -87,6 +88,25 @@
     "circleDesc": "Radial frequency arc",
     "particles": "Wave",
     "particlesDesc": "Smooth flowing gradient wave"
+  },
+  "lyr": {
+    "title": "Lyrics",
+    "subtitle": "Appearance of plain-text lyrics in the lyrics panel",
+    "opacityTitle": "Text opacity",
+    "opacityDesc": "How prominent the lyric text is against the background",
+    "fontSizeTitle": "Font size",
+    "fontSizeDesc": "Reading size for plain-text lyrics. Synced lyrics keep their own sizing.",
+    "size": {
+      "sm": "Small",
+      "base": "Default",
+      "lg": "Large",
+      "xl": "Extra large"
+    },
+    "previewTitle": "Preview",
+    "previewLine1": "Whispered hopes inside a quiet morning",
+    "previewLine2": "Pages of a song we never finished",
+    "previewLine3": "Light through curtains, soft and unhurried",
+    "previewLine4": "Holding on to every fading line"
   },
   "app": {
     "title": "Appearance",
