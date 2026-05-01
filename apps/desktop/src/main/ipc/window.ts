@@ -1,5 +1,6 @@
-import { BrowserWindow, ipcMain, type Rectangle } from 'electron';
+import { BrowserWindow, ipcMain, screen, type Rectangle } from 'electron';
 import { handle } from './with-ipc-handler';
+import { store } from '../store';
 import {
   windowMinimizeArgs,
   windowMaximizeArgs,
@@ -13,6 +14,38 @@ const DEFAULT_MIN_WIDTH = 800;
 const DEFAULT_MIN_HEIGHT = 600;
 const COMPACT_DEFAULT_WIDTH = 500;
 const COMPACT_DEFAULT_HEIGHT = 214;
+const COMPACT_BOUNDS_KEY = 'compact-window-bounds';
+
+/**
+ * Returns a position for the compact window: the user's last-saved corner if
+ * we have one and it falls within a currently-connected display work area, or
+ * `null` to let Electron's default placement (top-left of normalBounds) win.
+ *
+ * Guards against a saved position from a now-disconnected monitor pulling the
+ * window offscreen by validating against every display's `workArea` (the
+ * monitor minus taskbar/menu reservations).
+ */
+function getValidCompactPosition(width: number, height: number): { x: number; y: number } | null {
+  const saved = store.get(COMPACT_BOUNDS_KEY);
+  if (!saved || typeof saved.x !== 'number' || typeof saved.y !== 'number') return null;
+
+  const displays = screen.getAllDisplays();
+  // The window is considered onscreen if at least 80px of it lands within
+  // some display's work area on each axis. That tolerance keeps a slightly
+  // off-edge window restoreable while still rejecting one that's mostly on a
+  // monitor that's no longer connected.
+  const VISIBLE_PX = 80;
+  const visible = displays.some(d => {
+    const wa = d.workArea;
+    const xVisible =
+      saved.x + width >= wa.x + VISIBLE_PX && saved.x <= wa.x + wa.width - VISIBLE_PX;
+    const yVisible =
+      saved.y + height >= wa.y + VISIBLE_PX && saved.y <= wa.y + wa.height - VISIBLE_PX;
+    return xVisible && yVisible;
+  });
+
+  return visible ? { x: saved.x, y: saved.y } : null;
+}
 
 export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   let isCompactMode = false;
@@ -94,9 +127,27 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
         mainWindow.setMinimizable(true);
         mainWindow.setMinimumSize(width, height);
         mainWindow.setMaximumSize(width, height);
-        mainWindow.setSize(width, height, true);
+
+        const lastPosition = getValidCompactPosition(width, height);
+        if (lastPosition) {
+          mainWindow.setBounds({ ...lastPosition, width, height }, true);
+        } else {
+          mainWindow.setSize(width, height, true);
+        }
         isCompactMode = true;
         return;
+      }
+
+      // Persist where the user parked the mini-player so the next session
+      // restores into the same screen corner. We snapshot before unlocking
+      // size constraints so a transient resize doesn't pollute the saved
+      // position.
+      try {
+        const bounds = mainWindow.getBounds();
+        store.set(COMPACT_BOUNDS_KEY, { x: bounds.x, y: bounds.y });
+      } catch {
+        // Bounds read can fail in unusual platform states; ignore so exiting
+        // compact mode never blocks on a persistence failure.
       }
 
       mainWindow.setResizable(true);
