@@ -1,7 +1,13 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import {
+  useAppStore,
+  CMP_TITLE_CLASS,
+  CMP_ARTIST_CLASS,
+  CMP_ALBUM_CLASS,
+} from '@/stores/useAppStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
@@ -13,7 +19,7 @@ import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TimeDisplay } from './TimeDisplay';
-import { Maximize2, Minimize2, Music, Pin } from 'lucide-react';
+import { Heart, Maximize2, Minimize2, Music, Pin, Repeat, Repeat1, Shuffle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
@@ -24,6 +30,15 @@ export function CompactPlayer() {
   const compactAlwaysOnTop = useAppStore(s => s.compactAlwaysOnTop);
   const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+
+  const compactFontSize = useAppStore(s => s.compactFontSize);
+  const compactAmbientIntensity = useAppStore(s => s.compactAmbientIntensity);
+  const compactShowAlbumArt = useAppStore(s => s.compactShowAlbumArt);
+  const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
+  const compactShowSeek = useAppStore(s => s.compactShowSeek);
+  const compactShowVolume = useAppStore(s => s.compactShowVolume);
+  const compactShowQuickActions = useAppStore(s => s.compactShowQuickActions);
+
   const ambientColor = useAmbientColor();
   const { minimize: handleMinimize } = useWindowControls();
 
@@ -48,19 +63,19 @@ export function CompactPlayer() {
     }
   }, [setCompactMode, nowPlayingViewEnabled, enterNowPlaying, currentTrack]);
 
-  const showSeekBar = !!currentTrack && !isRadioTrack(currentTrack.filePath);
+  const showSeekBar = compactShowSeek && !!currentTrack && !isRadioTrack(currentTrack.filePath);
 
   const titleText = currentTrack?.title ?? t('nothingPlaying');
   const artistText = currentTrack ? currentTrack.artist : t('idleSubtitle');
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      {!lowPerformanceMode && (
+      {!lowPerformanceMode && compactAmbientIntensity > 0 && (
         <AnimatePresence>
           <motion.div
             key={ambientColor.hex}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.08 }}
+            animate={{ opacity: compactAmbientIntensity }}
             exit={{ opacity: 0 }}
             transition={{ duration: 2 }}
             className="pointer-events-none absolute inset-0"
@@ -79,78 +94,88 @@ export function CompactPlayer() {
           </span>
         </div>
 
-        <div className="no-drag flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton
-                onClick={handleToggleAlwaysOnTop}
-                className={cn(
-                  compactAlwaysOnTop &&
-                    'bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary'
-                )}
-                aria-label={compactAlwaysOnTop ? t('disableAlwaysOnTop') : t('enableAlwaysOnTop')}
-              >
-                <Pin />
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {compactAlwaysOnTop ? t('disableOnTop') : t('keepOnTop')}
-            </TooltipContent>
-          </Tooltip>
+        <div className="no-drag flex items-center gap-1">
+          {compactShowQuickActions && <QuickActionsCluster />}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton onClick={handleExitCompact} aria-label={t('exitCompactMode')}>
-                <Maximize2 />
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('exitCompactMode')}</TooltipContent>
-          </Tooltip>
+          <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton
+                  onClick={handleToggleAlwaysOnTop}
+                  className={cn(
+                    compactAlwaysOnTop &&
+                      'bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary'
+                  )}
+                  aria-label={compactAlwaysOnTop ? t('disableAlwaysOnTop') : t('enableAlwaysOnTop')}
+                >
+                  <Pin />
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {compactAlwaysOnTop ? t('disableOnTop') : t('keepOnTop')}
+              </TooltipContent>
+            </Tooltip>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton onClick={handleMinimize} aria-label={t('minimize')}>
-                <Minimize2 />
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
-          </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton onClick={handleExitCompact} aria-label={t('exitCompactMode')}>
+                  <Maximize2 />
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t('exitCompactMode')}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton onClick={handleMinimize} aria-label={t('minimize')}>
+                  <Minimize2 />
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t('minimize')}</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center p-2.5">
         <div className="glass-subtle relative flex h-full w-full items-stretch gap-2.5 overflow-hidden rounded-[20px] border border-border/25 p-2.5">
-          <button
-            type="button"
-            onClick={handleAlbumArtClick}
-            className="group/art flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label={t('expandFromCompact')}
-          >
-            {currentTrack?.albumArt ? (
-              <img
-                src={currentTrack.albumArt}
-                alt={currentTrack.album}
-                className="h-full w-full object-cover transition-opacity group-hover/art:opacity-90"
-              />
-            ) : (
-              <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />
-            )}
-          </button>
+          {compactShowAlbumArt && (
+            <button
+              type="button"
+              onClick={handleAlbumArtClick}
+              className="group/art flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-label={t('expandFromCompact')}
+            >
+              {currentTrack?.albumArt ? (
+                <img
+                  src={currentTrack.albumArt}
+                  alt={currentTrack.album}
+                  className="h-full w-full object-cover transition-opacity group-hover/art:opacity-90"
+                />
+              ) : (
+                <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />
+              )}
+            </button>
+          )}
 
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="min-w-0">
               <MarqueeText
                 text={titleText}
                 className={cn(
-                  'text-sm font-semibold text-foreground',
+                  'text-foreground',
+                  CMP_TITLE_CLASS[compactFontSize],
                   !currentTrack && 'text-muted-foreground'
                 )}
               />
-              <MarqueeText text={artistText} className="mt-0.5 text-xs text-muted-foreground" />
-              {currentTrack?.album && (
+              <MarqueeText
+                text={artistText}
+                className={cn('mt-0.5 text-muted-foreground', CMP_ARTIST_CLASS[compactFontSize])}
+              />
+              {compactShowAlbum && currentTrack?.album && (
                 <MarqueeText
                   text={currentTrack.album}
-                  className="mt-1 text-[11px] text-muted-foreground/65"
+                  className={cn('mt-1 text-muted-foreground/65', CMP_ALBUM_CLASS[compactFontSize])}
                 />
               )}
             </div>
@@ -158,7 +183,7 @@ export function CompactPlayer() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-center gap-3.5">
                 <PlayerControls />
-                <VolumeControl sliderClassName="w-20" />
+                {compactShowVolume && <VolumeControl sliderClassName="w-20" />}
               </div>
 
               {showSeekBar ? (
@@ -174,12 +199,90 @@ export function CompactPlayer() {
                   </span>
                 </div>
               ) : (
+                // Reserve the height even when seek is hidden so the layout
+                // doesn't collapse and re-jitter on track-type changes.
                 <div className="h-6" />
               )}
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Compact-mode favorite/shuffle/repeat cluster. Lives next to the window
+ * controls so power users can hit favorite-this-track without expanding the
+ * window. Falls back gracefully when no track is playing (favorite button
+ * is hidden, the others stay since shuffle/repeat are queue-level state).
+ */
+function QuickActionsCluster() {
+  const { t: tp } = useTranslation('player');
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isShuffled = usePlaybackStore(s => s.isShuffled);
+  const repeatMode = usePlaybackStore(s => s.repeatMode);
+  const toggleShuffle = usePlaybackStore(s => s.toggleShuffle);
+  const cycleRepeatMode = usePlaybackStore(s => s.cycleRepeatMode);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+
+  const showFavorite = !!currentTrack && !isRadioTrack(currentTrack.filePath);
+
+  return (
+    <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
+      {showFavorite && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <IconButton
+              onClick={() => toggleFavorite(currentTrack.id)}
+              className={cn(
+                currentTrack.isFavorite &&
+                  'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
+              )}
+              aria-label={
+                currentTrack.isFavorite ? tp('removeFromFavorites') : tp('addToFavorites')
+              }
+            >
+              <Heart className={cn(currentTrack.isFavorite && 'fill-current')} />
+            </IconButton>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {currentTrack.isFavorite ? tp('unfavorite') : tp('favorite')}
+          </TooltipContent>
+        </Tooltip>
+      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <IconButton
+            onClick={toggleShuffle}
+            className={cn(isShuffled && 'text-primary')}
+            aria-label={tp('shuffle')}
+          >
+            <Shuffle />
+          </IconButton>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {isShuffled ? tp('shuffleOn') : tp('shuffleOff')}
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <IconButton
+            onClick={cycleRepeatMode}
+            className={cn(repeatMode !== 'off' && 'text-primary')}
+            aria-label={tp('repeatAria', { mode: repeatMode })}
+          >
+            {repeatMode === 'one' ? <Repeat1 /> : <Repeat />}
+          </IconButton>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {repeatMode === 'off'
+            ? tp('repeatOff')
+            : repeatMode === 'all'
+              ? tp('repeatAll')
+              : tp('repeatOne')}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
