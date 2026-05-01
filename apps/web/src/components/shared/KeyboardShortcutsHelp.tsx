@@ -1,11 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
 
 const isMac = navigator.platform.toUpperCase().includes('MAC');
@@ -78,6 +73,7 @@ function getShortcutCategories(): ShortcutCategories {
         { keys: [MOD, 'L'], actionKey: 'toggleLyrics' },
         { keys: [MOD, 'Q'], actionKey: 'toggleQueue' },
         { keys: [MOD, 'Shift', 'M'], actionKey: 'compactMode' },
+        { keys: [MOD, 'Shift', 'T'], actionKey: 'toggleAlwaysOnTop' },
         { keys: [MOD, 'Shift', 'P'], actionKey: 'toggleNowPlaying' },
         { keys: ['V'], actionKey: 'toggleVisualizer' },
         { keys: ['?'], actionKey: 'showHelp' },
@@ -106,13 +102,7 @@ function Kbd({ children }: { children: string }) {
   );
 }
 
-function ShortcutRow({
-  shortcut,
-  t,
-}: {
-  shortcut: Shortcut;
-  t: (key: string) => string;
-}) {
+function ShortcutRow({ shortcut, t }: { shortcut: Shortcut; t: (key: string) => string }) {
   return (
     <div
       className="
