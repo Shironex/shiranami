@@ -29,7 +29,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'hero.mascotAlt': 'Shiranami mascot — purple-haired listener with headphones',
     'hero.stat1': 'Source-available',
     'hero.stat2': 'Win · macOS',
-    'hero.stat3': 'Quiet features',
+    'hero.stat3': 'Every detail considered',
     'hero.np.status': 'Now playing · 03:14 a.m.',
     'hero.np.aria': 'Example now playing card',
     'hero.np.hint': 'Example',
@@ -42,7 +42,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'features.headingAccent': 'folded',
     'features.headingTail': 'into one window.',
     'features.metaHeading': "What's inside",
-    'features.metaSub': '19 quiet features',
+    'features.metaSub': 'Thoughtful features',
 
     'features.library.titleLead': 'Your folders are the',
     'features.library.titleAccent': 'catalog',
@@ -56,7 +56,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'features.lyrics.titleLead': 'Lyrics that',
     'features.lyrics.titleAccent': 'scroll with you',
     'features.lyrics.body':
-      'Time-synced lines glide past as the song plays. Click any line to seek there. The room dims; the words stay legible.',
+      'Time-synced lines glide past as the song plays. Click any line to seek there. The room dims; the words stay legible. Font size and dim opacity are yours to tune.',
 
     'features.radio.titleLead': 'A radio dial, still',
     'features.radio.titleAccent': 'warm',
@@ -83,7 +83,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
 
     'features.quiet.title': 'Sleep timer, mini player, command palette.',
     'features.quiet.body':
-      'A quiet auto-pause when you fade out. A compact always-on-top window for when the screen is busy. Ctrl+K to vault anywhere in the library without touching the mouse.',
+      'A quiet auto-pause when you fade out — pick a preset or dial in any duration from 1 to 600 minutes. A compact always-on-top window for when the screen is busy. Ctrl+K to vault anywhere in the library without touching the mouse.',
 
     // App preview
     'preview.headingLead': 'The app,',
@@ -247,7 +247,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'hero.mascotAlt': 'Maskotka Shiranami — słuchaczka z fioletowymi włosami i słuchawkami',
     'hero.stat1': 'Kod dostępny',
     'hero.stat2': 'Windows · macOS',
-    'hero.stat3': 'Ciche funkcje',
+    'hero.stat3': 'Każdy detal przemyślany',
     'hero.np.status': 'Teraz gra · 03:14 w nocy',
     'hero.np.aria': 'Przykładowa karta — teraz gra',
     'hero.np.hint': 'Przykład',
@@ -260,7 +260,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'features.headingAccent': 'złożony',
     'features.headingTail': 'w jedno okno.',
     'features.metaHeading': 'Co w środku',
-    'features.metaSub': '19 cichych funkcji',
+    'features.metaSub': 'Przemyślane funkcje',
 
     'features.library.titleLead': 'Twoje foldery są',
     'features.library.titleAccent': 'katalogiem',
@@ -274,7 +274,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'features.lyrics.titleLead': 'Teksty, które',
     'features.lyrics.titleAccent': 'przewijają się z Tobą',
     'features.lyrics.body':
-      'Zsynchronizowane linijki przesuwają się razem z utworem. Kliknij dowolny wers, żeby tam przeskoczyć. Pokój przygasa; słowa zostają czytelne.',
+      'Zsynchronizowane linijki przesuwają się razem z utworem. Kliknij dowolny wers, żeby tam przeskoczyć. Pokój przygasa; słowa zostają czytelne. Rozmiar czcionki i przezroczystość przyciemnienia możesz ustawić samodzielnie.',
 
     'features.radio.titleLead': 'Pokrętło radia, wciąż',
     'features.radio.titleAccent': 'ciepłe',
@@ -301,7 +301,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
 
     'features.quiet.title': 'Wyłącznik czasowy, mini odtwarzacz, paleta poleceń.',
     'features.quiet.body':
-      'Ciche automatyczne wstrzymanie, gdy zasypiasz. Kompaktowe okno „zawsze na wierzchu”, gdy ekran jest zajęty. Ctrl+K, żeby przeskoczyć w dowolne miejsce w bibliotece bez dotykania myszy.',
+      'Ciche automatyczne wstrzymanie, gdy zasypiasz — wybierz gotowy czas lub ustaw dowolny od 1 do 600 minut. Kompaktowe okno „zawsze na wierzchu”, gdy ekran jest zajęty. Ctrl+K, żeby przeskoczyć w dowolne miejsce w bibliotece bez dotykania myszy.',
 
     // App preview
     'preview.headingLead': 'Aplikacja,',
