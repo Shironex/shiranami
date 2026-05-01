@@ -1,14 +1,9 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingsCard } from '@/components/settings/SettingsCard';
-import {
-  RefreshCcw,
-  Loader2,
-  Download,
-  Check,
-  ExternalLink,
-} from 'lucide-react';
+import { RefreshCcw, Loader2, Download, Check, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   useUpdaterEvents,
   useCheckForUpdatesMutation,
@@ -24,7 +19,7 @@ function updateStatusMessage(
     progress: number;
     error: string | null;
   },
-  t: (key: string, opts?: Record<string, unknown>) => string,
+  t: (key: string, opts?: Record<string, unknown>) => string
 ): string {
   switch (status) {
     case 'idle':
@@ -46,16 +41,8 @@ function updateStatusMessage(
 
 export function UpdatesSection() {
   const { t } = useTranslation('settings');
-  const {
-    status,
-    version,
-    progress,
-    error,
-    isMac,
-    setStatus,
-    setProgress,
-    setError,
-  } = useUpdaterEvents();
+  const { status, version, progress, error, isMac, setStatus, setProgress, setError } =
+    useUpdaterEvents();
 
   const checkMutation = useCheckForUpdatesMutation();
   const downloadMutation = useStartUpdateDownloadMutation();
@@ -98,9 +85,7 @@ export function UpdatesSection() {
     >
       {isMac ? (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            {t('upd.macNotice')}
-          </p>
+          <p className="text-xs text-muted-foreground">{t('upd.macNotice')}</p>
           <a
             href="https://github.com/Shironex/shiranami/releases/latest"
             target="_blank"
@@ -114,39 +99,37 @@ export function UpdatesSection() {
       ) : (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleCheckForUpdates}
-              disabled={
-                status === 'checking' || status === 'downloading'
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={status === 'checking' || status === 'downloading'}
+              className="gap-1.5 rounded-lg [&_svg]:size-3.5"
             >
-              {status === 'checking' ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <RefreshCcw className="w-3.5 h-3.5" />
-              )}
+              {status === 'checking' ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
               {t('upd.check')}
-            </button>
+            </Button>
 
             {status === 'available' && (
-              <button
+              <Button
+                size="sm"
                 onClick={handleDownloadUpdate}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="gap-1.5 rounded-lg [&_svg]:size-3.5"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download />
                 {t('upd.downloadVersion', { version })}
-              </button>
+              </Button>
             )}
 
             {status === 'ready' && (
-              <button
+              <Button
+                size="sm"
                 onClick={handleInstallUpdate}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="gap-1.5 rounded-lg [&_svg]:size-3.5"
               >
-                <Check className="w-3.5 h-3.5" />
+                <Check />
                 {t('upd.installRestart')}
-              </button>
+              </Button>
             )}
 
             {(status === 'available' || status === 'ready') && (
@@ -163,10 +146,7 @@ export function UpdatesSection() {
           </div>
 
           <p
-            className={cn(
-              'text-xs',
-              status === 'error' ? 'text-red-400' : 'text-muted-foreground',
-            )}
+            className={cn('text-xs', status === 'error' ? 'text-red-400' : 'text-muted-foreground')}
           >
             {updateStatusMessage(status, { version, progress, error }, t)}
           </p>
