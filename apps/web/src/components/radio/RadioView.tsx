@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Radio, Search, Heart, Globe, Loader2, Star } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { List } from 'react-window';
@@ -218,16 +219,17 @@ export function RadioView() {
             <div>
               <p className="font-display text-base font-semibold text-foreground/85">{error}</p>
             </div>
-            <button
+            <Button
+              size="sm"
               onClick={() => {
                 if (activeTab === 'top') loadTopStations();
                 else if (activeTab === 'country') loadByCountry(selectedCountry);
                 else loadFavorites();
               }}
-              className="px-4 py-2 rounded-xl text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="rounded-xl px-4 py-2"
             >
               {t('retry', { ns: 'common' })}
-            </button>
+            </Button>
           </div>
         </div>
       ) : isLoading ? (
