@@ -92,7 +92,10 @@ export interface ElectronAPI {
     close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
-    setCompactMode: (compactMode: boolean) => Promise<void>;
+    setCompactMode: (
+      compactMode: boolean,
+      dimensions?: { width: number; height: number }
+    ) => Promise<void>;
     onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
   };
   store: {
@@ -131,7 +134,12 @@ export interface ElectronAPI {
     clearState: () => Promise<void>;
   };
   lyrics: {
-    fetch: (title: string, artist: string, album?: string, duration?: number) => Promise<{
+    fetch: (
+      title: string,
+      artist: string,
+      album?: string,
+      duration?: number
+    ) => Promise<{
       synced: Array<{ time: number; text: string }> | null;
       plain: string | null;
       source: 'lrclib' | 'cache' | null;
@@ -170,8 +178,15 @@ export interface ElectronAPI {
       getAll: () => Promise<unknown[]>;
       get: (id: string) => Promise<unknown>;
       create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
-      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) => Promise<Playlist>;
-      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      createWithTracks: (data: {
+        name: string;
+        description?: string;
+        trackIds: string[];
+      }) => Promise<Playlist>;
+      update: (
+        id: string,
+        data: { name?: string; description?: string; coverArt?: string }
+      ) => Promise<unknown>;
       delete: (id: string) => Promise<void>;
       getTracks: (playlistId: string) => Promise<unknown[]>;
       addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
@@ -203,15 +218,35 @@ export interface ElectronAPI {
     }>;
     checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
     getCachedToolStatus: () => Promise<{
-      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlp: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ffmpeg: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
       ytdlpPath: string;
       downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
       timestamp: number;
     } | null>;
     refreshToolStatus: () => Promise<{
-      ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-      ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
+      ytdlp: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ffmpeg: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
       ytdlpPath: string;
       downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
       timestamp: number;
@@ -237,22 +272,43 @@ export interface ElectronAPI {
     installDependencies: () => Promise<{
       results: Array<{ tool: 'ytdlp' | 'ffmpeg'; success: boolean; error?: string }>;
     }>;
-    onDependencyInstallProgress: (callback: (progress: {
-      target: 'ytdlp' | 'ffmpeg';
-      percent: number;
-      overallPercent: number;
-      label: string;
-    }) => void) => () => void;
+    onDependencyInstallProgress: (
+      callback: (progress: {
+        target: 'ytdlp' | 'ffmpeg';
+        percent: number;
+        overallPercent: number;
+        label: string;
+      }) => void
+    ) => () => void;
   };
   updater: {
     checkForUpdates: () => Promise<{ enabled: boolean }>;
     startDownload: () => Promise<void>;
     installNow: () => Promise<void>;
     onCheckingForUpdate: (callback: () => void) => () => void;
-    onUpdateAvailable: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onUpdateAvailable: (
+      callback: (info: {
+        version: string;
+        releaseNotes: string | null;
+        releaseDate: string;
+      }) => void
+    ) => () => void;
     onUpdateNotAvailable: (callback: () => void) => () => void;
-    onDownloadProgress: (callback: (progress: { bytesPerSecond: number; percent: number; transferred: number; total: number }) => void) => () => void;
-    onUpdateDownloaded: (callback: (info: { version: string; releaseNotes: string | null; releaseDate: string }) => void) => () => void;
+    onDownloadProgress: (
+      callback: (progress: {
+        bytesPerSecond: number;
+        percent: number;
+        transferred: number;
+        total: number;
+      }) => void
+    ) => () => void;
+    onUpdateDownloaded: (
+      callback: (info: {
+        version: string;
+        releaseNotes: string | null;
+        releaseDate: string;
+      }) => void
+    ) => () => void;
     onUpdateError: (callback: (message: string) => void) => () => void;
   };
   radio: {
@@ -287,14 +343,15 @@ export interface ElectronAPI {
   playlist: {
     extract: (url: string) => Promise<SearchResult[]>;
     cancel: () => Promise<void>;
-    onExtractProgress: (callback: (data: {
-      current: number;
-      total: number;
-      trackName: string;
-    }) => void) => () => void;
+    onExtractProgress: (
+      callback: (data: { current: number; total: number; trackName: string }) => void
+    ) => () => void;
   };
   metadata: {
-    lookup: (title: string, artist: string) => Promise<{
+    lookup: (
+      title: string,
+      artist: string
+    ) => Promise<{
       title?: string;
       artist?: string;
       album?: string;
@@ -318,28 +375,32 @@ export interface ElectronAPI {
         trackNumber: number | null;
       }>,
       options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => Promise<Array<{
-      id: string;
-      success: boolean;
-      updatedFields: Partial<{
-        title: string;
-        artist: string;
-        album: string;
-        genre: string;
-        year: number;
-        trackNumber: number;
-        albumArt: string;
-      }>;
-      source: string;
-      error?: string;
-    }>>;
+    ) => Promise<
+      Array<{
+        id: string;
+        success: boolean;
+        updatedFields: Partial<{
+          title: string;
+          artist: string;
+          album: string;
+          genre: string;
+          year: number;
+          trackNumber: number;
+          albumArt: string;
+        }>;
+        source: string;
+        error?: string;
+      }>
+    >;
     cancelEnrichment: () => Promise<void>;
-    onEnrichProgress: (callback: (data: {
-      current: number;
-      total: number;
-      trackName: string;
-      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-    }) => void) => () => void;
+    onEnrichProgress: (
+      callback: (data: {
+        current: number;
+        total: number;
+        trackName: string;
+        status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
+      }) => void
+    ) => () => void;
   };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;

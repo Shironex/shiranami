@@ -60,6 +60,47 @@ describe('registerWindowHandlers', () => {
     expect(win.setSize).toHaveBeenCalledWith(500, 214, true);
   });
 
+  it('enters compact mode with caller-provided dimensions', async () => {
+    const win = createMainWindowMock();
+    win.isMaximized.mockReturnValue(false);
+    registerWindowHandlers(asBrowserWindow(win));
+
+    await ipcHandlers.get('window:set-compact-mode')!(null as never, true, {
+      width: 600,
+      height: 260,
+    });
+
+    expect(win.setMinimumSize).toHaveBeenCalledWith(600, 260);
+    expect(win.setMaximumSize).toHaveBeenCalledWith(600, 260);
+    expect(win.setSize).toHaveBeenCalledWith(600, 260, true);
+  });
+
+  it('resizes within compact mode without re-saving normalBounds', async () => {
+    const win = createMainWindowMock();
+    const bounds = { x: 10, y: 20, width: 900, height: 700 };
+    win.getNormalBounds.mockReturnValue(bounds);
+    win.isMaximized.mockReturnValue(false);
+    registerWindowHandlers(asBrowserWindow(win));
+
+    await ipcHandlers.get('window:set-compact-mode')!(null as never, true, {
+      width: 500,
+      height: 214,
+    });
+    expect(win.getNormalBounds).toHaveBeenCalledTimes(1);
+
+    await ipcHandlers.get('window:set-compact-mode')!(null as never, true, {
+      width: 600,
+      height: 260,
+    });
+
+    // Resize-while-compact should not re-capture normalBounds; otherwise we'd
+    // overwrite the original maximized/restored state with the compact bounds.
+    expect(win.getNormalBounds).toHaveBeenCalledTimes(1);
+    expect(win.setMinimumSize).toHaveBeenLastCalledWith(600, 260);
+    expect(win.setMaximumSize).toHaveBeenLastCalledWith(600, 260);
+    expect(win.setSize).toHaveBeenLastCalledWith(600, 260, true);
+  });
+
   it('exits compact mode: restores bounds when not maximized before compact', async () => {
     const win = createMainWindowMock();
     const bounds = { x: 10, y: 20, width: 900, height: 700 };

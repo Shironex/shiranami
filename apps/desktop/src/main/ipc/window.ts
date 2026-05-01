@@ -11,8 +11,8 @@ import {
 
 const DEFAULT_MIN_WIDTH = 800;
 const DEFAULT_MIN_HEIGHT = 600;
-const COMPACT_WIDTH = 500;
-const COMPACT_HEIGHT = 214;
+const COMPACT_DEFAULT_WIDTH = 500;
+const COMPACT_DEFAULT_HEIGHT = 214;
 
 export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   let isCompactMode = false;
@@ -24,7 +24,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     () => {
       mainWindow.minimize();
     },
-    { schema: windowMinimizeArgs },
+    { schema: windowMinimizeArgs }
   );
 
   handle(
@@ -36,7 +36,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
         mainWindow.maximize();
       }
     },
-    { schema: windowMaximizeArgs },
+    { schema: windowMaximizeArgs }
   );
 
   handle(
@@ -44,7 +44,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     () => {
       mainWindow.close();
     },
-    { schema: windowCloseArgs },
+    { schema: windowCloseArgs }
   );
 
   handle(
@@ -52,7 +52,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     () => {
       return mainWindow.isMaximized();
     },
-    { schema: windowIsMaximizedArgs },
+    { schema: windowIsMaximizedArgs }
   );
 
   handle(
@@ -60,12 +60,26 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
     (_event, alwaysOnTop: boolean) => {
       mainWindow.setAlwaysOnTop(alwaysOnTop);
     },
-    { schema: windowSetAlwaysOnTopArgs },
+    { schema: windowSetAlwaysOnTopArgs }
   );
 
   handle(
     'window:set-compact-mode',
-    (_event, compactMode: boolean) => {
+    (_event, compactMode: boolean, dimensions?: { width: number; height: number }) => {
+      const width = dimensions?.width ?? COMPACT_DEFAULT_WIDTH;
+      const height = dimensions?.height ?? COMPACT_DEFAULT_HEIGHT;
+
+      // If we're already in compact mode and the call is also asking for
+      // compact, treat it as a resize: switch to the new locked dimensions
+      // without re-saving normalBounds (we'd overwrite them with the current
+      // compact bounds, losing the original maximized/restored state).
+      if (compactMode && isCompactMode) {
+        mainWindow.setMinimumSize(width, height);
+        mainWindow.setMaximumSize(width, height);
+        mainWindow.setSize(width, height, true);
+        return;
+      }
+
       if (compactMode === isCompactMode) return;
 
       if (compactMode) {
@@ -78,9 +92,9 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
 
         mainWindow.setResizable(false);
         mainWindow.setMinimizable(true);
-        mainWindow.setMinimumSize(COMPACT_WIDTH, COMPACT_HEIGHT);
-        mainWindow.setMaximumSize(COMPACT_WIDTH, COMPACT_HEIGHT);
-        mainWindow.setSize(COMPACT_WIDTH, COMPACT_HEIGHT, true);
+        mainWindow.setMinimumSize(width, height);
+        mainWindow.setMaximumSize(width, height);
+        mainWindow.setSize(width, height, true);
         isCompactMode = true;
         return;
       }
@@ -98,7 +112,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
       wasMaximizedBeforeCompact = false;
       isCompactMode = false;
     },
-    { schema: windowSetCompactModeArgs },
+    { schema: windowSetCompactModeArgs }
   );
 
   mainWindow.on('maximize', () => {

@@ -62,6 +62,71 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().compactMode).toBe(false);
   });
 
+  it('persists compact mode flag across reloads', async () => {
+    await useAppStore.getState().setCompactMode(true);
+    expect(useAppStore.getState().compactMode).toBe(true);
+    expect(readPersisted().compactMode).toBe(true);
+  });
+
+  it('forwards configured compact size dimensions over IPC', async () => {
+    useAppStore.setState({ compactSize: 'lg' });
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(window.electronAPI.window.setCompactMode).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ width: 600, height: 260 })
+    );
+  });
+
+  it('seeds compact always-on-top from compactDefaultAlwaysOnTop on entry', async () => {
+    useAppStore.setState({ compactDefaultAlwaysOnTop: true, compactAlwaysOnTop: false });
+
+    await useAppStore.getState().setCompactMode(true);
+
+    expect(useAppStore.getState().compactAlwaysOnTop).toBe(true);
+    expect(window.electronAPI.window.setAlwaysOnTop).toHaveBeenCalledWith(true);
+  });
+
+  it('persists compactShowQuickActions toggle to localStorage', () => {
+    useAppStore.getState().setCompactShowQuickActions(true);
+    expect(useAppStore.getState().compactShowQuickActions).toBe(true);
+    expect(readPersisted().compactShowQuickActions).toBe(true);
+  });
+
+  it('persists and clamps compactAmbientIntensity within the allowed range', () => {
+    useAppStore.getState().setCompactAmbientIntensity(0.5);
+    // Clamped to max (0.2).
+    expect(useAppStore.getState().compactAmbientIntensity).toBe(0.2);
+    expect(readPersisted().compactAmbientIntensity).toBe(0.2);
+  });
+
+  it('resetCompactAppearance restores all compact prefs to defaults', () => {
+    useAppStore.setState({
+      compactSize: 'lg',
+      compactFontSize: 'sm',
+      compactAmbientIntensity: 0.15,
+      compactShowAlbumArt: false,
+      compactShowAlbum: false,
+      compactShowSeek: false,
+      compactShowVolume: false,
+      compactShowQuickActions: true,
+      compactDefaultAlwaysOnTop: true,
+    });
+
+    useAppStore.getState().resetCompactAppearance();
+
+    const s = useAppStore.getState();
+    expect(s.compactSize).toBe('md');
+    expect(s.compactFontSize).toBe('md');
+    expect(s.compactAmbientIntensity).toBe(0.08);
+    expect(s.compactShowAlbumArt).toBe(true);
+    expect(s.compactShowAlbum).toBe(true);
+    expect(s.compactShowSeek).toBe(true);
+    expect(s.compactShowVolume).toBe(true);
+    expect(s.compactShowQuickActions).toBe(false);
+    expect(s.compactDefaultAlwaysOnTop).toBe(false);
+  });
+
   it('toggleSidebarItem adds and removes items from hidden list', () => {
     const { toggleSidebarItem } = useAppStore.getState();
 
