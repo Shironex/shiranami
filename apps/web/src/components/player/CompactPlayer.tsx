@@ -9,6 +9,7 @@ import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useWindowControls } from '@/hooks/useWindowControls';
+import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TimeDisplay } from './TimeDisplay';
@@ -34,6 +35,9 @@ export function CompactPlayer() {
     void toggleCompactAlwaysOnTop();
   }, [toggleCompactAlwaysOnTop]);
   const showSeekBar = !!currentTrack && !isRadioTrack(currentTrack.filePath);
+
+  const titleText = currentTrack?.title ?? t('nothingPlaying');
+  const artistText = currentTrack ? currentTrack.artist : t('idleSubtitle');
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
@@ -116,21 +120,19 @@ export function CompactPlayer() {
 
           <div className="flex min-w-0 flex-1 flex-col justify-between">
             <div className="min-w-0">
-              <p
+              <MarqueeText
+                text={titleText}
                 className={cn(
-                  'truncate text-sm font-semibold text-foreground',
+                  'text-sm font-semibold text-foreground',
                   !currentTrack && 'text-muted-foreground'
                 )}
-              >
-                {currentTrack?.title ?? t('nothingPlaying')}
-              </p>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {currentTrack ? currentTrack.artist : t('idleSubtitle')}
-              </p>
+              />
+              <MarqueeText text={artistText} className="mt-0.5 text-xs text-muted-foreground" />
               {currentTrack?.album && (
-                <p className="mt-1 truncate text-[11px] text-muted-foreground/65">
-                  {currentTrack.album}
-                </p>
+                <MarqueeText
+                  text={currentTrack.album}
+                  className="mt-1 text-[11px] text-muted-foreground/65"
+                />
               )}
             </div>
 
@@ -160,5 +162,56 @@ export function CompactPlayer() {
         </div>
       </div>
     </div>
+  );
+}
+
+interface MarqueeTextProps {
+  text: string;
+  className?: string;
+}
+
+/**
+ * Single-line text that scrolls horizontally on hover when it overflows.
+ *
+ * Static state: the parent clips with `overflow:hidden` and a horizontal
+ * mask-image fades the right edge so the cut feels intentional (no ellipsis,
+ * since the marquee target is an inline-block child).
+ *
+ * Active state (hover/focus): the inner span animates by exactly its measured
+ * `scrollWidth - clientWidth` overflow distance, returns home, repeats.
+ *
+ * Falls back to a static line under `lowPerformanceMode` to honor that user
+ * preference. Tooltip still surfaces the full text for screen readers and
+ * mouse users in either mode.
+ */
+function MarqueeText({ text, className }: MarqueeTextProps) {
+  const { ref, overflows, shift } = useMarqueeOnOverflow<HTMLSpanElement>(text);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const animate = overflows && !lowPerformanceMode;
+
+  return (
+    <p
+      className={cn(
+        'group/marquee block w-full overflow-hidden whitespace-nowrap',
+        // Fade right edge on overflow so the clip looks intentional. Vendor
+        // prefix kept for older WebKit; both unset when not overflowing.
+        overflows &&
+          '[mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)] [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-16px),transparent)]',
+        className
+      )}
+      title={overflows ? text : undefined}
+    >
+      <span
+        ref={ref}
+        className={cn(
+          'inline-block whitespace-nowrap will-change-transform',
+          animate &&
+            'group-hover/marquee:animate-marquee group-focus-visible/marquee:animate-marquee'
+        )}
+        style={animate ? ({ '--marquee-shift': `${shift}px` } as React.CSSProperties) : undefined}
+      >
+        {text}
+      </span>
+    </p>
   );
 }
