@@ -91,7 +91,7 @@
   },
   "lyr": {
     "title": "Tekst piosenki",
-    "subtitle": "Wygląd tekstu piosenki w panelu lyrics",
+    "subtitle": "Wygląd tekstu piosenki w panelu",
     "plain": {
       "title": "Tekst zwykły",
       "subtitle": "Tekst pokazywany, gdy brak zsynchronizowanego timingu",
