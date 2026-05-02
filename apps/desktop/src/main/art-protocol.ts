@@ -23,18 +23,6 @@ export function ensureArtDir(): void {
   }
 }
 
-/** Map MIME type to file extension */
-export function mimeToExt(mime: string): string {
-  const map: Record<string, string> = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/webp': '.webp',
-    'image/gif': '.gif',
-    'image/bmp': '.bmp',
-  };
-  return map[mime] || '.jpg';
-}
-
 /** Map file extension to MIME type */
 export function extToMime(ext: string): string {
   const map: Record<string, string> = {

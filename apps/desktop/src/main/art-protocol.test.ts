@@ -1,32 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mimeToExt, extToMime, toArtUrl } from './art-protocol';
-
-describe('mimeToExt', () => {
-  it('maps image/jpeg to .jpg', () => {
-    expect(mimeToExt('image/jpeg')).toBe('.jpg');
-  });
-
-  it('maps image/png to .png', () => {
-    expect(mimeToExt('image/png')).toBe('.png');
-  });
-
-  it('maps image/webp to .webp', () => {
-    expect(mimeToExt('image/webp')).toBe('.webp');
-  });
-
-  it('maps image/gif to .gif', () => {
-    expect(mimeToExt('image/gif')).toBe('.gif');
-  });
-
-  it('maps image/bmp to .bmp', () => {
-    expect(mimeToExt('image/bmp')).toBe('.bmp');
-  });
-
-  it('falls back to .jpg for unknown MIME types', () => {
-    expect(mimeToExt('image/tiff')).toBe('.jpg');
-    expect(mimeToExt('application/octet-stream')).toBe('.jpg');
-  });
-});
+import { extToMime, toArtUrl } from './art-protocol';
 
 describe('extToMime', () => {
   it('maps .jpg to image/jpeg', () => {
