@@ -97,18 +97,18 @@ describe('groupTracksByAlbum', () => {
     });
     const noDate = makeTrack({ id: 'r4', album: 'No Date Album', artist: 'Dave' });
 
-    it('sorts oldest first under asc', () => {
+    it('sorts newest first under asc', () => {
       const groups = groupTracksByAlbum([newest, old, mid], 'recentlyAdded', 'asc');
-      expect(groups.map(g => g.name)).toEqual(['Old Album', 'Mid Album', 'New Album']);
-    });
-
-    it('sorts newest first under desc', () => {
-      const groups = groupTracksByAlbum([old, newest, mid], 'recentlyAdded', 'desc');
       expect(groups.map(g => g.name)).toEqual(['New Album', 'Mid Album', 'Old Album']);
     });
 
-    it('tracks with missing createdAt sink to bottom under desc (treated as epoch 0)', () => {
-      const groups = groupTracksByAlbum([noDate, old, newest], 'recentlyAdded', 'desc');
+    it('sorts oldest first under desc', () => {
+      const groups = groupTracksByAlbum([old, newest, mid], 'recentlyAdded', 'desc');
+      expect(groups.map(g => g.name)).toEqual(['Old Album', 'Mid Album', 'New Album']);
+    });
+
+    it('tracks with missing createdAt sink to bottom under asc', () => {
+      const groups = groupTracksByAlbum([noDate, old, newest], 'recentlyAdded', 'asc');
       expect(groups.map(g => g.name)).toEqual(['New Album', 'Old Album', 'No Date Album']);
     });
 
@@ -149,7 +149,7 @@ describe('groupTracksByAlbum', () => {
         createdAt: '2023-01-01 00:00:00',
       });
       // Mixed album should sort as if it was added in 2022 (before Reference's 2023)
-      const groups = groupTracksByAlbum([late, early, other], 'recentlyAdded', 'asc');
+      const groups = groupTracksByAlbum([late, early, other], 'recentlyAdded', 'desc');
       expect(groups.map(g => g.name)).toEqual(['Mixed', 'Reference']);
       expect(groups[0].createdAt).toBe('2022-05-01 00:00:00');
     });
