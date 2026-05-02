@@ -28,8 +28,8 @@ function createSyntheticSource(): FrequencySource {
 export function VisualizerStylePreview() {
   const { t } = useTranslation('settings');
   const visualizerStyle = useAppStore(s => s.visualizerStyle);
-  const sourceRef = useRef<FrequencySource>(createSyntheticSource());
-
+  const sourceRef = useRef<FrequencySource | null>(null);
+  if (sourceRef.current === null) sourceRef.current = createSyntheticSource();
   const source = sourceRef.current;
 
   return (
