@@ -1,4 +1,4 @@
-import { app, protocol } from 'electron';
+import { app, protocol, nativeImage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -23,18 +23,6 @@ export function ensureArtDir(): void {
   }
 }
 
-/** Map MIME type to file extension */
-export function mimeToExt(mime: string): string {
-  const map: Record<string, string> = {
-    'image/jpeg': '.jpg',
-    'image/png': '.png',
-    'image/webp': '.webp',
-    'image/gif': '.gif',
-    'image/bmp': '.bmp',
-  };
-  return map[mime] || '.jpg';
-}
-
 /** Map file extension to MIME type */
 export function extToMime(ext: string): string {
   const map: Record<string, string> = {
@@ -50,21 +38,54 @@ export function extToMime(ext: string): string {
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp']);
 
+const MAX_DIMENSION = 512;
+
+/**
+ * Downscale a decoded nativeImage to fit within MAX_DIMENSION on its longest edge,
+ * re-encoding as JPEG q=85. Skips the resize step when both dimensions are already
+ * within the limit; always re-encodes to normalise the output format.
+ */
+export function downscaleImage(image: Electron.NativeImage): Buffer {
+  const { width, height } = image.getSize();
+  if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
+    return image.toJPEG(85);
+  }
+
+  const scale = MAX_DIMENSION / Math.max(width, height);
+  // Floor at 1px so extreme aspect ratios (e.g. 10000×1) can't round to 0.
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+
+  const resized = image.resize({ width: targetWidth, height: targetHeight, quality: 'best' });
+  return resized.toJPEG(85);
+}
+
+/** Whether we have logged the first cache-write info line this session. */
+let _firstWriteLogged = false;
+
 /**
  * Save album art image data to disk.
- * Returns the protocol URL (shiranami-art://art/{hash}{ext}) or null if data is empty.
+ * Returns the protocol URL (shiranami-art://art/{hash}.jpg) or null if data is empty.
  */
-export async function saveAlbumArt(data: Buffer, mimeType: string): Promise<string | null> {
+export async function saveAlbumArt(data: Buffer, _mimeType: string): Promise<string | null> {
   if (!data || data.length === 0) return null;
 
-  const hash = crypto.createHash('sha256').update(data).digest('hex').slice(0, 32);
-  const ext = mimeToExt(mimeType);
-  const fileName = `${hash}${ext}`;
+  const image = nativeImage.createFromBuffer(data);
+  if (image.isEmpty()) return null;
+
+  const resized = downscaleImage(image);
+
+  const hash = crypto.createHash('sha256').update(resized).digest('hex').slice(0, 32);
+  const fileName = `${hash}.jpg`;
   const filePath = path.join(getArtDir(), fileName);
 
   try {
     // Atomically write the file if it doesn't exist using the 'wx' flag.
-    await fs.promises.writeFile(filePath, data, { flag: 'wx' });
+    await fs.promises.writeFile(filePath, resized, { flag: 'wx' });
+    if (!_firstWriteLogged) {
+      _firstWriteLogged = true;
+      logger.info('[art-protocol] Writing downscaled album art (512px JPEG) to cache');
+    }
   } catch (error: unknown) {
     // If the file already exists ('EEXIST'), it's not an error for content-addressing.
     if (error instanceof Error && (error as NodeJS.ErrnoException).code !== 'EEXIST') {
@@ -74,6 +95,11 @@ export async function saveAlbumArt(data: Buffer, mimeType: string): Promise<stri
   }
 
   return toArtUrl(fileName);
+}
+
+/** Reset the first-write log flag (for testing only). */
+export function _resetFirstWriteLoggedForTest(): void {
+  _firstWriteLogged = false;
 }
 
 /**

@@ -80,6 +80,7 @@ export function PlayerBar() {
                     src={currentTrack.albumArt}
                     alt={currentTrack.album}
                     className="w-full h-full object-cover"
+                    decoding="async"
                   />
                 ) : (
                   <Music className="w-6 h-6 text-muted-foreground/50" />

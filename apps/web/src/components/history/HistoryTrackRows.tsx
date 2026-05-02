@@ -12,7 +12,13 @@ function TrackArtwork({ albumArt, title }: { albumArt: string | null; title: str
   return (
     <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/35">
       {albumArt ? (
-        <img src={albumArt} alt={title} className="h-full w-full object-cover" />
+        <img
+          src={albumArt}
+          alt={title}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
       ) : (
         <Music className="size-4 text-muted-foreground/45" />
       )}
@@ -39,7 +45,9 @@ export function TopTrackRow({ track, onPlay }: TopTrackRowProps) {
         <p className="truncate text-xs text-muted-foreground">{track.artist}</p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-xs font-medium text-foreground">{t('plays', { count: track.playCount })}</p>
+        <p className="text-xs font-medium text-foreground">
+          {t('plays', { count: track.playCount })}
+        </p>
         <p className="text-[11px] text-muted-foreground/65">
           {formatListenTime(track.listenedSeconds)}
         </p>
@@ -87,9 +95,7 @@ export function RecentRow({ entry, onPlay }: RecentRowProps) {
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-xs font-medium text-foreground">
-          {formatDuration(entry.playedSeconds)}
-        </p>
+        <p className="text-xs font-medium text-foreground">{formatDuration(entry.playedSeconds)}</p>
         <p className="text-[11px] text-muted-foreground/65">{formatPlayedAt(entry.playedAt)}</p>
       </div>
     </button>

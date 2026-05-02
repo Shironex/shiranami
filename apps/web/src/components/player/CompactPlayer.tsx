@@ -151,6 +151,7 @@ export function CompactPlayer() {
                   src={currentTrack.albumArt}
                   alt={currentTrack.album}
                   className="h-full w-full object-cover transition-opacity group-hover/art:opacity-90"
+                  decoding="async"
                 />
               ) : (
                 <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />

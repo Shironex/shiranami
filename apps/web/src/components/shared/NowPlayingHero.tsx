@@ -14,11 +14,11 @@ interface NowPlayingHeroProps {
 
 export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const { t } = useTranslation('common');
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
-  const nowPlayingViewEnabled = useAppStore((s) => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useAppStore((s) => s.enterNowPlaying);
-  const lowPerformanceMode = useAppStore((s) => s.lowPerformanceMode);
+  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
+  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
 
   const visible = currentTrack && (!show || show(currentTrack));
 
@@ -41,7 +41,11 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
             {currentTrack.albumArt && !lowPerformanceMode && (
               <div
                 className="absolute inset-0 opacity-[0.08] blur-2xl scale-110"
-                style={{ backgroundImage: `url(${currentTrack.albumArt})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                style={{
+                  backgroundImage: `url(${currentTrack.albumArt})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
               />
             )}
 
@@ -59,7 +63,12 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
                 )}
               >
                 {currentTrack.albumArt ? (
-                  <img src={currentTrack.albumArt} alt={currentTrack.title} className="w-full h-full object-cover" />
+                  <img
+                    src={currentTrack.albumArt}
+                    alt={currentTrack.title}
+                    className="w-full h-full object-cover"
+                    decoding="async"
+                  />
                 ) : (
                   <Music className="w-8 h-8 text-muted-foreground/40" />
                 )}
@@ -67,7 +76,9 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
             </AnimatePresence>
 
             <div className="relative min-w-0 flex-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">{t('nowPlaying')}</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium mb-1">
+                {t('nowPlaying')}
+              </p>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentTrack.id}
@@ -76,8 +87,12 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h2 className="font-display text-lg font-semibold text-foreground truncate">{currentTrack.title}</h2>
-                  <p className="text-sm text-muted-foreground truncate mt-0.5">{currentTrack.artist} — {currentTrack.album}</p>
+                  <h2 className="font-display text-lg font-semibold text-foreground truncate">
+                    {currentTrack.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">
+                    {currentTrack.artist} — {currentTrack.album}
+                  </p>
                 </motion.div>
               </AnimatePresence>
             </div>

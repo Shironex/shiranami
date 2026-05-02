@@ -180,6 +180,7 @@ export function NowPlayingView() {
                   src={currentTrack.albumArt}
                   alt={currentTrack.album}
                   className="w-full h-full object-cover"
+                  decoding="async"
                 />
               ) : (
                 <Music className="w-16 h-16 text-muted-foreground/30" />

@@ -33,25 +33,26 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     }
   }, []);
 
-  const handleAlbumClick = useCallback((albumName: string) => {
-    if (scrollRef.current) {
-      setAlbumGridScrollTop(scrollRef.current.scrollTop);
-    }
-    selectAlbum(albumName);
-  }, [selectAlbum, setAlbumGridScrollTop]);
+  const handleAlbumClick = useCallback(
+    (albumName: string) => {
+      if (scrollRef.current) {
+        setAlbumGridScrollTop(scrollRef.current.scrollTop);
+      }
+      selectAlbum(albumName);
+    },
+    [selectAlbum, setAlbumGridScrollTop]
+  );
 
   const albums = useMemo(
     () => groupTracksByAlbum(library, albumSortMode, albumSortOrder),
-    [library, albumSortMode, albumSortOrder],
+    [library, albumSortMode, albumSortOrder]
   );
 
   const filteredAlbums = useMemo(() => {
     if (!searchQuery.trim()) return albums;
     const q = searchQuery.toLowerCase();
     return albums.filter(
-      a =>
-        a.name.toLowerCase().includes(q) ||
-        a.artist.toLowerCase().includes(q)
+      a => a.name.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
     );
   }, [albums, searchQuery]);
 
@@ -75,7 +76,9 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
         <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
         <div>
-          <p className="font-display text-base font-medium text-muted-foreground">{t('noMatchesTitle')}</p>
+          <p className="font-display text-base font-medium text-muted-foreground">
+            {t('noMatchesTitle')}
+          </p>
           <p className="text-sm text-muted-foreground/50 mt-1">{t('noMatchesSubtitle')}</p>
         </div>
       </div>
@@ -112,7 +115,13 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
           >
             <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
               {album.albumArt ? (
-                <img src={album.albumArt} alt={album.name} className="w-full h-full object-cover" />
+                <img
+                  src={album.albumArt}
+                  alt={album.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
               ) : (
                 <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
               )}
@@ -120,9 +129,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
             <p className="font-display text-sm font-semibold text-foreground truncate">
               {album.name}
             </p>
-            <p className="text-xs text-muted-foreground/50 truncate mt-0.5">
-              {album.artist}
-            </p>
+            <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
             <p className="text-[10px] text-muted-foreground/30 mt-1.5">
               {t('trackCount', { count: album.trackCount })}
             </p>
