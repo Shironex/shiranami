@@ -64,8 +64,9 @@ export function downscaleImage(image: Electron.NativeImage): Buffer {
   }
 
   const scale = MAX_DIMENSION / Math.max(width, height);
-  const targetWidth = Math.round(width * scale);
-  const targetHeight = Math.round(height * scale);
+  // Floor at 1px so extreme aspect ratios (e.g. 10000×1) can't round to 0.
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
 
   const resized = image.resize({ width: targetWidth, height: targetHeight, quality: 'best' });
   return resized.toJPEG(85);

@@ -136,10 +136,23 @@ describe('downscaleImage', () => {
     const { stub, resizedStub } = makeImageStub({ width: 1000, height: 1000, jpegOutput: jpeg });
 
     const { downscaleImage } = await import('./art-protocol');
-    downscaleImage(stub as never);
+    const result = downscaleImage(stub as never);
 
     expect(stub.resize).toHaveBeenCalledWith({ width: 512, height: 512, quality: 'best' });
     expect(resizedStub.toJPEG).toHaveBeenCalledWith(85);
+    expect(result).toBe(jpeg);
+  });
+
+  it('floors target dimension at 1px for extreme aspect ratios', async () => {
+    const jpeg = Buffer.from('resized-extreme');
+    const { stub, resizedStub } = makeImageStub({ width: 10000, height: 1, jpegOutput: jpeg });
+
+    const { downscaleImage } = await import('./art-protocol');
+    const result = downscaleImage(stub as never);
+
+    expect(stub.resize).toHaveBeenCalledWith({ width: 512, height: 1, quality: 'best' });
+    expect(resizedStub.toJPEG).toHaveBeenCalledWith(85);
+    expect(result).toBe(jpeg);
   });
 });
 
