@@ -55,38 +55,45 @@ export function CommandPalette() {
     [navigateTo]
   );
 
-  // Memoize track items to avoid re-rendering on every keystroke
+  // Memoize track items to avoid re-rendering on every keystroke.
+  // Gated on `open` so the full library is never mapped while the palette is closed.
   const trackItems = useMemo(
     () =>
-      library.map(track => (
-        <CommandItem
-          key={track.id}
-          value={`${track.title} ${track.artist} ${track.album}`}
-          onSelect={() => handlePlayTrack(track)}
-          className="flex items-center gap-3 py-2"
-        >
-          <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
-            {track.albumArt ? (
-              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover" />
-            ) : (
-              <Music className="w-3.5 h-3.5 text-muted-foreground/40" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm truncate">
-              {track.title}
-              {currentTrack?.id === track.id && (
-                <span className="ml-2 text-primary text-xs">{t('playing')}</span>
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-          </div>
-          <span className="text-xs text-muted-foreground/50 tabular-nums shrink-0">
-            {formatDuration(track.duration)}
-          </span>
-        </CommandItem>
-      )),
-    [library, currentTrack?.id, handlePlayTrack, t]
+      open
+        ? library.map(track => (
+            <CommandItem
+              key={track.id}
+              value={`${track.title} ${track.artist} ${track.album}`}
+              onSelect={() => handlePlayTrack(track)}
+              className="flex items-center gap-3 py-2"
+            >
+              <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
+                {track.albumArt ? (
+                  <img
+                    src={track.albumArt}
+                    alt={track.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Music className="w-3.5 h-3.5 text-muted-foreground/40" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">
+                  {track.title}
+                  {currentTrack?.id === track.id && (
+                    <span className="ml-2 text-primary text-xs">{t('playing')}</span>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+              </div>
+              <span className="text-xs text-muted-foreground/50 tabular-nums shrink-0">
+                {formatDuration(track.duration)}
+              </span>
+            </CommandItem>
+          ))
+        : [],
+    [open, library, currentTrack?.id, handlePlayTrack, t]
   );
 
   const navigationItems: { view: AppView; key: string; icon: React.ReactNode }[] = [
@@ -122,9 +129,7 @@ export function CommandPalette() {
         {library.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading={t('tracks')}>
-              {trackItems}
-            </CommandGroup>
+            <CommandGroup heading={t('tracks')}>{trackItems}</CommandGroup>
           </>
         )}
       </CommandList>
