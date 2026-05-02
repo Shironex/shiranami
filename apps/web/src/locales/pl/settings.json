@@ -63,7 +63,7 @@
     "experimental": "Eksperymentalne",
     "enrichMetadata": "Znajdź brakujące metadane",
     "enrichSubtitle": "Wyszukaj brakujące okładki, artystów, albumy i gatunki w Internecie",
-    "enrichManualNotice": "Uruchamia się tylko po kliknięciu przycisku poniżej — nigdy automatycznie w tle.",
+    "enrichManualNotice": "Uruchamia się tylko po kliknięciu przycisku poniżej. Nigdy automatycznie w tle.",
     "enriching": "Wzbogacanie...",
     "enrichCancel": "Anuluj",
     "enrichCancelling": "Anulowanie...",
@@ -193,7 +193,7 @@
     "preview": "Podgląd",
     "previewTrackTitle": "Tytuł przykładowego utworu",
     "previewAlbum": "Przykładowy album",
-    "previewDisclaimer": "Podgląd — rzeczywiste okno może wyglądać inaczej"
+    "previewDisclaimer": "Tylko podgląd. Rzeczywiste okno może wyglądać inaczej"
   },
   "app": {
     "title": "Wygląd",
@@ -207,11 +207,11 @@
     "nowPlayingView": "Widok Teraz odtwarzane",
     "nowPlayingViewDesc": "Kliknij dwukrotnie okładkę na pasku odtwarzacza lub karcie 'Teraz odtwarzane', albo naciśnij Ctrl+Shift+P, aby otworzyć widok pełnoekranowy",
     "libraryHeroCard": "Baner odtwarzanego utworu",
-    "libraryHeroCardDesc": "Pokazuj dużą kartę nad Biblioteką i Ulubionymi. Wyłącz, aby zyskać więcej miejsca na albumy — pasek odtwarzacza i tak pokazuje informacje o utworze.",
+    "libraryHeroCardDesc": "Pokazuj dużą kartę nad Biblioteką i Ulubionymi. Wyłącz, aby zyskać więcej miejsca na albumy. Pasek odtwarzacza i tak pokazuje informacje o utworze.",
     "lowPerfMode": "Tryb niskiej wydajności",
     "lowPerfModeDesc": "Wyłącza wizualizator, rozmycie szkła, nakładkę szumu i gradienty tła. Zalecane na starszych komputerach lub z zintegrowaną kartą graficzną.",
     "noiseOverlay": "Tekstura szumu",
-    "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona — dodaje niewielkie obciążenie GPU.",
+    "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona. Dodaje niewielkie obciążenie GPU.",
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne"

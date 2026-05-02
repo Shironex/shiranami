@@ -63,7 +63,7 @@
     "experimental": "Experimental",
     "enrichMetadata": "Find Missing Metadata",
     "enrichSubtitle": "Search online for missing cover art, artist, album, and genre information",
-    "enrichManualNotice": "Runs only when you click the button below — never automatically in the background.",
+    "enrichManualNotice": "Runs only when you click the button below. Never automatically in the background.",
     "enriching": "Enriching...",
     "enrichCancel": "Cancel",
     "enrichCancelling": "Cancelling...",
@@ -193,7 +193,7 @@
     "preview": "Preview",
     "previewTrackTitle": "Sample track title",
     "previewAlbum": "Sample album",
-    "previewDisclaimer": "Preview — actual window may differ slightly"
+    "previewDisclaimer": "Preview only. Actual window may differ slightly"
   },
   "app": {
     "title": "Appearance",
@@ -207,11 +207,11 @@
     "nowPlayingView": "Now Playing view",
     "nowPlayingViewDesc": "Double-click album art in the player bar or now-playing card, or press Ctrl+Shift+P, to open an immersive full view",
     "libraryHeroCard": "Now playing banner",
-    "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room — the player bar still shows track info.",
+    "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room. The player bar still shows track info.",
     "lowPerfMode": "Low performance mode",
     "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
     "noiseOverlay": "Noise texture",
-    "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default — adds a small amount of GPU work.",
+    "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default. Adds a small amount of GPU work.",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects"
