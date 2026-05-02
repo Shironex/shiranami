@@ -201,6 +201,7 @@
     "interfaceScale": "Interface scale",
     "scaleDesc": "Adjust the size of text and UI elements",
     "languageTitle": "Language",
+    "languageScaleTitle": "Language & scale",
     "languageDesc": "Choose the display language for the app",
     "sidebarTitle": "Sidebar",
     "sidebarDesc": "Choose which items appear in the sidebar",

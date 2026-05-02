@@ -53,7 +53,7 @@ export function AppearanceSection() {
   return (
     <div className="space-y-4">
       {/* Card 1 — Language & scale */}
-      <SettingsCard icon={Languages} title={t('app.languageTitle')}>
+      <SettingsCard icon={Languages} title={t('app.languageScaleTitle')}>
         <div className="space-y-6">
           {/* Language picker */}
           <div className="px-3">

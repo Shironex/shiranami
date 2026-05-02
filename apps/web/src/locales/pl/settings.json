@@ -201,6 +201,7 @@
     "interfaceScale": "Skala interfejsu",
     "scaleDesc": "Dostosuj rozmiar tekstu i elementów UI",
     "languageTitle": "Język",
+    "languageScaleTitle": "Język i skala",
     "languageDesc": "Wybierz język wyświetlania aplikacji",
     "sidebarTitle": "Panel boczny",
     "sidebarDesc": "Wybierz, które elementy mają być widoczne w panelu bocznym",
