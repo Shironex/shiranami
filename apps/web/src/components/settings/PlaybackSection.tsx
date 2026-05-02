@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
-import { Switch } from '@/components/ui/switch';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -26,28 +25,24 @@ export function PlaybackSection() {
 
   return (
     <SettingsCard icon={Settings2} title={t('play.title')} subtitle={t('play.subtitle')}>
-      <div className="space-y-1">
-        <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-          <div>
-            <p className="text-sm font-medium text-foreground">{t('play.rememberPosition')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('play.rememberDesc')}</p>
-          </div>
-          <Switch
-            checked={rememberPlaybackPosition}
-            onCheckedChange={v => updateSetting('rememberPlaybackPosition', v)}
-          />
-        </div>
+      <div>
+        <SettingsToggleRow
+          label={t('play.rememberPosition')}
+          description={t('play.rememberDesc')}
+          checked={rememberPlaybackPosition}
+          onCheckedChange={v => updateSetting('rememberPlaybackPosition', v)}
+        />
 
-        <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-          <div>
-            <p className="text-sm font-medium text-foreground">{t('play.crossfade')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('play.crossfadeDesc')}</p>
-          </div>
-          <Switch checked={crossfadeEnabled} onCheckedChange={setCrossfadeEnabled} />
-        </div>
+        <SettingsToggleRow
+          divider
+          label={t('play.crossfade')}
+          description={t('play.crossfadeDesc')}
+          checked={crossfadeEnabled}
+          onCheckedChange={setCrossfadeEnabled}
+        />
 
         {crossfadeEnabled && (
-          <div className="px-3 py-3 rounded-xl">
+          <div className="px-3 pt-3 pb-1">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">{t('play.duration')}</p>
               <span className="text-xs tabular-nums text-muted-foreground">
@@ -69,13 +64,13 @@ export function PlaybackSection() {
         )}
 
         {IS_ELECTRON && (
-          <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('play.discordRpc')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('play.discordDesc')}</p>
-            </div>
-            <Switch checked={discordRpc} onCheckedChange={v => updateSetting('discordRpc', v)} />
-          </div>
+          <SettingsToggleRow
+            divider
+            label={t('play.discordRpc')}
+            description={t('play.discordDesc')}
+            checked={discordRpc}
+            onCheckedChange={v => updateSetting('discordRpc', v)}
+          />
         )}
       </div>
     </SettingsCard>
