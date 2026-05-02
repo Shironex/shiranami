@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
+    "@shiranami/contracts": "workspace:*",
     "@shiranami/database": "workspace:*",
     "@shiranami/shared": "workspace:*",
     "@types/adm-zip": "^0.5.8",

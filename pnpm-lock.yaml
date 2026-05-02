@@ -123,6 +123,9 @@ importers:
       '@electron/rebuild':
         specifier: ^4.0.4
         version: 4.0.4
+      '@shiranami/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@shiranami/database':
         specifier: workspace:*
         version: link:../../packages/database
