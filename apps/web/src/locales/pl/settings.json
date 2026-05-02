@@ -279,6 +279,21 @@
     "madeWith": "Stworzone z",
     "byShiro": "przez Shiro",
     "altMascot": "Maskotka Shiranami",
+    "github": "GitHub",
+    "changelog": "Historia zmian",
+    "storyTitle": "Historia",
+    "storySubtitle": "Od autora. Po prostu chcia\u0142em, \u017ceby taka aplikacja istnia\u0142a.",
+    "storyP1Pre": "Shiranami zacz\u0105\u0142 si\u0119 od prostego pytania: dlaczego odtwarzacz muzyki ma wymaga\u0107 internetu tylko po to, \u017ceby dzia\u0142a\u0107? ",
+    "storyP1Bold": "Twoja biblioteka, Twoje pliki",
+    "storyP1Post": " \u2014 zawsze lokalnie, bez kompromis\u00f3w. \u017badnych serwis\u00f3w streamingowych, kont ani miesi\u0119cznych op\u0142at. Tylko muzyka, kt\u00f3r\u0105 ju\u017c masz, pouk\u0142adana tak jak chcesz.",
+    "storyP2Pre": "To cz\u0119\u015b\u0107 Shiro Suite \u2014 pi\u0119ciu starannie napisanych rodze\u0144stwa zbudowanych wok\u00f3\u0142 tego samego przekonania, \u017ce ma\u0142e, zdecydowane oprogramowanie desktopowe wci\u0105\u017c warto tworzy\u0107. ",
+    "storyP2Bold": "Shiranami \u00b7 ShiroAni \u00b7 Moekoder \u00b7 KireiManga \u00b7 Aoizora",
+    "storyP2Post": ". Ka\u017cda aplikacja robi jedn\u0105 rzecz dobrze i nie wchodzi w drog\u0119 przez reszt\u0119 czasu.",
+    "storyP3Pre": "Zrobiona dla ludzi, kt\u00f3rzy dbaj\u0105 o swoj\u0105 kolekcj\u0119 muzyki tak samo spokojnie, jak czytelnik dba o swoj\u0105 p\u00f3\u0142k\u0119 z ksi\u0105\u017ckami. Je\u015bli to o Tobie \u2014 ",
+    "storyP3Bold": "ciesz\u0119 si\u0119, \u017ce tu jeste\u015b",
+    "storyP3Post": ".",
+    "logsTitle": "Logi aplikacji",
+    "logsSubtitle": "Otw\u00f3rz folder z logami w eksploratorze plik\u00f3w",
     "openLogs": "Otw\u00f3rz folder log\u00f3w"
   }
 }

@@ -16,8 +16,15 @@ interface SettingsCardProps {
   children?: React.ReactNode;
   className?: string;
   icon?: LucideIcon;
+  /**
+   * Renders a fully custom node in place of the auto-generated icon tile.
+   * Use when the icon slot needs to show something other than a Lucide icon
+   * (e.g. a logo image). When both `icon` and `iconSlot` are provided,
+   * `iconSlot` takes precedence.
+   */
+  iconSlot?: React.ReactNode;
   title?: React.ReactNode;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   headerRight?: React.ReactNode;
   /**
    * Optional accent for cards that signal danger or caution. `default` is
@@ -50,12 +57,20 @@ export function SettingsCard({
   children,
   className,
   icon: Icon,
+  iconSlot,
   title,
   subtitle,
   headerRight,
   tone = 'default',
 }: SettingsCardProps) {
   const tile = TONE_TILE[tone];
+  const resolvedSlot =
+    iconSlot ??
+    (Icon ? (
+      <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', tile.bg)}>
+        <Icon className={cn('w-4 h-4', tile.icon)} />
+      </div>
+    ) : null);
   return (
     <div
       className={cn(
@@ -65,14 +80,12 @@ export function SettingsCard({
         className
       )}
     >
-      {Icon && title && (
+      {resolvedSlot && title && (
         <div className={cn('flex items-center gap-2.5', children && 'mb-3')}>
-          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', tile.bg)}>
-            <Icon className={cn('w-4 h-4', tile.icon)} />
-          </div>
+          {resolvedSlot}
           <div>
             <h3 className={cn('text-sm font-medium leading-tight', TONE_TITLE[tone])}>{title}</h3>
-            {subtitle && <p className="text-xs text-muted-foreground/70">{subtitle}</p>}
+            {subtitle && <div className="text-xs text-muted-foreground/70 mt-0.5">{subtitle}</div>}
           </div>
           {headerRight && <div className="ml-auto">{headerRight}</div>}
         </div>

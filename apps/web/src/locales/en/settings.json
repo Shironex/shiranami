@@ -279,6 +279,21 @@
     "madeWith": "Made with",
     "byShiro": "by Shiro",
     "altMascot": "Shiranami mascot",
+    "github": "GitHub",
+    "changelog": "Changelog",
+    "storyTitle": "The story",
+    "storySubtitle": "From the author. I just wanted this app to exist.",
+    "storyP1Pre": "Shiranami started as a simple question: why should a music player need an internet connection just to work? ",
+    "storyP1Bold": "Your library, your files",
+    "storyP1Post": " — local-first, always. No streaming service noise, no accounts, no monthly fee. Just the music you already own, organized the way you want.",
+    "storyP2Pre": "It's part of the Shiro Suite — five hand-crafted siblings built around the same idea that small, opinionated desktop software can still be worth making. ",
+    "storyP2Bold": "Shiranami · ShiroAni · Moekoder · KireiManga · Aoizora",
+    "storyP2Post": ". Each one does one thing well and stays out of the way the rest of the time.",
+    "storyP3Pre": "This is built for people who care about their music collection in the same quiet way a reader cares about their bookshelf. If that's you — ",
+    "storyP3Bold": "thanks for being here",
+    "storyP3Post": ".",
+    "logsTitle": "Application logs",
+    "logsSubtitle": "Open the log folder in your file explorer",
     "openLogs": "Open logs folder"
   }
 }
