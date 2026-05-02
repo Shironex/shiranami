@@ -41,140 +41,137 @@ export function DownloadsSection() {
   );
 
   return (
-    <SettingsCard
-      icon={ArrowDownToLine}
-      title={t('dl.title')}
-      subtitle={t('dl.subtitle')}
-      headerRight={refreshButton}
-    >
-      <div className="space-y-3">
-        {s.isCheckingDownloadTools ? (
-          <DownloadsSectionSkeleton />
-        ) : (
-          <>
-            {s.hasMissingDownloadTools && (
-              <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4 space-y-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {t('dl.installOnePassTitle')}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-5">
-                    {t('dl.installOnePassDesc')}
-                  </p>
+    <>
+      {!s.isCheckingDownloadTools && s.hasMissingDownloadTools && (
+        <SettingsCard
+          icon={ArrowDownToLine}
+          title={t('dl.installOnePassTitle')}
+          subtitle={t('dl.installOnePassDesc')}
+        >
+          {s.dependenciesInstalling ? (
+            <InstallProgressBar
+              percent={s.dependencyInstallProgress}
+              caption={`${s.dependencyInstallLabel}... ${s.dependencyInstallProgress}%`}
+            />
+          ) : (
+            <Button
+              type="button"
+              onClick={s.handleInstallMissingTools}
+              className="rounded-xl [&_svg]:size-3.5"
+            >
+              <ArrowDownToLine />
+              {t('dl.installMissing')}
+            </Button>
+          )}
+        </SettingsCard>
+      )}
+
+      <SettingsCard
+        icon={ArrowDownToLine}
+        title={t('dl.title')}
+        subtitle={t('dl.subtitle')}
+        headerRight={refreshButton}
+      >
+        <div className="space-y-3">
+          {s.isCheckingDownloadTools ? (
+            <DownloadsSectionSkeleton />
+          ) : (
+            <>
+              <ToolStatusRow
+                installed={Boolean(s.ytdlpInstalled)}
+                installedTitle={t('dl.ytdlpInstalled')}
+                notInstalledTitle={t('dl.ytdlpNotInstalled')}
+                updateAvailable={s.ytdlpUpdateAvailable}
+              />
+
+              {s.ytdlpPath ? (
+                <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
+                  <p className="text-xs text-muted-foreground mb-1">{t('dl.binaryPath')}</p>
+                  <p className="text-xs text-foreground font-mono truncate">{s.ytdlpPath}</p>
                 </div>
+              ) : null}
 
-                {s.dependenciesInstalling ? (
-                  <InstallProgressBar
-                    percent={s.dependencyInstallProgress}
-                    caption={`${s.dependencyInstallLabel}... ${s.dependencyInstallProgress}%`}
-                  />
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={s.handleInstallMissingTools}
-                    className="rounded-xl [&_svg]:size-3.5"
-                  >
-                    <ArrowDownToLine />
-                    {t('dl.installMissing')}
-                  </Button>
-                )}
-              </div>
-            )}
-
-            <ToolStatusRow
-              installed={Boolean(s.ytdlpInstalled)}
-              installedTitle={t('dl.ytdlpInstalled')}
-              notInstalledTitle={t('dl.ytdlpNotInstalled')}
-              updateAvailable={s.ytdlpUpdateAvailable}
-            />
-
-            {s.ytdlpPath ? (
-              <div className="px-3 py-2 rounded-xl bg-background/50 border border-border/20">
-                <p className="text-xs text-muted-foreground mb-1">{t('dl.binaryPath')}</p>
-                <p className="text-xs text-foreground font-mono truncate">{s.ytdlpPath}</p>
-              </div>
-            ) : null}
-
-            <ToolVersionBlock
-              installedVersion={ytdlpInstalledVersionText}
-              latestVersion={ytdlpLatestText}
-            />
-
-            <DownloadLocationPanel
-              pathDisplay={locationPathDisplay}
-              isDefault={s.downloadLocationIsDefault}
-              updating={s.downloadLocationUpdating}
-              onChange={s.handleChangeDownloadLocation}
-              onReset={s.handleResetDownloadLocation}
-            />
-
-            {s.ytdlpInstalling ? (
-              <InstallProgressBar
-                percent={s.ytdlpInstallProgress}
-                caption={`${t('dl.downloadingYtdlp')} ${s.ytdlpInstallProgress}%`}
-                className="px-1"
+              <ToolVersionBlock
+                installedVersion={ytdlpInstalledVersionText}
+                latestVersion={ytdlpLatestText}
               />
-            ) : s.ytdlpInstalled && s.ytdlpUpdateAvailable ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={s.handleInstallYtDlp}
-                className="rounded-xl [&_svg]:size-3.5"
-              >
-                <Download />
-                {t('dl.updateYtdlp')}
-              </Button>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 px-1">
-                {s.ytdlpInstalled ? t('dl.ytdlpLatest') : t('dl.ytdlpInstallHint')}
-              </p>
-            )}
 
-            <div className="border-t border-border/20 pt-3 mt-3" />
-
-            <ToolStatusRow
-              installed={Boolean(s.ffmpegInstalled)}
-              installedTitle={t('dl.ffmpegInstalled')}
-              notInstalledTitle={t('dl.ffmpegNotInstalled')}
-              updateAvailable={s.ffmpegUpdateAvailable}
-              notInstalledRight={t('dl.recommended')}
-            />
-
-            <ToolVersionBlock
-              installedVersion={ffmpegInstalledVersionText}
-              latestVersion={ffmpegLatestText}
-            />
-
-            {!s.ffmpegInstalled && (
-              <p className="text-xs text-muted-foreground/60 px-1">
-                {t('dl.ffmpegRecommendedNote')}
-              </p>
-            )}
-
-            {s.ffmpegInstalling ? (
-              <InstallProgressBar
-                percent={s.ffmpegInstallProgress}
-                caption={`${t('dl.downloadingFfmpeg')} ${s.ffmpegInstallProgress}%`}
-                className="px-1"
+              <DownloadLocationPanel
+                pathDisplay={locationPathDisplay}
+                isDefault={s.downloadLocationIsDefault}
+                updating={s.downloadLocationUpdating}
+                onChange={s.handleChangeDownloadLocation}
+                onReset={s.handleResetDownloadLocation}
               />
-            ) : s.ffmpegInstalled && s.ffmpegUpdateAvailable ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={s.handleInstallFfmpeg}
-                className="rounded-xl [&_svg]:size-3.5"
-              >
-                <Download />
-                {t('dl.updateFfmpeg')}
-              </Button>
-            ) : (
-              <p className="text-xs text-muted-foreground/60 px-1">
-                {s.ffmpegInstalled ? t('dl.ffmpegLatest') : t('dl.ffmpegInstallHint')}
-              </p>
-            )}
-          </>
-        )}
-      </div>
-    </SettingsCard>
+
+              {s.ytdlpInstalling ? (
+                <InstallProgressBar
+                  percent={s.ytdlpInstallProgress}
+                  caption={`${t('dl.downloadingYtdlp')} ${s.ytdlpInstallProgress}%`}
+                  className="px-1"
+                />
+              ) : s.ytdlpInstalled && s.ytdlpUpdateAvailable ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={s.handleInstallYtDlp}
+                  className="rounded-xl [&_svg]:size-3.5"
+                >
+                  <Download />
+                  {t('dl.updateYtdlp')}
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 px-1">
+                  {s.ytdlpInstalled ? t('dl.ytdlpLatest') : t('dl.ytdlpInstallHint')}
+                </p>
+              )}
+
+              <div className="border-t border-border/20 pt-3 mt-3" />
+
+              <ToolStatusRow
+                installed={Boolean(s.ffmpegInstalled)}
+                installedTitle={t('dl.ffmpegInstalled')}
+                notInstalledTitle={t('dl.ffmpegNotInstalled')}
+                updateAvailable={s.ffmpegUpdateAvailable}
+                notInstalledRight={t('dl.recommended')}
+              />
+
+              <ToolVersionBlock
+                installedVersion={ffmpegInstalledVersionText}
+                latestVersion={ffmpegLatestText}
+              />
+
+              {!s.ffmpegInstalled && (
+                <p className="text-xs text-muted-foreground/60 px-1">
+                  {t('dl.ffmpegRecommendedNote')}
+                </p>
+              )}
+
+              {s.ffmpegInstalling ? (
+                <InstallProgressBar
+                  percent={s.ffmpegInstallProgress}
+                  caption={`${t('dl.downloadingFfmpeg')} ${s.ffmpegInstallProgress}%`}
+                  className="px-1"
+                />
+              ) : s.ffmpegInstalled && s.ffmpegUpdateAvailable ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={s.handleInstallFfmpeg}
+                  className="rounded-xl [&_svg]:size-3.5"
+                >
+                  <Download />
+                  {t('dl.updateFfmpeg')}
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground/60 px-1">
+                  {s.ffmpegInstalled ? t('dl.ffmpegLatest') : t('dl.ffmpegInstallHint')}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </SettingsCard>
+    </>
   );
 }

@@ -1,51 +1,98 @@
 import { useTranslation } from 'react-i18next';
+import { Globe, BookOpen, FolderOpen, Music2 } from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Button } from '@/components/ui/button';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useAbout } from '@/hooks/useAbout';
-import { Info, FolderOpen, Heart } from 'lucide-react';
 
 export function AboutSection() {
   const { t } = useTranslation('settings');
   const version = useAppVersion();
   const { openLogsFolder } = useAbout();
 
+  const heroIcon = (
+    <div className="w-[42px] h-[42px] rounded-xl bg-primary/10 border border-border/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+      <img
+        src="/mascot.png"
+        alt={t('abt.altMascot')}
+        className="w-9 h-9 object-contain"
+        draggable={false}
+      />
+    </div>
+  );
+
+  const heroSubtitle = (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10.5px] font-mono font-medium text-primary tabular-nums">
+        v{version ?? '…'}
+      </span>
+      <span className="text-[11.5px] text-muted-foreground">
+        {'白波 · '}
+        {t('abt.tagline')}
+      </span>
+    </span>
+  );
+
   return (
-    <SettingsCard icon={Info} title={t('abt.title')} subtitle={t('abt.subtitle')}>
-      <div className="flex items-center gap-4 px-3 py-3">
-        <img
-          src="./mascot.png"
-          alt={t('abt.altMascot')}
-          className="w-16 h-16 rounded-2xl object-contain"
-          draggable={false}
-        />
-        <div>
-          <h4 className="font-display text-base font-semibold text-foreground">Shiranami</h4>
-          <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-            {t('abt.version', { version })}
+    <div className="space-y-4">
+      {/* Card 1: Hero */}
+      <SettingsCard iconSlot={heroIcon} title="Shiranami" subtitle={heroSubtitle}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" className="border-border/40" asChild>
+            <a href="https://github.com/Shironex/shiranami" target="_blank" rel="noreferrer">
+              <Globe className="w-3.5 h-3.5" />
+              {t('abt.github')}
+            </a>
+          </Button>
+          <Button variant="outline" size="sm" className="border-border/40" asChild>
+            <a
+              href="https://github.com/Shironex/shiranami/releases"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              {t('abt.changelog')}
+            </a>
+          </Button>
+        </div>
+      </SettingsCard>
+
+      {/* Card 2: Story */}
+      <SettingsCard icon={Music2} title={t('abt.storyTitle')} subtitle={t('abt.storySubtitle')}>
+        <div className="space-y-2.5 text-[13px] leading-[1.7] text-foreground/85">
+          <p>
+            {t('abt.storyP1Pre')}
+            <span className="text-primary font-medium">{t('abt.storyP1Bold')}</span>
+            {t('abt.storyP1Post')}
           </p>
-          <p className="text-xs text-muted-foreground/60 mt-1 italic">
-            {'\u767D\u6CE2'} &mdash; {t('abt.tagline')}
+          <p>
+            {t('abt.storyP2Pre')}
+            <span className="text-primary font-medium">{t('abt.storyP2Bold')}</span>
+            {t('abt.storyP2Post')}
           </p>
-          <p className="text-[10px] text-muted-foreground/40 mt-2 flex items-center gap-1">
-            {t('abt.madeWith')}
-            <Heart className="w-3 h-3 fill-rose-400 text-rose-400" />
-            {t('abt.byShiro')}
+          <p>
+            {t('abt.storyP3Pre')}
+            <span className="text-primary font-medium">{t('abt.storyP3Bold')}</span>
+            {t('abt.storyP3Post')}
           </p>
         </div>
-      </div>
+      </SettingsCard>
 
+      {/* Card 3: Logs */}
       {IS_ELECTRON && (
-        <div className="px-3 pt-1 pb-2">
-          <button
+        <SettingsCard icon={FolderOpen} title={t('abt.logsTitle')} subtitle={t('abt.logsSubtitle')}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-border/40"
             onClick={() => openLogsFolder.mutate()}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <FolderOpen className="w-3.5 h-3.5" />
             {t('abt.openLogs')}
-          </button>
-        </div>
+          </Button>
+        </SettingsCard>
       )}
-    </SettingsCard>
+    </div>
   );
 }

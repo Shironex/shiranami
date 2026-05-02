@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { PictureInPicture2 } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
 import {
   useAppStore,
   COMPACT_AMBIENT_INTENSITY_MIN,
@@ -15,6 +14,7 @@ import {
   type CompactFontSize,
 } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
+import { CompactModePreview } from '@/components/settings/CompactModePreview';
 
 const SIZES: CompactSize[] = ['sm', 'md', 'lg'];
 const FONT_SIZES: CompactFontSize[] = ['sm', 'md', 'lg'];
@@ -58,6 +58,8 @@ export function CompactSection() {
   return (
     <SettingsCard icon={PictureInPicture2} title={t('cmp.title')} subtitle={t('cmp.subtitle')}>
       <div className="space-y-8">
+        <CompactModePreview />
+
         {/* Size + typography */}
         <div className="space-y-5">
           <PresetControl
@@ -89,45 +91,49 @@ export function CompactSection() {
 
         {/* Element visibility */}
         <Subsection title={t('cmp.elements.title')} subtitle={t('cmp.elements.subtitle')}>
-          <SwitchRow
-            title={t('cmp.elements.albumArt')}
+          <SettingsToggleRow
+            label={t('cmp.elements.albumArt')}
             description={t('cmp.elements.albumArtDesc')}
             checked={compactShowAlbumArt}
-            onChange={setCompactShowAlbumArt}
+            onCheckedChange={setCompactShowAlbumArt}
           />
-          <SwitchRow
-            title={t('cmp.elements.album')}
+          <SettingsToggleRow
+            divider
+            label={t('cmp.elements.album')}
             description={t('cmp.elements.albumDesc')}
             checked={compactShowAlbum}
-            onChange={setCompactShowAlbum}
+            onCheckedChange={setCompactShowAlbum}
           />
-          <SwitchRow
-            title={t('cmp.elements.seek')}
+          <SettingsToggleRow
+            divider
+            label={t('cmp.elements.seek')}
             description={t('cmp.elements.seekDesc')}
             checked={compactShowSeek}
-            onChange={setCompactShowSeek}
+            onCheckedChange={setCompactShowSeek}
           />
-          <SwitchRow
-            title={t('cmp.elements.volume')}
+          <SettingsToggleRow
+            divider
+            label={t('cmp.elements.volume')}
             description={t('cmp.elements.volumeDesc')}
             checked={compactShowVolume}
-            onChange={setCompactShowVolume}
+            onCheckedChange={setCompactShowVolume}
           />
-          <SwitchRow
-            title={t('cmp.elements.favorite')}
+          <SettingsToggleRow
+            divider
+            label={t('cmp.elements.favorite')}
             description={t('cmp.elements.favoriteDesc')}
             checked={compactShowFavorite}
-            onChange={setCompactShowFavorite}
+            onCheckedChange={setCompactShowFavorite}
           />
         </Subsection>
 
         {/* Behavior */}
         <Subsection title={t('cmp.behavior.title')} subtitle={t('cmp.behavior.subtitle')}>
-          <SwitchRow
-            title={t('cmp.behavior.defaultAlwaysOnTop')}
+          <SettingsToggleRow
+            label={t('cmp.behavior.defaultAlwaysOnTop')}
             description={t('cmp.behavior.defaultAlwaysOnTopDesc')}
             checked={compactDefaultAlwaysOnTop}
-            onChange={setCompactDefaultAlwaysOnTop}
+            onCheckedChange={setCompactDefaultAlwaysOnTop}
           />
         </Subsection>
 
@@ -161,7 +167,7 @@ function Subsection({ title, subtitle, children }: SubsectionProps) {
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       </div>
-      <div className="space-y-1">{children}</div>
+      <div>{children}</div>
     </div>
   );
 }
@@ -244,27 +250,6 @@ function OpacityControl({
         value={[value]}
         onValueChange={([v]) => onChange(v)}
       />
-    </div>
-  );
-}
-
-interface SwitchRowProps {
-  title: string;
-  description?: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}
-
-function SwitchRow({ title, description, checked, onChange }: SwitchRowProps) {
-  return (
-    <div className="px-3">
-      <div className="-mx-3 flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/30">
-        <div className="pr-4">
-          <p className="text-sm font-medium text-foreground">{title}</p>
-          {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
-        </div>
-        <Switch checked={checked} onCheckedChange={onChange} />
-      </div>
     </div>
   );
 }

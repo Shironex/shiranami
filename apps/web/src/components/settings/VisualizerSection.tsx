@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { SettingsCard } from '@/components/settings/SettingsCard';
-import { Switch } from '@/components/ui/switch';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { cn } from '@/lib/utils';
 import { AudioLines } from 'lucide-react';
 import { useAppStore, type VisualizerStyle } from '@/stores/useAppStore';
+import { VisualizerStylePreview } from '@/components/settings/VisualizerStylePreview';
 
 const VISUALIZER_STYLE_OPTIONS = [
   {
@@ -38,45 +38,50 @@ export function VisualizerSection() {
   return (
     <SettingsCard icon={AudioLines} title={t('vis.title')} subtitle={t('vis.subtitle')}>
       <div className="space-y-4">
-        <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-          <div>
-            <p className="text-sm font-medium text-foreground">{t('vis.show')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('vis.showDesc')}</p>
-          </div>
-          <Switch checked={showVisualizer} onCheckedChange={() => toggleVisualizer()} />
-        </div>
+        <SettingsToggleRow
+          label={t('vis.show')}
+          description={t('vis.showDesc')}
+          checked={showVisualizer}
+          onCheckedChange={() => toggleVisualizer()}
+        />
 
         {showVisualizer && (
-          <div className="px-3">
-            <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {VISUALIZER_STYLE_OPTIONS.map(opt => {
-                const selected = visualizerStyle === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    onClick={() => setVisualizerStyle(opt.value)}
-                    className={cn(
-                      'flex-1 px-4 py-3 rounded-xl border text-left transition-all',
-                      selected
-                        ? 'border-primary/40 bg-primary/10'
-                        : 'border-border/30 hover:border-border/50 hover:bg-accent/30'
-                    )}
-                  >
-                    <p
+          <>
+            <VisualizerStylePreview />
+
+            <div className="px-3">
+              <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
+              <div className="grid grid-cols-2 gap-3">
+                {VISUALIZER_STYLE_OPTIONS.map(opt => {
+                  const selected = visualizerStyle === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setVisualizerStyle(opt.value)}
                       className={cn(
-                        'text-sm font-medium',
-                        selected ? 'text-foreground' : 'text-muted-foreground'
+                        'flex-1 px-4 py-3 rounded-xl border text-left transition-all',
+                        selected
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-border/30 hover:border-border/50 hover:bg-accent/30'
                       )}
                     >
-                      {t(opt.labelKey)}
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-0.5">{t(opt.descKey)}</p>
-                  </button>
-                );
-              })}
+                      <p
+                        className={cn(
+                          'text-sm font-medium',
+                          selected ? 'text-foreground' : 'text-muted-foreground'
+                        )}
+                      >
+                        {t(opt.labelKey)}
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">{t(opt.descKey)}</p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </SettingsCard>

@@ -4,6 +4,7 @@ import { getAnalyser } from '@/lib/audioAnalyser';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
+import type { FrequencySource } from './visualizer-source';
 
 /**
  * Canvas-based frequency visualizer with a soft lofi aesthetic.
@@ -11,12 +12,18 @@ import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
  * Renders gentle, rounded bars with edge fading and a subtle
  * mirror reflection. Bars are center-aligned for a calmer feel.
  */
-export function AudioVisualizer() {
+
+interface AudioVisualizerProps {
+  source?: FrequencySource;
+  active?: boolean;
+}
+
+export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef } = usePrimaryRGB();
 
@@ -24,12 +31,23 @@ export function AudioVisualizer() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const analyser = getAnalyser();
-    if (!analyser) {
-      return;
+    let binCount: number;
+    let readData: (buf: Uint8Array) => boolean;
+
+    if (source) {
+      binCount = source.binCount;
+      readData = source.read;
+    } else {
+      const analyser = getAnalyser();
+      if (!analyser) return;
+      binCount = analyser.frequencyBinCount;
+      readData = buf => {
+        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
+        return true;
+      };
     }
 
-    const binCount = analyser.frequencyBinCount;
+    if (!Number.isFinite(binCount) || binCount < 1) return;
 
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
@@ -38,7 +56,7 @@ export function AudioVisualizer() {
       smoothedRef.current = new Float32Array(binCount);
     }
 
-    analyser.getByteFrequencyData(bufferRef.current);
+    if (!readData(bufferRef.current)) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -60,7 +78,7 @@ export function AudioVisualizer() {
 
     // Fewer bars = calmer, more spaced out
     const barCount = Math.min(48, Math.floor(w / 8));
-    const binsPerBar = Math.floor(binCount / barCount);
+    const binsPerBar = Math.max(1, Math.floor(binCount / barCount));
     const gap = 3;
     const barWidth = Math.max(2.5, (w - gap * (barCount - 1)) / barCount);
     const maxBarHeight = h * 0.4;
@@ -113,10 +131,10 @@ export function AudioVisualizer() {
       // Reset shadow for reflection
       ctx.shadowBlur = 0;
     }
+  }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
-  }, [widthRef, heightRef, dprRef, rgbRef]);
-
-  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
+  const shouldRun = active ?? (isPlaying && !!currentTrack);
+  useRafLoop(draw, canvasRef, shouldRun);
 
   return (
     <canvas

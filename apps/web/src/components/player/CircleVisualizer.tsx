@@ -4,6 +4,7 @@ import { getAnalyser } from '@/lib/audioAnalyser';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
+import type { FrequencySource } from './visualizer-source';
 
 /**
  * Compact circular frequency visualizer.
@@ -11,12 +12,18 @@ import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
  * Full ring centered in the strip with radial bars growing outward
  * and a dotted inner ring, inspired by classic circular audio visualizers.
  */
-export function CircleVisualizer() {
+
+interface CircleVisualizerProps {
+  source?: FrequencySource;
+  active?: boolean;
+}
+
+export function CircleVisualizer({ source, active }: CircleVisualizerProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef } = usePrimaryRGB();
 
@@ -24,12 +31,23 @@ export function CircleVisualizer() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const analyser = getAnalyser();
-    if (!analyser) {
-      return;
+    let binCount: number;
+    let readData: (buf: Uint8Array) => boolean;
+
+    if (source) {
+      binCount = source.binCount;
+      readData = source.read;
+    } else {
+      const analyser = getAnalyser();
+      if (!analyser) return;
+      binCount = analyser.frequencyBinCount;
+      readData = buf => {
+        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
+        return true;
+      };
     }
 
-    const binCount = analyser.frequencyBinCount;
+    if (!Number.isFinite(binCount) || binCount < 1) return;
 
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
@@ -38,7 +56,7 @@ export function CircleVisualizer() {
       smoothedRef.current = new Float32Array(binCount);
     }
 
-    analyser.getByteFrequencyData(bufferRef.current);
+    if (!readData(bufferRef.current)) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -65,7 +83,7 @@ export function CircleVisualizer() {
     const barBaseRadius = innerRadius + 3;
     const maxBarLength = h * 0.24;
     const barCount = 64;
-    const binsPerBar = Math.floor(binCount / barCount);
+    const binsPerBar = Math.max(1, Math.floor(binCount / barCount));
     const barWidth = 1.8;
 
     // Compute average energy for the inner ring glow
@@ -143,10 +161,10 @@ export function CircleVisualizer() {
     ctx.shadowBlur = 4;
     ctx.stroke();
     ctx.shadowBlur = 0;
+  }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
-  }, [widthRef, heightRef, dprRef, rgbRef]);
-
-  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
+  const shouldRun = active ?? (isPlaying && !!currentTrack);
+  useRafLoop(draw, canvasRef, shouldRun);
 
   return (
     <canvas

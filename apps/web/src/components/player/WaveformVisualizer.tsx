@@ -4,6 +4,7 @@ import { getAnalyser } from '@/lib/audioAnalyser';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
+import type { FrequencySource } from './visualizer-source';
 
 /**
  * Dense vertical-bar waveform visualizer inspired by ElevenLabs UI.
@@ -11,12 +12,18 @@ import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
  * Renders tightly packed thin bars of varying height that create
  * a barcode/waveform silhouette reacting to audio frequency data.
  */
-export function WaveformVisualizer() {
+
+interface WaveformVisualizerProps {
+  source?: FrequencySource;
+  active?: boolean;
+}
+
+export function WaveformVisualizer({ source, active }: WaveformVisualizerProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef } = usePrimaryRGB();
 
@@ -24,12 +31,23 @@ export function WaveformVisualizer() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const analyser = getAnalyser();
-    if (!analyser) {
-      return;
+    let binCount: number;
+    let readData: (buf: Uint8Array) => boolean;
+
+    if (source) {
+      binCount = source.binCount;
+      readData = source.read;
+    } else {
+      const analyser = getAnalyser();
+      if (!analyser) return;
+      binCount = analyser.frequencyBinCount;
+      readData = buf => {
+        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
+        return true;
+      };
     }
 
-    const binCount = analyser.frequencyBinCount;
+    if (!Number.isFinite(binCount) || binCount < 1) return;
 
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
@@ -39,7 +57,7 @@ export function WaveformVisualizer() {
       smoothedRef.current = new Float32Array(200);
     }
 
-    analyser.getByteFrequencyData(bufferRef.current);
+    if (!readData(bufferRef.current)) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -103,10 +121,10 @@ export function WaveformVisualizer() {
       ctx.roundRect(x, centerY - barH / 2, barWidth, barH, 1);
       ctx.fill();
     }
+  }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
-  }, [widthRef, heightRef, dprRef, rgbRef]);
-
-  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
+  const shouldRun = active ?? (isPlaying && !!currentTrack);
+  useRafLoop(draw, canvasRef, shouldRun);
 
   return (
     <canvas

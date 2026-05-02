@@ -63,47 +63,55 @@ export function LibrarySection() {
               {isScanning ? <Loader2 className="animate-spin" /> : <RefreshCw />}
               {isScanning ? t('lib.scanning') : t('lib.rescan')}
             </Button>
-
-            {!confirmClear ? (
-              <Button
-                variant="destructiveGhost"
-                onClick={() => setConfirmClear(true)}
-                disabled={library.length === 0}
-                className="rounded-xl [&_svg]:size-3.5"
-              >
-                <Trash2 />
-                {t('lib.clearLibrary')}
-              </Button>
-            ) : (
-              <div className="flex-1 rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-3">
-                <p className="text-sm text-foreground">
-                  {t('lib.clearConfirm', { count: library.length.toLocaleString() })}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={clearLibrary}
-                    disabled={isClearing}
-                    className="gap-2 rounded-lg text-sm [&_svg]:size-3.5"
-                  >
-                    {isClearing ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                    {isClearing ? t('lib.clearing') : t('lib.yesClear')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setConfirmClear(false)}
-                    className="rounded-lg text-sm text-muted-foreground"
-                  >
-                    {tc('cancel')}
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </SettingsCard>
+
+      {library.length > 0 && (
+        <SettingsCard
+          tone="destructive"
+          icon={Trash2}
+          title={t('lib.dangerZone')}
+          subtitle={t('lib.dangerZoneSubtitle')}
+        >
+          {!confirmClear ? (
+            <Button
+              variant="destructiveGhost"
+              onClick={() => setConfirmClear(true)}
+              className="rounded-xl [&_svg]:size-3.5"
+            >
+              <Trash2 />
+              {t('lib.clearLibrary')}
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                {t('lib.clearConfirm', { count: library.length.toLocaleString() })}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={clearLibrary}
+                  disabled={isClearing}
+                  className="gap-2 rounded-lg text-sm [&_svg]:size-3.5"
+                >
+                  {isClearing ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                  {isClearing ? t('lib.clearing') : t('lib.yesClear')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmClear(false)}
+                  className="rounded-lg text-sm text-muted-foreground"
+                >
+                  {tc('cancel')}
+                </Button>
+              </div>
+            </div>
+          )}
+        </SettingsCard>
+      )}
 
       <MetadataEnrichSection />
 
