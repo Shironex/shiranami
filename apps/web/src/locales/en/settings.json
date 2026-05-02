@@ -103,6 +103,7 @@
     "subtitle": "Audio visualization above the player bar",
     "show": "Show visualizer",
     "showDesc": "Display audio-reactive animation above the player",
+    "preview": "Preview",
     "style": "Style",
     "bars": "Bars",
     "barsDesc": "Soft frequency bars",
