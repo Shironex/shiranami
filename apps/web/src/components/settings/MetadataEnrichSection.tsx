@@ -4,7 +4,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Search, Loader2, Disc3, Check, X, Ban, Info, AlertTriangle } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -105,34 +105,35 @@ export function MetadataEnrichSection() {
         </div>
 
         {/* Options */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('lib.enrichOnlyMissing')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {t('lib.enrichOnlyMissingDesc')}
-              </p>
-            </div>
-            <Switch checked={onlyMissing} onCheckedChange={setOnlyMissing} />
-          </div>
+        <div>
+          <SettingsToggleRow
+            label={t('lib.enrichOnlyMissing')}
+            description={t('lib.enrichOnlyMissingDesc')}
+            checked={onlyMissing}
+            onCheckedChange={setOnlyMissing}
+          />
 
-          {/* Write-to-file: amber warning styling when enabled so users can't miss that files will be modified. */}
+          {/* Write-to-file keeps its amber warning styling: the destructive tone primitive
+              (Phase C) hasn't landed yet, and softening this gate would mask an irreversible
+              action. Leave as a bespoke row until SettingsRow grows a `tone` prop. */}
           <div
             className={
               writeToFile
-                ? 'flex items-start justify-between gap-3 px-3 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 transition-colors'
-                : 'flex items-start justify-between gap-3 px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors'
+                ? 'flex items-start justify-between gap-3 px-3 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 transition-colors mt-3.5'
+                : 'flex items-start justify-between gap-3 py-3 border-t border-border/30 pt-3.5 mt-3.5'
             }
           >
             <div className="flex items-start gap-2 min-w-0">
               {writeToFile && <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{t('lib.enrichWriteToFile')}</p>
+                <p className="text-sm font-medium text-foreground leading-snug">
+                  {t('lib.enrichWriteToFile')}
+                </p>
                 <p
                   className={
                     writeToFile
-                      ? 'text-xs text-amber-500/90 mt-0.5'
-                      : 'text-xs text-muted-foreground mt-0.5'
+                      ? 'text-xs text-amber-500/90 mt-0.5 leading-snug'
+                      : 'text-xs text-muted-foreground mt-0.5 leading-snug'
                   }
                 >
                   {writeToFile
@@ -145,17 +146,13 @@ export function MetadataEnrichSection() {
           </div>
 
           {skippedCount > 0 && (
-            <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {t('lib.enrichIncludeSkipped')}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {t('lib.enrichIncludeSkippedDesc', { count: skippedCount })}
-                </p>
-              </div>
-              <Switch checked={includeSkipped} onCheckedChange={setIncludeSkipped} />
-            </div>
+            <SettingsToggleRow
+              divider
+              label={t('lib.enrichIncludeSkipped')}
+              description={t('lib.enrichIncludeSkippedDesc', { count: skippedCount })}
+              checked={includeSkipped}
+              onCheckedChange={setIncludeSkipped}
+            />
           )}
         </div>
 
