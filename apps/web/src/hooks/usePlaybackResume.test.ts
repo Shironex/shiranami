@@ -45,8 +45,7 @@ describe('buildPersistedState (via store state)', () => {
    * clamping / null-return behavior without rendering the hook.
    */
   function buildPersistedState() {
-    const { currentTrack, queue, queueIndex, currentTime, isPlaying } =
-      usePlaybackStore.getState();
+    const { currentTrack, queue, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
 
     if (!currentTrack) {
       return null;
@@ -54,7 +53,7 @@ describe('buildPersistedState (via store state)', () => {
 
     return {
       currentTrackPath: currentTrack.filePath,
-      queuePaths: queue.map((track) => track.filePath),
+      queuePaths: queue.map(track => track.filePath),
       queueIndex,
       currentTime: isFinite(currentTime) && currentTime >= 0 ? currentTime : 0,
       isPlaying,
@@ -137,20 +136,26 @@ describe('buildPersistedState (via store state)', () => {
 describe('restoreQueueFromPaths (replicated)', () => {
   function restoreQueueFromPaths(
     library: Track[],
-    persisted: { queuePaths: string[] },
+    persisted: { currentTrackPath: string; queuePaths: string[] }
   ): Track[] {
-    const byPath = new Map(library.map((track) => [track.filePath, track]));
+    const byPath = new Map(library.map(track => [track.filePath, track]));
     const restoredQueue = persisted.queuePaths
-      .map((filePath) => byPath.get(filePath))
+      .map(filePath => byPath.get(filePath))
       .filter((track): track is Track => Boolean(track));
 
-    return restoredQueue.length > 0 ? restoredQueue : library;
+    if (restoredQueue.length > 0) {
+      return restoredQueue;
+    }
+
+    const currentTrack = byPath.get(persisted.currentTrackPath);
+    return currentTrack ? [currentTrack] : [];
   }
 
   const library = makeTracks(5);
 
   it('restores tracks that exist in the library', () => {
     const result = restoreQueueFromPaths(library, {
+      currentTrackPath: '/music/track2.mp3',
       queuePaths: ['/music/track2.mp3', '/music/track4.mp3'],
     });
 
@@ -161,6 +166,7 @@ describe('restoreQueueFromPaths (replicated)', () => {
 
   it('filters out paths not in the library', () => {
     const result = restoreQueueFromPaths(library, {
+      currentTrackPath: '/music/track1.mp3',
       queuePaths: ['/music/track1.mp3', '/music/deleted.mp3', '/music/track3.mp3'],
     });
 
@@ -169,17 +175,33 @@ describe('restoreQueueFromPaths (replicated)', () => {
     expect(result[1].id).toBe('t3');
   });
 
-  it('falls back to the entire library when no queue tracks are found', () => {
+  it('falls back to a single-track queue containing currentTrack when no queuePaths resolve', () => {
     const result = restoreQueueFromPaths(library, {
+      currentTrackPath: '/music/track3.mp3',
       queuePaths: ['/music/gone1.mp3', '/music/gone2.mp3'],
     });
 
-    expect(result).toEqual(library);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('t3');
   });
 
-  it('falls back to the library on empty queuePaths', () => {
-    const result = restoreQueueFromPaths(library, { queuePaths: [] });
-    expect(result).toEqual(library);
+  it('falls back to a single-track queue on empty queuePaths when currentTrack is in library', () => {
+    const result = restoreQueueFromPaths(library, {
+      currentTrackPath: '/music/track2.mp3',
+      queuePaths: [],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('t2');
+  });
+
+  it('returns empty array when queuePaths are stale and currentTrackPath is not in library', () => {
+    const result = restoreQueueFromPaths(library, {
+      currentTrackPath: '/music/gone.mp3',
+      queuePaths: [],
+    });
+
+    expect(result).toHaveLength(0);
   });
 });
 
@@ -263,7 +285,7 @@ describe('usePlaybackResume hook', () => {
   it('persists state on a 1-second interval when ready', async () => {
     // Return settings with rememberPlaybackPosition OFF so restore resolves immediately,
     // letting the persist-interval effect activate.
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: false };
       return undefined;
     });
@@ -295,14 +317,14 @@ describe('usePlaybackResume hook', () => {
     });
 
     // Should have been called at least 3 times from the interval
-    const setCalls = vi.mocked(window.electronAPI.store.set).mock.calls.filter(
-      (call) => call[0] === PLAYER_STATE_KEY,
-    );
+    const setCalls = vi
+      .mocked(window.electronAPI.store.set)
+      .mock.calls.filter(call => call[0] === PLAYER_STATE_KEY);
     expect(setCalls.length).toBeGreaterThanOrEqual(3);
   });
 
   it('calls store.delete when there is no current track during persist', async () => {
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: false };
       return undefined;
     });
@@ -324,9 +346,9 @@ describe('usePlaybackResume hook', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    const deleteCalls = vi.mocked(window.electronAPI.store.delete).mock.calls.filter(
-      (call) => call[0] === PLAYER_STATE_KEY,
-    );
+    const deleteCalls = vi
+      .mocked(window.electronAPI.store.delete)
+      .mock.calls.filter(call => call[0] === PLAYER_STATE_KEY);
     expect(deleteCalls.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -337,7 +359,7 @@ describe('usePlaybackResume hook', () => {
   it('restores player state from persisted data when library is populated', async () => {
     const persisted = makePersistedState();
 
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: true };
       if (key === PLAYER_STATE_KEY) return persisted;
       return undefined;
@@ -372,7 +394,7 @@ describe('usePlaybackResume hook', () => {
   it('does not restore when library is empty', async () => {
     const persisted = makePersistedState();
 
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: true };
       if (key === PLAYER_STATE_KEY) return persisted;
       return undefined;
@@ -394,7 +416,7 @@ describe('usePlaybackResume hook', () => {
   it('does not restore twice (guard against double-restore)', async () => {
     const persisted = makePersistedState();
 
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: true };
       if (key === PLAYER_STATE_KEY) return persisted;
       return undefined;
@@ -449,7 +471,7 @@ describe('usePlaybackResume hook', () => {
       currentTrackPath: '/music/nonexistent.mp3',
     });
 
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: true };
       if (key === PLAYER_STATE_KEY) return persisted;
       return undefined;
@@ -470,10 +492,40 @@ describe('usePlaybackResume hook', () => {
     expect(usePlaybackStore.getState().currentTrack).toBeNull();
   });
 
+  it('restores to a single-track queue when queuePaths are stale but currentTrackPath is in library', async () => {
+    // Persisted state where queuePaths are all deleted but the current track still exists.
+    const persisted = makePersistedState({
+      currentTrackPath: '/music/track2.mp3',
+      queuePaths: ['/music/deleted1.mp3', '/music/deleted2.mp3'],
+      queueIndex: 0,
+    });
+
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
+      if (key === 'settings') return { rememberPlaybackPosition: true };
+      if (key === PLAYER_STATE_KEY) return persisted;
+      return undefined;
+    });
+
+    const { usePlaybackResume } = await import('./usePlaybackResume');
+
+    useLibraryStore.setState({ library: tracks });
+
+    renderHook(() => usePlaybackResume(true));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const state = usePlaybackStore.getState();
+    expect(state.currentTrack?.filePath).toBe('/music/track2.mp3');
+    expect(state.queue).toHaveLength(1);
+    expect(state.queue[0].filePath).toBe('/music/track2.mp3');
+  });
+
   it('clamps non-finite persisted currentTime to 0 during restore', async () => {
     const persisted = makePersistedState({ currentTime: NaN });
 
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: true };
       if (key === PLAYER_STATE_KEY) return persisted;
       return undefined;
@@ -494,7 +546,7 @@ describe('usePlaybackResume hook', () => {
   });
 
   it('resolves restore immediately when rememberPlaybackPosition is off', async () => {
-    vi.mocked(window.electronAPI.store.get).mockImplementation(async (key) => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: false };
       return undefined;
     });
@@ -524,9 +576,9 @@ describe('usePlaybackResume hook', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    const setCalls = vi.mocked(window.electronAPI.store.set).mock.calls.filter(
-      (call) => call[0] === PLAYER_STATE_KEY,
-    );
+    const setCalls = vi
+      .mocked(window.electronAPI.store.set)
+      .mock.calls.filter(call => call[0] === PLAYER_STATE_KEY);
     expect(setCalls.length).toBeGreaterThanOrEqual(1);
   });
 

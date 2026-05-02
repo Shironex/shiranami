@@ -40,7 +40,12 @@ function restoreQueueFromPaths(library: Track[], persisted: PersistedPlayerState
     .map(filePath => byPath.get(filePath))
     .filter((track): track is Track => Boolean(track));
 
-  return restoredQueue;
+  if (restoredQueue.length > 0) {
+    return restoredQueue;
+  }
+
+  const currentTrack = byPath.get(persisted.currentTrackPath);
+  return currentTrack ? [currentTrack] : [];
 }
 
 export function usePlaybackResume(enabled = true) {
