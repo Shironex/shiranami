@@ -42,6 +42,8 @@
     "scanning": "Scanning...",
     "rescan": "Rescan Library",
     "clearLibrary": "Clear Library",
+    "dangerZone": "Danger Zone",
+    "dangerZoneSubtitle": "Irreversible actions for the library on this device",
     "clearConfirm": "This will remove all {{count}} tracks from your library. Audio files on disk won't be deleted.",
     "clearing": "Clearing...",
     "yesClear": "Yes, clear everything",

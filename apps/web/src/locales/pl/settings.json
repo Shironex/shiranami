@@ -42,6 +42,8 @@
     "scanning": "Skanowanie...",
     "rescan": "Przeskanuj ponownie",
     "clearLibrary": "Wyczyść bibliotekę",
+    "dangerZone": "Strefa zagrożenia",
+    "dangerZoneSubtitle": "Nieodwracalne operacje na bibliotece tego urządzenia",
     "clearConfirm": "To usunie wszystkie {{count}} utworów z biblioteki. Pliki audio na dysku nie zostaną usunięte.",
     "clearing": "Czyszczenie...",
     "yesClear": "Tak, wyczyść wszystko",
