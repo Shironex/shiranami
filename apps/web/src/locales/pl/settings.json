@@ -1,4 +1,10 @@
 {
+  "groups": {
+    "library": "Biblioteka",
+    "playback": "Odtwarzanie",
+    "appearance": "Wygląd",
+    "system": "System"
+  },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
   "downloads": "Pobieranie",
