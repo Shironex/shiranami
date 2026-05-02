@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+type SettingsCardTone = 'default' | 'destructive' | 'warning';
+
 interface SettingsCardProps {
   children?: React.ReactNode;
   className?: string;
@@ -17,7 +19,32 @@ interface SettingsCardProps {
   title?: React.ReactNode;
   subtitle?: string;
   headerRight?: React.ReactNode;
+  /**
+   * Optional accent for cards that signal danger or caution. `default` is
+   * unchanged from the base card. `destructive` tints the surface and title
+   * red (e.g. library danger zone). `warning` tints amber for irreversible
+   * actions that aren't quite destructive (e.g. writing tags to disk).
+   */
+  tone?: SettingsCardTone;
 }
+
+const TONE_TILE: Record<SettingsCardTone, { bg: string; icon: string }> = {
+  default: { bg: 'bg-primary/10', icon: 'text-primary' },
+  destructive: { bg: 'bg-destructive/15', icon: 'text-destructive' },
+  warning: { bg: 'bg-amber-500/15', icon: 'text-amber-500' },
+};
+
+const TONE_SURFACE: Record<SettingsCardTone, string> = {
+  default: 'bg-surface/50 border-border/30',
+  destructive: 'border-destructive/25 bg-destructive/[0.06]',
+  warning: 'border-amber-500/25 bg-amber-500/[0.05]',
+};
+
+const TONE_TITLE: Record<SettingsCardTone, string> = {
+  default: 'text-foreground',
+  destructive: 'text-destructive',
+  warning: 'text-foreground',
+};
 
 export function SettingsCard({
   children,
@@ -26,22 +53,25 @@ export function SettingsCard({
   title,
   subtitle,
   headerRight,
+  tone = 'default',
 }: SettingsCardProps) {
+  const tile = TONE_TILE[tone];
   return (
     <div
       className={cn(
-        'bg-surface/50 border border-border/30 rounded-2xl p-5',
+        'border rounded-2xl p-5',
+        TONE_SURFACE[tone],
         children && 'space-y-4',
         className
       )}
     >
       {Icon && title && (
         <div className={cn('flex items-center gap-2.5', children && 'mb-3')}>
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-primary" />
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', tile.bg)}>
+            <Icon className={cn('w-4 h-4', tile.icon)} />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-foreground leading-tight">{title}</h3>
+            <h3 className={cn('text-sm font-medium leading-tight', TONE_TITLE[tone])}>{title}</h3>
             {subtitle && <p className="text-xs text-muted-foreground/70">{subtitle}</p>}
           </div>
           {headerRight && <div className="ml-auto">{headerRight}</div>}
