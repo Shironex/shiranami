@@ -16,6 +16,13 @@ vi.mock('./logger', () => ({
   },
 }));
 
+vi.mock('./store', () => ({
+  store: {
+    get: vi.fn(() => false),
+    set: vi.fn(),
+  },
+}));
+
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { saveAlbumArt } from './art-protocol';
 import { logger } from './logger';
@@ -94,13 +101,8 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     const updatedArt = getTrackAlbumArt(id);
     expect(updatedArt).toBe('shiranami-art://migrated-hash');
     expect(saveAlbumArt).toHaveBeenCalledOnce();
-    expect(saveAlbumArt).toHaveBeenCalledWith(
-      expect.any(Buffer),
-      'image/jpeg',
-    );
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('1 migrated, 0 failed'),
-    );
+    expect(saveAlbumArt).toHaveBeenCalledWith(expect.any(Buffer), 'image/jpeg');
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('1 migrated, 0 failed'));
   });
 
   it('skips tracks that already have shiranami-art:// URLs (idempotency)', async () => {
@@ -112,7 +114,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     expect(art).toBe('shiranami-art://existing-hash');
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
@@ -133,10 +135,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
         if (warningCount >= 1) {
           // Clear the offending row so the loop terminates
           const db = getDatabase();
-          db.update(tracks)
-            .set({ albumArt: null })
-            .where(eq(tracks.id, malformedId))
-            .run();
+          db.update(tracks).set({ albumArt: null }).where(eq(tracks.id, malformedId)).run();
         }
       }
     });
@@ -145,9 +144,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(warningCount).toBe(1);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('0 migrated, 1 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('0 migrated, 1 failed'));
   });
 
   it('handles null albumArt rows without crashing', async () => {
@@ -157,7 +154,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
@@ -170,7 +167,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
@@ -189,19 +186,14 @@ describe('migrateAlbumArtToDisk (integration)', () => {
       const msg = String(args[0]);
       if (msg.includes('Invalid data URL')) {
         const db = getDatabase();
-        db.update(tracks)
-          .set({ albumArt: null })
-          .where(eq(tracks.id, malformedId))
-          .run();
+        db.update(tracks).set({ albumArt: null }).where(eq(tracks.id, malformedId)).run();
       }
     });
 
     await migrateAlbumArtToDisk();
 
     expect(saveAlbumArt).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('2 migrated, 1 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('2 migrated, 1 failed'));
   });
 
   it('handles saveAlbumArt returning falsy (failed save)', async () => {
@@ -217,9 +209,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     const art = getTrackAlbumArt(id);
     expect(art).toBe('shiranami-art://migrated-hash');
     expect(saveAlbumArt).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('1 migrated, 1 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('1 migrated, 1 failed'));
   });
 
   it('handles saveAlbumArt throwing an error', async () => {
@@ -237,7 +227,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     expect(saveAlbumArt).toHaveBeenCalledTimes(2);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Failed to migrate track'),
-      expect.any(Error),
+      expect.any(Error)
     );
   });
 
@@ -250,8 +240,6 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     await migrateAlbumArtToDisk();
 
     expect(saveAlbumArt).toHaveBeenCalledTimes(55);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('55 migrated, 0 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('55 migrated, 0 failed'));
   });
 });

@@ -2,6 +2,7 @@ import { tracks, eq, like } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { saveAlbumArt } from './art-protocol';
 import { logger } from './logger';
+import { store } from './store';
 
 const BATCH_SIZE = 50;
 
@@ -13,6 +14,10 @@ const BATCH_SIZE = 50;
  * Processes in batches to avoid loading all base64 data into memory at once.
  */
 export async function migrateAlbumArtToDisk(): Promise<void> {
+  if (store.get('migrations.albumArtV1')) {
+    return;
+  }
+
   const db = getDatabase();
 
   let migrated = 0;
@@ -56,10 +61,7 @@ export async function migrateAlbumArtToDisk(): Promise<void> {
           continue;
         }
 
-        db.update(tracks)
-          .set({ albumArt: artUrl })
-          .where(eq(tracks.id, row.id))
-          .run();
+        db.update(tracks).set({ albumArt: artUrl }).where(eq(tracks.id, row.id)).run();
 
         migrated++;
       } catch (err) {
@@ -74,4 +76,6 @@ export async function migrateAlbumArtToDisk(): Promise<void> {
   } else {
     logger.debug('[migrate-art] No base64 album art to migrate');
   }
+
+  store.set('migrations.albumArtV1', true);
 }
