@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Captions } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { Slider } from '@/components/ui/slider';
 import {
   useAppStore,
@@ -65,9 +66,9 @@ export function LyricsSection() {
             value={lyricsPlainFontSize}
             onChange={setLyricsPlainFontSize}
           />
-          <PreviewSlot title={t('lyr.previewTitle')}>
+          <SettingsPreview title={t('lyr.previewTitle')}>
             <PlainPreview opacity={lyricsPlainOpacity} fontSize={lyricsPlainFontSize} />
-          </PreviewSlot>
+          </SettingsPreview>
         </Subsection>
 
         {/* Synced lyrics subsection */}
@@ -87,9 +88,9 @@ export function LyricsSection() {
             value={lyricsSyncedFontSize}
             onChange={setLyricsSyncedFontSize}
           />
-          <PreviewSlot title={t('lyr.previewTitle')}>
+          <SettingsPreview title={t('lyr.previewTitle')}>
             <SyncedPreview dimOpacity={lyricsSyncedDimOpacity} fontSize={lyricsSyncedFontSize} />
-          </PreviewSlot>
+          </SettingsPreview>
         </Subsection>
 
         {/* Unified reset — restores all four lyrics prefs */}
@@ -199,22 +200,6 @@ function FontSizeControl({ title, description, value, onChange }: FontSizeContro
           </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-interface PreviewSlotProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function PreviewSlot({ title, children }: PreviewSlotProps) {
-  return (
-    <div className="px-3">
-      <p className="text-xs font-medium uppercase tracking-[0.1em] text-muted-foreground/60 mb-2">
-        {title}
-      </p>
-      {children}
     </div>
   );
 }
