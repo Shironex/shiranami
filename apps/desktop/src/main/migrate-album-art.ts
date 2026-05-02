@@ -47,6 +47,7 @@ export async function migrateAlbumArtToDisk(): Promise<void> {
         const match = row.albumArt.match(/^data:([^;]+);base64,(.+)$/);
         if (!match) {
           logger.warn(`[migrate-art] Invalid data URL for track ${row.id}`);
+          db.update(tracks).set({ albumArt: null }).where(eq(tracks.id, row.id)).run();
           failed++;
           continue;
         }
@@ -57,6 +58,7 @@ export async function migrateAlbumArtToDisk(): Promise<void> {
 
         const artUrl = await saveAlbumArt(buffer, mimeType);
         if (!artUrl) {
+          db.update(tracks).set({ albumArt: null }).where(eq(tracks.id, row.id)).run();
           failed++;
           continue;
         }
@@ -66,6 +68,7 @@ export async function migrateAlbumArtToDisk(): Promise<void> {
         migrated++;
       } catch (err) {
         logger.warn(`[migrate-art] Failed to migrate track ${row.id}:`, err);
+        db.update(tracks).set({ albumArt: null }).where(eq(tracks.id, row.id)).run();
         failed++;
       }
     }
