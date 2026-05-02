@@ -2,3 +2,4 @@
 // shared API DTOs.
 export * from './domain/track';
 export * from './ipc/channels';
+export * from './share/dto';
