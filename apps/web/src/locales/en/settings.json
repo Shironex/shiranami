@@ -56,6 +56,8 @@
     "enrichCancelling": "Cancelling...",
     "enrichOnlyMissing": "Only fill missing fields",
     "enrichOnlyMissingDesc": "Keep existing metadata, only fill in blanks",
+    "enrichFileWriteTitle": "File modification",
+    "enrichFileWriteSubtitle": "Optional gate for writing metadata directly to your audio files on disk",
     "enrichWriteToFile": "Write tags to audio files",
     "enrichWriteToFileDesc": "Off: results are stored only in Shiranami's database. Your audio files on disk stay untouched.",
     "enrichWriteToFileDestructive": "On: embeds metadata directly into your audio files on disk (MP3, FLAC, M4A). This cannot be undone.",

@@ -56,6 +56,8 @@
     "enrichCancelling": "Anulowanie...",
     "enrichOnlyMissing": "Tylko brakujące pola",
     "enrichOnlyMissingDesc": "Zachowaj istniejące metadane, uzupełnij tylko puste",
+    "enrichFileWriteTitle": "Modyfikacja plików",
+    "enrichFileWriteSubtitle": "Opcjonalna zgoda na zapisywanie metadanych bezpośrednio do plików audio",
     "enrichWriteToFile": "Zapisz tagi w plikach audio",
     "enrichWriteToFileDesc": "Wyłączone: wyniki są zapisywane tylko w bazie danych Shiranami. Twoje pliki audio na dysku pozostają nietknięte.",
     "enrichWriteToFileDestructive": "Włączone: osadza metadane bezpośrednio w plikach audio na dysku (MP3, FLAC, M4A). Tej operacji nie można cofnąć.",
