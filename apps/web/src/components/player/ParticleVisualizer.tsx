@@ -45,7 +45,7 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
 
     if (source) {
       binCount = source.binCount;
-      readData = source.read.bind(source);
+      readData = source.read;
     } else {
       const analyser = getAnalyser();
       if (!analyser) return;

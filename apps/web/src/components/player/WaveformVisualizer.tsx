@@ -36,7 +36,7 @@ export function WaveformVisualizer({ source, active }: WaveformVisualizerProps =
 
     if (source) {
       binCount = source.binCount;
-      readData = source.read.bind(source);
+      readData = source.read;
     } else {
       const analyser = getAnalyser();
       if (!analyser) return;
