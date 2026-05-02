@@ -1,0 +1,29 @@
+{
+  "name": "@shiranami/contracts",
+  "version": "0.16.1",
+  "private": true,
+  "description": "Shiranami typed contracts: domain types, IPC channel manifest, and shared API DTOs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build --clean && tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node ../../scripts/run-vitest.mjs run --project contracts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.3"
+  }
+}
