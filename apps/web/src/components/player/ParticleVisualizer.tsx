@@ -56,6 +56,8 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
       };
     }
 
+    if (!Number.isFinite(binCount) || binCount < 1) return;
+
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
     }

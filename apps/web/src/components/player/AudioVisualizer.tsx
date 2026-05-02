@@ -47,6 +47,8 @@ export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
       };
     }
 
+    if (!Number.isFinite(binCount) || binCount < 1) return;
+
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
     }
@@ -76,7 +78,7 @@ export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
 
     // Fewer bars = calmer, more spaced out
     const barCount = Math.min(48, Math.floor(w / 8));
-    const binsPerBar = Math.floor(binCount / barCount);
+    const binsPerBar = Math.max(1, Math.floor(binCount / barCount));
     const gap = 3;
     const barWidth = Math.max(2.5, (w - gap * (barCount - 1)) / barCount);
     const maxBarHeight = h * 0.4;

@@ -47,6 +47,8 @@ export function CircleVisualizer({ source, active }: CircleVisualizerProps = {})
       };
     }
 
+    if (!Number.isFinite(binCount) || binCount < 1) return;
+
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
     }
@@ -81,7 +83,7 @@ export function CircleVisualizer({ source, active }: CircleVisualizerProps = {})
     const barBaseRadius = innerRadius + 3;
     const maxBarLength = h * 0.24;
     const barCount = 64;
-    const binsPerBar = Math.floor(binCount / barCount);
+    const binsPerBar = Math.max(1, Math.floor(binCount / barCount));
     const barWidth = 1.8;
 
     // Compute average energy for the inner ring glow

@@ -47,6 +47,8 @@ export function WaveformVisualizer({ source, active }: WaveformVisualizerProps =
       };
     }
 
+    if (!Number.isFinite(binCount) || binCount < 1) return;
+
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
     }
