@@ -75,6 +75,11 @@ export function MetadataEnrichSection() {
     if (!writeToFile && confirmWrite) setConfirmWrite(false);
   }, [writeToFile, confirmWrite]);
 
+  const progressPercent =
+    progress && progress.total > 0
+      ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100))
+      : 0;
+
   if (!IS_ELECTRON) return null;
 
   return (
@@ -165,7 +170,7 @@ export function MetadataEnrichSection() {
               <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
             </div>
@@ -210,7 +215,9 @@ export function MetadataEnrichSection() {
             <div className="flex gap-2">
               <Button
                 onClick={handleEnrich}
-                disabled={isEnriching || library.length === 0}
+                disabled={
+                  isEnriching || library.length === 0 || tracksNeedingEnrichment.length === 0
+                }
                 className="rounded-xl bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
               >
                 {isEnriching ? <Loader2 className="animate-spin" /> : <Search />}
