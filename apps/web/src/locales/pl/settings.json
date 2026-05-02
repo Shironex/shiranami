@@ -189,7 +189,11 @@
       "subtitle": "Jak tryb kompaktowy działa przy wejściu i wyjściu",
       "defaultAlwaysOnTop": "Domyślnie zawsze na wierzchu",
       "defaultAlwaysOnTopDesc": "Automatycznie przypinaj mini-odtwarzacz nad innymi oknami przy przejściu do trybu kompaktowego"
-    }
+    },
+    "preview": "Podgląd",
+    "previewTrackTitle": "Tytuł przykładowego utworu",
+    "previewAlbum": "Przykładowy album",
+    "previewDisclaimer": "Podgląd — rzeczywiste okno może wyglądać inaczej"
   },
   "app": {
     "title": "Wygląd",

@@ -189,7 +189,11 @@
       "subtitle": "How compact mode behaves when entering and exiting",
       "defaultAlwaysOnTop": "Default to always-on-top",
       "defaultAlwaysOnTopDesc": "Pin the mini-player above other windows automatically when you switch to compact"
-    }
+    },
+    "preview": "Preview",
+    "previewTrackTitle": "Sample track title",
+    "previewAlbum": "Sample album",
+    "previewDisclaimer": "Preview — actual window may differ slightly"
   },
   "app": {
     "title": "Appearance",

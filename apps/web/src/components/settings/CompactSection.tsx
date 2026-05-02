@@ -14,6 +14,7 @@ import {
   type CompactFontSize,
 } from '@/stores/useAppStore';
 import { cn } from '@/lib/utils';
+import { CompactModePreview } from '@/components/settings/CompactModePreview';
 
 const SIZES: CompactSize[] = ['sm', 'md', 'lg'];
 const FONT_SIZES: CompactFontSize[] = ['sm', 'md', 'lg'];
@@ -57,6 +58,8 @@ export function CompactSection() {
   return (
     <SettingsCard icon={PictureInPicture2} title={t('cmp.title')} subtitle={t('cmp.subtitle')}>
       <div className="space-y-8">
+        <CompactModePreview />
+
         {/* Size + typography */}
         <div className="space-y-5">
           <PresetControl
