@@ -76,7 +76,7 @@ export function SettingsView() {
     <div className="flex-1 flex overflow-hidden">
       {/* Section navigation */}
       <div
-        className="w-44 shrink-0 border-r border-border/40 p-3 space-y-0.5"
+        className="w-48 shrink-0 border-r border-border/40 p-3 space-y-0.5"
         role="tablist"
         aria-label="Settings sections"
       >
@@ -86,6 +86,7 @@ export function SettingsView() {
             role="tab"
             aria-selected={activeSection === section.id}
             onClick={() => setActiveSection(section.id)}
+            title={t(section.labelKey)}
             className={cn(
               'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm',
               'transition-all duration-150',
@@ -96,7 +97,7 @@ export function SettingsView() {
             )}
           >
             <section.Icon className="w-4 h-4 shrink-0" />
-            {t(section.labelKey)}
+            <span className="min-w-0 truncate whitespace-nowrap">{t(section.labelKey)}</span>
           </button>
         ))}
       </div>
