@@ -62,7 +62,9 @@ export function CompactModePreview() {
               <p className={cn('truncate text-foreground', titleClass)}>
                 {t('cmp.previewTrackTitle')}
               </p>
-              <p className={cn('truncate text-muted-foreground', artistClass)}>Sample Artist</p>
+              <p className={cn('truncate text-muted-foreground', artistClass)}>
+                {t('cmp.previewArtist')}
+              </p>
               {compactShowAlbum && (
                 <p className={cn('truncate text-muted-foreground/60', albumClass)}>
                   {t('cmp.previewAlbum')}
