@@ -127,6 +127,8 @@ export interface SettingsRowLabelProps {
   htmlFor?: string;
   /** id applied to the label element for aria-labelledby wiring. */
   id?: string;
+  /** id applied to the description element for aria-describedby wiring. */
+  descriptionId?: string;
   className?: string;
 }
 
@@ -135,6 +137,7 @@ export function SettingsRowLabel({
   description,
   htmlFor,
   id,
+  descriptionId,
   className,
 }: SettingsRowLabelProps) {
   return (
@@ -143,7 +146,9 @@ export function SettingsRowLabel({
         {htmlFor ? <label htmlFor={htmlFor}>{label}</label> : label}
       </p>
       {description && (
-        <p className="mt-0.5 text-xs text-muted-foreground leading-snug">{description}</p>
+        <p id={descriptionId} className="mt-0.5 text-xs text-muted-foreground leading-snug">
+          {description}
+        </p>
       )}
     </div>
   );
@@ -169,11 +174,18 @@ export function SettingsToggleRow({
   className,
 }: SettingsToggleRowProps) {
   const labelId = useId();
+  const descriptionId = useId();
   return (
     <SettingsRow divider={divider} className={className}>
-      <SettingsRowLabel id={labelId} label={label} description={description} />
+      <SettingsRowLabel
+        id={labelId}
+        descriptionId={description ? descriptionId : undefined}
+        label={label}
+        description={description}
+      />
       <Switch
         aria-labelledby={labelId}
+        aria-describedby={description ? descriptionId : undefined}
         checked={checked}
         onCheckedChange={onCheckedChange}
         disabled={disabled}
@@ -209,11 +221,21 @@ export function SettingsSelectRow({
   className,
 }: SettingsSelectRowProps) {
   const labelId = useId();
+  const descriptionId = useId();
   return (
     <SettingsRow divider={divider} className={className}>
-      <SettingsRowLabel id={labelId} label={label} description={description} />
+      <SettingsRowLabel
+        id={labelId}
+        descriptionId={description ? descriptionId : undefined}
+        label={label}
+        description={description}
+      />
       <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-        <SelectTrigger aria-labelledby={labelId} className="w-36 h-8 text-xs">
+        <SelectTrigger
+          aria-labelledby={labelId}
+          aria-describedby={description ? descriptionId : undefined}
+          className="w-36 h-8 text-xs"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

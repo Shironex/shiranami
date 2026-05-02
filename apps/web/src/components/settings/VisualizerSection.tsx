@@ -57,6 +57,8 @@ export function VisualizerSection() {
                   return (
                     <button
                       key={opt.value}
+                      type="button"
+                      aria-pressed={selected}
                       onClick={() => setVisualizerStyle(opt.value)}
                       className={cn(
                         'flex-1 px-4 py-3 rounded-xl border text-left transition-all',

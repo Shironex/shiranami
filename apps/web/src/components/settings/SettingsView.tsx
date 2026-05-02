@@ -160,11 +160,7 @@ export function SettingsView() {
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Section navigation */}
-        <div
-          className="w-48 shrink-0 border-r border-border/40 p-3"
-          role="tablist"
-          aria-label="Settings sections"
-        >
+        <nav className="w-48 shrink-0 border-r border-border/40 p-3" aria-label="Settings sections">
           {GROUP_ORDER.map(group => {
             const items = SECTIONS.filter(s => s.group === group);
             return (
@@ -177,8 +173,7 @@ export function SettingsView() {
                   return (
                     <button
                       key={section.id}
-                      role="tab"
-                      aria-selected={isActive}
+                      aria-current={isActive ? 'page' : undefined}
                       onClick={() => setActiveSection(section.id)}
                       title={t(section.labelKey)}
                       className={cn(
@@ -206,10 +201,10 @@ export function SettingsView() {
               </div>
             );
           })}
-        </div>
+        </nav>
 
         {/* Section content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20" role="tabpanel">
+        <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20">
           <div className="max-w-xl space-y-4">
             <Panel />
           </div>
