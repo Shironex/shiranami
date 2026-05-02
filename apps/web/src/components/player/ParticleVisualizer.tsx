@@ -4,6 +4,7 @@ import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 import { getAnalyser } from '@/lib/audioAnalyser';
+import type { FrequencySource } from './visualizer-source';
 
 /**
  * Smooth wave visualizer with gradient fill.
@@ -11,12 +12,18 @@ import { getAnalyser } from '@/lib/audioAnalyser';
  * Renders a flowing bezier-curved frequency line with a soft
  * gradient fill underneath. Calm and organic feel.
  */
-export function ParticleVisualizer() {
+
+interface ParticleVisualizerProps {
+  source?: FrequencySource;
+  active?: boolean;
+}
+
+export function ParticleVisualizer({ source, active }: ParticleVisualizerProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef, versionRef } = usePrimaryRGB();
 
@@ -33,12 +40,21 @@ export function ParticleVisualizer() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const analyser = getAnalyser();
-    if (!analyser) {
-      return;
-    }
+    let binCount: number;
+    let readData: (buf: Uint8Array) => boolean;
 
-    const binCount = analyser.frequencyBinCount;
+    if (source) {
+      binCount = source.binCount;
+      readData = source.read.bind(source);
+    } else {
+      const analyser = getAnalyser();
+      if (!analyser) return;
+      binCount = analyser.frequencyBinCount;
+      readData = buf => {
+        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
+        return true;
+      };
+    }
 
     if (!bufferRef.current || bufferRef.current.length !== binCount) {
       bufferRef.current = new Uint8Array(binCount);
@@ -47,7 +63,7 @@ export function ParticleVisualizer() {
       smoothedRef.current = new Float32Array(200);
     }
 
-    analyser.getByteFrequencyData(bufferRef.current);
+    if (!readData(bufferRef.current)) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -155,10 +171,10 @@ export function ParticleVisualizer() {
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.06)`;
     ctx.lineWidth = 1;
     ctx.stroke();
+  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
 
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef]);
-
-  useRafLoop(draw, canvasRef, isPlaying && !!currentTrack);
+  const shouldRun = active ?? (isPlaying && !!currentTrack);
+  useRafLoop(draw, canvasRef, shouldRun);
 
   return (
     <canvas
@@ -174,7 +190,7 @@ function drawWaveFill(
   ctx: CanvasRenderingContext2D,
   points: { x: number; y: number }[],
   centerY: number,
-  gradient: CanvasGradient,
+  gradient: CanvasGradient
 ) {
   if (points.length < 2) return;
 
