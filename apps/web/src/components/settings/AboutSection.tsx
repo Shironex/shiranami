@@ -28,14 +28,15 @@ export function AboutSection() {
         v{version ?? '…'}
       </span>
       <span className="text-[11.5px] text-muted-foreground">
-        {'白波'} &mdash; {t('abt.tagline')}
+        {'白波 · '}
+        {t('abt.tagline')}
       </span>
     </span>
   );
 
   return (
     <div className="space-y-4">
-      {/* Card 1 — Hero */}
+      {/* Card 1: Hero */}
       <SettingsCard iconSlot={heroIcon} title="Shiranami" subtitle={heroSubtitle}>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="border-border/40" asChild>
@@ -57,7 +58,7 @@ export function AboutSection() {
         </div>
       </SettingsCard>
 
-      {/* Card 2 — Story */}
+      {/* Card 2: Story */}
       <SettingsCard icon={Music2} title={t('abt.storyTitle')} subtitle={t('abt.storySubtitle')}>
         <div className="space-y-2.5 text-[13px] leading-[1.7] text-foreground/85">
           <p>
@@ -78,7 +79,7 @@ export function AboutSection() {
         </div>
       </SettingsCard>
 
-      {/* Card 3 — Logs */}
+      {/* Card 3: Logs */}
       {IS_ELECTRON && (
         <SettingsCard icon={FolderOpen} title={t('abt.logsTitle')} subtitle={t('abt.logsSubtitle')}>
           <Button
