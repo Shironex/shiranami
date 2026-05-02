@@ -39,6 +39,9 @@ export interface StoreSchema {
   // Main-only (downloader.ts).
   'downloads.location': string;
   'downloads.toolStatusCache': ToolStatusCache;
+
+  // Main-only migration flags.
+  'migrations.albumArtV1': boolean;
 }
 
 export const store = new Store<StoreSchema>();

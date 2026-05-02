@@ -16,9 +16,17 @@ vi.mock('./logger', () => ({
   },
 }));
 
+vi.mock('./store', () => ({
+  store: {
+    get: vi.fn(() => false),
+    set: vi.fn(),
+  },
+}));
+
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { saveAlbumArt } from './art-protocol';
 import { logger } from './logger';
+import { store } from './store';
 import { tracks, eq } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 
@@ -85,6 +93,49 @@ describe('migrateAlbumArtToDisk (integration)', () => {
   /*  Tests                                                              */
   /* ------------------------------------------------------------------ */
 
+  it('returns early without querying the database when albumArtV1 flag is already set', async () => {
+    vi.mocked(store.get).mockReturnValueOnce(true as never);
+    insertTrack({ albumArt: makeDataUrl('image/jpeg', TINY_JPEG_B64) });
+
+    await migrateAlbumArtToDisk();
+
+    expect(saveAlbumArt).not.toHaveBeenCalled();
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it('sets albumArtV1 flag to true after a successful migration run', async () => {
+    const dataUrl = makeDataUrl('image/jpeg', TINY_JPEG_B64);
+    insertTrack({ albumArt: dataUrl });
+
+    await migrateAlbumArtToDisk();
+
+    expect(store.set).toHaveBeenCalledOnce();
+    expect(store.set).toHaveBeenCalledWith('migrations.albumArtV1', true);
+  });
+
+  it('sets albumArtV1 flag to true even when there is nothing to migrate', async () => {
+    insertTrack({ albumArt: null });
+
+    await migrateAlbumArtToDisk();
+
+    expect(store.set).toHaveBeenCalledOnce();
+    expect(store.set).toHaveBeenCalledWith('migrations.albumArtV1', true);
+  });
+
+  it('terminates the loop when saveAlbumArt permanently returns falsy (no infinite loop)', async () => {
+    const dataUrl = makeDataUrl('image/jpeg', TINY_JPEG_B64);
+    insertTrack({ albumArt: dataUrl });
+
+    // Returns falsy once — row is nulled out and loop must terminate (not re-fetch).
+    vi.mocked(saveAlbumArt).mockResolvedValueOnce('' as never);
+
+    await migrateAlbumArtToDisk();
+
+    expect(saveAlbumArt).toHaveBeenCalledOnce();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('0 migrated, 1 failed'));
+    expect(store.set).toHaveBeenCalledWith('migrations.albumArtV1', true);
+  });
+
   it('migrates tracks with valid base64 data URLs to shiranami-art:// URLs', async () => {
     const dataUrl = makeDataUrl('image/jpeg', TINY_JPEG_B64);
     const id = insertTrack({ albumArt: dataUrl });
@@ -94,13 +145,8 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     const updatedArt = getTrackAlbumArt(id);
     expect(updatedArt).toBe('shiranami-art://migrated-hash');
     expect(saveAlbumArt).toHaveBeenCalledOnce();
-    expect(saveAlbumArt).toHaveBeenCalledWith(
-      expect.any(Buffer),
-      'image/jpeg',
-    );
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('1 migrated, 0 failed'),
-    );
+    expect(saveAlbumArt).toHaveBeenCalledWith(expect.any(Buffer), 'image/jpeg');
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('1 migrated, 0 failed'));
   });
 
   it('skips tracks that already have shiranami-art:// URLs (idempotency)', async () => {
@@ -112,42 +158,18 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     expect(art).toBe('shiranami-art://existing-hash');
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
   it('handles invalid/malformed data URLs gracefully', async () => {
-    // "data:" prefix so the query picks it up, but not a valid base64 data URL.
-    // The malformed row will be re-fetched on every batch iteration since it
-    // is never updated. To prevent an infinite loop we let saveAlbumArt succeed
-    // on a companion valid track — the malformed row is manually cleared after
-    // the first failed attempt via a spy on logger.warn.
-    const malformedId = insertTrack({ albumArt: 'data:not-a-valid-data-url' });
-
-    // Manually clear the malformed row after the first warning to break the loop
-    let warningCount = 0;
-    vi.mocked(logger.warn).mockImplementation((...args: unknown[]) => {
-      const msg = String(args[0]);
-      if (msg.includes('Invalid data URL')) {
-        warningCount++;
-        if (warningCount >= 1) {
-          // Clear the offending row so the loop terminates
-          const db = getDatabase();
-          db.update(tracks)
-            .set({ albumArt: null })
-            .where(eq(tracks.id, malformedId))
-            .run();
-        }
-      }
-    });
+    insertTrack({ albumArt: 'data:not-a-valid-data-url' });
 
     await migrateAlbumArtToDisk();
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
-    expect(warningCount).toBe(1);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('0 migrated, 1 failed'),
-    );
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Invalid data URL'));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('0 migrated, 1 failed'));
   });
 
   it('handles null albumArt rows without crashing', async () => {
@@ -157,7 +179,7 @@ describe('migrateAlbumArtToDisk (integration)', () => {
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
@@ -170,74 +192,56 @@ describe('migrateAlbumArtToDisk (integration)', () => {
 
     expect(saveAlbumArt).not.toHaveBeenCalled();
     expect(logger.debug).toHaveBeenCalledWith(
-      expect.stringContaining('No base64 album art to migrate'),
+      expect.stringContaining('No base64 album art to migrate')
     );
   });
 
   it('reports correct migrated/failed/skipped counts', async () => {
     const validJpeg = makeDataUrl('image/jpeg', TINY_JPEG_B64);
     const validPng = makeDataUrl('image/png', TINY_JPEG_B64);
-    const malformedId = insertTrack({ albumArt: 'data:garbage-no-base64' });
 
     insertTrack({ albumArt: validJpeg });
     insertTrack({ albumArt: validPng });
+    insertTrack({ albumArt: 'data:garbage-no-base64' });
     insertTrack({ albumArt: 'shiranami-art://already-done' });
     insertTrack({ albumArt: null });
-
-    // Clear malformed row on first warning to prevent infinite re-fetch
-    vi.mocked(logger.warn).mockImplementation((...args: unknown[]) => {
-      const msg = String(args[0]);
-      if (msg.includes('Invalid data URL')) {
-        const db = getDatabase();
-        db.update(tracks)
-          .set({ albumArt: null })
-          .where(eq(tracks.id, malformedId))
-          .run();
-      }
-    });
 
     await migrateAlbumArtToDisk();
 
     expect(saveAlbumArt).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('2 migrated, 1 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('2 migrated, 1 failed'));
   });
 
   it('handles saveAlbumArt returning falsy (failed save)', async () => {
     const dataUrl = makeDataUrl('image/jpeg', TINY_JPEG_B64);
     const id = insertTrack({ albumArt: dataUrl });
 
-    // First call returns falsy (row stays as data:..., gets re-fetched).
-    // Second call uses default mock and succeeds.
     vi.mocked(saveAlbumArt).mockResolvedValueOnce('' as never);
 
     await migrateAlbumArtToDisk();
 
+    // Row is nulled out on failure so it is not re-fetched.
     const art = getTrackAlbumArt(id);
-    expect(art).toBe('shiranami-art://migrated-hash');
-    expect(saveAlbumArt).toHaveBeenCalledTimes(2);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('1 migrated, 1 failed'),
-    );
+    expect(art).toBeNull();
+    expect(saveAlbumArt).toHaveBeenCalledOnce();
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('0 migrated, 1 failed'));
   });
 
   it('handles saveAlbumArt throwing an error', async () => {
     const dataUrl = makeDataUrl('image/jpeg', TINY_JPEG_B64);
     const id = insertTrack({ albumArt: dataUrl });
 
-    // First call throws (row stays, gets re-fetched).
-    // Second call uses default mock and succeeds.
     vi.mocked(saveAlbumArt).mockRejectedValueOnce(new Error('disk full'));
 
     await migrateAlbumArtToDisk();
 
+    // Row is nulled out on error so it is not re-fetched.
     const art = getTrackAlbumArt(id);
-    expect(art).toBe('shiranami-art://migrated-hash');
-    expect(saveAlbumArt).toHaveBeenCalledTimes(2);
+    expect(art).toBeNull();
+    expect(saveAlbumArt).toHaveBeenCalledOnce();
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Failed to migrate track'),
-      expect.any(Error),
+      expect.any(Error)
     );
   });
 
@@ -250,8 +254,6 @@ describe('migrateAlbumArtToDisk (integration)', () => {
     await migrateAlbumArtToDisk();
 
     expect(saveAlbumArt).toHaveBeenCalledTimes(55);
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('55 migrated, 0 failed'),
-    );
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('55 migrated, 0 failed'));
   });
 });

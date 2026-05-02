@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 
@@ -35,9 +34,6 @@ export function useLibrarySync() {
     if (!data || data.length === 0) return;
     if (useLibraryStore.getState().library.length === 0) {
       useLibraryStore.setState({ library: data });
-    }
-    if (usePlaybackStore.getState().queue.length === 0) {
-      usePlaybackStore.setState({ queue: data });
     }
   }, [data]);
 

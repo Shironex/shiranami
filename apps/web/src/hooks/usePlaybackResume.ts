@@ -27,7 +27,7 @@ function buildPersistedState(): PersistedPlayerState | null {
 
   return {
     currentTrackPath: currentTrack.filePath,
-    queuePaths: queue.map((track) => track.filePath),
+    queuePaths: queue.map(track => track.filePath),
     queueIndex,
     currentTime: isFinite(currentTime) && currentTime >= 0 ? currentTime : 0,
     isPlaying,
@@ -35,20 +35,25 @@ function buildPersistedState(): PersistedPlayerState | null {
 }
 
 function restoreQueueFromPaths(library: Track[], persisted: PersistedPlayerState): Track[] {
-  const byPath = new Map(library.map((track) => [track.filePath, track]));
+  const byPath = new Map(library.map(track => [track.filePath, track]));
   const restoredQueue = persisted.queuePaths
-    .map((filePath) => byPath.get(filePath))
+    .map(filePath => byPath.get(filePath))
     .filter((track): track is Track => Boolean(track));
 
-  return restoredQueue.length > 0 ? restoredQueue : library;
+  if (restoredQueue.length > 0) {
+    return restoredQueue;
+  }
+
+  const currentTrack = byPath.get(persisted.currentTrackPath);
+  return currentTrack ? [currentTrack] : [];
 }
 
 export function usePlaybackResume(enabled = true) {
-  const library = useLibraryStore((s) => s.library);
-  const currentTrackPath = usePlaybackStore((s) => s.currentTrack?.filePath ?? null);
-  const queue = usePlaybackStore((s) => s.queue);
-  const queueIndex = usePlaybackStore((s) => s.queueIndex);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
+  const library = useLibraryStore(s => s.library);
+  const currentTrackPath = usePlaybackStore(s => s.currentTrack?.filePath ?? null);
+  const queue = usePlaybackStore(s => s.queue);
+  const queueIndex = usePlaybackStore(s => s.queueIndex);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
 
   const [isReady, setIsReady] = useState(!IS_ELECTRON);
   const [isRestoreResolved, setIsRestoreResolved] = useState(!IS_ELECTRON);
@@ -121,7 +126,7 @@ export function usePlaybackResume(enabled = true) {
 
         const restoredQueue = restoreQueueFromPaths(library, state);
         const restoredIndex = restoredQueue.findIndex(
-          (track) => track.filePath === state.currentTrackPath
+          track => track.filePath === state.currentTrackPath
         );
 
         if (restoredIndex < 0) {
@@ -129,9 +134,7 @@ export function usePlaybackResume(enabled = true) {
         }
 
         const restoredTime =
-          isFinite(state.currentTime) && state.currentTime > 0
-            ? state.currentTime
-            : 0;
+          isFinite(state.currentTime) && state.currentTime > 0 ? state.currentTime : 0;
 
         usePlaybackStore.setState({
           queue: restoredQueue,
