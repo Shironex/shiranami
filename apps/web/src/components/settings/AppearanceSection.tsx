@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Monitor } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
-import { Switch } from '@/components/ui/switch';
+import { Languages, Sparkles, LayoutGrid } from 'lucide-react';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
   useAppStore,
@@ -52,152 +51,129 @@ export function AppearanceSection() {
   }
 
   return (
-    <SettingsCard icon={Monitor} title={t('app.title')} subtitle={t('app.subtitle')}>
-      <div className="space-y-6">
-        {/* Language */}
-        <div className="px-3">
-          <p className="text-sm font-medium text-foreground mb-1">{t('app.languageTitle')}</p>
-          <p className="text-xs text-muted-foreground mb-3">{t('app.languageDesc')}</p>
-          <div className="flex items-center gap-1.5">
-            {SUPPORTED_LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={cn(
-                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                  i18n.language === lang.code
-                    ? 'bg-primary/15 text-primary border border-primary/40'
-                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
-                )}
-              >
-                {lang.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Interface scale */}
-        <div className="px-3">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-medium text-foreground">{t('app.interfaceScale')}</p>
-            <span className="text-xs tabular-nums text-muted-foreground">{uiScale}%</span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">{t('app.scaleDesc')}</p>
-
-          <Slider
-            min={UI_SCALE_MIN}
-            max={UI_SCALE_MAX}
-            step={UI_SCALE_STEP}
-            value={[uiScale]}
-            onValueChange={([v]) => setUiScale(v)}
-          />
-
-          <div className="flex items-center justify-between mt-4">
+    <div className="space-y-4">
+      {/* Card 1 — Language & scale */}
+      <SettingsCard icon={Languages} title={t('app.languageTitle')}>
+        <div className="space-y-6">
+          {/* Language picker */}
+          <div className="px-3">
+            <p className="text-sm font-medium text-foreground mb-1">{t('app.languageTitle')}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t('app.languageDesc')}</p>
             <div className="flex items-center gap-1.5">
-              {UI_SCALE_PRESETS.map(preset => (
+              {SUPPORTED_LANGUAGES.map(lang => (
                 <button
-                  key={preset}
-                  onClick={() => setUiScale(preset)}
+                  key={lang.code}
+                  onClick={() => handleLanguageChange(lang.code)}
                   className={cn(
-                    'px-2 py-1 rounded-md text-xs font-medium transition-colors',
-                    uiScale === preset
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                    i18n.language === lang.code
                       ? 'bg-primary/15 text-primary border border-primary/40'
                       : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
                   )}
                 >
-                  {preset}%
+                  {lang.label}
                 </button>
               ))}
             </div>
-
-            {uiScale !== UI_SCALE_DEFAULT && (
-              <button
-                onClick={resetUiScale}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {tc('reset')}
-              </button>
-            )}
           </div>
-        </div>
 
-        {/* Now Playing view */}
-        <div className="px-3">
-          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('app.nowPlayingView')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('app.nowPlayingViewDesc')}</p>
+          {/* Interface scale */}
+          <div className="px-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-medium text-foreground">{t('app.interfaceScale')}</p>
+              <span className="text-xs tabular-nums text-muted-foreground">{uiScale}%</span>
             </div>
-            <Switch checked={nowPlayingViewEnabled} onCheckedChange={setNowPlayingViewEnabled} />
-          </div>
-        </div>
+            <p className="text-xs text-muted-foreground mb-4">{t('app.scaleDesc')}</p>
 
-        {/* Now Playing banner (hero card above Library/Favorites) */}
-        <div className="px-3">
-          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t('app.libraryHeroCard')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('app.libraryHeroCardDesc')}</p>
-            </div>
-            <Switch checked={libraryHeroCardEnabled} onCheckedChange={setLibraryHeroCardEnabled} />
-          </div>
-        </div>
+            <Slider
+              min={UI_SCALE_MIN}
+              max={UI_SCALE_MAX}
+              step={UI_SCALE_STEP}
+              value={[uiScale]}
+              onValueChange={([v]) => setUiScale(v)}
+            />
 
-        {/* Low performance mode — disables expensive visual effects */}
-        <div className="px-3">
-          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
-            <div className="pr-4">
-              <p className="text-sm font-medium text-foreground">{t('app.lowPerfMode')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('app.lowPerfModeDesc')}</p>
-            </div>
-            <Switch checked={lowPerformanceMode} onCheckedChange={setLowPerformanceMode} />
-          </div>
-        </div>
-
-        {/* Noise overlay — opt-in film-grain texture, forced off under low-perf mode */}
-        <div className="px-3">
-          <div className="flex items-center justify-between py-2.5 rounded-xl hover:bg-accent/30 transition-colors px-3 -mx-3">
-            <div className="pr-4">
-              <p className="text-sm font-medium text-foreground">{t('app.noiseOverlay')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('app.noiseOverlayDesc')}</p>
-            </div>
-            <Switch checked={noiseOverlayEnabled} onCheckedChange={setNoiseOverlayEnabled} />
-          </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="px-3">
-          <p className="text-sm font-medium text-foreground mb-1">{t('app.sidebarTitle')}</p>
-          <p className="text-xs text-muted-foreground mb-3">{t('app.sidebarDesc')}</p>
-          <div className="space-y-1">
-            {TOGGLEABLE_SIDEBAR_ITEMS.map(item => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-accent/30 transition-colors"
-              >
-                <p className="text-sm text-foreground">{ts(item.key)}</p>
-                <Switch
-                  checked={!sidebarHiddenItems.includes(item.id)}
-                  onCheckedChange={() => toggleSidebarItem(item.id)}
-                />
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-1.5">
+                {UI_SCALE_PRESETS.map(preset => (
+                  <button
+                    key={preset}
+                    onClick={() => setUiScale(preset)}
+                    className={cn(
+                      'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                      uiScale === preset
+                        ? 'bg-primary/15 text-primary border border-primary/40'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+                    )}
+                  >
+                    {preset}%
+                  </button>
+                ))}
               </div>
-            ))}
 
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-accent/30 transition-colors">
-              <div>
-                <p className="text-sm text-foreground">{t('app.sidebarPlaylists')}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {t('app.sidebarPlaylistsDesc')}
-                </p>
-              </div>
-              <Switch
-                checked={sidebarPlaylistsVisible}
-                onCheckedChange={setSidebarPlaylistsVisible}
-              />
+              {uiScale !== UI_SCALE_DEFAULT && (
+                <button
+                  onClick={resetUiScale}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {tc('reset')}
+                </button>
+              )}
             </div>
           </div>
         </div>
-      </div>
-    </SettingsCard>
+      </SettingsCard>
+
+      {/* Card 2 — Visual effects */}
+      <SettingsCard icon={Sparkles} title={t('app.effects')}>
+        <SettingsToggleRow
+          label={t('app.nowPlayingView')}
+          description={t('app.nowPlayingViewDesc')}
+          checked={nowPlayingViewEnabled}
+          onCheckedChange={setNowPlayingViewEnabled}
+        />
+        <SettingsToggleRow
+          label={t('app.libraryHeroCard')}
+          description={t('app.libraryHeroCardDesc')}
+          checked={libraryHeroCardEnabled}
+          onCheckedChange={setLibraryHeroCardEnabled}
+          divider
+        />
+        <SettingsToggleRow
+          label={t('app.lowPerfMode')}
+          description={t('app.lowPerfModeDesc')}
+          checked={lowPerformanceMode}
+          onCheckedChange={setLowPerformanceMode}
+          divider
+        />
+        <SettingsToggleRow
+          label={t('app.noiseOverlay')}
+          description={t('app.noiseOverlayDesc')}
+          checked={noiseOverlayEnabled}
+          onCheckedChange={setNoiseOverlayEnabled}
+          divider
+        />
+      </SettingsCard>
+
+      {/* Card 3 — Sidebar */}
+      <SettingsCard icon={LayoutGrid} title={t('app.sidebarTitle')}>
+        {TOGGLEABLE_SIDEBAR_ITEMS.map((item, index) => (
+          <SettingsToggleRow
+            key={item.id}
+            label={ts(item.key)}
+            checked={!sidebarHiddenItems.includes(item.id)}
+            onCheckedChange={() => toggleSidebarItem(item.id)}
+            divider={index > 0}
+          />
+        ))}
+        <SettingsToggleRow
+          label={t('app.sidebarPlaylists')}
+          description={t('app.sidebarPlaylistsDesc')}
+          checked={sidebarPlaylistsVisible}
+          onCheckedChange={setSidebarPlaylistsVisible}
+          divider
+        />
+      </SettingsCard>
+    </div>
   );
 }

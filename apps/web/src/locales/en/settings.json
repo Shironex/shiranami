@@ -191,7 +191,8 @@
     "noiseOverlay": "Noise texture",
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default — adds a small amount of GPU work.",
     "sidebarPlaylists": "Show playlists",
-    "sidebarPlaylistsDesc": "Display your playlists in the sidebar"
+    "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
+    "effects": "Visual effects"
   },
   "dl": {
     "title": "Downloads",

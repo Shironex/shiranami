@@ -191,7 +191,8 @@
     "noiseOverlay": "Tekstura szumu",
     "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona — dodaje niewielkie obciążenie GPU.",
     "sidebarPlaylists": "Pokaż playlisty",
-    "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym"
+    "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
+    "effects": "Efekty wizualne"
   },
   "dl": {
     "title": "Pobieranie",
