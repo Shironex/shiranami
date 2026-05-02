@@ -41,7 +41,9 @@ export function groupTracksByAlbum(
       }
       const trackCreatedAt = track.createdAt ?? null;
       if (trackCreatedAt !== null) {
-        if (existing.createdAt === null || trackCreatedAt < existing.createdAt) {
+        // Use the latest track timestamp so adding a new track to an existing
+        // album bubbles it up in "Recently Added".
+        if (existing.createdAt === null || trackCreatedAt > existing.createdAt) {
           existing.createdAt = trackCreatedAt;
         }
       }
@@ -91,7 +93,7 @@ export function groupTracksByAlbum(
         // SQLite `datetime('now')` is 'YYYY-MM-DD HH:MM:SS' — string compare avoids Date.parse NaN on Safari.
         const ta = a.createdAt ?? '';
         const tb = b.createdAt ?? '';
-        const primary = (ta < tb ? -1 : ta > tb ? 1 : 0) * direction;
+        const primary = (ta < tb ? 1 : ta > tb ? -1 : 0) * direction;
         if (primary !== 0) return primary;
         return a.name.localeCompare(b.name);
       }
