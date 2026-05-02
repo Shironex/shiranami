@@ -5,6 +5,19 @@
     "appearance": "Wygląd",
     "system": "System"
   },
+  "subtitles": {
+    "folders": "Zarządzanie folderami muzyki",
+    "library": "Dane biblioteki i skanowanie",
+    "downloads": "Pobieranie zewnętrznych narzędzi",
+    "playback": "Preferencje odtwarzania audio",
+    "equalizer": "Sterowanie pasmami częstotliwości",
+    "visualizer": "Wizualizacja audio na żywo",
+    "lyrics": "Opcje wyświetlania tekstu",
+    "compact": "Ustawienia mini-odtwarzacza",
+    "appearance": "Wygląd i styl interfejsu",
+    "updates": "Kanał aktualizacji aplikacji",
+    "about": "Informacje o aplikacji"
+  },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
   "downloads": "Pobieranie",

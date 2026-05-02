@@ -5,6 +5,19 @@
     "appearance": "Appearance",
     "system": "System"
   },
+  "subtitles": {
+    "folders": "Music folder management",
+    "library": "Library data and scanning",
+    "downloads": "External tool downloads",
+    "playback": "Audio playback preferences",
+    "equalizer": "Frequency band control",
+    "visualizer": "Live audio visualization",
+    "lyrics": "Lyrics display options",
+    "compact": "Mini-player window settings",
+    "appearance": "Interface look and feel",
+    "updates": "Application update channel",
+    "about": "About this application"
+  },
   "musicFolders": "Music Folders",
   "library": "Library",
   "downloads": "Downloads",
