@@ -41,7 +41,9 @@ export function groupTracksByAlbum(
       }
       const trackCreatedAt = track.createdAt ?? null;
       if (trackCreatedAt !== null) {
-        if (existing.createdAt === null || trackCreatedAt < existing.createdAt) {
+        // Use the latest track timestamp so adding a new track to an existing
+        // album bubbles it up in "Recently Added".
+        if (existing.createdAt === null || trackCreatedAt > existing.createdAt) {
           existing.createdAt = trackCreatedAt;
         }
       }

@@ -129,7 +129,7 @@ describe('groupTracksByAlbum', () => {
       expect(groups.map(g => g.name)).toEqual(['Alpha', 'Zeta']);
     });
 
-    it('album createdAt reflects the earliest of its tracks', () => {
+    it('album createdAt reflects the latest of its tracks so a new track bubbles the album up', () => {
       const early = makeTrack({
         id: 'e1',
         album: 'Mixed',
@@ -148,10 +148,11 @@ describe('groupTracksByAlbum', () => {
         artist: 'B',
         createdAt: '2023-01-01 00:00:00',
       });
-      // Mixed album should sort as if it was added in 2022 (before Reference's 2023)
-      const groups = groupTracksByAlbum([late, early, other], 'recentlyAdded', 'desc');
+      // Mixed album should sort as if it was added in 2025 (after Reference's 2023)
+      // because adding a new track to an existing album should bubble it up.
+      const groups = groupTracksByAlbum([late, early, other], 'recentlyAdded', 'asc');
       expect(groups.map(g => g.name)).toEqual(['Mixed', 'Reference']);
-      expect(groups[0].createdAt).toBe('2022-05-01 00:00:00');
+      expect(groups[0].createdAt).toBe('2025-05-01 00:00:00');
     });
   });
 });
