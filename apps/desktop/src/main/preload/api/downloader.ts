@@ -1,7 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
-import type { InstallDependenciesResult } from '../../ipc/downloader';
+import type { InstallDependenciesResult } from '../types';
 
 const C = IPC_CHANNELS.downloader;
 

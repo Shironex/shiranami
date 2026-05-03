@@ -67,3 +67,13 @@ export interface ListeningActivityPoint {
   playCount: number;
   listenedMinutes: number;
 }
+
+export interface ToolInstallResult {
+  tool: 'ytdlp' | 'ffmpeg';
+  success: boolean;
+  error?: string;
+}
+
+export interface InstallDependenciesResult {
+  results: ToolInstallResult[];
+}

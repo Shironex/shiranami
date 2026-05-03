@@ -67,15 +67,9 @@ interface DependencyInstallProgress {
   label: string;
 }
 
-export interface ToolInstallResult {
-  tool: 'ytdlp' | 'ffmpeg';
-  success: boolean;
-  error?: string;
-}
+import type { ToolInstallResult, InstallDependenciesResult } from '../preload/types';
 
-export interface InstallDependenciesResult {
-  results: ToolInstallResult[];
-}
+export type { ToolInstallResult, InstallDependenciesResult };
 
 export interface DownloadLocationState {
   path: string;
