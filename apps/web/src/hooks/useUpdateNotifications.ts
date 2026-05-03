@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import i18n from '@/lib/i18n';
 
 const TOAST_ID = 'update-notification';
@@ -22,7 +22,7 @@ export function useUpdateNotifications() {
     const unsubs: (() => void)[] = [];
 
     unsubs.push(
-      window.electronAPI.updater.onUpdateAvailable((info) => {
+      window.electronAPI.updater.onUpdateAvailable(info => {
         // Don't re-notify for the same version
         if (notifiedVersionRef.current === info.version) return;
         notifiedVersionRef.current = info.version;
@@ -32,36 +32,36 @@ export function useUpdateNotifications() {
           duration: 19_000,
           action: {
             label: i18n.t('updateSettings', { ns: 'toast' }),
-            onClick: () => useAppStore.getState().navigateTo('settings'),
+            onClick: () => useViewStore.getState().navigateTo('settings'),
           },
         });
-      }),
+      })
     );
 
     unsubs.push(
-      window.electronAPI.updater.onUpdateDownloaded((info) => {
+      window.electronAPI.updater.onUpdateDownloaded(info => {
         toast.success(i18n.t('updateReady', { ns: 'toast', version: info.version }), {
           id: TOAST_ID,
           duration: Infinity,
           action: {
             label: i18n.t('updateRestart', { ns: 'toast' }),
             onClick: () => {
-              window.electronAPI.updater.installNow().catch((err) => {
+              window.electronAPI.updater.installNow().catch(err => {
                 console.warn('Failed to install update', err);
               });
             },
           },
         });
-      }),
+      })
     );
 
     unsubs.push(
-      window.electronAPI.updater.onUpdateError((message) => {
+      window.electronAPI.updater.onUpdateError(message => {
         // RELEASE_PENDING is not a real error — ignore it
         if (message === 'RELEASE_PENDING') return;
-      }),
+      })
     );
 
-    return () => unsubs.forEach((fn) => fn());
+    return () => unsubs.forEach(fn => fn());
   }, []);
 }

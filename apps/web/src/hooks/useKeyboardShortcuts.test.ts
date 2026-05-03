@@ -3,7 +3,9 @@ import { cleanup, renderHook } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useCompactStore } from '@/stores/useCompactStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
@@ -49,7 +51,8 @@ describe('useKeyboardShortcuts', () => {
     });
     currentTimeRef.current = 100;
 
-    useAppStore.setState({
+    useViewStore.setState({
+      activeView: 'library',
       rightPanel: null,
     });
 
@@ -288,7 +291,7 @@ describe('useKeyboardShortcuts', () => {
     for (const [key, view] of Object.entries(viewMap)) {
       it(`${key} navigates to ${view}`, () => {
         setup();
-        const navSpy = vi.spyOn(useAppStore.getState(), 'navigateTo');
+        const navSpy = vi.spyOn(useViewStore.getState(), 'navigateTo');
 
         pressKey(key);
         expect(navSpy).toHaveBeenCalledWith(view);
@@ -332,13 +335,13 @@ describe('useKeyboardShortcuts', () => {
       // panel-close branch).
       //
       // Note: we can't usefully assert on selection here. `useSelectionStore`
-      // has a module-level subscription on `useAppStore` (see
-      // useSelectionStore.ts:67-74) that auto-clears selection any time
+      // has a module-level subscription on `useViewStore` (see
+      // useSelectionStore.ts) that auto-clears selection any time
       // `activeView` changes. So `exitNowPlaying()` clears the selection
       // as a side effect regardless of which Esc branch the handler
       // takes — selection is unobservable for distinguishing branches.
       // The panel is the cleaner signal.
-      useAppStore.setState({
+      useViewStore.setState({
         activeView: 'now-playing',
         previousView: 'library',
         rightPanel: 'queue',
@@ -347,10 +350,10 @@ describe('useKeyboardShortcuts', () => {
       pressKey('Escape');
 
       // Exited back to previousView via exitNowPlaying()
-      expect(useAppStore.getState().activeView).toBe('library');
+      expect(useViewStore.getState().activeView).toBe('library');
       // Panel untouched — handler returned early, never reached the
       // setRightPanel(null) branch.
-      expect(useAppStore.getState().rightPanel).toBe('queue');
+      expect(useViewStore.getState().rightPanel).toBe('queue');
     });
 
     it('clears selection when tracks are selected', () => {
@@ -365,10 +368,10 @@ describe('useKeyboardShortcuts', () => {
 
     it('closes right panel when no tracks are selected', () => {
       setup();
-      useAppStore.setState({ rightPanel: 'queue' });
+      useViewStore.setState({ rightPanel: 'queue' });
 
       pressKey('Escape');
-      expect(useAppStore.getState().rightPanel).toBeNull();
+      expect(useViewStore.getState().rightPanel).toBeNull();
     });
 
     it('clears selection first, does not close panel', () => {
@@ -376,13 +379,13 @@ describe('useKeyboardShortcuts', () => {
       useSelectionStore.setState({
         selectedTrackIds: new Set(['t1']),
       });
-      useAppStore.setState({ rightPanel: 'lyrics' });
+      useViewStore.setState({ rightPanel: 'lyrics' });
 
       pressKey('Escape');
       // Selection should be cleared
       expect(useSelectionStore.getState().selectedTrackIds.size).toBe(0);
       // Panel should still be open
-      expect(useAppStore.getState().rightPanel).toBe('lyrics');
+      expect(useViewStore.getState().rightPanel).toBe('lyrics');
     });
   });
 
@@ -391,7 +394,7 @@ describe('useKeyboardShortcuts', () => {
   describe('Modifier shortcuts (Ctrl/Cmd)', () => {
     it('Ctrl+B toggles sidebar', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true });
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -399,7 +402,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('Ctrl+L toggles lyrics panel', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleRightPanel');
+      const toggleSpy = vi.spyOn(useViewStore.getState(), 'toggleRightPanel');
 
       pressKey('l', { ctrlKey: true });
       expect(toggleSpy).toHaveBeenCalledWith('lyrics');
@@ -407,7 +410,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('Ctrl+Q toggles queue panel', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleRightPanel');
+      const toggleSpy = vi.spyOn(useViewStore.getState(), 'toggleRightPanel');
 
       pressKey('q', { ctrlKey: true });
       expect(toggleSpy).toHaveBeenCalledWith('queue');
@@ -415,7 +418,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('Ctrl+Shift+M toggles compact mode', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleCompactMode');
+      const toggleSpy = vi.spyOn(useCompactStore.getState(), 'toggleCompactMode');
 
       pressKey('M', { ctrlKey: true, shiftKey: true });
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -476,7 +479,7 @@ describe('useKeyboardShortcuts', () => {
       const input = document.createElement('input');
       document.body.appendChild(input);
 
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true }, input);
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -490,7 +493,7 @@ describe('useKeyboardShortcuts', () => {
   describe('V - visualizer', () => {
     it('toggles visualizer', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleVisualizer');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleVisualizer');
 
       pressKey('v');
       expect(toggleSpy).toHaveBeenCalledOnce();

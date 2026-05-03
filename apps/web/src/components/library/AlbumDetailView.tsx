@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
@@ -30,8 +30,8 @@ function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
 
 export function AlbumDetailView() {
   const { t } = useTranslation('library');
-  const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
-  const selectAlbum = useAppStore(s => s.selectAlbum);
+  const selectedAlbumName = useViewStore(s => s.selectedAlbumName);
+  const selectAlbum = useViewStore(s => s.selectAlbum);
   const library = useLibraryStore(s => s.library);
   const setQueue = usePlaybackStore(s => s.setQueue);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
@@ -64,25 +64,16 @@ export function AlbumDetailView() {
 
   const hasMultipleDiscs = discGroups.length > 1;
 
-  const albumArt = useMemo(
-    () => albumTracks.find(t => t.albumArt)?.albumArt,
-    [albumTracks]
-  );
+  const albumArt = useMemo(() => albumTracks.find(t => t.albumArt)?.albumArt, [albumTracks]);
 
   const artist = useMemo(() => {
     const artists = new Set(albumTracks.map(t => t.artist));
     return Array.from(artists).join(', ');
   }, [albumTracks]);
 
-  const year = useMemo(
-    () => mostFrequent(albumTracks.map(t => t.year)),
-    [albumTracks]
-  );
+  const year = useMemo(() => mostFrequent(albumTracks.map(t => t.year)), [albumTracks]);
 
-  const genre = useMemo(
-    () => mostFrequent(albumTracks.map(t => t.genre)),
-    [albumTracks]
-  );
+  const genre = useMemo(() => mostFrequent(albumTracks.map(t => t.genre)), [albumTracks]);
 
   const headerMeta = useMemo(
     () => [artist, year?.toString(), genre].filter(Boolean).join(' · '),

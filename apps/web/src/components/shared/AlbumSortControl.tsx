@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import type { AlbumSortMode } from '@/stores/useAppStore';
+import type { AlbumSortMode } from '@/stores/useUIStore';
 
 export interface AlbumSortControlProps {
   mode: AlbumSortMode;

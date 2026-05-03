@@ -1,5 +1,5 @@
 import { type Track } from '@/stores/types';
-import { type AlbumSortMode, type AlbumSortOrder } from '@/stores/useAppStore';
+import { type AlbumSortMode, type AlbumSortOrder } from '@/stores/useUIStore';
 
 export interface AlbumData {
   name: string;

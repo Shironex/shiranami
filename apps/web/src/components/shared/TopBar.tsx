@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Minus, Square, Copy, X, Plus, FolderOpen, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useWindowControls } from '@/hooks/useWindowControls';
 
 const VIEW_TITLE_KEYS: Record<string, string> = {
@@ -24,7 +24,7 @@ interface TopBarProps {
 
 export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const { t } = useTranslation('topbar');
-  const activeView = useAppStore(s => s.activeView);
+  const activeView = useViewStore(s => s.activeView);
   const { isMaximized, minimize, maximize, close } = useWindowControls();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -72,14 +72,20 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-1 w-44 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50">
               <button
-                onClick={() => { onAddFolder?.(); setDropdownOpen(false); }}
+                onClick={() => {
+                  onAddFolder?.();
+                  setDropdownOpen(false);
+                }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <FolderOpen className="w-4 h-4 text-muted-foreground" />
                 {t('addFolder')}
               </button>
               <button
-                onClick={() => { onAddFile?.(); setDropdownOpen(false); }}
+                onClick={() => {
+                  onAddFile?.();
+                  setDropdownOpen(false);
+                }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <File className="w-4 h-4 text-muted-foreground" />

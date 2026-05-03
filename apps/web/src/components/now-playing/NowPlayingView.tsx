@@ -2,8 +2,13 @@ import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import type { LyricsFontSize } from '@/stores/useAppStore';
-import { useAppStore, LYRICS_SYNCED_PAST_RATIO } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import {
+  useLyricsAppearanceStore,
+  LYRICS_SYNCED_PAST_RATIO,
+  type LyricsFontSize,
+} from '@/stores/useLyricsAppearanceStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
@@ -51,13 +56,13 @@ export function NowPlayingView() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const duration = usePlaybackStore(s => s.duration);
   const seek = usePlaybackStore(s => s.seek);
-  const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
-  const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
-  const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
-  const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
-  const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
-  const lyricsSyncedDimOpacity = useAppStore(s => s.lyricsSyncedDimOpacity);
-  const lyricsSyncedFontSize = useAppStore(s => s.lyricsSyncedFontSize);
+  const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
+  const lyricsVisible = useUIStore(s => s.nowPlayingLyricsVisible);
+  const toggleLyrics = useUIStore(s => s.toggleNowPlayingLyrics);
+  const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
+  const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
+  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
+  const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
   const npBase = cn(NP_BASE_SHARED, NP_SYNCED_BASE_SIZE_CLASS[lyricsSyncedFontSize]);
   const npActive = cn(

@@ -3,7 +3,9 @@ import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useAppStore, type AppView } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useCompactStore } from '@/stores/useCompactStore';
+import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
 /**
@@ -56,14 +58,14 @@ export function useKeyboardShortcuts() {
           case 'b':
           case 'B': {
             e.preventDefault();
-            useAppStore.getState().toggleSidebarCollapsed();
+            useUIStore.getState().toggleSidebarCollapsed();
             return;
           }
           case 'l':
           case 'L': {
             if (!e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleRightPanel('lyrics');
+              useViewStore.getState().toggleRightPanel('lyrics');
               return;
             }
             break;
@@ -72,7 +74,7 @@ export function useKeyboardShortcuts() {
           case 'Q': {
             if (!e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleRightPanel('queue');
+              useViewStore.getState().toggleRightPanel('queue');
               return;
             }
             break;
@@ -81,7 +83,7 @@ export function useKeyboardShortcuts() {
           case 'm': {
             if (e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleCompactMode();
+              useCompactStore.getState().toggleCompactMode();
               return;
             }
             break;
@@ -96,7 +98,7 @@ export function useKeyboardShortcuts() {
             // pin sticks the next time compact is entered.
             if (e.shiftKey) {
               e.preventDefault();
-              void useAppStore.getState().toggleCompactAlwaysOnTop();
+              void useCompactStore.getState().toggleCompactAlwaysOnTop();
               return;
             }
             break;
@@ -109,15 +111,15 @@ export function useKeyboardShortcuts() {
             // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
-              const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } =
-                useAppStore.getState();
+              const { nowPlayingViewEnabled } = useUIStore.getState();
+              const { activeView, enterNowPlaying, exitNowPlaying } = useViewStore.getState();
               if (!nowPlayingViewEnabled) {
                 toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
                   id: 'now-playing-disabled',
                   duration: 6000,
                   action: {
                     label: i18n.t('updateSettings', { ns: 'toast' }),
-                    onClick: () => useAppStore.getState().navigateTo('settings'),
+                    onClick: () => useViewStore.getState().navigateTo('settings'),
                   },
                 });
                 return;
@@ -224,7 +226,7 @@ export function useKeyboardShortcuts() {
         case 'V':
         case 'v': {
           e.preventDefault();
-          useAppStore.getState().toggleVisualizer();
+          useUIStore.getState().toggleVisualizer();
           return;
         }
         case '?': {
@@ -237,10 +239,10 @@ export function useKeyboardShortcuts() {
           // Now Playing is a modal-like full-screen view; Esc should
           // dismiss it before any background-state cleanup. Standard
           // modal interaction.
-          const appState = useAppStore.getState();
-          if (appState.activeView === 'now-playing') {
+          const viewState = useViewStore.getState();
+          if (viewState.activeView === 'now-playing') {
             e.preventDefault();
-            appState.exitNowPlaying();
+            viewState.exitNowPlaying();
             return;
           }
           // Clear track selection first
@@ -250,9 +252,9 @@ export function useKeyboardShortcuts() {
             clearSelection();
             return;
           }
-          if (appState.rightPanel !== null) {
+          if (viewState.rightPanel !== null) {
             e.preventDefault();
-            appState.setRightPanel(null);
+            viewState.setRightPanel(null);
           }
           return;
         }
@@ -268,7 +270,7 @@ export function useKeyboardShortcuts() {
           const entry = NAV_VIEWS[parseInt(e.key) - 1];
           if (!entry) return;
           e.preventDefault();
-          useAppStore.getState().navigateTo(entry.view);
+          useViewStore.getState().navigateTo(entry.view);
           return;
         }
       }

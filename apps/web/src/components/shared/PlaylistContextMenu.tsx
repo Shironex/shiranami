@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import type { Playlist } from '@/types/electron';
 import { IS_ELECTRON } from '@/lib/platform';
 import { shuffleItems } from '@/lib/playlists';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
@@ -42,17 +42,13 @@ function MenuItem({
   );
 }
 
-export function PlaylistContextMenu({
-  playlist,
-  position,
-  onClose,
-}: PlaylistContextMenuProps) {
+export function PlaylistContextMenu({ playlist, position, onClose }: PlaylistContextMenuProps) {
   const { t } = useTranslation('contextMenu');
   const { t: tToast } = useTranslation('toast');
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
-  const navigateTo = useAppStore((s) => s.navigateTo);
-  const setQueue = usePlaybackStore((s) => s.setQueue);
+  const navigateTo = useViewStore(s => s.navigateTo);
+  const setQueue = usePlaybackStore(s => s.setQueue);
   const queryClient = useQueryClient();
 
   const loadPlaylistTracks = useCallback(async () => {

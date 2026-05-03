@@ -4,7 +4,7 @@ import { SettingsCard } from '@/components/settings/SettingsCard';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { Slider } from '@/components/ui/slider';
 import {
-  useAppStore,
+  useLyricsAppearanceStore,
   LYRICS_PLAIN_OPACITY_MIN,
   LYRICS_PLAIN_OPACITY_MAX,
   LYRICS_PLAIN_OPACITY_STEP,
@@ -19,7 +19,7 @@ import {
   LYR_SIZE_CLASS,
   nextLyricsFontSize,
   type LyricsFontSize,
-} from '@/stores/useAppStore';
+} from '@/stores/useLyricsAppearanceStore';
 import { cn } from '@/lib/utils';
 
 const FONT_SIZES: LyricsFontSize[] = ['sm', 'base', 'lg', 'xl'];
@@ -28,17 +28,17 @@ export function LyricsSection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
 
-  const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
-  const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
-  const setLyricsPlainOpacity = useAppStore(s => s.setLyricsPlainOpacity);
-  const setLyricsPlainFontSize = useAppStore(s => s.setLyricsPlainFontSize);
+  const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
+  const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
+  const setLyricsPlainOpacity = useLyricsAppearanceStore(s => s.setLyricsPlainOpacity);
+  const setLyricsPlainFontSize = useLyricsAppearanceStore(s => s.setLyricsPlainFontSize);
 
-  const lyricsSyncedDimOpacity = useAppStore(s => s.lyricsSyncedDimOpacity);
-  const lyricsSyncedFontSize = useAppStore(s => s.lyricsSyncedFontSize);
-  const setLyricsSyncedDimOpacity = useAppStore(s => s.setLyricsSyncedDimOpacity);
-  const setLyricsSyncedFontSize = useAppStore(s => s.setLyricsSyncedFontSize);
+  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
+  const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
+  const setLyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.setLyricsSyncedDimOpacity);
+  const setLyricsSyncedFontSize = useLyricsAppearanceStore(s => s.setLyricsSyncedFontSize);
 
-  const resetLyricsAppearance = useAppStore(s => s.resetLyricsAppearance);
+  const resetLyricsAppearance = useLyricsAppearanceStore(s => s.resetLyricsAppearance);
 
   const isModified =
     lyricsPlainOpacity !== LYRICS_PLAIN_OPACITY_DEFAULT ||

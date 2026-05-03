@@ -3,14 +3,14 @@ import { Languages, Sparkles, LayoutGrid } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
-  useAppStore,
+  useUIStore,
   UI_SCALE_MIN,
   UI_SCALE_MAX,
   UI_SCALE_STEP,
   UI_SCALE_DEFAULT,
   UI_SCALE_PRESETS,
-  type AppView,
-} from '@/stores/useAppStore';
+} from '@/stores/useUIStore';
+import type { AppView } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
@@ -29,21 +29,21 @@ export function AppearanceSection() {
   const { t, i18n } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const { t: ts } = useTranslation('sidebar');
-  const uiScale = useAppStore(s => s.uiScale);
-  const setUiScale = useAppStore(s => s.setUiScale);
-  const resetUiScale = useAppStore(s => s.resetUiScale);
-  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
-  const setNowPlayingViewEnabled = useAppStore(s => s.setNowPlayingViewEnabled);
-  const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
-  const setLibraryHeroCardEnabled = useAppStore(s => s.setLibraryHeroCardEnabled);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
-  const setLowPerformanceMode = useAppStore(s => s.setLowPerformanceMode);
-  const noiseOverlayEnabled = useAppStore(s => s.noiseOverlayEnabled);
-  const setNoiseOverlayEnabled = useAppStore(s => s.setNoiseOverlayEnabled);
-  const sidebarHiddenItems = useAppStore(s => s.sidebarHiddenItems);
-  const toggleSidebarItem = useAppStore(s => s.toggleSidebarItem);
-  const sidebarPlaylistsVisible = useAppStore(s => s.sidebarPlaylistsVisible);
-  const setSidebarPlaylistsVisible = useAppStore(s => s.setSidebarPlaylistsVisible);
+  const uiScale = useUIStore(s => s.uiScale);
+  const setUiScale = useUIStore(s => s.setUiScale);
+  const resetUiScale = useUIStore(s => s.resetUiScale);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
+  const setNowPlayingViewEnabled = useUIStore(s => s.setNowPlayingViewEnabled);
+  const libraryHeroCardEnabled = useUIStore(s => s.libraryHeroCardEnabled);
+  const setLibraryHeroCardEnabled = useUIStore(s => s.setLibraryHeroCardEnabled);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const setLowPerformanceMode = useUIStore(s => s.setLowPerformanceMode);
+  const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
+  const setNoiseOverlayEnabled = useUIStore(s => s.setNoiseOverlayEnabled);
+  const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
+  const toggleSidebarItem = useUIStore(s => s.toggleSidebarItem);
+  const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
+  const setSidebarPlaylistsVisible = useUIStore(s => s.setSidebarPlaylistsVisible);
 
   function handleLanguageChange(lang: SupportedLanguage) {
     i18n.changeLanguage(lang);

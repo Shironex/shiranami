@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useCompactStore } from '@/stores/useCompactStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
@@ -26,14 +28,14 @@ export function PlayerBar() {
   const duration = usePlaybackStore(s => s.duration);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
-  const rightPanel = useAppStore(s => s.rightPanel);
-  const toggleRightPanel = useAppStore(s => s.toggleRightPanel);
-  const showVisualizer = useAppStore(s => s.showVisualizer);
-  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
-  const setCompactMode = useAppStore(s => s.setCompactMode);
-  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
+  const rightPanel = useViewStore(s => s.rightPanel);
+  const toggleRightPanel = useViewStore(s => s.toggleRightPanel);
+  const showVisualizer = useUIStore(s => s.showVisualizer);
+  const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const setCompactMode = useCompactStore(s => s.setCompactMode);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
 
   return (
     <AnimatePresence>

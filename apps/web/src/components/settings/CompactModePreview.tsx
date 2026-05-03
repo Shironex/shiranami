@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { Music2, Heart, Play, SkipBack, SkipForward } from 'lucide-react';
 import {
-  useAppStore,
+  useCompactStore,
   CMP_TITLE_CLASS,
   CMP_ARTIST_CLASS,
   CMP_ALBUM_CLASS,
   type CompactSize,
-} from '@/stores/useAppStore';
+} from '@/stores/useCompactStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { cn } from '@/lib/utils';
 
@@ -19,13 +19,13 @@ const SIZE_WIDTH: Record<CompactSize, number> = {
 export function CompactModePreview() {
   const { t } = useTranslation('settings');
 
-  const compactSize = useAppStore(s => s.compactSize);
-  const compactFontSize = useAppStore(s => s.compactFontSize);
-  const compactShowAlbumArt = useAppStore(s => s.compactShowAlbumArt);
-  const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
-  const compactShowSeek = useAppStore(s => s.compactShowSeek);
-  const compactShowVolume = useAppStore(s => s.compactShowVolume);
-  const compactShowFavorite = useAppStore(s => s.compactShowFavorite);
+  const compactSize = useCompactStore(s => s.compactSize);
+  const compactFontSize = useCompactStore(s => s.compactFontSize);
+  const compactShowAlbumArt = useCompactStore(s => s.compactShowAlbumArt);
+  const compactShowAlbum = useCompactStore(s => s.compactShowAlbum);
+  const compactShowSeek = useCompactStore(s => s.compactShowSeek);
+  const compactShowVolume = useCompactStore(s => s.compactShowVolume);
+  const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
 
   const cardWidth = SIZE_WIDTH[compactSize];
   const titleClass = CMP_TITLE_CLASS[compactFontSize];

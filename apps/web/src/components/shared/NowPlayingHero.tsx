@@ -3,7 +3,8 @@ import { Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { cn } from '@/lib/utils';
 
@@ -16,9 +17,9 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const { t } = useTranslation('common');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
-  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
+  const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
 
   const visible = currentTrack && (!show || show(currentTrack));
 

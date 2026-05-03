@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { cn } from '@/lib/utils';
 import { AudioLines } from 'lucide-react';
-import { useAppStore, type VisualizerStyle } from '@/stores/useAppStore';
+import { useUIStore, type VisualizerStyle } from '@/stores/useUIStore';
 import { VisualizerStylePreview } from '@/components/settings/VisualizerStylePreview';
 
 const VISUALIZER_STYLE_OPTIONS = [
@@ -30,10 +30,10 @@ const VISUALIZER_STYLE_OPTIONS = [
 
 export function VisualizerSection() {
   const { t } = useTranslation('settings');
-  const visualizerStyle = useAppStore(s => s.visualizerStyle);
-  const setVisualizerStyle = useAppStore(s => s.setVisualizerStyle);
-  const showVisualizer = useAppStore(s => s.showVisualizer);
-  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
+  const visualizerStyle = useUIStore(s => s.visualizerStyle);
+  const setVisualizerStyle = useUIStore(s => s.setVisualizerStyle);
+  const showVisualizer = useUIStore(s => s.showVisualizer);
+  const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
 
   return (
     <SettingsCard icon={AudioLines} title={t('vis.title')} subtitle={t('vis.subtitle')}>

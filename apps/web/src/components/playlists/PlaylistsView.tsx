@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { ListMusic, Plus, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { Button } from '@/components/ui/button';
@@ -15,11 +16,11 @@ export function PlaylistsView() {
   const { t } = useTranslation('playlists');
   const { t: tCommon } = useTranslation('common');
   const { t: tToast } = useTranslation('toast');
-  const selectPlaylist = useAppStore(s => s.selectPlaylist);
+  const selectPlaylist = useViewStore(s => s.selectPlaylist);
   const { data: playlists = [], isLoading, isError, refetch } = usePlaylistsQuery();
   const createPlaylist = useCreatePlaylistMutation();
-  const playlistGridSize = useAppStore(s => s.playlistGridSize);
-  const setPlaylistGridSize = useAppStore(s => s.setPlaylistGridSize);
+  const playlistGridSize = useUIStore(s => s.playlistGridSize);
+  const setPlaylistGridSize = useUIStore(s => s.setPlaylistGridSize);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
 

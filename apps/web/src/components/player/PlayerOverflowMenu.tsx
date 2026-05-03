@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Minimize2, AudioLines } from 'lucide-react';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -18,9 +19,9 @@ const MOD = navigator.platform.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl';
  */
 export function PlayerOverflowMenu() {
   const { t } = useTranslation('player');
-  const showVisualizer = useAppStore(s => s.showVisualizer);
-  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
-  const setCompactMode = useAppStore(s => s.setCompactMode);
+  const showVisualizer = useUIStore(s => s.showVisualizer);
+  const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
+  const setCompactMode = useCompactStore(s => s.setCompactMode);
   const eqEnabled = useEqStore(s => s.enabled);
   const eqPreset = useEqStore(s => s.preset);
 
