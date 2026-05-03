@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import {
-  useAppStore,
+  useLyricsAppearanceStore,
   LYR_SIZE_CLASS,
   LYRICS_SYNCED_PAST_RATIO,
   nextLyricsFontSize,
-} from '@/stores/useAppStore';
+} from '@/stores/useLyricsAppearanceStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
@@ -32,10 +32,10 @@ export function LyricsPanel() {
   const { t: tToast } = useTranslation('toast');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const seek = usePlaybackStore(s => s.seek);
-  const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);
-  const lyricsPlainFontSize = useAppStore(s => s.lyricsPlainFontSize);
-  const lyricsSyncedDimOpacity = useAppStore(s => s.lyricsSyncedDimOpacity);
-  const lyricsSyncedFontSize = useAppStore(s => s.lyricsSyncedFontSize);
+  const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
+  const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
+  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
+  const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
   const { data, isLoading, isError } = useLyricsQuery(
     currentTrack?.id ?? null,

@@ -1,16 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  useAppStore,
-  LYRICS_PLAIN_OPACITY_DEFAULT,
-  LYRICS_PLAIN_OPACITY_MAX,
-  LYRICS_PLAIN_OPACITY_MIN,
-  LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-  LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
-  LYRICS_SYNCED_DIM_OPACITY_MAX,
-  LYRICS_SYNCED_DIM_OPACITY_MIN,
-  LYRICS_SYNCED_FONT_SIZE_DEFAULT,
-  nextLyricsFontSize,
-} from './useAppStore';
+import { useAppStore } from './useAppStore';
 import { useViewStore } from './useViewStore';
 
 vi.mock('@/lib/platform', () => ({
@@ -215,93 +204,6 @@ describe('useAppStore', () => {
     expect(useViewStore.getState().albumGridScrollTop).toBe(500);
   });
 
-  it('clamps lyrics plain opacity above max and rounds to step', () => {
-    useAppStore.getState().setLyricsPlainOpacity(2);
-    expect(useAppStore.getState().lyricsPlainOpacity).toBe(LYRICS_PLAIN_OPACITY_MAX);
-    expect(readPersisted().lyricsPlainOpacity).toBe(LYRICS_PLAIN_OPACITY_MAX);
-  });
-
-  it('clamps lyrics plain opacity below min', () => {
-    useAppStore.getState().setLyricsPlainOpacity(0);
-    expect(useAppStore.getState().lyricsPlainOpacity).toBe(LYRICS_PLAIN_OPACITY_MIN);
-  });
-
-  it('rounds lyrics plain opacity to nearest step', () => {
-    useAppStore.getState().setLyricsPlainOpacity(0.873);
-    // step = 0.05, 0.873 -> rounds to 0.85
-    expect(useAppStore.getState().lyricsPlainOpacity).toBeCloseTo(0.85, 2);
-  });
-
-  it('coerces invalid lyrics plain font size to default on setter', () => {
-    // @ts-expect-error — runtime guard test
-    useAppStore.getState().setLyricsPlainFontSize('huge');
-    expect(useAppStore.getState().lyricsPlainFontSize).toBe(LYRICS_PLAIN_FONT_SIZE_DEFAULT);
-  });
-
-  it('persists lyrics plain font size when valid', () => {
-    useAppStore.getState().setLyricsPlainFontSize('lg');
-    expect(useAppStore.getState().lyricsPlainFontSize).toBe('lg');
-    expect(readPersisted().lyricsPlainFontSize).toBe('lg');
-  });
-
-  it('resets lyrics plain appearance to defaults', () => {
-    useAppStore.getState().setLyricsPlainOpacity(0.6);
-    useAppStore.getState().setLyricsPlainFontSize('xl');
-    useAppStore.getState().resetLyricsPlainAppearance();
-    expect(useAppStore.getState().lyricsPlainOpacity).toBe(LYRICS_PLAIN_OPACITY_DEFAULT);
-    expect(useAppStore.getState().lyricsPlainFontSize).toBe(LYRICS_PLAIN_FONT_SIZE_DEFAULT);
-  });
-
-  it('clamps lyrics synced dim opacity above max and rounds to step', () => {
-    useAppStore.getState().setLyricsSyncedDimOpacity(2);
-    expect(useAppStore.getState().lyricsSyncedDimOpacity).toBe(LYRICS_SYNCED_DIM_OPACITY_MAX);
-    expect(readPersisted().lyricsSyncedDimOpacity).toBe(LYRICS_SYNCED_DIM_OPACITY_MAX);
-  });
-
-  it('clamps lyrics synced dim opacity below min (down to 0.2 not 0.5)', () => {
-    useAppStore.getState().setLyricsSyncedDimOpacity(0);
-    // Synced floor is lower than plain floor — synced lines may be very dim.
-    expect(useAppStore.getState().lyricsSyncedDimOpacity).toBe(LYRICS_SYNCED_DIM_OPACITY_MIN);
-    expect(LYRICS_SYNCED_DIM_OPACITY_MIN).toBe(0.2);
-  });
-
-  it('rounds lyrics synced dim opacity to nearest step', () => {
-    useAppStore.getState().setLyricsSyncedDimOpacity(0.873);
-    // step = 0.05, 0.873 -> rounds to 0.85
-    expect(useAppStore.getState().lyricsSyncedDimOpacity).toBeCloseTo(0.85, 2);
-  });
-
-  it('coerces invalid lyrics synced font size to default on setter', () => {
-    // @ts-expect-error — runtime guard test
-    useAppStore.getState().setLyricsSyncedFontSize('huge');
-    expect(useAppStore.getState().lyricsSyncedFontSize).toBe(LYRICS_SYNCED_FONT_SIZE_DEFAULT);
-  });
-
-  it('persists lyrics synced font size when valid', () => {
-    useAppStore.getState().setLyricsSyncedFontSize('lg');
-    expect(useAppStore.getState().lyricsSyncedFontSize).toBe('lg');
-    expect(readPersisted().lyricsSyncedFontSize).toBe('lg');
-  });
-
-  it('resetLyricsAppearance restores all four lyrics prefs to defaults', () => {
-    useAppStore.getState().setLyricsPlainOpacity(0.6);
-    useAppStore.getState().setLyricsPlainFontSize('xl');
-    useAppStore.getState().setLyricsSyncedDimOpacity(0.9);
-    useAppStore.getState().setLyricsSyncedFontSize('sm');
-    useAppStore.getState().resetLyricsAppearance();
-    expect(useAppStore.getState().lyricsPlainOpacity).toBe(LYRICS_PLAIN_OPACITY_DEFAULT);
-    expect(useAppStore.getState().lyricsPlainFontSize).toBe(LYRICS_PLAIN_FONT_SIZE_DEFAULT);
-    expect(useAppStore.getState().lyricsSyncedDimOpacity).toBe(LYRICS_SYNCED_DIM_OPACITY_DEFAULT);
-    expect(useAppStore.getState().lyricsSyncedFontSize).toBe(LYRICS_SYNCED_FONT_SIZE_DEFAULT);
-  });
-
-  it('nextLyricsFontSize bumps one step and caps at xl', () => {
-    expect(nextLyricsFontSize('sm')).toBe('base');
-    expect(nextLyricsFontSize('base')).toBe('lg');
-    expect(nextLyricsFontSize('lg')).toBe('xl');
-    expect(nextLyricsFontSize('xl')).toBe('xl');
-  });
-
   it('rolls back compact always-on-top and localStorage when setAlwaysOnTop fails in compact mode', async () => {
     await useAppStore.getState().setCompactMode(true);
     vi.mocked(window.electronAPI.window.setAlwaysOnTop).mockRejectedValueOnce(
@@ -358,53 +260,5 @@ describe('useAppStore legacy localStorage migration', () => {
   it('does nothing when no legacy keys exist', async () => {
     await import('./useAppStore');
     expect(localStorage.getItem('shiranami.app-store')).toBeNull();
-  });
-
-  it('sanitizes malformed lyrics plain prefs from persisted shape', async () => {
-    localStorage.setItem(
-      'shiranami.app-store',
-      JSON.stringify({
-        state: { lyricsPlainOpacity: 'broken', lyricsPlainFontSize: 'huge' },
-        version: 1,
-      })
-    );
-
-    const mod = await import('./useAppStore');
-    const state = mod.useAppStore.getState();
-    expect(state.lyricsPlainOpacity).toBe(mod.LYRICS_PLAIN_OPACITY_DEFAULT);
-    expect(state.lyricsPlainFontSize).toBe(mod.LYRICS_PLAIN_FONT_SIZE_DEFAULT);
-  });
-
-  it('falls back to synced lyrics defaults when persisted shape lacks the new keys', async () => {
-    // Simulate a user upgrading from a build that only persisted plain prefs.
-    localStorage.setItem(
-      'shiranami.app-store',
-      JSON.stringify({
-        state: { lyricsPlainOpacity: 0.85, lyricsPlainFontSize: 'lg' },
-        version: 1,
-      })
-    );
-
-    const mod = await import('./useAppStore');
-    const state = mod.useAppStore.getState();
-    expect(state.lyricsPlainOpacity).toBe(0.85);
-    expect(state.lyricsPlainFontSize).toBe('lg');
-    expect(state.lyricsSyncedDimOpacity).toBe(mod.LYRICS_SYNCED_DIM_OPACITY_DEFAULT);
-    expect(state.lyricsSyncedFontSize).toBe(mod.LYRICS_SYNCED_FONT_SIZE_DEFAULT);
-  });
-
-  it('sanitizes malformed lyrics synced prefs from persisted shape', async () => {
-    localStorage.setItem(
-      'shiranami.app-store',
-      JSON.stringify({
-        state: { lyricsSyncedDimOpacity: 'broken', lyricsSyncedFontSize: 'huge' },
-        version: 1,
-      })
-    );
-
-    const mod = await import('./useAppStore');
-    const state = mod.useAppStore.getState();
-    expect(state.lyricsSyncedDimOpacity).toBe(mod.LYRICS_SYNCED_DIM_OPACITY_DEFAULT);
-    expect(state.lyricsSyncedFontSize).toBe(mod.LYRICS_SYNCED_FONT_SIZE_DEFAULT);
   });
 });
