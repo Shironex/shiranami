@@ -42,7 +42,7 @@ beforeEach(async () => {
     },
   }));
 
-  const mod = await import('./main/preload/context-bridge');
+  const mod = await import('./preload/context-bridge');
   invokeWithTimeout = mod.invokeWithTimeout;
 });
 
