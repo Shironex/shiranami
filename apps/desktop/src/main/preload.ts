@@ -5,7 +5,6 @@ import {
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,
 } from './ipc/errors';
-import { createIpcListener } from './preload/ipc-listener';
 import { appApi, type AppApi } from './preload/api/app';
 import { dbApi, type DbApi } from './preload/api/db';
 import { dialogApi, type DialogApi } from './preload/api/dialog';
@@ -13,8 +12,13 @@ import { downloaderApi, type DownloaderApi } from './preload/api/downloader';
 import { libraryApi, type LibraryApi } from './preload/api/library';
 import { lyricsApi, type LyricsApi } from './preload/api/lyrics';
 import { mediaApi, type MediaApi } from './preload/api/media';
+import { metadataApi, type MetadataApi } from './preload/api/metadata';
+import { playlistApi, type PlaylistApi } from './preload/api/playlist';
+import { radioApi, type RadioApi } from './preload/api/radio';
+import { shareApi, type ShareApi } from './preload/api/share';
 import { shellApi, type ShellApi } from './preload/api/shell';
 import { storeApi, type StoreApi } from './preload/api/store';
+import { updaterApi, type UpdaterApi } from './preload/api/updater';
 import { windowApi, type WindowApi } from './preload/api/window';
 
 const UPDATER_IPC_CHANNELS = new Set([
@@ -137,142 +141,12 @@ export interface ElectronAPI {
   lyrics: LyricsApi;
   media: MediaApi;
   downloader: DownloaderApi;
-  updater: {
-    checkForUpdates: () => Promise<{ enabled: boolean }>;
-    startDownload: () => Promise<void>;
-    installNow: () => Promise<void>;
-    onCheckingForUpdate: (callback: () => void) => () => void;
-    onUpdateAvailable: (
-      callback: (info: {
-        version: string;
-        releaseNotes: string | null;
-        releaseDate: string;
-      }) => void
-    ) => () => void;
-    onUpdateNotAvailable: (callback: () => void) => () => void;
-    onDownloadProgress: (
-      callback: (progress: {
-        bytesPerSecond: number;
-        percent: number;
-        transferred: number;
-        total: number;
-      }) => void
-    ) => () => void;
-    onUpdateDownloaded: (
-      callback: (info: {
-        version: string;
-        releaseNotes: string | null;
-        releaseDate: string;
-      }) => void
-    ) => () => void;
-    onUpdateError: (callback: (message: string) => void) => () => void;
-  };
+  updater: UpdaterApi;
   shell: ShellApi;
-  radio: {
-    favorites: {
-      getAll: () => Promise<unknown[]>;
-      add: (station: {
-        stationUuid: string;
-        name: string;
-        url: string;
-        urlResolved: string;
-        homepage?: string;
-        favicon?: string;
-        country?: string;
-        countryCode?: string;
-        language?: string;
-        codec?: string;
-        bitrate?: number;
-        tags?: string;
-      }) => Promise<unknown>;
-      remove: (stationUuid: string) => Promise<void>;
-      isFavorite: (stationUuid: string) => Promise<boolean>;
-    };
-  };
-  playlist: {
-    extract: (url: string) => Promise<
-      Array<{
-        id: string;
-        title: string;
-        uploader: string;
-        duration: number;
-        thumbnail: string;
-        url: string;
-        webpage_url: string;
-      }>
-    >;
-    cancel: () => Promise<void>;
-    onExtractProgress: (
-      callback: (data: { current: number; total: number; trackName: string }) => void
-    ) => () => void;
-  };
-  metadata: {
-    lookup: (
-      title: string,
-      artist: string
-    ) => Promise<{
-      title?: string;
-      artist?: string;
-      album?: string;
-      genre?: string;
-      year?: number;
-      trackNumber?: number;
-      coverImageUrl?: string;
-      source: 'itunes' | 'youtube' | 'none';
-      confidence: number;
-    }>;
-    enrichTracks: (
-      tracks: Array<{
-        id: string;
-        filePath: string;
-        title: string;
-        artist: string;
-        album: string;
-        albumArt: string | null;
-        genre: string;
-        year: number | null;
-        trackNumber: number | null;
-      }>,
-      options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => Promise<
-      Array<{
-        id: string;
-        success: boolean;
-        updatedFields: Partial<{
-          title: string;
-          artist: string;
-          album: string;
-          genre: string;
-          year: number;
-          trackNumber: number;
-          albumArt: string;
-        }>;
-        source: string;
-        error?: string;
-      }>
-    >;
-    cancelEnrichment: () => Promise<void>;
-    onEnrichProgress: (
-      callback: (data: {
-        current: number;
-        total: number;
-        trackName: string;
-        status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-      }) => void
-    ) => () => void;
-  };
-  share: {
-    track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
-    playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
-    import: (code: string) => Promise<{
-      type: 'TRACK' | 'PLAYLIST';
-      payload: unknown;
-      code: string;
-      expiresAt: string;
-    }>;
-    cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
-    onDeepLink: (callback: (code: string) => void) => () => void;
-  };
+  radio: RadioApi;
+  playlist: PlaylistApi;
+  metadata: MetadataApi;
+  share: ShareApi;
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
   };
@@ -295,94 +169,12 @@ const electronAPI: ElectronAPI = {
   lyrics: lyricsApi,
   media: mediaApi,
   downloader: downloaderApi,
-  updater: {
-    checkForUpdates: () => ipcRenderer.invoke('updater:check-for-updates'),
-    startDownload: () => ipcRenderer.invoke('updater:start-download'),
-    installNow: () => ipcRenderer.invoke('updater:install-now'),
-    onCheckingForUpdate: createIpcListener<void>('updater:checking-for-update'),
-    onUpdateAvailable: createIpcListener<{
-      version: string;
-      releaseNotes: string | null;
-      releaseDate: string;
-    }>('updater:update-available'),
-    onUpdateNotAvailable: createIpcListener<void>('updater:update-not-available'),
-    onDownloadProgress: createIpcListener<{
-      bytesPerSecond: number;
-      percent: number;
-      transferred: number;
-      total: number;
-    }>('updater:download-progress'),
-    onUpdateDownloaded: createIpcListener<{
-      version: string;
-      releaseNotes: string | null;
-      releaseDate: string;
-    }>('updater:update-downloaded'),
-    onUpdateError: createIpcListener<string>('updater:error'),
-  },
+  updater: updaterApi,
   shell: shellApi,
-  radio: {
-    favorites: {
-      getAll: () => ipcRenderer.invoke('radio:favorites:get-all'),
-      add: (station: {
-        stationUuid: string;
-        name: string;
-        url: string;
-        urlResolved: string;
-        homepage?: string;
-        favicon?: string;
-        country?: string;
-        countryCode?: string;
-        language?: string;
-        codec?: string;
-        bitrate?: number;
-        tags?: string;
-      }) => ipcRenderer.invoke('radio:favorites:add', station),
-      remove: (stationUuid: string) => ipcRenderer.invoke('radio:favorites:remove', stationUuid),
-      isFavorite: (stationUuid: string) =>
-        ipcRenderer.invoke('radio:favorites:is-favorite', stationUuid) as Promise<boolean>,
-    },
-  },
-  playlist: {
-    extract: (url: string) => ipcRenderer.invoke('playlist:extract', url),
-    cancel: () => ipcRenderer.invoke('playlist:cancel'),
-    onExtractProgress: createIpcListener<{
-      current: number;
-      total: number;
-      trackName: string;
-    }>('playlist:extract-progress'),
-  },
-  metadata: {
-    lookup: (title: string, artist: string) => ipcRenderer.invoke('metadata:lookup', title, artist),
-    enrichTracks: (
-      tracks: Array<{
-        id: string;
-        filePath: string;
-        title: string;
-        artist: string;
-        album: string;
-        albumArt: string | null;
-        genre: string;
-        year: number | null;
-        trackNumber: number | null;
-      }>,
-      options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => ipcRenderer.invoke('metadata:enrich:tracks', tracks, options),
-    cancelEnrichment: () => ipcRenderer.invoke('metadata:enrich:cancel'),
-    onEnrichProgress: createIpcListener<{
-      current: number;
-      total: number;
-      trackName: string;
-      status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-    }>('metadata:enrich:progress'),
-  },
-  share: {
-    track: (trackId: string) => ipcRenderer.invoke('share:track', trackId),
-    playlist: (playlistId: string) => ipcRenderer.invoke('share:playlist', playlistId),
-    import: (code: string) => ipcRenderer.invoke('share:import', code),
-    cacheYoutubeId: (trackId: string, youtubeId: string) =>
-      ipcRenderer.invoke('share:cache-youtube-id', trackId, youtubeId),
-    onDeepLink: createIpcListener<string>('share:deep-link'),
-  },
+  radio: radioApi,
+  playlist: playlistApi,
+  metadata: metadataApi,
+  share: shareApi,
   ipc: {
     invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>
       invokeWithTimeout<T>(channel, timeout, ...args),
