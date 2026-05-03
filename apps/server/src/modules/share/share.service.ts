@@ -4,7 +4,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
-import { CreateShareDto } from './dto/create-share.dto';
+import { CreateShareDto } from '@shiranami/contracts';
 import { nanoid } from 'nanoid';
 
 interface ShareResult {
@@ -31,7 +31,7 @@ export class ShareService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
-    @InjectPinoLogger(ShareService.name) private readonly logger: PinoLogger,
+    @InjectPinoLogger(ShareService.name) private readonly logger: PinoLogger
   ) {
     this.baseUrl = this.config.getOrThrow<string>('SHARE_BASE_URL');
     this.ttlSeconds = this.config.get<number>('SHARE_TTL_SECONDS') ?? 3600;
@@ -61,7 +61,7 @@ export class ShareService {
         payload: share.payload,
         createdAt: share.createdAt,
         expiresAt: share.expiresAt,
-      }),
+      })
     );
 
     this.logger.info({ code, type: dto.type }, 'Share created');
@@ -104,7 +104,7 @@ export class ShareService {
           payload: share.payload,
           createdAt: share.createdAt,
           expiresAt: share.expiresAt,
-        }),
+        })
       );
     }
 

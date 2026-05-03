@@ -23,6 +23,7 @@ export default defineConfig({
       '@shiranami/database/client': resolve(root, '../../packages/database/src/client.ts'),
       '@shiranami/database': resolve(root, '../../packages/database/src/index.ts'),
       '@shiranami/shared': resolve(root, '../../packages/shared/src/index.ts'),
+      '@shiranami/contracts': resolve(root, '../../packages/contracts/src/index.ts'),
     },
   },
 });

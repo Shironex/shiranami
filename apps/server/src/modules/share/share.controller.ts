@@ -11,7 +11,7 @@ import {
 import type { FastifyReply } from 'fastify';
 import { Throttle } from '@nestjs/throttler';
 import { ShareService } from './share.service';
-import { createShareSchema, type TrackPayload, type PlaylistPayload } from './dto/create-share.dto';
+import { createShareSchema, type TrackPayload, type PlaylistPayload } from '@shiranami/contracts';
 
 @Controller()
 export class ShareController {
@@ -42,7 +42,12 @@ export class ShareController {
     return reply.type('text/html').send(html);
   }
 
-  private renderPreview(share: { code: string; type: string; payload: unknown; expiresAt: Date }): string {
+  private renderPreview(share: {
+    code: string;
+    type: string;
+    payload: unknown;
+    expiresAt: Date;
+  }): string {
     const isPlaylist = share.type === 'PLAYLIST';
     const payload = share.payload as TrackPayload | PlaylistPayload;
 
@@ -57,7 +62,7 @@ export class ShareController {
       trackListHtml = pl.tracks
         .map(
           (t, i) =>
-            `<div class="track"><span class="num">${i + 1}</span><div class="info"><span class="title">${escapeHtml(t.title)}</span><span class="artist">${escapeHtml(t.artist)}</span></div></div>`,
+            `<div class="track"><span class="num">${i + 1}</span><div class="info"><span class="title">${escapeHtml(t.title)}</span><span class="artist">${escapeHtml(t.artist)}</span></div></div>`
         )
         .join('');
     } else {
@@ -67,7 +72,10 @@ export class ShareController {
       trackListHtml = `<div class="track"><span class="num">1</span><div class="info"><span class="title">${escapeHtml(t.title)}</span><span class="artist">${escapeHtml(t.artist)}</span></div></div>`;
     }
 
-    const expiresIn = Math.max(0, Math.ceil((new Date(share.expiresAt).getTime() - Date.now()) / 60000));
+    const expiresIn = Math.max(
+      0,
+      Math.ceil((new Date(share.expiresAt).getTime() - Date.now()) / 60000)
+    );
 
     return `<!DOCTYPE html>
 <html lang="en">

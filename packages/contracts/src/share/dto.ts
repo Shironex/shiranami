@@ -1,3 +1,8 @@
+// Shared validation schema for the public POST /api/share body. Used by the
+// server (apps/server) to validate inbound requests AND by the desktop main
+// process (apps/desktop) to validate the outbound body before issuing the
+// HTTP call — so both ends of the wire stay in lockstep.
+
 import { z } from 'zod';
 
 const trackPayloadSchema = z.object({
@@ -27,5 +32,6 @@ export const createShareSchema = z.discriminatedUnion('type', [
 ]);
 
 export type CreateShareDto = z.infer<typeof createShareSchema>;
+export type CreateShareInput = CreateShareDto;
 export type TrackPayload = z.infer<typeof trackPayloadSchema>;
 export type PlaylistPayload = z.infer<typeof playlistPayloadSchema>;

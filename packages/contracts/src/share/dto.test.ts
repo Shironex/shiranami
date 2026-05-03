@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createShareSchema, createTrackShareSchema, createPlaylistShareSchema } from './create-share.dto';
+import { createShareSchema, createTrackShareSchema, createPlaylistShareSchema } from './dto';
 
 const validTrack = { title: 'Song', artist: 'Artist', ytId: 'dQw4w9WgXcQ' };
 
