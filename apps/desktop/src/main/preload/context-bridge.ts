@@ -33,15 +33,22 @@ export function invokeWithTimeout<T>(
 ): Promise<T> {
   assertAllowedChannel(channel);
   const invokePromise = ipcRenderer.invoke(channel, ...args) as Promise<T>;
-  let timer: ReturnType<typeof setTimeout>;
-  const timeoutPromise = new Promise<never>((_resolve, reject) => {
-    timer = setTimeout(() => {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
       reject(new Error(`IPC timeout: "${channel}" did not respond within ${timeoutMs}ms`));
-      invokePromise.catch(() => {});
     }, timeoutMs);
     if (typeof timer === 'object' && 'unref' in timer) {
-      timer.unref();
+      (timer as NodeJS.Timeout).unref();
     }
+    invokePromise.then(
+      result => {
+        clearTimeout(timer);
+        resolve(result);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
   });
-  return Promise.race([invokePromise.finally(() => clearTimeout(timer)), timeoutPromise]);
 }
