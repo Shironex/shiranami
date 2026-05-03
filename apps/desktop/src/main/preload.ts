@@ -126,11 +126,7 @@ function invokeWithTimeout<T>(channel: string, timeout: number, ...args: unknown
   return Promise.race([invokePromise.finally(() => clearTimeout(timer)), timeoutPromise]);
 }
 
-import type {
-  ListeningActivityPoint,
-  ListeningHistoryEntry,
-  ListeningStatsSummary,
-} from './preload/types';
+import { dbApi, type DbApi } from './preload/api/db';
 
 export interface ElectronAPI {
   window: WindowApi;
@@ -138,62 +134,7 @@ export interface ElectronAPI {
   dialog: DialogApi;
   app: AppApi;
   library: LibraryApi;
-  db: {
-    tracks: {
-      getAll: () => Promise<unknown[]>;
-      add: (track: unknown) => Promise<unknown>;
-      addMany: (tracks: unknown[]) => Promise<unknown[]>;
-      remove: (id: string) => Promise<void>;
-      removeMany: (ids: string[]) => Promise<void>;
-      update: (id: string, data: unknown) => Promise<unknown>;
-      updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<unknown[]>;
-      toggleFavorite: (id: string) => Promise<unknown>;
-      getFavorites: () => Promise<unknown[]>;
-      incrementPlayCount: (id: string) => Promise<unknown>;
-      exists: (filePath: string) => Promise<boolean>;
-      existsMany: (filePaths: string[]) => Promise<string[]>;
-    };
-    history: {
-      recordPlay: (data: {
-        trackId: string;
-        playedSeconds: number;
-        duration: number | null;
-        source?: string;
-      }) => Promise<unknown>;
-      getRecent: (options?: {
-        limit?: number;
-        since?: string | null;
-      }) => Promise<ListeningHistoryEntry[]>;
-      getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
-      getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
-    };
-    folders: {
-      getAll: () => Promise<unknown[]>;
-      add: (path: string) => Promise<unknown>;
-      remove: (id: string) => Promise<void>;
-      updateScanned: (id: string) => Promise<unknown>;
-    };
-    playlists: {
-      getAll: () => Promise<unknown[]>;
-      get: (id: string) => Promise<unknown>;
-      create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
-      createWithTracks: (data: {
-        name: string;
-        description?: string;
-        trackIds: string[];
-      }) => Promise<unknown>;
-      update: (
-        id: string,
-        data: { name?: string; description?: string; coverArt?: string }
-      ) => Promise<unknown>;
-      delete: (id: string) => Promise<void>;
-      getTracks: (playlistId: string) => Promise<unknown[]>;
-      addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
-      removeTrack: (playlistId: string, trackId: string) => Promise<void>;
-      getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
-      reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
-    };
-  };
+  db: DbApi;
   lyrics: LyricsApi;
   media: MediaApi;
   downloader: {
@@ -445,64 +386,7 @@ const electronAPI: ElectronAPI = {
   dialog: dialogApi,
   app: appApi,
   library: libraryApi,
-  db: {
-    tracks: {
-      getAll: () => ipcRenderer.invoke('db:tracks:get-all'),
-      add: (track: unknown) => ipcRenderer.invoke('db:tracks:add', track),
-      addMany: (tracks: unknown[]) => ipcRenderer.invoke('db:tracks:add-many', tracks),
-      remove: (id: string) => ipcRenderer.invoke('db:tracks:remove', id),
-      removeMany: (ids: string[]) => ipcRenderer.invoke('db:tracks:remove-many', ids),
-      update: (id: string, data: unknown) => ipcRenderer.invoke('db:tracks:update', id, data),
-      updateMany: (updates: Array<{ id: string; data: unknown }>) =>
-        ipcRenderer.invoke('db:tracks:update-many', updates),
-      toggleFavorite: (id: string) => ipcRenderer.invoke('db:tracks:toggle-favorite', id),
-      getFavorites: () => ipcRenderer.invoke('db:tracks:get-favorites'),
-      incrementPlayCount: (id: string) => ipcRenderer.invoke('db:tracks:increment-play-count', id),
-      exists: (filePath: string) => ipcRenderer.invoke('db:tracks:exists', filePath),
-      existsMany: (filePaths: string[]) =>
-        ipcRenderer.invoke('db:tracks:exists-many', filePaths) as Promise<string[]>,
-    },
-    history: {
-      recordPlay: (data: {
-        trackId: string;
-        playedSeconds: number;
-        duration: number | null;
-        source?: string;
-      }) => ipcRenderer.invoke('db:history:record-play', data),
-      getRecent: (options?: { limit?: number; since?: string | null }) =>
-        ipcRenderer.invoke('db:history:get-recent', options),
-      getSummary: (options?: { since?: string | null }) =>
-        ipcRenderer.invoke('db:history:get-summary', options),
-      getActivity: (options?: { since?: string | null }) =>
-        ipcRenderer.invoke('db:history:get-activity', options),
-    },
-    folders: {
-      getAll: () => ipcRenderer.invoke('db:folders:get-all'),
-      add: (path: string) => ipcRenderer.invoke('db:folders:add', path),
-      remove: (id: string) => ipcRenderer.invoke('db:folders:remove', id),
-      updateScanned: (id: string) => ipcRenderer.invoke('db:folders:update-scanned', id),
-    },
-    playlists: {
-      getAll: () => ipcRenderer.invoke('db:playlists:get-all'),
-      get: (id: string) => ipcRenderer.invoke('db:playlists:get', id),
-      create: (data: { name: string; description?: string; coverArt?: string }) =>
-        ipcRenderer.invoke('db:playlists:create', data),
-      createWithTracks: (data: { name: string; description?: string; trackIds: string[] }) =>
-        ipcRenderer.invoke('db:playlists:create-with-tracks', data),
-      update: (id: string, data: { name?: string; description?: string; coverArt?: string }) =>
-        ipcRenderer.invoke('db:playlists:update', id, data),
-      delete: (id: string) => ipcRenderer.invoke('db:playlists:delete', id),
-      getTracks: (playlistId: string) => ipcRenderer.invoke('db:playlists:get-tracks', playlistId),
-      addTrack: (playlistId: string, trackId: string) =>
-        ipcRenderer.invoke('db:playlists:add-track', { playlistId, trackId }),
-      removeTrack: (playlistId: string, trackId: string) =>
-        ipcRenderer.invoke('db:playlists:remove-track', { playlistId, trackId }),
-      getPlaylistsForTracks: (trackIds: string[]) =>
-        ipcRenderer.invoke('db:playlists:get-playlists-for-tracks', trackIds),
-      reorder: (playlistId: string, trackIds: string[]) =>
-        ipcRenderer.invoke('db:playlists:reorder', { playlistId, trackIds }),
-    },
-  },
+  db: dbApi,
   lyrics: lyricsApi,
   media: mediaApi,
   downloader: {
