@@ -11,7 +11,6 @@ import {
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,
 } from '../ipc/errors';
-import { invokeWithTimeout } from './context-bridge';
 import { appApi, type AppApi } from './api/app';
 import { dbApi, type DbApi } from './api/db';
 import { dialogApi, type DialogApi } from './api/dialog';
@@ -44,9 +43,6 @@ export interface ElectronAPI {
   playlist: PlaylistApi;
   metadata: MetadataApi;
   share: ShareApi;
-  ipc: {
-    invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
-  };
   errors: {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
     SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
@@ -72,10 +68,6 @@ const electronAPI: ElectronAPI = {
   playlist: playlistApi,
   metadata: metadataApi,
   share: shareApi,
-  ipc: {
-    invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) =>
-      invokeWithTimeout<T>(channel, timeout, ...args),
-  },
   errors: {
     isIpcError,
     SHARE_ERROR_CODES,

@@ -414,9 +414,6 @@ export interface ElectronAPI {
     cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
     onDeepLink: (callback: (code: string) => void) => () => void;
   };
-  ipc: {
-    invokeWithTimeout: <T>(channel: string, timeout: number, ...args: unknown[]) => Promise<T>;
-  };
   platform: NodeJS.Platform;
 }
 
