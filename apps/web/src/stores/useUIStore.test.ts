@@ -102,6 +102,24 @@ describe('useUIStore', () => {
     useUIStore.getState().setAlbumGridSize('large');
     expect(useViewStore.getState().albumGridScrollTop).toBe(500);
   });
+
+  it('preserves unknown legacy fields in shared bucket across persist writes', () => {
+    // Seed the bucket with a lyrics-prefs field that belongs to useLyricsAppearanceStore
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { lyricsPlainOpacity: 0.75, sidebarCollapsed: false },
+        version: 1,
+      })
+    );
+
+    // Trigger a UI mutation — this causes partialize() to run and write back
+    useUIStore.getState().setSidebarCollapsed(true);
+
+    const persisted = readPersisted();
+    expect(persisted.lyricsPlainOpacity).toBe(0.75);
+    expect(persisted.sidebarCollapsed).toBe(true);
+  });
 });
 
 describe('useUIStore legacy localStorage migration', () => {

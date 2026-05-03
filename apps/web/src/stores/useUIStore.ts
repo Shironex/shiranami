@@ -132,6 +132,44 @@ function sanitize(persisted: Partial<PersistedUIState> | undefined): Partial<Per
   return out;
 }
 
+// --- Passthrough: fields in the shared bucket that belong to sibling stores ---
+
+const UI_KEYS: ReadonlySet<keyof PersistedUIState> = new Set([
+  'sidebarCollapsed',
+  'sidebarHiddenItems',
+  'sidebarPlaylistsVisible',
+  'showVisualizer',
+  'visualizerStyle',
+  'uiScale',
+  'libraryViewMode',
+  'albumGridSize',
+  'playlistGridSize',
+  'albumSortMode',
+  'albumSortOrder',
+  'nowPlayingViewEnabled',
+  'nowPlayingLyricsVisible',
+  'libraryHeroCardEnabled',
+  'lowPerformanceMode',
+  'noiseOverlayEnabled',
+]);
+
+function readPassthroughLegacyFields(): Record<string, unknown> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as { state?: Record<string, unknown> };
+    if (!parsed.state || typeof parsed.state !== 'object') return {};
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(parsed.state)) {
+      if (!UI_KEYS.has(k as keyof PersistedUIState)) out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 // --- One-shot legacy import (runs at module load, before create()) ---
 
 function importLegacyUIStore() {
@@ -354,24 +392,26 @@ export const useUIStore = create<UIState & UIActions>()(
       name: STORE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s): PersistedUIState => ({
-        sidebarCollapsed: s.sidebarCollapsed,
-        sidebarHiddenItems: s.sidebarHiddenItems,
-        sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
-        showVisualizer: s.showVisualizer,
-        visualizerStyle: s.visualizerStyle,
-        uiScale: s.uiScale,
-        libraryViewMode: s.libraryViewMode,
-        albumGridSize: s.albumGridSize,
-        playlistGridSize: s.playlistGridSize,
-        albumSortMode: s.albumSortMode,
-        albumSortOrder: s.albumSortOrder,
-        nowPlayingViewEnabled: s.nowPlayingViewEnabled,
-        nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
-        libraryHeroCardEnabled: s.libraryHeroCardEnabled,
-        lowPerformanceMode: s.lowPerformanceMode,
-        noiseOverlayEnabled: s.noiseOverlayEnabled,
-      }),
+      partialize: s =>
+        ({
+          ...readPassthroughLegacyFields(),
+          sidebarCollapsed: s.sidebarCollapsed,
+          sidebarHiddenItems: s.sidebarHiddenItems,
+          sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
+          showVisualizer: s.showVisualizer,
+          visualizerStyle: s.visualizerStyle,
+          uiScale: s.uiScale,
+          libraryViewMode: s.libraryViewMode,
+          albumGridSize: s.albumGridSize,
+          playlistGridSize: s.playlistGridSize,
+          albumSortMode: s.albumSortMode,
+          albumSortOrder: s.albumSortOrder,
+          nowPlayingViewEnabled: s.nowPlayingViewEnabled,
+          nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
+          libraryHeroCardEnabled: s.libraryHeroCardEnabled,
+          lowPerformanceMode: s.lowPerformanceMode,
+          noiseOverlayEnabled: s.noiseOverlayEnabled,
+        }) as PersistedUIState,
       merge: (persisted, current) => ({
         ...current,
         ...sanitize(persisted as Partial<PersistedUIState>),
