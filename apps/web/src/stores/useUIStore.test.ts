@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAppStore } from './useAppStore';
+import { useUIStore } from './useUIStore';
 import { useViewStore } from './useViewStore';
 
 vi.mock('@/lib/platform', () => ({
@@ -17,10 +17,10 @@ function readPersisted(): Record<string, unknown> {
   return parsed.state ?? {};
 }
 
-describe('useAppStore', () => {
+describe('useUIStore', () => {
   beforeEach(() => {
     localStorage.clear();
-    useAppStore.setState({
+    useUIStore.setState({
       sidebarCollapsed: false,
       sidebarHiddenItems: [],
       sidebarPlaylistsVisible: true,
@@ -30,47 +30,47 @@ describe('useAppStore', () => {
   });
 
   it('toggleSidebarItem adds and removes items from hidden list', () => {
-    const { toggleSidebarItem } = useAppStore.getState();
+    const { toggleSidebarItem } = useUIStore.getState();
 
     toggleSidebarItem('favorites');
-    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['favorites']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['favorites']);
     expect(readPersisted().sidebarHiddenItems).toEqual(['favorites']);
 
     toggleSidebarItem('history');
-    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['favorites', 'history']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['favorites', 'history']);
 
     toggleSidebarItem('favorites');
-    expect(useAppStore.getState().sidebarHiddenItems).toEqual(['history']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['history']);
   });
 
   it('persists sidebar playlists visibility to localStorage', () => {
-    useAppStore.getState().setSidebarPlaylistsVisible(false);
-    expect(useAppStore.getState().sidebarPlaylistsVisible).toBe(false);
+    useUIStore.getState().setSidebarPlaylistsVisible(false);
+    expect(useUIStore.getState().sidebarPlaylistsVisible).toBe(false);
     expect(readPersisted().sidebarPlaylistsVisible).toBe(false);
 
-    useAppStore.getState().setSidebarPlaylistsVisible(true);
-    expect(useAppStore.getState().sidebarPlaylistsVisible).toBe(true);
+    useUIStore.getState().setSidebarPlaylistsVisible(true);
+    expect(useUIStore.getState().sidebarPlaylistsVisible).toBe(true);
     expect(readPersisted().sidebarPlaylistsVisible).toBe(true);
   });
 
   it('persists album grid size to localStorage', () => {
-    useAppStore.getState().setAlbumGridSize('small');
-    expect(useAppStore.getState().albumGridSize).toBe('small');
+    useUIStore.getState().setAlbumGridSize('small');
+    expect(useUIStore.getState().albumGridSize).toBe('small');
     expect(readPersisted().albumGridSize).toBe('small');
   });
 
   it('persists album sort mode and resets scroll position', () => {
     useViewStore.setState({ albumGridScrollTop: 500 });
-    useAppStore.getState().setAlbumSortMode('artist');
-    expect(useAppStore.getState().albumSortMode).toBe('artist');
+    useUIStore.getState().setAlbumSortMode('artist');
+    expect(useUIStore.getState().albumSortMode).toBe('artist');
     expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortMode).toBe('artist');
   });
 
   it('persists recentlyAdded sort mode and resets scroll position', () => {
     useViewStore.setState({ albumGridScrollTop: 300 });
-    useAppStore.getState().setAlbumSortMode('recentlyAdded');
-    expect(useAppStore.getState().albumSortMode).toBe('recentlyAdded');
+    useUIStore.getState().setAlbumSortMode('recentlyAdded');
+    expect(useUIStore.getState().albumSortMode).toBe('recentlyAdded');
     expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortMode).toBe('recentlyAdded');
   });
@@ -82,29 +82,29 @@ describe('useAppStore', () => {
     );
     // Re-applying store state via merge path: simulate by calling setAlbumSortMode
     // and confirming the stored value round-trips through sanitize correctly.
-    useAppStore.getState().setAlbumSortMode('recentlyAdded');
+    useUIStore.getState().setAlbumSortMode('recentlyAdded');
     expect(readPersisted().albumSortMode).toBe('recentlyAdded');
     // Unknown value falls back to 'name'
-    useAppStore.getState().setAlbumSortMode('name');
-    expect(useAppStore.getState().albumSortMode).toBe('name');
+    useUIStore.getState().setAlbumSortMode('name');
+    expect(useUIStore.getState().albumSortMode).toBe('name');
   });
 
   it('persists album sort order and resets scroll position', () => {
     useViewStore.setState({ albumGridScrollTop: 500 });
-    useAppStore.getState().setAlbumSortOrder('desc');
-    expect(useAppStore.getState().albumSortOrder).toBe('desc');
+    useUIStore.getState().setAlbumSortOrder('desc');
+    expect(useUIStore.getState().albumSortOrder).toBe('desc');
     expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortOrder).toBe('desc');
   });
 
   it('album grid size changes do not reset scroll position', () => {
     useViewStore.setState({ albumGridScrollTop: 500 });
-    useAppStore.getState().setAlbumGridSize('large');
+    useUIStore.getState().setAlbumGridSize('large');
     expect(useViewStore.getState().albumGridScrollTop).toBe(500);
   });
 });
 
-describe('useAppStore legacy localStorage migration', () => {
+describe('useUIStore legacy localStorage migration', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.resetModules();
@@ -116,7 +116,7 @@ describe('useAppStore legacy localStorage migration', () => {
     localStorage.setItem('shiranami.visualizer-style', 'waveform');
     localStorage.setItem('shiranami.sidebar-hidden-items', JSON.stringify(['favorites']));
 
-    await import('./useAppStore');
+    await import('./useUIStore');
 
     expect(localStorage.getItem('shiranami.compact-always-on-top')).toBeNull();
     expect(localStorage.getItem('shiranami.ui-scale')).toBeNull();
@@ -136,7 +136,7 @@ describe('useAppStore legacy localStorage migration', () => {
     localStorage.setItem('shiranami.app-store', JSON.stringify(existing));
     localStorage.setItem('shiranami.ui-scale', '120');
 
-    await import('./useAppStore');
+    await import('./useUIStore');
 
     // Combined key untouched
     expect(JSON.parse(localStorage.getItem('shiranami.app-store')!)).toEqual(existing);
@@ -145,7 +145,7 @@ describe('useAppStore legacy localStorage migration', () => {
   });
 
   it('does nothing when no legacy keys exist', async () => {
-    await import('./useAppStore');
+    await import('./useUIStore');
     expect(localStorage.getItem('shiranami.app-store')).toBeNull();
   });
 });

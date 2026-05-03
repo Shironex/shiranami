@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Download, LayoutGrid, List, Music, Search, X } from 'lucide-react';
@@ -30,16 +30,16 @@ export function LibraryView() {
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
-  const libraryViewMode = useAppStore(s => s.libraryViewMode);
-  const setLibraryViewMode = useAppStore(s => s.setLibraryViewMode);
+  const libraryViewMode = useUIStore(s => s.libraryViewMode);
+  const setLibraryViewMode = useUIStore(s => s.setLibraryViewMode);
   const selectedAlbumName = useViewStore(s => s.selectedAlbumName);
-  const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
-  const albumGridSize = useAppStore(s => s.albumGridSize);
-  const setAlbumGridSize = useAppStore(s => s.setAlbumGridSize);
-  const albumSortMode = useAppStore(s => s.albumSortMode);
-  const setAlbumSortMode = useAppStore(s => s.setAlbumSortMode);
-  const albumSortOrder = useAppStore(s => s.albumSortOrder);
-  const setAlbumSortOrder = useAppStore(s => s.setAlbumSortOrder);
+  const libraryHeroCardEnabled = useUIStore(s => s.libraryHeroCardEnabled);
+  const albumGridSize = useUIStore(s => s.albumGridSize);
+  const setAlbumGridSize = useUIStore(s => s.setAlbumGridSize);
+  const albumSortMode = useUIStore(s => s.albumSortMode);
+  const setAlbumSortMode = useUIStore(s => s.setAlbumSortMode);
+  const albumSortOrder = useUIStore(s => s.albumSortOrder);
+  const setAlbumSortOrder = useUIStore(s => s.setAlbumSortOrder);
 
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);

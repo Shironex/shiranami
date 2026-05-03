@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { AudioVisualizer } from '@/components/player/AudioVisualizer';
 import { WaveformVisualizer } from '@/components/player/WaveformVisualizer';
@@ -27,7 +27,7 @@ function createSyntheticSource(): FrequencySource {
 
 export function VisualizerStylePreview() {
   const { t } = useTranslation('settings');
-  const visualizerStyle = useAppStore(s => s.visualizerStyle);
+  const visualizerStyle = useUIStore(s => s.visualizerStyle);
   const sourceRef = useRef<FrequencySource | null>(null);
   if (sourceRef.current === null) sourceRef.current = createSyntheticSource();
   const source = sourceRef.current;

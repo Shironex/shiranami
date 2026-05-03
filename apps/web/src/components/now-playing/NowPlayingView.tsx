@@ -2,7 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import {
   useLyricsAppearanceStore,
   LYRICS_SYNCED_PAST_RATIO,
@@ -57,8 +57,8 @@ export function NowPlayingView() {
   const duration = usePlaybackStore(s => s.duration);
   const seek = usePlaybackStore(s => s.seek);
   const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
-  const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
-  const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
+  const lyricsVisible = useUIStore(s => s.nowPlayingLyricsVisible);
+  const toggleLyrics = useUIStore(s => s.toggleNowPlayingLyrics);
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);

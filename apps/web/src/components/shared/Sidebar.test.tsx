@@ -28,8 +28,8 @@ function setStoreState(overrides: Record<string, unknown>) {
 
 // ── Mocks ──
 
-vi.mock('@/stores/useAppStore', () => ({
-  useAppStore: <T,>(selector: (s: Record<string, unknown>) => T) => selector(storeState),
+vi.mock('@/stores/useUIStore', () => ({
+  useUIStore: <T,>(selector: (s: Record<string, unknown>) => T) => selector(storeState),
 }));
 
 vi.mock('@/stores/useViewStore', () => ({

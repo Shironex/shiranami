@@ -3,7 +3,7 @@ import { cleanup, renderHook } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -393,7 +393,7 @@ describe('useKeyboardShortcuts', () => {
   describe('Modifier shortcuts (Ctrl/Cmd)', () => {
     it('Ctrl+B toggles sidebar', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true });
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -478,7 +478,7 @@ describe('useKeyboardShortcuts', () => {
       const input = document.createElement('input');
       document.body.appendChild(input);
 
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleSidebarCollapsed');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleSidebarCollapsed');
 
       pressKey('b', { ctrlKey: true }, input);
       expect(toggleSpy).toHaveBeenCalledOnce();
@@ -492,7 +492,7 @@ describe('useKeyboardShortcuts', () => {
   describe('V - visualizer', () => {
     it('toggles visualizer', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleVisualizer');
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleVisualizer');
 
       pressKey('v');
       expect(toggleSpy).toHaveBeenCalledOnce();

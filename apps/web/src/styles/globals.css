@@ -334,7 +334,7 @@
 }
 
 /* Low performance mode — disables expensive compositor effects.
-   Toggled via <html data-perf-mode="low"> from useAppStore.setLowPerformanceMode.
+   Toggled via <html data-perf-mode="low"> from useUIStore.setLowPerformanceMode.
 
    These rules are intentionally OUTSIDE @layer so they always beat the
    @utility definitions of .glass / .glass-subtle (which Tailwind v4 emits

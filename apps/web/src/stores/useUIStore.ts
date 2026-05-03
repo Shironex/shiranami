@@ -1,12 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { useViewStore, type AppView, type RightPanel } from '@/stores/useViewStore';
-import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
-import type { CompactSize, CompactFontSize } from '@/stores/useCompactStore';
+import { useViewStore, type AppView } from '@/stores/useViewStore';
 
-export type { AppView, RightPanel, LyricsFontSize, CompactSize, CompactFontSize };
-/** @deprecated Use LyricsFontSize. Alias kept for back-compat with existing imports. */
-export type LyricsPlainFontSize = LyricsFontSize;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
@@ -19,36 +14,7 @@ export const UI_SCALE_DEFAULT = 100;
 export const UI_SCALE_STEP = 5;
 export const UI_SCALE_PRESETS = [80, 90, 100, 110, 120] as const;
 
-export {
-  LYRICS_PLAIN_OPACITY_MIN,
-  LYRICS_PLAIN_OPACITY_MAX,
-  LYRICS_PLAIN_OPACITY_STEP,
-  LYRICS_PLAIN_OPACITY_DEFAULT,
-  LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-  LYRICS_SYNCED_DIM_OPACITY_MIN,
-  LYRICS_SYNCED_DIM_OPACITY_MAX,
-  LYRICS_SYNCED_DIM_OPACITY_STEP,
-  LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
-  LYRICS_SYNCED_FONT_SIZE_DEFAULT,
-  LYRICS_SYNCED_PAST_RATIO,
-  LYR_SIZE_CLASS,
-  nextLyricsFontSize,
-} from '@/stores/useLyricsAppearanceStore';
-
-export {
-  COMPACT_SIZE_DEFAULT,
-  COMPACT_DIMENSIONS,
-  COMPACT_AMBIENT_INTENSITY_MIN,
-  COMPACT_AMBIENT_INTENSITY_MAX,
-  COMPACT_AMBIENT_INTENSITY_STEP,
-  COMPACT_AMBIENT_INTENSITY_DEFAULT,
-  COMPACT_FONT_SIZE_DEFAULT,
-  CMP_TITLE_CLASS,
-  CMP_ARTIST_CLASS,
-  CMP_ALBUM_CLASS,
-} from '@/stores/useCompactStore';
-
-const NEW_KEY = 'shiranami.app-store';
+const STORE_KEY = 'shiranami.app-store';
 
 const LEGACY_KEYS = {
   sidebarCollapsed: 'shiranami.sidebar-collapsed',
@@ -108,9 +74,10 @@ function coerceUiScale(v: unknown): number {
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
   return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
 }
+
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
-interface PersistedAppState {
+interface PersistedUIState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
   sidebarPlaylistsVisible: boolean;
@@ -129,9 +96,9 @@ interface PersistedAppState {
   noiseOverlayEnabled: boolean;
 }
 
-function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
+function sanitize(persisted: Partial<PersistedUIState> | undefined): Partial<PersistedUIState> {
   if (!persisted || typeof persisted !== 'object') return {};
-  const out: Partial<PersistedAppState> = {};
+  const out: Partial<PersistedUIState> = {};
   if (typeof persisted.sidebarCollapsed === 'boolean')
     out.sidebarCollapsed = persisted.sidebarCollapsed;
   if (Array.isArray(persisted.sidebarHiddenItems))
@@ -167,18 +134,18 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
 
 // --- One-shot legacy import (runs at module load, before create()) ---
 
-function importLegacyAppStore() {
+function importLegacyUIStore() {
   if (typeof window === 'undefined') return;
   const ls = window.localStorage;
-  if (ls.getItem(NEW_KEY)) return;
+  if (ls.getItem(STORE_KEY)) return;
   const hasAny = Object.values(LEGACY_KEYS).some(k => ls.getItem(k) !== null);
   if (!hasAny) return;
 
   // Relaxed shape — we also copy `compactAlwaysOnTop` through so the
   // useCompactStore one-shot importer (which reads this same combined
   // bucket) can pick it up on next load. The field is no longer on
-  // PersistedAppState since compact moved to its own store.
-  const state: Partial<PersistedAppState> & { compactAlwaysOnTop?: boolean } = {};
+  // PersistedUIState since compact moved to its own store.
+  const state: Partial<PersistedUIState> & { compactAlwaysOnTop?: boolean } = {};
 
   const sidebarCollapsed = ls.getItem(LEGACY_KEYS.sidebarCollapsed);
   if (sidebarCollapsed !== null) state.sidebarCollapsed = sidebarCollapsed === 'true';
@@ -247,13 +214,13 @@ function importLegacyAppStore() {
   const noiseOverlayEnabled = ls.getItem(LEGACY_KEYS.noiseOverlayEnabled);
   if (noiseOverlayEnabled !== null) state.noiseOverlayEnabled = noiseOverlayEnabled === 'true';
 
-  ls.setItem(NEW_KEY, JSON.stringify({ state, version: 1 }));
+  ls.setItem(STORE_KEY, JSON.stringify({ state, version: 1 }));
   Object.values(LEGACY_KEYS).forEach(k => ls.removeItem(k));
 }
 
-importLegacyAppStore();
+importLegacyUIStore();
 
-interface AppState {
+interface UIState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
   sidebarPlaylistsVisible: boolean;
@@ -272,7 +239,7 @@ interface AppState {
   noiseOverlayEnabled: boolean;
 }
 
-interface AppActions {
+interface UIActions {
   setNowPlayingViewEnabled: (enabled: boolean) => void;
   toggleNowPlayingLyrics: () => void;
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
@@ -293,7 +260,7 @@ interface AppActions {
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
 }
 
-export const useAppStore = create<AppState & AppActions>()(
+export const useUIStore = create<UIState & UIActions>()(
   persist(
     (set, get) => ({
       sidebarCollapsed: false,
@@ -384,10 +351,10 @@ export const useAppStore = create<AppState & AppActions>()(
       },
     }),
     {
-      name: NEW_KEY,
+      name: STORE_KEY,
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: s => ({
+      partialize: (s): PersistedUIState => ({
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarHiddenItems: s.sidebarHiddenItems,
         sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
@@ -407,7 +374,7 @@ export const useAppStore = create<AppState & AppActions>()(
       }),
       merge: (persisted, current) => ({
         ...current,
-        ...sanitize(persisted as Partial<PersistedAppState>),
+        ...sanitize(persisted as Partial<PersistedUIState>),
       }),
       onRehydrateStorage: () => state => {
         if (!state) return;
@@ -419,12 +386,12 @@ export const useAppStore = create<AppState & AppActions>()(
 );
 
 if (import.meta.hot) {
-  type HmrData = { store?: typeof useAppStore };
+  type HmrData = { store?: typeof useUIStore };
   const hot = import.meta.hot;
   const data = (hot.data ?? {}) as HmrData;
   if (data.store) {
-    useAppStore.setState(data.store.getState());
+    useUIStore.setState(data.store.getState());
   }
-  data.store = useAppStore;
+  data.store = useUIStore;
   hot.accept();
 }

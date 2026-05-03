@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
@@ -30,11 +30,11 @@ export function PlayerBar() {
   const ambientColor = useAmbientColor();
   const rightPanel = useViewStore(s => s.rightPanel);
   const toggleRightPanel = useViewStore(s => s.toggleRightPanel);
-  const showVisualizer = useAppStore(s => s.showVisualizer);
-  const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const showVisualizer = useUIStore(s => s.showVisualizer);
+  const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const setCompactMode = useCompactStore(s => s.setCompactMode);
-  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
 
   return (

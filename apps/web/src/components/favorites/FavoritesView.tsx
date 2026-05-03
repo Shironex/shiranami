@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
@@ -23,12 +23,9 @@ export function FavoritesView() {
   const setQueue = usePlaybackStore(s => s.setQueue);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
-  const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
+  const libraryHeroCardEnabled = useUIStore(s => s.libraryHeroCardEnabled);
 
-  const favorites = useMemo(
-    () => library.filter((t) => t.isFavorite),
-    [library]
-  );
+  const favorites = useMemo(() => library.filter(t => t.isFavorite), [library]);
 
   const favoritesRef = useRef(favorites);
   favoritesRef.current = favorites;
@@ -51,11 +48,7 @@ export function FavoritesView() {
       {libraryHeroCardEnabled && <NowPlayingHero show={showIfFavorite} />}
 
       {favorites.length === 0 ? (
-        <ViewEmptyState
-          title={t('emptyTitle')}
-          subtitle={t('emptySubtitle')}
-          icon={Heart}
-        />
+        <ViewEmptyState title={t('emptyTitle')} subtitle={t('emptySubtitle')} icon={Heart} />
       ) : (
         <div className="flex-1 min-h-0 px-4">
           <List
@@ -65,7 +58,14 @@ export function FavoritesView() {
             className="scrollbar-thin"
             style={{ height: '100%' }}
             rowComponent={TrackRow}
-            rowProps={{ queue: favorites, currentTrack, isPlaying, handlePlayTrack, onToggleFavorite: toggleFavorite, showAddToPlaylist: true }}
+            rowProps={{
+              queue: favorites,
+              currentTrack,
+              isPlaying,
+              handlePlayTrack,
+              onToggleFavorite: toggleFavorite,
+              showAddToPlaylist: true,
+            }}
           />
         </div>
       )}

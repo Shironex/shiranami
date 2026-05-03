@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -58,7 +58,7 @@ export function useKeyboardShortcuts() {
           case 'b':
           case 'B': {
             e.preventDefault();
-            useAppStore.getState().toggleSidebarCollapsed();
+            useUIStore.getState().toggleSidebarCollapsed();
             return;
           }
           case 'l':
@@ -111,7 +111,7 @@ export function useKeyboardShortcuts() {
             // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
-              const { nowPlayingViewEnabled } = useAppStore.getState();
+              const { nowPlayingViewEnabled } = useUIStore.getState();
               const { activeView, enterNowPlaying, exitNowPlaying } = useViewStore.getState();
               if (!nowPlayingViewEnabled) {
                 toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
@@ -226,7 +226,7 @@ export function useKeyboardShortcuts() {
         case 'V':
         case 'v': {
           e.preventDefault();
-          useAppStore.getState().toggleVisualizer();
+          useUIStore.getState().toggleVisualizer();
           return;
         }
         case '?': {

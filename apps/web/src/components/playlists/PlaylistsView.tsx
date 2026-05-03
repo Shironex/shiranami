@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { ListMusic, Plus, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
@@ -19,8 +19,8 @@ export function PlaylistsView() {
   const selectPlaylist = useViewStore(s => s.selectPlaylist);
   const { data: playlists = [], isLoading, isError, refetch } = usePlaylistsQuery();
   const createPlaylist = useCreatePlaylistMutation();
-  const playlistGridSize = useAppStore(s => s.playlistGridSize);
-  const setPlaylistGridSize = useAppStore(s => s.setPlaylistGridSize);
+  const playlistGridSize = useUIStore(s => s.playlistGridSize);
+  const setPlaylistGridSize = useUIStore(s => s.setPlaylistGridSize);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState('');
 

@@ -39,7 +39,7 @@ import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -80,7 +80,7 @@ function App() {
   }, []);
 
   // Auto-collapse sidebar on narrow viewports
-  const setSidebarCollapsed = useAppStore(s => s.setSidebarCollapsed);
+  const setSidebarCollapsed = useUIStore(s => s.setSidebarCollapsed);
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 900px)');
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -96,10 +96,10 @@ function App() {
   const activeView = useViewStore(s => s.activeView);
   const rightPanel = useViewStore(s => s.rightPanel);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
-  const showVisualizer = useAppStore(s => s.showVisualizer);
-  const visualizerStyle = useAppStore(s => s.visualizerStyle);
+  const showVisualizer = useUIStore(s => s.showVisualizer);
+  const visualizerStyle = useUIStore(s => s.visualizerStyle);
   const compactMode = useCompactStore(s => s.compactMode);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore(s => s.updateProgress);
 

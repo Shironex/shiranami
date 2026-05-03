@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import type { Playlist } from '@/types/electron';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
@@ -42,11 +42,11 @@ export function Sidebar() {
   const { t } = useTranslation('sidebar');
   const activeView = useViewStore(s => s.activeView);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
-  const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed);
-  const sidebarHiddenItems = useAppStore(s => s.sidebarHiddenItems);
-  const sidebarPlaylistsVisible = useAppStore(s => s.sidebarPlaylistsVisible);
+  const sidebarCollapsed = useUIStore(s => s.sidebarCollapsed);
+  const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
+  const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
   const navigateTo = useViewStore(s => s.navigateTo);
-  const toggleSidebarCollapsed = useAppStore(s => s.toggleSidebarCollapsed);
+  const toggleSidebarCollapsed = useUIStore(s => s.toggleSidebarCollapsed);
   const version = useAppVersion();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylistsQuery();
   const [contextMenuState, setContextMenuState] = useState<{

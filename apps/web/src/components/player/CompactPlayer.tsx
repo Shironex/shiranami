@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useAppStore } from '@/stores/useAppStore';
+import { useUIStore } from '@/stores/useUIStore';
 import {
   useCompactStore,
   CMP_TITLE_CLASS,
@@ -31,7 +31,7 @@ export function CompactPlayer() {
   const setCompactMode = useCompactStore(s => s.setCompactMode);
   const compactAlwaysOnTop = useCompactStore(s => s.compactAlwaysOnTop);
   const toggleCompactAlwaysOnTop = useCompactStore(s => s.toggleCompactAlwaysOnTop);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
 
   const compactFontSize = useCompactStore(s => s.compactFontSize);
   const compactAmbientIntensity = useCompactStore(s => s.compactAmbientIntensity);
@@ -52,7 +52,7 @@ export function CompactPlayer() {
     void toggleCompactAlwaysOnTop();
   }, [toggleCompactAlwaysOnTop]);
 
-  const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
   const handleAlbumArtClick = useCallback(async () => {
     // Mirror the Spotify/Apple Music mini-player gesture: clicking the art
@@ -274,7 +274,7 @@ function MarqueeText({ text, className }: MarqueeTextProps) {
   // scrollWidth/clientWidth on the unconstrained span are equal — the
   // overflow signal lives on the constrained container.
   const { ref, overflows, shift } = useMarqueeOnOverflow<HTMLParagraphElement>(text);
-  const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const animate = overflows && !lowPerformanceMode;
 
   return (
