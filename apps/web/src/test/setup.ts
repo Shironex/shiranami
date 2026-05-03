@@ -2,7 +2,6 @@ import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import type { ElectronAPI } from '@/types/electron';
 
-
 // Test-accessible ResizeObserver mock. Captures the callback and target so
 // tests can trigger synthetic resize entries via `triggerResize(el, rect)`.
 interface ResizeObserverMockInstance {
@@ -32,10 +31,24 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
 export function triggerResize(target: Element, rect: { width: number; height: number }): void {
-  const contentRect = { ...rect, top: 0, left: 0, right: rect.width, bottom: rect.height, x: 0, y: 0 } as DOMRectReadOnly;
+  const contentRect = {
+    ...rect,
+    top: 0,
+    left: 0,
+    right: rect.width,
+    bottom: rect.height,
+    x: 0,
+    y: 0,
+  } as DOMRectReadOnly;
   for (const inst of resizeObserverInstances) {
     if (!inst.targets.has(target)) continue;
-    const entry = { target, contentRect, borderBoxSize: [], contentBoxSize: [], devicePixelContentBoxSize: [] } as unknown as ResizeObserverEntry;
+    const entry = {
+      target,
+      contentRect,
+      borderBoxSize: [],
+      contentBoxSize: [],
+      devicePixelContentBoxSize: [],
+    } as unknown as ResizeObserverEntry;
     inst.callback([entry], {} as ResizeObserver);
   }
 }
@@ -192,8 +205,16 @@ function createElectronAPIMock(): ElectronAPI {
       onEnrichProgress: vi.fn(() => noopUnsub()),
     },
     share: {
-      track: asyncFn({ code: 'abc', url: 'https://example.com/s/abc', expiresAt: new Date(Date.now() + 3600000).toISOString() }),
-      playlist: asyncFn({ code: 'def', url: 'https://example.com/s/def', expiresAt: new Date(Date.now() + 3600000).toISOString() }),
+      track: asyncFn({
+        code: 'abc',
+        url: 'https://example.com/s/abc',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      }),
+      playlist: asyncFn({
+        code: 'def',
+        url: 'https://example.com/s/def',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      }),
       import: asyncFn({ type: 'TRACK' as const, payload: null }),
       cacheYoutubeId: asyncFn(undefined),
       onDeepLink: vi.fn(() => () => {}),
@@ -210,9 +231,6 @@ function createElectronAPIMock(): ElectronAPI {
       extract: asyncFn([]),
       cancel: asyncFn(undefined),
       onExtractProgress: vi.fn(() => noopUnsub()),
-    },
-    ipc: {
-      invokeWithTimeout: vi.fn(),
     },
     platform: 'win32',
   };
