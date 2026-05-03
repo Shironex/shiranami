@@ -5,10 +5,11 @@ import {
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,
 } from './ipc/errors';
-import type { InstallDependenciesResult } from './ipc/downloader';
 import { createIpcListener } from './preload/ipc-listener';
 import { appApi, type AppApi } from './preload/api/app';
+import { dbApi, type DbApi } from './preload/api/db';
 import { dialogApi, type DialogApi } from './preload/api/dialog';
+import { downloaderApi, type DownloaderApi } from './preload/api/downloader';
 import { libraryApi, type LibraryApi } from './preload/api/library';
 import { lyricsApi, type LyricsApi } from './preload/api/lyrics';
 import { mediaApi, type MediaApi } from './preload/api/media';
@@ -126,8 +127,6 @@ function invokeWithTimeout<T>(channel: string, timeout: number, ...args: unknown
   return Promise.race([invokePromise.finally(() => clearTimeout(timer)), timeoutPromise]);
 }
 
-import { dbApi, type DbApi } from './preload/api/db';
-
 export interface ElectronAPI {
   window: WindowApi;
   store: StoreApi;
@@ -137,101 +136,7 @@ export interface ElectronAPI {
   db: DbApi;
   lyrics: LyricsApi;
   media: MediaApi;
-  downloader: {
-    getStreamUrl: (url: string) => Promise<string>;
-    suggest: (query: string) => Promise<string[]>;
-    search: (query: string) => Promise<
-      Array<{
-        id: string;
-        title: string;
-        uploader: string;
-        duration: number;
-        thumbnail: string;
-        url: string;
-        webpage_url: string;
-      }>
-    >;
-    download: (url: string) => Promise<string>;
-    getDownloadLocation: () => Promise<{
-      path: string;
-      defaultPath: string;
-      isDefault: boolean;
-    }>;
-    setDownloadLocation: (path: string | null) => Promise<{
-      path: string;
-      defaultPath: string;
-      isDefault: boolean;
-    }>;
-    checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
-    getCachedToolStatus: () => Promise<{
-      ytdlp: {
-        installed: boolean;
-        version?: string;
-        latestVersion?: string;
-        updateAvailable?: boolean;
-      };
-      ffmpeg: {
-        installed: boolean;
-        version?: string;
-        latestVersion?: string;
-        updateAvailable?: boolean;
-      };
-      ytdlpPath: string;
-      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
-      timestamp: number;
-    } | null>;
-    refreshToolStatus: () => Promise<{
-      ytdlp: {
-        installed: boolean;
-        version?: string;
-        latestVersion?: string;
-        updateAvailable?: boolean;
-      };
-      ffmpeg: {
-        installed: boolean;
-        version?: string;
-        latestVersion?: string;
-        updateAvailable?: boolean;
-      };
-      ytdlpPath: string;
-      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
-      timestamp: number;
-    } | null>;
-    check: () => Promise<{
-      installed: boolean;
-      version?: string;
-      latestVersion?: string;
-      updateAvailable?: boolean;
-    }>;
-    onProgress: (
-      callback: (data: {
-        url: string;
-        progress: number;
-        status: 'downloading' | 'converting' | 'done' | 'error';
-        error?: string;
-      }) => void
-    ) => () => void;
-    installYtDlp: () => Promise<void>;
-    onInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
-    getYtDlpPath: () => Promise<string>;
-    checkFfmpeg: () => Promise<{
-      installed: boolean;
-      version?: string;
-      latestVersion?: string;
-      updateAvailable?: boolean;
-    }>;
-    installFfmpeg: () => Promise<void>;
-    onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
-    installDependencies: () => Promise<InstallDependenciesResult>;
-    onDependencyInstallProgress: (
-      callback: (progress: {
-        target: 'ytdlp' | 'ffmpeg';
-        percent: number;
-        overallPercent: number;
-        label: string;
-      }) => void
-    ) => () => void;
-  };
+  downloader: DownloaderApi;
   updater: {
     checkForUpdates: () => Promise<{ enabled: boolean }>;
     startDownload: () => Promise<void>;
@@ -389,40 +294,7 @@ const electronAPI: ElectronAPI = {
   db: dbApi,
   lyrics: lyricsApi,
   media: mediaApi,
-  downloader: {
-    suggest: (query: string) => ipcRenderer.invoke('downloader:suggest', query),
-    search: (query: string) => ipcRenderer.invoke('downloader:search', query),
-    getStreamUrl: (url: string) => ipcRenderer.invoke('downloader:get-stream-url', url),
-    download: (url: string) => ipcRenderer.invoke('downloader:download', { url }),
-    getDownloadLocation: () => ipcRenderer.invoke('downloader:get-download-location'),
-    setDownloadLocation: (downloadPath: string | null) =>
-      ipcRenderer.invoke('downloader:set-download-location', downloadPath),
-    checkDependencies: () => ipcRenderer.invoke('downloader:check-dependencies'),
-    getCachedToolStatus: () => ipcRenderer.invoke('downloader:get-cached-tool-status'),
-    refreshToolStatus: () => ipcRenderer.invoke('downloader:refresh-tool-status'),
-    check: () => ipcRenderer.invoke('downloader:check'),
-    onProgress: createIpcListener<{
-      url: string;
-      progress: number;
-      status: 'downloading' | 'converting' | 'done' | 'error';
-      error?: string;
-    }>('downloader:progress'),
-    installYtDlp: () => ipcRenderer.invoke('downloader:install-ytdlp'),
-    onInstallProgress: createIpcListener<{ percent: number }>('downloader:install-progress'),
-    getYtDlpPath: () => ipcRenderer.invoke('downloader:get-ytdlp-path'),
-    checkFfmpeg: () => ipcRenderer.invoke('downloader:check-ffmpeg'),
-    installFfmpeg: () => ipcRenderer.invoke('downloader:install-ffmpeg'),
-    onFfmpegInstallProgress: createIpcListener<{ percent: number }>(
-      'downloader:ffmpeg-install-progress'
-    ),
-    installDependencies: () => ipcRenderer.invoke('downloader:install-dependencies'),
-    onDependencyInstallProgress: createIpcListener<{
-      target: 'ytdlp' | 'ffmpeg';
-      percent: number;
-      overallPercent: number;
-      label: string;
-    }>('downloader:dependency-install-progress'),
-  },
+  downloader: downloaderApi,
   updater: {
     checkForUpdates: () => ipcRenderer.invoke('updater:check-for-updates'),
     startDownload: () => ipcRenderer.invoke('updater:start-download'),
