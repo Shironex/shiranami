@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
-import { useAppStore, type AppView } from '@/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore, type AppView } from '@/stores/useViewStore';
 import type { Playlist } from '@/types/electron';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import {
@@ -39,12 +40,12 @@ const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
 
 export function Sidebar() {
   const { t } = useTranslation('sidebar');
-  const activeView = useAppStore(s => s.activeView);
-  const selectedPlaylistId = useAppStore(s => s.selectedPlaylistId);
+  const activeView = useViewStore(s => s.activeView);
+  const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const sidebarCollapsed = useAppStore(s => s.sidebarCollapsed);
   const sidebarHiddenItems = useAppStore(s => s.sidebarHiddenItems);
   const sidebarPlaylistsVisible = useAppStore(s => s.sidebarPlaylistsVisible);
-  const navigateTo = useAppStore(s => s.navigateTo);
+  const navigateTo = useViewStore(s => s.navigateTo);
   const toggleSidebarCollapsed = useAppStore(s => s.toggleSidebarCollapsed);
   const version = useAppVersion();
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylistsQuery();

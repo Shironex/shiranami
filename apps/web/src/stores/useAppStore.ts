@@ -1,19 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { IS_ELECTRON } from '@/lib/platform';
+import { useViewStore, type AppView, type RightPanel } from '@/stores/useViewStore';
 
-export type AppView =
-  | 'library'
-  | 'playlists'
-  | 'favorites'
-  | 'history'
-  | 'mixes'
-  | 'search'
-  | 'radio'
-  | 'settings'
-  | 'import-playlist'
-  | 'now-playing';
-export type RightPanel = 'lyrics' | 'queue' | null;
+export type { AppView, RightPanel };
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
@@ -406,9 +396,6 @@ function importLegacyAppStore() {
 importLegacyAppStore();
 
 interface AppState {
-  activeView: AppView;
-  rightPanel: RightPanel;
-  selectedPlaylistId: string | null;
   sidebarCollapsed: boolean;
   compactMode: boolean;
   compactAlwaysOnTop: boolean;
@@ -422,8 +409,6 @@ interface AppState {
   playlistGridSize: AlbumGridSize;
   albumSortMode: AlbumSortMode;
   albumSortOrder: AlbumSortOrder;
-  selectedAlbumName: string | null;
-  albumGridScrollTop: number;
   nowPlayingViewEnabled: boolean;
   nowPlayingLyricsVisible: boolean;
   libraryHeroCardEnabled: boolean;
@@ -442,20 +427,14 @@ interface AppState {
   compactShowVolume: boolean;
   compactShowFavorite: boolean;
   compactDefaultAlwaysOnTop: boolean;
-  previousView: AppView;
 }
 
 interface AppActions {
-  navigateTo: (view: AppView, playlistId?: string | null) => void;
-  enterNowPlaying: () => void;
-  exitNowPlaying: () => void;
   setNowPlayingViewEnabled: (enabled: boolean) => void;
   toggleNowPlayingLyrics: () => void;
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
-  selectPlaylist: (id: string | null) => void;
-  setRightPanel: (panel: RightPanel) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   setCompactMode: (compactMode: boolean) => Promise<void>;
   setCompactAlwaysOnTop: (compactAlwaysOnTop: boolean) => Promise<void>;
@@ -464,7 +443,6 @@ interface AppActions {
   toggleSidebarCollapsed: () => void;
   toggleSidebarItem: (view: AppView) => void;
   setSidebarPlaylistsVisible: (visible: boolean) => void;
-  toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   toggleVisualizer: () => void;
   setVisualizerStyle: (style: VisualizerStyle) => void;
   setUiScale: (scale: number) => void;
@@ -474,8 +452,6 @@ interface AppActions {
   setPlaylistGridSize: (size: AlbumGridSize) => void;
   setAlbumSortMode: (mode: AlbumSortMode) => void;
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
-  selectAlbum: (name: string | null) => void;
-  setAlbumGridScrollTop: (scrollTop: number) => void;
   setLyricsPlainOpacity: (value: number) => void;
   setLyricsPlainFontSize: (size: LyricsFontSize) => void;
   resetLyricsPlainAppearance: () => void;
@@ -497,9 +473,6 @@ interface AppActions {
 export const useAppStore = create<AppState & AppActions>()(
   persist(
     (set, get) => ({
-      activeView: 'library',
-      rightPanel: null,
-      selectedPlaylistId: null,
       sidebarCollapsed: false,
       sidebarHiddenItems: [],
       sidebarPlaylistsVisible: true,
@@ -513,8 +486,6 @@ export const useAppStore = create<AppState & AppActions>()(
       playlistGridSize: 'medium',
       albumSortMode: 'name',
       albumSortOrder: 'asc',
-      selectedAlbumName: null,
-      albumGridScrollTop: 0,
       nowPlayingViewEnabled: false,
       nowPlayingLyricsVisible: true,
       libraryHeroCardEnabled: true,
@@ -533,26 +504,12 @@ export const useAppStore = create<AppState & AppActions>()(
       compactShowVolume: true,
       compactShowFavorite: false,
       compactDefaultAlwaysOnTop: false,
-      previousView: 'library',
 
-      navigateTo: (view, playlistId) =>
-        set({
-          activeView: view,
-          selectedPlaylistId: view === 'playlists' ? (playlistId ?? null) : null,
-        }),
-      enterNowPlaying: () => {
-        const current = get().activeView;
-        if (current === 'now-playing') return;
-        set({ previousView: current, activeView: 'now-playing' });
-      },
-      exitNowPlaying: () => {
-        const prev = get().previousView;
-        set({ activeView: prev });
-      },
       setNowPlayingViewEnabled: enabled => {
         set({ nowPlayingViewEnabled: enabled });
-        if (!enabled && get().activeView === 'now-playing') {
-          get().exitNowPlaying();
+        const view = useViewStore.getState();
+        if (!enabled && view.activeView === 'now-playing') {
+          view.exitNowPlaying();
         }
       },
       toggleNowPlayingLyrics: () => {
@@ -568,8 +525,6 @@ export const useAppStore = create<AppState & AppActions>()(
       setNoiseOverlayEnabled: enabled => {
         set({ noiseOverlayEnabled: enabled });
       },
-      selectPlaylist: id => set({ selectedPlaylistId: id }),
-      setRightPanel: panel => set({ rightPanel: panel }),
       setSidebarCollapsed: sidebarCollapsed => {
         set({ sidebarCollapsed });
       },
@@ -642,10 +597,6 @@ export const useAppStore = create<AppState & AppActions>()(
       setSidebarPlaylistsVisible: visible => {
         set({ sidebarPlaylistsVisible: visible });
       },
-      toggleRightPanel: panel => {
-        const current = get().rightPanel;
-        set({ rightPanel: current === panel ? null : panel });
-      },
       toggleVisualizer: () => {
         set({ showVisualizer: !get().showVisualizer });
       },
@@ -662,7 +613,8 @@ export const useAppStore = create<AppState & AppActions>()(
         set({ uiScale: UI_SCALE_DEFAULT });
       },
       setLibraryViewMode: mode => {
-        set({ libraryViewMode: mode, selectedAlbumName: null, albumGridScrollTop: 0 });
+        set({ libraryViewMode: mode });
+        useViewStore.setState({ selectedAlbumName: null, albumGridScrollTop: 0 });
       },
       setAlbumGridSize: size => {
         set({ albumGridSize: size });
@@ -671,15 +623,15 @@ export const useAppStore = create<AppState & AppActions>()(
         set({ playlistGridSize: size });
       },
       setAlbumSortMode: mode => {
+        set({ albumSortMode: mode });
         // Scroll position is meaningless once album order changes.
-        set({ albumSortMode: mode, albumGridScrollTop: 0 });
+        useViewStore.setState({ albumGridScrollTop: 0 });
       },
       setAlbumSortOrder: order => {
+        set({ albumSortOrder: order });
         // Scroll position is meaningless once album order changes.
-        set({ albumSortOrder: order, albumGridScrollTop: 0 });
+        useViewStore.setState({ albumGridScrollTop: 0 });
       },
-      selectAlbum: name => set({ selectedAlbumName: name }),
-      setAlbumGridScrollTop: scrollTop => set({ albumGridScrollTop: scrollTop }),
       setLyricsPlainOpacity: value => {
         set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
       },

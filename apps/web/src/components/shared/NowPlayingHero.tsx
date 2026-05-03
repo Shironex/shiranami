@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +18,7 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
   const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
+  const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
 
   const visible = currentTrack && (!show || show(currentTrack));

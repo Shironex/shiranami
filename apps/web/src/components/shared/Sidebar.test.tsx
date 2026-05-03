@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Sidebar } from './Sidebar';
-import type { AppView } from '@/stores/useAppStore';
+import type { AppView } from '@/stores/useViewStore';
 
 // ── Shared spies ──
 
@@ -29,14 +29,16 @@ function setStoreState(overrides: Record<string, unknown>) {
 // ── Mocks ──
 
 vi.mock('@/stores/useAppStore', () => ({
-  useAppStore: <T,>(selector: (s: Record<string, unknown>) => T) =>
-    selector(storeState),
+  useAppStore: <T,>(selector: (s: Record<string, unknown>) => T) => selector(storeState),
+}));
+
+vi.mock('@/stores/useViewStore', () => ({
+  useViewStore: <T,>(selector: (s: Record<string, unknown>) => T) => selector(storeState),
 }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: { ns?: string }) =>
-      opts?.ns === 'common' ? key : key,
+    t: (key: string, opts?: { ns?: string }) => (opts?.ns === 'common' ? key : key),
   }),
 }));
 
@@ -48,7 +50,10 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
 }));
 
-let playlistQueryResult = { data: [] as Array<{ id: string; name: string; coverArt?: string }>, isLoading: false };
+let playlistQueryResult = {
+  data: [] as Array<{ id: string; name: string; coverArt?: string }>,
+  isLoading: false,
+};
 
 vi.mock('@/hooks/queries/usePlaylists', () => ({
   usePlaylistsQuery: () => playlistQueryResult,
@@ -76,7 +81,7 @@ vi.mock('motion/react', () => ({
         }
         return undefined;
       },
-    },
+    }
   ),
 }));
 
@@ -207,9 +212,7 @@ describe('Sidebar', () => {
     setStoreState({ sidebarCollapsed: true });
     render(<Sidebar />);
 
-    expect(
-      screen.getByRole('button', { name: 'expandSidebar' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'expandSidebar' })).toBeInTheDocument();
   });
 
   // 6. Settings nav item navigates to settings view

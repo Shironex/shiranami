@@ -11,6 +11,7 @@ import {
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
   nextLyricsFontSize,
 } from './useAppStore';
+import { useViewStore } from './useViewStore';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -31,9 +32,6 @@ describe('useAppStore', () => {
   beforeEach(() => {
     localStorage.clear();
     useAppStore.setState({
-      activeView: 'library',
-      rightPanel: null,
-      selectedPlaylistId: null,
       sidebarCollapsed: false,
       sidebarHiddenItems: [],
       sidebarPlaylistsVisible: true,
@@ -174,18 +172,18 @@ describe('useAppStore', () => {
   });
 
   it('persists album sort mode and resets scroll position', () => {
-    useAppStore.setState({ albumGridScrollTop: 500 });
+    useViewStore.setState({ albumGridScrollTop: 500 });
     useAppStore.getState().setAlbumSortMode('artist');
     expect(useAppStore.getState().albumSortMode).toBe('artist');
-    expect(useAppStore.getState().albumGridScrollTop).toBe(0);
+    expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortMode).toBe('artist');
   });
 
   it('persists recentlyAdded sort mode and resets scroll position', () => {
-    useAppStore.setState({ albumGridScrollTop: 300 });
+    useViewStore.setState({ albumGridScrollTop: 300 });
     useAppStore.getState().setAlbumSortMode('recentlyAdded');
     expect(useAppStore.getState().albumSortMode).toBe('recentlyAdded');
-    expect(useAppStore.getState().albumGridScrollTop).toBe(0);
+    expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortMode).toBe('recentlyAdded');
   });
 
@@ -204,17 +202,17 @@ describe('useAppStore', () => {
   });
 
   it('persists album sort order and resets scroll position', () => {
-    useAppStore.setState({ albumGridScrollTop: 500 });
+    useViewStore.setState({ albumGridScrollTop: 500 });
     useAppStore.getState().setAlbumSortOrder('desc');
     expect(useAppStore.getState().albumSortOrder).toBe('desc');
-    expect(useAppStore.getState().albumGridScrollTop).toBe(0);
+    expect(useViewStore.getState().albumGridScrollTop).toBe(0);
     expect(readPersisted().albumSortOrder).toBe('desc');
   });
 
   it('album grid size changes do not reset scroll position', () => {
-    useAppStore.setState({ albumGridScrollTop: 500 });
+    useViewStore.setState({ albumGridScrollTop: 500 });
     useAppStore.getState().setAlbumGridSize('large');
-    expect(useAppStore.getState().albumGridScrollTop).toBe(500);
+    expect(useViewStore.getState().albumGridScrollTop).toBe(500);
   });
 
   it('clamps lyrics plain opacity above max and rounds to step', () => {

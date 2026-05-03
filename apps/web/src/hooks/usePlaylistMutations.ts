@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,12 +17,9 @@ interface UsePlaylistMutationsOptions {
 /**
  * Handles playlist mutation operations using TanStack Query mutations.
  */
-export function usePlaylistMutations({
-  playlistId,
-  playlist,
-}: UsePlaylistMutationsOptions) {
+export function usePlaylistMutations({ playlistId, playlist }: UsePlaylistMutationsOptions) {
   const { t: tToast } = useTranslation('toast');
-  const selectPlaylist = useAppStore((s) => s.selectPlaylist);
+  const selectPlaylist = useViewStore(s => s.selectPlaylist);
 
   const updateMutation = useUpdatePlaylistMutation();
   const deleteMutation = useDeletePlaylistMutation();

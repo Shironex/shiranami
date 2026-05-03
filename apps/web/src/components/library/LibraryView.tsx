@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Download, LayoutGrid, List, Music, Search, X } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
@@ -31,7 +32,7 @@ export function LibraryView() {
 
   const libraryViewMode = useAppStore(s => s.libraryViewMode);
   const setLibraryViewMode = useAppStore(s => s.setLibraryViewMode);
-  const selectedAlbumName = useAppStore(s => s.selectedAlbumName);
+  const selectedAlbumName = useViewStore(s => s.selectedAlbumName);
   const libraryHeroCardEnabled = useAppStore(s => s.libraryHeroCardEnabled);
   const albumGridSize = useAppStore(s => s.albumGridSize);
   const setAlbumGridSize = useAppStore(s => s.setAlbumGridSize);

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -48,13 +48,13 @@ import { DragOverlayContent } from './DragOverlayContent';
 export function PlaylistDetailView() {
   const { t } = useTranslation('playlists');
   const { t: tCommon } = useTranslation('common');
-  const selectedPlaylistId = useAppStore((s) => s.selectedPlaylistId);
-  const selectPlaylist = useAppStore((s) => s.selectPlaylist);
-  const setQueue = usePlaybackStore((s) => s.setQueue);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
-  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
+  const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
+  const selectPlaylist = useViewStore(s => s.selectPlaylist);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   // Data fetching
   const { playlist, tracks, displayTracks, isLoading, isError, refetch } =
@@ -71,15 +71,12 @@ export function PlaylistDetailView() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const sortableIds = useMemo(
-    () => displayTracks.map((t) => t.id),
-    [displayTracks]
-  );
+  const sortableIds = useMemo(() => displayTracks.map(t => t.id), [displayTracks]);
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const activeTrack = useMemo(
-    () => (activeId ? displayTracks.find((t) => t.id === activeId) ?? null : null),
+    () => (activeId ? (displayTracks.find(t => t.id === activeId) ?? null) : null),
     [activeId, displayTracks]
   );
 
@@ -109,13 +106,10 @@ export function PlaylistDetailView() {
   }, []);
 
   // Computed stats
-  const totalDuration = useMemo(
-    () => tracks.reduce((sum, t) => sum + t.duration, 0),
-    [tracks]
-  );
+  const totalDuration = useMemo(() => tracks.reduce((sum, t) => sum + t.duration, 0), [tracks]);
 
   // Cover art
-  const suggestedCoverArt = tracks.find((track) => track.albumArt)?.albumArt;
+  const suggestedCoverArt = tracks.find(track => track.albumArt)?.albumArt;
   const {
     showCoverMenu,
     setShowCoverMenu,
@@ -186,7 +180,12 @@ export function PlaylistDetailView() {
         title={t('errorTitle')}
         subtitle={t('errorSubtitle')}
         icon={AlertCircle}
-        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+        action={{
+          label: tCommon('retry'),
+          onClick: () => {
+            void refetch();
+          },
+        }}
       />
     );
   }
@@ -290,13 +289,17 @@ export function PlaylistDetailView() {
         <div className="flex items-center gap-4">
           <div ref={coverMenuRef} className="relative shrink-0">
             <button
-              onClick={() => setShowCoverMenu((open) => !open)}
+              onClick={() => setShowCoverMenu(open => !open)}
               className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
               disabled={isUpdatingCover}
               title={t('editCover')}
             >
               {playlist.coverArt ? (
-                <img src={playlist.coverArt} alt={playlist.name} className="w-full h-full object-cover" />
+                <img
+                  src={playlist.coverArt}
+                  alt={playlist.name}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <ListMusic className="w-7 h-7 text-muted-foreground/20" />
               )}
@@ -363,7 +366,7 @@ export function PlaylistDetailView() {
               <input
                 ref={nameInputRef}
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={e => setEditName(e.target.value)}
                 onBlur={handleSaveNameSubmit}
                 onKeyDown={handleNameKeyDown}
                 className="font-display text-lg font-semibold text-foreground bg-transparent outline-none border-b border-primary/40 w-full pb-0.5"

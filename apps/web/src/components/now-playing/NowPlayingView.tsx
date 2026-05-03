@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { LyricsFontSize } from '@/stores/useAppStore';
 import { useAppStore, LYRICS_SYNCED_PAST_RATIO } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { useLyricsQuery } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 import { LyricsList } from '@/components/lyrics/LyricsList';
@@ -51,7 +52,7 @@ export function NowPlayingView() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const duration = usePlaybackStore(s => s.duration);
   const seek = usePlaybackStore(s => s.seek);
-  const exitNowPlaying = useAppStore(s => s.exitNowPlaying);
+  const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
   const lyricsVisible = useAppStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useAppStore(s => s.toggleNowPlayingLyrics);
   const lyricsPlainOpacity = useAppStore(s => s.lyricsPlainOpacity);

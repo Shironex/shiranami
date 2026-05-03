@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { type Track } from '@/stores/types';
 import { Disc3, Search } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -15,9 +16,9 @@ interface AlbumGridProps {
 
 export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const { t } = useTranslation('library');
-  const selectAlbum = useAppStore(s => s.selectAlbum);
-  const albumGridScrollTop = useAppStore(s => s.albumGridScrollTop);
-  const setAlbumGridScrollTop = useAppStore(s => s.setAlbumGridScrollTop);
+  const selectAlbum = useViewStore(s => s.selectAlbum);
+  const albumGridScrollTop = useViewStore(s => s.albumGridScrollTop);
+  const setAlbumGridScrollTop = useViewStore(s => s.setAlbumGridScrollTop);
   const albumGridSize = useAppStore(s => s.albumGridSize);
   const albumSortMode = useAppStore(s => s.albumSortMode);
   const albumSortOrder = useAppStore(s => s.albumSortOrder);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 
 interface Identifiable {
   id: string;
@@ -52,9 +52,9 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     set({ selectedTrackIds: new Set([trackId]), lastClickedIndex: index });
   },
 
-  selectAll: (trackList) => {
+  selectAll: trackList => {
     set({
-      selectedTrackIds: new Set(trackList.map((t) => t.id)),
+      selectedTrackIds: new Set(trackList.map(t => t.id)),
       lastClickedIndex: null,
     });
   },
@@ -65,8 +65,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 }));
 
 // Clear selection when navigating to a different view
-let prevView = useAppStore.getState().activeView;
-useAppStore.subscribe((state) => {
+let prevView = useViewStore.getState().activeView;
+useViewStore.subscribe(state => {
   if (state.activeView !== prevView) {
     prevView = state.activeView;
     useSelectionStore.getState().clearSelection();

@@ -8,6 +8,7 @@ import {
   CMP_ARTIST_CLASS,
   CMP_ALBUM_CLASS,
 } from '@/stores/useAppStore';
+import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
@@ -51,7 +52,7 @@ export function CompactPlayer() {
   }, [toggleCompactAlwaysOnTop]);
 
   const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useAppStore(s => s.enterNowPlaying);
+  const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
   const handleAlbumArtClick = useCallback(async () => {
     // Mirror the Spotify/Apple Music mini-player gesture: clicking the art
     // exits compact and surfaces the immersive Now Playing view if the user

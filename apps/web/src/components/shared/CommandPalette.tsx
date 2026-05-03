@@ -13,7 +13,7 @@ import {
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
-import { useAppStore, type AppView } from '@/stores/useAppStore';
+import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { formatDuration } from '@shiranami/shared';
 
 export function CommandPalette() {
@@ -22,7 +22,7 @@ export function CommandPalette() {
   const library = useLibraryStore(s => s.library);
   const setQueue = usePlaybackStore(s => s.setQueue);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const navigateTo = useAppStore(s => s.navigateTo);
+  const navigateTo = useViewStore(s => s.navigateTo);
 
   // Global Cmd+K / Ctrl+K listener
   useEffect(() => {

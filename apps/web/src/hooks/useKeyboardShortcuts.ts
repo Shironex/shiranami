@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useAppStore, type AppView } from '@/stores/useAppStore';
+import { useAppStore } from '@/stores/useAppStore';
+import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
 /**
@@ -63,7 +64,7 @@ export function useKeyboardShortcuts() {
           case 'L': {
             if (!e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleRightPanel('lyrics');
+              useViewStore.getState().toggleRightPanel('lyrics');
               return;
             }
             break;
@@ -72,7 +73,7 @@ export function useKeyboardShortcuts() {
           case 'Q': {
             if (!e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleRightPanel('queue');
+              useViewStore.getState().toggleRightPanel('queue');
               return;
             }
             break;
@@ -109,15 +110,15 @@ export function useKeyboardShortcuts() {
             // shortcut was received and why it didn't open the view.
             if (e.shiftKey) {
               e.preventDefault();
-              const { nowPlayingViewEnabled, activeView, enterNowPlaying, exitNowPlaying } =
-                useAppStore.getState();
+              const { nowPlayingViewEnabled } = useAppStore.getState();
+              const { activeView, enterNowPlaying, exitNowPlaying } = useViewStore.getState();
               if (!nowPlayingViewEnabled) {
                 toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
                   id: 'now-playing-disabled',
                   duration: 6000,
                   action: {
                     label: i18n.t('updateSettings', { ns: 'toast' }),
-                    onClick: () => useAppStore.getState().navigateTo('settings'),
+                    onClick: () => useViewStore.getState().navigateTo('settings'),
                   },
                 });
                 return;
@@ -237,10 +238,10 @@ export function useKeyboardShortcuts() {
           // Now Playing is a modal-like full-screen view; Esc should
           // dismiss it before any background-state cleanup. Standard
           // modal interaction.
-          const appState = useAppStore.getState();
-          if (appState.activeView === 'now-playing') {
+          const viewState = useViewStore.getState();
+          if (viewState.activeView === 'now-playing') {
             e.preventDefault();
-            appState.exitNowPlaying();
+            viewState.exitNowPlaying();
             return;
           }
           // Clear track selection first
@@ -250,9 +251,9 @@ export function useKeyboardShortcuts() {
             clearSelection();
             return;
           }
-          if (appState.rightPanel !== null) {
+          if (viewState.rightPanel !== null) {
             e.preventDefault();
-            appState.setRightPanel(null);
+            viewState.setRightPanel(null);
           }
           return;
         }
@@ -268,7 +269,7 @@ export function useKeyboardShortcuts() {
           const entry = NAV_VIEWS[parseInt(e.key) - 1];
           if (!entry) return;
           e.preventDefault();
-          useAppStore.getState().navigateTo(entry.view);
+          useViewStore.getState().navigateTo(entry.view);
           return;
         }
       }
