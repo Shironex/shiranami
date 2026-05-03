@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { IS_ELECTRON } from '@/lib/platform';
 import { useViewStore, type AppView, type RightPanel } from '@/stores/useViewStore';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
+import type { CompactSize, CompactFontSize } from '@/stores/useCompactStore';
 
-export type { AppView, RightPanel, LyricsFontSize };
+export type { AppView, RightPanel, LyricsFontSize, CompactSize, CompactFontSize };
 /** @deprecated Use LyricsFontSize. Alias kept for back-compat with existing imports. */
 export type LyricsPlainFontSize = LyricsFontSize;
 export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
@@ -12,9 +12,6 @@ export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
-
-export type CompactSize = 'sm' | 'md' | 'lg';
-export type CompactFontSize = 'sm' | 'md' | 'lg';
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -38,42 +35,18 @@ export {
   nextLyricsFontSize,
 } from '@/stores/useLyricsAppearanceStore';
 
-// --- Compact mode dimension presets ---
-//
-// Width/height values are forwarded over IPC to the Electron main process
-// which applies them via setMinimumSize/setMaximumSize/setSize. Keep these
-// matched with `apps/desktop/src/main/ipc/window.ts` if either side moves.
-export const COMPACT_SIZE_DEFAULT: CompactSize = 'md';
-export const COMPACT_DIMENSIONS: Record<CompactSize, { width: number; height: number }> = {
-  sm: { width: 420, height: 200 },
-  md: { width: 500, height: 214 },
-  lg: { width: 600, height: 260 },
-};
-
-// --- Compact mode appearance prefs ---
-export const COMPACT_AMBIENT_INTENSITY_MIN = 0;
-export const COMPACT_AMBIENT_INTENSITY_MAX = 0.2;
-export const COMPACT_AMBIENT_INTENSITY_STEP = 0.01;
-export const COMPACT_AMBIENT_INTENSITY_DEFAULT = 0.08;
-
-export const COMPACT_FONT_SIZE_DEFAULT: CompactFontSize = 'md';
-
-/** Tailwind class lookups for the title / artist / album text in compact view. */
-export const CMP_TITLE_CLASS: Record<CompactFontSize, string> = {
-  sm: 'text-xs font-semibold',
-  md: 'text-sm font-semibold',
-  lg: 'text-base font-semibold',
-};
-export const CMP_ARTIST_CLASS: Record<CompactFontSize, string> = {
-  sm: 'text-[10px]',
-  md: 'text-xs',
-  lg: 'text-sm',
-};
-export const CMP_ALBUM_CLASS: Record<CompactFontSize, string> = {
-  sm: 'text-[10px]',
-  md: 'text-[11px]',
-  lg: 'text-xs',
-};
+export {
+  COMPACT_SIZE_DEFAULT,
+  COMPACT_DIMENSIONS,
+  COMPACT_AMBIENT_INTENSITY_MIN,
+  COMPACT_AMBIENT_INTENSITY_MAX,
+  COMPACT_AMBIENT_INTENSITY_STEP,
+  COMPACT_AMBIENT_INTENSITY_DEFAULT,
+  COMPACT_FONT_SIZE_DEFAULT,
+  CMP_TITLE_CLASS,
+  CMP_ARTIST_CLASS,
+  CMP_ALBUM_CLASS,
+} from '@/stores/useCompactStore';
 
 const NEW_KEY = 'shiranami.app-store';
 
@@ -135,33 +108,12 @@ function coerceUiScale(v: unknown): number {
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
   return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
 }
-function coerceCompactSize(v: unknown): CompactSize {
-  return v === 'sm' || v === 'md' || v === 'lg' ? v : COMPACT_SIZE_DEFAULT;
-}
-function coerceCompactFontSize(v: unknown): CompactFontSize {
-  return v === 'sm' || v === 'md' || v === 'lg' ? v : COMPACT_FONT_SIZE_DEFAULT;
-}
-function clampCompactAmbientIntensity(v: number): number {
-  const clamped = Math.min(
-    COMPACT_AMBIENT_INTENSITY_MAX,
-    Math.max(COMPACT_AMBIENT_INTENSITY_MIN, v)
-  );
-  const steps = Math.round(clamped / COMPACT_AMBIENT_INTENSITY_STEP);
-  return Math.round(steps * COMPACT_AMBIENT_INTENSITY_STEP * 1000) / 1000;
-}
-function coerceCompactAmbientIntensity(v: unknown): number {
-  const parsed = typeof v === 'number' ? v : Number(v);
-  if (!Number.isFinite(parsed)) return COMPACT_AMBIENT_INTENSITY_DEFAULT;
-  return clampCompactAmbientIntensity(parsed);
-}
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
 interface PersistedAppState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
   sidebarPlaylistsVisible: boolean;
-  compactMode: boolean;
-  compactAlwaysOnTop: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
   uiScale: number;
@@ -175,15 +127,6 @@ interface PersistedAppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
-  compactSize: CompactSize;
-  compactFontSize: CompactFontSize;
-  compactAmbientIntensity: number;
-  compactShowAlbumArt: boolean;
-  compactShowAlbum: boolean;
-  compactShowSeek: boolean;
-  compactShowVolume: boolean;
-  compactShowFavorite: boolean;
-  compactDefaultAlwaysOnTop: boolean;
 }
 
 function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<PersistedAppState> {
@@ -195,9 +138,6 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
   if (typeof persisted.sidebarPlaylistsVisible === 'boolean')
     out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
-  if (typeof persisted.compactMode === 'boolean') out.compactMode = persisted.compactMode;
-  if (typeof persisted.compactAlwaysOnTop === 'boolean')
-    out.compactAlwaysOnTop = persisted.compactAlwaysOnTop;
   if (typeof persisted.showVisualizer === 'boolean') out.showVisualizer = persisted.showVisualizer;
   if (persisted.visualizerStyle !== undefined)
     out.visualizerStyle = coerceVisualizerStyle(persisted.visualizerStyle);
@@ -222,24 +162,6 @@ function sanitize(persisted: Partial<PersistedAppState> | undefined): Partial<Pe
     out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean')
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
-  if (persisted.compactSize !== undefined)
-    out.compactSize = coerceCompactSize(persisted.compactSize);
-  if (persisted.compactFontSize !== undefined)
-    out.compactFontSize = coerceCompactFontSize(persisted.compactFontSize);
-  if (persisted.compactAmbientIntensity !== undefined)
-    out.compactAmbientIntensity = coerceCompactAmbientIntensity(persisted.compactAmbientIntensity);
-  if (typeof persisted.compactShowAlbumArt === 'boolean')
-    out.compactShowAlbumArt = persisted.compactShowAlbumArt;
-  if (typeof persisted.compactShowAlbum === 'boolean')
-    out.compactShowAlbum = persisted.compactShowAlbum;
-  if (typeof persisted.compactShowSeek === 'boolean')
-    out.compactShowSeek = persisted.compactShowSeek;
-  if (typeof persisted.compactShowVolume === 'boolean')
-    out.compactShowVolume = persisted.compactShowVolume;
-  if (typeof persisted.compactShowFavorite === 'boolean')
-    out.compactShowFavorite = persisted.compactShowFavorite;
-  if (typeof persisted.compactDefaultAlwaysOnTop === 'boolean')
-    out.compactDefaultAlwaysOnTop = persisted.compactDefaultAlwaysOnTop;
   return out;
 }
 
@@ -252,7 +174,11 @@ function importLegacyAppStore() {
   const hasAny = Object.values(LEGACY_KEYS).some(k => ls.getItem(k) !== null);
   if (!hasAny) return;
 
-  const state: Partial<PersistedAppState> = {};
+  // Relaxed shape — we also copy `compactAlwaysOnTop` through so the
+  // useCompactStore one-shot importer (which reads this same combined
+  // bucket) can pick it up on next load. The field is no longer on
+  // PersistedAppState since compact moved to its own store.
+  const state: Partial<PersistedAppState> & { compactAlwaysOnTop?: boolean } = {};
 
   const sidebarCollapsed = ls.getItem(LEGACY_KEYS.sidebarCollapsed);
   if (sidebarCollapsed !== null) state.sidebarCollapsed = sidebarCollapsed === 'true';
@@ -329,8 +255,6 @@ importLegacyAppStore();
 
 interface AppState {
   sidebarCollapsed: boolean;
-  compactMode: boolean;
-  compactAlwaysOnTop: boolean;
   sidebarHiddenItems: AppView[];
   sidebarPlaylistsVisible: boolean;
   showVisualizer: boolean;
@@ -346,15 +270,6 @@ interface AppState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
-  compactSize: CompactSize;
-  compactFontSize: CompactFontSize;
-  compactAmbientIntensity: number;
-  compactShowAlbumArt: boolean;
-  compactShowAlbum: boolean;
-  compactShowSeek: boolean;
-  compactShowVolume: boolean;
-  compactShowFavorite: boolean;
-  compactDefaultAlwaysOnTop: boolean;
 }
 
 interface AppActions {
@@ -364,10 +279,6 @@ interface AppActions {
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
-  setCompactMode: (compactMode: boolean) => Promise<void>;
-  setCompactAlwaysOnTop: (compactAlwaysOnTop: boolean) => Promise<void>;
-  toggleCompactMode: () => Promise<void>;
-  toggleCompactAlwaysOnTop: () => Promise<void>;
   toggleSidebarCollapsed: () => void;
   toggleSidebarItem: (view: AppView) => void;
   setSidebarPlaylistsVisible: (visible: boolean) => void;
@@ -380,16 +291,6 @@ interface AppActions {
   setPlaylistGridSize: (size: AlbumGridSize) => void;
   setAlbumSortMode: (mode: AlbumSortMode) => void;
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
-  setCompactSize: (size: CompactSize) => void;
-  setCompactFontSize: (size: CompactFontSize) => void;
-  setCompactAmbientIntensity: (value: number) => void;
-  setCompactShowAlbumArt: (visible: boolean) => void;
-  setCompactShowAlbum: (visible: boolean) => void;
-  setCompactShowSeek: (visible: boolean) => void;
-  setCompactShowVolume: (visible: boolean) => void;
-  setCompactShowFavorite: (visible: boolean) => void;
-  setCompactDefaultAlwaysOnTop: (enabled: boolean) => void;
-  resetCompactAppearance: () => void;
 }
 
 export const useAppStore = create<AppState & AppActions>()(
@@ -398,8 +299,6 @@ export const useAppStore = create<AppState & AppActions>()(
       sidebarCollapsed: false,
       sidebarHiddenItems: [],
       sidebarPlaylistsVisible: true,
-      compactMode: false,
-      compactAlwaysOnTop: false,
       showVisualizer: true,
       visualizerStyle: 'bars',
       uiScale: UI_SCALE_DEFAULT,
@@ -413,15 +312,6 @@ export const useAppStore = create<AppState & AppActions>()(
       libraryHeroCardEnabled: true,
       lowPerformanceMode: false,
       noiseOverlayEnabled: false,
-      compactSize: COMPACT_SIZE_DEFAULT,
-      compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
-      compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
-      compactShowAlbumArt: true,
-      compactShowAlbum: true,
-      compactShowSeek: true,
-      compactShowVolume: true,
-      compactShowFavorite: false,
-      compactDefaultAlwaysOnTop: false,
 
       setNowPlayingViewEnabled: enabled => {
         set({ nowPlayingViewEnabled: enabled });
@@ -445,64 +335,6 @@ export const useAppStore = create<AppState & AppActions>()(
       },
       setSidebarCollapsed: sidebarCollapsed => {
         set({ sidebarCollapsed });
-      },
-      setCompactMode: async compactMode => {
-        const previous = get().compactMode;
-        if (previous === compactMode) return;
-
-        // When the user has opted into "default to always-on-top in compact",
-        // seed the runtime flag on entry. We seed before persisting because
-        // setCompactAlwaysOnTop short-circuits when not yet in compact mode,
-        // so we just write the value directly here.
-        const previousAlwaysOnTop = get().compactAlwaysOnTop;
-        if (compactMode && get().compactDefaultAlwaysOnTop && !previousAlwaysOnTop) {
-          set({ compactAlwaysOnTop: true });
-        }
-
-        set({ compactMode });
-
-        if (!IS_ELECTRON) return;
-
-        try {
-          const dims = COMPACT_DIMENSIONS[get().compactSize];
-          await window.electronAPI.window.setCompactMode(compactMode, dims);
-        } catch {
-          // Compact-mode IPC failed: undo the store flips and bail before
-          // touching always-on-top so we don't pin a window the user thinks
-          // is still in normal mode.
-          set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
-          return;
-        }
-
-        if (get().compactAlwaysOnTop) {
-          try {
-            await window.electronAPI.window.setAlwaysOnTop(compactMode);
-          } catch {
-            // Compact succeeded but pin failed: only roll back the pin —
-            // the OS window is correctly in/out of compact mode now.
-            set({ compactAlwaysOnTop: previousAlwaysOnTop });
-          }
-        }
-      },
-      setCompactAlwaysOnTop: async compactAlwaysOnTop => {
-        const previous = get().compactAlwaysOnTop;
-        if (previous === compactAlwaysOnTop) return;
-
-        set({ compactAlwaysOnTop });
-
-        if (!IS_ELECTRON || !get().compactMode) return;
-
-        try {
-          await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
-        } catch {
-          set({ compactAlwaysOnTop: previous });
-        }
-      },
-      toggleCompactMode: async () => {
-        await get().setCompactMode(!get().compactMode);
-      },
-      toggleCompactAlwaysOnTop: async () => {
-        await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
       },
       toggleSidebarCollapsed: () => {
         set({ sidebarCollapsed: !get().sidebarCollapsed });
@@ -550,43 +382,6 @@ export const useAppStore = create<AppState & AppActions>()(
         // Scroll position is meaningless once album order changes.
         useViewStore.setState({ albumGridScrollTop: 0 });
       },
-      setCompactSize: size => {
-        const next = coerceCompactSize(size);
-        set({ compactSize: next });
-        // If the window is currently in compact mode, push the new dimensions
-        // immediately so the preset switch is reflected without a re-toggle.
-        if (IS_ELECTRON && get().compactMode) {
-          const dims = COMPACT_DIMENSIONS[next];
-          window.electronAPI.window.setCompactMode(true, dims).catch(() => {
-            // Failure to resize is non-fatal; the next enter-compact will retry.
-          });
-        }
-      },
-      setCompactFontSize: size => {
-        set({ compactFontSize: coerceCompactFontSize(size) });
-      },
-      setCompactAmbientIntensity: value => {
-        set({ compactAmbientIntensity: coerceCompactAmbientIntensity(value) });
-      },
-      setCompactShowAlbumArt: visible => set({ compactShowAlbumArt: visible }),
-      setCompactShowAlbum: visible => set({ compactShowAlbum: visible }),
-      setCompactShowSeek: visible => set({ compactShowSeek: visible }),
-      setCompactShowVolume: visible => set({ compactShowVolume: visible }),
-      setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
-      setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
-      resetCompactAppearance: () => {
-        set({
-          compactSize: COMPACT_SIZE_DEFAULT,
-          compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
-          compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
-          compactShowAlbumArt: true,
-          compactShowAlbum: true,
-          compactShowSeek: true,
-          compactShowVolume: true,
-          compactShowFavorite: false,
-          compactDefaultAlwaysOnTop: false,
-        });
-      },
     }),
     {
       name: NEW_KEY,
@@ -596,8 +391,6 @@ export const useAppStore = create<AppState & AppActions>()(
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarHiddenItems: s.sidebarHiddenItems,
         sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
-        compactMode: s.compactMode,
-        compactAlwaysOnTop: s.compactAlwaysOnTop,
         showVisualizer: s.showVisualizer,
         visualizerStyle: s.visualizerStyle,
         uiScale: s.uiScale,
@@ -611,15 +404,6 @@ export const useAppStore = create<AppState & AppActions>()(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
-        compactSize: s.compactSize,
-        compactFontSize: s.compactFontSize,
-        compactAmbientIntensity: s.compactAmbientIntensity,
-        compactShowAlbumArt: s.compactShowAlbumArt,
-        compactShowAlbum: s.compactShowAlbum,
-        compactShowSeek: s.compactShowSeek,
-        compactShowVolume: s.compactShowVolume,
-        compactShowFavorite: s.compactShowFavorite,
-        compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
       }),
       merge: (persisted, current) => ({
         ...current,
@@ -629,32 +413,6 @@ export const useAppStore = create<AppState & AppActions>()(
         if (!state) return;
         applyUiScale(state.uiScale);
         applyLowPerformanceMode(state.lowPerformanceMode);
-        // Re-apply compact mode at the OS-window level after rehydrate so
-        // users who quit while in compact mode come back into compact mode.
-        // The renderer flag is restored by zustand-persist; here we just
-        // forward to Electron so the window itself resizes/locks again.
-        if (IS_ELECTRON && state.compactMode) {
-          // Sequence the IPCs: pin only after compact takes hold, otherwise
-          // we could end up pinning a window that didn't make it into
-          // compact mode. Mutating `state` here is ineffective (rehydration
-          // has already merged), so any rollback has to go through setState.
-          void (async () => {
-            const dims = COMPACT_DIMENSIONS[state.compactSize];
-            try {
-              await window.electronAPI.window.setCompactMode(true, dims);
-            } catch {
-              useAppStore.setState({ compactMode: false, compactAlwaysOnTop: false });
-              return;
-            }
-            if (state.compactAlwaysOnTop) {
-              try {
-                await window.electronAPI.window.setAlwaysOnTop(true);
-              } catch {
-                useAppStore.setState({ compactAlwaysOnTop: false });
-              }
-            }
-          })();
-        }
       },
     }
   )

@@ -4,6 +4,7 @@ import { fireEvent } from '@testing-library/react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -416,7 +417,7 @@ describe('useKeyboardShortcuts', () => {
 
     it('Ctrl+Shift+M toggles compact mode', () => {
       setup();
-      const toggleSpy = vi.spyOn(useAppStore.getState(), 'toggleCompactMode');
+      const toggleSpy = vi.spyOn(useCompactStore.getState(), 'toggleCompactMode');
 
       pressKey('M', { ctrlKey: true, shiftKey: true });
       expect(toggleSpy).toHaveBeenCalledOnce();

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Minimize2, AudioLines } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -20,7 +21,7 @@ export function PlayerOverflowMenu() {
   const { t } = useTranslation('player');
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
-  const setCompactMode = useAppStore(s => s.setCompactMode);
+  const setCompactMode = useCompactStore(s => s.setCompactMode);
   const eqEnabled = useEqStore(s => s.enabled);
   const eqPreset = useEqStore(s => s.preset);
 

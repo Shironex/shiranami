@@ -3,7 +3,7 @@ import { PictureInPicture2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
-  useAppStore,
+  useCompactStore,
   COMPACT_AMBIENT_INTENSITY_MIN,
   COMPACT_AMBIENT_INTENSITY_MAX,
   COMPACT_AMBIENT_INTENSITY_STEP,
@@ -12,7 +12,7 @@ import {
   COMPACT_FONT_SIZE_DEFAULT,
   type CompactSize,
   type CompactFontSize,
-} from '@/stores/useAppStore';
+} from '@/stores/useCompactStore';
 import { cn } from '@/lib/utils';
 import { CompactModePreview } from '@/components/settings/CompactModePreview';
 
@@ -23,26 +23,26 @@ export function CompactSection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
 
-  const compactSize = useAppStore(s => s.compactSize);
-  const compactFontSize = useAppStore(s => s.compactFontSize);
-  const compactAmbientIntensity = useAppStore(s => s.compactAmbientIntensity);
-  const compactShowAlbumArt = useAppStore(s => s.compactShowAlbumArt);
-  const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
-  const compactShowSeek = useAppStore(s => s.compactShowSeek);
-  const compactShowVolume = useAppStore(s => s.compactShowVolume);
-  const compactShowFavorite = useAppStore(s => s.compactShowFavorite);
-  const compactDefaultAlwaysOnTop = useAppStore(s => s.compactDefaultAlwaysOnTop);
+  const compactSize = useCompactStore(s => s.compactSize);
+  const compactFontSize = useCompactStore(s => s.compactFontSize);
+  const compactAmbientIntensity = useCompactStore(s => s.compactAmbientIntensity);
+  const compactShowAlbumArt = useCompactStore(s => s.compactShowAlbumArt);
+  const compactShowAlbum = useCompactStore(s => s.compactShowAlbum);
+  const compactShowSeek = useCompactStore(s => s.compactShowSeek);
+  const compactShowVolume = useCompactStore(s => s.compactShowVolume);
+  const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
+  const compactDefaultAlwaysOnTop = useCompactStore(s => s.compactDefaultAlwaysOnTop);
 
-  const setCompactSize = useAppStore(s => s.setCompactSize);
-  const setCompactFontSize = useAppStore(s => s.setCompactFontSize);
-  const setCompactAmbientIntensity = useAppStore(s => s.setCompactAmbientIntensity);
-  const setCompactShowAlbumArt = useAppStore(s => s.setCompactShowAlbumArt);
-  const setCompactShowAlbum = useAppStore(s => s.setCompactShowAlbum);
-  const setCompactShowSeek = useAppStore(s => s.setCompactShowSeek);
-  const setCompactShowVolume = useAppStore(s => s.setCompactShowVolume);
-  const setCompactShowFavorite = useAppStore(s => s.setCompactShowFavorite);
-  const setCompactDefaultAlwaysOnTop = useAppStore(s => s.setCompactDefaultAlwaysOnTop);
-  const resetCompactAppearance = useAppStore(s => s.resetCompactAppearance);
+  const setCompactSize = useCompactStore(s => s.setCompactSize);
+  const setCompactFontSize = useCompactStore(s => s.setCompactFontSize);
+  const setCompactAmbientIntensity = useCompactStore(s => s.setCompactAmbientIntensity);
+  const setCompactShowAlbumArt = useCompactStore(s => s.setCompactShowAlbumArt);
+  const setCompactShowAlbum = useCompactStore(s => s.setCompactShowAlbum);
+  const setCompactShowSeek = useCompactStore(s => s.setCompactShowSeek);
+  const setCompactShowVolume = useCompactStore(s => s.setCompactShowVolume);
+  const setCompactShowFavorite = useCompactStore(s => s.setCompactShowFavorite);
+  const setCompactDefaultAlwaysOnTop = useCompactStore(s => s.setCompactDefaultAlwaysOnTop);
+  const resetCompactAppearance = useCompactStore(s => s.resetCompactAppearance);
 
   const isModified =
     compactSize !== COMPACT_SIZE_DEFAULT ||

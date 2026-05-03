@@ -2,12 +2,13 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useAppStore } from '@/stores/useAppStore';
 import {
-  useAppStore,
+  useCompactStore,
   CMP_TITLE_CLASS,
   CMP_ARTIST_CLASS,
   CMP_ALBUM_CLASS,
-} from '@/stores/useAppStore';
+} from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -27,18 +28,18 @@ export function CompactPlayer() {
   const { t } = useTranslation('compact');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const duration = usePlaybackStore(s => s.duration);
-  const setCompactMode = useAppStore(s => s.setCompactMode);
-  const compactAlwaysOnTop = useAppStore(s => s.compactAlwaysOnTop);
-  const toggleCompactAlwaysOnTop = useAppStore(s => s.toggleCompactAlwaysOnTop);
+  const setCompactMode = useCompactStore(s => s.setCompactMode);
+  const compactAlwaysOnTop = useCompactStore(s => s.compactAlwaysOnTop);
+  const toggleCompactAlwaysOnTop = useCompactStore(s => s.toggleCompactAlwaysOnTop);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
 
-  const compactFontSize = useAppStore(s => s.compactFontSize);
-  const compactAmbientIntensity = useAppStore(s => s.compactAmbientIntensity);
-  const compactShowAlbumArt = useAppStore(s => s.compactShowAlbumArt);
-  const compactShowAlbum = useAppStore(s => s.compactShowAlbum);
-  const compactShowSeek = useAppStore(s => s.compactShowSeek);
-  const compactShowVolume = useAppStore(s => s.compactShowVolume);
-  const compactShowFavorite = useAppStore(s => s.compactShowFavorite);
+  const compactFontSize = useCompactStore(s => s.compactFontSize);
+  const compactAmbientIntensity = useCompactStore(s => s.compactAmbientIntensity);
+  const compactShowAlbumArt = useCompactStore(s => s.compactShowAlbumArt);
+  const compactShowAlbum = useCompactStore(s => s.compactShowAlbum);
+  const compactShowSeek = useCompactStore(s => s.compactShowSeek);
+  const compactShowVolume = useCompactStore(s => s.compactShowVolume);
+  const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
 
   const ambientColor = useAmbientColor();
   const { minimize: handleMinimize } = useWindowControls();

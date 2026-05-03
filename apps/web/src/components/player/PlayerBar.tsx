@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
@@ -32,7 +33,7 @@ export function PlayerBar() {
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const toggleVisualizer = useAppStore(s => s.toggleVisualizer);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
-  const setCompactMode = useAppStore(s => s.setCompactMode);
+  const setCompactMode = useCompactStore(s => s.setCompactMode);
   const nowPlayingViewEnabled = useAppStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
 

@@ -40,6 +40,7 @@ import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
@@ -97,7 +98,7 @@ function App() {
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useAppStore(s => s.showVisualizer);
   const visualizerStyle = useAppStore(s => s.visualizerStyle);
-  const compactMode = useAppStore(s => s.compactMode);
+  const compactMode = useCompactStore(s => s.compactMode);
   const lowPerformanceMode = useAppStore(s => s.lowPerformanceMode);
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore(s => s.updateProgress);

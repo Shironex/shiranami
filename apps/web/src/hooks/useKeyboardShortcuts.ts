@@ -4,6 +4,7 @@ import i18n from '@/lib/i18n';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 
@@ -82,7 +83,7 @@ export function useKeyboardShortcuts() {
           case 'm': {
             if (e.shiftKey) {
               e.preventDefault();
-              useAppStore.getState().toggleCompactMode();
+              useCompactStore.getState().toggleCompactMode();
               return;
             }
             break;
@@ -97,7 +98,7 @@ export function useKeyboardShortcuts() {
             // pin sticks the next time compact is entered.
             if (e.shiftKey) {
               e.preventDefault();
-              void useAppStore.getState().toggleCompactAlwaysOnTop();
+              void useCompactStore.getState().toggleCompactAlwaysOnTop();
               return;
             }
             break;
