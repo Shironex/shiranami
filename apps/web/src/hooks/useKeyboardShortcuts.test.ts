@@ -52,6 +52,7 @@ describe('useKeyboardShortcuts', () => {
     currentTimeRef.current = 100;
 
     useViewStore.setState({
+      activeView: 'library',
       rightPanel: null,
     });
 
