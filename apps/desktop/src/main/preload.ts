@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import {
   isIpcError,
   SHARE_ERROR_CODES,
@@ -6,16 +6,15 @@ import {
   VALIDATION_ERROR_CODES,
 } from './ipc/errors';
 import type { InstallDependenciesResult } from './ipc/downloader';
-
-function createIpcListener<T>(channel: string): (callback: (data: T) => void) => () => void {
-  return (callback: (data: T) => void) => {
-    const handler = (_event: IpcRendererEvent, data: T) => callback(data);
-    ipcRenderer.on(channel, handler);
-    return () => {
-      ipcRenderer.removeListener(channel, handler);
-    };
-  };
-}
+import { createIpcListener } from './preload/ipc-listener';
+import { appApi, type AppApi } from './preload/api/app';
+import { dialogApi, type DialogApi } from './preload/api/dialog';
+import { libraryApi, type LibraryApi } from './preload/api/library';
+import { lyricsApi, type LyricsApi } from './preload/api/lyrics';
+import { mediaApi, type MediaApi } from './preload/api/media';
+import { shellApi, type ShellApi } from './preload/api/shell';
+import { storeApi, type StoreApi } from './preload/api/store';
+import { windowApi, type WindowApi } from './preload/api/window';
 
 const UPDATER_IPC_CHANNELS = new Set([
   'updater:check-for-updates',
@@ -127,105 +126,18 @@ function invokeWithTimeout<T>(channel: string, timeout: number, ...args: unknown
   return Promise.race([invokePromise.finally(() => clearTimeout(timer)), timeoutPromise]);
 }
 
-interface TrackMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
-}
-
-interface ListeningHistoryEntry {
-  id: string;
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  duration: number | null;
-  playedAt: string;
-  playedSeconds: number;
-  completionRatio: number;
-  completed: boolean;
-  source: string;
-}
-
-interface ListeningStatsTrack {
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  playCount: number;
-  listenedSeconds: number;
-  lastPlayedAt: string;
-}
-
-interface ListeningStatsArtist {
-  artist: string;
-  playCount: number;
-  listenedSeconds: number;
-}
-
-interface ListeningStatsSummary {
-  totalPlays: number;
-  totalMinutes: number;
-  uniqueTracks: number;
-  uniqueArtists: number;
-  completedPlays: number;
-  topTracks: ListeningStatsTrack[];
-  topArtists: ListeningStatsArtist[];
-}
-
-interface ListeningActivityPoint {
-  date: string;
-  playCount: number;
-  listenedMinutes: number;
-}
+import type {
+  ListeningActivityPoint,
+  ListeningHistoryEntry,
+  ListeningStatsSummary,
+} from './preload/types';
 
 export interface ElectronAPI {
-  window: {
-    minimize: () => Promise<void>;
-    maximize: () => Promise<void>;
-    close: () => Promise<void>;
-    isMaximized: () => Promise<boolean>;
-    setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
-    setCompactMode: (
-      compactMode: boolean,
-      dimensions?: { width: number; height: number }
-    ) => Promise<void>;
-    onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
-  };
-  store: {
-    get: <T>(key: string) => Promise<T | undefined>;
-    set: <T>(key: string, value: T) => Promise<void>;
-    delete: (key: string) => Promise<void>;
-  };
-  dialog: {
-    openDirectory: () => Promise<string | null>;
-    openFile: (options?: unknown) => Promise<string | null>;
-  };
-  app: {
-    getVersion: () => Promise<string>;
-    openLogsFolder: () => Promise<void>;
-  };
-  library: {
-    parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
-    scanFolder: (dirPath: string) => Promise<Array<{ filePath: string; metadata: TrackMetadata }>>;
-    scanFolderGrouped: (dirPath: string) => Promise<{
-      rootTracks: Array<{ filePath: string; metadata: TrackMetadata }>;
-      subfolders: Array<{
-        name: string;
-        path: string;
-        tracks: Array<{ filePath: string; metadata: TrackMetadata }>;
-      }>;
-    }>;
-    validateFiles: (filePaths: string[]) => Promise<string[]>;
-  };
+  window: WindowApi;
+  store: StoreApi;
+  dialog: DialogApi;
+  app: AppApi;
+  library: LibraryApi;
   db: {
     tracks: {
       getAll: () => Promise<unknown[]>;
@@ -282,31 +194,8 @@ export interface ElectronAPI {
       reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
     };
   };
-  lyrics: {
-    fetch: (
-      title: string,
-      artist: string,
-      album?: string,
-      duration?: number
-    ) => Promise<{
-      synced: Array<{ time: number; text: string }> | null;
-      plain: string | null;
-      source: 'lrclib' | 'cache' | null;
-    }>;
-  };
-  media: {
-    onCommand: (callback: (command: string) => void) => () => void;
-    sendPlaybackState: (state: {
-      isPlaying: boolean;
-      title: string;
-      artist: string;
-      album: string;
-      duration: number;
-      currentTime: number;
-      albumArt: string | null;
-    }) => Promise<void>;
-    clearState: () => Promise<void>;
-  };
+  lyrics: LyricsApi;
+  media: MediaApi;
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
     suggest: (query: string) => Promise<string[]>;
@@ -432,10 +321,7 @@ export interface ElectronAPI {
     ) => () => void;
     onUpdateError: (callback: (message: string) => void) => () => void;
   };
-  shell: {
-    showInFolder: (filePath: string) => Promise<void>;
-    trashFile: (filePath: string) => Promise<void>;
-  };
+  shell: ShellApi;
   radio: {
     favorites: {
       getAll: () => Promise<unknown[]>;
@@ -554,38 +440,11 @@ export interface ElectronAPI {
 }
 
 const electronAPI: ElectronAPI = {
-  window: {
-    minimize: () => ipcRenderer.invoke('window:minimize'),
-    maximize: () => ipcRenderer.invoke('window:maximize'),
-    close: () => ipcRenderer.invoke('window:close'),
-    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
-    setAlwaysOnTop: (alwaysOnTop: boolean) =>
-      ipcRenderer.invoke('window:set-always-on-top', alwaysOnTop),
-    setCompactMode: (compactMode: boolean, dimensions?: { width: number; height: number }) =>
-      ipcRenderer.invoke('window:set-compact-mode', compactMode, dimensions),
-    onMaximizedChange: createIpcListener<boolean>('window:maximized-change'),
-  },
-  store: {
-    get: <T>(key: string) => ipcRenderer.invoke('store:get', key) as Promise<T | undefined>,
-    set: <T>(key: string, value: T) => ipcRenderer.invoke('store:set', key, value),
-    delete: (key: string) => ipcRenderer.invoke('store:delete', key),
-  },
-  dialog: {
-    openDirectory: () => ipcRenderer.invoke('dialog:open-directory'),
-    openFile: (options?: unknown) => ipcRenderer.invoke('dialog:open-file', options),
-  },
-  app: {
-    getVersion: () => ipcRenderer.invoke('app:get-version'),
-    openLogsFolder: () => ipcRenderer.invoke('app:open-logs-folder'),
-  },
-  library: {
-    parseMetadata: (filePath: string) => ipcRenderer.invoke('library:parse-metadata', filePath),
-    scanFolder: (dirPath: string) => ipcRenderer.invoke('library:scan-folder', dirPath),
-    scanFolderGrouped: (dirPath: string) =>
-      ipcRenderer.invoke('library:scan-folder-grouped', dirPath),
-    validateFiles: (filePaths: string[]) =>
-      ipcRenderer.invoke('library:validate-files', filePaths) as Promise<string[]>,
-  },
+  window: windowApi,
+  store: storeApi,
+  dialog: dialogApi,
+  app: appApi,
+  library: libraryApi,
   db: {
     tracks: {
       getAll: () => ipcRenderer.invoke('db:tracks:get-all'),
@@ -644,15 +503,8 @@ const electronAPI: ElectronAPI = {
         ipcRenderer.invoke('db:playlists:reorder', { playlistId, trackIds }),
     },
   },
-  lyrics: {
-    fetch: (title: string, artist: string, album?: string, duration?: number) =>
-      ipcRenderer.invoke('lyrics:fetch', title, artist, album, duration),
-  },
-  media: {
-    onCommand: createIpcListener<string>('media:command'),
-    sendPlaybackState: state => ipcRenderer.invoke('media:playback-state', state),
-    clearState: () => ipcRenderer.invoke('media:clear-state'),
-  },
+  lyrics: lyricsApi,
+  media: mediaApi,
   downloader: {
     suggest: (query: string) => ipcRenderer.invoke('downloader:suggest', query),
     search: (query: string) => ipcRenderer.invoke('downloader:search', query),
@@ -711,10 +563,7 @@ const electronAPI: ElectronAPI = {
     }>('updater:update-downloaded'),
     onUpdateError: createIpcListener<string>('updater:error'),
   },
-  shell: {
-    showInFolder: (filePath: string) => ipcRenderer.invoke('shell:show-in-folder', filePath),
-    trashFile: (filePath: string) => ipcRenderer.invoke('shell:trash-file', filePath),
-  },
+  shell: shellApi,
   radio: {
     favorites: {
       getAll: () => ipcRenderer.invoke('radio:favorites:get-all'),
