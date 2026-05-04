@@ -5,6 +5,7 @@ import { MinIntervalGate } from './utils/min-interval-gate';
 type RequestOptions = {
   headers?: Record<string, string>;
   timeoutMs?: number;
+  signal?: AbortSignal;
 };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -22,7 +23,7 @@ export class HttpError extends Error {
     public readonly url: string,
     public readonly status: number,
     public readonly headers: Record<string, string | string[]>,
-    public readonly retryAfterMs: number | null,
+    public readonly retryAfterMs: number | null
   ) {
     super(`Request failed with status ${status}: ${url}`);
     this.name = 'HttpError';
@@ -35,7 +36,7 @@ export class HttpError extends Error {
  * milliseconds, clamped to [0, 300_000]. Returns null when unparseable.
  */
 export function parseRetryAfter(
-  headers: Record<string, string | string[] | undefined>,
+  headers: Record<string, string | string[] | undefined>
 ): number | null {
   const lower: Record<string, string | string[] | undefined> = {};
   for (const [key, value] of Object.entries(headers)) {
@@ -122,16 +123,34 @@ export function __resetGatesForTests(): void {
 
 function requestTextRaw(url: string, options: RequestOptions = {}): Promise<string> {
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const { signal } = options;
   const startTime = Date.now();
 
   return new Promise<string>((resolve, reject) => {
     let settled = false;
     const request = net.request(url);
 
+    const onAbort = () => {
+      if (!settled) {
+        settled = true;
+        request.abort();
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+      }
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
         request.abort();
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request timed out after ${timeout}ms: ${url}`);
         reject(new Error(`Request timed out after ${timeout}ms: ${url}`));
       }
@@ -141,17 +160,16 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
       request.setHeader(key, value);
     }
 
-    request.on('response', (response) => {
+    request.on('response', response => {
       const statusCode = response.statusCode;
       const responseHeaders = response.headers as Record<string, string | string[]>;
 
       if (statusCode < 200 || statusCode >= 300) {
         clearTimeout(timer);
         settled = true;
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request failed: ${url} - status ${statusCode}`);
-        reject(
-          new HttpError(url, statusCode, responseHeaders, parseRetryAfter(responseHeaders)),
-        );
+        reject(new HttpError(url, statusCode, responseHeaders, parseRetryAfter(responseHeaders)));
         return;
       }
 
@@ -165,6 +183,7 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          signal?.removeEventListener('abort', onAbort);
           logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
           resolve(Buffer.concat(chunks).toString('utf-8'));
         }
@@ -174,6 +193,7 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          signal?.removeEventListener('abort', onAbort);
           logger.warn(`[http] Response error: ${url}`, err.message);
           reject(err);
         }
@@ -184,6 +204,7 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
       if (!settled) {
         clearTimeout(timer);
         settled = true;
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request error: ${url}`, err.message);
         reject(err);
       }
@@ -195,9 +216,10 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
 
 function requestBufferRaw(
   url: string,
-  options: RequestOptions & { maxBytes?: number } = {},
+  options: RequestOptions & { maxBytes?: number } = {}
 ): Promise<Buffer> {
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const { signal } = options;
   const maxBytes = options.maxBytes;
   const startTime = Date.now();
 
@@ -205,10 +227,27 @@ function requestBufferRaw(
     let settled = false;
     const request = net.request(url);
 
+    const onAbort = () => {
+      if (!settled) {
+        settled = true;
+        request.abort();
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+      }
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
         request.abort();
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request timed out after ${timeout}ms: ${url}`);
         reject(new Error(`Request timed out after ${timeout}ms: ${url}`));
       }
@@ -218,17 +257,16 @@ function requestBufferRaw(
       request.setHeader(key, value);
     }
 
-    request.on('response', (response) => {
+    request.on('response', response => {
       const statusCode = response.statusCode;
       const responseHeaders = response.headers as Record<string, string | string[]>;
 
       if (statusCode < 200 || statusCode >= 300) {
         clearTimeout(timer);
         settled = true;
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request failed: ${url} - status ${statusCode}`);
-        reject(
-          new HttpError(url, statusCode, responseHeaders, parseRetryAfter(responseHeaders)),
-        );
+        reject(new HttpError(url, statusCode, responseHeaders, parseRetryAfter(responseHeaders)));
         return;
       }
 
@@ -242,6 +280,7 @@ function requestBufferRaw(
           clearTimeout(timer);
           settled = true;
           request.abort();
+          signal?.removeEventListener('abort', onAbort);
           reject(new Error(`Response exceeded maxBytes (${maxBytes}): ${url}`));
           return;
         }
@@ -252,6 +291,7 @@ function requestBufferRaw(
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          signal?.removeEventListener('abort', onAbort);
           logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
           resolve(Buffer.concat(chunks));
         }
@@ -261,6 +301,7 @@ function requestBufferRaw(
         if (!settled) {
           clearTimeout(timer);
           settled = true;
+          signal?.removeEventListener('abort', onAbort);
           logger.warn(`[http] Response error: ${url}`, err.message);
           reject(err);
         }
@@ -271,6 +312,7 @@ function requestBufferRaw(
       if (!settled) {
         clearTimeout(timer);
         settled = true;
+        signal?.removeEventListener('abort', onAbort);
         logger.warn(`[http] Request error: ${url}`, err.message);
         reject(err);
       }
@@ -285,10 +327,7 @@ function requestBufferRaw(
  * by the server's Retry-After (or a 60s fallback) before rethrowing — the
  * caller still gets the rejection, we just don't hammer the host further.
  */
-function runGated<T>(
-  url: string,
-  op: () => Promise<T>,
-): Promise<T> {
+function runGated<T>(url: string, op: () => Promise<T>): Promise<T> {
   let hostname: string;
   try {
     hostname = new URL(url).hostname;
@@ -319,7 +358,7 @@ export function requestText(url: string, options: RequestOptions = {}): Promise<
 
 export function requestBuffer(
   url: string,
-  options: RequestOptions & { maxBytes?: number } = {},
+  options: RequestOptions & { maxBytes?: number } = {}
 ): Promise<Buffer> {
   return runGated(url, () => requestBufferRaw(url, options));
 }
