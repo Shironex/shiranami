@@ -21,10 +21,13 @@ function setupContentSecurityPolicy(isDev: boolean): void {
       "img-src 'self' data: blob: https: http: shiranami-art:",
       // Fonts: Google Fonts + self
       "font-src 'self' data: https://fonts.gstatic.com",
-      // Connections: LRCLIB for lyrics, yt-dlp thumbnails; dev adds Vite WS
+      // Connections: LRCLIB for lyrics, yt-dlp thumbnails; shiranami-art for
+      // MediaSession blob-URL conversion (W3C spec restricts MediaImage.src
+      // to http/https/data/blob, so the renderer fetches custom-protocol
+      // covers and re-serves them as object URLs); dev adds Vite WS.
       isDev
-        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info`
-        : "connect-src 'self' https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info",
+        ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info shiranami-art:`
+        : "connect-src 'self' https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info shiranami-art:",
       // No plugins/embeds
       "object-src 'none'",
       // Audio: custom protocol + local files
@@ -118,11 +121,11 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   // Forward renderer console errors/warnings to main process log file.
   // Uses the Event object API (positional args are deprecated in Electron 40+).
   const NOISY_PATTERNS = [
-    'MediaImage src can only be of',       // Known Chromium limitation with custom protocols
-    'Electron Security Warning',           // Dev-only CSP warning
-    '[vite]',                              // Vite HMR messages (dev-only noise)
-    'Download the React DevTools',         // React dev tools promo
-    'i18next is made possible',            // i18next promo
+    'MediaImage src can only be of', // Known Chromium limitation with custom protocols
+    'Electron Security Warning', // Dev-only CSP warning
+    '[vite]', // Vite HMR messages (dev-only noise)
+    'Download the React DevTools', // React dev tools promo
+    'i18next is made possible', // i18next promo
   ];
 
   mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {

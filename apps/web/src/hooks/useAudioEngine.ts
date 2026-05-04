@@ -84,19 +84,19 @@ export function useAudioEngine() {
     recorded: false,
   });
 
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const volume = usePlaybackStore((s) => s.volume);
-  const isMuted = usePlaybackStore((s) => s.isMuted);
-  const repeatMode = usePlaybackStore((s) => s.repeatMode);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const volume = usePlaybackStore(s => s.volume);
+  const isMuted = usePlaybackStore(s => s.isMuted);
+  const repeatMode = usePlaybackStore(s => s.repeatMode);
 
-  const _setCurrentTime = usePlaybackStore((s) => s._setCurrentTime);
-  const _setDuration = usePlaybackStore((s) => s._setDuration);
-  const _setIsPlaying = usePlaybackStore((s) => s._setIsPlaying);
-  const _setIsLoading = usePlaybackStore((s) => s._setIsLoading);
-  const _setError = usePlaybackStore((s) => s._setError);
-  const _onTrackEnd = usePlaybackStore((s) => s._onTrackEnd);
-  const incrementTrackPlayCount = useLibraryStore((s) => s.incrementTrackPlayCount);
+  const _setCurrentTime = usePlaybackStore(s => s._setCurrentTime);
+  const _setDuration = usePlaybackStore(s => s._setDuration);
+  const _setIsPlaying = usePlaybackStore(s => s._setIsPlaying);
+  const _setIsLoading = usePlaybackStore(s => s._setIsLoading);
+  const _setError = usePlaybackStore(s => s._setError);
+  const _onTrackEnd = usePlaybackStore(s => s._onTrackEnd);
+  const incrementTrackPlayCount = useLibraryStore(s => s.incrementTrackPlayCount);
 
   function getDeck(deck: Deck) {
     return deck === 'A' ? deckARef.current : deckBRef.current;
@@ -183,7 +183,13 @@ export function useAudioEngine() {
     }
     deckTrackIdRef.current[cf.incomingDeck] = null;
     setVolume(cf.incomingDeck, 0);
-    crossfadeRef.current = { active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' };
+    crossfadeRef.current = {
+      active: false,
+      startTime: 0,
+      duration: 0,
+      outgoingDeck: 'A',
+      incomingDeck: 'B',
+    };
   }, []);
 
   const startCrossfade = useCallback(() => {
@@ -287,7 +293,13 @@ export function useAudioEngine() {
     resetPlaybackSession(nextTrack);
 
     // Clear crossfade state before store update (prevents re-triggering)
-    crossfadeRef.current = { active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' };
+    crossfadeRef.current = {
+      active: false,
+      startTime: 0,
+      duration: 0,
+      outgoingDeck: 'A',
+      incomingDeck: 'B',
+    };
 
     // Advance the store (this sets currentTrack, triggering the load effect —
     // the effect will see the track is already loaded on the new active deck and skip reload)
@@ -300,10 +312,16 @@ export function useAudioEngine() {
     if (!deckARef.current) {
       deckARef.current = new Audio();
       deckARef.current.preload = 'auto';
+      // Required so MediaElementAudioSourceNode receives actual samples;
+      // without it Web Audio outputs silent zeroes for cross-origin sources.
+      // shiranami-audio:// is registered with corsEnabled, so the protocol
+      // handler serves with permissive CORS headers.
+      deckARef.current.crossOrigin = 'anonymous';
     }
     if (!deckBRef.current) {
       deckBRef.current = new Audio();
       deckBRef.current.preload = 'auto';
+      deckBRef.current.crossOrigin = 'anonymous';
     }
     return () => {
       destroyAnalyser();
@@ -350,7 +368,7 @@ export function useAudioEngine() {
           if (session.lastTickAt !== null) {
             session.listenedSeconds += Math.max(
               0,
-              Math.min(MAX_SESSION_DELTA_SECONDS, (tickNow - session.lastTickAt) / 1000),
+              Math.min(MAX_SESSION_DELTA_SECONDS, (tickNow - session.lastTickAt) / 1000)
             );
           }
           session.lastTickAt = tickNow;
@@ -457,7 +475,7 @@ export function useAudioEngine() {
       _setIsLoading(false);
       if (usePlaybackStore.getState().isPlaying) {
         resumeAudioContext();
-        audio.play().catch((err) => {
+        audio.play().catch(err => {
           if (err.name !== 'AbortError') {
             _setError(err.message);
             _setIsPlaying(false);
@@ -478,7 +496,18 @@ export function useAudioEngine() {
     return () => {
       audio.removeEventListener('canplay', onCanPlayOnce);
     };
-  }, [currentTrack, cancelCrossfade, _setIsLoading, _setError, _setCurrentTime, _setDuration, _setIsPlaying, updateTime, flushPlaybackSession, resetPlaybackSession]);
+  }, [
+    currentTrack,
+    cancelCrossfade,
+    _setIsLoading,
+    _setError,
+    _setCurrentTime,
+    _setDuration,
+    _setIsPlaying,
+    updateTime,
+    flushPlaybackSession,
+    resetPlaybackSession,
+  ]);
 
   // ── Sync play / pause ─────────────────────────────────────────
 
@@ -558,7 +587,7 @@ export function useAudioEngine() {
   useEffect(() => {
     // Capture previous values so we only forward what actually changed.
     let prev = useEqStore.getState();
-    const unsub = useEqStore.subscribe((state) => {
+    const unsub = useEqStore.subscribe(state => {
       if (!analyserInitRef.current) {
         prev = state;
         return;
@@ -586,14 +615,9 @@ export function useAudioEngine() {
   // ── Handle seeks while paused ─────────────────────────────────
 
   useEffect(() => {
-    const unsub = usePlaybackStore.subscribe((state) => {
+    const unsub = usePlaybackStore.subscribe(state => {
       const audio = getActiveDeck();
-      if (
-        audio &&
-        state._seekTarget !== null &&
-        isFinite(state._seekTarget) &&
-        !state.isPlaying
-      ) {
+      if (audio && state._seekTarget !== null && isFinite(state._seekTarget) && !state.isPlaying) {
         audio.currentTime = state._seekTarget;
         usePlaybackStore.getState()._clearSeekTarget();
         _setCurrentTime(state._seekTarget);
@@ -675,7 +699,16 @@ export function useAudioEngine() {
       audio.removeEventListener('waiting', onWaiting);
       audio.removeEventListener('playing', onPlaying);
     };
-  }, [currentTrack, _setDuration, _setIsLoading, _onTrackEnd, _setError, _setIsPlaying, flushPlaybackSession, resetPlaybackSession]);
+  }, [
+    currentTrack,
+    _setDuration,
+    _setIsLoading,
+    _onTrackEnd,
+    _setError,
+    _setIsPlaying,
+    flushPlaybackSession,
+    resetPlaybackSession,
+  ]);
 
   // ── Repeat-one: restart playback directly at Audio element level ──
 
