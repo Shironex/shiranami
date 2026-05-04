@@ -1,8 +1,9 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
 import { logger } from '../logger';
+import { forkScanUtility, type ScanUtilityClient } from '../scan-utility-host';
 import { handle } from './with-ipc-handler';
 import {
   parseMetadataArgs,
@@ -75,14 +76,47 @@ async function scanDirectoryGrouped(dirPath: string): Promise<{
 
 const PARSE_CONCURRENCY = 16;
 
-async function parseAudioFiles(filePaths: string[]): Promise<ScannedTrack[]> {
+/**
+ * Map a utility ParseResult into the renderer-facing TrackMetadata shape.
+ * On parse failure, fall back to the same filename-derived placeholder
+ * `metadata-service.parseAudioMetadata` produced before this migration —
+ * keeps the renderer contract identical.
+ */
+function fallbackMetadata(filePath: string): TrackMetadata {
+  const fileName = path.basename(filePath, path.extname(filePath));
+  return {
+    title: fileName,
+    artist: 'Unknown Artist',
+    album: 'Unknown Album',
+    duration: 0,
+    genre: '',
+    year: null,
+    trackNumber: null,
+    discNumber: null,
+    albumArt: null,
+  };
+}
+
+/**
+ * Parse a batch of files through a single utility-process client. Mirrors
+ * the previous in-process concurrency=16 worker-pool shape; the utility now
+ * owns the heavy work and main only orchestrates.
+ */
+async function parseAudioFilesViaUtility(
+  utility: ScanUtilityClient,
+  filePaths: string[]
+): Promise<ScannedTrack[]> {
   const results: ScannedTrack[] = new Array(filePaths.length);
   for (let i = 0; i < filePaths.length; i += PARSE_CONCURRENCY) {
     const batch = filePaths.slice(i, i + PARSE_CONCURRENCY);
     const parsed = await Promise.all(
-      batch.map(async (filePath) => {
-        const metadata = await parseAudioMetadata(filePath);
-        return { filePath, metadata };
+      batch.map(async filePath => {
+        const result = await utility.parse(filePath);
+        if (result.ok) {
+          return { filePath, metadata: result.metadata };
+        }
+        logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
+        return { filePath, metadata: fallbackMetadata(filePath) };
       })
     );
     for (let j = 0; j < parsed.length; j++) {
@@ -92,18 +126,55 @@ async function parseAudioFiles(filePaths: string[]): Promise<ScannedTrack[]> {
   return results;
 }
 
+/**
+ * Spawn a one-shot scan-utility process, run an async function with it,
+ * then kill it (RSS returns to the OS — the entire point of the migration).
+ *
+ * The utility is forked + initialised here, not lazily — early failures
+ * should surface as IPC errors rather than mid-scan crashes.
+ *
+ * Test seam: `forkOverride` lets unit tests inject a fake client without
+ * spinning up a real utilityProcess.
+ */
+async function withScanUtility<T>(
+  fn: (utility: ScanUtilityClient) => Promise<T>,
+  forkOverride?: () => ScanUtilityClient
+): Promise<T> {
+  const utility = forkOverride ? forkOverride() : forkScanUtility();
+  try {
+    await utility.ready;
+    await utility.init({ userDataPath: app.getPath('userData') });
+    return await fn(utility);
+  } finally {
+    utility.kill();
+  }
+}
+
+/**
+ * Test-only seam: replaces the default `forkScanUtility` for the duration of
+ * the next scan IPC call. Reset by tests in afterEach.
+ */
+let forkOverrideForTest: (() => ScanUtilityClient) | null = null;
+export function _setForkOverrideForTest(fn: (() => ScanUtilityClient) | null): void {
+  forkOverrideForTest = fn;
+}
+
 export function registerLibraryHandlers(): void {
-  // Parse metadata for a single file
+  // Parse metadata for a single file. Stays in-main: spawning a utility for
+  // one file is overkill, and single-file parses don't accumulate the heap
+  // pressure that drove the migration.
   handle(
     'library:parse-metadata',
     async (_event, filePath: string) => {
       const metadata = await parseAudioMetadata(filePath);
       return { filePath, metadata };
     },
-    { schema: parseMetadataArgs },
+    { schema: parseMetadataArgs }
   );
 
-  // Scan a directory for audio files and parse their metadata
+  // Scan a directory for audio files and parse their metadata via a forked
+  // utility process. Process exits at the end of the scan → V8 heap returns
+  // to OS, freeing 200-400 MB main RSS at idle after large scans.
   handle(
     'library:scan-folder',
     async (_event, dirPath: string) => {
@@ -112,12 +183,19 @@ export function registerLibraryHandlers(): void {
       const filePaths = await scanDirectoryRecursive(dirPath);
       logger.info(`[library] Found ${filePaths.length} audio files in ${Date.now() - start}ms`);
 
+      if (filePaths.length === 0) return [];
+
       const parseStart = Date.now();
-      const results = await parseAudioFiles(filePaths);
-      logger.info(`[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`);
+      const results = await withScanUtility(
+        utility => parseAudioFilesViaUtility(utility, filePaths),
+        forkOverrideForTest ?? undefined
+      );
+      logger.info(
+        `[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`
+      );
       return results;
     },
-    { schema: scanFolderArgs },
+    { schema: scanFolderArgs }
   );
 
   // Validate which file paths still exist on disk (returns paths that are missing)
@@ -132,7 +210,7 @@ export function registerLibraryHandlers(): void {
       for (let i = 0; i < filePaths.length; i += VALIDATE_CONCURRENCY) {
         const batch = filePaths.slice(i, i + VALIDATE_CONCURRENCY);
         const results = await Promise.all(
-          batch.map(async (filePath) => {
+          batch.map(async filePath => {
             try {
               await fs.promises.access(filePath, fs.constants.F_OK);
               return null;
@@ -147,16 +225,22 @@ export function registerLibraryHandlers(): void {
       }
 
       if (missing.length > 0) {
-        logger.warn(`[library] Validation found ${missing.length} missing files out of ${filePaths.length} (${Date.now() - start}ms)`);
+        logger.warn(
+          `[library] Validation found ${missing.length} missing files out of ${filePaths.length} (${Date.now() - start}ms)`
+        );
       } else {
-        logger.info(`[library] Validation complete: all ${filePaths.length} files exist (${Date.now() - start}ms)`);
+        logger.info(
+          `[library] Validation complete: all ${filePaths.length} files exist (${Date.now() - start}ms)`
+        );
       }
       return missing;
     },
-    { schema: validateFilesArgs },
+    { schema: validateFilesArgs }
   );
 
-  // Scan a directory and return results grouped by immediate subfolder
+  // Scan a directory and return results grouped by immediate subfolder.
+  // Uses the same per-scan utility process as `scan-folder` — root files +
+  // every subfolder go through one utility client, which then exits.
   handle(
     'library:scan-folder-grouped',
     async (_event, dirPath: string) => {
@@ -164,28 +248,40 @@ export function registerLibraryHandlers(): void {
       logger.info(`[library] Scanning folder (grouped): ${dirPath}`);
       const { rootFiles, subfolders } = await scanDirectoryGrouped(dirPath);
 
-      const totalFiles = rootFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
-      logger.info(`[library] Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root) in ${Date.now() - start}ms`);
+      const totalFiles =
+        rootFiles.length + subfolders.reduce((sum, sf) => sum + sf.files.length, 0);
+      logger.info(
+        `[library] Found ${totalFiles} audio files in ${subfolders.length} subfolders (${rootFiles.length} at root) in ${Date.now() - start}ms`
+      );
 
-      const rootTracks = await parseAudioFiles(rootFiles);
-
-      const SUBFOLDER_CONCURRENCY = 4;
-      const parsedSubfolders = [];
-      for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
-        const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
-        const results = await Promise.all(
-          batch.map(async (subfolder) => {
-            const tracks = await parseAudioFiles(subfolder.files);
-            return { name: subfolder.name, path: subfolder.path, tracks };
-          })
-        );
-        parsedSubfolders.push(...results);
+      if (totalFiles === 0) {
+        return { rootTracks: [], subfolders: [] } satisfies GroupedScanResult;
       }
 
-      logger.info(`[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`);
-      return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
+      const result = await withScanUtility(async utility => {
+        const rootTracks = await parseAudioFilesViaUtility(utility, rootFiles);
+
+        const SUBFOLDER_CONCURRENCY = 4;
+        const parsedSubfolders = [];
+        for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
+          const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
+          const sub = await Promise.all(
+            batch.map(async subfolder => {
+              const tracks = await parseAudioFilesViaUtility(utility, subfolder.files);
+              return { name: subfolder.name, path: subfolder.path, tracks };
+            })
+          );
+          parsedSubfolders.push(...sub);
+        }
+        return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
+      }, forkOverrideForTest ?? undefined);
+
+      logger.info(
+        `[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`
+      );
+      return result;
     },
-    { schema: scanFolderGroupedArgs },
+    { schema: scanFolderGroupedArgs }
   );
 }
 

@@ -155,7 +155,7 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
 
     const promise = client.hello();
     fake.emitExit(1);
-    await expect(promise).rejects.toThrow(/exited before hello-ack/);
+    await expect(promise).rejects.toThrow(/scan-utility exited/);
   });
 
   it('rejects hello when called after kill()', async () => {
@@ -201,7 +201,7 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     fake.emitExit(0);
 
     expect(client.killed).toBe(true);
-    await expect(promise).rejects.toThrow(/exited before hello-ack/);
+    await expect(promise).rejects.toThrow(/scan-utility exited/);
   });
 
   it('ignores non-object messages safely', async () => {

@@ -2,8 +2,9 @@
  * Main-process host for the scan utility. Wraps `utilityProcess.fork()` into
  * an async client that the IPC layer can `await` against.
  *
- * Phase 1 scope: hello/ack round-trip + clean kill. Phase 2 will add the
- * `init` and `parse` message types and full lifecycle.
+ * Phase 2: hello/ack + init + parse round-trips. Each `parse(filePath)` call
+ * returns the music-metadata + shiranami-art:// URL as decoded inside the
+ * utility — cover Buffers do NOT cross the IPC boundary.
  *
  * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
  */
@@ -23,6 +24,29 @@ function defaultUtilityEntry(): string {
 
 const HELLO_TIMEOUT_MS = 5_000;
 const READY_TIMEOUT_MS = 5_000;
+const INIT_TIMEOUT_MS = 5_000;
+/**
+ * No bound on parse — the utility owns concurrency and a slow file (network
+ * mount, huge FLAC) can legitimately take seconds. Deadlocks are caught by
+ * the host calling kill() at scan teardown.
+ */
+
+/** Metadata shape echoed back from the utility. Mirrors TrackMetadata. */
+export interface ScanUtilityMetadata {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  genre: string;
+  year: number | null;
+  trackNumber: number | null;
+  discNumber: number | null;
+  albumArt: string | null;
+}
+
+export type ParseResult =
+  | { ok: true; metadata: ScanUtilityMetadata }
+  | { ok: false; error: string };
 
 export interface ScanUtilityClient {
   /** PID of the underlying utility process. */
@@ -31,6 +55,10 @@ export interface ScanUtilityClient {
   readonly ready: Promise<void>;
   /** Round-trip a hello/ack handshake. Resolves with the utility's PID. */
   hello(): Promise<{ pid: number }>;
+  /** Send the userData path to the utility. Resolves on `init-ack`. */
+  init(opts: { userDataPath: string }): Promise<void>;
+  /** Parse one file. Resolves with metadata + shiranami-art:// URL. */
+  parse(filePath: string): Promise<ParseResult>;
   /** Send SIGTERM and remove all listeners. Idempotent. */
   kill(): void;
   /** Whether `kill()` has been invoked or the process has exited. */
@@ -55,6 +83,17 @@ interface PendingHello {
   timer: NodeJS.Timeout;
 }
 
+interface PendingInit {
+  resolve: () => void;
+  reject: (reason: Error) => void;
+  timer: NodeJS.Timeout;
+}
+
+interface PendingParse {
+  resolve: (value: ParseResult) => void;
+  reject: (reason: Error) => void;
+}
+
 /**
  * Fork a fresh scan-utility process. Returns a client whose `ready` promise
  * resolves once the utility has signalled it is wired up.
@@ -73,6 +112,11 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
 
   let killed = false;
   let pendingHello: PendingHello | null = null;
+  let pendingInit: PendingInit | null = null;
+  /** Map of in-flight parse requests by ID, so utility messages can route back. */
+  const pendingParses = new Map<number, PendingParse>();
+  let nextRequestId = 1;
+
   let resolveReady: (() => void) | null = null;
   let rejectReady: ((reason: Error) => void) | null = null;
   const ready = new Promise<void>((resolve, reject) => {
@@ -90,6 +134,23 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   }, READY_TIMEOUT_MS);
   // Don't keep the event loop alive just for this guard.
   readyTimer.unref?.();
+
+  function rejectAllPending(reason: Error): void {
+    if (pendingHello) {
+      clearTimeout(pendingHello.timer);
+      pendingHello.reject(reason);
+      pendingHello = null;
+    }
+    if (pendingInit) {
+      clearTimeout(pendingInit.timer);
+      pendingInit.reject(reason);
+      pendingInit = null;
+    }
+    for (const pending of pendingParses.values()) {
+      pending.reject(reason);
+    }
+    pendingParses.clear();
+  }
 
   child.on('message', (raw: unknown) => {
     if (!raw || typeof raw !== 'object') return;
@@ -114,9 +175,39 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         }
         break;
 
+      case 'init-ack':
+        if (pendingInit) {
+          clearTimeout(pendingInit.timer);
+          pendingInit.resolve();
+          pendingInit = null;
+        }
+        break;
+
+      case 'parse-result': {
+        const requestId = typeof msg.requestId === 'number' ? msg.requestId : -1;
+        const pending = pendingParses.get(requestId);
+        if (!pending) {
+          logger.warn(`[scan-utility-host] orphan parse-result requestId=${requestId}`);
+          break;
+        }
+        pendingParses.delete(requestId);
+        if (msg.ok === true) {
+          pending.resolve({
+            ok: true,
+            metadata: msg.metadata as ScanUtilityMetadata,
+          });
+        } else {
+          pending.resolve({
+            ok: false,
+            error: typeof msg.error === 'string' ? msg.error : 'unknown utility parse error',
+          });
+        }
+        break;
+      }
+
       default:
-        // Phase 2 will add 'parse-result', 'log', etc. Unknown types in
-        // Phase 1 are warnings, not fatal — keeps the protocol additive.
+        // Phase 3+ will add 'log', etc. Unknown types in Phase 2 are warnings,
+        // not fatal — keeps the protocol additive.
         logger.warn(`[scan-utility-host] unknown message type: ${String(msg.type)}`);
     }
   });
@@ -130,13 +221,7 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       resolveReady = null;
       rejectReady = null;
     }
-    if (pendingHello) {
-      clearTimeout(pendingHello.timer);
-      pendingHello.reject(
-        new Error(`scan-utility exited before hello-ack (code=${code ?? 'null'})`)
-      );
-      pendingHello = null;
-    }
+    rejectAllPending(new Error(`scan-utility exited (code=${code ?? 'null'})`));
   });
 
   // stderr fallback — Phase 4 will replace this with a proper log bridge.
@@ -166,15 +251,33 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         child.postMessage({ type: 'hello' });
       });
     },
+    async init({ userDataPath }: { userDataPath: string }): Promise<void> {
+      if (killed) throw new Error('scan-utility already killed');
+      if (pendingInit) throw new Error('scan-utility init already in flight');
+
+      return new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          pendingInit = null;
+          reject(new Error(`scan-utility init timeout (${INIT_TIMEOUT_MS}ms)`));
+        }, INIT_TIMEOUT_MS);
+        timer.unref?.();
+        pendingInit = { resolve, reject, timer };
+        child.postMessage({ type: 'init', userDataPath });
+      });
+    },
+    async parse(filePath: string): Promise<ParseResult> {
+      if (killed) throw new Error('scan-utility already killed');
+      const requestId = nextRequestId++;
+      return new Promise<ParseResult>((resolve, reject) => {
+        pendingParses.set(requestId, { resolve, reject });
+        child.postMessage({ type: 'parse', requestId, filePath });
+      });
+    },
     kill(): void {
       if (killed) return;
       killed = true;
       clearTimeout(readyTimer);
-      if (pendingHello) {
-        clearTimeout(pendingHello.timer);
-        pendingHello.reject(new Error('scan-utility killed'));
-        pendingHello = null;
-      }
+      rejectAllPending(new Error('scan-utility killed'));
       try {
         child.kill();
       } catch (err) {

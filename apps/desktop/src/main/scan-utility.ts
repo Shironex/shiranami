@@ -5,8 +5,10 @@
  * scan completes so the OS reclaims the V8 heap (the entire point of the
  * migration).
  *
- * Phase 1 scope: skeleton only. Listens for `hello` and replies `hello-ack`.
- * Real parse/cover-write logic lands in Phase 2.
+ * Phase 2: handles `init` (receives userData path) and `parse` (decodes one
+ * file, writes any embedded cover to disk under `userData/album-art/`,
+ * returns metadata + shiranami-art:// URL). Cover Buffers do NOT cross the
+ * IPC boundary.
  *
  * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
  *
@@ -14,6 +16,10 @@
  * the actual payload lives at `event.data`. This is asymmetric with the parent
  * side, where `UtilityProcess.on('message')` already unwraps to the raw data.
  */
+
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { downscaleAndHash } from './lib/album-art-image';
 
 interface ParentPortMessageEvent {
   data: unknown;
@@ -33,33 +39,248 @@ if (!parentPort) {
   process.exit(1);
 }
 
+// ---------------------------------------------------------------------------
+// Wire types — keep in sync with scan-utility-host.ts.
+// ---------------------------------------------------------------------------
+
 interface HelloMessage {
   type: 'hello';
 }
-
-interface HelloAckMessage {
-  type: 'hello-ack';
-  pid: number;
+interface InitMessage {
+  type: 'init';
+  userDataPath: string;
 }
+interface ParseMessage {
+  type: 'parse';
+  requestId: number;
+  filePath: string;
+}
+
+type IncomingMessage = HelloMessage | InitMessage | ParseMessage;
 
 interface UtilityReadyMessage {
   type: 'utility-ready';
 }
+interface HelloAckMessage {
+  type: 'hello-ack';
+  pid: number;
+}
+interface InitAckMessage {
+  type: 'init-ack';
+}
 
-type IncomingMessage = HelloMessage;
-type OutgoingMessage = HelloAckMessage | UtilityReadyMessage;
+interface ParseSuccessMetadata {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  genre: string;
+  year: number | null;
+  trackNumber: number | null;
+  discNumber: number | null;
+  albumArt: string | null;
+}
+interface ParseSuccessMessage {
+  type: 'parse-result';
+  requestId: number;
+  ok: true;
+  metadata: ParseSuccessMetadata;
+}
+interface ParseErrorMessage {
+  type: 'parse-result';
+  requestId: number;
+  ok: false;
+  error: string;
+}
+
+type OutgoingMessage =
+  | UtilityReadyMessage
+  | HelloAckMessage
+  | InitAckMessage
+  | ParseSuccessMessage
+  | ParseErrorMessage;
 
 function post(msg: OutgoingMessage): void {
   parentPort!.postMessage(msg);
+}
+
+// ---------------------------------------------------------------------------
+// Lazy module + state
+// ---------------------------------------------------------------------------
+
+let mmModule: typeof import('music-metadata') | null = null;
+async function getMusicMetadata(): Promise<typeof import('music-metadata')> {
+  if (!mmModule) {
+    mmModule = await import('music-metadata');
+  }
+  return mmModule;
+}
+
+interface UtilityState {
+  userDataPath: string;
+  artDir: string;
+  artDirEnsured: boolean;
+}
+
+let state: UtilityState | null = null;
+
+function ensureArtDir(s: UtilityState): void {
+  if (s.artDirEnsured) return;
+  if (!fs.existsSync(s.artDir)) {
+    fs.mkdirSync(s.artDir, { recursive: true });
+  }
+  s.artDirEnsured = true;
+}
+
+function toArtUrl(fileName: string): string {
+  return `shiranami-art://art/${fileName}`;
+}
+
+// ---------------------------------------------------------------------------
+// Cover write — content-addressed JPEG cache. Mirrors saveAlbumArt() in
+// art-protocol.ts but uses sharp (via downscaleAndHash) and does no logging.
+// Returns the protocol URL or null when there is nothing to save.
+// ---------------------------------------------------------------------------
+
+async function saveAlbumArtToDisk(
+  s: UtilityState,
+  data: Buffer | Uint8Array
+): Promise<string | null> {
+  const downscaled = await downscaleAndHash(data);
+  if (!downscaled) return null;
+
+  ensureArtDir(s);
+  const filePath = path.join(s.artDir, downscaled.fileName);
+
+  try {
+    await fs.promises.writeFile(filePath, downscaled.bytes, { flag: 'wx' });
+  } catch (error: unknown) {
+    // EEXIST is the dedup happy-path — content-addressed naming means a
+    // duplicate write is a no-op. Any other error gets surfaced.
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code !== 'EEXIST') {
+      throw error;
+    }
+  }
+
+  return toArtUrl(downscaled.fileName);
+}
+
+// ---------------------------------------------------------------------------
+// Parse one file. Mirrors parseAudioMetadata() in metadata-service.ts but
+// without the logger import (Phase 4 will wire a log bridge). Errors are
+// swallowed and surface as the same fallback metadata shape main expects.
+// ---------------------------------------------------------------------------
+
+async function parseFile(s: UtilityState, filePath: string): Promise<ParseSuccessMetadata> {
+  const mm = await getMusicMetadata();
+  const fallbackTitle = path.basename(filePath, path.extname(filePath));
+
+  try {
+    const metadata = await mm.parseFile(filePath, { skipCovers: false });
+    const common = metadata.common;
+    const format = metadata.format;
+
+    let albumArt: string | null = null;
+    if (common.picture && common.picture.length > 0) {
+      const pic = common.picture[0];
+      try {
+        albumArt = await saveAlbumArtToDisk(s, pic.data);
+      } catch (err) {
+        // Log to stderr so main's stderr-pipe sees it; cover failure shouldn't
+        // sink the whole track. Phase 4 will replace this with a log bridge.
+        console.error(`[scan-utility] cover write failed for ${filePath}:`, err);
+      }
+    }
+
+    return {
+      title: common.title || fallbackTitle,
+      artist: common.artist || 'Unknown Artist',
+      album: common.album || 'Unknown Album',
+      duration: format.duration || 0,
+      genre: common.genre?.[0] || '',
+      year: common.year || null,
+      trackNumber: common.track?.no ?? null,
+      discNumber: common.disk?.no ?? null,
+      albumArt,
+    };
+  } catch (err) {
+    console.error(`[scan-utility] parse failed for ${filePath}:`, err);
+    return {
+      title: fallbackTitle,
+      artist: 'Unknown Artist',
+      album: 'Unknown Album',
+      duration: 0,
+      genre: '',
+      year: null,
+      trackNumber: null,
+      discNumber: null,
+      albumArt: null,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Message dispatcher
+// ---------------------------------------------------------------------------
+
+function handleParse(msg: ParseMessage): void {
+  if (!state) {
+    post({
+      type: 'parse-result',
+      requestId: msg.requestId,
+      ok: false,
+      error: 'utility not initialised — main must send init before parse',
+    });
+    return;
+  }
+
+  // Run async work without blocking the message loop.
+  void parseFile(state, msg.filePath).then(
+    metadata => {
+      post({ type: 'parse-result', requestId: msg.requestId, ok: true, metadata });
+    },
+    err => {
+      // parseFile already returns fallback metadata for parser-side errors;
+      // a rejection here means something fundamental (out of memory, etc.).
+      post({
+        type: 'parse-result',
+        requestId: msg.requestId,
+        ok: false,
+        error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      });
+    }
+  );
 }
 
 parentPort.on('message', event => {
   const msg = event.data as IncomingMessage | undefined;
   if (!msg || typeof msg !== 'object') return;
 
-  if (msg.type === 'hello') {
-    post({ type: 'hello-ack', pid: process.pid });
-    return;
+  switch (msg.type) {
+    case 'hello':
+      post({ type: 'hello-ack', pid: process.pid });
+      return;
+
+    case 'init':
+      if (!state) {
+        const userDataPath = msg.userDataPath;
+        state = {
+          userDataPath,
+          artDir: path.join(userDataPath, 'album-art'),
+          artDirEnsured: false,
+        };
+      }
+      post({ type: 'init-ack' });
+      return;
+
+    case 'parse':
+      handleParse(msg);
+      return;
+
+    default:
+      // Unknown types are ignored — keeps the protocol additive for Phase 3+.
+      return;
   }
 });
 
