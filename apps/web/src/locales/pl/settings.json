@@ -85,7 +85,11 @@
     "tracksNeedEnrich": "{{count}} utwór(ów) z brakującymi metadanymi",
     "enrichSkippedInline": "({{count}} pominiętych)",
     "enrichIncludeSkipped": "Uwzględnij pominięte",
-    "enrichIncludeSkippedDesc": "Ponów {{count}} utwór(ów), dla których wcześniej nie znaleziono wyników"
+    "enrichIncludeSkippedDesc": "Ponów {{count}} utwór(ów), dla których wcześniej nie znaleziono wyników",
+    "scanProgress": "Skanowanie {{current}} z {{total}}...",
+    "scanCurrentFile": "{{file}}",
+    "scanCancel": "Anuluj",
+    "scanCancelling": "Anulowanie..."
   },
   "play": {
     "title": "Odtwarzanie",

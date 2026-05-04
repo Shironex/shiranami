@@ -108,6 +108,8 @@ function createElectronAPIMock(): ElectronAPI {
       scanFolder: vi.fn(),
       scanFolderGrouped: asyncFn({ rootTracks: [], subfolders: [] }),
       validateFiles: asyncFn([]),
+      onScanProgress: vi.fn(() => noopUnsub()),
+      cancelScan: asyncFn(undefined),
     },
     media: {
       onCommand: vi.fn(() => noopUnsub()),

@@ -9,6 +9,7 @@ import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
 import { isScanLocked } from '@/lib/scanLock';
+import { ScanProgressCard } from '@/components/library/ScanProgressCard';
 
 export interface WatchedFolder {
   id: string;
@@ -90,6 +91,8 @@ export function MusicFoldersSection() {
               {isScanning ? <Loader2 className="animate-spin" /> : <Plus />}
               {isScanning ? t('folders.scanning') : t('folders.addFolder')}
             </Button>
+
+            <ScanProgressCard />
           </div>
         )}
       </SettingsCard>

@@ -85,7 +85,11 @@
     "tracksNeedEnrich": "{{count}} track(s) with missing metadata",
     "enrichSkippedInline": "({{count}} skipped)",
     "enrichIncludeSkipped": "Include previously skipped",
-    "enrichIncludeSkippedDesc": "Retry {{count}} track(s) that had no results last time"
+    "enrichIncludeSkippedDesc": "Retry {{count}} track(s) that had no results last time",
+    "scanProgress": "Scanning {{current}} of {{total}}...",
+    "scanCurrentFile": "{{file}}",
+    "scanCancel": "Cancel",
+    "scanCancelling": "Cancelling..."
   },
   "play": {
     "title": "Playback",

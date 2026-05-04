@@ -28,10 +28,13 @@ export interface UseLibraryRescanResult {
 export function useLibraryRescan(): UseLibraryRescanResult {
   const queryClient = useQueryClient();
   const { data: playlists = [] } = usePlaylistsQuery();
-  const clearQueue = usePlaybackStore((s) => s.clearQueue);
-  const removeFromLibrary = useLibraryStore((s) => s.removeFromLibrary);
+  const clearQueue = usePlaybackStore(s => s.clearQueue);
+  const removeFromLibrary = useLibraryStore(s => s.removeFromLibrary);
+  const scanState = useLibraryStore(s => s.scanState);
+  const setScanState = useLibraryStore(s => s.setScanState);
+  const resetScanProgress = useLibraryStore(s => s.resetScanProgress);
+  const isScanning = scanState !== 'idle';
 
-  const [isScanning, setIsScanning] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderGroup[]>([]);
@@ -48,8 +51,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
     try {
       folders = await queryClient.fetchQuery({
         queryKey: folderKeys.all,
-        queryFn: async () =>
-          (await window.electronAPI.db.folders.getAll()) as WatchedFolder[],
+        queryFn: async () => (await window.electronAPI.db.folders.getAll()) as WatchedFolder[],
       });
     } catch {
       toast.error(i18n.t('failedLoadFolders', { ns: 'toast' }));
@@ -62,7 +64,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       return;
     }
 
-    setIsScanning(true);
+    setScanState('scanning');
     let totalAdded = 0;
     const allDetectedSubfolders: SubfolderGroup[] = [];
 
@@ -88,13 +90,11 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       let totalRemoved = 0;
       const currentLibrary = useLibraryStore.getState().library;
       if (currentLibrary.length > 0) {
-        const allPaths = currentLibrary.map((t) => t.filePath);
+        const allPaths = currentLibrary.map(t => t.filePath);
         const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
         if (missingPaths.length > 0) {
           const missingSet = new Set(missingPaths);
-          const staleIds = currentLibrary
-            .filter((t) => missingSet.has(t.filePath))
-            .map((t) => t.id);
+          const staleIds = currentLibrary.filter(t => missingSet.has(t.filePath)).map(t => t.id);
           if (staleIds.length > 0) {
             await window.electronAPI.db.tracks.removeMany(staleIds);
             removeFromLibrary(staleIds);
@@ -108,7 +108,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
       if (totalAdded > 0 && totalRemoved > 0) {
         toast.success(
-          i18n.t('rescanSummary', { ns: 'toast', added: totalAdded, removed: totalRemoved }),
+          i18n.t('rescanSummary', { ns: 'toast', added: totalAdded, removed: totalRemoved })
         );
       } else if (totalAdded > 0) {
         toast.success(i18n.t('foundNewTracks', { ns: 'toast', count: totalAdded }));
@@ -120,8 +120,8 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
       // Subfolder playlist detection — only show dialog if any subfolders lack playlists
       if (allDetectedSubfolders.length > 0) {
-        const names = new Set((playlists as Playlist[]).map((p) => p.name));
-        const newSubfolders = allDetectedSubfolders.filter((sf) => !names.has(sf.name));
+        const names = new Set((playlists as Playlist[]).map(p => p.name));
+        const newSubfolders = allDetectedSubfolders.filter(sf => !names.has(sf.name));
         if (newSubfolders.length > 0) {
           setExistingPlaylistNames(names);
           setDetectedSubfolders(newSubfolders);
@@ -131,10 +131,10 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       console.error('Rescan failed:', err);
       toast.error(i18n.t('failedRescan', { ns: 'toast' }));
     } finally {
-      setIsScanning(false);
+      resetScanProgress();
       releaseScanLock();
     }
-  }, [queryClient, playlists, removeFromLibrary]);
+  }, [queryClient, playlists, removeFromLibrary, setScanState, resetScanProgress]);
 
   const clearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -142,7 +142,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
     try {
       const allTracks = useLibraryStore.getState().library;
       if (allTracks.length > 0) {
-        await window.electronAPI.db.tracks.removeMany(allTracks.map((t) => t.id));
+        await window.electronAPI.db.tracks.removeMany(allTracks.map(t => t.id));
       }
       clearQueue();
       useLibraryStore.setState({ library: [] });

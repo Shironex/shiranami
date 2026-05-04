@@ -5,14 +5,11 @@ import i18n from '@/lib/i18n';
 import { IS_ELECTRON } from '@/lib/platform';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
-import {
-  useFoldersQuery,
-  useRemoveFolderMutation,
-  folderKeys,
-} from '@/hooks/queries/useFolders';
+import { useFoldersQuery, useRemoveFolderMutation, folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import type { Playlist } from '@/types/electron';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 
 export interface UseLibraryFoldersResult {
   isScanning: boolean;
@@ -29,7 +26,11 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
   const { data: playlists = [] } = usePlaylistsQuery();
   const removeFolderMutation = useRemoveFolderMutation();
 
-  const [isScanning, setIsScanning] = useState(false);
+  const scanState = useLibraryStore(s => s.scanState);
+  const setScanState = useLibraryStore(s => s.setScanState);
+  const resetScanProgress = useLibraryStore(s => s.resetScanProgress);
+  const isScanning = scanState !== 'idle';
+
   const [detectedSubfolders, setDetectedSubfolders] = useState<SubfolderGroup[]>([]);
   const [existingPlaylistNames, setExistingPlaylistNames] = useState<Set<string>>(new Set());
 
@@ -46,14 +47,14 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
         return;
       }
 
-      const existing = folders.find((f) => f.path === dirPath);
+      const existing = folders.find(f => f.path === dirPath);
       if (existing) {
         toast.info(i18n.t('folderAlreadyExists', { ns: 'toast' }));
         releaseScanLock();
         return;
       }
 
-      setIsScanning(true);
+      setScanState('scanning');
       try {
         const result = await scanAndPersistFolder(dirPath);
 
@@ -70,30 +71,28 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
         queryClient.invalidateQueries({ queryKey: folderKeys.all });
         queryClient.invalidateQueries({ queryKey: libraryKeys.all });
 
-        toast.success(
-          i18n.t('addedTracks', { ns: 'toast', count: result.addedCount }),
-        );
+        toast.success(i18n.t('addedTracks', { ns: 'toast', count: result.addedCount }));
 
         // Subfolder playlist detection — only show dialog if any subfolders lack playlists
         if (result.subfolders.length > 0) {
-          const names = new Set((playlists as Playlist[]).map((p) => p.name));
-          const newSubfolders = result.subfolders.filter((sf) => !names.has(sf.name));
+          const names = new Set((playlists as Playlist[]).map(p => p.name));
+          const newSubfolders = result.subfolders.filter(sf => !names.has(sf.name));
           if (newSubfolders.length > 0) {
             setExistingPlaylistNames(names);
             setDetectedSubfolders(newSubfolders);
           }
         }
       } finally {
-        setIsScanning(false);
+        resetScanProgress();
         releaseScanLock();
       }
     } catch (err) {
       console.error('Failed to add folder:', err);
       toast.error(i18n.t('failedAddFolder', { ns: 'toast' }));
-      setIsScanning(false);
+      resetScanProgress();
       releaseScanLock();
     }
-  }, [folders, playlists, queryClient]);
+  }, [folders, playlists, queryClient, setScanState, resetScanProgress]);
 
   const removeFolder = useCallback(
     async (id: string) => {
@@ -106,7 +105,7 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
         toast.error(i18n.t('failedRemoveFolder', { ns: 'toast' }));
       }
     },
-    [removeFolderMutation],
+    [removeFolderMutation]
   );
 
   return {
