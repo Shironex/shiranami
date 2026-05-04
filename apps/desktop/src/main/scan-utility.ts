@@ -5,12 +5,11 @@
  * scan completes so the OS reclaims the V8 heap (the entire point of the
  * migration).
  *
- * Phase 2: handles `init` (receives userData path) and `parse` (decodes one
- * file, writes any embedded cover to disk under `userData/album-art/`,
- * returns metadata + shiranami-art:// URL). Cover Buffers do NOT cross the
- * IPC boundary.
- *
- * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
+ * Handles `init` (receives userData path) and `parse` (decodes one file,
+ * writes any embedded cover to disk under `userData/album-art/`, returns
+ * metadata + shiranami-art:// URL). Cover Buffers do NOT cross the IPC
+ * boundary. Forwards structured `log` events back to main and exits cleanly
+ * on `cancel`.
  *
  * IMPORTANT: parentPort.on('message') wraps each message in a MessageEvent —
  * the actual payload lives at `event.data`. This is asymmetric with the parent

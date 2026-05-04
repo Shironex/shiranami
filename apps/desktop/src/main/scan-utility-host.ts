@@ -2,11 +2,11 @@
  * Main-process host for the scan utility. Wraps `utilityProcess.fork()` into
  * an async client that the IPC layer can `await` against.
  *
- * Phase 2: hello/ack + init + parse round-trips. Each `parse(filePath)` call
- * returns the music-metadata + shiranami-art:// URL as decoded inside the
- * utility — cover Buffers do NOT cross the IPC boundary.
- *
- * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
+ * Each `parse(filePath)` call returns music-metadata + shiranami-art:// URL
+ * as decoded inside the utility — cover Buffers do NOT cross the IPC
+ * boundary. The client exposes per-file progress events, structured log
+ * forwarding, AbortSignal-driven cancellation (with SIGTERM fallback), and
+ * an `onExit` hook for telemetry.
  */
 
 import * as path from 'path';
