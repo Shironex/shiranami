@@ -119,6 +119,15 @@ export interface ElectronAPI {
       }>;
     }>;
     validateFiles: (filePaths: string[]) => Promise<string[]>;
+    onScanProgress: (
+      handler: (event: {
+        filePath: string;
+        fileIndex: number;
+        fileCount: number;
+        ok: boolean;
+      }) => void
+    ) => () => void;
+    cancelScan: () => Promise<void>;
   };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;

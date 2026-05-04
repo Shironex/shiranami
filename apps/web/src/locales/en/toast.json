@@ -95,5 +95,6 @@
   "nowPlayingDisabled": "Now Playing view is disabled — enable it in Appearance settings",
   "nowPlayingNoTrack": "Play a track first to open Now Playing",
   "failedLoadLibrary": "Failed to load library",
-  "failedLoadHistory": "Failed to load history"
+  "failedLoadHistory": "Failed to load history",
+  "scanCancelled": "Scan cancelled"
 }

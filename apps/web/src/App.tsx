@@ -44,6 +44,7 @@ import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -118,6 +119,14 @@ function App() {
     });
     return cleanup;
   }, [updateEnrichProgress]);
+
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const cleanup = window.electronAPI.library.onScanProgress(p => {
+      useLibraryStore.getState().updateScanProgress(p);
+    });
+    return cleanup;
+  }, []);
 
   return (
     <>

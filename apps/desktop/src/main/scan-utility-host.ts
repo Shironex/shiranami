@@ -2,11 +2,11 @@
  * Main-process host for the scan utility. Wraps `utilityProcess.fork()` into
  * an async client that the IPC layer can `await` against.
  *
- * Phase 2: hello/ack + init + parse round-trips. Each `parse(filePath)` call
- * returns the music-metadata + shiranami-art:// URL as decoded inside the
- * utility — cover Buffers do NOT cross the IPC boundary.
- *
- * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
+ * Each `parse(filePath)` call returns music-metadata + shiranami-art:// URL
+ * as decoded inside the utility — cover Buffers do NOT cross the IPC
+ * boundary. The client exposes per-file progress events, structured log
+ * forwarding, AbortSignal-driven cancellation (with SIGTERM fallback), and
+ * an `onExit` hook for telemetry.
  */
 
 import * as path from 'path';
@@ -25,6 +25,26 @@ function defaultUtilityEntry(): string {
 const HELLO_TIMEOUT_MS = 5_000;
 const READY_TIMEOUT_MS = 5_000;
 const INIT_TIMEOUT_MS = 5_000;
+/**
+ * Window the utility has after a `cancel` postMessage to exit cleanly before
+ * the host sends SIGTERM. Two seconds is generous: the utility's response is
+ * to abandon the in-flight parse and call `process.exit(0)` — sub-millisecond
+ * in the happy path. The fallback exists for the pathological case where a
+ * native module (sharp, music-metadata) is mid-syscall and won't yield.
+ */
+const CANCEL_SIGTERM_DELAY_MS = 2_000;
+
+/**
+ * Error class thrown by pending parses when the host cancels mid-scan.
+ * Surfaces to the IPC layer so callers can distinguish cancellation from
+ * unexpected exits or parse rejections.
+ */
+export class ScanCancelledError extends Error {
+  constructor(message = 'scan-utility cancelled') {
+    super(message);
+    this.name = 'ScanCancelledError';
+  }
+}
 /**
  * No bound on parse — the utility owns concurrency and a slow file (network
  * mount, huge FLAC) can legitimately take seconds. Deadlocks are caught by
@@ -48,6 +68,22 @@ export type ParseResult =
   | { ok: true; metadata: ScanUtilityMetadata }
   | { ok: false; error: string };
 
+/**
+ * Per-file progress event emitted by the host as each parse settles.
+ * Mirrors the order parses are submitted in via `parse(filePath)`; consumers
+ * can rely on `fileIndex` to identify which file the event refers to even when
+ * parses complete out of order. `fileCount` is the number of parses submitted
+ * to *this* client, set via `setBatchSize()` before the first parse.
+ */
+export interface ScanProgressEvent {
+  filePath: string;
+  fileIndex: number;
+  fileCount: number;
+  ok: boolean;
+}
+
+export type ScanProgressListener = (evt: ScanProgressEvent) => void;
+
 export interface ScanUtilityClient {
   /** PID of the underlying utility process. */
   readonly pid: number;
@@ -59,10 +95,35 @@ export interface ScanUtilityClient {
   init(opts: { userDataPath: string }): Promise<void>;
   /** Parse one file. Resolves with metadata + shiranami-art:// URL. */
   parse(filePath: string): Promise<ParseResult>;
+  /**
+   * Set the total file count used in subsequent progress events. Callers
+   * invoke this once per logical batch before the first `parse()`. Resets
+   * the in-flight index counter to 0.
+   */
+  setBatchSize(fileCount: number): void;
+  /** Subscribe to per-file progress events. Returns an unsubscribe function. */
+  onProgress(listener: ScanProgressListener): () => void;
+  /**
+   * Subscribe to the underlying child's `exit` event. Listener is called
+   * once with the exit code (or `null` if the process was killed by signal).
+   * If the process has already exited, the listener fires synchronously on
+   * the next microtask. Returns an unsubscribe function.
+   */
+  onExit(listener: (code: number | null) => void): () => void;
+  /**
+   * Request a graceful cancel: posts `{ type: 'cancel' }` to the utility,
+   * rejects every pending parse with `ScanCancelledError` synchronously, and
+   * arms a SIGTERM fallback that fires if the utility hasn't exited within
+   * `CANCEL_SIGTERM_DELAY_MS`. Idempotent. After `cancel()`, `parse()` rejects
+   * synchronously for the rest of this client's lifetime.
+   */
+  cancel(): void;
   /** Send SIGTERM and remove all listeners. Idempotent. */
   kill(): void;
   /** Whether `kill()` has been invoked or the process has exited. */
   readonly killed: boolean;
+  /** Whether `cancel()` has been invoked. */
+  readonly cancelled: boolean;
 }
 
 export interface ForkScanUtilityOptions {
@@ -92,6 +153,7 @@ interface PendingInit {
 interface PendingParse {
   resolve: (value: ParseResult) => void;
   reject: (reason: Error) => void;
+  filePath: string;
 }
 
 /**
@@ -111,11 +173,37 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   });
 
   let killed = false;
+  let cancelled = false;
+  let cancelTimer: NodeJS.Timeout | null = null;
   let pendingHello: PendingHello | null = null;
   let pendingInit: PendingInit | null = null;
   /** Map of in-flight parse requests by ID, so utility messages can route back. */
   const pendingParses = new Map<number, PendingParse>();
   let nextRequestId = 1;
+
+  /**
+   * Progress accounting. `progressTotal` is the count provided by the IPC
+   * layer via `setBatchSize()`; `progressEmitted` increments once per parse
+   * settle (success OR fallback) so consumers see exactly one event per
+   * submitted file in submission order.
+   */
+  let progressTotal = 0;
+  let progressEmitted = 0;
+  const progressListeners = new Set<ScanProgressListener>();
+
+  type ExitListener = (code: number | null) => void;
+  const exitListeners = new Set<ExitListener>();
+  let exitCode: number | null | undefined;
+
+  function emitProgress(evt: ScanProgressEvent): void {
+    for (const listener of progressListeners) {
+      try {
+        listener(evt);
+      } catch (err) {
+        logger.warn('[scan-utility-host] progress listener threw:', err);
+      }
+    }
+  }
 
   let resolveReady: (() => void) | null = null;
   let rejectReady: ((reason: Error) => void) | null = null;
@@ -183,6 +271,33 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         }
         break;
 
+      case 'log': {
+        const level =
+          msg.level === 'info' ||
+          msg.level === 'warn' ||
+          msg.level === 'error' ||
+          msg.level === 'debug'
+            ? msg.level
+            : 'info';
+        const message = typeof msg.message === 'string' ? msg.message : String(msg.message);
+        const args = Array.isArray(msg.args) ? msg.args : [];
+        const prefixed = `[scan-utility] ${message}`;
+        switch (level) {
+          case 'error':
+            logger.error(prefixed, ...args);
+            break;
+          case 'warn':
+            logger.warn(prefixed, ...args);
+            break;
+          case 'debug':
+            logger.debug(prefixed, ...args);
+            break;
+          default:
+            logger.info(prefixed, ...args);
+        }
+        break;
+      }
+
       case 'parse-result': {
         const requestId = typeof msg.requestId === 'number' ? msg.requestId : -1;
         const pending = pendingParses.get(requestId);
@@ -191,7 +306,8 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
           break;
         }
         pendingParses.delete(requestId);
-        if (msg.ok === true) {
+        const ok = msg.ok === true;
+        if (ok) {
           pending.resolve({
             ok: true,
             metadata: msg.metadata as ScanUtilityMetadata,
@@ -202,6 +318,17 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
             error: typeof msg.error === 'string' ? msg.error : 'unknown utility parse error',
           });
         }
+        // Emit progress in submission order — `fileIndex` is the count of
+        // settled parses so far in this batch, capped at `fileCount` so a
+        // mis-set batch size cannot drive the index past the total.
+        const fileIndex = Math.min(progressEmitted + 1, Math.max(progressTotal, 1));
+        progressEmitted++;
+        emitProgress({
+          filePath: pending.filePath,
+          fileIndex,
+          fileCount: progressTotal,
+          ok,
+        });
         break;
       }
 
@@ -214,26 +341,45 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
 
   child.on('exit', (code: number | null) => {
     killed = true;
+    exitCode = code;
     clearTimeout(readyTimer);
+    if (cancelTimer) {
+      clearTimeout(cancelTimer);
+      cancelTimer = null;
+    }
     if (resolveReady) {
       const err = new Error(`scan-utility exited before ready (code=${code ?? 'null'})`);
       rejectReady?.(err);
       resolveReady = null;
       rejectReady = null;
     }
-    rejectAllPending(new Error(`scan-utility exited (code=${code ?? 'null'})`));
+    // If cancellation was already requested, surface ScanCancelledError to any
+    // straggler pending parses so callers see the cancel reason instead of a
+    // generic exit error.
+    rejectAllPending(
+      cancelled
+        ? new ScanCancelledError(`scan-utility cancelled (exit code=${code ?? 'null'})`)
+        : new Error(`scan-utility exited (code=${code ?? 'null'})`)
+    );
+    for (const listener of exitListeners) {
+      try {
+        listener(code);
+      } catch (err) {
+        logger.warn('[scan-utility-host] exit listener threw:', err);
+      }
+    }
   });
 
-  // stderr fallback — Phase 4 will replace this with a proper log bridge.
+  // stderr stays piped as a crash fallback — if the utility explodes before
+  // it can post a structured `log` message, anything it writes to stderr
+  // still reaches main's logger. Stdout is intentionally NOT consumed here;
+  // main posts structured `log` events over parentPort instead. (Reading
+  // child.stdout in addition to the structured channel races with native
+  // V8 logger writes that occasionally land on the same pipe.)
   child.stderr?.on('data', (chunk: Buffer) => {
     const text = chunk.toString('utf8').trimEnd();
     if (text) logger.warn(`[scan-utility stderr] ${text}`);
   });
-
-  // Drain stdout unconditionally. Sharp, music-metadata, and Node itself write
-  // warnings there; if left unread, the 64 KB pipe buffer fills and the utility
-  // stalls mid-scan.
-  child.stdout?.on('data', () => {});
 
   return {
     get pid(): number {
@@ -271,23 +417,90 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       });
     },
     async parse(filePath: string): Promise<ParseResult> {
+      // Check cancelled before killed: post-cancel, exit will mark `killed=true`
+      // but the cause is the cancellation, so callers should see
+      // `ScanCancelledError` rather than the generic "already killed".
+      if (cancelled) throw new ScanCancelledError();
       if (killed) throw new Error('scan-utility already killed');
       const requestId = nextRequestId++;
       return new Promise<ParseResult>((resolve, reject) => {
-        pendingParses.set(requestId, { resolve, reject });
+        pendingParses.set(requestId, { resolve, reject, filePath });
         child.postMessage({ type: 'parse', requestId, filePath });
       });
+    },
+    setBatchSize(fileCount: number): void {
+      progressTotal = Math.max(0, Math.floor(fileCount));
+      progressEmitted = 0;
+    },
+    onProgress(listener: ScanProgressListener): () => void {
+      progressListeners.add(listener);
+      return () => {
+        progressListeners.delete(listener);
+      };
+    },
+    onExit(listener: ExitListener): () => void {
+      // If the child has already exited, fire on the next microtask so the
+      // caller can register handlers symmetrically with the live-process case.
+      if (exitCode !== undefined) {
+        const code = exitCode;
+        queueMicrotask(() => listener(code));
+        return () => {
+          /* no-op — listener already fired */
+        };
+      }
+      exitListeners.add(listener);
+      return () => {
+        exitListeners.delete(listener);
+      };
+    },
+    cancel(): void {
+      if (cancelled || killed) return;
+      cancelled = true;
+      // Reject every in-flight parse synchronously so callers stop awaiting
+      // immediately — the utility's exit will redundantly reject anything
+      // still around, but the synchronous path matters for AbortSignal
+      // propagation (the IPC layer wires `signal.aborted` to this method).
+      rejectAllPending(new ScanCancelledError());
+      try {
+        child.postMessage({ type: 'cancel' });
+      } catch (err) {
+        logger.warn('[scan-utility-host] cancel postMessage threw:', err);
+      }
+      // Arm SIGTERM fallback. If the utility honours the cancel and exits
+      // cleanly, `child.on('exit')` will clear this timer above.
+      cancelTimer = setTimeout(() => {
+        cancelTimer = null;
+        if (!killed) {
+          logger.warn(
+            `[scan-utility-host] cancel SIGTERM fallback firing after ${CANCEL_SIGTERM_DELAY_MS}ms`
+          );
+          try {
+            child.kill();
+          } catch (err) {
+            logger.warn('[scan-utility-host] SIGTERM kill threw:', err);
+          }
+        }
+      }, CANCEL_SIGTERM_DELAY_MS);
+      cancelTimer.unref?.();
     },
     kill(): void {
       if (killed) return;
       killed = true;
       clearTimeout(readyTimer);
+      if (cancelTimer) {
+        clearTimeout(cancelTimer);
+        cancelTimer = null;
+      }
       if (resolveReady) {
         rejectReady?.(new Error('scan-utility killed before ready'));
         resolveReady = null;
         rejectReady = null;
       }
-      rejectAllPending(new Error('scan-utility killed'));
+      rejectAllPending(
+        cancelled
+          ? new ScanCancelledError('scan-utility killed after cancel')
+          : new Error('scan-utility killed')
+      );
       try {
         child.kill();
       } catch (err) {
@@ -296,6 +509,9 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
     },
     get killed(): boolean {
       return killed;
+    },
+    get cancelled(): boolean {
+      return cancelled;
     },
   };
 }

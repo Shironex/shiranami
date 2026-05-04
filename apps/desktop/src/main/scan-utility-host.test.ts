@@ -218,6 +218,215 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     await expect(client.ready).resolves.toBeUndefined();
   });
 
+  it('emits one progress event per parse in submission order', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    const events: Array<{ filePath: string; fileIndex: number; fileCount: number; ok: boolean }> =
+      [];
+    client.onProgress(evt => events.push(evt));
+    client.setBatchSize(3);
+
+    const files = ['/a.flac', '/b.flac', '/c.flac'];
+    const promises = files.map(p => client.parse(p));
+
+    // Reply in submission order; each parse-result triggers a progress event.
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 1,
+      ok: true,
+      metadata: { title: 'a' },
+    });
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 2,
+      ok: false,
+      error: 'boom',
+    });
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 3,
+      ok: true,
+      metadata: { title: 'c' },
+    });
+
+    await Promise.all(promises);
+
+    expect(events).toEqual([
+      { filePath: '/a.flac', fileIndex: 1, fileCount: 3, ok: true },
+      { filePath: '/b.flac', fileIndex: 2, fileCount: 3, ok: false },
+      { filePath: '/c.flac', fileIndex: 3, fileCount: 3, ok: true },
+    ]);
+  });
+
+  it('caps fileIndex at fileCount when more parses settle than the batch size', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    const events: Array<{ filePath: string; fileIndex: number }> = [];
+    client.onProgress(evt => events.push({ filePath: evt.filePath, fileIndex: evt.fileIndex }));
+    client.setBatchSize(1);
+
+    const p1 = client.parse('/a.flac');
+    const p2 = client.parse('/b.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 1, ok: true, metadata: { title: 'a' } });
+    fake.emitMessage({ type: 'parse-result', requestId: 2, ok: true, metadata: { title: 'b' } });
+    await Promise.all([p1, p2]);
+
+    expect(events.map(e => e.fileIndex)).toEqual([1, 1]);
+  });
+
+  it('unsubscribe removes a single progress listener without affecting others', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+    client.setBatchSize(1);
+
+    const a: number[] = [];
+    const b: number[] = [];
+    const unsubA = client.onProgress(evt => a.push(evt.fileIndex));
+    client.onProgress(evt => b.push(evt.fileIndex));
+
+    const p1 = client.parse('/x.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 1, ok: true, metadata: { title: 'x' } });
+    await p1;
+
+    unsubA();
+    client.setBatchSize(1);
+    const p2 = client.parse('/y.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 2, ok: true, metadata: { title: 'y' } });
+    await p2;
+
+    expect(a).toEqual([1]);
+    expect(b).toEqual([1, 1]);
+  });
+
+  it("forwards utility log messages to main's logger by level", async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const { logger } = await import('./logger');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    fake.emitMessage({ type: 'log', level: 'info', message: 'hello world', args: [{ a: 1 }] });
+    fake.emitMessage({
+      type: 'log',
+      level: 'warn',
+      message: 'cover write failed for /x.flac',
+      args: [],
+    });
+    fake.emitMessage({ type: 'log', level: 'error', message: 'boom', args: ['extra'] });
+    fake.emitMessage({ type: 'log', level: 'debug', message: 'tracing', args: [] });
+
+    expect(logger.info).toHaveBeenCalledWith('[scan-utility] hello world', { a: 1 });
+    expect(logger.warn).toHaveBeenCalledWith('[scan-utility] cover write failed for /x.flac');
+    expect(logger.error).toHaveBeenCalledWith('[scan-utility] boom', 'extra');
+    expect(logger.debug).toHaveBeenCalledWith('[scan-utility] tracing');
+
+    // Sanity: 'unknown message type' warn wasn't tripped for the structured logs.
+    const unknownWarns = vi
+      .mocked(logger.warn)
+      .mock.calls.filter(
+        args => typeof args[0] === 'string' && args[0].includes('unknown message type')
+      );
+    expect(unknownWarns).toEqual([]);
+
+    // Stop the channel so the test cleans up — kill() rejects pending state.
+    client.kill();
+  });
+
+  it('falls back to info when an unknown log level arrives', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const { logger } = await import('./logger');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    fake.emitMessage({ type: 'log', level: 'trace', message: 'mystery', args: [] });
+    expect(logger.info).toHaveBeenCalledWith('[scan-utility] mystery');
+
+    client.kill();
+  });
+
+  it('cancel() rejects pending parses with ScanCancelledError and posts cancel', async () => {
+    const { forkScanUtility, ScanCancelledError } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+    client.setBatchSize(2);
+
+    const p1 = client.parse('/a.flac');
+    const p2 = client.parse('/b.flac');
+
+    // Suppress unhandled-rejection between cancel() and our awaits below.
+    p1.catch(() => {});
+    p2.catch(() => {});
+
+    client.cancel();
+
+    expect(client.cancelled).toBe(true);
+    await expect(p1).rejects.toBeInstanceOf(ScanCancelledError);
+    await expect(p2).rejects.toBeInstanceOf(ScanCancelledError);
+    expect(fake.posted).toContainEqual({ type: 'cancel' });
+
+    // Subsequent parse() throws synchronously.
+    await expect(client.parse('/c.flac')).rejects.toBeInstanceOf(ScanCancelledError);
+
+    // Clean shutdown — utility "exits" before SIGTERM.
+    fake.emitExit(0);
+    expect(fake.killCalls).toBe(0);
+  });
+
+  it('cancel() arms a SIGTERM fallback when the utility ignores the cancel', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    client.cancel();
+    expect(fake.killCalls).toBe(0);
+
+    // The fake never emits exit; advance past the SIGTERM delay.
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fake.killCalls).toBe(1);
+  });
+
+  it('cancel() is a no-op after kill()', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    client.kill();
+    client.cancel();
+    expect(client.cancelled).toBe(false);
+    // Cancel after kill must not post anything new.
+    expect(fake.posted.filter(m => (m as { type?: string }).type === 'cancel')).toEqual([]);
+  });
+
+  it('cancel() before utility-ready rejects ready and posts cancel', async () => {
+    const { forkScanUtility, ScanCancelledError } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    // Capture the rejection synchronously so cancel() doesn't trigger an
+    // unhandled rejection before the test awaits.
+    const readyAssertion = expect(client.ready).rejects.toThrow();
+
+    client.cancel();
+    expect(client.cancelled).toBe(true);
+
+    // Simulate utility honouring cancel and exiting cleanly.
+    fake.emitExit(0);
+
+    await readyAssertion;
+    // Subsequent parse() rejects synchronously.
+    await expect(client.parse('/x.flac')).rejects.toBeInstanceOf(ScanCancelledError);
+  });
+
   it('rejects ready synchronously when kill() is called before utility-ready arrives', async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
     const client = forkScanUtility();

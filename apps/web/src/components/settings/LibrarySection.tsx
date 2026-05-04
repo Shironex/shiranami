@@ -9,6 +9,7 @@ import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
 import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
+import { ScanProgressCard } from '@/components/library/ScanProgressCard';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
@@ -64,6 +65,8 @@ export function LibrarySection() {
               {isScanning ? t('lib.scanning') : t('lib.rescan')}
             </Button>
           </div>
+
+          <ScanProgressCard />
         </div>
       </SettingsCard>
 

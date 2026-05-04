@@ -3,6 +3,23 @@ import { IS_ELECTRON } from '@/lib/platform';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
+import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
+
+function fileBasename(filePath: string): string {
+  return (
+    filePath
+      .replace(/[/\\]([^/\\]+)$/, '$1')
+      .split(/[/\\]/)
+      .pop() ?? filePath
+  );
+}
+
+interface ScanProgress {
+  fileIndex: number;
+  fileCount: number;
+  currentFile: string;
+}
 
 interface LibraryState {
   /** Persistent collection of all tracks known to the app. */
@@ -13,6 +30,10 @@ interface LibraryState {
    * skeleton during the cold-start fetch rather than a flash of empty state.
    */
   libraryLoaded: boolean;
+  /** Current state of a folder scan operation. */
+  scanState: 'idle' | 'scanning' | 'cancelling';
+  /** Progress snapshot of the currently active scan, or null when idle. */
+  scanProgress: ScanProgress | null;
 }
 
 interface LibraryActions {
@@ -24,6 +45,16 @@ interface LibraryActions {
   toggleFavorite: (trackId: string) => void;
   /** Increment play count for a track; syncs library, queue, and currentTrack. */
   incrementTrackPlayCount: (trackId: string) => void;
+
+  setScanState: (state: 'idle' | 'scanning' | 'cancelling') => void;
+  updateScanProgress: (data: {
+    filePath: string;
+    fileIndex: number;
+    fileCount: number;
+    ok: boolean;
+  }) => void;
+  resetScanProgress: () => void;
+  cancelScan: () => Promise<void>;
 }
 
 export type LibraryStore = LibraryState & LibraryActions;
@@ -54,6 +85,8 @@ function syncPlaybackTrack(trackId: string, mutate: (track: Track) => Track) {
 export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   library: [],
   libraryLoaded: false,
+  scanState: 'idle',
+  scanProgress: null,
 
   setLibrary: tracks => set({ library: tracks }),
 
@@ -147,6 +180,37 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
       window.electronAPI.db.tracks.incrementPlayCount(trackId).catch(err => {
         console.warn('[player] Failed to persist play count:', err);
       });
+    }
+  },
+
+  setScanState: state => set({ scanState: state }),
+
+  updateScanProgress: ({ filePath, fileIndex, fileCount }) => {
+    set({
+      scanState: 'scanning',
+      scanProgress: {
+        fileIndex,
+        fileCount,
+        currentFile: fileBasename(filePath),
+      },
+    });
+  },
+
+  resetScanProgress: () => {
+    const wasCancelling = get().scanState === 'cancelling';
+    set({ scanState: 'idle', scanProgress: null });
+    if (wasCancelling) {
+      toast.info(i18n.t('scanCancelled', { ns: 'toast' }));
+    }
+  },
+
+  cancelScan: async () => {
+    if (!IS_ELECTRON || get().scanState !== 'scanning') return;
+    set({ scanState: 'cancelling' });
+    try {
+      await window.electronAPI.library.cancelScan();
+    } catch (err) {
+      console.warn('Failed to cancel scan', err);
     }
   },
 }));

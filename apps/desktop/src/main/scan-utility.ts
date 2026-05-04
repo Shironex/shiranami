@@ -5,12 +5,11 @@
  * scan completes so the OS reclaims the V8 heap (the entire point of the
  * migration).
  *
- * Phase 2: handles `init` (receives userData path) and `parse` (decodes one
- * file, writes any embedded cover to disk under `userData/album-art/`,
- * returns metadata + shiranami-art:// URL). Cover Buffers do NOT cross the
- * IPC boundary.
- *
- * Design context: docs/arch/2026-05-04-metadata-scan-utility-process-plan.md
+ * Handles `init` (receives userData path) and `parse` (decodes one file,
+ * writes any embedded cover to disk under `userData/album-art/`, returns
+ * metadata + shiranami-art:// URL). Cover Buffers do NOT cross the IPC
+ * boundary. Forwards structured `log` events back to main and exits cleanly
+ * on `cancel`.
  *
  * IMPORTANT: parentPort.on('message') wraps each message in a MessageEvent —
  * the actual payload lives at `event.data`. This is asymmetric with the parent
@@ -55,8 +54,11 @@ interface ParseMessage {
   requestId: number;
   filePath: string;
 }
+interface CancelMessage {
+  type: 'cancel';
+}
 
-type IncomingMessage = HelloMessage | InitMessage | ParseMessage;
+type IncomingMessage = HelloMessage | InitMessage | ParseMessage | CancelMessage;
 
 interface UtilityReadyMessage {
   type: 'utility-ready';
@@ -93,16 +95,67 @@ interface ParseErrorMessage {
   error: string;
 }
 
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+interface LogMessage {
+  type: 'log';
+  level: LogLevel;
+  message: string;
+  args?: unknown[];
+}
+
 type OutgoingMessage =
   | UtilityReadyMessage
   | HelloAckMessage
   | InitAckMessage
   | ParseSuccessMessage
-  | ParseErrorMessage;
+  | ParseErrorMessage
+  | LogMessage;
 
 function post(msg: OutgoingMessage): void {
   parentPort!.postMessage(msg);
 }
+
+/**
+ * Forwarding logger — every call posts a structured `log` message to the
+ * host, which dispatches it into main's logger. This replaces direct
+ * `console.error` / `console.log` so log fidelity (level, prefix, file
+ * transport) survives the process boundary.
+ *
+ * Args are forwarded as-is. Non-serialisable values (Errors, circular
+ * objects) get a best-effort toString fallback so the IPC postMessage
+ * structured-clone never throws.
+ */
+function safeArgs(args: unknown[]): unknown[] {
+  return args.map(arg => {
+    if (arg instanceof Error) {
+      return { name: arg.name, message: arg.message, stack: arg.stack };
+    }
+    try {
+      // Trip the structured-clone restriction early — if it would fail at
+      // postMessage time, fall back to a string repr now.
+      JSON.stringify(arg);
+      return arg;
+    } catch {
+      try {
+        return String(arg);
+      } catch {
+        return '[unserialisable]';
+      }
+    }
+  });
+}
+
+const log = {
+  info: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'info', message, args: safeArgs(args) }),
+  warn: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'warn', message, args: safeArgs(args) }),
+  error: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'error', message, args: safeArgs(args) }),
+  debug: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'debug', message, args: safeArgs(args) }),
+};
 
 // ---------------------------------------------------------------------------
 // Lazy module + state
@@ -123,6 +176,12 @@ interface UtilityState {
 }
 
 let state: UtilityState | null = null;
+/**
+ * Set by the `cancel` handler. Once true, in-flight parses suppress their
+ * `parse-result` reply (the host has already rejected the corresponding
+ * promises with ScanCancelledError) and the process exits cleanly.
+ */
+let cancelled = false;
 
 function ensureArtDir(s: UtilityState): void {
   if (s.artDirEnsured) return;
@@ -187,9 +246,8 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
       try {
         albumArt = await saveAlbumArtToDisk(s, pic.data);
       } catch (err) {
-        // Log to stderr so main's stderr-pipe sees it; cover failure shouldn't
-        // sink the whole track. Phase 4 will replace this with a log bridge.
-        console.error(`[scan-utility] cover write failed for ${filePath}:`, err);
+        // Cover failure shouldn't sink the whole track — log and fall through.
+        log.warn(`cover write failed for ${filePath}`, err);
       }
     }
 
@@ -205,7 +263,7 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
       albumArt,
     };
   } catch (err) {
-    console.error(`[scan-utility] parse failed for ${filePath}:`, err);
+    log.warn(`parse failed for ${filePath}`, err);
     return {
       title: fallbackTitle,
       artist: 'Unknown Artist',
@@ -225,6 +283,12 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
 // ---------------------------------------------------------------------------
 
 function handleParse(msg: ParseMessage): void {
+  if (cancelled) {
+    // Host has already rejected the matching pending promise; sending a
+    // `parse-result` now would either log an "orphan" warning or race with
+    // the exit-driven rejection.
+    return;
+  }
   if (!state) {
     post({
       type: 'parse-result',
@@ -238,9 +302,11 @@ function handleParse(msg: ParseMessage): void {
   // Run async work without blocking the message loop.
   void parseFile(state, msg.filePath).then(
     metadata => {
+      if (cancelled) return;
       post({ type: 'parse-result', requestId: msg.requestId, ok: true, metadata });
     },
     err => {
+      if (cancelled) return;
       // parseFile already returns fallback metadata for parser-side errors;
       // a rejection here means something fundamental (out of memory, etc.).
       post({
@@ -276,6 +342,19 @@ parentPort.on('message', event => {
 
     case 'parse':
       handleParse(msg);
+      return;
+
+    case 'cancel':
+      // Mark cancelled so any in-flight parseFile() suppresses its reply, then
+      // exit cleanly. The host's SIGTERM fallback only fires if this exit
+      // never arrives — usually we beat it by hundreds of milliseconds.
+      if (cancelled) return;
+      cancelled = true;
+      // Defer the exit one tick so the current message handler returns
+      // before the runtime tears down.
+      setImmediate(() => {
+        process.exit(0);
+      });
       return;
 
     default:
