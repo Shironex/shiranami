@@ -54,7 +54,7 @@ export function registerMetadataEnrichHandlers(): void {
     async (_event, title: string, artist: string): Promise<MetadataLookupResult> => {
       return lookupMetadata(title, artist);
     },
-    { schema: metadataLookupArgs },
+    { schema: metadataLookupArgs }
   );
 
   // Cancel ongoing enrichment
@@ -64,7 +64,7 @@ export function registerMetadataEnrichHandlers(): void {
       enrichCancelled = true;
       logger.info('[metadata:enrich] Cancellation requested');
     },
-    { schema: metadataEnrichCancelArgs },
+    { schema: metadataEnrichCancelArgs }
   );
 
   // Batch enrich multiple tracks
@@ -75,7 +75,9 @@ export function registerMetadataEnrichHandlers(): void {
       tracks: EnrichTrackInput[],
       options: { writeToFile: boolean; onlyMissing: boolean }
     ): Promise<EnrichTrackResult[]> => {
-      logger.info(`[metadata:enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`);
+      logger.info(
+        `[metadata:enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`
+      );
 
       enrichCancelled = false;
       const results: EnrichTrackResult[] = [];
@@ -113,7 +115,9 @@ export function registerMetadataEnrichHandlers(): void {
           const lookup = await lookupMetadata(track.title, track.artist);
 
           if (lookup.source === 'none') {
-            logger.info(`[metadata:enrich] [${i + 1}/${tracks.length}] No results: "${track.title}"`);
+            logger.info(
+              `[metadata:enrich] [${i + 1}/${tracks.length}] No results: "${track.title}"`
+            );
             results.push({
               id: track.id,
               success: false,
@@ -179,7 +183,10 @@ export function registerMetadataEnrichHandlers(): void {
                 ? 'image/png'
                 : 'image/jpeg';
             } catch (dlError) {
-              logger.warn(`[metadata:enrich] Failed to download cover art for "${track.title}":`, dlError);
+              logger.warn(
+                `[metadata:enrich] Failed to download cover art for "${track.title}":`,
+                dlError
+              );
             }
           }
 
@@ -212,7 +219,9 @@ export function registerMetadataEnrichHandlers(): void {
           }
 
           const fieldCount = Object.keys(updatedFields).length;
-          logger.info(`[metadata:enrich] [${i + 1}/${tracks.length}] ${fieldCount > 0 ? 'Updated' : 'No changes'}: "${track.title}" (source: ${lookup.source}, fields: ${fieldCount > 0 ? Object.keys(updatedFields).join(', ') : 'none'})`);
+          logger.info(
+            `[metadata:enrich] [${i + 1}/${tracks.length}] ${fieldCount > 0 ? 'Updated' : 'No changes'}: "${track.title}" (source: ${lookup.source}, fields: ${fieldCount > 0 ? Object.keys(updatedFields).join(', ') : 'none'})`
+          );
 
           results.push({
             id: track.id,
@@ -227,11 +236,6 @@ export function registerMetadataEnrichHandlers(): void {
             trackName: track.title,
             status: 'done',
           });
-
-          // Small delay between requests to avoid rate limiting
-          if (i < tracks.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`[metadata:enrich] Failed to enrich "${track.title}":`, error);
@@ -255,11 +259,13 @@ export function registerMetadataEnrichHandlers(): void {
 
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
-      logger.info(`[metadata:enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${enrichCancelled ? ' (cancelled)' : ''}`);
+      logger.info(
+        `[metadata:enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${enrichCancelled ? ' (cancelled)' : ''}`
+      );
 
       return results;
     },
-    { schema: metadataEnrichTracksArgs },
+    { schema: metadataEnrichTracksArgs }
   );
 }
 

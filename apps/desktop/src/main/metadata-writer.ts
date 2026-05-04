@@ -32,10 +32,7 @@ export async function writeMetadataToFile(
 
   // Save cover art to disk cache regardless of format
   if (options.coverImageBuffer && options.coverImageMime) {
-    albumArtUrl = await saveAlbumArt(
-      options.coverImageBuffer,
-      options.coverImageMime
-    );
+    albumArtUrl = await saveAlbumArt(options.coverImageBuffer, options.coverImageMime);
   }
 
   try {
@@ -67,13 +64,10 @@ export async function writeMetadataToFile(
   return albumArtUrl;
 }
 
-async function writeMp3Tags(
-  filePath: string,
-  options: WriteMetadataOptions
-): Promise<void> {
+async function writeMp3Tags(filePath: string, options: WriteMetadataOptions): Promise<void> {
   // node-id3 is CJS — dynamic import wraps exports under .default in bundled contexts
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const NodeID3Module = await import('node-id3') as any;
+  const NodeID3Module = (await import('node-id3')) as any;
   const NodeID3 = NodeID3Module.default ?? NodeID3Module;
 
   const tags: Record<string, unknown> = {};
@@ -102,10 +96,7 @@ async function writeMp3Tags(
   }
 }
 
-async function writeFlacTags(
-  filePath: string,
-  options: WriteMetadataOptions
-): Promise<void> {
+async function writeFlacTags(filePath: string, options: WriteMetadataOptions): Promise<void> {
   const { writeFlacTags: writeFlac } = await import('flac-tagger');
 
   const tagMap: Record<string, string> = {};
@@ -131,10 +122,7 @@ async function writeFlacTags(
   await writeFlac(tags, filePath);
 }
 
-async function writeTagsWithFFmpeg(
-  filePath: string,
-  options: WriteMetadataOptions
-): Promise<void> {
+async function writeTagsWithFFmpeg(filePath: string, options: WriteMetadataOptions): Promise<void> {
   if (!isFFmpegInstalled()) {
     logger.warn('[metadata-writer] ffmpeg not installed, skipping tag write for:', filePath);
     return;
@@ -157,7 +145,9 @@ async function writeTagsWithFFmpeg(
     args.push('-i', coverTempPath);
     args.push('-map', '0:a', '-map', '1:v', '-disposition:v', 'attached_pic');
   } else {
-    args.push('-map', '0:a');
+    // Copy audio and preserve any existing embedded video stream (album art).
+    // The '?' makes the map optional — files without a video stream still write cleanly.
+    args.push('-map', '0:a', '-map', '0:v?');
   }
 
   args.push('-c', 'copy');
@@ -174,7 +164,7 @@ async function writeTagsWithFFmpeg(
 
   try {
     await new Promise<void>((resolve, reject) => {
-      execFile(getFFmpegPath(), args, { timeout: 30000 }, (err) => {
+      execFile(getFFmpegPath(), args, { timeout: 30000 }, err => {
         if (err) reject(err);
         else resolve();
       });
@@ -185,8 +175,16 @@ async function writeTagsWithFFmpeg(
   } finally {
     // Clean up temp files
     if (coverTempPath) {
-      try { await fs.promises.unlink(coverTempPath); } catch { /* ignore */ }
+      try {
+        await fs.promises.unlink(coverTempPath);
+      } catch {
+        /* ignore */
+      }
     }
-    try { await fs.promises.unlink(tempPath); } catch { /* ignore */ }
+    try {
+      await fs.promises.unlink(tempPath);
+    } catch {
+      /* ignore */
+    }
   }
 }

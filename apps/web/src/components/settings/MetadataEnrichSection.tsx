@@ -1,34 +1,32 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
-import {
-  Search,
-  Loader2,
-  Disc3,
-  Check,
-  X,
-  Ban,
-  Info,
-  AlertTriangle,
-  FileWarning,
-} from 'lucide-react';
+import { Search, Loader2, Disc3, Ban, Info, AlertTriangle, FileWarning } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
+
+// DB writes these exact strings (scan-utility.ts, metadata-service.ts).
+// Module-level so the useMemo dep is a stable reference and never causes a spurious rebuild.
+const UNKNOWN_ARTIST = 'Unknown Artist';
+const UNKNOWN_ALBUM = 'Unknown Album';
 
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const library = useLibraryStore(s => s.library);
   const isEnriching = useMetadataEnrichStore(s => s.isEnriching);
-  const progress = useMetadataEnrichStore(s => s.progress);
   const startEnrichment = useMetadataEnrichStore(s => s.startEnrichment);
   const skippedIds = useMetadataEnrichStore(s => s.skippedIds);
   const loadSkipped = useMetadataEnrichStore(s => s.loadSkipped);
   const cancelEnrichment = useMetadataEnrichStore(s => s.cancelEnrichment);
   const isCancelling = useMetadataEnrichStore(s => s.isCancelling);
+
+  const enrichButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmYesRef = useRef<HTMLButtonElement>(null);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
   // Default OFF — writing to files is irreversible, so it must be an explicit opt-in (issue #37).
@@ -41,20 +39,27 @@ export function MetadataEnrichSection() {
     loadSkipped();
   }, [loadSkipped]);
 
-  // Count tracks with missing metadata. Compare against localized fallbacks
-  // because trackMapper populates missing artist/album with the translated
-  // "Unknown Artist"/"Unknown Album" strings at DB-read time.
-  const tracksNeedingEnrichment = useMemo(() => {
-    const unknownArtist = tc('unknownArtist');
-    const unknownAlbum = tc('unknownAlbum');
-    return library.filter(
-      t =>
-        t.artist === unknownArtist || t.album === unknownAlbum || !t.albumArt || !t.genre || !t.year
-    );
-  }, [library, tc]);
+  // Count tracks with missing metadata. UNKNOWN_ARTIST/UNKNOWN_ALBUM are module-level
+  // constants so the memo dep is stable and never rebuilds on locale switches.
+  const tracksNeedingEnrichment = useMemo(
+    () =>
+      library.filter(
+        t =>
+          t.artist === UNKNOWN_ARTIST ||
+          t.album === UNKNOWN_ALBUM ||
+          !t.albumArt ||
+          !t.genre ||
+          !t.year
+      ),
+    [library]
+  );
 
-  // How many of those are skipped (already tried, no results)
-  const skippedCount = tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length;
+  // Memoized: skippedCount only changes when the enrichment list or skip set changes,
+  // not on every progress tick.
+  const skippedCount = useMemo(
+    () => tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length,
+    [tracksNeedingEnrichment, skippedIds]
+  );
 
   const handleEnrich = useCallback(() => {
     // Gate destructive path behind inline confirm. Safe path (DB only) runs immediately.
@@ -75,10 +80,18 @@ export function MetadataEnrichSection() {
     if (!writeToFile && confirmWrite) setConfirmWrite(false);
   }, [writeToFile, confirmWrite]);
 
-  const progressPercent =
-    progress && progress.total > 0
-      ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100))
-      : 0;
+  // Focus the confirm's primary action when it opens; restore focus on dismiss.
+  // prevConfirmWrite guards the restore branch so it only runs on a true→false
+  // transition, not on initial mount when confirmWrite is already false.
+  const prevConfirmWrite = useRef(false);
+  useEffect(() => {
+    if (confirmWrite) {
+      confirmYesRef.current?.focus();
+    } else if (prevConfirmWrite.current) {
+      enrichButtonRef.current?.focus();
+    }
+    prevConfirmWrite.current = confirmWrite;
+  }, [confirmWrite]);
 
   if (!IS_ELECTRON) return null;
 
@@ -139,53 +152,28 @@ export function MetadataEnrichSection() {
             )}
           </div>
 
-          {/* Progress */}
-          {isEnriching && progress && (
-            <div className="px-3 py-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                <span className="text-sm text-foreground">
-                  {t('lib.enrichProgress', { current: progress.current, total: progress.total })}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {progress.status === 'searching' &&
-                  t('lib.enrichSearching', { track: progress.trackName })}
-                {progress.status === 'downloading' && t('lib.enrichDownloading')}
-                {progress.status === 'writing' && t('lib.enrichWriting')}
-                {progress.status === 'done' && (
-                  <span className="flex items-center gap-1">
-                    <Check className="w-3 h-3 text-green-500" />
-                    {progress.trackName}
-                  </span>
-                )}
-                {progress.status === 'error' && (
-                  <span className="flex items-center gap-1">
-                    <X className="w-3 h-3 text-destructive" />
-                    {progress.trackName}
-                  </span>
-                )}
-              </div>
-              {/* Progress bar */}
-              <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-          )}
+          {/* Progress — isolated subscriber so parent does not re-render on every event */}
+          <EnrichProgressBar />
 
           {/* Action row — swaps to an inline confirmation when about to write to disk. */}
           {confirmWrite && !isEnriching ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
+            <div
+              role="alertdialog"
+              aria-labelledby="enrich-confirm-title"
+              aria-describedby="enrich-confirm-body"
+              onKeyDown={e => e.key === 'Escape' && setConfirmWrite(false)}
+              className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3"
+            >
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle
+                  className="w-4 h-4 text-amber-500 mt-0.5 shrink-0"
+                  aria-hidden="true"
+                />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
+                  <p id="enrich-confirm-title" className="text-sm font-medium text-foreground">
                     {t('lib.enrichConfirmWriteTitle')}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p id="enrich-confirm-body" className="text-xs text-muted-foreground">
                     {t('lib.enrichConfirmWriteBody', {
                       count: tracksNeedingEnrichment.length,
                     })}
@@ -194,6 +182,7 @@ export function MetadataEnrichSection() {
               </div>
               <div className="flex gap-2">
                 <Button
+                  ref={confirmYesRef}
                   size="sm"
                   onClick={handleConfirmedEnrich}
                   className="gap-2 rounded-lg bg-amber-500 text-sm text-black shadow-none hover:bg-amber-500/90 [&_svg]:size-3.5"
@@ -214,13 +203,19 @@ export function MetadataEnrichSection() {
           ) : (
             <div className="flex gap-2">
               <Button
+                ref={enrichButtonRef}
                 onClick={handleEnrich}
                 disabled={
                   isEnriching || library.length === 0 || tracksNeedingEnrichment.length === 0
                 }
+                aria-busy={isEnriching}
                 className="rounded-xl bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
               >
-                {isEnriching ? <Loader2 className="animate-spin" /> : <Search />}
+                {isEnriching ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Search aria-hidden="true" />
+                )}
                 {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
               </Button>
               {isEnriching && (
@@ -228,9 +223,14 @@ export function MetadataEnrichSection() {
                   variant="destructiveGhost"
                   onClick={cancelEnrichment}
                   disabled={isCancelling}
+                  aria-busy={isCancelling}
                   className="rounded-xl [&_svg]:size-3.5"
                 >
-                  {isCancelling ? <Loader2 className="animate-spin" /> : <Ban />}
+                  {isCancelling ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Ban aria-hidden="true" />
+                  )}
                   {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
                 </Button>
               )}
