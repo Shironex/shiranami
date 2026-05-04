@@ -2,12 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Share2, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useShareLink } from '@/hooks/useShareLink';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ShareDialogProps {
   open: boolean;
@@ -98,6 +93,8 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
                   alt="QR code for sharing"
                   width={180}
                   height={180}
+                  loading="lazy"
+                  decoding="async"
                   className="rounded-lg"
                 />
               </div>

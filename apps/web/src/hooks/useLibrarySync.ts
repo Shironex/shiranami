@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import type { Track } from '@/stores/types';
 import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
+import { queryClient } from '@/lib/queryClient';
 
 /**
  * Bootstraps Zustand's player store from the persisted DB library on cold start.
@@ -35,6 +37,15 @@ export function useLibrarySync() {
     if (useLibraryStore.getState().library.length === 0) {
       useLibraryStore.setState({ library: data });
     }
+    // Drop the React-Query copy after seeding Zustand. Zustand is the runtime
+    // source of truth; keeping the cache around is ~20 MB of dead state at 50k
+    // tracks (and diverges from Zustand on every favorite/playCount mutation).
+    // We set it to an empty array rather than removing the cache entry — that
+    // would orphan the active observer here and trigger an immediate refetch
+    // loop. With an empty array the entry stays, the observer stays stable,
+    // and mutations elsewhere can still invalidateQueries() to re-fetch and
+    // re-seed (this effect re-runs, then re-empties).
+    queryClient.setQueryData<Track[]>(libraryKeys.all, []);
   }, [data]);
 
   // Flip `libraryLoaded` once the query settles (success, empty, or error) so

@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { logger } from './logger';
+import { tracks } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 
 /** Directory where extracted album art images are stored */
 let artDir: string;
@@ -102,6 +104,148 @@ export function _resetFirstWriteLoggedForTest(): void {
   _firstWriteLogged = false;
 }
 
+/** Reset the memoized art directory (for testing only). */
+export function _resetArtDirForTest(): void {
+  artDir = '';
+}
+
+// ---------------------------------------------------------------------------
+// In-process LRU for hot art bytes. Sized to ~5 MB by tracking total Buffer
+// length on insert; eviction is least-recently-used (Map preserves insertion
+// order; we delete + re-set on hit to promote).
+// Same shape as lyrics-service.ts.
+// ---------------------------------------------------------------------------
+
+const ART_LRU_MAX_BYTES = 5 * 1024 * 1024;
+const artLruCache = new Map<string, Buffer>();
+let artLruBytes = 0;
+
+function artLruGet(fileName: string): Buffer | undefined {
+  const value = artLruCache.get(fileName);
+  if (value !== undefined) {
+    artLruCache.delete(fileName);
+    artLruCache.set(fileName, value);
+  }
+  return value;
+}
+
+function artLruSet(fileName: string, data: Buffer): void {
+  const existing = artLruCache.get(fileName);
+  if (existing) {
+    artLruBytes -= existing.length;
+    artLruCache.delete(fileName);
+  }
+  // Skip pathologically large entries — at 512px JPEG q=85 a single file is
+  // ~30-80 KB so anything over the cap is anomalous and would force-evict
+  // the entire cache for one entry.
+  if (data.length > ART_LRU_MAX_BYTES) return;
+  while (artLruBytes + data.length > ART_LRU_MAX_BYTES && artLruCache.size > 0) {
+    const oldest = artLruCache.keys().next().value;
+    if (oldest === undefined) break;
+    const evicted = artLruCache.get(oldest);
+    artLruCache.delete(oldest);
+    if (evicted) artLruBytes -= evicted.length;
+  }
+  artLruCache.set(fileName, data);
+  artLruBytes += data.length;
+}
+
+/** Reset the in-process LRU (testing only). */
+export function _resetArtLruForTest(): void {
+  artLruCache.clear();
+  artLruBytes = 0;
+}
+
+// ---------------------------------------------------------------------------
+// Orphan pruning — diff DB-referenced files vs disk; delete files no longer
+// referenced. Pure additive: never deletes anything still in tracks.albumArt.
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the bare file name from a shiranami-art:// URL. Returns null for
+ * any other URL shape (data:, file:, http:, …) or invalid input — the caller
+ * uses this to skip non-disk-cache rows when computing the referenced set.
+ */
+export function artFileNameFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const prefix = 'shiranami-art://';
+  if (!url.startsWith(prefix)) return null;
+  try {
+    const parsed = new URL(url);
+    const name = path.basename(parsed.pathname.replace(/^\/+/, ''));
+    return name || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete on-disk album-art files that no `tracks.albumArt` row references.
+ *
+ * Returns counts so callers can log progress; never throws — readdir errors
+ * (missing dir, perms) are logged and the function exits cleanly so it is
+ * safe to call from app boot fire-and-forget.
+ */
+export async function pruneOrphanedAlbumArt(): Promise<{
+  scanned: number;
+  deleted: number;
+  referenced: number;
+}> {
+  const dir = getArtDir();
+
+  const referenced = new Set<string>();
+  try {
+    const db = getDatabase();
+    const rows = db.selectDistinct({ albumArt: tracks.albumArt }).from(tracks).all();
+    for (const row of rows) {
+      const name = artFileNameFromUrl(row.albumArt);
+      if (name) referenced.add(name);
+    }
+  } catch (error) {
+    logger.warn('[art-protocol] prune: DB query failed, skipping prune:', error);
+    return { scanned: 0, deleted: 0, referenced: 0 };
+  }
+
+  let entries: string[];
+  try {
+    entries = await fs.promises.readdir(dir);
+  } catch (error: unknown) {
+    const code = (error as NodeJS.ErrnoException)?.code;
+    if (code === 'ENOENT') {
+      return { scanned: 0, deleted: 0, referenced: referenced.size };
+    }
+    logger.warn('[art-protocol] prune: readdir failed:', error);
+    return { scanned: 0, deleted: 0, referenced: referenced.size };
+  }
+
+  let deleted = 0;
+  for (const entry of entries) {
+    if (referenced.has(entry)) continue;
+    const ext = path.extname(entry).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) continue;
+    const filePath = path.join(dir, entry);
+    try {
+      await fs.promises.unlink(filePath);
+      // Drop any LRU entry too — we just deleted the source of truth.
+      const cached = artLruCache.get(entry);
+      if (cached) {
+        artLruBytes -= cached.length;
+        artLruCache.delete(entry);
+      }
+      deleted += 1;
+    } catch (error) {
+      logger.warn(`[art-protocol] prune: failed to delete ${entry}:`, error);
+    }
+  }
+
+  if (deleted > 0) {
+    logger.info(
+      `[art-protocol] prune: deleted ${deleted} orphan(s) (referenced=${referenced.size}, scanned=${entries.length})`
+    );
+  }
+  return { scanned: entries.length, deleted, referenced: referenced.size };
+}
+
 /**
  * Convert a filename to a shiranami-art:// URL
  */
@@ -135,6 +279,23 @@ export function registerArtProtocol(): void {
 
       // Security: prevent path traversal
       const safeName = path.basename(fileName);
+      const contentType = extToMime(ext);
+
+      // Hot path: serve from in-process LRU when available. Hits avoid the
+      // disk I/O + Buffer allocation entirely when Chromium re-fetches the
+      // same cover (drag-scroll, viewport churn, etc.).
+      const cached = artLruGet(safeName);
+      if (cached) {
+        return new Response(cached, {
+          status: 200,
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': String(cached.length),
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        });
+      }
+
       const filePath = path.join(getArtDir(), safeName);
 
       let stat: fs.Stats;
@@ -147,10 +308,35 @@ export function registerArtProtocol(): void {
         return new Response('Not found', { status: 404 });
       }
 
-      const contentType = extToMime(ext);
-      const data = await fs.promises.readFile(filePath);
+      // Stream the file rather than reading it into a Buffer up-front. Same
+      // pattern as audio-protocol.ts — Chromium pulls chunks lazily, so main
+      // never holds the full file in a JS Buffer that would be copied a
+      // second time when Electron serialises the Response body across the
+      // IPC bridge. We tee the chunks into the LRU as they pass through so
+      // subsequent hits stay synchronous.
+      const stream = fs.createReadStream(filePath);
+      const chunks: Buffer[] = [];
+      const readable = new ReadableStream({
+        start(controller) {
+          stream.on('data', (chunk: Buffer) => {
+            chunks.push(chunk);
+            controller.enqueue(chunk);
+          });
+          stream.on('end', () => {
+            controller.close();
+            // Concat once at end; for ~30-80 KB JPEGs this is a single small
+            // allocation. LRU is bytes-bounded so oversized inputs are
+            // dropped inside artLruSet.
+            artLruSet(safeName, Buffer.concat(chunks));
+          });
+          stream.on('error', err => controller.error(err));
+        },
+        cancel() {
+          stream.destroy();
+        },
+      });
 
-      return new Response(data, {
+      return new Response(readable as unknown as ReadableStream, {
         status: 200,
         headers: {
           'Content-Type': contentType,

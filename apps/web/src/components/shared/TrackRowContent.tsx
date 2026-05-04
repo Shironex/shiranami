@@ -40,45 +40,60 @@ export function TrackRowContent({
   const { t } = useTranslation('contextMenu');
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
 
-  const isSelected = useSelectionStore((s) => s.selectedTrackIds.has(track.id));
-  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const toggleTrack = useSelectionStore((s) => s.toggleTrack);
-  const selectRange = useSelectionStore((s) => s.selectRange);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const isSelected = useSelectionStore(s => s.selectedTrackIds.has(track.id));
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
+  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
+  const toggleTrack = useSelectionStore(s => s.toggleTrack);
+  const selectRange = useSelectionStore(s => s.selectRange);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (hasSelection && !selectedTrackIds.has(track.id)) {
-      clearSelection();
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  }, [hasSelection, track.id, selectedTrackIds, clearSelection]);
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (hasSelection && !selectedTrackIds.has(track.id)) {
+        clearSelection();
+      }
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    },
+    [hasSelection, track.id, selectedTrackIds, clearSelection]
+  );
 
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    const isMod = e.metaKey || e.ctrlKey;
-    const isShift = e.shiftKey;
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      const isShift = e.shiftKey;
 
-    if (isMod) {
-      e.preventDefault();
-      toggleTrack(track.id, index);
-      return;
-    }
-    if (isShift) {
-      e.preventDefault();
-      selectRange(index, queue);
-      return;
-    }
-    if (hasSelection) {
-      clearSelection();
-    }
-    handlePlayTrack(index);
-  }, [track.id, index, queue, hasSelection, toggleTrack, selectRange, clearSelection, handlePlayTrack]);
+      if (isMod) {
+        e.preventDefault();
+        toggleTrack(track.id, index);
+        return;
+      }
+      if (isShift) {
+        e.preventDefault();
+        selectRange(index, queue);
+        return;
+      }
+      if (hasSelection) {
+        clearSelection();
+      }
+      handlePlayTrack(index);
+    },
+    [
+      track.id,
+      index,
+      queue,
+      hasSelection,
+      toggleTrack,
+      selectRange,
+      clearSelection,
+      handlePlayTrack,
+    ]
+  );
 
   const isActive = currentTrack?.id === track.id;
 
@@ -98,18 +113,23 @@ export function TrackRowContent({
       >
         {dragHandle}
 
-        <button
-          onClick={handleClick}
-          className="flex items-center gap-3 min-w-0 flex-1"
-        >
-          <div className={cn(
-            'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative',
-            isSelected ? 'bg-primary/20' : isActive ? 'bg-primary/15' : 'bg-surface'
-          )}>
+        <button onClick={handleClick} className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className={cn(
+              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative',
+              isSelected ? 'bg-primary/20' : isActive ? 'bg-primary/15' : 'bg-surface'
+            )}
+          >
             {isSelected ? (
               <Check className="w-4 h-4 text-primary" />
             ) : track.albumArt ? (
-              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
+              <img
+                src={track.albumArt}
+                alt={track.title}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover rounded-lg"
+              />
             ) : isActive && isPlaying ? (
               <>
                 <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
@@ -120,7 +140,9 @@ export function TrackRowContent({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className={cn('text-sm font-medium truncate text-left', isActive && 'text-primary')}>{track.title}</p>
+            <p className={cn('text-sm font-medium truncate text-left', isActive && 'text-primary')}>
+              {track.title}
+            </p>
             <p className="text-xs text-muted-foreground/60 truncate text-left">{track.artist}</p>
           </div>
         </button>
@@ -129,9 +151,7 @@ export function TrackRowContent({
           {track.duration > 0 ? formatDuration(track.duration) : ''}
         </span>
 
-        {showAddToPlaylist && (
-          <AddToPlaylistButton trackId={track.id} />
-        )}
+        {showAddToPlaylist && <AddToPlaylistButton trackId={track.id} />}
 
         {onToggleFavorite && (
           <motion.button
@@ -149,7 +169,10 @@ export function TrackRowContent({
             aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           >
             <Heart
-              className={cn('w-3.5 h-3.5 transition-all duration-150', track.isFavorite && 'fill-current')}
+              className={cn(
+                'w-3.5 h-3.5 transition-all duration-150',
+                track.isFavorite && 'fill-current'
+              )}
             />
           </motion.button>
         )}
@@ -169,11 +192,7 @@ export function TrackRowContent({
         )}
       </div>
       {contextMenu && (
-        <TrackContextMenu
-          track={track}
-          position={contextMenu}
-          onClose={handleCloseContextMenu}
-        />
+        <TrackContextMenu track={track} position={contextMenu} onClose={handleCloseContextMenu} />
       )}
     </>
   );

@@ -3,12 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
-import {
-  Sparkles,
-  Play,
-  Shuffle,
-  ArrowLeft,
-} from 'lucide-react';
+import { Sparkles, Play, Shuffle, ArrowLeft } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
@@ -22,13 +17,13 @@ import { MixesViewSkeleton } from './MixesViewSkeleton';
 
 export function MixesView() {
   const { t } = useTranslation('mixes');
-  const library = useLibraryStore((s) => s.library);
-  const libraryLoaded = useLibraryStore((s) => s.libraryLoaded);
-  const currentTrack = usePlaybackStore((s) => s.currentTrack);
-  const isPlaying = usePlaybackStore((s) => s.isPlaying);
-  const setQueue = usePlaybackStore((s) => s.setQueue);
-  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
-  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
+  const library = useLibraryStore(s => s.library);
+  const libraryLoaded = useLibraryStore(s => s.libraryLoaded);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const setQueue = usePlaybackStore(s => s.setQueue);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const [selectedMix, setSelectedMix] = useState<MixId | null>(null);
   const mixTracks = useMixTracks(selectedMix);
@@ -56,9 +51,7 @@ export function MixesView() {
 
   const handleBack = useCallback(() => setSelectedMix(null), []);
 
-  const selectedDef = selectedMix
-    ? MIX_DEFINITIONS.find((m) => m.id === selectedMix)
-    : null;
+  const selectedDef = selectedMix ? MIX_DEFINITIONS.find(m => m.id === selectedMix) : null;
 
   // ── Cold-start skeleton ──
   if (!libraryLoaded && library.length === 0) {
@@ -67,13 +60,7 @@ export function MixesView() {
 
   // ── Empty library state ──
   if (library.length === 0) {
-    return (
-      <ViewEmptyState
-        title={t('title')}
-        subtitle={t('emptyLibrary')}
-        icon={Sparkles}
-      />
-    );
+    return <ViewEmptyState title={t('title')} subtitle={t('emptyLibrary')} icon={Sparkles} />;
   }
 
   // ── Mix detail view ──
@@ -171,7 +158,7 @@ export function MixesView() {
 
       <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin">
         <div className="space-y-1.5">
-          {MIX_DEFINITIONS.map((mix) => {
+          {MIX_DEFINITIONS.map(mix => {
             const Icon = mix.icon;
             const preview = getMixPreviewCount(mix.id, library);
             const previewTracks = previews[mix.id];
@@ -193,6 +180,8 @@ export function MixesView() {
                           src={track.albumArt}
                           alt=""
                           aria-hidden="true"
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                       ))}
@@ -202,6 +191,8 @@ export function MixesView() {
                       src={previewTracks[0].albumArt}
                       alt=""
                       aria-hidden="true"
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -213,9 +204,7 @@ export function MixesView() {
 
                 {/* Text */}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {t(mix.titleKey)}
-                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{t(mix.titleKey)}</p>
                   <p className="text-xs text-muted-foreground/40 truncate mt-0.5">
                     {t(mix.descKey)}
                   </p>

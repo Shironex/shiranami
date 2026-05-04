@@ -72,6 +72,8 @@ export function CommandPalette() {
                   <img
                     src={track.albumArt}
                     alt={track.title}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 ) : (

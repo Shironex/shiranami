@@ -298,6 +298,8 @@ export function PlaylistDetailView() {
                 <img
                   src={playlist.coverArt}
                   alt={playlist.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               ) : (

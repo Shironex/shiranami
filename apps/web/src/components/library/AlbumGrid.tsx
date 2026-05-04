@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { type Track } from '@/stores/types';
 import { Disc3, Search } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Grid, type CellComponentProps, type GridImperativeAPI } from 'react-window';
 import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
 
 export type { AlbumData };
@@ -12,6 +13,108 @@ export type { AlbumData };
 interface AlbumGridProps {
   library: Track[];
   searchQuery: string;
+}
+
+type GridSize = 'small' | 'medium' | 'large';
+
+// Tailwind breakpoint columns mirrored in JS so Grid can compute layout. The
+// non-virtualized version delegated to CSS grid, but Grid needs an explicit
+// columnCount.
+const COLUMN_COUNTS: Record<GridSize, ReadonlyArray<readonly [number, number]>> = {
+  // [minViewportWidthPx, columns]
+  small: [
+    [1536, 8],
+    [1280, 6],
+    [1024, 5],
+    [768, 4],
+    [0, 3],
+  ],
+  medium: [
+    [1536, 6],
+    [1280, 5],
+    [1024, 4],
+    [768, 3],
+    [0, 2],
+  ],
+  large: [
+    [1536, 5],
+    [1280, 4],
+    [1024, 3],
+    [0, 2],
+  ],
+};
+
+function columnsFor(size: GridSize, viewportWidth: number): number {
+  const table = COLUMN_COUNTS[size];
+  for (const [minWidth, cols] of table) {
+    if (viewportWidth >= minWidth) return cols;
+  }
+  return table[table.length - 1][1];
+}
+
+// Card height is title (sm) + artist (xs) + count (10px) + paddings + img.
+// Image height = (cellWidth - 2*padding). Total = imgHeight + textBlock + p*2.
+// Padding: small=p-3 (12), medium/large=p-4 (16). Mb-3 between img and text.
+// Text block ≈ 56px (title 20 + artist 18 + count 14 + gaps).
+const ROW_HEIGHT_TEXT_BLOCK = 56;
+const GAP_PX: Record<GridSize, number> = { small: 8, medium: 12, large: 16 };
+const PADDING_PX: Record<GridSize, number> = { small: 12, medium: 16, large: 16 };
+
+interface CellProps {
+  albums: AlbumData[];
+  columnCount: number;
+  onAlbumClick: (name: string) => void;
+  cardPaddingClass: string;
+  imgPx: number;
+  trackCountLabel: (count: number) => string;
+}
+
+function AlbumCell({
+  columnIndex,
+  rowIndex,
+  style,
+  albums,
+  columnCount,
+  onAlbumClick,
+  cardPaddingClass,
+  imgPx,
+  trackCountLabel,
+}: CellComponentProps<CellProps>) {
+  const index = rowIndex * columnCount + columnIndex;
+  const album = albums[index];
+  if (!album) {
+    return <div style={style} aria-hidden="true" />;
+  }
+  return (
+    <div style={style}>
+      <button
+        onClick={() => onAlbumClick(album.name)}
+        className={`text-left ${cardPaddingClass} rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group w-full h-full flex flex-col`}
+      >
+        <div
+          className="w-full rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden"
+          style={{ height: imgPx, flexShrink: 0 }}
+        >
+          {album.albumArt ? (
+            <img
+              src={album.albumArt}
+              alt={album.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
+          )}
+        </div>
+        <p className="font-display text-sm font-semibold text-foreground truncate">{album.name}</p>
+        <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
+        <p className="text-[10px] text-muted-foreground/30 mt-1.5">
+          {trackCountLabel(album.trackCount)}
+        </p>
+      </button>
+    </div>
+  );
 }
 
 export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
@@ -22,26 +125,35 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   const albumGridSize = useUIStore(s => s.albumGridSize);
   const albumSortMode = useUIStore(s => s.albumSortMode);
   const albumSortOrder = useUIStore(s => s.albumSortOrder);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  // Capture scroll position at mount time — used to skip animation and restore scroll
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<GridImperativeAPI | null>(null);
+  // Capture once at mount — used for scroll restore + skipping the entry animation.
   const savedScrollTop = useRef(albumGridScrollTop);
   const isReturning = useRef(albumGridScrollTop > 0);
 
-  // Restore scroll position on remount
-  useEffect(() => {
-    if (scrollRef.current && savedScrollTop.current > 0) {
-      scrollRef.current.scrollTop = savedScrollTop.current;
-    }
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setContainerWidth(el.clientWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const handleAlbumClick = useCallback(
     (albumName: string) => {
-      if (scrollRef.current) {
-        setAlbumGridScrollTop(scrollRef.current.scrollTop);
-      }
+      const offset = gridRef.current?.element?.scrollTop ?? 0;
+      setAlbumGridScrollTop(offset);
       selectAlbum(albumName);
     },
-    [selectAlbum, setAlbumGridScrollTop]
+    [selectAlbum, setAlbumGridScrollTop, gridRef]
   );
 
   const albums = useMemo(
@@ -57,20 +169,58 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     );
   }, [albums, searchQuery]);
 
-  const gridClassName = useMemo(() => {
-    switch (albumGridSize) {
-      case 'small':
-        return 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2';
-      case 'large':
-        return 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4';
-      case 'medium':
-      default:
-        return 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3';
-    }
-  }, [albumGridSize]);
+  const trackCountLabel = useCallback((count: number) => t('trackCount', { count }), [t]);
 
-  // Slightly smaller padding for the small grid so more info fits on screen.
   const cardPaddingClass = albumGridSize === 'small' ? 'p-3' : 'p-4';
+
+  // Compute column count from container width (uses Tailwind breakpoint
+  // table mirrored above).
+  const columnCount = useMemo(() => {
+    if (containerWidth <= 0) return columnsFor(albumGridSize, 1280);
+    return columnsFor(albumGridSize, containerWidth);
+  }, [albumGridSize, containerWidth]);
+
+  // Cell width includes the gap allowance — Grid sizes cells based on
+  // columnWidth, and we pad to leave space for `gap` between cells.
+  const gap = GAP_PX[albumGridSize];
+  const padding = PADDING_PX[albumGridSize];
+  const usableWidth = Math.max(0, containerWidth - gap * (columnCount - 1));
+  const cellOuterWidth =
+    columnCount > 0 ? usableWidth / columnCount + (gap * (columnCount - 1)) / columnCount : 0;
+  // The image height = cellOuterWidth - 2*padding (square aspect).
+  const imgPx = Math.max(0, cellOuterWidth - padding * 2);
+  const cellOuterHeight = imgPx + padding * 2 + ROW_HEIGHT_TEXT_BLOCK;
+
+  const rowCount = columnCount > 0 ? Math.ceil(filteredAlbums.length / columnCount) : 0;
+
+  // Restore scroll position after the grid has laid out cells. Run once after
+  // we know the container width (Grid only scrolls correctly once measured).
+  const didRestoreScroll = useRef(false);
+  useEffect(() => {
+    if (didRestoreScroll.current) return;
+    if (containerWidth <= 0) return;
+    if (savedScrollTop.current <= 0) {
+      didRestoreScroll.current = true;
+      return;
+    }
+    const el = gridRef.current?.element;
+    if (el) {
+      el.scrollTop = savedScrollTop.current;
+      didRestoreScroll.current = true;
+    }
+  }, [containerWidth, gridRef]);
+
+  const cellProps = useMemo(
+    () => ({
+      albums: filteredAlbums,
+      columnCount,
+      onAlbumClick: handleAlbumClick,
+      cardPaddingClass,
+      imgPx,
+      trackCountLabel,
+    }),
+    [filteredAlbums, columnCount, handleAlbumClick, cardPaddingClass, imgPx, trackCountLabel]
+  );
 
   if (filteredAlbums.length === 0) {
     return (
@@ -87,55 +237,33 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   }
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-4">
+    <div ref={containerRef} className="flex-1 overflow-hidden px-6 pb-4 flex flex-col">
       {searchQuery.trim() && (
-        <p className="text-xs text-muted-foreground/50 mb-3 px-1">
+        <p className="text-xs text-muted-foreground/50 mb-3 px-1 shrink-0">
           {t('albumFilterCount', { filtered: filteredAlbums.length, total: albums.length })}
         </p>
       )}
       <motion.div
-        className={gridClassName}
-        initial={isReturning.current ? 'visible' : 'hidden'}
-        animate="visible"
-        variants={{
-          visible: { transition: { staggerChildren: isReturning.current ? 0 : 0.04 } },
-        }}
+        className="flex-1 min-h-0 scrollbar-thin"
+        initial={isReturning.current ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ height: '100%' }}
       >
-        {filteredAlbums.map(album => (
-          <motion.button
-            key={album.name}
-            variants={{
-              hidden: { opacity: 0, y: 12 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            transition={{ duration: isReturning.current ? 0 : 0.3, ease: 'easeOut' }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleAlbumClick(album.name)}
-            className={`text-left ${cardPaddingClass} rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group`}
-          >
-            <div className="w-full aspect-square rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden">
-              {album.albumArt ? (
-                <img
-                  src={album.albumArt}
-                  alt={album.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
-              )}
-            </div>
-            <p className="font-display text-sm font-semibold text-foreground truncate">
-              {album.name}
-            </p>
-            <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
-            <p className="text-[10px] text-muted-foreground/30 mt-1.5">
-              {t('trackCount', { count: album.trackCount })}
-            </p>
-          </motion.button>
-        ))}
+        {columnCount > 0 && containerWidth > 0 && (
+          <Grid
+            gridRef={gridRef as React.RefObject<GridImperativeAPI>}
+            cellComponent={AlbumCell}
+            cellProps={cellProps}
+            columnCount={columnCount}
+            columnWidth={containerWidth / columnCount}
+            rowCount={rowCount}
+            rowHeight={cellOuterHeight}
+            overscanCount={2}
+            className="scrollbar-thin"
+            style={{ height: '100%' }}
+          />
+        )}
       </motion.div>
     </div>
   );
