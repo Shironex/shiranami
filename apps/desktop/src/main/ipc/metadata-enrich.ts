@@ -250,6 +250,15 @@ export function registerMetadataEnrichHandlers(): void {
             status: 'done',
           });
         } catch (error) {
+          if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+            sendProgress({
+              current: i + 1,
+              total: tracks.length,
+              trackName: track.title,
+              status: 'cancelled',
+            });
+            break;
+          }
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`[metadata:enrich] Failed to enrich "${track.title}":`, error);
 
