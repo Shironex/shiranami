@@ -45,7 +45,13 @@ export interface EnrichProgress {
   status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
 }
 
-let enrichCancelled = false;
+/**
+ * Active enrichment AbortController. Set when a batch run starts and cleared
+ * on exit. The `metadata:enrich:cancel` IPC aborts whichever is current.
+ * Concurrent enrichment runs are not supported (the renderer gates them) so a
+ * single slot is enough.
+ */
+let activeEnrichAbort: AbortController | null = null;
 
 export function registerMetadataEnrichHandlers(): void {
   // Look up metadata for a single track (for preview / confirmation)
@@ -57,12 +63,17 @@ export function registerMetadataEnrichHandlers(): void {
     { schema: metadataLookupArgs }
   );
 
-  // Cancel ongoing enrichment
+  // Cancel ongoing enrichment. No-op when idle — avoids leaving stale state
+  // that would poison the next run (which the old boolean flag could not prevent).
   handle(
     'metadata:enrich:cancel',
     async () => {
-      enrichCancelled = true;
-      logger.info('[metadata:enrich] Cancellation requested');
+      if (activeEnrichAbort) {
+        logger.info('[metadata:enrich] Cancellation requested');
+        activeEnrichAbort.abort('user-cancelled');
+      } else {
+        logger.info('[metadata:enrich] Cancel requested with no active enrichment');
+      }
     },
     { schema: metadataEnrichCancelArgs }
   );
@@ -79,7 +90,9 @@ export function registerMetadataEnrichHandlers(): void {
         `[metadata:enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`
       );
 
-      enrichCancelled = false;
+      const abort = new AbortController();
+      activeEnrichAbort = abort;
+      const { signal } = abort;
       const results: EnrichTrackResult[] = [];
 
       const sendProgress = (progress: EnrichProgress) => {
@@ -90,7 +103,7 @@ export function registerMetadataEnrichHandlers(): void {
       };
 
       for (let i = 0; i < tracks.length; i++) {
-        if (enrichCancelled) {
+        if (signal.aborted) {
           logger.info(`[metadata:enrich] Cancelled at track ${i + 1}/${tracks.length}`);
           sendProgress({
             current: i + 1,
@@ -112,7 +125,7 @@ export function registerMetadataEnrichHandlers(): void {
 
         try {
           // Look up metadata
-          const lookup = await lookupMetadata(track.title, track.artist);
+          const lookup = await lookupMetadata(track.title, track.artist, signal);
 
           if (lookup.source === 'none') {
             logger.info(
@@ -177,7 +190,7 @@ export function registerMetadataEnrichHandlers(): void {
             });
 
             try {
-              coverImageBuffer = await downloadImage(lookup.coverImageUrl);
+              coverImageBuffer = await downloadImage(lookup.coverImageUrl, signal);
               // Determine MIME from URL or default to JPEG
               coverImageMime = lookup.coverImageUrl.toLowerCase().includes('.png')
                 ? 'image/png'
@@ -205,7 +218,7 @@ export function registerMetadataEnrichHandlers(): void {
               coverImageMime,
             };
 
-            const albumArtUrl = await writeMetadataToFile(track.filePath, writeOptions);
+            const albumArtUrl = await writeMetadataToFile(track.filePath, writeOptions, signal);
             if (albumArtUrl) {
               updatedFields.albumArt = albumArtUrl;
             }
@@ -237,6 +250,15 @@ export function registerMetadataEnrichHandlers(): void {
             status: 'done',
           });
         } catch (error) {
+          if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+            sendProgress({
+              current: i + 1,
+              total: tracks.length,
+              trackName: track.title,
+              status: 'cancelled',
+            });
+            break;
+          }
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`[metadata:enrich] Failed to enrich "${track.title}":`, error);
 
@@ -260,8 +282,10 @@ export function registerMetadataEnrichHandlers(): void {
       const successCount = results.filter(r => r.success).length;
       const failedCount = results.filter(r => !r.success).length;
       logger.info(
-        `[metadata:enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${enrichCancelled ? ' (cancelled)' : ''}`
+        `[metadata:enrich] Batch complete: ${successCount} updated, ${failedCount} failed/no-results out of ${tracks.length} tracks${signal.aborted ? ' (cancelled)' : ''}`
       );
+
+      if (activeEnrichAbort === abort) activeEnrichAbort = null;
 
       return results;
     },

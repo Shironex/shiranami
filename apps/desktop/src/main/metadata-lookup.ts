@@ -24,7 +24,10 @@ export function cleanTitleForSearch(title: string, artist: string): string {
   // Strip common YouTube/video noise
   cleaned = cleaned
     // Parenthetical noise: (Official Video), (Lyrics), (Prod. xyz), (feat. xyz) kept
-    .replace(/\s*\((?:Official\s*(?:Video|Audio|Lyric\s*Video|Visualizer|Music\s*Video)|Lyrics?|MV|Audio|Visualizer|AMV|Prod\.?\s*[^)]*|MOURN\s*\d*|Male\s*Version|Female\s*Version|Rock\s*(?:Version|Cover)|Cover|Remix|Extended|80s\s*Remix)\)/gi, '')
+    .replace(
+      /\s*\((?:Official\s*(?:Video|Audio|Lyric\s*Video|Visualizer|Music\s*Video)|Lyrics?|MV|Audio|Visualizer|AMV|Prod\.?\s*[^)]*|MOURN\s*\d*|Male\s*Version|Female\s*Version|Rock\s*(?:Version|Cover)|Cover|Remix|Extended|80s\s*Remix)\)/gi,
+      ''
+    )
     // Square bracket noise: [Official Audio], [Looped], [+Lyrics], [male], [NMV], [Wave], etc.
     .replace(/\s*\[[^\]]*\]/g, '')
     // CJK brackets: 「...」【...】
@@ -76,18 +79,18 @@ interface ITunesResult {
  */
 async function searchItunes(
   title: string,
-  artist: string
+  artist: string,
+  signal?: AbortSignal
 ): Promise<MetadataLookupResult | null> {
   try {
     // Build search query: clean title and combine with artist
     const cleanedTitle = cleanTitleForSearch(title, artist);
-    const query = artist && artist !== 'Unknown Artist'
-      ? `${artist} ${cleanedTitle}`
-      : cleanedTitle;
+    const query =
+      artist && artist !== 'Unknown Artist' ? `${artist} ${cleanedTitle}` : cleanedTitle;
 
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=5`;
     logger.info(`[metadata-lookup] iTunes search: "${query}"`);
-    const data = await requestJson<ITunesResult>(url);
+    const data = await requestJson<ITunesResult>(url, { signal });
 
     if (!data.results || data.results.length === 0) {
       logger.info(`[metadata-lookup] iTunes: no results for "${query}"`);
@@ -117,7 +120,10 @@ async function searchItunes(
       if (normalizedArtist !== 'unknown artist') {
         if (resultArtist === normalizedArtist) {
           score += 0.5;
-        } else if (resultArtist.includes(normalizedArtist) || normalizedArtist.includes(resultArtist)) {
+        } else if (
+          resultArtist.includes(normalizedArtist) ||
+          normalizedArtist.includes(resultArtist)
+        ) {
           score += 0.3;
         }
       }
@@ -134,11 +140,12 @@ async function searchItunes(
       : undefined;
 
     const releaseDate = bestMatch.releaseDate ? new Date(bestMatch.releaseDate) : null;
-    const releaseYear = releaseDate && !isNaN(releaseDate.getTime())
-      ? releaseDate.getFullYear()
-      : undefined;
+    const releaseYear =
+      releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : undefined;
 
-    logger.info(`[metadata-lookup] iTunes match: "${bestMatch.trackName}" by "${bestMatch.artistName}" (score: ${bestScore.toFixed(2)}, album: "${bestMatch.collectionName}")`);
+    logger.info(
+      `[metadata-lookup] iTunes match: "${bestMatch.trackName}" by "${bestMatch.artistName}" (score: ${bestScore.toFixed(2)}, album: "${bestMatch.collectionName}")`
+    );
 
     return {
       title: bestMatch.trackName || undefined,
@@ -163,7 +170,8 @@ async function searchItunes(
  */
 async function searchYouTube(
   title: string,
-  artist: string
+  artist: string,
+  signal?: AbortSignal
 ): Promise<MetadataLookupResult | null> {
   if (!isYtDlpInstalled()) {
     logger.info('[metadata-lookup] YouTube: yt-dlp not installed, skipping');
@@ -172,17 +180,14 @@ async function searchYouTube(
 
   try {
     const cleanedTitle = cleanTitleForSearch(title, artist);
-    const query = artist && artist !== 'Unknown Artist'
-      ? `${artist} - ${cleanedTitle}`
-      : cleanedTitle;
+    const query =
+      artist && artist !== 'Unknown Artist' ? `${artist} - ${cleanedTitle}` : cleanedTitle;
     logger.info(`[metadata-lookup] YouTube search: "${query}"`);
 
-    const { stdout, code } = await spawnYtDlp([
-      '--flat-playlist',
-      '--dump-json',
-      '--no-warnings',
-      `ytsearch1:${query}`,
-    ]);
+    const { stdout, code } = await spawnYtDlp(
+      ['--flat-playlist', '--dump-json', '--no-warnings', `ytsearch1:${query}`],
+      signal
+    );
 
     if (code !== 0 || !stdout.trim()) {
       logger.info(`[metadata-lookup] YouTube: no results (code: ${code})`);
@@ -190,9 +195,10 @@ async function searchYouTube(
     }
 
     const data = JSON.parse(stdout.trim().split('\n')[0]);
-    const thumbnailUrl = data.thumbnail
-      || data.thumbnails?.[data.thumbnails.length - 1]?.url
-      || (data.id ? `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg` : undefined);
+    const thumbnailUrl =
+      data.thumbnail ||
+      data.thumbnails?.[data.thumbnails.length - 1]?.url ||
+      (data.id ? `https://i.ytimg.com/vi/${data.id}/hqdefault.jpg` : undefined);
 
     return {
       coverImageUrl: thumbnailUrl,
@@ -205,11 +211,26 @@ async function searchYouTube(
   }
 }
 
-function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
+function spawnYtDlp(
+  args: string[],
+  signal?: AbortSignal
+): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('The operation was aborted', 'AbortError'));
+      return;
+    }
+
     const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
     let stdout = '';
     let stderr = '';
+
+    const onAbort = () => {
+      proc.kill();
+      reject(new DOMException('The operation was aborted', 'AbortError'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
 
     proc.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
@@ -217,10 +238,12 @@ function spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; c
     proc.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
-    proc.on('error', (err) => {
+    proc.on('error', err => {
+      signal?.removeEventListener('abort', onAbort);
       reject(err);
     });
-    proc.on('close', (code) => {
+    proc.on('close', code => {
+      signal?.removeEventListener('abort', onAbort);
       resolve({ stdout, stderr, code: code ?? 1 });
     });
   });
@@ -234,10 +257,11 @@ const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  * Routed through `requestBuffer` so cover-art hosts (e.g. i.ytimg.com,
  * iTunes thumbnails) share the per-host spacing + 429 handling.
  */
-export function downloadImage(url: string): Promise<Buffer> {
+export function downloadImage(url: string, signal?: AbortSignal): Promise<Buffer> {
   return requestBuffer(url, {
     timeoutMs: IMAGE_TIMEOUT_MS,
     maxBytes: IMAGE_MAX_SIZE,
+    signal,
   });
 }
 
@@ -246,17 +270,22 @@ export function downloadImage(url: string): Promise<Buffer> {
  */
 export async function lookupMetadata(
   title: string,
-  artist: string
+  artist: string,
+  signal?: AbortSignal
 ): Promise<MetadataLookupResult> {
   // Non-artist keywords that appear before a dash in titles but aren't real artists
-  const NON_ARTIST_PREFIXES = /^(nightcore|amv|mv|lyrics?|official|hd|hq|full|extended|remix|cover|male|female)\b/i;
+  const NON_ARTIST_PREFIXES =
+    /^(nightcore|amv|mv|lyrics?|official|hd|hq|full|extended|remix|cover|male|female)\b/i;
 
   // If the title contains "Artist - Song" pattern, extract a better artist/title split
   // This handles YouTube downloads where artist = channel name, title = "RealArtist - Song Name"
   let searchTitle = title;
   let searchArtist = artist;
   const dashMatch = title.match(/^(.+?)\s*[-–]\s*(.+)$/);
-  if (dashMatch && (artist === 'Unknown Artist' || !title.toLowerCase().startsWith(artist.toLowerCase()))) {
+  if (
+    dashMatch &&
+    (artist === 'Unknown Artist' || !title.toLowerCase().startsWith(artist.toLowerCase()))
+  ) {
     const candidateArtist = dashMatch[1].trim();
     const candidateTitle = dashMatch[2].trim();
 
@@ -264,25 +293,31 @@ export async function lookupMetadata(
       // "Nightcore - Darkside" → just use "Darkside" as title, keep original artist as Unknown
       searchTitle = candidateTitle;
       searchArtist = 'Unknown Artist';
-      logger.info(`[metadata-lookup] Stripped non-artist prefix "${candidateArtist}", title: "${searchTitle}"`);
+      logger.info(
+        `[metadata-lookup] Stripped non-artist prefix "${candidateArtist}", title: "${searchTitle}"`
+      );
     } else {
       searchArtist = candidateArtist;
       searchTitle = candidateTitle;
-      logger.info(`[metadata-lookup] Extracted artist/title from title: "${searchArtist}" - "${searchTitle}"`);
+      logger.info(
+        `[metadata-lookup] Extracted artist/title from title: "${searchArtist}" - "${searchTitle}"`
+      );
     }
   }
 
   logger.info(`[metadata-lookup] Looking up: "${searchTitle}" by "${searchArtist}"`);
 
   // Try iTunes first (structured metadata + album art)
-  const itunesResult = await searchItunes(searchTitle, searchArtist);
+  const itunesResult = await searchItunes(searchTitle, searchArtist, signal);
   if (itunesResult && itunesResult.confidence >= 0.3) {
-    logger.info(`[metadata-lookup] Using iTunes result (confidence: ${itunesResult.confidence.toFixed(2)})`);
+    logger.info(
+      `[metadata-lookup] Using iTunes result (confidence: ${itunesResult.confidence.toFixed(2)})`
+    );
     return itunesResult;
   }
 
   // Fall back to YouTube for at least a thumbnail
-  const youtubeResult = await searchYouTube(searchTitle, searchArtist);
+  const youtubeResult = await searchYouTube(searchTitle, searchArtist, signal);
   if (youtubeResult) {
     // Merge: if iTunes had some low-confidence data, use it for text fields
     if (itunesResult) {

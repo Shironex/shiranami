@@ -19,10 +19,15 @@ export interface WriteMetadataOptions {
 /**
  * Write metadata and/or cover art into an audio file.
  * Returns the shiranami-art:// URL if cover art was saved, or null.
+ *
+ * When `signal` is provided it is forwarded to the ffmpeg child process
+ * so cancellation terminates the encode promptly. node-id3 and flac-tagger
+ * use synchronous writes and cannot be interrupted mid-call.
  */
 export async function writeMetadataToFile(
   filePath: string,
-  options: WriteMetadataOptions
+  options: WriteMetadataOptions,
+  signal?: AbortSignal
 ): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
   const fileName = path.basename(filePath);
@@ -50,7 +55,7 @@ export async function writeMetadataToFile(
       case '.wma':
       case '.weba':
       case '.webm':
-        await writeTagsWithFFmpeg(filePath, options);
+        await writeTagsWithFFmpeg(filePath, options, signal);
         break;
       default:
         logger.warn(`[metadata-writer] Unsupported format for writing: ${ext}`);
@@ -122,7 +127,11 @@ async function writeFlacTags(filePath: string, options: WriteMetadataOptions): P
   await writeFlac(tags, filePath);
 }
 
-async function writeTagsWithFFmpeg(filePath: string, options: WriteMetadataOptions): Promise<void> {
+async function writeTagsWithFFmpeg(
+  filePath: string,
+  options: WriteMetadataOptions,
+  signal?: AbortSignal
+): Promise<void> {
   if (!isFFmpegInstalled()) {
     logger.warn('[metadata-writer] ffmpeg not installed, skipping tag write for:', filePath);
     return;
@@ -164,10 +173,23 @@ async function writeTagsWithFFmpeg(filePath: string, options: WriteMetadataOptio
 
   try {
     await new Promise<void>((resolve, reject) => {
-      execFile(getFFmpegPath(), args, { timeout: 30000 }, err => {
+      if (signal?.aborted) {
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+        return;
+      }
+
+      const proc = execFile(getFFmpegPath(), args, { timeout: 30000 }, err => {
+        signal?.removeEventListener('abort', onAbort);
         if (err) reject(err);
         else resolve();
       });
+
+      const onAbort = () => {
+        proc.kill();
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+      };
+
+      signal?.addEventListener('abort', onAbort, { once: true });
     });
 
     // Atomic replace: rename temp over original
