@@ -187,8 +187,11 @@ describe('metadata-enrich handlers', () => {
       expect(r.updatedFields.year).toBe(2024);
       expect(r.updatedFields.trackNumber).toBe(3);
 
-      // Cover art should be downloaded and saved to cache
-      expect(mockedDownloadImage).toHaveBeenCalledWith('https://example.com/cover.jpg');
+      // Cover art should be downloaded and saved to cache (signal is passed as second arg)
+      expect(mockedDownloadImage).toHaveBeenCalledWith(
+        'https://example.com/cover.jpg',
+        expect.any(AbortSignal)
+      );
       expect(mockedSaveAlbumArt).toHaveBeenCalled();
       expect(r.updatedFields.albumArt).toBe('shiranami-art://hash');
     });
@@ -421,7 +424,8 @@ describe('metadata-enrich handlers', () => {
           trackNumber: 3,
           coverImageBuffer: expect.any(Buffer),
           coverImageMime: 'image/jpeg',
-        })
+        }),
+        expect.any(AbortSignal)
       );
 
       expect(results[0].updatedFields.albumArt).toBe('shiranami-art://written');
@@ -442,6 +446,61 @@ describe('metadata-enrich handlers', () => {
       expect(ipcHandlers.has('metadata:lookup')).toBe(false);
       expect(ipcHandlers.has('metadata:enrich:cancel')).toBe(false);
       expect(ipcHandlers.has('metadata:enrich:tracks')).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // Sequential runs do not share aborted state
+  // ---------------------------------------------------------------
+  describe('sequential runs with cancellation', () => {
+    it('second run completes normally after the first run was cancelled', async () => {
+      vi.useFakeTimers();
+
+      const tracks = [
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Song 1' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Song 2' }),
+      ];
+
+      mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
+
+      const handler = ipcHandlers.get('metadata:enrich:tracks')!;
+      const cancelHandler = ipcHandlers.get('metadata:enrich:cancel')!;
+
+      // --- Run 1: start then cancel ---
+      const run1 = handler(null as never, tracks, {
+        writeToFile: false,
+        onlyMissing: false,
+      }) as Promise<EnrichTrackResult[]>;
+
+      await vi.advanceTimersByTimeAsync(0);
+      await cancelHandler(null as never);
+      await vi.advanceTimersByTimeAsync(1000);
+      await run1;
+
+      vi.clearAllMocks();
+      win.webContents.send.mockClear();
+
+      // --- Run 2: fresh run, must not see the previous controller's aborted state ---
+      const run2 = handler(null as never, [makeTrack({ title: 'Fresh Song' })], {
+        writeToFile: false,
+        onlyMissing: false,
+      }) as Promise<EnrichTrackResult[]>;
+
+      await vi.advanceTimersByTimeAsync(0);
+      const results2 = await run2;
+
+      expect(results2).toHaveLength(1);
+      expect(results2[0].success).toBe(true);
+
+      const progressCalls2 = win.webContents.send.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'metadata:enrich:progress'
+      );
+      const cancelledEvent = progressCalls2.find(
+        (c: unknown[]) => (c[1] as { status: string }).status === 'cancelled'
+      );
+      expect(cancelledEvent).toBeUndefined();
+
+      vi.useRealTimers();
     });
   });
 
