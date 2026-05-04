@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -24,6 +24,9 @@ export function MetadataEnrichSection() {
   const loadSkipped = useMetadataEnrichStore(s => s.loadSkipped);
   const cancelEnrichment = useMetadataEnrichStore(s => s.cancelEnrichment);
   const isCancelling = useMetadataEnrichStore(s => s.isCancelling);
+
+  const enrichButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmYesRef = useRef<HTMLButtonElement>(null);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
   // Default OFF — writing to files is irreversible, so it must be an explicit opt-in (issue #37).
@@ -76,6 +79,15 @@ export function MetadataEnrichSection() {
   useEffect(() => {
     if (!writeToFile && confirmWrite) setConfirmWrite(false);
   }, [writeToFile, confirmWrite]);
+
+  // Focus the confirm's primary action when it mounts; restore focus on dismiss.
+  useEffect(() => {
+    if (confirmWrite) {
+      confirmYesRef.current?.focus();
+    } else {
+      enrichButtonRef.current?.focus();
+    }
+  }, [confirmWrite]);
 
   if (!IS_ELECTRON) return null;
 
@@ -141,14 +153,23 @@ export function MetadataEnrichSection() {
 
           {/* Action row — swaps to an inline confirmation when about to write to disk. */}
           {confirmWrite && !isEnriching ? (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
+            <div
+              role="alertdialog"
+              aria-labelledby="enrich-confirm-title"
+              aria-describedby="enrich-confirm-body"
+              onKeyDown={e => e.key === 'Escape' && setConfirmWrite(false)}
+              className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3"
+            >
               <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle
+                  className="w-4 h-4 text-amber-500 mt-0.5 shrink-0"
+                  aria-hidden="true"
+                />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
+                  <p id="enrich-confirm-title" className="text-sm font-medium text-foreground">
                     {t('lib.enrichConfirmWriteTitle')}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p id="enrich-confirm-body" className="text-xs text-muted-foreground">
                     {t('lib.enrichConfirmWriteBody', {
                       count: tracksNeedingEnrichment.length,
                     })}
@@ -157,6 +178,7 @@ export function MetadataEnrichSection() {
               </div>
               <div className="flex gap-2">
                 <Button
+                  ref={confirmYesRef}
                   size="sm"
                   onClick={handleConfirmedEnrich}
                   className="gap-2 rounded-lg bg-amber-500 text-sm text-black shadow-none hover:bg-amber-500/90 [&_svg]:size-3.5"
@@ -177,13 +199,19 @@ export function MetadataEnrichSection() {
           ) : (
             <div className="flex gap-2">
               <Button
+                ref={enrichButtonRef}
                 onClick={handleEnrich}
                 disabled={
                   isEnriching || library.length === 0 || tracksNeedingEnrichment.length === 0
                 }
+                aria-busy={isEnriching}
                 className="rounded-xl bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
               >
-                {isEnriching ? <Loader2 className="animate-spin" /> : <Search />}
+                {isEnriching ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <Search aria-hidden="true" />
+                )}
                 {isEnriching ? t('lib.enriching') : t('lib.enrichMetadata')}
               </Button>
               {isEnriching && (
@@ -191,9 +219,14 @@ export function MetadataEnrichSection() {
                   variant="destructiveGhost"
                   onClick={cancelEnrichment}
                   disabled={isCancelling}
+                  aria-busy={isCancelling}
                   className="rounded-xl [&_svg]:size-3.5"
                 >
-                  {isCancelling ? <Loader2 className="animate-spin" /> : <Ban />}
+                  {isCancelling ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Ban aria-hidden="true" />
+                  )}
                   {isCancelling ? t('lib.enrichCancelling') : t('lib.enrichCancel')}
                 </Button>
               )}
