@@ -65,7 +65,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     skippedIds: new Set(),
     skippedLoaded: false,
 
-    updateProgress: (progress) => set({ progress }),
+    updateProgress: progress => set({ progress }),
 
     loadSkipped: async () => {
       if (!IS_ELECTRON || get().skippedLoaded) return;
@@ -110,14 +110,14 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       const library = useLibraryStore.getState().library;
       const { skippedIds } = get();
 
-      const unknownArtist = i18n.t('unknownArtist', { ns: 'common' });
-      const unknownAlbum = i18n.t('unknownAlbum', { ns: 'common' });
-
+      // DB stores the English literals 'Unknown Artist' / 'Unknown Album' (scan-utility.ts,
+      // metadata-service.ts). Compare against the literals so the filter is consistent
+      // with what the main-process onlyMissing gate checks at metadata-enrich.ts:138,141.
       let candidates = onlyMissing
         ? library.filter(
             t =>
-              t.artist === unknownArtist ||
-              t.album === unknownAlbum ||
+              t.artist === 'Unknown Artist' ||
+              t.album === 'Unknown Album' ||
               !t.albumArt ||
               !t.genre ||
               !t.year
@@ -154,16 +154,13 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           trackNumber: track.trackNumber ?? null,
         }));
 
-        const results: EnrichTrackResult[] =
-          await window.electronAPI.metadata.enrichTracks(input, {
-            writeToFile,
-            onlyMissing,
-          });
+        const results: EnrichTrackResult[] = await window.electronAPI.metadata.enrichTracks(input, {
+          writeToFile,
+          onlyMissing,
+        });
 
         // Track which IDs returned no results so we skip them next time
-        const noResultIds = results
-          .filter(r => !r.success && r.source === 'none')
-          .map(r => r.id);
+        const noResultIds = results.filter(r => !r.success && r.source === 'none').map(r => r.id);
         if (noResultIds.length > 0) {
           const prev = get().skippedIds;
           const next = new Set(prev);
@@ -187,9 +184,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         if (successResults.length > 0) {
           const allDbTracks = await window.electronAPI.db.tracks.getAll();
           const { mapDbTracksToTracks } = await import('@/lib/trackMapper');
-          const refreshedTracks = mapDbTracksToTracks(
-            allDbTracks as Record<string, unknown>[]
-          );
+          const refreshedTracks = mapDbTracksToTracks(allDbTracks as Record<string, unknown>[]);
           useLibraryStore.setState({ library: refreshedTracks });
 
           // Update current track and queue if affected
