@@ -18,6 +18,11 @@ import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsC
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 
+// DB writes these exact strings (scan-utility.ts, metadata-service.ts).
+// Module-level so the useMemo dep is a stable reference and never causes a spurious rebuild.
+const UNKNOWN_ARTIST = 'Unknown Artist';
+const UNKNOWN_ALBUM = 'Unknown Album';
+
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
@@ -41,28 +46,27 @@ export function MetadataEnrichSection() {
     loadSkipped();
   }, [loadSkipped]);
 
-  // Count tracks with missing metadata.
-  // DB stores the English literals 'Unknown Artist' / 'Unknown Album' (written by
-  // scan-utility.ts and metadata-service.ts). trackMapper's ?? fallback never fires
-  // because those truthy strings are already in the row. Compare against the literals
-  // so Polish (and any other locale) users see the correct count.
-  const unknownArtist = 'Unknown Artist';
-  const unknownAlbum = 'Unknown Album';
+  // Count tracks with missing metadata. UNKNOWN_ARTIST/UNKNOWN_ALBUM are module-level
+  // constants so the memo dep is stable and never rebuilds on locale switches.
   const tracksNeedingEnrichment = useMemo(
     () =>
       library.filter(
         t =>
-          t.artist === unknownArtist ||
-          t.album === unknownAlbum ||
+          t.artist === UNKNOWN_ARTIST ||
+          t.album === UNKNOWN_ALBUM ||
           !t.albumArt ||
           !t.genre ||
           !t.year
       ),
-    [library, unknownArtist, unknownAlbum]
+    [library]
   );
 
-  // How many of those are skipped (already tried, no results)
-  const skippedCount = tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length;
+  // Memoized: skippedCount only changes when the enrichment list or skip set changes,
+  // not on every progress tick.
+  const skippedCount = useMemo(
+    () => tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length,
+    [tracksNeedingEnrichment, skippedIds]
+  );
 
   const handleEnrich = useCallback(() => {
     // Gate destructive path behind inline confirm. Safe path (DB only) runs immediately.
