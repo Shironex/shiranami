@@ -3,6 +3,8 @@ import { IS_ELECTRON } from '@/lib/platform';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
+import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
 
 function fileBasename(filePath: string): string {
   return (
@@ -194,7 +196,13 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     });
   },
 
-  resetScanProgress: () => set({ scanState: 'idle', scanProgress: null }),
+  resetScanProgress: () => {
+    const wasCancelling = get().scanState === 'cancelling';
+    set({ scanState: 'idle', scanProgress: null });
+    if (wasCancelling) {
+      toast.info(i18n.t('scanCancelled', { ns: 'toast' }));
+    }
+  },
 
   cancelScan: async () => {
     if (!IS_ELECTRON || get().scanState !== 'scanning') return;
