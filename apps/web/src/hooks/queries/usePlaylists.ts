@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 import type { Playlist } from '@/types/electron';
 import type { Track } from '@/stores/types';
 
@@ -51,7 +52,11 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
  * Syncs isFavorite state from the library store in real-time.
  */
 export function usePlaylistDetailQuery(playlistId: string | null) {
-  const library = useLibraryStore((s) => s.library);
+  const library = useLibraryStore(s => s.library);
+  // Subscribe to overlay version so displayTracks recomputes when a favorite
+  // toggle elsewhere (player bar, library row) touches a track that lives in
+  // this playlist.
+  const overlayVersion = useTrackOverlayStore(s => s.version);
 
   const playlistQuery = usePlaylistQuery(playlistId);
   const tracksQuery = usePlaylistTracksQuery(playlistId);
@@ -67,14 +72,20 @@ export function usePlaylistDetailQuery(playlistId: string | null) {
     await Promise.all([playlistQuery.refetch(), tracksQuery.refetch()]);
   };
 
-  // Sync isFavorite from the store so hearts update in real-time
+  // Resolve isFavorite for each playlist track via the overlay first
+  // (freshest, in-session toggles), then falling back to the library's seed
+  // value. The library array reference no longer mutates on toggleFavorite,
+  // so the previous "favMap from library" approach went stale.
   const displayTracks = useMemo(() => {
-    const favMap = new Map(library.map((t) => [t.id, t.isFavorite]));
-    return tracks.map((t) => {
-      const fav = favMap.get(t.id);
-      return fav !== undefined && fav !== t.isFavorite ? { ...t, isFavorite: fav } : t;
+    void overlayVersion;
+    const overlays = useTrackOverlayStore.getState().overlays;
+    const libraryFav = new Map(library.map(t => [t.id, t.isFavorite]));
+    return tracks.map(t => {
+      const overlayFav = overlays.get(t.id)?.isFavorite;
+      const resolved = overlayFav ?? libraryFav.get(t.id) ?? t.isFavorite;
+      return resolved !== t.isFavorite ? { ...t, isFavorite: resolved } : t;
     });
-  }, [tracks, library]);
+  }, [tracks, library, overlayVersion]);
 
   return { playlist: playlist ?? null, tracks, displayTracks, isLoading, isError, error, refetch };
 }
@@ -199,8 +210,8 @@ export function useReorderPlaylistMutation() {
       const previous = queryClient.getQueryData<Track[]>(playlistKeys.tracks(playlistId));
 
       if (previous) {
-        const trackMap = new Map(previous.map((t) => [t.id, t]));
-        const reordered = trackIds.map((id) => trackMap.get(id)).filter(Boolean) as Track[];
+        const trackMap = new Map(previous.map(t => [t.id, t]));
+        const reordered = trackIds.map(id => trackMap.get(id)).filter(Boolean) as Track[];
         queryClient.setQueryData(playlistKeys.tracks(playlistId), reordered);
       }
 

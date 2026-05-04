@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useTrack } from '@/hooks/useTrack';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
@@ -25,6 +26,10 @@ const MOD = navigator.platform.toUpperCase().includes('MAC') ? '\u2318' : 'Ctrl'
 export function PlayerBar() {
   const { t } = useTranslation('player');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
+  // Heart state reads through the overlay so a toggle from any surface
+  // reflects on the player bar without re-allocating `library`.
+  const mergedTrack = useTrack(currentTrack?.id, currentTrack);
+  const isFavorite = mergedTrack?.isFavorite ?? currentTrack?.isFavorite;
   const duration = usePlaybackStore(s => s.duration);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const ambientColor = useAmbientColor();
@@ -123,19 +128,17 @@ export function PlayerBar() {
                     onClick={() => toggleFavorite(currentTrack.id)}
                     className={cn(
                       'shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                      currentTrack.isFavorite
+                      isFavorite
                         ? 'text-favorite hover:text-favorite-hover'
                         : 'text-muted-foreground/40 hover:text-muted-foreground'
                     )}
-                    aria-label={
-                      currentTrack.isFavorite ? t('removeFromFavorites') : t('addToFavorites')
-                    }
+                    aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                   >
-                    <Heart className={cn('w-4 h-4', currentTrack.isFavorite && 'fill-current')} />
+                    <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
-                  {currentTrack.isFavorite ? t('unfavorite') : t('favorite')}
+                  {isFavorite ? t('unfavorite') : t('favorite')}
                 </TooltipContent>
               </Tooltip>
             )}

@@ -2,6 +2,7 @@ import { type ReactNode, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 import { Heart, Play, X, Check } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,15 @@ export function TrackRowContent({
   const toggleTrack = useSelectionStore(s => s.toggleTrack);
   const selectRange = useSelectionStore(s => s.selectRange);
   const clearSelection = useSelectionStore(s => s.clearSelection);
+
+  // Heart icon reads the live overlay value so a toggle anywhere in the app
+  // (player bar, context menu, this row) reflects on every surface without
+  // reallocating the library array. Falls back to the seed value on the
+  // passed-in `track` when no overlay entry exists.
+  const overlayVersion = useTrackOverlayStore(s => s.version);
+  void overlayVersion;
+  const overlayFavorite = useTrackOverlayStore.getState().overlays.get(track.id)?.isFavorite;
+  const isFavorite = overlayFavorite ?? track.isFavorite;
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -162,16 +172,16 @@ export function TrackRowContent({
             }}
             className={cn(
               'shrink-0 p-1 rounded-md transition-colors duration-150',
-              track.isFavorite
+              isFavorite
                 ? 'text-favorite hover:text-favorite-hover'
                 : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'
             )}
-            aria-label={track.isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+            aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           >
             <Heart
               className={cn(
                 'w-3.5 h-3.5 transition-all duration-150',
-                track.isFavorite && 'fill-current'
+                isFavorite && 'fill-current'
               )}
             />
           </motion.button>

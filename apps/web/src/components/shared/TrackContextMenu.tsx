@@ -2,19 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMutation } from '@tanstack/react-query';
-import {
-  Play,
-  ListPlus,
-  Heart,
-  Share2,
-  FolderOpen,
-  Trash2,
-  ChevronRight,
-} from 'lucide-react';
+import { Play, ListPlus, Heart, Share2, FolderOpen, Trash2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
@@ -139,14 +132,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
 
-  const playNext = usePlaybackStore((s) => s.playNext);
-  const addToQueue = usePlaybackStore((s) => s.addToQueue);
-  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
-  const queue = usePlaybackStore((s) => s.queue);
-  const library = useLibraryStore((s) => s.library);
+  const playNext = usePlaybackStore(s => s.playNext);
+  const addToQueue = usePlaybackStore(s => s.addToQueue);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+  const queue = usePlaybackStore(s => s.queue);
+  const library = useLibraryStore(s => s.library);
 
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
 
@@ -163,12 +156,16 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   // Determine if this is a bulk operation
   const isBulk = selectedTrackIds.size > 1 && selectedTrackIds.has(track.id);
   const targetTrackIds = isBulk ? Array.from(selectedTrackIds) : [track.id];
-  const targetTracks = isBulk
-    ? library.filter((t) => selectedTrackIds.has(t.id))
-    : [track];
+  const targetTracks = isBulk ? library.filter(t => selectedTrackIds.has(t.id)) : [track];
   const count = targetTrackIds.length;
 
-  const isFavorite = queue.find((t) => t.id === track.id)?.isFavorite ?? track.isFavorite;
+  // Overlay is the freshest source after Phase 2 of the mutation-overlay
+  // refactor; queue / track props are stale once a toggle lands.
+  const overlayVersion = useTrackOverlayStore(s => s.version);
+  void overlayVersion;
+  const overlayFavorite = useTrackOverlayStore.getState().overlays.get(track.id)?.isFavorite;
+  const isFavorite =
+    overlayFavorite ?? queue.find(t => t.id === track.id)?.isFavorite ?? track.isFavorite;
 
   const handlePlayNext = useCallback(() => {
     for (const t of targetTracks) {
@@ -278,9 +275,11 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
             icon={<Share2 className="w-4 h-4" />}
             label={t('share', { ns: 'share' })}
             onClick={() => {
-              window.dispatchEvent(new CustomEvent('open-share-dialog', {
-                detail: { type: 'track', id: track.id }
-              }));
+              window.dispatchEvent(
+                new CustomEvent('open-share-dialog', {
+                  detail: { type: 'track', id: track.id },
+                })
+              );
               onClose();
             }}
           />

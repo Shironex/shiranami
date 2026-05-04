@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useTrack } from '@/hooks/useTrack';
 import { useUIStore } from '@/stores/useUIStore';
 import {
   useCompactStore,
@@ -224,6 +225,10 @@ function FavoriteButton() {
   const { t: tp } = useTranslation('player');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+  // Heart state through the overlay so it stays in sync with the main
+  // player bar and any other surface that toggled this track.
+  const mergedTrack = useTrack(currentTrack?.id, currentTrack);
+  const isFavorite = mergedTrack?.isFavorite ?? currentTrack?.isFavorite ?? false;
 
   if (!currentTrack || isRadioTrack(currentTrack.filePath)) return null;
 
@@ -234,16 +239,15 @@ function FavoriteButton() {
           <IconButton
             onClick={() => toggleFavorite(currentTrack.id)}
             className={cn(
-              currentTrack.isFavorite &&
-                'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
+              isFavorite && 'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
             )}
-            aria-label={currentTrack.isFavorite ? tp('removeFromFavorites') : tp('addToFavorites')}
+            aria-label={isFavorite ? tp('removeFromFavorites') : tp('addToFavorites')}
           >
-            <Heart className={cn(currentTrack.isFavorite && 'fill-current')} />
+            <Heart className={cn(isFavorite && 'fill-current')} />
           </IconButton>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {currentTrack.isFavorite ? tp('unfavorite') : tp('favorite')}
+          {isFavorite ? tp('unfavorite') : tp('favorite')}
         </TooltipContent>
       </Tooltip>
     </div>

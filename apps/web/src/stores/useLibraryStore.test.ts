@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryStore } from './useLibraryStore';
 import { usePlaybackStore } from './usePlaybackStore';
+import { useTrackOverlayStore } from './useTrackOverlayStore';
 import type { Track } from './types';
 
 vi.mock('@/lib/platform', () => ({
@@ -25,6 +26,7 @@ function makeTrack(id: string, overrides?: Partial<Track>): Track {
 describe('useLibraryStore', () => {
   beforeEach(() => {
     useLibraryStore.setState({ library: [], libraryLoaded: false });
+    useTrackOverlayStore.setState({ overlays: new Map(), version: 0 });
     usePlaybackStore.setState({
       currentTrack: null,
       queue: [],
@@ -47,7 +49,7 @@ describe('useLibraryStore', () => {
     it('appends to the existing library', () => {
       useLibraryStore.setState({ library: [makeTrack('a')] });
       useLibraryStore.getState().addToLibrary([makeTrack('b'), makeTrack('c')]);
-      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['a', 'b', 'c']);
+      expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['a', 'b', 'c']);
     });
   });
 
@@ -57,11 +59,11 @@ describe('useLibraryStore', () => {
         library: [makeTrack('a'), makeTrack('b'), makeTrack('c')],
       });
       useLibraryStore.getState().removeFromLibrary(['b']);
-      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['a', 'c']);
+      expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['a', 'c']);
     });
 
     it('removes from library and prunes queue + currentTrack when currently playing', () => {
-      const tracks = ['t1', 't2', 't3'].map((id) => makeTrack(id));
+      const tracks = ['t1', 't2', 't3'].map(id => makeTrack(id));
       useLibraryStore.setState({ library: tracks });
       usePlaybackStore.setState({
         queue: tracks,
@@ -73,9 +75,9 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().removeFromLibrary(['t2']);
 
-      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['t1', 't3']);
+      expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['t1', 't3']);
       const pb = usePlaybackStore.getState();
-      expect(pb.queue.map((t) => t.id)).toEqual(['t1', 't3']);
+      expect(pb.queue.map(t => t.id)).toEqual(['t1', 't3']);
       expect(pb.currentTrack?.id).toBe('t3');
       expect(pb.queueIndex).toBe(1);
       expect(pb.currentTime).toBe(0);
@@ -83,7 +85,7 @@ describe('useLibraryStore', () => {
     });
 
     it('adjusts queueIndex down when removing tracks before the current index', () => {
-      const tracks = ['t1', 't2', 't3', 't4', 't5'].map((id) => makeTrack(id));
+      const tracks = ['t1', 't2', 't3', 't4', 't5'].map(id => makeTrack(id));
       useLibraryStore.setState({ library: tracks });
       usePlaybackStore.setState({
         queue: tracks,
@@ -96,7 +98,7 @@ describe('useLibraryStore', () => {
       useLibraryStore.getState().removeFromLibrary(['t1', 't2']);
 
       const pb = usePlaybackStore.getState();
-      expect(pb.queue.map((t) => t.id)).toEqual(['t3', 't4', 't5']);
+      expect(pb.queue.map(t => t.id)).toEqual(['t3', 't4', 't5']);
       expect(pb.queueIndex).toBe(0);
       expect(pb.currentTrack?.id).toBe('t3');
       expect(pb.currentTime).toBe(30);
@@ -104,7 +106,7 @@ describe('useLibraryStore', () => {
     });
 
     it('does not change queueIndex when removing tracks after the current index', () => {
-      const tracks = ['t1', 't2', 't3'].map((id) => makeTrack(id));
+      const tracks = ['t1', 't2', 't3'].map(id => makeTrack(id));
       useLibraryStore.setState({ library: tracks });
       usePlaybackStore.setState({
         queue: tracks,
@@ -117,14 +119,14 @@ describe('useLibraryStore', () => {
       useLibraryStore.getState().removeFromLibrary(['t3']);
 
       const pb = usePlaybackStore.getState();
-      expect(pb.queue.map((t) => t.id)).toEqual(['t1', 't2']);
+      expect(pb.queue.map(t => t.id)).toEqual(['t1', 't2']);
       expect(pb.queueIndex).toBe(0);
       expect(pb.currentTrack?.id).toBe('t1');
       expect(pb.currentTime).toBe(10);
     });
 
     it('clears playback entirely when all queued tracks are removed', () => {
-      const tracks = ['t1', 't2'].map((id) => makeTrack(id));
+      const tracks = ['t1', 't2'].map(id => makeTrack(id));
       useLibraryStore.setState({ library: tracks });
       usePlaybackStore.setState({
         queue: tracks,
@@ -157,9 +159,9 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().removeFromLibrary(['lib-only']);
 
-      expect(useLibraryStore.getState().library.map((t) => t.id)).toEqual(['queued']);
+      expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['queued']);
       const pb = usePlaybackStore.getState();
-      expect(pb.queue.map((t) => t.id)).toEqual(['queued']);
+      expect(pb.queue.map(t => t.id)).toEqual(['queued']);
       expect(pb.queueIndex).toBe(0);
       expect(pb.currentTrack?.id).toBe('queued');
       expect(pb.currentTime).toBe(20);
@@ -170,7 +172,7 @@ describe('useLibraryStore', () => {
       // currentTrack is null but queued tracks exist (e.g. user cleared playback
       // but left queue populated) — removing all of them must collapse to -1,
       // not 0.
-      const tracks = ['t1', 't2'].map((id) => makeTrack(id));
+      const tracks = ['t1', 't2'].map(id => makeTrack(id));
       useLibraryStore.setState({ library: tracks });
       usePlaybackStore.setState({
         queue: tracks,
@@ -211,9 +213,10 @@ describe('useLibraryStore', () => {
   // --- toggleFavorite (cross-store sync) ---
 
   describe('toggleFavorite', () => {
-    it('syncs across library, queue, and currentTrack', () => {
+    it('writes the new value to the overlay and syncs queue + currentTrack', () => {
       const t = makeTrack('x', { isFavorite: false });
-      useLibraryStore.setState({ library: [t] });
+      const libraryRefBefore = [t];
+      useLibraryStore.setState({ library: libraryRefBefore });
       usePlaybackStore.setState({
         queue: [t],
         currentTrack: t,
@@ -222,9 +225,39 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().toggleFavorite('x');
 
-      expect(useLibraryStore.getState().library[0].isFavorite).toBe(true);
+      // Overlay carries the new value.
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({
+        isFavorite: true,
+      });
+      // Library array reference is unchanged — the whole point of the overlay.
+      expect(useLibraryStore.getState().library).toBe(libraryRefBefore);
+      expect(useLibraryStore.getState().library[0].isFavorite).toBe(false);
+      // Playback queue + currentTrack still get the new value (they're not
+      // overlay-aware; cross-store sync remains library's responsibility).
       expect(usePlaybackStore.getState().queue[0].isFavorite).toBe(true);
       expect(usePlaybackStore.getState().currentTrack!.isFavorite).toBe(true);
+    });
+
+    it('flips back to false when called on an already-favorited track', () => {
+      const t = makeTrack('x', { isFavorite: true });
+      useLibraryStore.setState({ library: [t] });
+
+      useLibraryStore.getState().toggleFavorite('x');
+
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({
+        isFavorite: false,
+      });
+    });
+
+    it('reads the current value from the overlay if one already exists', () => {
+      const t = makeTrack('x', { isFavorite: false });
+      useLibraryStore.setState({ library: [t] });
+      // Library says false, but overlay says true — toggle should flip to false.
+      useTrackOverlayStore.getState().setOverlay('x', { isFavorite: true });
+
+      useLibraryStore.getState().toggleFavorite('x');
+
+      expect(useTrackOverlayStore.getState().overlays.get('x')?.isFavorite).toBe(false);
     });
 
     it('calls electronAPI.db.tracks.toggleFavorite', () => {
@@ -242,12 +275,14 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().toggleFavorite('only-in-library');
 
-      expect(useLibraryStore.getState().library[0].isFavorite).toBe(true);
+      expect(useTrackOverlayStore.getState().overlays.get('only-in-library')?.isFavorite).toBe(
+        true
+      );
       expect(usePlaybackStore.getState().queue).toHaveLength(0);
       expect(usePlaybackStore.getState().currentTrack).toBeNull();
     });
 
-    it('syncs playback even when the track is not in the library (radio/preview case)', () => {
+    it('syncs playback and writes overlay even when the track is not in the library (radio/preview case)', () => {
       // Radio tracks flow through the queue without being in the library.
       const radioTrack = makeTrack('radio', { isFavorite: false });
       useLibraryStore.setState({ library: [] });
@@ -259,6 +294,7 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().toggleFavorite('radio');
 
+      expect(useTrackOverlayStore.getState().overlays.get('radio')?.isFavorite).toBe(true);
       expect(usePlaybackStore.getState().queue[0].isFavorite).toBe(true);
       expect(usePlaybackStore.getState().currentTrack!.isFavorite).toBe(true);
     });
