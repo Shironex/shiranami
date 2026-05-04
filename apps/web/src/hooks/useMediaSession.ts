@@ -35,7 +35,7 @@ export function useMediaSession() {
     navigator.mediaSession.setActionHandler('nexttrack', () => next());
     navigator.mediaSession.setActionHandler('previoustrack', () => previous());
     navigator.mediaSession.setActionHandler('stop', () => stop());
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
+    navigator.mediaSession.setActionHandler('seekto', details => {
       if (details.seekTime != null) {
         seek(details.seekTime);
       }
@@ -51,7 +51,11 @@ export function useMediaSession() {
     };
   }, [togglePlay, next, previous, stop, seek]);
 
-  // Update Media Session metadata when track changes
+  // Update Media Session metadata when track changes.
+  // The W3C MediaSession spec restricts MediaImage.src to http/https/data/blob
+  // schemes, so shiranami-art:// covers must be fetched and re-served as a
+  // blob URL. Same applies if the user ever lands on a covers-from-disk path
+  // that surfaces as anything but http/data/blob.
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
 
@@ -61,17 +65,49 @@ export function useMediaSession() {
       return;
     }
 
-    const artwork: MediaImage[] = [];
-    if (currentTrack.albumArt) {
-      artwork.push({ src: currentTrack.albumArt, sizes: '512x512' });
+    const { title, artist, album, albumArt } = currentTrack;
+
+    let blobUrl: string | null = null;
+    let cancelled = false;
+
+    const setMetadata = (artwork: MediaImage[]) => {
+      if (cancelled) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist,
+        album,
+        artwork,
+      });
+    };
+
+    if (!albumArt) {
+      setMetadata([]);
+      return;
     }
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.title,
-      artist: currentTrack.artist,
-      album: currentTrack.album,
-      artwork,
-    });
+    const isMediaSessionSupportedScheme =
+      albumArt.startsWith('http') || albumArt.startsWith('data:') || albumArt.startsWith('blob:');
+
+    if (isMediaSessionSupportedScheme) {
+      setMetadata([{ src: albumArt, sizes: '512x512' }]);
+      return;
+    }
+
+    fetch(albumArt)
+      .then(r => r.blob())
+      .then(blob => {
+        if (cancelled) return;
+        blobUrl = URL.createObjectURL(blob);
+        setMetadata([{ src: blobUrl, sizes: '512x512' }]);
+      })
+      .catch(() => {
+        setMetadata([]);
+      });
+
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
   }, [currentTrack]);
 
   // Update playback state

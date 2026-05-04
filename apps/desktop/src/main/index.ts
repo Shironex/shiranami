@@ -58,6 +58,10 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true,
       stream: false,
       bypassCSP: false,
+      // Required so the renderer can draw covers onto a <canvas> for
+      // FastAverageColor / getImageData without Chromium tainting the
+      // canvas as cross-origin.
+      corsEnabled: true,
     },
   },
 ]);
