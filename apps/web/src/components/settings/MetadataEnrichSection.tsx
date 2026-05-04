@@ -3,20 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
-import {
-  Search,
-  Loader2,
-  Disc3,
-  Check,
-  X,
-  Ban,
-  Info,
-  AlertTriangle,
-  FileWarning,
-} from 'lucide-react';
+import { Search, Loader2, Disc3, Ban, Info, AlertTriangle, FileWarning } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
 
 // DB writes these exact strings (scan-utility.ts, metadata-service.ts).
 // Module-level so the useMemo dep is a stable reference and never causes a spurious rebuild.
@@ -28,7 +19,6 @@ export function MetadataEnrichSection() {
   const { t: tc } = useTranslation('common');
   const library = useLibraryStore(s => s.library);
   const isEnriching = useMetadataEnrichStore(s => s.isEnriching);
-  const progress = useMetadataEnrichStore(s => s.progress);
   const startEnrichment = useMetadataEnrichStore(s => s.startEnrichment);
   const skippedIds = useMetadataEnrichStore(s => s.skippedIds);
   const loadSkipped = useMetadataEnrichStore(s => s.loadSkipped);
@@ -86,11 +76,6 @@ export function MetadataEnrichSection() {
   useEffect(() => {
     if (!writeToFile && confirmWrite) setConfirmWrite(false);
   }, [writeToFile, confirmWrite]);
-
-  const progressPercent =
-    progress && progress.total > 0
-      ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100))
-      : 0;
 
   if (!IS_ELECTRON) return null;
 
@@ -151,48 +136,8 @@ export function MetadataEnrichSection() {
             )}
           </div>
 
-          {/* Progress */}
-          {isEnriching && progress && (
-            <div className="px-3 py-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                <span className="text-sm text-foreground">
-                  {t('lib.enrichProgress', { current: progress.current, total: progress.total })}
-                </span>
-              </div>
-              <div className="text-xs text-muted-foreground truncate">
-                {progress.status === 'searching' &&
-                  t('lib.enrichSearching', { track: progress.trackName })}
-                {progress.status === 'downloading' && t('lib.enrichDownloading')}
-                {progress.status === 'writing' && t('lib.enrichWriting')}
-                {progress.status === 'done' && (
-                  <span className="flex items-center gap-1">
-                    <Check className="w-3 h-3 text-green-500" />
-                    {progress.trackName}
-                  </span>
-                )}
-                {progress.status === 'error' && (
-                  <span className="flex items-center gap-1">
-                    <X className="w-3 h-3 text-destructive" />
-                    {progress.trackName}
-                  </span>
-                )}
-                {progress.status === 'cancelled' && (
-                  <span className="flex items-center gap-1">
-                    <Ban className="w-3 h-3 text-muted-foreground" />
-                    {t('lib.enrichCancelledStatus', { trackName: progress.trackName })}
-                  </span>
-                )}
-              </div>
-              {/* Progress bar */}
-              <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-          )}
+          {/* Progress — isolated subscriber so parent does not re-render on every event */}
+          <EnrichProgressBar />
 
           {/* Action row — swaps to an inline confirmation when about to write to disk. */}
           {confirmWrite && !isEnriching ? (
