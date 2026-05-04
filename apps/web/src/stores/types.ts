@@ -19,6 +19,11 @@ export interface Track {
   year?: number | null;
   trackNumber?: number | null;
   discNumber?: number | null;
+  /**
+   * Seed value from the DB. After an in-session toggle, the live value lives
+   * in `useTrackOverlayStore` keyed by track id; read via `useTrack(id)` or
+   * `useMergedLibrary()` rather than off this raw field.
+   */
   isFavorite?: boolean;
   playCount?: number;
   createdAt?: string;

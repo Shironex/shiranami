@@ -31,11 +31,11 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const img = new Image();
-    // Only set crossOrigin for http(s) URLs — custom protocols don't need it
-    // and setting it can cause loading issues with protocol handlers
-    if (albumArt.startsWith('http')) {
-      img.crossOrigin = 'anonymous';
-    }
+    // Required for getImageData / FastAverageColor: without crossOrigin the
+    // canvas the image is drawn onto is tainted and pixel reads SecurityError.
+    // shiranami-art:// is registered with corsEnabled, so the protocol handler
+    // serves the cover with permissive CORS headers and the load succeeds.
+    img.crossOrigin = 'anonymous';
     img.src = albumArt;
 
     img.onload = () => {
@@ -62,11 +62,7 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
     };
   }, [albumArt]);
 
-  return (
-    <AmbientColorContext.Provider value={color}>
-      {children}
-    </AmbientColorContext.Provider>
-  );
+  return <AmbientColorContext.Provider value={color}>{children}</AmbientColorContext.Provider>;
 }
 
 export function useAmbientColor(): AmbientColor {

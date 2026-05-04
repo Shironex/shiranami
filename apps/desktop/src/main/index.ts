@@ -38,6 +38,10 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true,
       stream: true,
       bypassCSP: false,
+      // Required so MediaElementAudioSource (Web Audio graph) gets actual
+      // samples instead of silent zeroes — connecting a cross-origin audio
+      // element to AudioContext silently outputs zeroes by default.
+      corsEnabled: true,
     },
   },
   {
@@ -58,6 +62,10 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true,
       stream: false,
       bypassCSP: false,
+      // Required so the renderer can draw covers onto a <canvas> for
+      // FastAverageColor / getImageData without Chromium tainting the
+      // canvas as cross-origin.
+      corsEnabled: true,
     },
   },
 ]);

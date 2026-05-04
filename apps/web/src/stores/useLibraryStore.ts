@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { IS_ELECTRON } from '@/lib/platform';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 
 interface LibraryState {
   /** Persistent collection of all tracks known to the app. */
@@ -35,14 +36,14 @@ export type LibraryStore = LibraryState & LibraryActions;
  */
 function syncPlaybackTrack(trackId: string, mutate: (track: Track) => Track) {
   const playback = usePlaybackStore.getState();
-  const inQueue = playback.queue.some((t) => t.id === trackId);
+  const inQueue = playback.queue.some(t => t.id === trackId);
   const isCurrent = playback.currentTrack?.id === trackId;
 
   if (!inQueue && !isCurrent) return;
 
   const updates: Partial<{ queue: Track[]; currentTrack: Track | null }> = {};
   if (inQueue) {
-    updates.queue = playback.queue.map((t) => (t.id === trackId ? mutate(t) : t));
+    updates.queue = playback.queue.map(t => (t.id === trackId ? mutate(t) : t));
   }
   if (isCurrent && playback.currentTrack) {
     updates.currentTrack = mutate(playback.currentTrack);
@@ -54,23 +55,22 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   library: [],
   libraryLoaded: false,
 
-  setLibrary: (tracks) => set({ library: tracks }),
+  setLibrary: tracks => set({ library: tracks }),
 
-  addToLibrary: (tracks) =>
-    set((s) => ({ library: [...s.library, ...tracks] })),
+  addToLibrary: tracks => set(s => ({ library: [...s.library, ...tracks] })),
 
-  removeFromLibrary: (trackIds) => {
+  removeFromLibrary: trackIds => {
     const ids = new Set(trackIds);
-    set((s) => ({ library: s.library.filter((t) => !ids.has(t.id)) }));
+    set(s => ({ library: s.library.filter(t => !ids.has(t.id)) }));
 
     const playback = usePlaybackStore.getState();
     const { queue, queueIndex, currentTrack } = playback;
 
-    const inQueue = queue.some((t) => ids.has(t.id));
+    const inQueue = queue.some(t => ids.has(t.id));
     const isCurrent = currentTrack != null && ids.has(currentTrack.id);
     if (!inQueue && !isCurrent) return;
 
-    const newQueue = queue.filter((t) => !ids.has(t.id));
+    const newQueue = queue.filter(t => !ids.has(t.id));
     let newIndex = queueIndex;
     for (let i = 0; i < queueIndex && i < queue.length; i++) {
       if (ids.has(queue[i].id)) newIndex--;
@@ -94,50 +94,57 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     }
   },
 
-  toggleFavorite: (trackId) => {
+  toggleFavorite: trackId => {
+    const overlayStore = useTrackOverlayStore.getState();
+    const overlayEntry = overlayStore.overlays.get(trackId);
     const { library } = get();
-    const target = library.find((t) => t.id === trackId);
-    if (!target) {
-      // Track isn't in the library — still sync playback references if any,
-      // since radio/preview tracks can flow through the queue without being
-      // in the library yet.
-      syncPlaybackTrack(trackId, (t) => ({ ...t, isFavorite: !t.isFavorite }));
-    } else {
-      const nextFavorite = !target.isFavorite;
-      set({
-        library: library.map((t) =>
-          t.id === trackId ? { ...t, isFavorite: nextFavorite } : t,
-        ),
-      });
-      syncPlaybackTrack(trackId, (t) => ({ ...t, isFavorite: nextFavorite }));
-    }
+    const target = library.find(t => t.id === trackId);
+
+    // Resolve the current isFavorite value from overlay-first, then library,
+    // then queue (for radio/preview tracks that never enter the library).
+    const playback = usePlaybackStore.getState();
+    const queueTrack = playback.queue.find(t => t.id === trackId);
+    const currentTrack = playback.currentTrack;
+    const currentValue =
+      overlayEntry?.isFavorite ??
+      target?.isFavorite ??
+      queueTrack?.isFavorite ??
+      (currentTrack?.id === trackId ? currentTrack.isFavorite : undefined) ??
+      false;
+    const nextFavorite = !currentValue;
+
+    // Library array reference is intentionally NOT touched — the overlay
+    // carries the new value until the next full library refetch (rescan /
+    // import) reseeds canonical state. Skipping the reallocation here is
+    // the entire point of the overlay store: AlbumGrid's groupTracksByAlbum
+    // memo no longer invalidates on a favorite toggle.
+    overlayStore.setOverlay(trackId, { isFavorite: nextFavorite });
+    syncPlaybackTrack(trackId, t => ({ ...t, isFavorite: nextFavorite }));
 
     if (IS_ELECTRON) {
-      window.electronAPI.db.tracks.toggleFavorite(trackId).catch((err) => {
+      window.electronAPI.db.tracks.toggleFavorite(trackId).catch(err => {
         console.warn('[player] Failed to toggle favorite:', err);
         // Revert optimistic update so UI stays in sync with DB.
-        const revert = (t: Track) =>
-          t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t;
-        set((s) => ({ library: s.library.map(revert) }));
-        syncPlaybackTrack(trackId, (t) => ({ ...t, isFavorite: !t.isFavorite }));
+        useTrackOverlayStore.getState().setOverlay(trackId, { isFavorite: currentValue });
+        syncPlaybackTrack(trackId, t => ({ ...t, isFavorite: currentValue }));
       });
     }
   },
 
-  incrementTrackPlayCount: (trackId) => {
+  incrementTrackPlayCount: trackId => {
     const { library } = get();
     const increment = (t: Track) => ({ ...t, playCount: (t.playCount ?? 0) + 1 });
 
-    const hasInLibrary = library.some((t) => t.id === trackId);
+    const hasInLibrary = library.some(t => t.id === trackId);
     if (hasInLibrary) {
       set({
-        library: library.map((t) => (t.id === trackId ? increment(t) : t)),
+        library: library.map(t => (t.id === trackId ? increment(t) : t)),
       });
     }
     syncPlaybackTrack(trackId, increment);
 
     if (IS_ELECTRON) {
-      window.electronAPI.db.tracks.incrementPlayCount(trackId).catch((err) => {
+      window.electronAPI.db.tracks.incrementPlayCount(trackId).catch(err => {
         console.warn('[player] Failed to persist play count:', err);
       });
     }
