@@ -78,11 +78,11 @@ async function main() {
       clearTimeout(timer);
       if (msg.ok) {
         pass(
-          `nativeImage works in utilityProcess. ` +
+          `image decode works in utilityProcess. ` +
           `Decoded ${msg.width}x${msg.height} → resized + JPEG q=85 = ${msg.outputSize} bytes`
         );
       } else {
-        fail(`nativeImage failed inside utilityProcess: ${msg.error}`);
+        fail(`image decode failed inside utilityProcess: ${msg.error}`);
       }
       try { child.kill(); } catch { /* noop */ }
     }

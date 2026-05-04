@@ -117,6 +117,9 @@ importers:
       node-id3:
         specifier: ^0.2.9
         version: 0.2.9
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
       zod:
         specifier: ^4.3.6
         version: 4.4.2

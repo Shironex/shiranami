@@ -1,17 +1,20 @@
 /**
- * Phase 0 spike — verify that Electron's `nativeImage` is functional inside a
- * `utilityProcess`. Receives a JPEG/PNG buffer from the parent, runs the same
- * decode + resize + JPEG-encode pipeline that `art-protocol.ts:downscaleImage`
- * uses today, and posts back either the encoded byte length or the failure
- * reason. The parent harness in `scripts/spike-utility-process.cjs` reads the
- * result and prints PASS / FAIL.
+ * Phase 0 spike (sharp variant) — verify that `sharp` decode + resize + JPEG-
+ * encode works inside an Electron `utilityProcess`.
  *
- * If this works, Phase 2 can move `saveAlbumArt` into the utility unchanged.
- * If it fails, the user must approve adding `sharp` (heavy native dep) before
- * Phase 2 proceeds.
+ * History: the original spike tested `nativeImage` from `electron`; that
+ * failed because `nativeImage` is undefined inside utilityProcess (it's a
+ * main/renderer-only API). User picked Option A from the spike-result doc:
+ * add `sharp` as a native dep. This retargeted spike confirms the Phase 2
+ * design works with sharp before we commit to the rest of the work.
+ *
+ * Receives a JPEG/PNG buffer from the parent, runs sharp's decode pipeline,
+ * and posts back the encoded byte length or the failure reason. The parent
+ * harness in `scripts/spike-utility-process.cjs` reads the result and prints
+ * PASS / FAIL.
  */
 
-import { nativeImage } from 'electron';
+import sharp from 'sharp';
 
 interface SpikeRequest {
   type: 'spike';
@@ -36,21 +39,20 @@ type SpikeResult = SpikeResultOk | SpikeResultErr;
 
 const MAX_DIMENSION = 256;
 
-function runSpike(input: Buffer): SpikeResult {
+async function runSpike(input: Buffer): Promise<SpikeResult> {
   try {
-    const image = nativeImage.createFromBuffer(input);
-    if (image.isEmpty()) {
-      return { type: 'spike-result', ok: false, error: 'nativeImage decoded to empty image' };
-    }
-    const { width, height } = image.getSize();
-    const resized = image.resize({ width: MAX_DIMENSION, quality: 'best' });
-    const out = resized.toJPEG(85);
+    const pipeline = sharp(input);
+    const meta = await pipeline.metadata();
+    const out = await pipeline
+      .resize({ width: MAX_DIMENSION, withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
     return {
       type: 'spike-result',
       ok: true,
       outputSize: out.length,
-      width,
-      height,
+      width: meta.width ?? 0,
+      height: meta.height ?? 0,
     };
   } catch (e) {
     return {
@@ -87,8 +89,9 @@ if (!parentPort) {
 parentPort.on('message', event => {
   const msg = event.data as SpikeRequest | undefined;
   if (msg?.type !== 'spike') return;
-  const result = runSpike(Buffer.from(msg.input));
-  parentPort.postMessage(result);
+  void runSpike(Buffer.from(msg.input)).then(result => {
+    parentPort.postMessage(result);
+  });
 });
 
 // Signal readiness so the parent knows the IPC listener is wired.
