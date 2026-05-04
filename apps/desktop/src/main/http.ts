@@ -128,11 +128,14 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
 
   return new Promise<string>((resolve, reject) => {
     let settled = false;
+    // eslint-disable-next-line prefer-const
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const request = net.request(url);
 
     const onAbort = () => {
       if (!settled) {
         settled = true;
+        if (timer) clearTimeout(timer);
         request.abort();
         reject(new DOMException('The operation was aborted', 'AbortError'));
       }
@@ -146,7 +149,7 @@ function requestTextRaw(url: string, options: RequestOptions = {}): Promise<stri
       signal.addEventListener('abort', onAbort, { once: true });
     }
 
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       if (!settled) {
         settled = true;
         request.abort();
@@ -225,11 +228,14 @@ function requestBufferRaw(
 
   return new Promise<Buffer>((resolve, reject) => {
     let settled = false;
+    // eslint-disable-next-line prefer-const
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const request = net.request(url);
 
     const onAbort = () => {
       if (!settled) {
         settled = true;
+        if (timer) clearTimeout(timer);
         request.abort();
         reject(new DOMException('The operation was aborted', 'AbortError'));
       }
@@ -243,7 +249,7 @@ function requestBufferRaw(
       signal.addEventListener('abort', onAbort, { once: true });
     }
 
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       if (!settled) {
         settled = true;
         request.abort();
