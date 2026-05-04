@@ -138,6 +138,14 @@ function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResu
         listeners.delete(listener);
       };
     }),
+    onExit: vi.fn((listener: (code: number | null) => void) => {
+      // Fire on next microtask to mirror the production "already exited" path,
+      // matching what `withScanUtility`'s `kill()` would trigger.
+      queueMicrotask(() => listener(0));
+      return () => {
+        /* no-op for tests */
+      };
+    }),
     cancel: vi.fn(),
     kill: vi.fn(() => {
       killCalls++;
@@ -536,6 +544,7 @@ describe('library ipc handlers', () => {
         }),
         setBatchSize: vi.fn(),
         onProgress: vi.fn(() => () => {}),
+        onExit: vi.fn(() => () => {}),
         cancel: vi.fn(),
         kill: killSpy,
         get killed() {
@@ -753,6 +762,77 @@ describe('library ipc handlers', () => {
     it('is safe to call when no scan is in flight', async () => {
       const cancelHandler = ipcHandlers.get('library:scan-cancel')!;
       await expect(cancelHandler(event)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('telemetry', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = makeTempDir();
+    });
+
+    afterEach(() => {
+      cleanupTempDir(tmpDir);
+    });
+
+    it('logs scan-end + utility-exit telemetry with the expected shape', async () => {
+      const { logger: mockLogger } = await import('../logger');
+      const fake = makeFakeScanUtility();
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+      fs.writeFileSync(path.join(tmpDir, 'b.flac'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      await handler(event, tmpDir);
+      // Let the queued onExit microtask flush.
+      await new Promise(r => setImmediate(r));
+
+      const telemetryCalls = vi
+        .mocked(mockLogger.info)
+        .mock.calls.filter(args => args[0] === '[scan-utility] telemetry');
+      expect(telemetryCalls).toHaveLength(2);
+
+      const phases = telemetryCalls.map(call => (call[1] as { phase: string }).phase);
+      expect(phases).toContain('scan-end');
+      expect(phases).toContain('utility-exit');
+
+      for (const [, payload] of telemetryCalls) {
+        expect(payload).toMatchObject({
+          kind: 'scan-folder',
+          fileCount: 2,
+        });
+        expect(typeof (payload as { rssDeltaMB: number }).rssDeltaMB).toBe('number');
+        expect(typeof (payload as { scanDurationMs: number }).scanDurationMs).toBe('number');
+      }
+    });
+
+    it('logs telemetry once on cancel (recordEnd is idempotent)', async () => {
+      const { logger: mockLogger, ScanCancelledError } = {
+        ...(await import('../logger')),
+        ...(await import('../scan-utility-host')),
+      };
+      const fake = makeFakeScanUtility(async () => {
+        throw new ScanCancelledError();
+      });
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      await handler(event, tmpDir);
+      await new Promise(r => setImmediate(r));
+
+      const telemetryCalls = vi
+        .mocked(mockLogger.info)
+        .mock.calls.filter(args => args[0] === '[scan-utility] telemetry');
+      // scan-end (recorded in catch path) + utility-exit (from onExit microtask).
+      expect(telemetryCalls).toHaveLength(2);
     });
   });
 });

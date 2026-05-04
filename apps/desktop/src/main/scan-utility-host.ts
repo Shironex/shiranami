@@ -104,6 +104,13 @@ export interface ScanUtilityClient {
   /** Subscribe to per-file progress events. Returns an unsubscribe function. */
   onProgress(listener: ScanProgressListener): () => void;
   /**
+   * Subscribe to the underlying child's `exit` event. Listener is called
+   * once with the exit code (or `null` if the process was killed by signal).
+   * If the process has already exited, the listener fires synchronously on
+   * the next microtask. Returns an unsubscribe function.
+   */
+  onExit(listener: (code: number | null) => void): () => void;
+  /**
    * Request a graceful cancel: posts `{ type: 'cancel' }` to the utility,
    * rejects every pending parse with `ScanCancelledError` synchronously, and
    * arms a SIGTERM fallback that fires if the utility hasn't exited within
@@ -183,6 +190,10 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   let progressTotal = 0;
   let progressEmitted = 0;
   const progressListeners = new Set<ScanProgressListener>();
+
+  type ExitListener = (code: number | null) => void;
+  const exitListeners = new Set<ExitListener>();
+  let exitCode: number | null | undefined;
 
   function emitProgress(evt: ScanProgressEvent): void {
     for (const listener of progressListeners) {
@@ -330,6 +341,7 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
 
   child.on('exit', (code: number | null) => {
     killed = true;
+    exitCode = code;
     clearTimeout(readyTimer);
     if (cancelTimer) {
       clearTimeout(cancelTimer);
@@ -349,6 +361,13 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         ? new ScanCancelledError(`scan-utility cancelled (exit code=${code ?? 'null'})`)
         : new Error(`scan-utility exited (code=${code ?? 'null'})`)
     );
+    for (const listener of exitListeners) {
+      try {
+        listener(code);
+      } catch (err) {
+        logger.warn('[scan-utility-host] exit listener threw:', err);
+      }
+    }
   });
 
   // stderr stays piped as a crash fallback — if the utility explodes before
@@ -417,6 +436,21 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       progressListeners.add(listener);
       return () => {
         progressListeners.delete(listener);
+      };
+    },
+    onExit(listener: ExitListener): () => void {
+      // If the child has already exited, fire on the next microtask so the
+      // caller can register handlers symmetrically with the live-process case.
+      if (exitCode !== undefined) {
+        const code = exitCode;
+        queueMicrotask(() => listener(code));
+        return () => {
+          /* no-op — listener already fired */
+        };
+      }
+      exitListeners.add(listener);
+      return () => {
+        exitListeners.delete(listener);
       };
     },
     cancel(): void {

@@ -156,6 +156,76 @@ function forwardProgressToRenderer(evt: ScanProgressEvent): void {
   mainWindow.webContents.send('library:scan-progress', evt);
 }
 
+/**
+ * Capture process.memoryUsage() at scan start, scan end, and after the
+ * utility exits, then log a structured `[scan-utility] telemetry` line
+ * with `rssDeltaMB`, `scanDurationMs`, `fileCount`. The logger output is
+ * the only sink — no UI surface, no metrics export.
+ *
+ * The returned `installExitCapture` arms an `onExit` listener that runs
+ * the second telemetry log once the utility process has died (so RSS
+ * actually reflects the post-cleanup baseline). Callers invoke it from
+ * inside `withScanUtility` so the listener is registered before kill().
+ *
+ * `kind` distinguishes the two scan paths in log output without needing
+ * a second telemetry channel.
+ */
+interface ScanTelemetry {
+  fileCount: number;
+  start: number;
+  startRssBytes: number;
+  installExitCapture(utility: ScanUtilityClient): void;
+  recordEnd(): void;
+}
+
+function startScanTelemetry(kind: 'scan-folder' | 'scan-folder-grouped'): ScanTelemetry {
+  const start = Date.now();
+  const startRssBytes = process.memoryUsage().rss;
+  let endRecorded = false;
+  let fileCount = 0;
+  return {
+    get fileCount() {
+      return fileCount;
+    },
+    set fileCount(value: number) {
+      fileCount = value;
+    },
+    start,
+    startRssBytes,
+    recordEnd(): void {
+      if (endRecorded) return;
+      endRecorded = true;
+      const endRss = process.memoryUsage().rss;
+      const scanDurationMs = Date.now() - start;
+      const rssDeltaMB = Math.round(((endRss - startRssBytes) / (1024 * 1024)) * 100) / 100;
+      logger.info('[scan-utility] telemetry', {
+        kind,
+        phase: 'scan-end',
+        rssDeltaMB,
+        scanDurationMs,
+        fileCount,
+      });
+    },
+    installExitCapture(utility: ScanUtilityClient): void {
+      utility.onExit(code => {
+        // Sample once the OS has reaped the child — this is the metric the
+        // migration is actually about (process death returns RSS to OS).
+        const exitRss = process.memoryUsage().rss;
+        const totalDurationMs = Date.now() - start;
+        const rssDeltaMB = Math.round(((exitRss - startRssBytes) / (1024 * 1024)) * 100) / 100;
+        logger.info('[scan-utility] telemetry', {
+          kind,
+          phase: 'utility-exit',
+          rssDeltaMB,
+          scanDurationMs: totalDurationMs,
+          fileCount,
+          exitCode: code,
+        });
+      });
+    },
+  };
+}
+
 interface WithScanUtilityOptions {
   signal?: AbortSignal;
   forkOverride?: () => ScanUtilityClient;
@@ -254,10 +324,13 @@ export function registerLibraryHandlers(): void {
       const parseStart = Date.now();
       const abort = new AbortController();
       activeScanAbort = abort;
+      const telemetry = startScanTelemetry('scan-folder');
+      telemetry.fileCount = filePaths.length;
       let results: ScannedTrack[];
       try {
         results = await withScanUtility(
           utility => {
+            telemetry.installExitCapture(utility);
             utility.setBatchSize(filePaths.length);
             return parseAudioFilesViaUtility(utility, filePaths);
           },
@@ -266,7 +339,9 @@ export function registerLibraryHandlers(): void {
             forkOverride: forkOverrideForTest ?? undefined,
           }
         );
+        telemetry.recordEnd();
       } catch (err) {
+        telemetry.recordEnd();
         if (err instanceof ScanCancelledError) {
           logger.info(`[library] Scan cancelled after ${Date.now() - start}ms`);
           return [];
@@ -361,10 +436,13 @@ export function registerLibraryHandlers(): void {
 
       const abort = new AbortController();
       activeScanAbort = abort;
+      const telemetry = startScanTelemetry('scan-folder-grouped');
+      telemetry.fileCount = totalFiles;
       let result: GroupedScanResult;
       try {
         result = await withScanUtility(
           async utility => {
+            telemetry.installExitCapture(utility);
             // Total fileCount across the whole grouped scan so progress events
             // give a single end-to-end percentage rather than resetting per
             // subfolder. The host's index counter is reset by setBatchSize().
@@ -390,7 +468,9 @@ export function registerLibraryHandlers(): void {
             forkOverride: forkOverrideForTest ?? undefined,
           }
         );
+        telemetry.recordEnd();
       } catch (err) {
+        telemetry.recordEnd();
         if (err instanceof ScanCancelledError) {
           logger.info(`[library] Grouped scan cancelled after ${Date.now() - start}ms`);
           return { rootTracks: [], subfolders: [] } satisfies GroupedScanResult;
