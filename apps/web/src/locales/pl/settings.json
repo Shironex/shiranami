@@ -77,6 +77,7 @@
     "enrichConfirmWriteTitle": "Zmodyfikować pliki audio na dysku?",
     "enrichConfirmWriteBody": "Zaraz zostaną zapisane tagi w maksymalnie {{count}} plikach audio. To zmodyfikuje pliki na dysku i nie można tego cofnąć.",
     "enrichYesWrite": "Tak, zmodyfikuj pliki",
+    "enrichCancelledStatus": "Anulowano przy {{trackName}}",
     "enrichProgress": "Przetwarzanie {{current}} z {{total}}...",
     "enrichSearching": "Wyszukiwanie \"{{track}}\"...",
     "enrichDownloading": "Pobieranie okładki...",

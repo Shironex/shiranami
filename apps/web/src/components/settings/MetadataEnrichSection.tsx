@@ -173,6 +173,12 @@ export function MetadataEnrichSection() {
                     {progress.trackName}
                   </span>
                 )}
+                {progress.status === 'cancelled' && (
+                  <span className="flex items-center gap-1">
+                    <Ban className="w-3 h-3 text-muted-foreground" />
+                    {t('lib.enrichCancelledStatus', { trackName: progress.trackName })}
+                  </span>
+                )}
               </div>
               {/* Progress bar */}
               <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">

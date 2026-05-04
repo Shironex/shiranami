@@ -77,6 +77,7 @@
     "enrichConfirmWriteTitle": "Modify audio files on disk?",
     "enrichConfirmWriteBody": "About to write tags to up to {{count}} audio file(s). This modifies the files on disk and cannot be undone.",
     "enrichYesWrite": "Yes, modify files",
+    "enrichCancelledStatus": "Cancelled at {{trackName}}",
     "enrichProgress": "Processing {{current}} of {{total}}...",
     "enrichSearching": "Searching for \"{{track}}\"...",
     "enrichDownloading": "Downloading cover art...",
