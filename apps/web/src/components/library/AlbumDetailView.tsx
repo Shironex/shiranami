@@ -153,7 +153,13 @@ export function AlbumDetailView() {
         <div className="flex items-center gap-4">
           <div className="shrink-0 w-20 h-20 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden">
             {albumArt ? (
-              <img src={albumArt} alt={selectedAlbumName} className="w-full h-full object-cover" />
+              <img
+                src={albumArt}
+                alt={selectedAlbumName}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
             ) : (
               <Disc3 className="w-8 h-8 text-muted-foreground/20" />
             )}

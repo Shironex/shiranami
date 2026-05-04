@@ -183,6 +183,8 @@ export function Sidebar() {
                               <img
                                 src={playlist.coverArt}
                                 alt={playlist.name}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -242,6 +244,8 @@ export function Sidebar() {
                               <img
                                 src={playlist.coverArt}
                                 alt={playlist.name}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             ) : (

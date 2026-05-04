@@ -18,11 +18,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 /* ── Sortable queue row (for Up Next items) ─────────────── */
@@ -35,16 +31,17 @@ interface SortableQueueRowProps {
   onRemove: (e: React.MouseEvent, queueIndex: number) => void;
 }
 
-function SortableQueueRow({ track, sortableId, queueIndex, onPlay, onRemove }: SortableQueueRowProps) {
+function SortableQueueRow({
+  track,
+  sortableId,
+  queueIndex,
+  onPlay,
+  onRemove,
+}: SortableQueueRowProps) {
   const { t } = useTranslation('queue');
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: sortableId });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: sortableId,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -66,14 +63,20 @@ function SortableQueueRow({ track, sortableId, queueIndex, onPlay, onRemove }: S
         aria-label={t('dragToReorder')}
         {...attributes}
         {...listeners}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <GripVertical className="w-3 h-3" />
       </button>
 
       <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
         {track.albumArt ? (
-          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
+          <img
+            src={track.albumArt}
+            alt={track.title}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover rounded-md"
+          />
         ) : (
           <Play className="w-3 h-3 text-muted-foreground/40" />
         )}
@@ -110,7 +113,13 @@ function DragOverlayContent({ track }: { track: Track }) {
       </div>
       <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
         {track.albumArt ? (
-          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
+          <img
+            src={track.albumArt}
+            alt={track.title}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover rounded-md"
+          />
         ) : (
           <Play className="w-3 h-3 text-muted-foreground/40" />
         )}
@@ -303,24 +312,37 @@ interface QueueItemProps {
   onRemove: (e: React.MouseEvent, index: number) => void;
 }
 
-const QueueItem = memo(function QueueItem({ track, index, isActive, isPlaying, onPlay, onRemove }: QueueItemProps) {
+const QueueItem = memo(function QueueItem({
+  track,
+  index,
+  isActive,
+  isPlaying,
+  onPlay,
+  onRemove,
+}: QueueItemProps) {
   const { t } = useTranslation('queue');
   return (
     <div
       className={cn(
         'flex items-center gap-2.5 px-2 py-1.5 rounded-lg transition-all duration-200 group cursor-pointer',
-        isActive
-          ? 'bg-primary/[0.08]'
-          : 'hover:bg-accent'
+        isActive ? 'bg-primary/[0.08]' : 'hover:bg-accent'
       )}
       onClick={() => onPlay(index)}
     >
-      <div className={cn(
-        'w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden',
-        isActive ? 'bg-primary/15' : 'bg-surface'
-      )}>
+      <div
+        className={cn(
+          'w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden',
+          isActive ? 'bg-primary/15' : 'bg-surface'
+        )}
+      >
         {track.albumArt ? (
-          <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-md" />
+          <img
+            src={track.albumArt}
+            alt={track.title}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover rounded-md"
+          />
         ) : isActive && isPlaying ? (
           <>
             <span className="sr-only">{t('nowPlaying')}</span>
