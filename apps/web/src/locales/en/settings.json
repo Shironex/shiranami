@@ -73,7 +73,6 @@
     "enrichFileWriteSubtitle": "Optional gate for writing metadata directly to your audio files on disk",
     "enrichWriteToFile": "Write tags to audio files",
     "enrichWriteToFileDesc": "Off: results are stored only in Shiranami's database. Your audio files on disk stay untouched.",
-    "enrichWriteToFileDestructive": "On: embeds metadata directly into your audio files on disk (MP3, FLAC, M4A). This cannot be undone.",
     "enrichConfirmWriteTitle": "Modify audio files on disk?",
     "enrichConfirmWriteBody": "About to write tags to up to {{count}} audio file(s). This modifies the files on disk and cannot be undone.",
     "enrichYesWrite": "Yes, modify files",
