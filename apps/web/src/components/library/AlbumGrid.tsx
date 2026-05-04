@@ -62,6 +62,10 @@ function columnsFor(size: GridSize, viewportWidth: number): number {
 // Padding: small=p-3 (12), medium/large=p-4 (16). Mb-3 between img and text.
 // Text block: title 20 + mt-0.5 2 + artist 16 + mt-1.5 6 + count 14 = 58px + 6px safety = 64px.
 const ROW_HEIGHT_TEXT_BLOCK = 64;
+// Tailwind mb-3 between the cover image and the text block — the button is
+// flex flex-col so this margin takes real vertical space and must be in the
+// row-height math, otherwise the text overflows past the visible card edge.
+const IMG_TEXT_GAP_PX = 12;
 const GAP_PX: Record<GridSize, number> = { small: 8, medium: 12, large: 16 };
 const PADDING_PX: Record<GridSize, number> = { small: 12, medium: 16, large: 16 };
 
@@ -212,7 +216,10 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     columnCount > 0 ? Math.max(0, containerWidth - scrollbarSize) / columnCount : 0;
   // The image height = cellWidth - 2*padding (square aspect).
   const imgPx = Math.max(0, columnWidthPx - padding * 2);
-  const cellOuterHeight = imgPx + padding * 2 + ROW_HEIGHT_TEXT_BLOCK;
+  // Cell content layout: padding-top + img + mb-3 + text-block + padding-bottom.
+  // Plus `gap` so the per-cell paddingTop/Bottom inset (halfGap each on
+  // non-edge rows) doesn't eat from the button's h-full and clip the text.
+  const cellOuterHeight = imgPx + padding * 2 + IMG_TEXT_GAP_PX + ROW_HEIGHT_TEXT_BLOCK + gap;
 
   const rowCount = columnCount > 0 ? Math.ceil(filteredAlbums.length / columnCount) : 0;
 
