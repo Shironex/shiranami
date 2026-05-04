@@ -236,7 +236,15 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
 
 if (import.meta.hot?.data) {
   if (import.meta.hot.data.store) {
-    useMetadataEnrichStore.setState(import.meta.hot.data.store.getState());
+    // Omit runtime-only fields — replaying isEnriching/isCancelling/progress
+    // during HMR while a run is idle would leave the UI stuck in a busy state.
+    const {
+      isEnriching: _ie,
+      isCancelling: _ic,
+      progress: _p,
+      ...rest
+    } = import.meta.hot.data.store.getState();
+    useMetadataEnrichStore.setState(rest);
   }
   import.meta.hot.data.store = useMetadataEnrichStore;
   import.meta.hot.accept();
