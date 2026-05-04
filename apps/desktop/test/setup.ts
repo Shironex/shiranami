@@ -19,6 +19,12 @@ export function setMockMainWindow(win: BrowserWindow | null): void {
 }
 
 vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn((key: string) => {
+      if (key === 'userData') return '/mock/userData';
+      return '/mock/unknown';
+    }),
+  },
   ipcMain: {
     handle(channel: string, fn: (...args: unknown[]) => unknown) {
       ipcHandlers.set(channel, fn);
@@ -35,6 +41,9 @@ vi.mock('electron', () => ({
     removeAllListeners(channel: string) {
       ipcOnListeners.delete(channel);
     },
+  },
+  utilityProcess: {
+    fork: vi.fn(),
   },
   BrowserWindow: class BrowserWindowStub {
     static getFocusedWindow() {

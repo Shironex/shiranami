@@ -14,7 +14,11 @@
     { "from": "resources/icon.png", "to": "icon.png" },
     { "from": "resources/icon.ico", "to": "icon.ico" }
   ],
-  "asarUnpack": ["**/node_modules/better-sqlite3/**"],
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3/**",
+    "**/node_modules/sharp/**",
+    "**/node_modules/@img/**"
+  ],
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,

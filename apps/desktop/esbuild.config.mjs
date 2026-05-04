@@ -32,7 +32,12 @@ const sharedOptions = {
 await Promise.all([
   build({
     ...sharedOptions,
-    entryPoints: ['src/main/index.ts', 'src/main/extract-worker.ts'],
+    entryPoints: [
+      'src/main/index.ts',
+      'src/main/extract-worker.ts',
+      'src/main/scan-utility.ts',
+      'src/main/scan-utility-spike.ts',
+    ],
     external: mainExternal,
   }),
   build({

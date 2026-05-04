@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
-import { registerLibraryHandlers, cleanupLibraryHandlers } from './library';
+import {
+  registerLibraryHandlers,
+  cleanupLibraryHandlers,
+  _setForkOverrideForTest,
+} from './library';
+import type { ScanUtilityClient, ParseResult } from '../scan-utility-host';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -20,15 +25,76 @@ const mockParseAudioMetadata = vi.fn(async (filePath: string) => ({
 }));
 
 const REAL_AUDIO_EXTENSIONS = [
-  '.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a', '.opus', '.wma', '.weba', '.webm',
+  '.mp3',
+  '.flac',
+  '.wav',
+  '.ogg',
+  '.aac',
+  '.m4a',
+  '.opus',
+  '.wma',
+  '.weba',
+  '.webm',
 ];
 
 vi.mock('../metadata-service', () => ({
   parseAudioMetadata: (...args: unknown[]) => mockParseAudioMetadata(...(args as [string])),
   isAudioFile: vi.fn((filePath: string) =>
-    REAL_AUDIO_EXTENSIONS.includes(path.extname(filePath).toLowerCase()),
+    REAL_AUDIO_EXTENSIONS.includes(path.extname(filePath).toLowerCase())
   ),
 }));
+
+/**
+ * Fake utility client returned by the test fork override. Records every
+ * parse() call so tests can assert call sets, but ignores the IPC plumbing
+ * (no real utilityProcess spawned).
+ */
+function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResult>): {
+  client: ScanUtilityClient;
+  parseCalls: string[];
+  killCalls: number;
+} {
+  const parseCalls: string[] = [];
+  let killCalls = 0;
+  const defaultParse: typeof parseImpl = async () => ({
+    ok: true,
+    metadata: {
+      title: 'Test',
+      artist: 'Artist',
+      album: 'Album',
+      duration: 180,
+      genre: '',
+      year: null,
+      trackNumber: null,
+      discNumber: null,
+      albumArt: null,
+    },
+  });
+  const impl = parseImpl ?? defaultParse;
+  const client: ScanUtilityClient = {
+    pid: 1234,
+    ready: Promise.resolve(),
+    hello: vi.fn(async () => ({ pid: 1234 })),
+    init: vi.fn(async () => undefined),
+    parse: vi.fn(async (filePath: string) => {
+      parseCalls.push(filePath);
+      return impl(filePath);
+    }),
+    kill: vi.fn(() => {
+      killCalls++;
+    }),
+    get killed() {
+      return killCalls > 0;
+    },
+  };
+  return {
+    client,
+    parseCalls,
+    get killCalls() {
+      return killCalls;
+    },
+  } as { client: ScanUtilityClient; parseCalls: string[]; killCalls: number };
+}
 
 const event = null as never;
 
@@ -36,11 +102,16 @@ describe('library ipc handlers', () => {
   beforeEach(() => {
     ipcHandlers.clear();
     vi.clearAllMocks();
+    // Default override: every scan-folder / scan-folder-grouped test gets a
+    // fake utility client unless it specifies otherwise. Tests that need a
+    // bespoke fake re-register with their own override.
+    _setForkOverrideForTest(() => makeFakeScanUtility().client);
     registerLibraryHandlers();
   });
 
   afterEach(() => {
     cleanupLibraryHandlers();
+    _setForkOverrideForTest(null);
   });
 
   describe('library:validate-files', () => {
@@ -122,19 +193,19 @@ describe('library ipc handlers', () => {
         metadata: unknown;
       }>;
 
-      const filePaths = results.map((r) => r.filePath).sort();
+      const filePaths = results.map(r => r.filePath).sort();
       expect(filePaths).toEqual(
         [
           path.join(tmpDir, 'track1.mp3'),
           path.join(sub, 'track2.flac'),
           path.join(deep, 'track3.ogg'),
-        ].sort(),
+        ].sort()
       );
 
       // Non-audio files must not appear
-      const allPaths = results.map((r) => r.filePath);
-      expect(allPaths.some((p) => p.endsWith('.txt'))).toBe(false);
-      expect(allPaths.some((p) => p.endsWith('.jpg'))).toBe(false);
+      const allPaths = results.map(r => r.filePath);
+      expect(allPaths.some(p => p.endsWith('.txt'))).toBe(false);
+      expect(allPaths.some(p => p.endsWith('.jpg'))).toBe(false);
     });
 
     it('returns empty array for empty directory', async () => {
@@ -168,7 +239,7 @@ describe('library ipc handlers', () => {
         filePath: string;
         metadata: unknown;
       }>;
-      const filePaths = results.map((r) => r.filePath);
+      const filePaths = results.map(r => r.filePath);
 
       // Depth 0..5 files should be found (indices 0-5 in allAudioFiles, plus depth6 at depth=6)
       // The scan starts at depth=0 for tmpDir, recurses with depth+1.
@@ -243,6 +314,220 @@ describe('library ipc handlers', () => {
         duration: 180,
         path: '/music/song.mp3',
       });
+    });
+  });
+
+  describe('library:scan-folder utility-process integration', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = makeTempDir();
+    });
+
+    afterEach(() => {
+      cleanupTempDir(tmpDir);
+    });
+
+    it('spawns one utility, parses every file through it, then kills it', async () => {
+      const fake = makeFakeScanUtility();
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+      fs.writeFileSync(path.join(tmpDir, 'b.flac'), '');
+      fs.writeFileSync(path.join(tmpDir, 'c.ogg'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      await handler(event, tmpDir);
+
+      expect(fake.parseCalls).toHaveLength(3);
+      expect(vi.mocked(fake.client.init)).toHaveBeenCalledWith({ userDataPath: '/mock/userData' });
+      expect(vi.mocked(fake.client.kill)).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to filename-derived metadata when the utility reports an error', async () => {
+      const fake = makeFakeScanUtility(async filePath =>
+        filePath.endsWith('bad.mp3')
+          ? { ok: false, error: 'simulated parse failure' }
+          : {
+              ok: true,
+              metadata: {
+                title: 'Real Title',
+                artist: 'Real Artist',
+                album: 'Real Album',
+                duration: 200,
+                genre: '',
+                year: null,
+                trackNumber: null,
+                discNumber: null,
+                albumArt: null,
+              },
+            }
+      );
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      const goodPath = path.join(tmpDir, 'good.mp3');
+      const badPath = path.join(tmpDir, 'bad.mp3');
+      fs.writeFileSync(goodPath, '');
+      fs.writeFileSync(badPath, '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const results = (await handler(event, tmpDir)) as Array<{
+        filePath: string;
+        metadata: { title: string; artist: string };
+      }>;
+
+      const byPath = new Map(results.map(r => [r.filePath, r.metadata]));
+      expect(byPath.get(goodPath)).toMatchObject({ title: 'Real Title' });
+      expect(byPath.get(badPath)).toMatchObject({
+        title: 'bad', // filename minus extension
+        artist: 'Unknown Artist',
+      });
+    });
+
+    it('skips spawning the utility when the directory has no audio files', async () => {
+      let spawnCount = 0;
+      _setForkOverrideForTest(() => {
+        spawnCount++;
+        return makeFakeScanUtility().client;
+      });
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      // Only non-audio files
+      fs.writeFileSync(path.join(tmpDir, 'readme.txt'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const results = await handler(event, tmpDir);
+      expect(results).toEqual([]);
+      expect(spawnCount).toBe(0);
+    });
+
+    it('falls back to filename metadata when utility.parse rejects, and kills the utility', async () => {
+      // Simulates the utility process exiting mid-scan (all parse() calls reject).
+      // The scan must complete with fallback metadata rather than aborting.
+      const killSpy = vi.fn();
+      _setForkOverrideForTest(() => ({
+        pid: 1,
+        ready: Promise.resolve(),
+        hello: vi.fn(async () => ({ pid: 1 })),
+        init: vi.fn(async () => undefined),
+        parse: vi.fn(async () => {
+          throw new Error('utility went sideways');
+        }),
+        kill: killSpy,
+        get killed() {
+          return killSpy.mock.calls.length > 0;
+        },
+      }));
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const results = (await handler(event, tmpDir)) as Array<{
+        filePath: string;
+        metadata: { title: string; artist: string };
+      }>;
+      // Scan resolves (not rejects) — the rejecting parse is absorbed per-file.
+      expect(results).toHaveLength(1);
+      expect(results[0].metadata).toMatchObject({ title: 'a', artist: 'Unknown Artist' });
+      // kill() is still invoked via the try/finally in withScanUtility.
+      expect(killSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps surrounding files when only one file in a batch rejects', async () => {
+      const goodPath1 = path.join(tmpDir, 'good1.mp3');
+      const badPath = path.join(tmpDir, 'bad.mp3');
+      const goodPath2 = path.join(tmpDir, 'good2.mp3');
+      fs.writeFileSync(goodPath1, '');
+      fs.writeFileSync(badPath, '');
+      fs.writeFileSync(goodPath2, '');
+
+      const fake = makeFakeScanUtility(async filePath => {
+        if (filePath === badPath) throw new Error('parse rejected for bad.mp3');
+        return {
+          ok: true,
+          metadata: {
+            title: path.basename(filePath, path.extname(filePath)),
+            artist: 'Good Artist',
+            album: 'Album',
+            duration: 100,
+            genre: '',
+            year: null,
+            trackNumber: null,
+            discNumber: null,
+            albumArt: null,
+          },
+        };
+      });
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const results = (await handler(event, tmpDir)) as Array<{
+        filePath: string;
+        metadata: { title: string; artist: string };
+      }>;
+
+      expect(results).toHaveLength(3);
+      const byPath = new Map(results.map(r => [r.filePath, r.metadata]));
+      expect(byPath.get(goodPath1)).toMatchObject({ title: 'good1', artist: 'Good Artist' });
+      expect(byPath.get(badPath)).toMatchObject({ title: 'bad', artist: 'Unknown Artist' });
+      expect(byPath.get(goodPath2)).toMatchObject({ title: 'good2', artist: 'Good Artist' });
+    });
+  });
+
+  describe('library:scan-folder-grouped utility-process integration', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = makeTempDir();
+    });
+
+    afterEach(() => {
+      cleanupTempDir(tmpDir);
+    });
+
+    it('uses one utility for both root files and every subfolder', async () => {
+      const fake = makeFakeScanUtility();
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'root.mp3'), '');
+      const sub = path.join(tmpDir, 'album');
+      fs.mkdirSync(sub);
+      fs.writeFileSync(path.join(sub, 'a.flac'), '');
+      fs.writeFileSync(path.join(sub, 'b.flac'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder-grouped')!;
+      await handler(event, tmpDir);
+
+      expect(fake.parseCalls).toHaveLength(3);
+      expect(vi.mocked(fake.client.kill)).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns early without spawning when there are zero audio files', async () => {
+      let spawnCount = 0;
+      _setForkOverrideForTest(() => {
+        spawnCount++;
+        return makeFakeScanUtility().client;
+      });
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      // Only a non-audio file
+      fs.writeFileSync(path.join(tmpDir, 'note.txt'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder-grouped')!;
+      const result = await handler(event, tmpDir);
+      expect(result).toEqual({ rootTracks: [], subfolders: [] });
+      expect(spawnCount).toBe(0);
     });
   });
 
