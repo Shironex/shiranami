@@ -18,7 +18,8 @@
     "package:win": "pnpm build && electron-builder --config electron-builder.json --win",
     "package:mac": "pnpm build && electron-builder --config electron-builder.json --mac",
     "postinstall": "electron-builder install-app-deps",
-    "rebuild": "electron-builder install-app-deps"
+    "rebuild": "electron-builder install-app-deps",
+    "spike:utility": "node esbuild.config.mjs && electron scripts/spike-utility-process.cjs"
   },
   "dependencies": {
     "@xhayper/discord-rpc": "^1.3.4",
