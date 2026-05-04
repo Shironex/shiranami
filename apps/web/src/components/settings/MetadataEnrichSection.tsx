@@ -80,13 +80,17 @@ export function MetadataEnrichSection() {
     if (!writeToFile && confirmWrite) setConfirmWrite(false);
   }, [writeToFile, confirmWrite]);
 
-  // Focus the confirm's primary action when it mounts; restore focus on dismiss.
+  // Focus the confirm's primary action when it opens; restore focus on dismiss.
+  // prevConfirmWrite guards the restore branch so it only runs on a true→false
+  // transition, not on initial mount when confirmWrite is already false.
+  const prevConfirmWrite = useRef(false);
   useEffect(() => {
     if (confirmWrite) {
       confirmYesRef.current?.focus();
-    } else {
+    } else if (prevConfirmWrite.current) {
       enrichButtonRef.current?.focus();
     }
+    prevConfirmWrite.current = confirmWrite;
   }, [confirmWrite]);
 
   if (!IS_ELECTRON) return null;
