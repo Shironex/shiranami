@@ -3,7 +3,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
 import { logger } from '../logger';
-import { forkScanUtility, type ScanUtilityClient } from '../scan-utility-host';
+import {
+  forkScanUtility,
+  type ScanUtilityClient,
+  type ScanProgressEvent,
+} from '../scan-utility-host';
+import { getMainWindow } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {
   parseMetadataArgs,
@@ -132,25 +137,43 @@ async function parseAudioFilesViaUtility(
 }
 
 /**
+ * Forward a host-side progress event to the renderer over the
+ * `library:scan-progress` channel. No-op when no main window is mounted
+ * (background scans during teardown).
+ */
+function forwardProgressToRenderer(evt: ScanProgressEvent): void {
+  const mainWindow = getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('library:scan-progress', evt);
+}
+
+/**
  * Spawn a one-shot scan-utility process, run an async function with it,
  * then kill it (RSS returns to the OS — the entire point of the migration).
  *
  * The utility is forked + initialised here, not lazily — early failures
  * should surface as IPC errors rather than mid-scan crashes.
  *
+ * Per-file progress events are streamed to the renderer for the duration
+ * of the call; the listener is removed before the utility is killed.
+ *
  * Test seam: `forkOverride` lets unit tests inject a fake client without
- * spinning up a real utilityProcess.
+ * spinning up a real utilityProcess. `onProgress` lets tests observe the
+ * progress stream without running the renderer.
  */
 async function withScanUtility<T>(
   fn: (utility: ScanUtilityClient) => Promise<T>,
-  forkOverride?: () => ScanUtilityClient
+  forkOverride?: () => ScanUtilityClient,
+  onProgress: (evt: ScanProgressEvent) => void = forwardProgressToRenderer
 ): Promise<T> {
   const utility = forkOverride ? forkOverride() : forkScanUtility();
+  const unsubscribe = utility.onProgress(onProgress);
   try {
     await utility.ready;
     await utility.init({ userDataPath: app.getPath('userData') });
     return await fn(utility);
   } finally {
+    unsubscribe();
     utility.kill();
   }
 }
@@ -191,10 +214,10 @@ export function registerLibraryHandlers(): void {
       if (filePaths.length === 0) return [];
 
       const parseStart = Date.now();
-      const results = await withScanUtility(
-        utility => parseAudioFilesViaUtility(utility, filePaths),
-        forkOverrideForTest ?? undefined
-      );
+      const results = await withScanUtility(utility => {
+        utility.setBatchSize(filePaths.length);
+        return parseAudioFilesViaUtility(utility, filePaths);
+      }, forkOverrideForTest ?? undefined);
       logger.info(
         `[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`
       );
@@ -264,6 +287,10 @@ export function registerLibraryHandlers(): void {
       }
 
       const result = await withScanUtility(async utility => {
+        // Total fileCount across the whole grouped scan so progress events
+        // give a single end-to-end percentage rather than resetting per
+        // subfolder. The host's index counter is reset by setBatchSize().
+        utility.setBatchSize(totalFiles);
         const rootTracks = await parseAudioFilesViaUtility(utility, rootFiles);
 
         const SUBFOLDER_CONCURRENCY = 4;

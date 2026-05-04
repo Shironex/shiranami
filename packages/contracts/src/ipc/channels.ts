@@ -48,6 +48,7 @@ export const IPC_CHANNELS = {
     scanFolder: 'library:scan-folder',
     scanFolderGrouped: 'library:scan-folder-grouped',
     validateFiles: 'library:validate-files',
+    scanProgress: 'library:scan-progress',
   },
   lyrics: {
     fetch: 'lyrics:fetch',

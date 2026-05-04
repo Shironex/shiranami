@@ -1,8 +1,16 @@
 import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { createIpcListener } from '../ipc-listener';
 import type { TrackMetadata } from '../types';
 
 const C = IPC_CHANNELS.library;
+
+export interface ScanProgress {
+  filePath: string;
+  fileIndex: number;
+  fileCount: number;
+  ok: boolean;
+}
 
 export interface LibraryApi {
   parseMetadata: (filePath: string) => Promise<{ filePath: string; metadata: TrackMetadata }>;
@@ -16,6 +24,7 @@ export interface LibraryApi {
     }>;
   }>;
   validateFiles: (filePaths: string[]) => Promise<string[]>;
+  onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
 }
 
 export const libraryApi: LibraryApi = {
@@ -23,4 +32,5 @@ export const libraryApi: LibraryApi = {
   scanFolder: dirPath => ipcRenderer.invoke(C.scanFolder, dirPath),
   scanFolderGrouped: dirPath => ipcRenderer.invoke(C.scanFolderGrouped, dirPath),
   validateFiles: filePaths => ipcRenderer.invoke(C.validateFiles, filePaths) as Promise<string[]>,
+  onScanProgress: createIpcListener<ScanProgress>(C.scanProgress),
 };

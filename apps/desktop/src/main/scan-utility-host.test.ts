@@ -218,6 +218,94 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     await expect(client.ready).resolves.toBeUndefined();
   });
 
+  it('emits one progress event per parse in submission order', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    const events: Array<{ filePath: string; fileIndex: number; fileCount: number; ok: boolean }> =
+      [];
+    client.onProgress(evt => events.push(evt));
+    client.setBatchSize(3);
+
+    const files = ['/a.flac', '/b.flac', '/c.flac'];
+    const promises = files.map(p => client.parse(p));
+
+    // Reply in submission order; each parse-result triggers a progress event.
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 1,
+      ok: true,
+      metadata: { title: 'a' },
+    });
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 2,
+      ok: false,
+      error: 'boom',
+    });
+    fake.emitMessage({
+      type: 'parse-result',
+      requestId: 3,
+      ok: true,
+      metadata: { title: 'c' },
+    });
+
+    await Promise.all(promises);
+
+    expect(events).toEqual([
+      { filePath: '/a.flac', fileIndex: 1, fileCount: 3, ok: true },
+      { filePath: '/b.flac', fileIndex: 2, fileCount: 3, ok: false },
+      { filePath: '/c.flac', fileIndex: 3, fileCount: 3, ok: true },
+    ]);
+  });
+
+  it('caps fileIndex at fileCount when more parses settle than the batch size', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    const events: Array<{ filePath: string; fileIndex: number }> = [];
+    client.onProgress(evt => events.push({ filePath: evt.filePath, fileIndex: evt.fileIndex }));
+    client.setBatchSize(1);
+
+    const p1 = client.parse('/a.flac');
+    const p2 = client.parse('/b.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 1, ok: true, metadata: { title: 'a' } });
+    fake.emitMessage({ type: 'parse-result', requestId: 2, ok: true, metadata: { title: 'b' } });
+    await Promise.all([p1, p2]);
+
+    expect(events.map(e => e.fileIndex)).toEqual([1, 1]);
+  });
+
+  it('unsubscribe removes a single progress listener without affecting others', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+    client.setBatchSize(1);
+
+    const a: number[] = [];
+    const b: number[] = [];
+    const unsubA = client.onProgress(evt => a.push(evt.fileIndex));
+    client.onProgress(evt => b.push(evt.fileIndex));
+
+    const p1 = client.parse('/x.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 1, ok: true, metadata: { title: 'x' } });
+    await p1;
+
+    unsubA();
+    client.setBatchSize(1);
+    const p2 = client.parse('/y.flac');
+    fake.emitMessage({ type: 'parse-result', requestId: 2, ok: true, metadata: { title: 'y' } });
+    await p2;
+
+    expect(a).toEqual([1]);
+    expect(b).toEqual([1, 1]);
+  });
+
   it('rejects ready synchronously when kill() is called before utility-ready arrives', async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
     const client = forkScanUtility();

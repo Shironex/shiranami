@@ -48,6 +48,22 @@ export type ParseResult =
   | { ok: true; metadata: ScanUtilityMetadata }
   | { ok: false; error: string };
 
+/**
+ * Per-file progress event emitted by the host as each parse settles.
+ * Mirrors the order parses are submitted in via `parse(filePath)`; consumers
+ * can rely on `fileIndex` to identify which file the event refers to even when
+ * parses complete out of order. `fileCount` is the number of parses submitted
+ * to *this* client, set via `setBatchSize()` before the first parse.
+ */
+export interface ScanProgressEvent {
+  filePath: string;
+  fileIndex: number;
+  fileCount: number;
+  ok: boolean;
+}
+
+export type ScanProgressListener = (evt: ScanProgressEvent) => void;
+
 export interface ScanUtilityClient {
   /** PID of the underlying utility process. */
   readonly pid: number;
@@ -59,6 +75,14 @@ export interface ScanUtilityClient {
   init(opts: { userDataPath: string }): Promise<void>;
   /** Parse one file. Resolves with metadata + shiranami-art:// URL. */
   parse(filePath: string): Promise<ParseResult>;
+  /**
+   * Set the total file count used in subsequent progress events. Callers
+   * invoke this once per logical batch before the first `parse()`. Resets
+   * the in-flight index counter to 0.
+   */
+  setBatchSize(fileCount: number): void;
+  /** Subscribe to per-file progress events. Returns an unsubscribe function. */
+  onProgress(listener: ScanProgressListener): () => void;
   /** Send SIGTERM and remove all listeners. Idempotent. */
   kill(): void;
   /** Whether `kill()` has been invoked or the process has exited. */
@@ -92,6 +116,7 @@ interface PendingInit {
 interface PendingParse {
   resolve: (value: ParseResult) => void;
   reject: (reason: Error) => void;
+  filePath: string;
 }
 
 /**
@@ -116,6 +141,26 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   /** Map of in-flight parse requests by ID, so utility messages can route back. */
   const pendingParses = new Map<number, PendingParse>();
   let nextRequestId = 1;
+
+  /**
+   * Progress accounting. `progressTotal` is the count provided by the IPC
+   * layer via `setBatchSize()`; `progressEmitted` increments once per parse
+   * settle (success OR fallback) so consumers see exactly one event per
+   * submitted file in submission order.
+   */
+  let progressTotal = 0;
+  let progressEmitted = 0;
+  const progressListeners = new Set<ScanProgressListener>();
+
+  function emitProgress(evt: ScanProgressEvent): void {
+    for (const listener of progressListeners) {
+      try {
+        listener(evt);
+      } catch (err) {
+        logger.warn('[scan-utility-host] progress listener threw:', err);
+      }
+    }
+  }
 
   let resolveReady: (() => void) | null = null;
   let rejectReady: ((reason: Error) => void) | null = null;
@@ -191,7 +236,8 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
           break;
         }
         pendingParses.delete(requestId);
-        if (msg.ok === true) {
+        const ok = msg.ok === true;
+        if (ok) {
           pending.resolve({
             ok: true,
             metadata: msg.metadata as ScanUtilityMetadata,
@@ -202,6 +248,17 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
             error: typeof msg.error === 'string' ? msg.error : 'unknown utility parse error',
           });
         }
+        // Emit progress in submission order — `fileIndex` is the count of
+        // settled parses so far in this batch, capped at `fileCount` so a
+        // mis-set batch size cannot drive the index past the total.
+        const fileIndex = Math.min(progressEmitted + 1, Math.max(progressTotal, 1));
+        progressEmitted++;
+        emitProgress({
+          filePath: pending.filePath,
+          fileIndex,
+          fileCount: progressTotal,
+          ok,
+        });
         break;
       }
 
@@ -274,9 +331,19 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       if (killed) throw new Error('scan-utility already killed');
       const requestId = nextRequestId++;
       return new Promise<ParseResult>((resolve, reject) => {
-        pendingParses.set(requestId, { resolve, reject });
+        pendingParses.set(requestId, { resolve, reject, filePath });
         child.postMessage({ type: 'parse', requestId, filePath });
       });
+    },
+    setBatchSize(fileCount: number): void {
+      progressTotal = Math.max(0, Math.floor(fileCount));
+      progressEmitted = 0;
+    },
+    onProgress(listener: ScanProgressListener): () => void {
+      progressListeners.add(listener);
+      return () => {
+        progressListeners.delete(listener);
+      };
     },
     kill(): void {
       if (killed) return;

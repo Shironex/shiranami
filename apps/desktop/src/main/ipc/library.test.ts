@@ -1,13 +1,25 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
+import {
+  ipcHandlers,
+  makeTempDir,
+  cleanupTempDir,
+  createMainWindowMock,
+  asBrowserWindow,
+  setMockMainWindow,
+} from '../../../test/setup';
 import {
   registerLibraryHandlers,
   cleanupLibraryHandlers,
   _setForkOverrideForTest,
 } from './library';
-import type { ScanUtilityClient, ParseResult } from '../scan-utility-host';
+import type {
+  ScanUtilityClient,
+  ParseResult,
+  ScanProgressEvent,
+  ScanProgressListener,
+} from '../scan-utility-host';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -53,9 +65,16 @@ function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResu
   client: ScanUtilityClient;
   parseCalls: string[];
   killCalls: number;
+  progressEvents: ScanProgressEvent[];
+  batchSizes: number[];
 } {
   const parseCalls: string[] = [];
+  const progressEvents: ScanProgressEvent[] = [];
+  const batchSizes: number[] = [];
   let killCalls = 0;
+  let progressTotal = 0;
+  let progressEmitted = 0;
+  const listeners = new Set<ScanProgressListener>();
   const defaultParse: typeof parseImpl = async () => ({
     ok: true,
     metadata: {
@@ -78,7 +97,46 @@ function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResu
     init: vi.fn(async () => undefined),
     parse: vi.fn(async (filePath: string) => {
       parseCalls.push(filePath);
-      return impl(filePath);
+      let result: ParseResult;
+      let ok: boolean;
+      try {
+        result = await impl(filePath);
+        ok = result.ok;
+      } catch (err) {
+        // Emit progress for the rejection case too — mirrors the real host,
+        // which emits on every parse-result settle regardless of outcome.
+        const evt: ScanProgressEvent = {
+          filePath,
+          fileIndex: Math.min(progressEmitted + 1, Math.max(progressTotal, 1)),
+          fileCount: progressTotal,
+          ok: false,
+        };
+        progressEmitted++;
+        progressEvents.push(evt);
+        for (const l of listeners) l(evt);
+        throw err;
+      }
+      const evt: ScanProgressEvent = {
+        filePath,
+        fileIndex: Math.min(progressEmitted + 1, Math.max(progressTotal, 1)),
+        fileCount: progressTotal,
+        ok,
+      };
+      progressEmitted++;
+      progressEvents.push(evt);
+      for (const l of listeners) l(evt);
+      return result;
+    }),
+    setBatchSize: vi.fn((fileCount: number) => {
+      batchSizes.push(fileCount);
+      progressTotal = fileCount;
+      progressEmitted = 0;
+    }),
+    onProgress: vi.fn((listener: ScanProgressListener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     }),
     kill: vi.fn(() => {
       killCalls++;
@@ -90,10 +148,18 @@ function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResu
   return {
     client,
     parseCalls,
+    progressEvents,
+    batchSizes,
     get killCalls() {
       return killCalls;
     },
-  } as { client: ScanUtilityClient; parseCalls: string[]; killCalls: number };
+  } as {
+    client: ScanUtilityClient;
+    parseCalls: string[];
+    killCalls: number;
+    progressEvents: ScanProgressEvent[];
+    batchSizes: number[];
+  };
 }
 
 const event = null as never;
@@ -388,6 +454,52 @@ describe('library ipc handlers', () => {
       });
     });
 
+    it('forwards one library:scan-progress event per file to the renderer', async () => {
+      const mainWindow = createMainWindowMock() as ReturnType<typeof createMainWindowMock> & {
+        isDestroyed: () => boolean;
+      };
+      mainWindow.isDestroyed = () => false;
+      setMockMainWindow(asBrowserWindow(mainWindow));
+      const fake = makeFakeScanUtility();
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      const a = path.join(tmpDir, 'a.mp3');
+      const b = path.join(tmpDir, 'b.flac');
+      const c = path.join(tmpDir, 'c.ogg');
+      fs.writeFileSync(a, '');
+      fs.writeFileSync(b, '');
+      fs.writeFileSync(c, '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      await handler(event, tmpDir);
+
+      // setBatchSize was called with the total file count.
+      expect(fake.batchSizes).toEqual([3]);
+
+      const sends = mainWindow.webContents.send.mock.calls.filter(
+        c => c[0] === 'library:scan-progress'
+      );
+      expect(sends).toHaveLength(3);
+      // Every event has the right shape and the right total.
+      for (const [, payload] of sends) {
+        expect(payload).toMatchObject({
+          fileCount: 3,
+          ok: true,
+        });
+        expect(typeof (payload as { filePath: string }).filePath).toBe('string');
+        const idx = (payload as { fileIndex: number }).fileIndex;
+        expect(idx).toBeGreaterThanOrEqual(1);
+        expect(idx).toBeLessThanOrEqual(3);
+      }
+      // Indices cover 1..3 exactly once.
+      const indices = sends.map(c => (c[1] as { fileIndex: number }).fileIndex).sort();
+      expect(indices).toEqual([1, 2, 3]);
+
+      setMockMainWindow(null);
+    });
+
     it('skips spawning the utility when the directory has no audio files', async () => {
       let spawnCount = 0;
       _setForkOverrideForTest(() => {
@@ -418,6 +530,8 @@ describe('library ipc handlers', () => {
         parse: vi.fn(async () => {
           throw new Error('utility went sideways');
         }),
+        setBatchSize: vi.fn(),
+        onProgress: vi.fn(() => () => {}),
         kill: killSpy,
         get killed() {
           return killSpy.mock.calls.length > 0;
