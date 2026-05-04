@@ -35,6 +35,7 @@ await Promise.all([
     entryPoints: [
       'src/main/index.ts',
       'src/main/extract-worker.ts',
+      'src/main/scan-utility.ts',
       'src/main/scan-utility-spike.ts',
     ],
     external: mainExternal,
