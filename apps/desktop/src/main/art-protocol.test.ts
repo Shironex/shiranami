@@ -144,6 +144,9 @@ describe('downscaleImage', () => {
 // nativeImage stub and don't reach the disk.
 let MOCK_USER_DATA = '/mock/userData';
 
+/** Captured protocol handler for the streaming-handler tests. */
+let capturedArtHandler: ((req: Request) => Promise<Response>) | null = null;
+
 vi.mock('electron', async importOriginal => {
   const original = await importOriginal<typeof import('electron')>();
   return {
@@ -153,6 +156,11 @@ vi.mock('electron', async importOriginal => {
         if (key === 'userData') return MOCK_USER_DATA;
         return '/mock/unknown';
       }),
+    },
+    protocol: {
+      handle(_scheme: string, handler: (req: Request) => Promise<Response>) {
+        capturedArtHandler = handler;
+      },
     },
     nativeImage: {
       createFromBuffer: vi.fn(),
@@ -348,5 +356,89 @@ describe('pruneOrphanedAlbumArt', () => {
     expect(result.deleted).toBe(0);
     expect(fs.existsSync(join(artDir, 'random.txt'))).toBe(true);
     expect(fs.existsSync(join(artDir, 'cover.jpg'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Streaming protocol handler — exercises the createReadStream + LRU tee path
+// ported from audio-protocol.ts.
+// ---------------------------------------------------------------------------
+
+describe('art-protocol streaming handler', () => {
+  let tempDir: string;
+  let artDir: string;
+
+  beforeEach(async () => {
+    capturedArtHandler = null;
+    tempDir = makeTempDir();
+    MOCK_USER_DATA = tempDir;
+    artDir = join(tempDir, 'album-art');
+    fs.mkdirSync(artDir, { recursive: true });
+    const mod = await import('./art-protocol');
+    mod._resetArtDirForTest();
+    mod._resetArtLruForTest();
+    mod.registerArtProtocol();
+  });
+
+  afterEach(() => {
+    cleanupTempDir(tempDir);
+  });
+
+  function makeRequest(fileName: string): Request {
+    return new Request(toArtUrl(fileName));
+  }
+
+  it('returns 400 for empty file name', async () => {
+    expect(capturedArtHandler).not.toBeNull();
+    const res = await capturedArtHandler!(new Request('shiranami-art://art/'));
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 403 for disallowed extensions', async () => {
+    const res = await capturedArtHandler!(makeRequest('cover.txt'));
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 404 when the file does not exist on disk', async () => {
+    const res = await capturedArtHandler!(makeRequest('missing.jpg'));
+    expect(res.status).toBe(404);
+  });
+
+  it('streams file bytes for a present art file', async () => {
+    const payload = Buffer.from('FAKE_JPEG_BYTES_' + 'x'.repeat(200));
+    fs.writeFileSync(join(artDir, 'present.jpg'), payload);
+
+    const res = await capturedArtHandler!(makeRequest('present.jpg'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(res.headers.get('Content-Length')).toBe(String(payload.length));
+    expect(res.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+
+    const body = Buffer.from(await res.arrayBuffer());
+    expect(body.equals(payload)).toBe(true);
+  });
+
+  it('populates the LRU after streaming so a second request hits the cache', async () => {
+    const payload = Buffer.from('CACHED_JPEG_BYTES');
+    fs.writeFileSync(join(artDir, 'hot.jpg'), payload);
+
+    // First request streams from disk and tees into the LRU.
+    const first = await capturedArtHandler!(makeRequest('hot.jpg'));
+    expect(Buffer.from(await first.arrayBuffer()).equals(payload)).toBe(true);
+
+    // Delete the file — second request must come from the LRU now.
+    fs.unlinkSync(join(artDir, 'hot.jpg'));
+    const second = await capturedArtHandler!(makeRequest('hot.jpg'));
+    expect(second.status).toBe(200);
+    expect(Buffer.from(await second.arrayBuffer()).equals(payload)).toBe(true);
+  });
+
+  it('rejects path traversal via basename normalisation', async () => {
+    // basename strips ../ — the handler then 404s because the file does not
+    // exist in the art dir.
+    const res = await capturedArtHandler!(
+      new Request('shiranami-art://art/..%2F..%2Fetc%2Fpasswd.jpg')
+    );
+    expect(res.status).toBe(404);
   });
 });

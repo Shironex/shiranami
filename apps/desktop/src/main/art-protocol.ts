@@ -308,10 +308,35 @@ export function registerArtProtocol(): void {
         return new Response('Not found', { status: 404 });
       }
 
-      const data = await fs.promises.readFile(filePath);
-      artLruSet(safeName, data);
+      // Stream the file rather than reading it into a Buffer up-front. Same
+      // pattern as audio-protocol.ts — Chromium pulls chunks lazily, so main
+      // never holds the full file in a JS Buffer that would be copied a
+      // second time when Electron serialises the Response body across the
+      // IPC bridge. We tee the chunks into the LRU as they pass through so
+      // subsequent hits stay synchronous.
+      const stream = fs.createReadStream(filePath);
+      const chunks: Buffer[] = [];
+      const readable = new ReadableStream({
+        start(controller) {
+          stream.on('data', (chunk: Buffer) => {
+            chunks.push(chunk);
+            controller.enqueue(chunk);
+          });
+          stream.on('end', () => {
+            controller.close();
+            // Concat once at end; for ~30-80 KB JPEGs this is a single small
+            // allocation. LRU is bytes-bounded so oversized inputs are
+            // dropped inside artLruSet.
+            artLruSet(safeName, Buffer.concat(chunks));
+          });
+          stream.on('error', err => controller.error(err));
+        },
+        cancel() {
+          stream.destroy();
+        },
+      });
 
-      return new Response(data, {
+      return new Response(readable as unknown as ReadableStream, {
         status: 200,
         headers: {
           'Content-Type': contentType,
