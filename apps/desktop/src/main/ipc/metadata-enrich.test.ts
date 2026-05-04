@@ -240,6 +240,38 @@ describe('metadata-enrich handlers', () => {
   });
 
   // ---------------------------------------------------------------
+  // cancel-while-idle is a no-op
+  // ---------------------------------------------------------------
+  describe('cancel-while-idle', () => {
+    it('does not affect the next run when cancel is called with no active enrichment', async () => {
+      mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
+
+      // Fire cancel before any run has started
+      const cancelHandler = ipcHandlers.get('metadata:enrich:cancel')!;
+      await cancelHandler(null as never);
+
+      // Start a run — it should complete normally, not see itself as already-cancelled
+      const handler = ipcHandlers.get('metadata:enrich:tracks')!;
+      const results = (await handler(null as never, [makeTrack()], {
+        writeToFile: false,
+        onlyMissing: false,
+      })) as EnrichTrackResult[];
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+
+      // No cancelled progress event should have been emitted
+      const progressCalls = win.webContents.send.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'metadata:enrich:progress'
+      );
+      const cancelledProgress = progressCalls.find(
+        (c: unknown[]) => (c[1] as { status: string }).status === 'cancelled'
+      );
+      expect(cancelledProgress).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------
   // Track with no metadata match (source: 'none')
   // ---------------------------------------------------------------
   describe('no metadata match', () => {
