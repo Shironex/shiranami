@@ -93,16 +93,67 @@ interface ParseErrorMessage {
   error: string;
 }
 
+type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+interface LogMessage {
+  type: 'log';
+  level: LogLevel;
+  message: string;
+  args?: unknown[];
+}
+
 type OutgoingMessage =
   | UtilityReadyMessage
   | HelloAckMessage
   | InitAckMessage
   | ParseSuccessMessage
-  | ParseErrorMessage;
+  | ParseErrorMessage
+  | LogMessage;
 
 function post(msg: OutgoingMessage): void {
   parentPort!.postMessage(msg);
 }
+
+/**
+ * Forwarding logger — every call posts a structured `log` message to the
+ * host, which dispatches it into main's logger. This replaces direct
+ * `console.error` / `console.log` so log fidelity (level, prefix, file
+ * transport) survives the process boundary.
+ *
+ * Args are forwarded as-is. Non-serialisable values (Errors, circular
+ * objects) get a best-effort toString fallback so the IPC postMessage
+ * structured-clone never throws.
+ */
+function safeArgs(args: unknown[]): unknown[] {
+  return args.map(arg => {
+    if (arg instanceof Error) {
+      return { name: arg.name, message: arg.message, stack: arg.stack };
+    }
+    try {
+      // Trip the structured-clone restriction early — if it would fail at
+      // postMessage time, fall back to a string repr now.
+      JSON.stringify(arg);
+      return arg;
+    } catch {
+      try {
+        return String(arg);
+      } catch {
+        return '[unserialisable]';
+      }
+    }
+  });
+}
+
+const log = {
+  info: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'info', message, args: safeArgs(args) }),
+  warn: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'warn', message, args: safeArgs(args) }),
+  error: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'error', message, args: safeArgs(args) }),
+  debug: (message: string, ...args: unknown[]): void =>
+    post({ type: 'log', level: 'debug', message, args: safeArgs(args) }),
+};
 
 // ---------------------------------------------------------------------------
 // Lazy module + state
@@ -187,9 +238,8 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
       try {
         albumArt = await saveAlbumArtToDisk(s, pic.data);
       } catch (err) {
-        // Log to stderr so main's stderr-pipe sees it; cover failure shouldn't
-        // sink the whole track. Phase 4 will replace this with a log bridge.
-        console.error(`[scan-utility] cover write failed for ${filePath}:`, err);
+        // Cover failure shouldn't sink the whole track — log and fall through.
+        log.warn(`cover write failed for ${filePath}`, err);
       }
     }
 
@@ -205,7 +255,7 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
       albumArt,
     };
   } catch (err) {
-    console.error(`[scan-utility] parse failed for ${filePath}:`, err);
+    log.warn(`parse failed for ${filePath}`, err);
     return {
       title: fallbackTitle,
       artist: 'Unknown Artist',

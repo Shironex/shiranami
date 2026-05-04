@@ -306,6 +306,53 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     expect(b).toEqual([1, 1]);
   });
 
+  it("forwards utility log messages to main's logger by level", async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const { logger } = await import('./logger');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    fake.emitMessage({ type: 'log', level: 'info', message: 'hello world', args: [{ a: 1 }] });
+    fake.emitMessage({
+      type: 'log',
+      level: 'warn',
+      message: 'cover write failed for /x.flac',
+      args: [],
+    });
+    fake.emitMessage({ type: 'log', level: 'error', message: 'boom', args: ['extra'] });
+    fake.emitMessage({ type: 'log', level: 'debug', message: 'tracing', args: [] });
+
+    expect(logger.info).toHaveBeenCalledWith('[scan-utility] hello world', { a: 1 });
+    expect(logger.warn).toHaveBeenCalledWith('[scan-utility] cover write failed for /x.flac');
+    expect(logger.error).toHaveBeenCalledWith('[scan-utility] boom', 'extra');
+    expect(logger.debug).toHaveBeenCalledWith('[scan-utility] tracing');
+
+    // Sanity: 'unknown message type' warn wasn't tripped for the structured logs.
+    const unknownWarns = vi
+      .mocked(logger.warn)
+      .mock.calls.filter(
+        args => typeof args[0] === 'string' && args[0].includes('unknown message type')
+      );
+    expect(unknownWarns).toEqual([]);
+
+    // Stop the channel so the test cleans up — kill() rejects pending state.
+    client.kill();
+  });
+
+  it('falls back to info when an unknown log level arrives', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const { logger } = await import('./logger');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    fake.emitMessage({ type: 'log', level: 'trace', message: 'mystery', args: [] });
+    expect(logger.info).toHaveBeenCalledWith('[scan-utility] mystery');
+
+    client.kill();
+  });
+
   it('rejects ready synchronously when kill() is called before utility-ready arrives', async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
     const client = forkScanUtility();

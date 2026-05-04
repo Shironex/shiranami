@@ -228,6 +228,33 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         }
         break;
 
+      case 'log': {
+        const level =
+          msg.level === 'info' ||
+          msg.level === 'warn' ||
+          msg.level === 'error' ||
+          msg.level === 'debug'
+            ? msg.level
+            : 'info';
+        const message = typeof msg.message === 'string' ? msg.message : String(msg.message);
+        const args = Array.isArray(msg.args) ? msg.args : [];
+        const prefixed = `[scan-utility] ${message}`;
+        switch (level) {
+          case 'error':
+            logger.error(prefixed, ...args);
+            break;
+          case 'warn':
+            logger.warn(prefixed, ...args);
+            break;
+          case 'debug':
+            logger.debug(prefixed, ...args);
+            break;
+          default:
+            logger.info(prefixed, ...args);
+        }
+        break;
+      }
+
       case 'parse-result': {
         const requestId = typeof msg.requestId === 'number' ? msg.requestId : -1;
         const pending = pendingParses.get(requestId);
@@ -281,16 +308,16 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
     rejectAllPending(new Error(`scan-utility exited (code=${code ?? 'null'})`));
   });
 
-  // stderr fallback — Phase 4 will replace this with a proper log bridge.
+  // stderr stays piped as a crash fallback — if the utility explodes before
+  // it can post a structured `log` message, anything it writes to stderr
+  // still reaches main's logger. Stdout is intentionally NOT consumed here;
+  // main posts structured `log` events over parentPort instead. (Reading
+  // child.stdout in addition to the structured channel races with native
+  // V8 logger writes that occasionally land on the same pipe.)
   child.stderr?.on('data', (chunk: Buffer) => {
     const text = chunk.toString('utf8').trimEnd();
     if (text) logger.warn(`[scan-utility stderr] ${text}`);
   });
-
-  // Drain stdout unconditionally. Sharp, music-metadata, and Node itself write
-  // warnings there; if left unread, the 64 KB pipe buffer fills and the utility
-  // stalls mid-scan.
-  child.stdout?.on('data', () => {});
 
   return {
     get pid(): number {
