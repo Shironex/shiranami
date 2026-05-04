@@ -710,13 +710,11 @@ describe('library ipc handlers', () => {
       // Suppress unhandled rejection while we wait for the cancel path.
       scanPromise.catch(() => {});
 
-      // Drain microtasks/macrotasks until the scan handler has installed its
-      // abort listener and is parked inside parseAudioFilesViaUtility's
-      // Promise.all. Three setImmediate ticks is empirically enough (the
-      // handler awaits readdir, ready, init, then dispatches parse).
-      for (let i = 0; i < 5; i++) {
-        await new Promise(r => setImmediate(r));
-      }
+      // Wait until the scan handler has progressed past readdir, ready, and
+      // init and entered parseAudioFilesViaUtility (signalled by setBatchSize
+      // being called). At that point activeScanAbort is set and the abort
+      // listener is registered, so cancel() will fire deterministically.
+      await vi.waitFor(() => expect(fake.client.setBatchSize).toHaveBeenCalled());
 
       const cancelHandler = ipcHandlers.get('library:scan-cancel')!;
       await cancelHandler(event);
