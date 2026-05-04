@@ -230,6 +230,11 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
     if (text) logger.warn(`[scan-utility stderr] ${text}`);
   });
 
+  // Drain stdout unconditionally. Sharp, music-metadata, and Node itself write
+  // warnings there; if left unread, the 64 KB pipe buffer fills and the utility
+  // stalls mid-scan.
+  child.stdout?.on('data', () => {});
+
   return {
     get pid(): number {
       return child.pid ?? -1;
