@@ -84,7 +84,9 @@ describe('metadata-enrich handlers', () => {
     vi.clearAllMocks();
 
     win = createMainWindowMock();
-    (win as unknown as { isDestroyed: ReturnType<typeof vi.fn> }).isDestroyed = vi.fn().mockReturnValue(false);
+    (win as unknown as { isDestroyed: ReturnType<typeof vi.fn> }).isDestroyed = vi
+      .fn()
+      .mockReturnValue(false);
     setMockMainWindow(asBrowserWindow(win));
     registerMetadataEnrichHandlers();
   });
@@ -117,20 +119,20 @@ describe('metadata-enrich handlers', () => {
     it('only fills fields that are missing/default, leaves existing values untouched', async () => {
       const track = makeTrack({
         artist: 'Existing Artist', // already has artist — should NOT be overwritten
-        album: 'Unknown Album',    // default — should be overwritten
-        genre: 'Rock',             // already has genre — should NOT be overwritten
-        year: null,                // missing — should be filled
-        trackNumber: 5,            // already has value — should NOT be overwritten
-        albumArt: 'existing-art',  // already has art — cover download should be skipped
+        album: 'Unknown Album', // default — should be overwritten
+        genre: 'Rock', // already has genre — should NOT be overwritten
+        year: null, // missing — should be filled
+        trackNumber: 5, // already has value — should NOT be overwritten
+        albumArt: 'existing-art', // already has art — cover download should be skipped
       });
 
       mockedLookup.mockResolvedValue(makeLookupResult());
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-      const results = await handler(null as never, [track], {
+      const results = (await handler(null as never, [track], {
         writeToFile: false,
         onlyMissing: true,
-      }) as EnrichTrackResult[];
+      })) as EnrichTrackResult[];
 
       expect(results).toHaveLength(1);
       const r = results[0];
@@ -169,10 +171,10 @@ describe('metadata-enrich handlers', () => {
       mockedDownloadImage.mockResolvedValue(Buffer.from('fake-image'));
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-      const results = await handler(null as never, [track], {
+      const results = (await handler(null as never, [track], {
         writeToFile: false,
         onlyMissing: false,
-      }) as EnrichTrackResult[];
+      })) as EnrichTrackResult[];
 
       expect(results).toHaveLength(1);
       const r = results[0];
@@ -197,42 +199,36 @@ describe('metadata-enrich handlers', () => {
   // ---------------------------------------------------------------
   describe('metadata:enrich:cancel', () => {
     it('cancels in-progress enrichment', async () => {
-      vi.useFakeTimers();
-
       const tracks = [
         makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Song 1' }),
         makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Song 2' }),
         makeTrack({ id: '550e8400-e29b-41d4-a716-446655440003', title: 'Song 3' }),
       ];
 
-      mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
+      const cancelHandler = ipcHandlers.get('metadata:enrich:cancel')!;
+
+      mockedLookup
+        .mockResolvedValueOnce(makeLookupResult({ coverImageUrl: undefined })) // track 1: completes
+        .mockImplementationOnce(async () => {
+          // track 2: trigger cancel mid-flight, then resolve
+          await cancelHandler(null as never);
+          return makeLookupResult({ coverImageUrl: undefined });
+        })
+        .mockResolvedValue(makeLookupResult({ coverImageUrl: undefined })); // unused safety
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-
-      // Start enrichment (don't await yet — it will block on the inter-track delay)
-      const enrichPromise = handler(null as never, tracks, {
+      const results = (await handler(null as never, tracks, {
         writeToFile: false,
         onlyMissing: false,
-      }) as Promise<EnrichTrackResult[]>;
+      })) as EnrichTrackResult[];
 
-      // Let microtasks settle so the first track processes
-      await vi.advanceTimersByTimeAsync(0);
-
-      // Cancel after first track
-      const cancelHandler = ipcHandlers.get('metadata:enrich:cancel')!;
-      await cancelHandler(null as never);
-
-      // Advance past the inter-track delay so the loop continues and hits the cancel check
-      await vi.advanceTimersByTimeAsync(1000);
-
-      const results = await enrichPromise;
-
-      // Should have processed track 1, then cancelled before track 3
-      expect(results.length).toBeLessThan(tracks.length);
+      // Track 1 completed; track 2 completed (cancel flag set after its lookup resolved);
+      // track 3 short-circuits at the top-of-loop enrichCancelled check and never runs.
+      expect(results.length).toBe(2);
       expect(results[0].id).toBe('550e8400-e29b-41d4-a716-446655440001');
       expect(results[0].success).toBe(true);
 
-      // Should have sent a 'cancelled' progress event
+      // Should have sent a 'cancelled' progress event for track 3
       const progressCalls = win.webContents.send.mock.calls.filter(
         (c: unknown[]) => c[0] === 'metadata:enrich:progress'
       );
@@ -240,8 +236,6 @@ describe('metadata-enrich handlers', () => {
         (c: unknown[]) => (c[1] as { status: string }).status === 'cancelled'
       );
       expect(cancelledProgress).toBeDefined();
-
-      vi.useRealTimers();
     });
   });
 
@@ -256,10 +250,10 @@ describe('metadata-enrich handlers', () => {
       });
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-      const results = await handler(null as never, [makeTrack()], {
+      const results = (await handler(null as never, [makeTrack()], {
         writeToFile: false,
         onlyMissing: false,
-      }) as EnrichTrackResult[];
+      })) as EnrichTrackResult[];
 
       expect(results).toHaveLength(1);
       expect(results[0].success).toBe(false);
@@ -278,10 +272,10 @@ describe('metadata-enrich handlers', () => {
       mockedDownloadImage.mockRejectedValue(new Error('Network error'));
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-      const results = await handler(null as never, [makeTrack()], {
+      const results = (await handler(null as never, [makeTrack()], {
         writeToFile: false,
         onlyMissing: false,
-      }) as EnrichTrackResult[];
+      })) as EnrichTrackResult[];
 
       expect(results).toHaveLength(1);
       const r = results[0];
@@ -353,7 +347,9 @@ describe('metadata-enrich handlers', () => {
     });
 
     it('does not send progress if window is destroyed', async () => {
-      (win as unknown as { isDestroyed: ReturnType<typeof vi.fn> }).isDestroyed.mockReturnValue(true);
+      (win as unknown as { isDestroyed: ReturnType<typeof vi.fn> }).isDestroyed.mockReturnValue(
+        true
+      );
 
       mockedLookup.mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
 
@@ -378,10 +374,10 @@ describe('metadata-enrich handlers', () => {
 
       const track = makeTrack();
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
-      const results = await handler(null as never, [track], {
+      const results = (await handler(null as never, [track], {
         writeToFile: true,
         onlyMissing: false,
-      }) as EnrichTrackResult[];
+      })) as EnrichTrackResult[];
 
       expect(mockedWriteMetadata).toHaveBeenCalledWith(
         '/music/song.mp3',
@@ -440,7 +436,7 @@ describe('metadata-enrich handlers', () => {
       });
 
       await vi.advanceTimersByTimeAsync(2000);
-      const results = await resultPromise as EnrichTrackResult[];
+      const results = (await resultPromise) as EnrichTrackResult[];
 
       expect(results).toHaveLength(2);
 
