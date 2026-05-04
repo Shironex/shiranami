@@ -5,7 +5,12 @@ import { useViewStore } from '@/stores/useViewStore';
 import { type Track } from '@/stores/types';
 import { Disc3, Search } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Grid, type CellComponentProps, type GridImperativeAPI } from 'react-window';
+import {
+  Grid,
+  getScrollbarSize,
+  type CellComponentProps,
+  type GridImperativeAPI,
+} from 'react-window';
 import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
 
 export type { AlbumData };
@@ -55,14 +60,15 @@ function columnsFor(size: GridSize, viewportWidth: number): number {
 // Card height is title (sm) + artist (xs) + count (10px) + paddings + img.
 // Image height = (cellWidth - 2*padding). Total = imgHeight + textBlock + p*2.
 // Padding: small=p-3 (12), medium/large=p-4 (16). Mb-3 between img and text.
-// Text block ≈ 56px (title 20 + artist 18 + count 14 + gaps).
-const ROW_HEIGHT_TEXT_BLOCK = 56;
+// Text block: title 20 + mt-0.5 2 + artist 16 + mt-1.5 6 + count 14 = 58px + 6px safety = 64px.
+const ROW_HEIGHT_TEXT_BLOCK = 64;
 const GAP_PX: Record<GridSize, number> = { small: 8, medium: 12, large: 16 };
 const PADDING_PX: Record<GridSize, number> = { small: 12, medium: 16, large: 16 };
 
 interface CellProps {
   albums: AlbumData[];
   columnCount: number;
+  gap: number;
   onAlbumClick: (name: string) => void;
   cardPaddingClass: string;
   imgPx: number;
@@ -75,6 +81,7 @@ function AlbumCell({
   style,
   albums,
   columnCount,
+  gap,
   onAlbumClick,
   cardPaddingClass,
   imgPx,
@@ -82,11 +89,19 @@ function AlbumCell({
 }: CellComponentProps<CellProps>) {
   const index = rowIndex * columnCount + columnIndex;
   const album = albums[index];
+  const halfGap = gap / 2;
+  const insetStyle: React.CSSProperties = {
+    ...style,
+    paddingLeft: columnIndex === 0 ? 0 : halfGap,
+    paddingRight: columnIndex === columnCount - 1 ? 0 : halfGap,
+    paddingTop: rowIndex === 0 ? 0 : halfGap,
+    paddingBottom: halfGap,
+  };
   if (!album) {
-    return <div style={style} aria-hidden="true" />;
+    return <div style={insetStyle} aria-hidden="true" />;
   }
   return (
-    <div style={style}>
+    <div style={insetStyle}>
       <button
         onClick={() => onAlbumClick(album.name)}
         className={`text-left ${cardPaddingClass} rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group w-full h-full flex flex-col`}
@@ -107,11 +122,18 @@ function AlbumCell({
             <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
           )}
         </div>
-        <p className="font-display text-sm font-semibold text-foreground truncate">{album.name}</p>
-        <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
-        <p className="text-[10px] text-muted-foreground/30 mt-1.5">
-          {trackCountLabel(album.trackCount)}
-        </p>
+        <div
+          style={{ height: ROW_HEIGHT_TEXT_BLOCK }}
+          className="flex flex-col justify-start min-w-0"
+        >
+          <p className="font-display text-sm font-semibold text-foreground truncate">
+            {album.name}
+          </p>
+          <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
+          <p className="text-[10px] text-muted-foreground/30 mt-1.5 truncate">
+            {trackCountLabel(album.trackCount)}
+          </p>
+        </div>
       </button>
     </div>
   );
@@ -180,15 +202,16 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     return columnsFor(albumGridSize, containerWidth);
   }, [albumGridSize, containerWidth]);
 
-  // Cell width includes the gap allowance — Grid sizes cells based on
-  // columnWidth, and we pad to leave space for `gap` between cells.
+  // Subtract the Grid's own scrollbar gutter so the rightmost column does not
+  // render behind the scrollbar (getScrollbarSize is react-window's canonical
+  // answer to this — returns 0 on overlay-scrollbar platforms).
   const gap = GAP_PX[albumGridSize];
   const padding = PADDING_PX[albumGridSize];
-  const usableWidth = Math.max(0, containerWidth - gap * (columnCount - 1));
-  const cellOuterWidth =
-    columnCount > 0 ? usableWidth / columnCount + (gap * (columnCount - 1)) / columnCount : 0;
-  // The image height = cellOuterWidth - 2*padding (square aspect).
-  const imgPx = Math.max(0, cellOuterWidth - padding * 2);
+  const scrollbarSize = getScrollbarSize();
+  const columnWidthPx =
+    columnCount > 0 ? Math.max(0, containerWidth - scrollbarSize) / columnCount : 0;
+  // The image height = cellWidth - 2*padding (square aspect).
+  const imgPx = Math.max(0, columnWidthPx - padding * 2);
   const cellOuterHeight = imgPx + padding * 2 + ROW_HEIGHT_TEXT_BLOCK;
 
   const rowCount = columnCount > 0 ? Math.ceil(filteredAlbums.length / columnCount) : 0;
@@ -214,12 +237,13 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     () => ({
       albums: filteredAlbums,
       columnCount,
+      gap,
       onAlbumClick: handleAlbumClick,
       cardPaddingClass,
       imgPx,
       trackCountLabel,
     }),
-    [filteredAlbums, columnCount, handleAlbumClick, cardPaddingClass, imgPx, trackCountLabel]
+    [filteredAlbums, columnCount, gap, handleAlbumClick, cardPaddingClass, imgPx, trackCountLabel]
   );
 
   if (filteredAlbums.length === 0) {
@@ -256,7 +280,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
             cellComponent={AlbumCell}
             cellProps={cellProps}
             columnCount={columnCount}
-            columnWidth={containerWidth / columnCount}
+            columnWidth={columnWidthPx}
             rowCount={rowCount}
             rowHeight={cellOuterHeight}
             overscanCount={2}
