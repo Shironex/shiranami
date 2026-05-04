@@ -282,6 +282,11 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       if (killed) return;
       killed = true;
       clearTimeout(readyTimer);
+      if (resolveReady) {
+        rejectReady?.(new Error('scan-utility killed before ready'));
+        resolveReady = null;
+        rejectReady = null;
+      }
       rejectAllPending(new Error('scan-utility killed'));
       try {
         child.kill();

@@ -185,6 +185,10 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     const client = forkScanUtility();
     expect(client.killed).toBe(false);
 
+    // Suppress the ready rejection so Node doesn't see an unhandled rejection
+    // when kill() fires before utility-ready arrives.
+    client.ready.catch(() => {});
+
     client.kill();
     client.kill();
     expect(client.killed).toBe(true);
@@ -212,5 +216,24 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     fake.emitMessage(123);
     fake.emitMessage({ type: 'utility-ready' });
     await expect(client.ready).resolves.toBeUndefined();
+  });
+
+  it('rejects ready synchronously when kill() is called before utility-ready arrives', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+
+    // Capture the rejection before kill() fires it so Node does not see an
+    // unhandled rejection. The assertion is resolved after kill() returns.
+    const readyResult = client.ready.then(
+      () => ({ threw: false, error: null as Error | null }),
+      (err: Error) => ({ threw: true, error: err })
+    );
+
+    // kill() while utility-ready has not been posted yet.
+    client.kill();
+
+    const { threw, error } = await readyResult;
+    expect(threw).toBe(true);
+    expect(error?.message).toMatch(/killed before ready/);
   });
 });
