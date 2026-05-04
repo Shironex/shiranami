@@ -40,13 +40,18 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
             }}
           >
             {currentTrack.albumArt && !lowPerformanceMode && (
-              <div
-                className="absolute inset-0 opacity-[0.08] blur-2xl scale-110"
-                style={{
-                  backgroundImage: `url(${currentTrack.albumArt})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
+              // Render the blurred backdrop as a positioned <img> rather than
+              // background-image: this lets Chromium share the decoded bitmap
+              // with the foreground <img> below (CSS background-image lives in
+              // a separate cache, doubling decoded RAM per render).
+              <img
+                src={currentTrack.albumArt}
+                alt=""
+                aria-hidden="true"
+                loading="eager"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover opacity-[0.08] pointer-events-none"
+                style={{ filter: 'blur(32px)', transform: 'scale(1.1)' }}
               />
             )}
 
