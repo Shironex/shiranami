@@ -111,12 +111,17 @@ async function parseAudioFilesViaUtility(
     const batch = filePaths.slice(i, i + PARSE_CONCURRENCY);
     const parsed = await Promise.all(
       batch.map(async filePath => {
-        const result = await utility.parse(filePath);
-        if (result.ok) {
-          return { filePath, metadata: result.metadata };
+        try {
+          const result = await utility.parse(filePath);
+          if (result.ok) {
+            return { filePath, metadata: result.metadata };
+          }
+          logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
+          return { filePath, metadata: fallbackMetadata(filePath) };
+        } catch (err) {
+          logger.warn(`[library] utility.parse rejected for ${filePath}:`, err);
+          return { filePath, metadata: fallbackMetadata(filePath) };
         }
-        logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
-        return { filePath, metadata: fallbackMetadata(filePath) };
       })
     );
     for (let j = 0; j < parsed.length; j++) {

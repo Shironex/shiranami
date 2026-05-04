@@ -406,7 +406,9 @@ describe('library ipc handlers', () => {
       expect(spawnCount).toBe(0);
     });
 
-    it('kills the utility even when parse rejects', async () => {
+    it('falls back to filename metadata when utility.parse rejects, and kills the utility', async () => {
+      // Simulates the utility process exiting mid-scan (all parse() calls reject).
+      // The scan must complete with fallback metadata rather than aborting.
       const killSpy = vi.fn();
       _setForkOverrideForTest(() => ({
         pid: 1,
@@ -426,8 +428,57 @@ describe('library ipc handlers', () => {
 
       fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
       const handler = ipcHandlers.get('library:scan-folder')!;
-      await expect(handler(event, tmpDir)).rejects.toThrow(/sideways/);
+      const results = (await handler(event, tmpDir)) as Array<{
+        filePath: string;
+        metadata: { title: string; artist: string };
+      }>;
+      // Scan resolves (not rejects) — the rejecting parse is absorbed per-file.
+      expect(results).toHaveLength(1);
+      expect(results[0].metadata).toMatchObject({ title: 'a', artist: 'Unknown Artist' });
+      // kill() is still invoked via the try/finally in withScanUtility.
       expect(killSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps surrounding files when only one file in a batch rejects', async () => {
+      const goodPath1 = path.join(tmpDir, 'good1.mp3');
+      const badPath = path.join(tmpDir, 'bad.mp3');
+      const goodPath2 = path.join(tmpDir, 'good2.mp3');
+      fs.writeFileSync(goodPath1, '');
+      fs.writeFileSync(badPath, '');
+      fs.writeFileSync(goodPath2, '');
+
+      const fake = makeFakeScanUtility(async filePath => {
+        if (filePath === badPath) throw new Error('parse rejected for bad.mp3');
+        return {
+          ok: true,
+          metadata: {
+            title: path.basename(filePath, path.extname(filePath)),
+            artist: 'Good Artist',
+            album: 'Album',
+            duration: 100,
+            genre: '',
+            year: null,
+            trackNumber: null,
+            discNumber: null,
+            albumArt: null,
+          },
+        };
+      });
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const results = (await handler(event, tmpDir)) as Array<{
+        filePath: string;
+        metadata: { title: string; artist: string };
+      }>;
+
+      expect(results).toHaveLength(3);
+      const byPath = new Map(results.map(r => [r.filePath, r.metadata]));
+      expect(byPath.get(goodPath1)).toMatchObject({ title: 'good1', artist: 'Good Artist' });
+      expect(byPath.get(badPath)).toMatchObject({ title: 'bad', artist: 'Unknown Artist' });
+      expect(byPath.get(goodPath2)).toMatchObject({ title: 'good2', artist: 'Good Artist' });
     });
   });
 
