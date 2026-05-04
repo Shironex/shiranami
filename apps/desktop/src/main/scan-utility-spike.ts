@@ -63,8 +63,19 @@ function runSpike(input: Buffer): SpikeResult {
 
 // `parentPort` is exposed on `process` inside an Electron utilityProcess.
 // Type stub: cast through `unknown` since @types/node doesn't know about it.
+// IMPORTANT: parentPort.on('message') wraps each message in a MessageEvent —
+// the actual payload lives at `event.data`. This is asymmetric with the parent
+// side, where `UtilityProcess.on('message')` already unwraps to the raw data.
+interface ParentPortMessageEvent {
+  data: unknown;
+}
 const parentPort = (
-  process as unknown as { parentPort?: NodeJS.EventEmitter & { postMessage(msg: unknown): void } }
+  process as unknown as {
+    parentPort?: {
+      on(event: 'message', listener: (event: ParentPortMessageEvent) => void): void;
+      postMessage(msg: unknown): void;
+    };
+  }
 ).parentPort;
 
 if (!parentPort) {
@@ -73,7 +84,8 @@ if (!parentPort) {
   process.exit(1);
 }
 
-parentPort.on('message', (msg: SpikeRequest) => {
+parentPort.on('message', event => {
+  const msg = event.data as SpikeRequest | undefined;
   if (msg?.type !== 'spike') return;
   const result = runSpike(Buffer.from(msg.input));
   parentPort.postMessage(result);
