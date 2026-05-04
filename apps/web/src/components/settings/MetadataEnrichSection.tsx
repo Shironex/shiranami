@@ -41,17 +41,25 @@ export function MetadataEnrichSection() {
     loadSkipped();
   }, [loadSkipped]);
 
-  // Count tracks with missing metadata. Compare against localized fallbacks
-  // because trackMapper populates missing artist/album with the translated
-  // "Unknown Artist"/"Unknown Album" strings at DB-read time.
-  const tracksNeedingEnrichment = useMemo(() => {
-    const unknownArtist = tc('unknownArtist');
-    const unknownAlbum = tc('unknownAlbum');
-    return library.filter(
-      t =>
-        t.artist === unknownArtist || t.album === unknownAlbum || !t.albumArt || !t.genre || !t.year
-    );
-  }, [library, tc]);
+  // Count tracks with missing metadata.
+  // DB stores the English literals 'Unknown Artist' / 'Unknown Album' (written by
+  // scan-utility.ts and metadata-service.ts). trackMapper's ?? fallback never fires
+  // because those truthy strings are already in the row. Compare against the literals
+  // so Polish (and any other locale) users see the correct count.
+  const unknownArtist = 'Unknown Artist';
+  const unknownAlbum = 'Unknown Album';
+  const tracksNeedingEnrichment = useMemo(
+    () =>
+      library.filter(
+        t =>
+          t.artist === unknownArtist ||
+          t.album === unknownAlbum ||
+          !t.albumArt ||
+          !t.genre ||
+          !t.year
+      ),
+    [library, unknownArtist, unknownAlbum]
+  );
 
   // How many of those are skipped (already tried, no results)
   const skippedCount = tracksNeedingEnrichment.filter(t => skippedIds.has(t.id)).length;
