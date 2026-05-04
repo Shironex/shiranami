@@ -5,6 +5,7 @@ import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata
 import { logger } from '../logger';
 import {
   forkScanUtility,
+  ScanCancelledError,
   type ScanUtilityClient,
   type ScanProgressEvent,
 } from '../scan-utility-host';
@@ -12,6 +13,7 @@ import { getMainWindow } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {
   parseMetadataArgs,
+  scanCancelArgs,
   scanFolderArgs,
   scanFolderGroupedArgs,
   validateFilesArgs,
@@ -106,6 +108,11 @@ function fallbackMetadata(filePath: string): TrackMetadata {
  * Parse a batch of files through a single utility-process client. Mirrors
  * the previous in-process concurrency=16 worker-pool shape; the utility now
  * owns the heavy work and main only orchestrates.
+ *
+ * Per-file rejections are absorbed and emit fallback metadata so a single
+ * bad file doesn't sink the scan. `ScanCancelledError` is the one exception:
+ * it propagates so `withScanUtility` can rethrow it to the IPC layer instead
+ * of the renderer receiving 50k fallback tracks for an aborted scan.
  */
 async function parseAudioFilesViaUtility(
   utility: ScanUtilityClient,
@@ -113,6 +120,7 @@ async function parseAudioFilesViaUtility(
 ): Promise<ScannedTrack[]> {
   const results: ScannedTrack[] = new Array(filePaths.length);
   for (let i = 0; i < filePaths.length; i += PARSE_CONCURRENCY) {
+    if (utility.cancelled) throw new ScanCancelledError();
     const batch = filePaths.slice(i, i + PARSE_CONCURRENCY);
     const parsed = await Promise.all(
       batch.map(async filePath => {
@@ -124,6 +132,7 @@ async function parseAudioFilesViaUtility(
           logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
           return { filePath, metadata: fallbackMetadata(filePath) };
         } catch (err) {
+          if (err instanceof ScanCancelledError) throw err;
           logger.warn(`[library] utility.parse rejected for ${filePath}:`, err);
           return { filePath, metadata: fallbackMetadata(filePath) };
         }
@@ -147,6 +156,12 @@ function forwardProgressToRenderer(evt: ScanProgressEvent): void {
   mainWindow.webContents.send('library:scan-progress', evt);
 }
 
+interface WithScanUtilityOptions {
+  signal?: AbortSignal;
+  forkOverride?: () => ScanUtilityClient;
+  onProgress?: (evt: ScanProgressEvent) => void;
+}
+
 /**
  * Spawn a one-shot scan-utility process, run an async function with it,
  * then kill it (RSS returns to the OS — the entire point of the migration).
@@ -157,22 +172,37 @@ function forwardProgressToRenderer(evt: ScanProgressEvent): void {
  * Per-file progress events are streamed to the renderer for the duration
  * of the call; the listener is removed before the utility is killed.
  *
+ * If `signal` is provided and aborts during the scan, `utility.cancel()`
+ * fires — pending parses reject with `ScanCancelledError` and the utility
+ * exits within ~2s (SIGTERM fallback if it doesn't). The wrapped error is
+ * rethrown so the IPC layer can decide how to surface it.
+ *
  * Test seam: `forkOverride` lets unit tests inject a fake client without
  * spinning up a real utilityProcess. `onProgress` lets tests observe the
  * progress stream without running the renderer.
  */
 async function withScanUtility<T>(
   fn: (utility: ScanUtilityClient) => Promise<T>,
-  forkOverride?: () => ScanUtilityClient,
-  onProgress: (evt: ScanProgressEvent) => void = forwardProgressToRenderer
+  opts: WithScanUtilityOptions = {}
 ): Promise<T> {
+  const { signal, forkOverride, onProgress = forwardProgressToRenderer } = opts;
   const utility = forkOverride ? forkOverride() : forkScanUtility();
   const unsubscribe = utility.onProgress(onProgress);
+  // If the signal is already aborted, cancel before any work starts so the
+  // cancel arrives ahead of `init`.
+  if (signal?.aborted) {
+    utility.cancel();
+  }
+  const onAbort = () => {
+    utility.cancel();
+  };
+  signal?.addEventListener('abort', onAbort);
   try {
     await utility.ready;
     await utility.init({ userDataPath: app.getPath('userData') });
     return await fn(utility);
   } finally {
+    signal?.removeEventListener('abort', onAbort);
     unsubscribe();
     utility.kill();
   }
@@ -186,6 +216,14 @@ let forkOverrideForTest: (() => ScanUtilityClient) | null = null;
 export function _setForkOverrideForTest(fn: (() => ScanUtilityClient) | null): void {
   forkOverrideForTest = fn;
 }
+
+/**
+ * Active scan AbortController. Set by scan-folder / scan-folder-grouped on
+ * entry and cleared on exit. The `library:scan-cancel` IPC aborts whichever
+ * is current. Concurrent scans are not supported (see plan §7-3) so a single
+ * slot is enough.
+ */
+let activeScanAbort: AbortController | null = null;
 
 export function registerLibraryHandlers(): void {
   // Parse metadata for a single file. Stays in-main: spawning a utility for
@@ -214,16 +252,51 @@ export function registerLibraryHandlers(): void {
       if (filePaths.length === 0) return [];
 
       const parseStart = Date.now();
-      const results = await withScanUtility(utility => {
-        utility.setBatchSize(filePaths.length);
-        return parseAudioFilesViaUtility(utility, filePaths);
-      }, forkOverrideForTest ?? undefined);
+      const abort = new AbortController();
+      activeScanAbort = abort;
+      let results: ScannedTrack[];
+      try {
+        results = await withScanUtility(
+          utility => {
+            utility.setBatchSize(filePaths.length);
+            return parseAudioFilesViaUtility(utility, filePaths);
+          },
+          {
+            signal: abort.signal,
+            forkOverride: forkOverrideForTest ?? undefined,
+          }
+        );
+      } catch (err) {
+        if (err instanceof ScanCancelledError) {
+          logger.info(`[library] Scan cancelled after ${Date.now() - start}ms`);
+          return [];
+        }
+        throw err;
+      } finally {
+        if (activeScanAbort === abort) activeScanAbort = null;
+      }
       logger.info(
         `[library] Parsed ${results.length} tracks in ${Date.now() - parseStart}ms (total: ${Date.now() - start}ms)`
       );
       return results;
     },
     { schema: scanFolderArgs }
+  );
+
+  // Cancel the active scan (if any). The handler is best-effort: it returns
+  // immediately and the actual scan promise rejects via ScanCancelledError,
+  // which the scan IPC absorbs into an empty result.
+  handle(
+    'library:scan-cancel',
+    async () => {
+      if (activeScanAbort) {
+        logger.info('[library] Scan cancellation requested');
+        activeScanAbort.abort();
+      } else {
+        logger.info('[library] Scan cancel requested with no active scan');
+      }
+    },
+    { schema: scanCancelArgs }
   );
 
   // Validate which file paths still exist on disk (returns paths that are missing)
@@ -286,27 +359,46 @@ export function registerLibraryHandlers(): void {
         return { rootTracks: [], subfolders: [] } satisfies GroupedScanResult;
       }
 
-      const result = await withScanUtility(async utility => {
-        // Total fileCount across the whole grouped scan so progress events
-        // give a single end-to-end percentage rather than resetting per
-        // subfolder. The host's index counter is reset by setBatchSize().
-        utility.setBatchSize(totalFiles);
-        const rootTracks = await parseAudioFilesViaUtility(utility, rootFiles);
+      const abort = new AbortController();
+      activeScanAbort = abort;
+      let result: GroupedScanResult;
+      try {
+        result = await withScanUtility(
+          async utility => {
+            // Total fileCount across the whole grouped scan so progress events
+            // give a single end-to-end percentage rather than resetting per
+            // subfolder. The host's index counter is reset by setBatchSize().
+            utility.setBatchSize(totalFiles);
+            const rootTracks = await parseAudioFilesViaUtility(utility, rootFiles);
 
-        const SUBFOLDER_CONCURRENCY = 4;
-        const parsedSubfolders = [];
-        for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
-          const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
-          const sub = await Promise.all(
-            batch.map(async subfolder => {
-              const tracks = await parseAudioFilesViaUtility(utility, subfolder.files);
-              return { name: subfolder.name, path: subfolder.path, tracks };
-            })
-          );
-          parsedSubfolders.push(...sub);
+            const SUBFOLDER_CONCURRENCY = 4;
+            const parsedSubfolders = [];
+            for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
+              const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
+              const sub = await Promise.all(
+                batch.map(async subfolder => {
+                  const tracks = await parseAudioFilesViaUtility(utility, subfolder.files);
+                  return { name: subfolder.name, path: subfolder.path, tracks };
+                })
+              );
+              parsedSubfolders.push(...sub);
+            }
+            return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
+          },
+          {
+            signal: abort.signal,
+            forkOverride: forkOverrideForTest ?? undefined,
+          }
+        );
+      } catch (err) {
+        if (err instanceof ScanCancelledError) {
+          logger.info(`[library] Grouped scan cancelled after ${Date.now() - start}ms`);
+          return { rootTracks: [], subfolders: [] } satisfies GroupedScanResult;
         }
-        return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
-      }, forkOverrideForTest ?? undefined);
+        throw err;
+      } finally {
+        if (activeScanAbort === abort) activeScanAbort = null;
+      }
 
       logger.info(
         `[library] Scan complete: ${totalFiles} files scanned and parsed in ${Date.now() - start}ms`
@@ -322,4 +414,5 @@ export function cleanupLibraryHandlers(): void {
   ipcMain.removeHandler('library:scan-folder');
   ipcMain.removeHandler('library:validate-files');
   ipcMain.removeHandler('library:scan-folder-grouped');
+  ipcMain.removeHandler('library:scan-cancel');
 }

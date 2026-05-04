@@ -138,11 +138,15 @@ function makeFakeScanUtility(parseImpl?: (filePath: string) => Promise<ParseResu
         listeners.delete(listener);
       };
     }),
+    cancel: vi.fn(),
     kill: vi.fn(() => {
       killCalls++;
     }),
     get killed() {
       return killCalls > 0;
+    },
+    get cancelled() {
+      return false;
     },
   };
   return {
@@ -532,9 +536,13 @@ describe('library ipc handlers', () => {
         }),
         setBatchSize: vi.fn(),
         onProgress: vi.fn(() => () => {}),
+        cancel: vi.fn(),
         kill: killSpy,
         get killed() {
           return killSpy.mock.calls.length > 0;
+        },
+        get cancelled() {
+          return false;
         },
       }));
       cleanupLibraryHandlers();
@@ -650,6 +658,7 @@ describe('library ipc handlers', () => {
     expect(ipcHandlers.has('library:scan-folder')).toBe(true);
     expect(ipcHandlers.has('library:validate-files')).toBe(true);
     expect(ipcHandlers.has('library:scan-folder-grouped')).toBe(true);
+    expect(ipcHandlers.has('library:scan-cancel')).toBe(true);
 
     cleanupLibraryHandlers();
 
@@ -657,5 +666,93 @@ describe('library ipc handlers', () => {
     expect(ipcHandlers.has('library:scan-folder')).toBe(false);
     expect(ipcHandlers.has('library:validate-files')).toBe(false);
     expect(ipcHandlers.has('library:scan-folder-grouped')).toBe(false);
+    expect(ipcHandlers.has('library:scan-cancel')).toBe(false);
+  });
+
+  describe('library:scan-cancel', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = makeTempDir();
+    });
+
+    afterEach(() => {
+      cleanupTempDir(tmpDir);
+    });
+
+    it("invokes the active scan utility's cancel() method", async () => {
+      // Build a fake whose parse() never resolves until we let it. Then we
+      // can call scan-cancel mid-flight and verify cancel() landed.
+      let resolveParse: ((r: ParseResult) => void) | null = null;
+      const fake = makeFakeScanUtility(
+        () =>
+          new Promise<ParseResult>(resolve => {
+            resolveParse = resolve;
+          })
+      );
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const scanPromise = handler(event, tmpDir) as Promise<unknown>;
+      // Suppress unhandled rejection while we wait for the cancel path.
+      scanPromise.catch(() => {});
+
+      // Drain microtasks/macrotasks until the scan handler has installed its
+      // abort listener and is parked inside parseAudioFilesViaUtility's
+      // Promise.all. Three setImmediate ticks is empirically enough (the
+      // handler awaits readdir, ready, init, then dispatches parse).
+      for (let i = 0; i < 5; i++) {
+        await new Promise(r => setImmediate(r));
+      }
+
+      const cancelHandler = ipcHandlers.get('library:scan-cancel')!;
+      await cancelHandler(event);
+
+      expect(vi.mocked(fake.client.cancel)).toHaveBeenCalledTimes(1);
+
+      // Unblock the parse so the scan finishes (test fake can't truly cancel).
+      resolveParse!({
+        ok: true,
+        metadata: {
+          title: 'a',
+          artist: '',
+          album: '',
+          duration: 0,
+          genre: '',
+          year: null,
+          trackNumber: null,
+          discNumber: null,
+          albumArt: null,
+        },
+      });
+      await scanPromise;
+    });
+
+    it('returns ScanCancelledError to an empty result on cancel', async () => {
+      // Fake parse rejects with ScanCancelledError to simulate a real cancel.
+      const { ScanCancelledError } = await import('../scan-utility-host');
+      const fake = makeFakeScanUtility(async () => {
+        throw new ScanCancelledError();
+      });
+      _setForkOverrideForTest(() => fake.client);
+      cleanupLibraryHandlers();
+      registerLibraryHandlers();
+
+      fs.writeFileSync(path.join(tmpDir, 'a.mp3'), '');
+      fs.writeFileSync(path.join(tmpDir, 'b.flac'), '');
+
+      const handler = ipcHandlers.get('library:scan-folder')!;
+      const result = await handler(event, tmpDir);
+      expect(result).toEqual([]);
+    });
+
+    it('is safe to call when no scan is in flight', async () => {
+      const cancelHandler = ipcHandlers.get('library:scan-cancel')!;
+      await expect(cancelHandler(event)).resolves.toBeUndefined();
+    });
   });
 });

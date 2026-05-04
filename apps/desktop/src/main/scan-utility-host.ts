@@ -26,6 +26,26 @@ const HELLO_TIMEOUT_MS = 5_000;
 const READY_TIMEOUT_MS = 5_000;
 const INIT_TIMEOUT_MS = 5_000;
 /**
+ * Window the utility has after a `cancel` postMessage to exit cleanly before
+ * the host sends SIGTERM. Two seconds is generous: the utility's response is
+ * to abandon the in-flight parse and call `process.exit(0)` — sub-millisecond
+ * in the happy path. The fallback exists for the pathological case where a
+ * native module (sharp, music-metadata) is mid-syscall and won't yield.
+ */
+const CANCEL_SIGTERM_DELAY_MS = 2_000;
+
+/**
+ * Error class thrown by pending parses when the host cancels mid-scan.
+ * Surfaces to the IPC layer so callers can distinguish cancellation from
+ * unexpected exits or parse rejections.
+ */
+export class ScanCancelledError extends Error {
+  constructor(message = 'scan-utility cancelled') {
+    super(message);
+    this.name = 'ScanCancelledError';
+  }
+}
+/**
  * No bound on parse — the utility owns concurrency and a slow file (network
  * mount, huge FLAC) can legitimately take seconds. Deadlocks are caught by
  * the host calling kill() at scan teardown.
@@ -83,10 +103,20 @@ export interface ScanUtilityClient {
   setBatchSize(fileCount: number): void;
   /** Subscribe to per-file progress events. Returns an unsubscribe function. */
   onProgress(listener: ScanProgressListener): () => void;
+  /**
+   * Request a graceful cancel: posts `{ type: 'cancel' }` to the utility,
+   * rejects every pending parse with `ScanCancelledError` synchronously, and
+   * arms a SIGTERM fallback that fires if the utility hasn't exited within
+   * `CANCEL_SIGTERM_DELAY_MS`. Idempotent. After `cancel()`, `parse()` rejects
+   * synchronously for the rest of this client's lifetime.
+   */
+  cancel(): void;
   /** Send SIGTERM and remove all listeners. Idempotent. */
   kill(): void;
   /** Whether `kill()` has been invoked or the process has exited. */
   readonly killed: boolean;
+  /** Whether `cancel()` has been invoked. */
+  readonly cancelled: boolean;
 }
 
 export interface ForkScanUtilityOptions {
@@ -136,6 +166,8 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   });
 
   let killed = false;
+  let cancelled = false;
+  let cancelTimer: NodeJS.Timeout | null = null;
   let pendingHello: PendingHello | null = null;
   let pendingInit: PendingInit | null = null;
   /** Map of in-flight parse requests by ID, so utility messages can route back. */
@@ -299,13 +331,24 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
   child.on('exit', (code: number | null) => {
     killed = true;
     clearTimeout(readyTimer);
+    if (cancelTimer) {
+      clearTimeout(cancelTimer);
+      cancelTimer = null;
+    }
     if (resolveReady) {
       const err = new Error(`scan-utility exited before ready (code=${code ?? 'null'})`);
       rejectReady?.(err);
       resolveReady = null;
       rejectReady = null;
     }
-    rejectAllPending(new Error(`scan-utility exited (code=${code ?? 'null'})`));
+    // If cancellation was already requested, surface ScanCancelledError to any
+    // straggler pending parses so callers see the cancel reason instead of a
+    // generic exit error.
+    rejectAllPending(
+      cancelled
+        ? new ScanCancelledError(`scan-utility cancelled (exit code=${code ?? 'null'})`)
+        : new Error(`scan-utility exited (code=${code ?? 'null'})`)
+    );
   });
 
   // stderr stays piped as a crash fallback — if the utility explodes before
@@ -355,6 +398,10 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
       });
     },
     async parse(filePath: string): Promise<ParseResult> {
+      // Check cancelled before killed: post-cancel, exit will mark `killed=true`
+      // but the cause is the cancellation, so callers should see
+      // `ScanCancelledError` rather than the generic "already killed".
+      if (cancelled) throw new ScanCancelledError();
       if (killed) throw new Error('scan-utility already killed');
       const requestId = nextRequestId++;
       return new Promise<ParseResult>((resolve, reject) => {
@@ -372,16 +419,54 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
         progressListeners.delete(listener);
       };
     },
+    cancel(): void {
+      if (cancelled || killed) return;
+      cancelled = true;
+      // Reject every in-flight parse synchronously so callers stop awaiting
+      // immediately — the utility's exit will redundantly reject anything
+      // still around, but the synchronous path matters for AbortSignal
+      // propagation (the IPC layer wires `signal.aborted` to this method).
+      rejectAllPending(new ScanCancelledError());
+      try {
+        child.postMessage({ type: 'cancel' });
+      } catch (err) {
+        logger.warn('[scan-utility-host] cancel postMessage threw:', err);
+      }
+      // Arm SIGTERM fallback. If the utility honours the cancel and exits
+      // cleanly, `child.on('exit')` will clear this timer above.
+      cancelTimer = setTimeout(() => {
+        cancelTimer = null;
+        if (!killed) {
+          logger.warn(
+            `[scan-utility-host] cancel SIGTERM fallback firing after ${CANCEL_SIGTERM_DELAY_MS}ms`
+          );
+          try {
+            child.kill();
+          } catch (err) {
+            logger.warn('[scan-utility-host] SIGTERM kill threw:', err);
+          }
+        }
+      }, CANCEL_SIGTERM_DELAY_MS);
+      cancelTimer.unref?.();
+    },
     kill(): void {
       if (killed) return;
       killed = true;
       clearTimeout(readyTimer);
+      if (cancelTimer) {
+        clearTimeout(cancelTimer);
+        cancelTimer = null;
+      }
       if (resolveReady) {
         rejectReady?.(new Error('scan-utility killed before ready'));
         resolveReady = null;
         rejectReady = null;
       }
-      rejectAllPending(new Error('scan-utility killed'));
+      rejectAllPending(
+        cancelled
+          ? new ScanCancelledError('scan-utility killed after cancel')
+          : new Error('scan-utility killed')
+      );
       try {
         child.kill();
       } catch (err) {
@@ -390,6 +475,9 @@ export function forkScanUtility(options: ForkScanUtilityOptions = {}): ScanUtili
     },
     get killed(): boolean {
       return killed;
+    },
+    get cancelled(): boolean {
+      return cancelled;
     },
   };
 }

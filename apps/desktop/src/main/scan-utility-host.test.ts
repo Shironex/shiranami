@@ -353,6 +353,80 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
     client.kill();
   });
 
+  it('cancel() rejects pending parses with ScanCancelledError and posts cancel', async () => {
+    const { forkScanUtility, ScanCancelledError } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+    client.setBatchSize(2);
+
+    const p1 = client.parse('/a.flac');
+    const p2 = client.parse('/b.flac');
+
+    // Suppress unhandled-rejection between cancel() and our awaits below.
+    p1.catch(() => {});
+    p2.catch(() => {});
+
+    client.cancel();
+
+    expect(client.cancelled).toBe(true);
+    await expect(p1).rejects.toBeInstanceOf(ScanCancelledError);
+    await expect(p2).rejects.toBeInstanceOf(ScanCancelledError);
+    expect(fake.posted).toContainEqual({ type: 'cancel' });
+
+    // Subsequent parse() throws synchronously.
+    await expect(client.parse('/c.flac')).rejects.toBeInstanceOf(ScanCancelledError);
+
+    // Clean shutdown — utility "exits" before SIGTERM.
+    fake.emitExit(0);
+    expect(fake.killCalls).toBe(0);
+  });
+
+  it('cancel() arms a SIGTERM fallback when the utility ignores the cancel', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    client.cancel();
+    expect(fake.killCalls).toBe(0);
+
+    // The fake never emits exit; advance past the SIGTERM delay.
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fake.killCalls).toBe(1);
+  });
+
+  it('cancel() is a no-op after kill()', async () => {
+    const { forkScanUtility } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    fake.emitMessage({ type: 'utility-ready' });
+    await client.ready;
+
+    client.kill();
+    client.cancel();
+    expect(client.cancelled).toBe(false);
+    // Cancel after kill must not post anything new.
+    expect(fake.posted.filter(m => (m as { type?: string }).type === 'cancel')).toEqual([]);
+  });
+
+  it('cancel() before utility-ready rejects ready and posts cancel', async () => {
+    const { forkScanUtility, ScanCancelledError } = await import('./scan-utility-host');
+    const client = forkScanUtility();
+    // Capture the rejection synchronously so cancel() doesn't trigger an
+    // unhandled rejection before the test awaits.
+    const readyAssertion = expect(client.ready).rejects.toThrow();
+
+    client.cancel();
+    expect(client.cancelled).toBe(true);
+
+    // Simulate utility honouring cancel and exiting cleanly.
+    fake.emitExit(0);
+
+    await readyAssertion;
+    // Subsequent parse() rejects synchronously.
+    await expect(client.parse('/x.flac')).rejects.toBeInstanceOf(ScanCancelledError);
+  });
+
   it('rejects ready synchronously when kill() is called before utility-ready arrives', async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
     const client = forkScanUtility();

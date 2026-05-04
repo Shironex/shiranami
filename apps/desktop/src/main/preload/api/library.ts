@@ -25,6 +25,7 @@ export interface LibraryApi {
   }>;
   validateFiles: (filePaths: string[]) => Promise<string[]>;
   onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
+  cancelScan: () => Promise<void>;
 }
 
 export const libraryApi: LibraryApi = {
@@ -33,4 +34,5 @@ export const libraryApi: LibraryApi = {
   scanFolderGrouped: dirPath => ipcRenderer.invoke(C.scanFolderGrouped, dirPath),
   validateFiles: filePaths => ipcRenderer.invoke(C.validateFiles, filePaths) as Promise<string[]>,
   onScanProgress: createIpcListener<ScanProgress>(C.scanProgress),
+  cancelScan: () => ipcRenderer.invoke(C.scanCancel),
 };

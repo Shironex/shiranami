@@ -55,8 +55,11 @@ interface ParseMessage {
   requestId: number;
   filePath: string;
 }
+interface CancelMessage {
+  type: 'cancel';
+}
 
-type IncomingMessage = HelloMessage | InitMessage | ParseMessage;
+type IncomingMessage = HelloMessage | InitMessage | ParseMessage | CancelMessage;
 
 interface UtilityReadyMessage {
   type: 'utility-ready';
@@ -174,6 +177,12 @@ interface UtilityState {
 }
 
 let state: UtilityState | null = null;
+/**
+ * Set by the `cancel` handler. Once true, in-flight parses suppress their
+ * `parse-result` reply (the host has already rejected the corresponding
+ * promises with ScanCancelledError) and the process exits cleanly.
+ */
+let cancelled = false;
 
 function ensureArtDir(s: UtilityState): void {
   if (s.artDirEnsured) return;
@@ -275,6 +284,12 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
 // ---------------------------------------------------------------------------
 
 function handleParse(msg: ParseMessage): void {
+  if (cancelled) {
+    // Host has already rejected the matching pending promise; sending a
+    // `parse-result` now would either log an "orphan" warning or race with
+    // the exit-driven rejection.
+    return;
+  }
   if (!state) {
     post({
       type: 'parse-result',
@@ -288,9 +303,11 @@ function handleParse(msg: ParseMessage): void {
   // Run async work without blocking the message loop.
   void parseFile(state, msg.filePath).then(
     metadata => {
+      if (cancelled) return;
       post({ type: 'parse-result', requestId: msg.requestId, ok: true, metadata });
     },
     err => {
+      if (cancelled) return;
       // parseFile already returns fallback metadata for parser-side errors;
       // a rejection here means something fundamental (out of memory, etc.).
       post({
@@ -326,6 +343,19 @@ parentPort.on('message', event => {
 
     case 'parse':
       handleParse(msg);
+      return;
+
+    case 'cancel':
+      // Mark cancelled so any in-flight parseFile() suppresses its reply, then
+      // exit cleanly. The host's SIGTERM fallback only fires if this exit
+      // never arrives — usually we beat it by hundreds of milliseconds.
+      if (cancelled) return;
+      cancelled = true;
+      // Defer the exit one tick so the current message handler returns
+      // before the runtime tears down.
+      setImmediate(() => {
+        process.exit(0);
+      });
       return;
 
     default:
