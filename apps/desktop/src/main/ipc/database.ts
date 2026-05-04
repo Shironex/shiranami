@@ -19,6 +19,7 @@ import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
+import { pruneOrphanedAlbumArt } from '../art-protocol';
 import {
   tracksGetAllArgs,
   tracksAddArgs,
@@ -73,7 +74,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
     },
-    { schema: tracksGetAllArgs },
+    { schema: tracksGetAllArgs }
   );
 
   handle(
@@ -84,7 +85,7 @@ export function registerDatabaseHandlers(): void {
       const row: NewTrack = { ...track, id };
       return db.insert(tracks).values(row).returning().get();
     },
-    { schema: tracksAddArgs },
+    { schema: tracksAddArgs }
   );
 
   handle(
@@ -95,7 +96,9 @@ export function registerDatabaseHandlers(): void {
       const rows: NewTrack[] = incoming.map(t => ({ ...t, id: crypto.randomUUID() }));
       const chunks = Math.ceil(rows.length / 100);
 
-      logger.info(`[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`);
+      logger.info(
+        `[database] tracks:add-many: inserting ${incoming.length} tracks (${chunks} chunks)`
+      );
 
       // Insert in chunks to avoid exceeding SQLite's SQLITE_MAX_VARIABLE_NUMBER limit.
       // With 14 columns per track, chunks of 100 = 1400 params (well under the 32766 limit).
@@ -109,10 +112,12 @@ export function registerDatabaseHandlers(): void {
         return results;
       });
 
-      logger.info(`[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`);
+      logger.info(
+        `[database] tracks:add-many: inserted ${results.length} tracks in ${Date.now() - start}ms`
+      );
       return results;
     },
-    { schema: tracksAddManyArgs },
+    { schema: tracksAddManyArgs }
   );
 
   handle(
@@ -121,7 +126,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       db.delete(tracks).where(eq(tracks.id, id)).run();
     },
-    { schema: tracksRemoveArgs },
+    { schema: tracksRemoveArgs }
   );
 
   handle(
@@ -138,9 +143,17 @@ export function registerDatabaseHandlers(): void {
           tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
         }
       });
-      logger.info(`[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`);
+      logger.info(
+        `[database] tracks:remove-many: removed ${ids.length} tracks in ${Date.now() - start}ms`
+      );
+      // Removed tracks may have been the only references to their album art
+      // files. Re-prune off the critical path — failures are logged inside
+      // pruneOrphanedAlbumArt and never propagate to the caller.
+      pruneOrphanedAlbumArt().catch(err => {
+        logger.warn('[database] post-remove-many prune failed:', err);
+      });
     },
-    { schema: tracksRemoveManyArgs },
+    { schema: tracksRemoveManyArgs }
   );
 
   handle(
@@ -149,7 +162,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
     },
-    { schema: tracksUpdateArgs },
+    { schema: tracksUpdateArgs }
   );
 
   handle(
@@ -164,7 +177,7 @@ export function registerDatabaseHandlers(): void {
         );
       });
     },
-    { schema: tracksUpdateManyArgs },
+    { schema: tracksUpdateManyArgs }
   );
 
   handle(
@@ -178,7 +191,7 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
-    { schema: tracksToggleFavoriteArgs },
+    { schema: tracksToggleFavoriteArgs }
   );
 
   handle(
@@ -192,7 +205,7 @@ export function registerDatabaseHandlers(): void {
         .orderBy(desc(tracks.createdAt))
         .all();
     },
-    { schema: tracksGetFavoritesArgs },
+    { schema: tracksGetFavoritesArgs }
   );
 
   handle(
@@ -206,7 +219,7 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
-    { schema: tracksIncrementPlayCountArgs },
+    { schema: tracksIncrementPlayCountArgs }
   );
 
   handle(
@@ -220,7 +233,7 @@ export function registerDatabaseHandlers(): void {
         .get();
       return !!row;
     },
-    { schema: tracksExistsArgs },
+    { schema: tracksExistsArgs }
   );
 
   handle(
@@ -241,23 +254,22 @@ export function registerDatabaseHandlers(): void {
       }
       return [...existing];
     },
-    { schema: tracksExistsManyArgs },
+    { schema: tracksExistsManyArgs }
   );
 
   handle(
     'db:history:record-play',
     async (
       _event,
-      data: { trackId: string; playedSeconds: number; duration: number | null; source?: string },
+      data: { trackId: string; playedSeconds: number; duration: number | null; source?: string }
     ) => {
       const db = getDatabase();
       const playedSeconds = Math.max(0, data.playedSeconds);
-      const completionRatio = data.duration && data.duration > 0
-        ? Math.min(1, playedSeconds / data.duration)
-        : 0;
+      const completionRatio =
+        data.duration && data.duration > 0 ? Math.min(1, playedSeconds / data.duration) : 0;
       const completed = data.duration ? completionRatio >= 0.95 : false;
 
-      return db.transaction((tx) => {
+      return db.transaction(tx => {
         const row: NewPlayHistory = {
           id: crypto.randomUUID(),
           trackId: data.trackId,
@@ -281,7 +293,7 @@ export function registerDatabaseHandlers(): void {
         return historyEntry;
       });
     },
-    { schema: historyRecordPlayArgs },
+    { schema: historyRecordPlayArgs }
   );
 
   handle(
@@ -310,11 +322,9 @@ export function registerDatabaseHandlers(): void {
         .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
         .orderBy(desc(playHistory.playedAt));
 
-      return (sinceFilter ? recentQuery.where(sinceFilter) : recentQuery)
-        .limit(safeLimit)
-        .all();
+      return (sinceFilter ? recentQuery.where(sinceFilter) : recentQuery).limit(safeLimit).all();
     },
-    { schema: historyGetRecentArgs },
+    { schema: historyGetRecentArgs }
   );
 
   handle(
@@ -378,7 +388,7 @@ export function registerDatabaseHandlers(): void {
         topArtists,
       };
     },
-    { schema: historyGetSummaryArgs },
+    { schema: historyGetSummaryArgs }
   );
 
   handle(
@@ -401,7 +411,7 @@ export function registerDatabaseHandlers(): void {
         .orderBy(dayExpression)
         .all();
     },
-    { schema: historyGetActivityArgs },
+    { schema: historyGetActivityArgs }
   );
 
   // Folders
@@ -412,7 +422,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       return db.select().from(folders).all();
     },
-    { schema: foldersGetAllArgs },
+    { schema: foldersGetAllArgs }
   );
 
   handle(
@@ -426,7 +436,7 @@ export function registerDatabaseHandlers(): void {
       invalidateFoldersCache();
       return inserted;
     },
-    { schema: foldersAddArgs },
+    { schema: foldersAddArgs }
   );
 
   handle(
@@ -437,7 +447,7 @@ export function registerDatabaseHandlers(): void {
       db.delete(folders).where(eq(folders.id, id)).run();
       invalidateFoldersCache();
     },
-    { schema: foldersRemoveArgs },
+    { schema: foldersRemoveArgs }
   );
 
   handle(
@@ -451,7 +461,7 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
-    { schema: foldersUpdateScannedArgs },
+    { schema: foldersUpdateScannedArgs }
   );
 
   // Playlists
@@ -462,7 +472,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
     },
-    { schema: playlistsGetAllArgs },
+    { schema: playlistsGetAllArgs }
   );
 
   handle(
@@ -471,7 +481,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       return db.select().from(playlists).where(eq(playlists.id, id)).get();
     },
-    { schema: playlistsGetArgs },
+    { schema: playlistsGetArgs }
   );
 
   handle(
@@ -483,7 +493,7 @@ export function registerDatabaseHandlers(): void {
       const row: NewPlaylist = { id, ...data };
       return db.insert(playlists).values(row).returning().get();
     },
-    { schema: playlistsCreateArgs },
+    { schema: playlistsCreateArgs }
   );
 
   handle(
@@ -491,7 +501,7 @@ export function registerDatabaseHandlers(): void {
     async (
       _event,
       id: string,
-      data: Partial<Pick<NewPlaylist, 'name' | 'description' | 'coverArt'>>,
+      data: Partial<Pick<NewPlaylist, 'name' | 'description' | 'coverArt'>>
     ) => {
       const db = getDatabase();
       return db
@@ -501,7 +511,7 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
-    { schema: playlistsUpdateArgs },
+    { schema: playlistsUpdateArgs }
   );
 
   handle(
@@ -511,7 +521,7 @@ export function registerDatabaseHandlers(): void {
       const db = getDatabase();
       db.delete(playlists).where(eq(playlists.id, id)).run();
     },
-    { schema: playlistsDeleteArgs },
+    { schema: playlistsDeleteArgs }
   );
 
   handle(
@@ -525,9 +535,9 @@ export function registerDatabaseHandlers(): void {
         .where(eq(playlistTracks.playlistId, playlistId))
         .orderBy(playlistTracks.position)
         .all();
-      return rows.map((row) => row.tracks);
+      return rows.map(row => row.tracks);
     },
-    { schema: playlistsGetTracksArgs },
+    { schema: playlistsGetTracksArgs }
   );
 
   handle(
@@ -541,8 +551,8 @@ export function registerDatabaseHandlers(): void {
         .where(
           and(
             eq(playlistTracks.playlistId, data.playlistId),
-            eq(playlistTracks.trackId, data.trackId),
-          ),
+            eq(playlistTracks.trackId, data.trackId)
+          )
         )
         .get();
 
@@ -567,13 +577,15 @@ export function registerDatabaseHandlers(): void {
         .returning()
         .get();
     },
-    { schema: playlistsAddTrackArgs },
+    { schema: playlistsAddTrackArgs }
   );
 
   handle(
     'db:playlists:create-with-tracks',
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
-      logger.info(`[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`);
+      logger.info(
+        `[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`
+      );
       const db = getDatabase();
       return db.transaction(tx => {
         const playlistId = crypto.randomUUID();
@@ -595,7 +607,7 @@ export function registerDatabaseHandlers(): void {
         return playlist;
       });
     },
-    { schema: playlistsCreateWithTracksArgs },
+    { schema: playlistsCreateWithTracksArgs }
   );
 
   handle(
@@ -606,12 +618,12 @@ export function registerDatabaseHandlers(): void {
         .where(
           and(
             eq(playlistTracks.playlistId, data.playlistId),
-            eq(playlistTracks.trackId, data.trackId),
-          ),
+            eq(playlistTracks.trackId, data.trackId)
+          )
         )
         .run();
     },
-    { schema: playlistsRemoveTrackArgs },
+    { schema: playlistsRemoveTrackArgs }
   );
 
   handle(
@@ -629,9 +641,9 @@ export function registerDatabaseHandlers(): void {
         .having(sql`COUNT(DISTINCT ${playlistTracks.trackId}) = ${uniqueTrackIds.length}`)
         .all();
 
-      return rows.map((r) => r.playlistId);
+      return rows.map(r => r.playlistId);
     },
-    { schema: playlistsGetPlaylistsForTracksArgs },
+    { schema: playlistsGetPlaylistsForTracksArgs }
   );
 
   handle(
@@ -645,14 +657,14 @@ export function registerDatabaseHandlers(): void {
             .where(
               and(
                 eq(playlistTracks.playlistId, data.playlistId),
-                eq(playlistTracks.trackId, data.trackIds[i]),
-              ),
+                eq(playlistTracks.trackId, data.trackIds[i])
+              )
             )
             .run();
         }
       });
     },
-    { schema: playlistsReorderArgs },
+    { schema: playlistsReorderArgs }
   );
 }
 

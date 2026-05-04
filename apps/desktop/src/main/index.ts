@@ -10,7 +10,7 @@ import { initializeMediaControls, cleanupMediaControls } from './media-controls'
 import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
 import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
-import { registerArtProtocol } from './art-protocol';
+import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
@@ -110,8 +110,12 @@ async function bootstrap(): Promise<void> {
   logger.info('════════════════════════════════════════════════════════════');
   logger.info(`  New session — Shiranami v${app.getVersion()}`);
   logger.info(`[system] OS: ${os.platform()} ${os.release()} (${os.arch()})`);
-  logger.info(`[system] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Node: ${process.versions.node}`);
-  logger.info(`[system] Memory: ${Math.round(os.totalmem() / 1024 / 1024)}MB, userData: ${app.getPath('userData')}`);
+  logger.info(
+    `[system] Electron: ${process.versions.electron}, Chrome: ${process.versions.chrome}, Node: ${process.versions.node}`
+  );
+  logger.info(
+    `[system] Memory: ${Math.round(os.totalmem() / 1024 / 1024)}MB, userData: ${app.getPath('userData')}`
+  );
   logger.info(`[security] App packaged: ${app.isPackaged}`);
   logger.info('════════════════════════════════════════════════════════════');
 
@@ -134,6 +138,13 @@ async function bootstrap(): Promise<void> {
   // Migrate legacy base64 album art to disk files
   migrateAlbumArtToDisk().catch(err => {
     logger.warn('Album art migration failed:', err);
+  });
+
+  // Prune orphaned album-art files (tracks deleted between sessions, covers
+  // re-encoded since the row was last written). Fire-and-forget so this
+  // never blocks bootstrap; pruneOrphanedAlbumArt swallows its own errors.
+  pruneOrphanedAlbumArt().catch(err => {
+    logger.warn('Album art prune failed:', err);
   });
 
   mainWindow = await createMainWindow();
