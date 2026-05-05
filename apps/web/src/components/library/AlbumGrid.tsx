@@ -134,7 +134,7 @@ function AlbumCell({
             {album.name}
           </p>
           <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
-          <p className="text-[10px] text-muted-foreground/30 mt-1.5 truncate">
+          <p className="text-xs text-muted-foreground/40 mt-1.5 truncate">
             {trackCountLabel(album.trackCount)}
           </p>
         </div>
