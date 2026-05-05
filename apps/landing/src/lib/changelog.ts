@@ -219,7 +219,7 @@ export const changelog: ChangelogRelease[] = [
         ],
       },
       {
-        label: l('Under the Hood', 'Pod maską'),
+        label: l('Under the Hood', 'Poprawki i dopracowania'),
         entries: [
           l(
             "New @shiranami/contracts workspace package — single source of truth for the canonical Track type, IPC channel manifest, and zod share DTO; preload's allowed IPC channels are now derived from the manifest",
