@@ -7,7 +7,7 @@
   }
 
   .masthead::before {
-    content: '記録';
+    content: '記録' / '';
     position: absolute;
     top: -30px;
     right: -10px;

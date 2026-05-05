@@ -38,7 +38,11 @@ export function CompactModePreview() {
 
   return (
     <SettingsPreview title={t('cmp.preview')}>
-      <div className="bg-background/40 border border-border/30 rounded-xl p-4 flex flex-col items-center justify-center gap-0">
+      <div
+        className="bg-background/40 border border-border/30 rounded-xl p-4 flex flex-col items-center justify-center gap-0"
+        role="img"
+        aria-label={t('cmp.preview')}
+      >
         {/* Mock mini-player card */}
         <div
           className={cn(

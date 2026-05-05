@@ -94,12 +94,10 @@ function VerticalBandSlider({
         </TooltipTrigger>
         <TooltipContent side="top" className="text-center">
           <div className="font-medium">{bandName}</div>
-          <div className="text-[11px] text-muted-foreground/80 tabular-nums mt-0.5">
-            {gainLabel}
-          </div>
+          <div className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{gainLabel}</div>
         </TooltipContent>
       </Tooltip>
-      <span className="text-[10px] text-muted-foreground/80 tabular-nums">
+      <span className="text-[10px] text-muted-foreground tabular-nums">
         {freq >= 1000 ? `${freq / 1000}k` : freq}
       </span>
     </div>
@@ -186,13 +184,13 @@ export function EqualizerSection() {
             ))}
           </div>
           <div className="grid grid-cols-10 mt-2.5">
-            <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+            <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5">
               {t('zone.bass')}
             </span>
-            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5 mx-1">
+            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5 mx-1">
               {t('zone.mids')}
             </span>
-            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground/60 border-t border-border/30 pt-1.5">
+            <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5">
               {t('zone.treble')}
             </span>
           </div>
@@ -219,10 +217,10 @@ export function EqualizerSection() {
             aria-label={t('preamp')}
           />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground/60">
+            <span className="text-[10px] text-muted-foreground">
               {t('gainLabel', { gain: PREAMP_MIN_DB })}
             </span>
-            <span className="text-[10px] text-muted-foreground/60">
+            <span className="text-[10px] text-muted-foreground">
               {t('gainLabel', { gain: `+${PREAMP_MAX_DB}` })}
             </span>
           </div>

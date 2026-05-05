@@ -64,8 +64,8 @@ export function LyricsPanel() {
   if (isLoading) {
     content = (
       <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center gap-2.5 text-muted-foreground/50">
-          <Loader2 className="w-4 h-4 animate-spin" />
+        <div className="flex items-center gap-2.5 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
           <span className="text-xs font-medium">{t('finding')}</span>
         </div>
       </div>
@@ -113,8 +113,8 @@ export function LyricsPanel() {
   } else {
     content = (
       <div className="flex-1 flex flex-col items-center justify-center gap-3">
-        <Music2 className="w-7 h-7 text-muted-foreground/20" />
-        <p className="text-xs text-muted-foreground/30 font-medium">{t('notFound')}</p>
+        <Music2 className="w-7 h-7 text-muted-foreground/20" aria-hidden="true" />
+        <p className="text-xs text-muted-foreground font-medium">{t('notFound')}</p>
       </div>
     );
   }
@@ -122,7 +122,7 @@ export function LyricsPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-3.5 border-b border-border/20 shrink-0">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           {t('title')}
         </h2>
       </div>

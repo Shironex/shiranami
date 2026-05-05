@@ -8,7 +8,7 @@ export const colors = {
   primary: 'hsl(265 50% 72%)',
   primaryForeground: 'hsl(265 25% 10%)',
   muted: 'hsl(265 15% 15%)',
-  mutedForeground: 'hsl(265 10% 55%)',
+  mutedForeground: 'hsl(265 10% 65%)',
   border: 'hsl(265 10% 18%)',
   destructive: 'hsl(0 70% 60%)',
   favorite: 'hsl(15 65% 60%)',

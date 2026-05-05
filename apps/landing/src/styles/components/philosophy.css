@@ -10,7 +10,7 @@
   }
 
   .philo::before {
-    content: '白波';
+    content: '白波' / '';
     position: absolute;
     top: -60px;
     right: -40px;

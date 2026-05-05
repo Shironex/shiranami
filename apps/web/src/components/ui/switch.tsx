@@ -12,7 +12,7 @@ const Switch = React.forwardRef<
       'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       'disabled:cursor-not-allowed disabled:opacity-50',
-      'data-[state=checked]:bg-primary data-[state=unchecked]:bg-[oklch(0.2_0.02_280)]',
+      'data-[state=checked]:bg-primary data-[state=unchecked]:bg-[oklch(0.32_0.02_280)]',
       className
     )}
     {...props}
