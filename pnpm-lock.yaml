@@ -159,6 +159,25 @@ importers:
       esbuild:
         specifier: ^0.28.0
         version: 0.28.0
+    optionalDependencies:
+      '@img/sharp-darwin-arm64':
+        specifier: 0.34.5
+        version: 0.34.5
+      '@img/sharp-darwin-x64':
+        specifier: 0.34.5
+        version: 0.34.5
+      '@img/sharp-libvips-darwin-arm64':
+        specifier: 1.2.4
+        version: 1.2.4
+      '@img/sharp-libvips-darwin-x64':
+        specifier: 1.2.4
+        version: 1.2.4
+      '@img/sharp-win32-arm64':
+        specifier: 0.34.5
+        version: 0.34.5
+      '@img/sharp-win32-x64':
+        specifier: 0.34.5
+        version: 0.34.5
 
   apps/landing:
     dependencies:
