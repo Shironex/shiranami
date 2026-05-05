@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.17.0': '軽', // "light/lightweight" — memory diet release
   '0.16.1': '磨', // "polish/refine"
   '0.16.0': '等', // "equal" — equalizer release
   '0.15.0': '白', // "white" — the named release
@@ -126,6 +127,116 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.17.0',
+    date: '2026-05-05',
+    title: l(
+      'Configurable compact mode, lyrics typography, and a serious memory diet',
+      'Konfigurowalny tryb kompaktowy, typografia tekstów i poważna dieta pamięci'
+    ),
+    description: l(
+      'Two large customisation surfaces land in Settings — a fully configurable compact mode with size presets and element toggles, and a new Lyrics section with opacity and size sliders plus a live preview. The renderer went on a memory diet: album art is now cached at 512 px, the album grid is virtualised, and folder scanning runs in a separate process whose heap returns to baseline after every scan.',
+      'Dwie duże powierzchnie personalizacji trafiają do Ustawień — w pełni konfigurowalny tryb kompaktowy z presetami rozmiarów i przełącznikami elementów oraz nowa sekcja Teksty z suwakami przezroczystości i rozmiaru z podglądem na żywo. Renderer przeszedł dietę pamięci: okładki albumów są teraz buforowane w rozdzielczości 512 px, siatka albumów jest wirtualizowana, a skanowanie folderów działa w osobnym procesie, którego sterta wraca do wartości bazowej po każdym skanowaniu.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Compact mode is now fully configurable — pick a size preset (sm / md / lg), toggle individual elements (art, album name, seek bar, volume), set the default always-on-top state, and adjust the ambient color intensity; window position now persists across sessions',
+            'Tryb kompaktowy jest teraz w pełni konfigurowalny — wybierz preset rozmiaru (sm / md / lg), przełączaj poszczególne elementy (okładka, nazwa albumu, pasek przewijania, głośność), ustaw domyślny stan „zawsze na wierzchu" i dostosuj intensywność koloru otoczenia; pozycja okna jest teraz zapamiętywana między sesjami'
+          ),
+          l(
+            'Long track titles now marquee on hover in compact mode; click the album art to expand back to the full window; the destructive close button that quit the whole app is gone',
+            'Długie tytuły utworów teraz przewijają się po najechaniu w trybie kompaktowym; kliknij okładkę albumu, aby powrócić do pełnego okna; zniknął destrukcyjny przycisk zamknięcia, który kończył całą aplikację'
+          ),
+          l(
+            'New Lyrics section in Settings with opacity and size sliders for both plain-text and synced lyrics views, plus a live preview — embedded lyrics in the Now Playing view follow your preferences too',
+            'Nowa sekcja Teksty w Ustawieniach z suwakami przezroczystości i rozmiaru dla widoków tekstów zwykłych i zsynchronizowanych oraz z podglądem na żywo — wbudowane teksty w widoku Teraz odtwarzane również respektują Twoje preferencje'
+          ),
+          l(
+            'Settings sidebar reorganised into four concern buckets with live preview panes for the visualizer, compact mode, and lyrics typography; new warning and destructive card tones for sensitive actions',
+            'Pasek boczny Ustawień podzielony na cztery grupy tematyczne z panelami podglądu na żywo dla wizualizatora, trybu kompaktowego i typografii tekstów; nowe warianty kart z ostrzeżeniami i akcjami destrukcyjnymi dla wrażliwych operacji'
+          ),
+          l(
+            'Sleep timer now accepts a custom duration in addition to the fixed presets; scroll the mouse wheel over the volume control to change volume',
+            'Wyłącznik czasowy przyjmuje teraz własny czas trwania oprócz stałych presetów; przewiń kółko myszy nad kontrolką głośności, aby zmienić poziom dźwięku'
+          ),
+          l(
+            'New shortcut: Ctrl/Cmd+Shift+T toggles always-on-top in compact mode',
+            'Nowy skrót: Ctrl/Cmd+Shift+T przełącza tryb „zawsze na wierzchu" w trybie kompaktowym'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Album art cache now downscales covers to 512 px on write — per-bitmap decoded size drops from up to 36 MB to roughly 1 MB, targeting the 672 MB renderer heap seen on large libraries',
+            'Pamięć podręczna okładek albumów teraz skaluje je do 512 px przy zapisie — rozmiar zdekodowanej bitmapy spada z nawet 36 MB do około 1 MB, celując w 672 MB sterty renderera widoczną w dużych bibliotekach'
+          ),
+          l(
+            'Album grid is now virtualised — only visible rows are rendered regardless of library size',
+            'Siatka albumów jest teraz wirtualizowana — tylko widoczne wiersze są renderowane niezależnie od rozmiaru biblioteki'
+          ),
+          l(
+            'Folder scanning runs in a dedicated utilityProcess that exits when done — the V8 heap returns to baseline after every scan; scan progress and a cancel button are now shown in the renderer',
+            'Skanowanie folderów działa teraz w dedykowanym utilityProcess, który kończy działanie po zakończeniu — sterta V8 wraca do wartości bazowej po każdym skanowaniu; postęp skanowania i przycisk anulowania są teraz widoczne w rendererze'
+          ),
+          l(
+            'shiranami-art:// buffers are now streamed instead of base64-inflated; every album art image picked up lazy loading and async decoding; playback queue is no longer seeded with the entire library on cold start',
+            'Bufory shiranami-art:// są teraz strumieniowane zamiast kodowania base64; każdy obraz okładki albumów zyskał leniwe ładowanie i asynchroniczne dekodowanie; kolejka odtwarzania nie jest już inicjowana z całą biblioteką przy zimnym starcie'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Embedded album art is no longer lost when writing tags via FFmpeg — tag-only writes now preserve the existing cover stream',
+            'Wbudowana okładka albumu nie jest już gubiona podczas zapisywania tagów przez FFmpeg — zapisy tylko tagów teraz zachowują istniejący strumień okładki'
+          ),
+          l(
+            'Metadata enrichment cancellation is now backed by an AbortController per run — cancelling while idle is a no-op, sequential runs no longer share aborted state, and AbortError is not reported as a track failure',
+            'Anulowanie wzbogacania metadanych jest teraz obsługiwane przez AbortController dla każdego uruchomienia — anulowanie w trybie bezczynności nie robi nic, kolejne uruchomienia nie współdzielą już stanu przerwania, a AbortError nie jest zgłaszany jako błąd utworu'
+          ),
+          l(
+            'AlbumGrid layout regression fixed — row height now includes the inter-row gap; macOS album-grid track label bumped to text-xs for crisper sub-pixel rendering',
+            'Naprawiono regresję układu AlbumGrid — wysokość wiersza teraz uwzględnia odstęp między wierszami; etykieta utworu w siatce albumów na macOS podniesiona do text-xs dla ostrzejszego renderowania subpikseli'
+          ),
+          l(
+            'Album-art migration no longer infinite-loops if a single row fails; downscale dimensions are floored at 1 px; canvas-tainting fix for MediaSession artwork',
+            'Migracja okładek albumów nie zapętla się już nieskończenie, gdy jeden wiersz się nie powiedzie; wymiary skalowania mają minimalną wartość 1 px; naprawiono zabrudzenie canvasa dla grafiki MediaSession'
+          ),
+          l(
+            'Visualizer is guarded against binCount < 1 and binsPerBar is clamped — no more crashes on edge audio buffers',
+            'Wizualizator jest teraz zabezpieczony przed binCount < 1, a binsPerBar jest ograniczony — koniec z awariami na granicznych buforach audio'
+          ),
+          l(
+            'Patched dependency vulnerabilities via pnpm overrides; preload sandbox now correctly bundles its non-Electron dependencies',
+            'Załatano podatności zależności przez pnpm overrides; piaskownica preload teraz poprawnie bundluje swoje zależności spoza Electron'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            "New @shiranami/contracts workspace package — single source of truth for the canonical Track type, IPC channel manifest, and zod share DTO; preload's allowed IPC channels are now derived from the manifest",
+            'Nowy pakiet workspace @shiranami/contracts — jedno źródło prawdy dla kanonicznego typu Track, manifestu kanałów IPC i zod share DTO; dozwolone kanały IPC preload są teraz wyprowadzane z manifestu'
+          ),
+          l(
+            'WCAG AA accessibility pass — color tokens lifted, opacity sites fixed, settings confirm dialog has proper focus management and alertdialog role, aria semantics added across settings primitives and lyrics controls',
+            'Przejście dostępności WCAG AA — tokeny kolorów wyodrębnione, naprawione miejsca z przezroczystością, okno dialogowe potwierdzenia ustawień ma właściwe zarządzanie fokusem i rolę alertdialog, dodano semantykę aria w prymitywach ustawień i kontrolkach tekstów'
+          ),
+          l(
+            '49 raw HTML controls across 27 source files migrated to shadcn primitives; useAppStore split into four focused stores with forward-compatible persistence',
+            "49 natywnych kontrolek HTML w 27 plikach źródłowych zmigrowanych do prymitywów shadcn; useAppStore podzielony na cztery wyspecjalizowane store'y z kompatybilną wstecznie persystencją"
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.16.1',
     date: '2026-04-30',
