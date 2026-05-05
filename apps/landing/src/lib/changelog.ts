@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.17.1': '印', // "mark / insignia / logo" — about mascot fix
   '0.17.0': '軽', // "light/lightweight" — memory diet release
   '0.16.1': '磨', // "polish/refine"
   '0.16.0': '等', // "equal" — equalizer release
@@ -127,6 +128,26 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.17.1',
+    date: '2026-05-05',
+    title: l('About mascot fix', 'Naprawa maskotki w sekcji O aplikacji'),
+    description: l(
+      "A one-line follow-up to v0.17.0. The Shiranami mascot in Settings > About wasn't rendering on packaged builds because of a stray absolute asset path. This release restores it.",
+      'Krótka poprawka po v0.17.0. Maskotka Shiranami w Ustawieniach > O aplikacji nie wyświetlała się w wersjach instalacyjnych z powodu nieprawidłowej, absolutnej ścieżki do zasobu. Ta wersja przywraca jej widoczność.'
+    ),
+    categories: [
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            "About section mascot logo renders again on installed builds; the absolute /mascot.png path failed to resolve under Electron's file:// loader and is now relative again, matching every other mascot site in the app",
+            'Logo maskotki w sekcji O aplikacji znów się wyświetla w wersjach instalacyjnych; absolutna ścieżka /mascot.png nie była rozwiązywana w loaderze file:// Electrona i jest teraz względna, zgodnie z pozostałymi miejscami użycia maskotki w aplikacji'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.17.0',
     date: '2026-05-05',
