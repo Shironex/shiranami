@@ -27,13 +27,13 @@
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3",
     "flac-tagger": "^2.0.0",
-    "ipaddr.js": "^2.3.0",
+    "ipaddr.js": "^2.4.0",
     "lrclib-api": "^2.0.4",
     "music-metadata": "^11.12.3",
     "node-addon-api": "^8.7.0",
     "node-id3": "^0.2.9",
     "sharp": "^0.34.5",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
@@ -44,7 +44,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.6.0",
     "cross-env": "^10.1.0",
-    "electron": "^41.3.0",
+    "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
     "esbuild": "^0.28.0"
   }
