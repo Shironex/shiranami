@@ -14,7 +14,7 @@ export function AboutSection() {
   const heroIcon = (
     <div className="w-[42px] h-[42px] rounded-xl bg-primary/10 border border-border/30 flex items-center justify-center overflow-hidden flex-shrink-0">
       <img
-        src="/mascot.png"
+        src="./mascot.png"
         alt={t('abt.altMascot')}
         className="w-9 h-9 object-contain"
         draggable={false}
