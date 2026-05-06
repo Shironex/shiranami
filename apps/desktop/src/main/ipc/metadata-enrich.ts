@@ -282,6 +282,13 @@ export function registerMetadataEnrichHandlers(): void {
       tracks: EnrichTrackInput[],
       options: { writeToFile: boolean; onlyMissing: boolean }
     ): Promise<EnrichTrackResult[]> => {
+      if (activeEnrichAbort) {
+        throw new IpcError(
+          ENRICH_BUSY_ERROR_CODE,
+          'Another metadata enrichment run is already in progress.'
+        );
+      }
+
       logger.info(
         `[metadata:enrich] Starting batch enrichment: ${tracks.length} tracks (writeToFile: ${options.writeToFile}, onlyMissing: ${options.onlyMissing})`
       );

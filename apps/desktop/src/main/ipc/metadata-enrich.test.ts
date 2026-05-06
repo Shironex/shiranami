@@ -523,6 +523,40 @@ describe('metadata-enrich handlers', () => {
 
       vi.useRealTimers();
     });
+
+    it('rejects with metadata.enrich_busy when a preview is in flight', async () => {
+      vi.useFakeTimers();
+
+      // Block the lookup so the preview handler holds the abort slot.
+      let releaseLookup: (() => void) | null = null;
+      mockedLookup.mockImplementationOnce(
+        () =>
+          new Promise<MetadataLookupResult>(resolve => {
+            releaseLookup = () => resolve(makeLookupResult({ coverImageUrl: undefined }));
+          })
+      );
+
+      const previewHandler = ipcHandlers.get('metadata:enrich:preview')!;
+      const bulkHandler = ipcHandlers.get('metadata:enrich:tracks')!;
+
+      // Start the preview; do NOT await it yet.
+      const previewPromise = previewHandler(null as never, makeTrack(), { onlyMissing: true });
+
+      // Yield once so the preview handler claims the abort slot.
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Bulk must reject with the busy code while the preview holds the slot.
+      await expect(
+        bulkHandler(null as never, [makeTrack()], { writeToFile: false, onlyMissing: false })
+      ).rejects.toMatchObject({ code: 'metadata.enrich_busy' });
+
+      // Let the preview finish so the test cleans up.
+      releaseLookup?.();
+      await vi.advanceTimersByTimeAsync(0);
+      await previewPromise;
+
+      vi.useRealTimers();
+    });
   });
 
   // ---------------------------------------------------------------
