@@ -203,20 +203,20 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
             <div className="rounded-xl border border-border/30 divide-y divide-border/30 overflow-hidden">
               {fieldRows.map(({ key, current, proposed }) => (
                 <div key={key} className="flex items-start gap-3 px-3 py-2 text-xs">
-                  <span className="w-20 shrink-0 text-muted-foreground/70 font-medium pt-0.5">
+                  <span className="w-24 shrink-0 text-muted-foreground/70 font-medium pt-0.5">
                     {t(`field.${key}`)}
                   </span>
-                  <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex-1 min-w-0 space-y-0.5">
                     {key === 'albumArt' ? (
                       <div className="flex items-center gap-2">
                         {current ? (
                           <img
                             src={current as string}
                             alt=""
-                            className="w-10 h-10 rounded-md object-cover opacity-50"
+                            className="w-8 h-8 rounded-md object-cover opacity-60"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-md bg-muted/50 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center">
                             <span className="text-muted-foreground/40 text-[10px]">
                               {t('none')}
                             </span>
@@ -230,13 +230,13 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                           <img
                             src={proposed as string}
                             alt=""
-                            className="w-10 h-10 rounded-md object-cover"
+                            className="w-8 h-8 rounded-md object-cover"
                           />
                         ) : null}
                       </div>
                     ) : (
                       <>
-                        <p className="text-muted-foreground/70 line-through truncate">
+                        <p className="text-muted-foreground line-through truncate">
                           {formatValue(current, t('none'))}
                         </p>
                         <p className="text-foreground truncate">
@@ -267,18 +267,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
 
         {/* Footer actions vary by state. */}
         <div className="flex justify-end gap-2">
-          {state.kind === 'no-match' && (
-            <>
-              <Button variant="ghost" onClick={handleClose} className="rounded-lg">
-                {t('close')}
-              </Button>
-              <Button onClick={runPreview} className="rounded-lg gap-2 [&_svg]:size-3.5">
-                <RotateCw aria-hidden="true" />
-                {t('retry')}
-              </Button>
-            </>
-          )}
-          {state.kind === 'error' && (
+          {(state.kind === 'no-match' || state.kind === 'error') && (
             <>
               <Button variant="ghost" onClick={handleClose} className="rounded-lg">
                 {t('close')}
