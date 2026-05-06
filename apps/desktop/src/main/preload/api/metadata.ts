@@ -50,6 +50,16 @@ export interface MetadataApi {
     tracks: EnrichInputTrack[],
     options: { writeToFile: boolean; onlyMissing: boolean }
   ) => Promise<EnrichResult[]>;
+  /**
+   * Look-up-only single-track enrichment. Returns the would-be `updatedFields`
+   * (and a cached cover URL when one was downloaded) WITHOUT writing tags or
+   * mutating the DB. The renderer is responsible for the apply step. Rejects
+   * with code `metadata.enrich_busy` when a bulk run holds the abort slot.
+   */
+  previewEnrich: (
+    track: EnrichInputTrack,
+    options: { onlyMissing: boolean }
+  ) => Promise<EnrichResult>;
   cancelEnrichment: () => Promise<void>;
   onEnrichProgress: (
     callback: (data: {
@@ -64,6 +74,7 @@ export interface MetadataApi {
 export const metadataApi: MetadataApi = {
   lookup: (title, artist) => ipcRenderer.invoke(C.lookup, title, artist),
   enrichTracks: (tracks, options) => ipcRenderer.invoke(C.enrichTracks, tracks, options),
+  previewEnrich: (track, options) => ipcRenderer.invoke(C.enrichPreview, track, options),
   cancelEnrichment: () => ipcRenderer.invoke(C.enrichCancel),
   onEnrichProgress: createIpcListener<{
     current: number;

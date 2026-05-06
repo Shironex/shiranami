@@ -401,6 +401,34 @@ export interface ElectronAPI {
         error?: string;
       }>
     >;
+    previewEnrich: (
+      track: {
+        id: string;
+        filePath: string;
+        title: string;
+        artist: string;
+        album: string;
+        albumArt: string | null;
+        genre: string;
+        year: number | null;
+        trackNumber: number | null;
+      },
+      options: { onlyMissing: boolean }
+    ) => Promise<{
+      id: string;
+      success: boolean;
+      updatedFields: Partial<{
+        title: string;
+        artist: string;
+        album: string;
+        genre: string;
+        year: number;
+        trackNumber: number;
+        albumArt: string;
+      }>;
+      source: string;
+      error?: string;
+    }>;
     cancelEnrichment: () => Promise<void>;
     onEnrichProgress: (
       callback: (data: {
