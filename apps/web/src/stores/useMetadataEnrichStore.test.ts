@@ -303,6 +303,27 @@ describe('useMetadataEnrichStore', () => {
       expect(enrichMock.mock.calls[0][0]).toHaveLength(1);
     });
 
+    it('throws when the track is no longer in the library at apply time', async () => {
+      await expect(
+        useMetadataEnrichStore
+          .getState()
+          .applySingleTrack('missing-id', { artist: 'A' }, { writeToFile: false })
+      ).rejects.toThrow(/not found/);
+    });
+
+    it('throws when writeToFile is true and enrichTracks returns success: false', async () => {
+      const enrichMock = vi.mocked(window.electronAPI.metadata.enrichTracks);
+      enrichMock.mockResolvedValueOnce([
+        { id: 'id-1', success: false, updatedFields: {}, source: 'none', error: 'Write failed' },
+      ]);
+
+      await expect(
+        useMetadataEnrichStore
+          .getState()
+          .applySingleTrack('id-1', { artist: 'A' }, { writeToFile: true })
+      ).rejects.toThrow(/Write failed/);
+    });
+
     it('patches usePlaybackStore.currentTrack when the applied track is playing', async () => {
       usePlaybackStore.setState({
         currentTrack: {

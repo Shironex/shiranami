@@ -309,7 +309,9 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     applySingleTrack: async (trackId, updatedFields, { writeToFile }) => {
       if (!IS_ELECTRON) return;
       const track = useLibraryStore.getState().library.find(t => t.id === trackId);
-      if (!track) return;
+      if (!track) {
+        throw new Error(`Track ${trackId} not found in library`);
+      }
 
       // For writeToFile=true we route through the bulk IPC with a single-element
       // array so the file-tag write path stays in one place. For writeToFile=false
@@ -333,6 +335,10 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           writeToFile: true,
           onlyMissing: true,
         });
+        const [result] = results;
+        if (!result?.success) {
+          throw new Error(result?.error ?? 'Metadata file write failed');
+        }
         await applyEnrichResults(results);
       } else {
         await applyEnrichResults([
