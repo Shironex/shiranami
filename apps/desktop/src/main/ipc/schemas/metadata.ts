@@ -34,4 +34,19 @@ export const metadataEnrichTracksArgs = z.tuple([
   z.array(enrichTrackInputSchema),
   enrichOptionsSchema,
 ]);
+
+/**
+ * Preview-only options — `writeToFile` is irrelevant because the preview path
+ * intentionally never touches the audio file or DB. Only `onlyMissing` controls
+ * which fields are surfaced as proposed updates.
+ */
+export const enrichPreviewOptionsSchema = z.object({
+  onlyMissing: z.boolean(),
+});
+
+export const metadataEnrichPreviewArgs = z.tuple([
+  enrichTrackInputSchema,
+  enrichPreviewOptionsSchema,
+]);
+
 export const metadataEnrichCancelArgs = z.tuple([]);
