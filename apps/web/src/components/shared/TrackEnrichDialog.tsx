@@ -30,10 +30,10 @@ const FIELD_ORDER: Array<keyof EnrichUpdatedFields> = [
   'albumArt',
 ];
 
-function formatValue(value: unknown): string {
+function formatValue(value: unknown, emptyLabel: string): string {
   // Em/en dashes are banned in user-facing copy across Shiro Suite — fall back
   // to a plain placeholder for "no current value" rendering.
-  if (value === null || value === undefined || value === '') return '(none)';
+  if (value === null || value === undefined || value === '') return emptyLabel;
   return String(value);
 }
 
@@ -227,9 +227,11 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                     ) : (
                       <>
                         <p className="text-muted-foreground/70 line-through truncate">
-                          {formatValue(current)}
+                          {formatValue(current, t('none'))}
                         </p>
-                        <p className="text-foreground truncate">{formatValue(proposed)}</p>
+                        <p className="text-foreground truncate">
+                          {formatValue(proposed, t('none'))}
+                        </p>
                       </>
                     )}
                   </div>
