@@ -17,5 +17,7 @@
   "removeFromPlaylist": "Usuń z playlisty",
   "addToPlaylistAria": "Dodaj do playlisty",
   "selectedCount": "{{count}} zaznaczonych",
-  "dragToReorder": "Przeciągnij, aby zmienić kolejność"
+  "dragToReorder": "Przeciągnij, aby zmienić kolejność",
+  "findMissingMetadata": "Znajdź brakujące metadane",
+  "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych."
 }

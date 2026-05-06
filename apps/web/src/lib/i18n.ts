@@ -28,6 +28,7 @@ import mixesEn from '@/locales/en/mixes.json';
 import nowPlayingEn from '@/locales/en/nowPlaying.json';
 import errorBoundaryEn from '@/locales/en/errorBoundary.json';
 import equalizerEn from '@/locales/en/equalizer.json';
+import enrichDialogEn from '@/locales/en/enrichDialog.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -55,6 +56,7 @@ import mixesPl from '@/locales/pl/mixes.json';
 import nowPlayingPl from '@/locales/pl/nowPlaying.json';
 import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
 import equalizerPl from '@/locales/pl/equalizer.json';
+import enrichDialogPl from '@/locales/pl/enrichDialog.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -82,11 +84,33 @@ export function persistLanguage(lang: SupportedLanguage) {
 }
 
 const namespaces = [
-  'common', 'sidebar', 'topbar', 'player', 'library', 'favorites',
-  'playlists', 'search', 'radio', 'history', 'settings', 'queue',
-  'lyrics', 'compact', 'commandPalette', 'shortcuts', 'sleepTimer',
-  'contextMenu', 'toast', 'splash', 'import', 'share', 'mixes', 'nowPlaying',
-  'errorBoundary', 'equalizer',
+  'common',
+  'sidebar',
+  'topbar',
+  'player',
+  'library',
+  'favorites',
+  'playlists',
+  'search',
+  'radio',
+  'history',
+  'settings',
+  'queue',
+  'lyrics',
+  'compact',
+  'commandPalette',
+  'shortcuts',
+  'sleepTimer',
+  'contextMenu',
+  'toast',
+  'splash',
+  'import',
+  'share',
+  'mixes',
+  'nowPlaying',
+  'errorBoundary',
+  'equalizer',
+  'enrichDialog',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -118,6 +142,7 @@ i18n.use(initReactI18next).init({
       nowPlaying: nowPlayingEn,
       errorBoundary: errorBoundaryEn,
       equalizer: equalizerEn,
+      enrichDialog: enrichDialogEn,
     },
     pl: {
       common: commonPl,
@@ -146,6 +171,7 @@ i18n.use(initReactI18next).init({
       nowPlaying: nowPlayingPl,
       errorBoundary: errorBoundaryPl,
       equalizer: equalizerPl,
+      enrichDialog: enrichDialogPl,
     },
   },
   lng: getInitialLanguage(),
