@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMetadataEnrichStore } from './useMetadataEnrichStore';
 import { useLibraryStore } from './useLibraryStore';
+import { usePlaybackStore } from './usePlaybackStore';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -13,6 +14,7 @@ describe('useMetadataEnrichStore', () => {
     vi.clearAllMocks();
     useMetadataEnrichStore.setState({
       isEnriching: false,
+      isSingleTrackEnriching: false,
       progress: null,
       skippedIds: new Set(),
       skippedLoaded: false,
@@ -51,17 +53,21 @@ describe('useMetadataEnrichStore', () => {
     await useMetadataEnrichStore.getState().clearSkipped();
 
     expect(useMetadataEnrichStore.getState().skippedIds.size).toBe(0);
-    expect(window.electronAPI.store.set).toHaveBeenCalledWith(
-      'metadata-enrich.skippedIds',
-      []
-    );
+    expect(window.electronAPI.store.set).toHaveBeenCalledWith('metadata-enrich.skippedIds', []);
   });
 
   it('loadSkipped loads from electron store and prunes stale IDs', async () => {
     // Set up library with only one matching track
     useLibraryStore.setState({
       library: [
-        { id: 'id-1', title: 'Track 1', artist: 'A', album: 'B', duration: 100, filePath: '/a.mp3' },
+        {
+          id: 'id-1',
+          title: 'Track 1',
+          artist: 'A',
+          album: 'B',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
       ],
     });
 
@@ -75,10 +81,9 @@ describe('useMetadataEnrichStore', () => {
     expect(state.skippedIds.has('id-stale')).toBe(false);
     expect(state.skippedLoaded).toBe(true);
     // Should persist pruned list
-    expect(window.electronAPI.store.set).toHaveBeenCalledWith(
-      'metadata-enrich.skippedIds',
-      ['id-1']
-    );
+    expect(window.electronAPI.store.set).toHaveBeenCalledWith('metadata-enrich.skippedIds', [
+      'id-1',
+    ]);
   });
 
   it('loadSkipped does not reload if already loaded', async () => {
@@ -105,8 +110,22 @@ describe('useMetadataEnrichStore', () => {
   it('startEnrichment filters out skipped tracks when includeSkipped is false', async () => {
     useLibraryStore.setState({
       library: [
-        { id: 'id-1', title: 'Track 1', artist: 'Unknown Artist', album: 'Unknown Album', duration: 100, filePath: '/a.mp3' },
-        { id: 'id-2', title: 'Track 2', artist: 'Unknown Artist', album: 'Unknown Album', duration: 100, filePath: '/b.mp3' },
+        {
+          id: 'id-1',
+          title: 'Track 1',
+          artist: 'Unknown Artist',
+          album: 'Unknown Album',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
+        {
+          id: 'id-2',
+          title: 'Track 2',
+          artist: 'Unknown Artist',
+          album: 'Unknown Album',
+          duration: 100,
+          filePath: '/b.mp3',
+        },
       ],
     });
     useMetadataEnrichStore.setState({
@@ -127,11 +146,207 @@ describe('useMetadataEnrichStore', () => {
 
     // Should only pass id-2 (id-1 is skipped)
     expect(enrichMock).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'id-2' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ id: 'id-2' })]),
       expect.any(Object)
     );
     expect(enrichMock.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  // -------------------------------------------------------------
+  // Per-track preview / apply actions
+  // -------------------------------------------------------------
+  describe('previewSingleTrack', () => {
+    beforeEach(() => {
+      useLibraryStore.setState({
+        library: [
+          {
+            id: 'id-1',
+            title: 'Song',
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            duration: 100,
+            filePath: '/a.mp3',
+          },
+        ],
+      });
+    });
+
+    it('calls previewEnrich with onlyMissing:true and returns the result', async () => {
+      const previewMock = vi.mocked(window.electronAPI.metadata.previewEnrich);
+      previewMock.mockResolvedValueOnce({
+        id: 'id-1',
+        success: true,
+        updatedFields: { artist: 'Real Artist', album: 'Real Album' },
+        source: 'itunes',
+      });
+
+      const result = await useMetadataEnrichStore.getState().previewSingleTrack('id-1');
+
+      expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ id: 'id-1' }), {
+        onlyMissing: true,
+      });
+      expect(result.success).toBe(true);
+      expect(result.updatedFields.artist).toBe('Real Artist');
+      // flag should be reset after the call
+      expect(useMetadataEnrichStore.getState().isSingleTrackEnriching).toBe(false);
+    });
+
+    it('throws when the track is not in the library', async () => {
+      await expect(useMetadataEnrichStore.getState().previewSingleTrack('missing')).rejects.toThrow(
+        /not found/
+      );
+    });
+
+    it('looks the track up at call time, not via stale closure', async () => {
+      const previewMock = vi.mocked(window.electronAPI.metadata.previewEnrich);
+      previewMock.mockResolvedValue({
+        id: 'id-2',
+        success: false,
+        updatedFields: {},
+        source: 'none',
+      });
+
+      // Mutate the library after the action exists but before invocation;
+      // the action must read the fresh state.
+      useLibraryStore.setState({
+        library: [
+          {
+            id: 'id-2',
+            title: 'New',
+            artist: 'A',
+            album: 'B',
+            duration: 100,
+            filePath: '/x.mp3',
+          },
+        ],
+      });
+
+      await useMetadataEnrichStore.getState().previewSingleTrack('id-2');
+      expect(previewMock.mock.calls[0][0].id).toBe('id-2');
+    });
+  });
+
+  describe('applySingleTrack', () => {
+    beforeEach(() => {
+      useLibraryStore.setState({
+        library: [
+          {
+            id: 'id-1',
+            title: 'Song',
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            duration: 100,
+            filePath: '/a.mp3',
+          },
+        ],
+      });
+    });
+
+    it('writes DB updates without invoking enrichTracks when writeToFile is false', async () => {
+      const updateManyMock = vi.mocked(window.electronAPI.db.tracks.updateMany);
+      const enrichMock = vi.mocked(window.electronAPI.metadata.enrichTracks);
+      const getAllMock = vi.mocked(window.electronAPI.db.tracks.getAll);
+      getAllMock.mockResolvedValueOnce([
+        {
+          id: 'id-1',
+          title: 'Song',
+          artist: 'Real Artist',
+          album: 'Real Album',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
+      ]);
+
+      await useMetadataEnrichStore
+        .getState()
+        .applySingleTrack(
+          'id-1',
+          { artist: 'Real Artist', album: 'Real Album' },
+          { writeToFile: false }
+        );
+
+      expect(updateManyMock).toHaveBeenCalledWith([
+        { id: 'id-1', data: { artist: 'Real Artist', album: 'Real Album' } },
+      ]);
+      expect(enrichMock).not.toHaveBeenCalled();
+    });
+
+    it('routes through enrichTracks (single-element array) when writeToFile is true', async () => {
+      const enrichMock = vi.mocked(window.electronAPI.metadata.enrichTracks);
+      enrichMock.mockResolvedValueOnce([
+        {
+          id: 'id-1',
+          success: true,
+          updatedFields: { artist: 'Real Artist' },
+          source: 'itunes',
+        },
+      ]);
+      vi.mocked(window.electronAPI.db.tracks.getAll).mockResolvedValueOnce([
+        {
+          id: 'id-1',
+          title: 'Song',
+          artist: 'Real Artist',
+          album: 'Unknown Album',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
+      ]);
+
+      await useMetadataEnrichStore
+        .getState()
+        .applySingleTrack('id-1', { artist: 'Real Artist' }, { writeToFile: true });
+
+      expect(enrichMock).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ id: 'id-1' })]),
+        { writeToFile: true, onlyMissing: true }
+      );
+      expect(enrichMock.mock.calls[0][0]).toHaveLength(1);
+    });
+
+    it('patches usePlaybackStore.currentTrack when the applied track is playing', async () => {
+      usePlaybackStore.setState({
+        currentTrack: {
+          id: 'id-1',
+          title: 'Song',
+          artist: 'Unknown Artist',
+          album: 'Unknown Album',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
+        queue: [
+          {
+            id: 'id-1',
+            title: 'Song',
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
+            duration: 100,
+            filePath: '/a.mp3',
+          },
+        ],
+      });
+
+      vi.mocked(window.electronAPI.db.tracks.getAll).mockResolvedValueOnce([
+        {
+          id: 'id-1',
+          title: 'Song',
+          artist: 'Real Artist',
+          album: 'Real Album',
+          duration: 100,
+          filePath: '/a.mp3',
+        },
+      ]);
+
+      await useMetadataEnrichStore
+        .getState()
+        .applySingleTrack(
+          'id-1',
+          { artist: 'Real Artist', album: 'Real Album' },
+          { writeToFile: false }
+        );
+
+      const playback = usePlaybackStore.getState();
+      expect(playback.currentTrack?.artist).toBe('Real Artist');
+      expect(playback.queue[0].artist).toBe('Real Artist');
+    });
   });
 });
