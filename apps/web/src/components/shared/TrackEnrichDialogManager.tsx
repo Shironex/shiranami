@@ -27,5 +27,12 @@ export default function TrackEnrichDialogManager() {
 
   if (!request) return null;
 
-  return <TrackEnrichDialog open={open} onOpenChange={setOpen} trackId={request.trackId} />;
+  return (
+    <TrackEnrichDialog
+      key={request.trackId}
+      open={open}
+      onOpenChange={setOpen}
+      trackId={request.trackId}
+    />
+  );
 }
