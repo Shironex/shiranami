@@ -31,7 +31,9 @@ const FIELD_ORDER: Array<keyof EnrichUpdatedFields> = [
 ];
 
 function formatValue(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '—';
+  // Em/en dashes are banned in user-facing copy across Shiro Suite — fall back
+  // to a plain placeholder for "no current value" rendering.
+  if (value === null || value === undefined || value === '') return '(none)';
   return String(value);
 }
 

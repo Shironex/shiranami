@@ -2,7 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useMutation } from '@tanstack/react-query';
-import { Play, ListPlus, Heart, Share2, FolderOpen, Trash2, ChevronRight } from 'lucide-react';
+import {
+  Play,
+  ListPlus,
+  Heart,
+  Share2,
+  FolderOpen,
+  Trash2,
+  ChevronRight,
+  Disc3,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -10,6 +19,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 import { toast } from 'sonner';
@@ -29,17 +39,31 @@ interface MenuItemProps {
   label: string;
   onClick: () => void;
   variant?: 'default' | 'destructive';
+  disabled?: boolean;
+  title?: string;
 }
 
-function MenuItem({ icon, label, onClick, variant = 'default' }: MenuItemProps) {
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  variant = 'default',
+  disabled = false,
+  title,
+}: MenuItemProps) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-disabled={disabled || undefined}
       className={cn(
         'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left',
-        variant === 'destructive'
-          ? 'text-destructive hover:bg-destructive/10'
-          : 'text-foreground/80 hover:text-foreground hover:bg-accent'
+        disabled
+          ? 'text-muted-foreground/50 cursor-not-allowed'
+          : variant === 'destructive'
+            ? 'text-destructive hover:bg-destructive/10'
+            : 'text-foreground/80 hover:text-foreground hover:bg-accent'
       )}
     >
       <span className="shrink-0 w-4 h-4 flex items-center justify-center text-muted-foreground/60">
@@ -140,6 +164,11 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
   const clearSelection = useSelectionStore(s => s.clearSelection);
+
+  // Disable the per-track enrich entry while a bulk run holds the abort slot —
+  // the IPC would reject anyway, but a visibly-disabled item is friendlier
+  // than a toast after the click.
+  const isBulkEnriching = useMetadataEnrichStore(s => s.isEnriching);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
 
@@ -278,6 +307,24 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
               window.dispatchEvent(
                 new CustomEvent('open-share-dialog', {
                   detail: { type: 'track', id: track.id },
+                })
+              );
+              onClose();
+            }}
+          />
+        )}
+
+        {IS_ELECTRON && !isBulk && (
+          <MenuItem
+            icon={<Disc3 className="w-4 h-4" />}
+            label={t('findMissingMetadata')}
+            disabled={isBulkEnriching}
+            title={isBulkEnriching ? t('findMissingMetadataBusy') : undefined}
+            onClick={() => {
+              if (isBulkEnriching) return;
+              window.dispatchEvent(
+                new CustomEvent('open-track-enrich-dialog', {
+                  detail: { trackId: track.id },
                 })
               );
               onClose();
