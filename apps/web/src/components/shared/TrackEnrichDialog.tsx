@@ -136,35 +136,15 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
           </DialogTitle>
         </DialogHeader>
 
-        {/* Track header — identifies which track is being enriched. */}
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/30">
-          {track.albumArt ? (
-            <img
-              src={track.albumArt}
-              alt=""
-              className="w-10 h-10 rounded-md object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-              <Disc3 className="w-4 h-4 text-muted-foreground/60" />
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
-            <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-          </div>
-        </div>
-
         {state.kind === 'searching' && (
-          <div className="flex flex-col items-center gap-3 py-6">
+          <div className="flex flex-col items-center justify-center gap-3 py-8 min-h-[180px]">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <p className="text-sm text-muted-foreground">{t('searching')}</p>
           </div>
         )}
 
         {state.kind === 'no-match' && (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-3 py-8 text-center min-h-[180px] justify-center">
             <AlertCircle className="w-6 h-6 text-muted-foreground" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">{t('noMatchTitle')}</p>
@@ -174,14 +154,14 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
         )}
 
         {state.kind === 'error' && (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-3 py-8 text-center min-h-[180px] justify-center">
             <AlertCircle className="w-6 h-6 text-destructive" />
             <p className="text-sm text-muted-foreground">{state.message}</p>
           </div>
         )}
 
         {state.kind === 'applied' && (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-3 py-8 text-center min-h-[180px] justify-center">
             <CheckCircle2 className="w-6 h-6 text-primary" />
             <p className="text-sm font-medium text-foreground">{t('appliedTitle')}</p>
           </div>
@@ -189,6 +169,25 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
 
         {state.kind === 'found' && (
           <div className="space-y-3">
+            {/* Track header lives inside the found state — it earns its space here. */}
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+              {track.albumArt ? (
+                <img
+                  src={track.albumArt}
+                  alt=""
+                  className="w-10 h-10 rounded-md object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                  <Disc3 className="w-4 h-4 text-muted-foreground/60" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
               {t('foundSubtitle', { source: state.source, count: fieldRows.length })}
             </p>
@@ -239,14 +238,15 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
               ))}
             </div>
 
-            <label className="flex items-start gap-3 px-3 py-2 rounded-xl bg-background/50 border border-border/30 cursor-pointer">
+            <label className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20 cursor-pointer">
               <Switch
                 checked={writeToFile}
                 onCheckedChange={setWriteToFile}
                 disabled={applying}
                 aria-label={t('writeToFileLabel')}
+                className="shrink-0"
               />
-              <span className="space-y-0.5">
+              <span className="space-y-0.5 min-w-0">
                 <span className="block text-sm text-foreground">{t('writeToFileLabel')}</span>
                 <span className="block text-xs text-muted-foreground">{t('writeToFileDesc')}</span>
               </span>
@@ -255,7 +255,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
         )}
 
         {/* Footer actions vary by state. */}
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2">
           {state.kind === 'no-match' && (
             <>
               <Button variant="ghost" onClick={handleClose} className="rounded-lg">
