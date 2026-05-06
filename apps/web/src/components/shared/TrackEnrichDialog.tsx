@@ -279,8 +279,9 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
             </>
           )}
           {state.kind === 'applied' && (
-            <Button onClick={handleClose} className="rounded-lg">
-              {t('close')}
+            <Button onClick={handleClose} className="rounded-lg gap-2 [&_svg]:size-3.5">
+              <Check aria-hidden="true" />
+              {t('done')}
             </Button>
           )}
           {state.kind === 'found' && (
