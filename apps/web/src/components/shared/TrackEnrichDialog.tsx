@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Disc3, Loader2, AlertCircle, CheckCircle2, RotateCw, Search } from 'lucide-react';
+import {
+  Disc3,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  RotateCw,
+  ArrowRight,
+  Check,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -214,7 +222,10 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                             </span>
                           </div>
                         )}
-                        <span className="text-muted-foreground/60">→</span>
+                        <ArrowRight
+                          className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0"
+                          aria-hidden="true"
+                        />
                         {proposed ? (
                           <img
                             src={proposed as string}
@@ -302,7 +313,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                 {applying ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
                 ) : (
-                  <Search aria-hidden="true" />
+                  <Check aria-hidden="true" />
                 )}
                 {applying ? t('applying') : t('apply')}
               </Button>
