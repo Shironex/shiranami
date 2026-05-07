@@ -30,6 +30,7 @@ const CircleVisualizer = lazy(() => import('@/components/player/CircleVisualizer
 const ParticleVisualizer = lazy(() => import('@/components/player/ParticleVisualizer'));
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
+const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -151,6 +152,11 @@ function App() {
             <ErrorBoundary viewName="ShareDialogManager">
               <Suspense fallback={null}>
                 <ShareDialogManager />
+              </Suspense>
+            </ErrorBoundary>
+            <ErrorBoundary viewName="TrackEnrichDialogManager">
+              <Suspense fallback={null}>
+                <TrackEnrichDialogManager />
               </Suspense>
             </ErrorBoundary>
 

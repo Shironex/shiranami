@@ -132,6 +132,7 @@ export const IPC_CHANNELS = {
   metadata: {
     lookup: 'metadata:lookup',
     enrichTracks: 'metadata:enrich:tracks',
+    enrichPreview: 'metadata:enrich:preview',
     enrichCancel: 'metadata:enrich:cancel',
     enrichProgress: 'metadata:enrich:progress',
   },

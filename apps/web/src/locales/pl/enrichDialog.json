@@ -1,0 +1,30 @@
+{
+  "title": "Znajdź brakujące metadane",
+  "searching": "Wyszukiwanie pasujących metadanych…",
+  "noMatchTitle": "Nie znaleziono pasujących metadanych",
+  "noMatchBody": "Spróbuj edytować tytuł lub artystę przed ponowną próbą.",
+  "errorBusy": "Trwa już zbiorcze uzupełnianie metadanych. Poczekaj, aż się zakończy, i spróbuj ponownie.",
+  "errorGeneric": "Coś poszło nie tak podczas wyszukiwania metadanych.",
+  "foundSubtitle_one": "Znaleziono dopasowanie przez {{source}}. Zmieni sie 1 pole.",
+  "foundSubtitle_other": "Znaleziono dopasowanie przez {{source}}. Zmieni sie {{count}} pol.",
+  "appliedTitle": "Metadane zastosowane",
+  "appliedToast": "Metadane utworu zostały zaktualizowane",
+  "applyFailedToast": "Nie udało się zastosować metadanych",
+  "writeToFileLabel": "Zapisz też tagi w pliku audio",
+  "writeToFileDesc": "Aktualizuje tagi ID3 / Vorbis w samym pliku. Ta zmiana jest nieodwracalna.",
+  "apply": "Zastosuj",
+  "applying": "Stosowanie…",
+  "done": "Gotowe",
+  "discard": "Odrzuć",
+  "retry": "Spróbuj ponownie",
+  "close": "Zamknij",
+  "none": "(brak)",
+  "field": {
+    "artist": "Artysta",
+    "album": "Album",
+    "genre": "Gatunek",
+    "year": "Rok",
+    "trackNumber": "Nr utworu",
+    "albumArt": "Okładka"
+  }
+}

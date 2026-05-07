@@ -17,5 +17,7 @@
   "removeFromPlaylist": "Remove from playlist",
   "addToPlaylistAria": "Add to playlist",
   "selectedCount": "{{count}} selected",
-  "dragToReorder": "Drag to reorder"
+  "dragToReorder": "Drag to reorder",
+  "findMissingMetadata": "Find Missing Metadata",
+  "findMissingMetadataBusy": "A bulk enrichment run is already in progress."
 }

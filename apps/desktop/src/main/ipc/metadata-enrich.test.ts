@@ -439,13 +439,123 @@ describe('metadata-enrich handlers', () => {
     it('removes all registered handlers', () => {
       expect(ipcHandlers.has('metadata:lookup')).toBe(true);
       expect(ipcHandlers.has('metadata:enrich:cancel')).toBe(true);
+      expect(ipcHandlers.has('metadata:enrich:preview')).toBe(true);
       expect(ipcHandlers.has('metadata:enrich:tracks')).toBe(true);
 
       cleanupMetadataEnrichHandlers();
 
       expect(ipcHandlers.has('metadata:lookup')).toBe(false);
       expect(ipcHandlers.has('metadata:enrich:cancel')).toBe(false);
+      expect(ipcHandlers.has('metadata:enrich:preview')).toBe(false);
       expect(ipcHandlers.has('metadata:enrich:tracks')).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // metadata:enrich:preview — single-track lookup-only path
+  // ---------------------------------------------------------------
+  describe('metadata:enrich:preview', () => {
+    it('returns the would-be updatedFields without writing tags or DB', async () => {
+      mockedLookup.mockResolvedValue(makeLookupResult());
+      mockedDownloadImage.mockResolvedValue(Buffer.from('cover'));
+
+      const handler = ipcHandlers.get('metadata:enrich:preview')!;
+      const result = (await handler(null as never, makeTrack(), {
+        onlyMissing: true,
+      })) as EnrichTrackResult;
+
+      expect(result.success).toBe(true);
+      expect(result.source).toBe('itunes');
+      expect(result.updatedFields.artist).toBe('Found Artist');
+      expect(result.updatedFields.album).toBe('Found Album');
+      // Cover is cached but the audio file is never touched.
+      expect(mockedWriteMetadata).not.toHaveBeenCalled();
+      expect(mockedSaveAlbumArt).toHaveBeenCalled();
+      expect(result.updatedFields.albumArt).toBe('shiranami-art://hash');
+    });
+
+    it('returns success:false with source "none" when no match is found', async () => {
+      mockedLookup.mockResolvedValue({ source: 'none', confidence: 0 });
+
+      const handler = ipcHandlers.get('metadata:enrich:preview')!;
+      const result = (await handler(null as never, makeTrack(), {
+        onlyMissing: true,
+      })) as EnrichTrackResult;
+
+      expect(result.success).toBe(false);
+      expect(result.source).toBe('none');
+      expect(mockedWriteMetadata).not.toHaveBeenCalled();
+    });
+
+    it('rejects with metadata.enrich_busy when a bulk run is in flight', async () => {
+      vi.useFakeTimers();
+
+      // Block the lookup so the bulk handler holds the abort slot.
+      let releaseLookup: (() => void) | null = null;
+      mockedLookup.mockImplementationOnce(
+        () =>
+          new Promise<MetadataLookupResult>(resolve => {
+            releaseLookup = () => resolve(makeLookupResult({ coverImageUrl: undefined }));
+          })
+      );
+
+      const bulkHandler = ipcHandlers.get('metadata:enrich:tracks')!;
+      const previewHandler = ipcHandlers.get('metadata:enrich:preview')!;
+
+      // Start the bulk run; do NOT await it yet.
+      const bulkPromise = bulkHandler(null as never, [makeTrack()], {
+        writeToFile: false,
+        onlyMissing: false,
+      });
+
+      // Yield once so the bulk handler claims the abort slot.
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Preview must reject with the busy code while the bulk run holds the slot.
+      await expect(
+        previewHandler(null as never, makeTrack(), { onlyMissing: true })
+      ).rejects.toMatchObject({ code: 'metadata.enrich_busy' });
+
+      // Let the bulk run finish so the test cleans up.
+      releaseLookup?.();
+      await vi.advanceTimersByTimeAsync(2000);
+      await bulkPromise;
+
+      vi.useRealTimers();
+    });
+
+    it('rejects with metadata.enrich_busy when a preview is in flight', async () => {
+      vi.useFakeTimers();
+
+      // Block the lookup so the preview handler holds the abort slot.
+      let releaseLookup: (() => void) | null = null;
+      mockedLookup.mockImplementationOnce(
+        () =>
+          new Promise<MetadataLookupResult>(resolve => {
+            releaseLookup = () => resolve(makeLookupResult({ coverImageUrl: undefined }));
+          })
+      );
+
+      const previewHandler = ipcHandlers.get('metadata:enrich:preview')!;
+      const bulkHandler = ipcHandlers.get('metadata:enrich:tracks')!;
+
+      // Start the preview; do NOT await it yet.
+      const previewPromise = previewHandler(null as never, makeTrack(), { onlyMissing: true });
+
+      // Yield once so the preview handler claims the abort slot.
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Bulk must reject with the busy code while the preview holds the slot.
+      await expect(
+        bulkHandler(null as never, [makeTrack()], { writeToFile: false, onlyMissing: false })
+      ).rejects.toMatchObject({ code: 'metadata.enrich_busy' });
+
+      // Let the preview finish so the test cleans up.
+      releaseLookup?.();
+      await vi.advanceTimersByTimeAsync(0);
+      await previewPromise;
+
+      vi.useRealTimers();
     });
   });
 

@@ -1,0 +1,30 @@
+{
+  "title": "Find Missing Metadata",
+  "searching": "Searching for matching metadata…",
+  "noMatchTitle": "No matching metadata found",
+  "noMatchBody": "Try editing the title or artist before retrying.",
+  "errorBusy": "A bulk enrichment run is already in progress. Wait for it to finish, then try again.",
+  "errorGeneric": "Something went wrong while looking up metadata.",
+  "foundSubtitle_one": "Match found via {{source}}. 1 field will change.",
+  "foundSubtitle_other": "Match found via {{source}}. {{count}} fields will change.",
+  "appliedTitle": "Metadata applied",
+  "appliedToast": "Track metadata updated",
+  "applyFailedToast": "Failed to apply metadata",
+  "writeToFileLabel": "Also write tags to the audio file",
+  "writeToFileDesc": "Updates ID3 / Vorbis tags in the file itself. This change is irreversible.",
+  "apply": "Apply",
+  "applying": "Applying…",
+  "done": "Done",
+  "discard": "Discard",
+  "retry": "Try again",
+  "close": "Close",
+  "none": "(none)",
+  "field": {
+    "artist": "Artist",
+    "album": "Album",
+    "genre": "Genre",
+    "year": "Year",
+    "trackNumber": "Track #",
+    "albumArt": "Cover art"
+  }
+}

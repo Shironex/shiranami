@@ -203,6 +203,12 @@ function createElectronAPIMock(): ElectronAPI {
     metadata: {
       lookup: asyncFn({ source: 'none', confidence: 0 }),
       enrichTracks: asyncFn([]),
+      previewEnrich: asyncFn({
+        id: '',
+        success: false,
+        updatedFields: {},
+        source: 'none',
+      }),
       cancelEnrichment: asyncFn(undefined),
       onEnrichProgress: vi.fn(() => noopUnsub()),
     },
