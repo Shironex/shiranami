@@ -7,6 +7,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useWindowControls } from '@/hooks/useWindowControls';
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
+import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
 const VIEW_TITLE_KEYS: Record<string, string> = {
   library: 'library',
@@ -25,7 +26,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
-  const { t } = useTranslation('topbar');
+  const { t, i18n } = useTranslation('topbar');
   const activeView = useViewStore(s => s.activeView);
   const { isMaximized, minimize, maximize, close } = useWindowControls();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -33,6 +34,11 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const { isScanning: isRescanning, rescan } = useLibraryRescan();
 
   const scanBlocked = isScanning || isRescanning || isScanLocked();
+
+  function handleLanguageChange(lang: SupportedLanguage) {
+    i18n.changeLanguage(lang);
+    persistLanguage(lang);
+  }
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -116,6 +122,26 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
           )}
         </div>
       )}
+
+      {/* Language segmented control */}
+      <div className="no-drag flex items-center gap-0.5 mr-2">
+        {SUPPORTED_LANGUAGES.map(lang => (
+          <button
+            key={lang.code}
+            type="button"
+            onClick={() => handleLanguageChange(lang.code)}
+            aria-label={t(`language.${lang.code}`)}
+            className={cn(
+              'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+              i18n.language === lang.code
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent'
+            )}
+          >
+            {t(`language.${lang.code}`)}
+          </button>
+        ))}
+      </div>
 
       {/* Window controls (Windows only) */}
       {IS_ELECTRON && !IS_MAC && (
