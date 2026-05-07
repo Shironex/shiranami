@@ -3,8 +3,15 @@
   "add": "Dodaj",
   "addFolder": "Dodaj folder",
   "addFile": "Dodaj plik",
+  "rescan": "Skanuj ponownie",
+  "rescanning": "Skanowanie...",
   "minimize": "Minimalizuj",
   "maximize": "Maksymalizuj",
   "restore": "Przywróć",
-  "close": "Zamknij"
+  "close": "Zamknij",
+  "language": {
+    "label": "Jezyk",
+    "en": "EN",
+    "pl": "PL"
+  }
 }
