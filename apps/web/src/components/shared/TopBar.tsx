@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Minus, Square, Copy, X, Plus, FolderOpen, File } from 'lucide-react';
+import { Minus, Square, Copy, X, Plus, FolderOpen, File, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useViewStore } from '@/stores/useViewStore';
 import { useWindowControls } from '@/hooks/useWindowControls';
+import { useLibraryRescan } from '@/hooks/useLibraryRescan';
+import { isScanLocked } from '@/lib/scanLock';
 
 const VIEW_TITLE_KEYS: Record<string, string> = {
   library: 'library',
@@ -28,6 +30,9 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const { isMaximized, minimize, maximize, close } = useWindowControls();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { isScanning: isRescanning, rescan } = useLibraryRescan();
+
+  const scanBlocked = isScanning || isRescanning || isScanLocked();
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -57,7 +62,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
         <div ref={dropdownRef} className="no-drag relative mr-2">
           <button
             onClick={() => setDropdownOpen(v => !v)}
-            disabled={isScanning}
+            disabled={scanBlocked}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
               dropdownOpen
@@ -66,7 +71,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
             )}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>{isScanning ? t('scanning') : t('add')}</span>
+            <span>{scanBlocked ? t('scanning') : t('add')}</span>
           </button>
 
           {dropdownOpen && (
@@ -90,6 +95,22 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
               >
                 <File className="w-4 h-4 text-muted-foreground" />
                 {t('addFile')}
+              </button>
+              <div className="my-1 mx-2 h-px bg-border/40" />
+              <button
+                onClick={() => {
+                  rescan();
+                  setDropdownOpen(false);
+                }}
+                disabled={isRescanning || isScanLocked()}
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {isRescanning ? (
+                  <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                )}
+                {isRescanning ? t('rescanning') : t('rescan')}
               </button>
             </div>
           )}
