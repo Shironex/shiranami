@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.18.0': '整', // "tidy / arrange" — per-track metadata + topbar polish
   '0.17.1': '印', // "mark / insignia / logo" — about mascot fix
   '0.17.0': '軽', // "light/lightweight" — memory diet release
   '0.16.1': '磨', // "polish/refine"
@@ -128,6 +129,54 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.18.0',
+    date: '2026-05-08',
+    title: l(
+      'Per-track metadata fixes and topbar tidy-up',
+      'Poprawki metadanych dla pojedynczych utworów i porządki w pasku górnym'
+    ),
+    description: l(
+      'A quiet release that smooths the rough edges around v0.17. You can now fix metadata one track at a time instead of running the bulk enrich, the topbar gained two small shortcuts, and the radio audio deck no longer trips on its own CORS rules.',
+      'Spokojne wydanie, które wygładza ostre krawędzie po v0.17. Możesz teraz poprawiać metadane utwór po utworze zamiast uruchamiać wzbogacanie zbiorcze, pasek górny zyskał dwa drobne skróty, a radio nie potyka się już o własne reguły CORS.'
+    ),
+    categories: [
+      {
+        label: l('Polish', 'Dopracowanie'),
+        entries: [
+          l(
+            'Right-click any track and pick "Find Missing Metadata" to preview and apply enrichments for that one track only, with per-field control over what gets written',
+            'Kliknij prawym przyciskiem dowolny utwór i wybierz „Znajdź brakujące metadane", aby podejrzeć i zastosować wzbogacenia tylko dla tego utworu, z kontrolą wybranych pól'
+          ),
+          l(
+            'Topbar Add dropdown gained a "Rescan Library" shortcut so you no longer need to walk into Settings to refresh',
+            'Rozwijane menu Dodaj w pasku górnym zyskało skrót „Skanuj bibliotekę ponownie", więc nie musisz już wchodzić do Ustawień, żeby odświeżyć'
+          ),
+          l(
+            'Language switcher (EN / PL) is now a segmented control in the topbar instead of buried in Settings',
+            'Przełącznik języka (EN / PL) jest teraz segmentowanym przyciskiem w pasku górnym zamiast ukryty w Ustawieniach'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Shiranami Radio playback no longer fails on stations that respect CORS; the privileged scheme registration was missing the corsEnabled flag that every other audio scheme had',
+            'Odtwarzanie w Shiranami Radio nie zawiesza się już na stacjach respektujących CORS; rejestracja schematu uprzywilejowanego pomijała flagę corsEnabled, którą miały wszystkie pozostałe schematy audio'
+          ),
+          l(
+            'Per-track metadata enrich is now blocked from running while a bulk enrich preview is active, so you cannot accidentally race two writes onto the same file',
+            'Wzbogacanie metadanych dla pojedynczego utworu nie uruchomi się w trakcie podglądu wzbogacania zbiorczego, więc nie wyścigniesz przypadkowo dwóch zapisów na tym samym pliku'
+          ),
+          l(
+            'Track enrich dialog now shows a real error when applying a single field fails instead of silently reporting success, and rebuilds itself when you switch between tracks so stale fields cannot leak across rows',
+            'Dialog wzbogacania utworu pokazuje teraz prawdziwy błąd, gdy zastosowanie pojedynczego pola się nie powiedzie, zamiast po cichu raportować sukces, i przebudowuje się przy zmianie utworu, więc stare pola nie wyciekną między wierszami'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.17.1',
     date: '2026-05-05',
