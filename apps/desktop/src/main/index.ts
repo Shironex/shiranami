@@ -14,6 +14,7 @@ import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
+import { PRIVILEGED_SCHEMES } from './privileged-schemes';
 
 // Register shiranami:// deep link protocol for share imports.
 // Only register in packaged builds — dev mode can't resolve the Electron binary correctly on Windows.
@@ -27,48 +28,8 @@ if (!gotTheLock) {
   app.quit();
 }
 
-// Register custom protocol scheme for streaming local audio files.
 // Must be called before app.ready.
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'shiranami-audio',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-      bypassCSP: false,
-      // Required so MediaElementAudioSource (Web Audio graph) gets actual
-      // samples instead of silent zeroes — connecting a cross-origin audio
-      // element to AudioContext silently outputs zeroes by default.
-      corsEnabled: true,
-    },
-  },
-  {
-    scheme: 'shiranami-radio',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: true,
-      bypassCSP: false,
-    },
-  },
-  {
-    scheme: 'shiranami-art',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      stream: false,
-      bypassCSP: false,
-      // Required so the renderer can draw covers onto a <canvas> for
-      // FastAverageColor / getImageData without Chromium tainting the
-      // canvas as cross-origin.
-      corsEnabled: true,
-    },
-  },
-]);
+protocol.registerSchemesAsPrivileged(PRIVILEGED_SCHEMES);
 
 export let mainWindow: BrowserWindow | null = null;
 let isShuttingDown = false;
