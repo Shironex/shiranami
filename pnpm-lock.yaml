@@ -20,9 +20,6 @@ importers:
 
   .:
     dependencies:
-      i18next:
-        specifier: ^26.0.10
-        version: 26.0.10(typescript@5.9.3)
       react-i18next:
         specifier: ^17.0.7
         version: 17.0.7(i18next@26.0.10(typescript@5.9.3))(react@19.1.0)(typescript@5.9.3)
