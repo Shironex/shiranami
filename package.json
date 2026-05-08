@@ -85,6 +85,6 @@
   },
   "dependencies": {
     "i18next": "^26.0.10",
-    "react-i18next": "^17.0.6"
+    "react-i18next": "^17.0.7"
   }
 }
