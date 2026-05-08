@@ -9,7 +9,7 @@
     "overrides": {
       "h3": "1.15.9",
       "undici": "6.24.1",
-      "jsdom": "26.1.0",
+      "jsdom": "^27.4.0",
       "path-to-regexp": "8.4.0",
       "fastify": "5.8.5",
       "axios": "1.15.2",
