@@ -50,7 +50,7 @@ export function RadioView() {
   const setQueue = usePlaybackStore(s => s.setQueue);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hasLoadedRef = useRef(false);
 
   // Load top stations on first mount

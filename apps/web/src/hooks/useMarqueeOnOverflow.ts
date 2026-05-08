@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 export function useMarqueeOnOverflow<T extends HTMLElement = HTMLElement>(
   watch: unknown
 ): {
-  ref: React.RefObject<T>;
+  ref: React.RefObject<T | null>;
   overflows: boolean;
   /** Negative pixel offset to translate the inner element by during the shift phase. */
   shift: number;
