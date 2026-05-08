@@ -75,7 +75,7 @@ vi.mock('motion/react', () => ({
             children,
             className,
           }: React.HTMLAttributes<HTMLElement> & { layoutId?: string; transition?: unknown }) => {
-            const Element = prop as keyof JSX.IntrinsicElements;
+            const Element = prop as keyof React.JSX.IntrinsicElements;
             return <Element className={className}>{children}</Element>;
           };
         }
