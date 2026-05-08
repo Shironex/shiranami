@@ -26,23 +26,30 @@ const iconButtonVariants = cva(
 );
 
 export interface IconButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof iconButtonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof iconButtonVariants> {
   asChild?: boolean;
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
-  ({ className, variant, size, asChild = false, type, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
-    return (
-      <Comp
-        className={cn(iconButtonVariants({ variant, size, className }))}
-        ref={ref}
-        type={asChild ? undefined : (type ?? 'button')}
-        {...props}
-      />
-    );
-  }
-);
-IconButton.displayName = 'IconButton';
+function IconButton({
+  className,
+  variant,
+  size,
+  asChild = false,
+  type,
+  ref,
+  ...props
+}: IconButtonProps) {
+  const Comp = asChild ? Slot : 'button';
+  return (
+    <Comp
+      className={cn(iconButtonVariants({ variant, size, className }))}
+      ref={ref}
+      type={asChild ? undefined : (type ?? 'button')}
+      {...props}
+    />
+  );
+}
 
 export { IconButton, iconButtonVariants };
