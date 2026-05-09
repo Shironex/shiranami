@@ -20,7 +20,7 @@ export function SplashLamp({ disabled = false }: SplashLampProps) {
       className="absolute inset-0 pointer-events-none"
       style={{
         background:
-          'radial-gradient(ellipse 640px 460px at 82% 18%, oklch(from var(--favorite) l c h / 0.22) 0%, oklch(from var(--favorite) l c h / 0.09) 45%, transparent 78%)',
+          'radial-gradient(ellipse 420px 320px at 88% 14%, oklch(from var(--favorite) l c h / 0.28) 0%, oklch(from var(--favorite) l c h / 0.10) 38%, transparent 70%)',
         animation: disabled ? undefined : 'shiranami-lamp-breathe 9s ease-in-out infinite',
       }}
       aria-hidden="true"
