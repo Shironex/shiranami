@@ -26,9 +26,23 @@ export function initializeDatabase(
     return db;
   }
 
-  sqliteDb = new Database(options.path, {
-    verbose: options.verbose ? console.log : undefined,
-  });
+  try {
+    sqliteDb = new Database(options.path, {
+      verbose: options.verbose ? console.log : undefined,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (
+      message.includes('NODE_MODULE_VERSION') ||
+      message.includes('was compiled against a different Node.js version')
+    ) {
+      throw new Error(
+        `better-sqlite3 ABI mismatch — run \`pnpm rebuild:electron\` to rebuild for the current Electron version.`,
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 
   // Enable WAL mode for better concurrent access
   sqliteDb.pragma('journal_mode = WAL');
