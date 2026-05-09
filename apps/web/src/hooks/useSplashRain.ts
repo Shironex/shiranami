@@ -13,23 +13,26 @@ interface Streak {
   opacity: number; // 0.18..0.28
 }
 
-/** Deterministic LCG — same seed pattern as omniscribe threads. */
-function lcg(seed: number): number {
-  return ((seed * 1664525 + 1013904223) & 0xffffffff) / 0xffffffff;
+// xmur3-style 32-bit integer hash → uniform [0, 1). The previous LCG fed small
+// sequential seeds and produced outputs in a ~6% band, clustering all streaks
+// into one column.
+function hash01(n: number): number {
+  let h = (n + 0x9e3779b9) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 0x100000000;
 }
 
 function makeStreak(index: number, viewportHeight: number, preWarm: boolean): Streak {
-  const s0 = Math.abs(lcg(index * 7 + 1));
-  const s1 = Math.abs(lcg(index * 13 + 3));
-  const s2 = Math.abs(lcg(index * 17 + 7));
-  const s3 = Math.abs(lcg(index * 19 + 11));
-  const s4 = Math.abs(lcg(index * 23 + 5));
+  const s0 = hash01(index * 1013 + 1);
+  const s1 = hash01(index * 1013 + 2);
+  const s2 = hash01(index * 1013 + 3);
+  const s3 = hash01(index * 1013 + 4);
+  const s4 = hash01(index * 1013 + 5);
 
   const length = 80 + s1 * 60; // 80..140
   const speed = 140 + s2 * 80; // 140..220
 
-  // Pre-warm: scatter streaks across the visible viewport so the field looks
-  // live from the first frame rather than starting from a simultaneous spawn.
   const y = preWarm ? s4 * viewportHeight - length : -length - s4 * 200;
 
   return {
@@ -42,10 +45,11 @@ function makeStreak(index: number, viewportHeight: number, preWarm: boolean): St
 }
 
 function respawnStreak(index: number, streak: Streak): Streak {
-  const s0 = Math.abs(lcg((index + 100) * 31 + streak.y));
-  const s1 = Math.abs(lcg((index + 100) * 37 + streak.x * 1000));
-  const s2 = Math.abs(lcg((index + 100) * 41 + streak.length));
-  const s3 = Math.abs(lcg((index + 100) * 43 + streak.speed));
+  const salt = Math.floor((streak.y + streak.length) * 7919) | 0;
+  const s0 = hash01(index * 7919 + salt + 1);
+  const s1 = hash01(index * 7919 + salt + 2);
+  const s2 = hash01(index * 7919 + salt + 3);
+  const s3 = hash01(index * 7919 + salt + 4);
 
   return {
     x: s0,
@@ -71,7 +75,10 @@ function drawFrame(
     const grad = ctx.createLinearGradient(x, headY, x, tailY);
     grad.addColorStop(0, `oklch(from ${foregroundColor} l c h / 0)`);
     grad.addColorStop(0.15, `oklch(from ${foregroundColor} l c h / ${streak.opacity.toFixed(3)})`);
-    grad.addColorStop(0.8, `oklch(from ${foregroundColor} l c h / ${(streak.opacity * 0.5).toFixed(3)})`);
+    grad.addColorStop(
+      0.8,
+      `oklch(from ${foregroundColor} l c h / ${(streak.opacity * 0.5).toFixed(3)})`
+    );
     grad.addColorStop(1, `oklch(from ${foregroundColor} l c h / 0)`);
 
     ctx.beginPath();
@@ -114,14 +121,13 @@ export function useSplashRain(
     if (!ctx) return;
 
     // Derive foreground color from the CSS custom property at paint time.
-    const fg = getComputedStyle(canvas).getPropertyValue('--foreground').trim() || 'oklch(0.93 0.01 280)';
+    const fg =
+      getComputedStyle(canvas).getPropertyValue('--foreground').trim() || 'oklch(0.93 0.01 280)';
 
     // Initialize streaks once
     if (!initializedRef.current) {
       const h = canvas.height;
-      streaksRef.current = Array.from({ length: STREAK_COUNT }, (_, i) =>
-        makeStreak(i, h, true)
-      );
+      streaksRef.current = Array.from({ length: STREAK_COUNT }, (_, i) => makeStreak(i, h, true));
       initializedRef.current = true;
     }
 
