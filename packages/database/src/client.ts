@@ -20,7 +20,7 @@ export interface DatabaseOptions {
  * Initialize the database connection and create tables if they don't exist
  */
 export function initializeDatabase(
-  options: DatabaseOptions,
+  options: DatabaseOptions
 ): ReturnType<typeof drizzle<typeof schema>> {
   if (db) {
     return db;
@@ -38,7 +38,7 @@ export function initializeDatabase(
     ) {
       throw new Error(
         `better-sqlite3 ABI mismatch — run \`pnpm rebuild:electron\` to rebuild for the current Electron version.`,
-        { cause: err },
+        { cause: err }
       );
     }
     throw err;
