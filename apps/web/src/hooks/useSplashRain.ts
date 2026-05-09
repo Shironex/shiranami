@@ -63,12 +63,15 @@ function respawnStreak(index: number, streak: Streak): Streak {
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   streaks: Streak[],
-  foregroundColor: string
+  foregroundColor: string,
+  cssWidth: number,
+  cssHeight: number
 ): void {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  // Clear in CSS-pixel space so the ctx.scale(dpr, dpr) transform applies.
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
 
   for (const streak of streaks) {
-    const x = streak.x * ctx.canvas.width;
+    const x = streak.x * cssWidth;
     const headY = streak.y;
     const tailY = streak.y + streak.length;
 
@@ -85,7 +88,7 @@ function drawFrame(
     ctx.moveTo(x, headY);
     ctx.lineTo(x, tailY);
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.4;
     ctx.stroke();
   }
 }
@@ -124,15 +127,22 @@ export function useSplashRain(
     const fg =
       getComputedStyle(canvas).getPropertyValue('--foreground').trim() || 'oklch(0.93 0.01 280)';
 
+    // CSS-pixel dimensions — the rendering coordinate system after ctx.scale(dpr, dpr).
+    // canvas.width / canvas.height are device pixels; using them for positioning
+    // would put streaks at 2x scale on HiDPI and clip 3/4 of them off-canvas.
+    const cssWidth = () => canvas.clientWidth || window.innerWidth;
+    const cssHeight = () => canvas.clientHeight || window.innerHeight;
+
     // Initialize streaks once
     if (!initializedRef.current) {
-      const h = canvas.height;
-      streaksRef.current = Array.from({ length: STREAK_COUNT }, (_, i) => makeStreak(i, h, true));
+      streaksRef.current = Array.from({ length: STREAK_COUNT }, (_, i) =>
+        makeStreak(i, cssHeight(), true)
+      );
       initializedRef.current = true;
     }
 
     // Always draw at least one frame
-    drawFrame(ctx, streaksRef.current, fg);
+    drawFrame(ctx, streaksRef.current, fg, cssWidth(), cssHeight());
 
     if (staticFrame) return;
 
@@ -145,7 +155,7 @@ export function useSplashRain(
 
         // Update positions every tick
         const dt = TICK_INTERVAL_MS / 1000;
-        const h = canvas.height;
+        const h = cssHeight();
         streaksRef.current = streaksRef.current.map((s, i) => {
           const nextY = s.y + s.speed * dt;
           if (nextY > h) return respawnStreak(i, s);
@@ -154,7 +164,7 @@ export function useSplashRain(
 
         // Redraw every other tick (30Hz)
         if (tickCountRef.current % REDRAW_EVERY === 0) {
-          drawFrame(ctx, streaksRef.current, fg);
+          drawFrame(ctx, streaksRef.current, fg, cssWidth(), cssHeight());
         }
       }
 
