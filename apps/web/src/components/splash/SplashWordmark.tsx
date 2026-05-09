@@ -1,33 +1,50 @@
 interface SplashWordmarkProps {
-  version: string;
+  reducedMotion: boolean;
 }
 
 /**
- * Centered 白波 wordmark + sub-line with version.
+ * 白波 wordmark etched on the glass.
  *
- * Sits inside the radial waveform ring — the visual pun of "white waves"
- * surrounded by a waveform is intentional and load-bearing for first-read.
+ * Sits behind the rain layer so the streaks pass in front of it — the
+ * compositional read is that the wordmark is on the inside of the glass and
+ * the viewer is looking through both the etching and the rain at once.
  *
- * CJK fallback is pinned explicitly because Sora lacks full CJK glyph
- * coverage; without it the glyphs fall back to system-ui which may not
- * match the font metrics we size around.
+ * Size is 64px (up from 56 in Direction A) to compensate for the lower 0.55
+ * alpha and the rain layer that competes for attention.
+ *
+ * Entrance: blur 4px → 0 + opacity 0 → 0.55 over 600ms (220ms delay).
+ * The blur-to-clarity reads as the etching being seen through condensation
+ * that is wiping clear. Under reduced-motion, the blur step is dropped and
+ * it fades opacity-only.
+ *
+ * CJK fallback pinned explicitly — Sora lacks full CJK glyph coverage and
+ * falls back to Hiragino Sans / Noto Sans JP which have different metrics.
  */
-export function SplashWordmark({ version }: SplashWordmarkProps) {
+export function SplashWordmark({ reducedMotion }: SplashWordmarkProps) {
+  const animation = reducedMotion
+    ? 'shiranami-wordmark-fade 300ms ease-out 220ms both'
+    : 'shiranami-wordmark-etch 600ms ease-out 220ms both';
+
   return (
     <div
-      className="flex flex-col items-center gap-1 animate-[shiranami-rise_800ms_cubic-bezier(0.32,0.72,0.24,1.08)_220ms_both]"
+      className="flex flex-col items-center gap-1"
       aria-label="白波 Shiranami"
+      style={{ animation }}
     >
       <span
-        className="text-[56px] font-semibold leading-none tracking-[-0.02em] text-foreground select-none"
+        className="text-[64px] font-semibold leading-none tracking-[-0.02em] select-none"
         style={{
           fontFamily: "'Sora', 'Noto Sans JP', 'Hiragino Sans', system-ui",
+          color: 'oklch(from var(--foreground) l c h / 0.55)',
         }}
       >
         白波
       </span>
-      <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground select-none">
-        lofi · since 2024 {version ? `· v${version}` : ''}
+      <span
+        className="font-mono text-[10px] uppercase tracking-[0.28em] select-none"
+        style={{ color: 'oklch(from var(--muted-foreground) l c h / 0.65)' }}
+      >
+        lofi · since 2024
       </span>
     </div>
   );
