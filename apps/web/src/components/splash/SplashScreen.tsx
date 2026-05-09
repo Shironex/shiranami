@@ -1,97 +1,40 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
-
-const MIN_DISPLAY_MS = 2500;
-const EXIT_ANIMATION_MS = 600;
-const SPINNER_DELAY_MS = 600;
-const MESSAGE_ROTATE_MS = 1400;
-
-const LOADING_MESSAGE_KEYS = [
-  'loading1',
-  'loading2',
-  'loading3',
-  'loading4',
-  'loading5',
-  'loading6',
-] as const;
-
-function randomStartIndex() {
-  return Math.floor(Math.random() * LOADING_MESSAGE_KEYS.length);
-}
-
-const SPARKLE_COUNT = 8;
-
-function useSparkles() {
-  return useMemo(
-    () =>
-      Array.from({ length: SPARKLE_COUNT }, (_, i) => {
-        const angle = (i / SPARKLE_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
-        const radius = 50 + Math.random() * 70;
-        return {
-          id: i,
-          x: Math.cos(angle) * radius,
-          y: Math.sin(angle) * radius,
-          size: 2 + Math.random() * 3,
-          delay: Math.random() * 2,
-          duration: 1.5 + Math.random() * 1.5,
-        };
-      }),
-    []
-  );
-}
+import { useUIStore } from '@/stores/useUIStore';
+import { useSplashScreen } from '@/hooks/useSplashScreen';
+import { SplashWaveform } from './SplashWaveform';
+import { SplashBlindSweep } from './SplashBlindSweep';
+import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
-  ready: boolean;
-  error: string | null;
+  /** Library sync is still running — splash stays mounted until false. */
+  isLoading: boolean;
+  /** Library sync errored — switches to the error variant. */
+  isError: boolean;
+  /** Error message to display in the error variant. */
+  error?: string | null;
   onDismissed?: () => void;
 }
 
-export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
-  const { t } = useTranslation('splash');
-  const { t: tCommon } = useTranslation('common');
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  const [showSpinner, setShowSpinner] = useState(false);
-  const [isDismissing, setIsDismissing] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const [messageIndex, setMessageIndex] = useState(randomStartIndex);
-  const hasDismissedRef = useRef(false);
-  const sparkles = useSparkles();
+/**
+ * Shiranami splash — "Cassette / Late-Night Broadcast".
+ *
+ * Layout (centered column on a fixed inset-0 overlay):
+ *  1. Field: --background with two radial glows + slow vignette rim.
+ *  2. SplashBlindSweep: 30vw gradient strip sliding across over 11s.
+ *  3. SplashWaveform: 64-bar radial waveform with 白波 wordmark centered inside.
+ *  4. SplashFooter: status row (glowing dot + rotating copy) + bottom rail with EQ glyph.
+ *
+ * Exit transition: 540ms opacity → 0, scale → 1.015, blur 0 → 6px.
+ */
+export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashScreenProps) {
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
 
-  const shouldDismiss = ready && minTimeElapsed;
-
-  useEffect(() => {
-    const timer = setTimeout(() => setMinTimeElapsed(true), MIN_DISPLAY_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowSpinner(true), SPINNER_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (error) return;
-    const timer = setInterval(
-      () => setMessageIndex(i => (i + 1) % LOADING_MESSAGE_KEYS.length),
-      MESSAGE_ROTATE_MS
-    );
-    return () => clearInterval(timer);
-  }, [error]);
-
-  useEffect(() => {
-    if (!shouldDismiss || hasDismissedRef.current) return;
-    hasDismissedRef.current = true;
-    setIsDismissing(true);
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      onDismissed?.();
-    }, EXIT_ANIMATION_MS);
-    return () => clearTimeout(timer);
-  }, [shouldDismiss, onDismissed]);
+  const { isVisible, isDismissing, showStatus, variant, messageKey, version } = useSplashScreen({
+    isLoading,
+    isError,
+    onDismissed,
+  });
 
   if (!isVisible) return null;
 
@@ -99,87 +42,65 @@ export function SplashScreen({ ready, error, onDismissed }: SplashScreenProps) {
     <div
       className={cn(
         'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden',
-        'transition-[opacity,transform] duration-600 ease-out',
-        isDismissing && 'opacity-0 scale-[1.02]',
         IS_ELECTRON && 'rounded-t-[10px]'
       )}
+      style={{
+        transition: isDismissing
+          ? 'opacity 540ms ease-out, transform 540ms ease-out, filter 540ms ease-out'
+          : undefined,
+        opacity: isDismissing ? 0 : 1,
+        transform: isDismissing ? 'scale(1.015)' : 'scale(1)',
+        filter: isDismissing ? 'blur(6px)' : 'blur(0px)',
+      }}
     >
+      {/* Drag region — keeps the frameless window movable during boot */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
-      <div className="flex flex-col items-center justify-center gap-3">
-        <div className="relative animate-[splash-bounce-in_0.7s_cubic-bezier(0.34,1.56,0.64,1)_both]">
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse-subtle" />
-          </div>
-
-          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            {sparkles.map(s => (
-              <div
-                key={s.id}
-                className="absolute rounded-full bg-primary"
-                style={{
-                  left: `calc(50% + ${s.x}px)`,
-                  top: `calc(50% + ${s.y}px)`,
-                  width: s.size,
-                  height: s.size,
-                  animation: `splash-twinkle ${s.duration}s ease-in-out ${s.delay}s infinite both`,
-                }}
-              />
-            ))}
-          </div>
-
-          <img
-            src="./mascot.png"
-            alt="Shiranami mascot"
-            className="relative w-36 h-36 object-contain drop-shadow-lg animate-[splash-float_3s_ease-in-out_0.7s_infinite]"
-            draggable={false}
-          />
-        </div>
-
-        <div className="flex flex-col items-center gap-0.5 animate-[splash-fade-up_0.8s_ease-out_0.3s_both]">
-          <span className="text-2xl font-bold tracking-tight text-foreground">白波</span>
-          <span className="text-[10px] text-muted-foreground/50 tracking-[0.25em] uppercase font-medium">
-            {tCommon('shiranami')}
-          </span>
-        </div>
-
+      {/* Field radial glows */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        {/* Primary glow — upper-center */}
         <div
-          className={cn(
-            'mt-4 flex flex-col items-center gap-2.5 transition-opacity duration-400 ease-in',
-            showSpinner ? 'opacity-100' : 'opacity-0'
-          )}
-          role="status"
-          aria-live="polite"
-        >
-          {error ? (
-            <div className="flex flex-col items-center gap-3 max-w-xs text-center animate-fade-in">
-              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-destructive" aria-hidden="true" />
-              </div>
-              <p className="text-destructive text-sm">{error}</p>
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto cursor-pointer p-0 text-sm"
-                onClick={() => window.location.reload()}
-              >
-                {t('tryAgain')}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2.5 animate-[splash-fade-up_0.6s_ease-out_0.8s_both]">
-              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-              <p
-                key={messageIndex}
-                className="text-muted-foreground text-sm animate-[splash-msg-swap_0.4s_ease-out_both]"
-              >
-                {t(LOADING_MESSAGE_KEYS[messageIndex])}
-              </p>
-            </div>
-          )}
-        </div>
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 1100px 900px at 50% 38%, oklch(from var(--primary) l c h / 0.12) 0%, transparent 70%)',
+          }}
+        />
+        {/* Brand-600 glow — lower-center */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 1300px 600px at 50% 80%, oklch(from var(--brand-600) l c h / 0.08) 0%, transparent 75%)',
+          }}
+        />
+        {/* Rim vignette */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, oklch(from var(--background) calc(l - 0.04) c h / 0.6) 100%)',
+          }}
+        />
       </div>
+
+      {/* Window-blind sweep */}
+      <SplashBlindSweep disabled={lowPerformanceMode} />
+
+      {/* Hero — radial waveform with wordmark */}
+      <SplashWaveform
+        paused={variant === 'error'}
+        lowPerformanceMode={lowPerformanceMode}
+        version={version}
+      />
+
+      {/* Status row + bottom rail */}
+      <SplashFooter
+        showStatus={showStatus}
+        variant={variant}
+        messageKey={messageKey}
+        error={error}
+      />
     </div>
   );
 }

@@ -59,7 +59,11 @@ function App() {
   useAudioEngine();
   useMediaSession();
   usePlayerPreferences();
-  const { isError: libraryError, refetch: refetchLibrary } = useLibrarySync();
+  const {
+    isLoading: libraryLoading,
+    isError: libraryError,
+    refetch: refetchLibrary,
+  } = useLibrarySync();
   usePlaybackResume(splashDone);
 
   useEffect(() => {
@@ -131,7 +135,11 @@ function App() {
 
   return (
     <>
-      <SplashScreen ready={true} error={null} onDismissed={handleSplashDismissed} />
+      <SplashScreen
+        isLoading={libraryLoading}
+        isError={libraryError}
+        onDismissed={handleSplashDismissed}
+      />
 
       {splashDone && (
         <AmbientColorProvider>
