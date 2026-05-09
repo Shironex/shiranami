@@ -8,24 +8,44 @@ interface SplashFooterProps {
   variant: SplashVariant;
   messageKey: SplashMessageKey;
   error?: string | null;
+  /** App version string — rendered as `v{version} · 白波` on the right rail. */
+  version: string;
+  reducedMotion: boolean;
 }
 
 /**
- * Status row + bottom rail.
+ * Status row + bottom rail for the cafe-window splash.
  *
- * Status row: glowing primary dot + rotating i18n message (or error message
- * + retry button in the error variant).
+ * Status row: single primary glowing dot + rotating i18n message (or error
+ * message + retry button in the error variant). The dot is the only --primary
+ * element on the entire splash.
  *
- * Bottom rail: thin border divider, copyright left, 3-band EQ glyph right.
- * The EQ glyph reuses the existing eq-bar-1/2/3 Tailwind utilities — the
- * same visual idiom as the player bar, building a visual rhyme between splash
- * and the running app.
+ * Bottom rail: thin border divider, copyright left, `v{version} · 白波` right
+ * in the same mono uppercase tracked treatment. No EQ glyph — the rain owns
+ * the motion; a pulsing EQ bar would compete with its slower vertical rhythm.
+ *
+ * Footer sits above the rain canvas (z-order enforced by parent stacking).
  */
-export function SplashFooter({ showStatus, variant, messageKey, error }: SplashFooterProps) {
+export function SplashFooter({
+  showStatus,
+  variant,
+  messageKey,
+  error,
+  version,
+  reducedMotion,
+}: SplashFooterProps) {
   const { t } = useTranslation('splash');
 
+  const statusDotAnimation = reducedMotion
+    ? undefined
+    : 'shiranami-dot-pulse 1.4s ease-in-out infinite';
+
+  const msgAnimation = reducedMotion
+    ? undefined
+    : 'shiranami-msg-fade 320ms ease-out both';
+
   return (
-    <div className="absolute inset-x-0 bottom-0 flex flex-col">
+    <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
       {/* Status row */}
       <div
         className={cn(
@@ -43,11 +63,16 @@ export function SplashFooter({ showStatus, variant, messageKey, error }: SplashF
                 style={{
                   background: 'var(--destructive)',
                   boxShadow: '0 0 8px oklch(from var(--destructive) l c h / 0.7)',
-                  animation: 'shiranami-dot-pulse 1.4s ease-in-out infinite',
+                  animation: statusDotAnimation,
                 }}
                 aria-hidden="true"
               />
-              <p className="text-destructive text-[11.5px] font-sans">{error ?? t('tryAgain')}</p>
+              <p
+                className="text-[11.5px] font-sans"
+                style={{ color: 'oklch(from var(--destructive) l c h / 0.9)' }}
+              >
+                {error ?? t('tryAgain')}
+              </p>
             </div>
             <Button
               type="button"
@@ -65,15 +90,18 @@ export function SplashFooter({ showStatus, variant, messageKey, error }: SplashF
               className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{
                 background: 'var(--primary)',
-                boxShadow: '0 0 8px oklch(from var(--primary) l c h / 0.7)',
-                animation: 'shiranami-dot-pulse 1.4s ease-in-out infinite',
+                boxShadow: '0 0 8px oklch(from var(--primary) l c h / 0.55)',
+                animation: statusDotAnimation,
               }}
               aria-hidden="true"
             />
             <p
               key={messageKey}
-              className="text-muted-foreground text-[11.5px] font-sans"
-              style={{ animation: 'shiranami-msg-fade 320ms ease-out both' }}
+              className="text-[11.5px] font-sans"
+              style={{
+                color: 'oklch(from var(--muted-foreground) l c h / 0.85)',
+                animation: msgAnimation,
+              }}
             >
               {t(messageKey)}
             </p>
@@ -90,26 +118,9 @@ export function SplashFooter({ showStatus, variant, messageKey, error }: SplashF
           © 2026 · 白波 shiranami
         </span>
 
-        <div className="flex items-center gap-1.5" aria-hidden="true">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/40 mr-1.5 select-none">
-            now spinning
-          </span>
-          {/* EQ glyph — reuses player bar idiom */}
-          <div className="flex items-end gap-[2px] h-3">
-            <span
-              className="block w-[3px] rounded-sm bg-primary/70 origin-bottom eq-bar-1"
-              style={{ height: '100%' }}
-            />
-            <span
-              className="block w-[3px] rounded-sm bg-primary/70 origin-bottom eq-bar-2"
-              style={{ height: '100%' }}
-            />
-            <span
-              className="block w-[3px] rounded-sm bg-primary/70 origin-bottom eq-bar-3"
-              style={{ height: '100%' }}
-            />
-          </div>
-        </div>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/40 select-none">
+          {version ? `v${version} · 白波` : '白波'}
+        </span>
       </div>
     </div>
   );
