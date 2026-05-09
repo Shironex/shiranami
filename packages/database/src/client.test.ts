@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { closeDatabase, getDatabase, initializeDatabase } from './client';
 import { cleanupTempDbDir, makeTempDbDir, tempSqlitePath } from './test/helpers/temp-db';
@@ -24,13 +23,17 @@ describe('database client', () => {
     const dbA = initializeDatabase({ path: pathA });
     expect(dbA).toBeDefined();
 
-    const raw = new Database(pathA, { readonly: true });
-    const tables = raw
+    // Introspect via the drizzle handle's underlying sqlite client. The previous
+    // implementation opened a second raw better-sqlite3 connection in readonly
+    // mode against the same file, which only worked because both connections
+    // pointed at a shared on-disk database. Under the sql.js mock each
+    // `new Database(path)` is an isolated in-memory instance, so we have to
+    // reuse the same handle to see the tables we just created.
+    const tables = dbA.$client
       .prepare(`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`)
       .all() as Array<{ name: string }>;
-    raw.close();
 
-    const names = tables.map((t) => t.name);
+    const names = tables.map(t => t.name);
     expect(names).toContain('tracks');
     expect(names).toContain('play_history');
 

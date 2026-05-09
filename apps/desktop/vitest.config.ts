@@ -9,10 +9,7 @@ export default defineConfig({
     name: 'desktop',
     environment: 'node',
     globals: true,
-    setupFiles: [
-      resolve(root, '../../packages/database/test/setup-sqljs.ts'),
-      './test/setup.ts',
-    ],
+    setupFiles: [resolve(root, '../../packages/database/test/setup-sqljs.ts'), './test/setup.ts'],
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',

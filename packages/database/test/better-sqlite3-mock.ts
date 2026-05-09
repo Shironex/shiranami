@@ -100,7 +100,7 @@ class Statement {
     const stmt = this.db.prepare(this.sql);
     try {
       const names = stmt.getColumnNames();
-      return names.map((name) => ({ name }));
+      return names.map(name => ({ name }));
     } finally {
       stmt.free();
     }
@@ -116,9 +116,7 @@ class Database {
 
   constructor(_path?: string, _options?: Record<string, unknown>) {
     if (!globalThis.__SQL) {
-      throw new Error(
-        'sql.js not initialised — make sure test/setup-sqljs.ts runs before tests',
-      );
+      throw new Error('sql.js not initialised — make sure test/setup-sqljs.ts runs before tests');
     }
     this.db = new globalThis.__SQL.Database();
   }
