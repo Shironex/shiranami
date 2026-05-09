@@ -17,7 +17,7 @@
     "build": "tsc --build --clean && tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "test": "node ../../scripts/run-vitest.mjs run --project contracts"
+    "test": "vitest run --project contracts"
   },
   "dependencies": {
     "zod": "^4.4.3"

@@ -11,9 +11,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "node ../../scripts/run-vitest.mjs run --project web",
-    "test:watch": "node ../../scripts/run-vitest.mjs --project web",
-    "test:cov": "node ../../scripts/run-vitest.mjs run --project web --coverage"
+    "test": "vitest run --project web",
+    "test:watch": "vitest --project web",
+    "test:cov": "vitest run --project web --coverage"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

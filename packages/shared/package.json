@@ -17,7 +17,7 @@
     "build": "tsc --build --clean && tsc",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
-    "test": "node ../../scripts/run-vitest.mjs run --project shared"
+    "test": "vitest run --project shared"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",

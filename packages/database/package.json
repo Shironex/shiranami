@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "test": "node ../../scripts/run-vitest.mjs run --project database"
+    "test": "vitest run --project database"
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0",

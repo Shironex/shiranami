@@ -11,8 +11,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node ../../scripts/run-vitest.mjs run --project server",
-    "test:watch": "node ../../scripts/run-vitest.mjs --project server"
+    "test": "vitest run --project server",
+    "test:watch": "vitest --project server"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.19",
