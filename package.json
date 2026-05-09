@@ -27,7 +27,7 @@
     ]
   },
   "scripts": {
-    "dev": "pnpm build:packages && node scripts/rebuild-native.mjs && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
+    "dev": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
     "dev:web": "pnpm --filter @shiranami/web dev",
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "dev:mobile": "pnpm --filter @shiranami/mobile dev",
@@ -48,6 +48,7 @@
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
     "version:major": "node scripts/bump-version.mjs major",
+    "rebuild:electron": "pnpm --filter @shiranami/desktop rebuild",
     "generate-icons": "node scripts/generate-icons.mjs",
     "prepare": "husky"
   },
