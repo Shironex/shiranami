@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
-import { SplashWaveform } from './SplashWaveform';
-import { SplashBlindSweep } from './SplashBlindSweep';
+import { SplashLamp } from './SplashLamp';
+import { SplashGlass } from './SplashGlass';
+import { SplashWordmark } from './SplashWordmark';
+import { SplashRain } from './SplashRain';
 import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
@@ -17,18 +20,28 @@ interface SplashScreenProps {
 }
 
 /**
- * Shiranami splash — "Cassette / Late-Night Broadcast".
+ * Shiranami splash — "Cafe Window / Rain on Glass".
  *
- * Layout (centered column on a fixed inset-0 overlay):
- *  1. Field: --background with two radial glows + slow vignette rim.
- *  2. SplashBlindSweep: 30vw gradient strip sliding across over 11s.
- *  3. SplashWaveform: 64-bar radial waveform with 白波 wordmark centered inside.
- *  4. SplashFooter: status row (glowing dot + rotating copy) + bottom rail with EQ glyph.
+ * Layer order (z-bottom → z-top):
+ *  1. Canvas: bare --background. No additive wash.
+ *  2. SplashLamp: single warm --favorite radial glow at (82%, 18%).
+ *  3. SplashGlass: monochrome top/bottom film haze.
+ *  4. SplashWordmark: 白波 etched on the glass, receding at 0.55 alpha.
+ *  5. SplashRain: full-bleed canvas streaks — sits above the wordmark so
+ *     rain reads as falling between the viewer and the etching.
+ *  6. SplashFooter: absolute bottom, above the rain layer.
  *
- * Exit transition: 540ms opacity → 0, scale → 1.015, blur 0 → 6px.
+ * Exit: 540ms opacity → 0, blur 0 → 8px (fog-out). No scale.
+ * Palette rule: --primary appears only on the status dot. No other violet.
  */
 export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashScreenProps) {
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+
+  // Cached at mount — doesn't change during a 2.5s splash.
+  const reducedMotion = useMemo(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    []
+  );
 
   const { isVisible, isDismissing, showStatus, variant, messageKey, version } = useSplashScreen({
     isLoading,
@@ -38,6 +51,8 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
 
   if (!isVisible) return null;
 
+  const disableBreathLoop = reducedMotion || lowPerformanceMode;
+
   return (
     <div
       className={cn(
@@ -46,60 +61,46 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       )}
       style={{
         transition: isDismissing
-          ? 'opacity 540ms ease-out, transform 540ms ease-out, filter 540ms ease-out'
+          ? 'opacity 540ms ease-out, filter 540ms ease-out'
           : undefined,
         opacity: isDismissing ? 0 : 1,
-        transform: isDismissing ? 'scale(1.015)' : 'scale(1)',
-        filter: isDismissing ? 'blur(6px)' : 'blur(0px)',
+        filter: isDismissing
+          ? reducedMotion
+            ? 'blur(0px)'
+            : 'blur(8px)'
+          : 'blur(0px)',
       }}
     >
       {/* Drag region — keeps the frameless window movable during boot */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
-      {/* Field radial glows */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        {/* Primary glow — upper-center */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 1100px 900px at 50% 38%, oklch(from var(--primary) l c h / 0.12) 0%, transparent 70%)',
-          }}
-        />
-        {/* Brand-600 glow — lower-center */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 1300px 600px at 50% 80%, oklch(from var(--brand-600) l c h / 0.08) 0%, transparent 75%)',
-          }}
-        />
-        {/* Rim vignette */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, oklch(from var(--background) calc(l - 0.04) c h / 0.6) 100%)',
-          }}
-        />
+      {/* Layer 1 & 2: Lamp + Glass film (below wordmark) */}
+      <SplashLamp disabled={disableBreathLoop} />
+      <SplashGlass />
+
+      {/* Layer 3: Wordmark — centered, slightly above true vertical center */}
+      <div
+        className="relative z-10 flex flex-col items-center justify-center pointer-events-none"
+        style={{ marginTop: '-2vh' }}
+      >
+        <SplashWordmark reducedMotion={reducedMotion} />
       </div>
 
-      {/* Window-blind sweep */}
-      <SplashBlindSweep disabled={lowPerformanceMode} />
-
-      {/* Hero — radial waveform with wordmark */}
-      <SplashWaveform
+      {/* Layer 4: Rain canvas — above the wordmark */}
+      <SplashRain
         paused={variant === 'error'}
         lowPerformanceMode={lowPerformanceMode}
-        version={version}
+        reducedMotion={reducedMotion}
       />
 
-      {/* Status row + bottom rail */}
+      {/* Layer 5: Footer — above the rain */}
       <SplashFooter
         showStatus={showStatus}
         variant={variant}
         messageKey={messageKey}
         error={error}
+        version={version}
+        reducedMotion={reducedMotion}
       />
     </div>
   );
