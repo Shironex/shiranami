@@ -40,9 +40,7 @@ export function SplashFooter({
     ? undefined
     : 'shiranami-dot-pulse 1.4s ease-in-out infinite';
 
-  const msgAnimation = reducedMotion
-    ? undefined
-    : 'shiranami-msg-fade 320ms ease-out both';
+  const msgAnimation = reducedMotion ? undefined : 'shiranami-msg-fade 320ms ease-out both';
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col">
