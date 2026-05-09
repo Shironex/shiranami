@@ -29,6 +29,7 @@ export default defineConfig({
         'apps/landing/**',
         'apps/web/src/test/**',
         'apps/desktop/test/**',
+        'packages/database/test/**',
         'packages/database/src/test/**',
         'scripts/**',
         'apps/desktop/esbuild.config.mjs',
