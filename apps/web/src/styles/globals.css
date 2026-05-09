@@ -90,7 +90,8 @@
       opacity: 0.7;
     }
   }
-  @keyframes splash-float {
+  /* Shared mascot float — used by empty-state and search mascot images */
+  @keyframes shiranami-float {
     0%,
     100% {
       transform: translateY(0) rotate(0deg);
@@ -105,46 +106,57 @@
       transform: translateY(-6px) rotate(-1.5deg);
     }
   }
-  @keyframes splash-bounce-in {
+
+  /* Splash entrance — wordmark + waveform ring */
+  @keyframes shiranami-rise {
     0% {
       opacity: 0;
-      transform: scale(0) translateY(20px);
+      transform: translateY(12px) scale(0.98);
     }
     100% {
       opacity: 1;
-      transform: scale(1) translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
-  @keyframes splash-fade-up {
-    0% {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes splash-twinkle {
+
+  /* Outer glow breathing */
+  @keyframes shiranami-glow-breathe {
     0%,
     100% {
-      opacity: 0;
-      transform: scale(0);
-    }
-    20% {
-      opacity: 0.8;
-      transform: scale(1.2);
-    }
-    50% {
-      opacity: 0.5;
-      transform: scale(0.8);
-    }
-    80% {
-      opacity: 0.7;
+      opacity: 0.85;
       transform: scale(1);
     }
+    50% {
+      opacity: 1;
+      transform: scale(1.025);
+    }
   }
-  @keyframes splash-msg-swap {
+
+  /* Window-blind sweep strip */
+  @keyframes shiranami-blind-sweep {
+    0% {
+      transform: translateX(-20vw);
+    }
+    100% {
+      transform: translateX(120vw);
+    }
+  }
+
+  /* Status dot pulse */
+  @keyframes shiranami-dot-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(1.15);
+    }
+  }
+
+  /* Status message swap */
+  @keyframes shiranami-msg-fade {
     0% {
       opacity: 0;
       transform: translateY(4px);

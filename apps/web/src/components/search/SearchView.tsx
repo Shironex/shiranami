@@ -255,7 +255,7 @@ export function SearchView() {
                       src="./mascot.png"
                       alt=""
                       aria-hidden="true"
-                      className="w-[4.5rem] h-[4.5rem] object-contain opacity-70 animate-[splash-float_6s_ease-in-out_infinite]"
+                      className="w-[4.5rem] h-[4.5rem] object-contain opacity-70 animate-[shiranami-float_6s_ease-in-out_infinite]"
                       draggable={false}
                     />
                   </div>
