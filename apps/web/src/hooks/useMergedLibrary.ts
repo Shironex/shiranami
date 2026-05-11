@@ -12,10 +12,16 @@ import type { Track } from '@/stores/types';
  * overlay entries exist, allocates a single new array and patches only the
  * matching ids; the rest are reused by reference.
  *
+ * Merges every overlay field (`isFavorite`, `playCount`) on top of the seed
+ * via a shallow spread, so an overlay-carried play-count bump or favorite
+ * toggle is reflected here without the canonical `library` array changing
+ * identity.
+ *
  * Memoised over `(library, overlay-version)`. Re-runs on every overlay
  * mutation but the cost is O(n) once per mutation — sub-1Hz for favorite
- * toggles, much cheaper than the full `library.map(...)` reallocation that
- * the previous `toggleFavorite` performed.
+ * toggles and recorded plays, much cheaper than the full `library.map(...)`
+ * reallocation the previous `toggleFavorite` / `incrementTrackPlayCount`
+ * performed.
  */
 export function useMergedLibrary(): Track[] {
   const library = useLibraryStore(s => s.library);
