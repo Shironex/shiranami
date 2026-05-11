@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useMergedLibrary } from '@/hooks/useMergedLibrary';
 import type { Track } from '@/stores/types';
 import { useHistoryQuery } from '@/hooks/queries/useHistory';
 import { MIX_LIMIT, type MixId } from '@/components/mixes/mixDefinitions';
 
 export function useMixTracks(mixId: MixId | null): Track[] {
-  const library = useLibraryStore((s) => s.library);
+  // Merged so `most-played` / `never-played` see the overlay-bumped play count
+  // recorded this session, not the stale canonical-library seed value.
+  const library = useMergedLibrary();
   const { data: historyData } = useHistoryQuery('all');
 
   return useMemo(() => {

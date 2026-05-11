@@ -88,12 +88,25 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   scanState: 'idle',
   scanProgress: null,
 
-  setLibrary: tracks => set({ library: tracks }),
+  setLibrary: tracks => {
+    // A fresh canonical array carries the latest DB-side isFavorite/playCount
+    // for the whole world, so any session-scoped overlay deltas are now folded
+    // into `tracks` — drop them. In practice this only fires on cold boot
+    // (`useLibrarySync` seeds when the library is empty) and on HMR, where the
+    // overlay is already empty; it's the correct reconciliation point either
+    // way and keeps the invariant explicit.
+    useTrackOverlayStore.getState().clearAll();
+    set({ library: tracks });
+  },
 
   addToLibrary: tracks => set(s => ({ library: [...s.library, ...tracks] })),
 
   removeFromLibrary: trackIds => {
     const ids = new Set(trackIds);
+    // Drop overlay entries for tracks leaving the library so they don't linger
+    // as dead weight (and can't pollute a future re-import that reuses an id).
+    const overlayStore = useTrackOverlayStore.getState();
+    for (const id of ids) overlayStore.clearOverlay(id);
     set(s => ({ library: s.library.filter(t => !ids.has(t.id)) }));
 
     const playback = usePlaybackStore.getState();
@@ -165,16 +178,36 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   },
 
   incrementTrackPlayCount: trackId => {
+    const overlayStore = useTrackOverlayStore.getState();
+    const overlayEntry = overlayStore.overlays.get(trackId);
     const { library } = get();
-    const increment = (t: Track) => ({ ...t, playCount: (t.playCount ?? 0) + 1 });
+    const target = library.find(t => t.id === trackId);
 
-    const hasInLibrary = library.some(t => t.id === trackId);
-    if (hasInLibrary) {
-      set({
-        library: library.map(t => (t.id === trackId ? increment(t) : t)),
-      });
-    }
-    syncPlaybackTrack(trackId, increment);
+    // Resolve the current effective play count: overlay-first (carries any
+    // earlier bump this session), then the library seed, then the playback
+    // queue / currentTrack (radio / preview tracks that never enter the
+    // library). The overlay stores the absolute value, mirroring how
+    // `isFavorite` is modeled — `useMergedLibrary` / `useTrack` merge it on
+    // top of the seed, so the effective value is always correct.
+    const playback = usePlaybackStore.getState();
+    const queueTrack = playback.queue.find(t => t.id === trackId);
+    const currentTrack = playback.currentTrack;
+    const currentCount =
+      overlayEntry?.playCount ??
+      target?.playCount ??
+      queueTrack?.playCount ??
+      (currentTrack?.id === trackId ? currentTrack.playCount : undefined) ??
+      0;
+    const nextCount = currentCount + 1;
+
+    // Library array reference is intentionally NOT touched — the overlay
+    // carries the new count until the next full library refetch (rescan /
+    // import) reseeds canonical state and `clearAll()` drops the session
+    // deltas. Skipping the reallocation here is the entire point: AlbumGrid's
+    // groupTracksByAlbum memo and LibraryView's filteredLibrary memo no longer
+    // invalidate on a recorded play.
+    overlayStore.setOverlay(trackId, { playCount: nextCount });
+    syncPlaybackTrack(trackId, t => ({ ...t, playCount: nextCount }));
 
     if (IS_ELECTRON) {
       window.electronAPI.db.tracks.incrementPlayCount(trackId).catch(err => {

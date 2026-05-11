@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { useLibraryStore } from './useLibraryStore';
 import { usePlaybackStore } from './usePlaybackStore';
 import { useTrackOverlayStore } from './useTrackOverlayStore';
+import { useMergedLibrary } from '@/hooks/useMergedLibrary';
 import type { Track } from './types';
 
 vi.mock('@/lib/platform', () => ({
@@ -43,6 +45,31 @@ describe('useLibraryStore', () => {
       useLibraryStore.getState().setLibrary([makeTrack('a'), makeTrack('b')]);
       expect(useLibraryStore.getState().library).toHaveLength(2);
     });
+
+    it('clears the mutation overlay so a fresh canonical array supersedes session deltas', () => {
+      useLibraryStore.setState({ library: [makeTrack('a')] });
+      useTrackOverlayStore.getState().setOverlay('a', { isFavorite: true, playCount: 9 });
+
+      useLibraryStore.getState().setLibrary([makeTrack('a', { isFavorite: true, playCount: 9 })]);
+
+      expect(useTrackOverlayStore.getState().overlays.size).toBe(0);
+    });
+
+    it('yields the DB value from useMergedLibrary after re-seed with a bumped count, not the stale overlay value', () => {
+      // Simulate a play-count bump accumulating in the overlay during the session.
+      useLibraryStore.getState().setLibrary([makeTrack('a', { playCount: 2 })]);
+      useLibraryStore.getState().incrementTrackPlayCount('a');
+      expect(useTrackOverlayStore.getState().overlays.get('a')?.playCount).toBe(3);
+
+      // A full library re-seed (e.g. from applyEnrichResults) brings the
+      // authoritative DB value. setLibrary clears the overlay, so useMergedLibrary
+      // must return the DB value (4), not the stale overlay value (3).
+      useLibraryStore.getState().setLibrary([makeTrack('a', { playCount: 4 })]);
+
+      expect(useTrackOverlayStore.getState().overlays.size).toBe(0);
+      const { result } = renderHook(() => useMergedLibrary());
+      expect(result.current[0].playCount).toBe(4);
+    });
   });
 
   describe('addToLibrary', () => {
@@ -50,6 +77,15 @@ describe('useLibraryStore', () => {
       useLibraryStore.setState({ library: [makeTrack('a')] });
       useLibraryStore.getState().addToLibrary([makeTrack('b'), makeTrack('c')]);
       expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['a', 'b', 'c']);
+    });
+
+    it('does not touch the overlay (existing tracks keep their session deltas)', () => {
+      useLibraryStore.setState({ library: [makeTrack('a')] });
+      useTrackOverlayStore.getState().setOverlay('a', { playCount: 4 });
+
+      useLibraryStore.getState().addToLibrary([makeTrack('b')]);
+
+      expect(useTrackOverlayStore.getState().overlays.get('a')).toEqual({ playCount: 4 });
     });
   });
 
@@ -60,6 +96,19 @@ describe('useLibraryStore', () => {
       });
       useLibraryStore.getState().removeFromLibrary(['b']);
       expect(useLibraryStore.getState().library.map(t => t.id)).toEqual(['a', 'c']);
+    });
+
+    it('drops overlay entries for removed tracks but keeps them for survivors', () => {
+      useLibraryStore.setState({
+        library: [makeTrack('a'), makeTrack('b')],
+      });
+      useTrackOverlayStore.getState().setOverlay('a', { playCount: 2 });
+      useTrackOverlayStore.getState().setOverlay('b', { isFavorite: true });
+
+      useLibraryStore.getState().removeFromLibrary(['a']);
+
+      expect(useTrackOverlayStore.getState().overlays.has('a')).toBe(false);
+      expect(useTrackOverlayStore.getState().overlays.get('b')).toEqual({ isFavorite: true });
     });
 
     it('removes from library and prunes queue + currentTrack when currently playing', () => {
@@ -303,9 +352,10 @@ describe('useLibraryStore', () => {
   // --- incrementTrackPlayCount ---
 
   describe('incrementTrackPlayCount', () => {
-    it('increments across library, queue, and currentTrack', () => {
+    it('writes the bumped count to the overlay and leaves the library array reference stable', () => {
       const t = makeTrack('x', { playCount: 2 });
-      useLibraryStore.setState({ library: [t] });
+      const libraryRefBefore = [t];
+      useLibraryStore.setState({ library: libraryRefBefore });
       usePlaybackStore.setState({
         queue: [t],
         currentTrack: t,
@@ -314,16 +364,50 @@ describe('useLibraryStore', () => {
 
       useLibraryStore.getState().incrementTrackPlayCount('x');
 
-      expect(useLibraryStore.getState().library[0].playCount).toBe(3);
+      // Overlay carries the absolute bumped count (seed 2 -> 3).
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({ playCount: 3 });
+      // Canonical library array reference is unchanged — the whole point of
+      // routing play counts through the overlay store.
+      expect(useLibraryStore.getState().library).toBe(libraryRefBefore);
+      expect(useLibraryStore.getState().library[0].playCount).toBe(2);
+      // Playback queue + currentTrack still get the new value (cross-store sync
+      // remains library's responsibility — they're not overlay-aware).
       expect(usePlaybackStore.getState().queue[0].playCount).toBe(3);
       expect(usePlaybackStore.getState().currentTrack!.playCount).toBe(3);
     });
 
-    it('defaults from undefined playCount to 1', () => {
+    it('defaults from undefined playCount to 1 in the overlay', () => {
       const t = makeTrack('x');
       useLibraryStore.setState({ library: [t] });
       useLibraryStore.getState().incrementTrackPlayCount('x');
-      expect(useLibraryStore.getState().library[0].playCount).toBe(1);
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({ playCount: 1 });
+    });
+
+    it('reads the current count from the overlay if one already exists (no double-count on refetch-free bumps)', () => {
+      const t = makeTrack('x', { playCount: 5 });
+      useLibraryStore.setState({ library: [t] });
+      // First bump: 5 -> 6.
+      useLibraryStore.getState().incrementTrackPlayCount('x');
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({ playCount: 6 });
+      // Second bump reads the overlay (6), not the stale library seed (5) -> 7.
+      useLibraryStore.getState().incrementTrackPlayCount('x');
+      expect(useTrackOverlayStore.getState().overlays.get('x')).toEqual({ playCount: 7 });
+    });
+
+    it('bumps a track that lives only in the playback queue (radio/preview case)', () => {
+      const radioTrack = makeTrack('radio', { playCount: 3 });
+      useLibraryStore.setState({ library: [] });
+      usePlaybackStore.setState({
+        queue: [radioTrack],
+        currentTrack: radioTrack,
+        queueIndex: 0,
+      });
+
+      useLibraryStore.getState().incrementTrackPlayCount('radio');
+
+      expect(useTrackOverlayStore.getState().overlays.get('radio')).toEqual({ playCount: 4 });
+      expect(usePlaybackStore.getState().queue[0].playCount).toBe(4);
+      expect(usePlaybackStore.getState().currentTrack!.playCount).toBe(4);
     });
 
     it('persists to the DB via electronAPI', () => {

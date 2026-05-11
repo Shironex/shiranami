@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useMergedLibrary } from '@/hooks/useMergedLibrary';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Sparkles, Play, Shuffle, ArrowLeft } from 'lucide-react';
@@ -17,7 +18,9 @@ import { MixesViewSkeleton } from './MixesViewSkeleton';
 
 export function MixesView() {
   const { t } = useTranslation('mixes');
-  const library = useLibraryStore(s => s.library);
+  // Merged so the mix previews / counts (`most-played`, `never-played`) reflect
+  // play counts bumped this session via the overlay store.
+  const library = useMergedLibrary();
   const libraryLoaded = useLibraryStore(s => s.libraryLoaded);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const isPlaying = usePlaybackStore(s => s.isPlaying);

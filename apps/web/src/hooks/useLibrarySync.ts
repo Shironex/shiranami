@@ -35,7 +35,9 @@ export function useLibrarySync() {
   useEffect(() => {
     if (!data || data.length === 0) return;
     if (useLibraryStore.getState().library.length === 0) {
-      useLibraryStore.setState({ library: data });
+      // Through the action so the mutation overlay is reconciled away — the
+      // freshly-fetched array carries the latest DB-side isFavorite/playCount.
+      useLibraryStore.getState().setLibrary(data);
     }
     // Drop the React-Query copy after seeding Zustand. Zustand is the runtime
     // source of truth; keeping the cache around is ~20 MB of dead state at 50k
