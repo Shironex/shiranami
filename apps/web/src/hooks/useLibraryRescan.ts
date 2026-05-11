@@ -145,7 +145,9 @@ export function useLibraryRescan(): UseLibraryRescanResult {
         await window.electronAPI.db.tracks.removeMany(allTracks.map(t => t.id));
       }
       clearQueue();
-      useLibraryStore.setState({ library: [] });
+      // Go through the action (not setState) so the mutation overlay is
+      // cleared alongside the canonical array.
+      useLibraryStore.getState().setLibrary([]);
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: playlistKeys.all });
       setConfirmClear(false);
