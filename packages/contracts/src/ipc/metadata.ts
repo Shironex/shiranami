@@ -9,6 +9,13 @@
 /** Where a metadata match came from. `'none'` means no match was found. */
 export type MetadataLookupSource = 'itunes' | 'youtube' | 'none';
 
+/**
+ * Source value on a finished `EnrichTrackResult`. Extends `MetadataLookupSource`
+ * with `'preview'` for the synthetic result produced by the DB-only apply path
+ * in `applySingleTrack` (writeToFile: false).
+ */
+export type EnrichResultSource = MetadataLookupSource | 'preview';
+
 /** Input track passed to the bulk / preview enrich IPC calls. */
 export interface EnrichTrackInput {
   id: string;
@@ -39,7 +46,7 @@ export interface EnrichTrackResult {
   success: boolean;
   updatedFields: EnrichUpdatedFields;
   /** Source of the match (`'itunes'`, `'youtube'`, `'none'`, or `'preview'`). */
-  source: string;
+  source: EnrichResultSource;
   /**
    * Match confidence in the 0-1 range, when a match was found. Absent for
    * `source: 'none'` (and for the synthetic `'preview'` apply-results path).
@@ -56,8 +63,8 @@ export interface EnrichProgress {
   status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
   /** Match confidence (0-1), populated on the `done` event when a match was found. */
   confidence?: number;
-  /** Match source, populated on the `done` event when a match was found. */
-  source?: string;
+  /** Match source, populated on the `done` event. Includes `'none'` when no match was found. */
+  source?: MetadataLookupSource;
 }
 
 /** Result of the standalone `metadata:lookup` IPC call. */
