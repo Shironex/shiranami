@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { useLibraryStore } from './useLibraryStore';
 import { usePlaybackStore } from './usePlaybackStore';
 import { useTrackOverlayStore } from './useTrackOverlayStore';
+import { useMergedLibrary } from '@/hooks/useMergedLibrary';
 import type { Track } from './types';
 
 vi.mock('@/lib/platform', () => ({
@@ -51,6 +53,22 @@ describe('useLibraryStore', () => {
       useLibraryStore.getState().setLibrary([makeTrack('a', { isFavorite: true, playCount: 9 })]);
 
       expect(useTrackOverlayStore.getState().overlays.size).toBe(0);
+    });
+
+    it('yields the DB value from useMergedLibrary after re-seed with a bumped count, not the stale overlay value', () => {
+      // Simulate a play-count bump accumulating in the overlay during the session.
+      useLibraryStore.getState().setLibrary([makeTrack('a', { playCount: 2 })]);
+      useLibraryStore.getState().incrementTrackPlayCount('a');
+      expect(useTrackOverlayStore.getState().overlays.get('a')?.playCount).toBe(3);
+
+      // A full library re-seed (e.g. from applyEnrichResults) brings the
+      // authoritative DB value. setLibrary clears the overlay, so useMergedLibrary
+      // must return the DB value (4), not the stale overlay value (3).
+      useLibraryStore.getState().setLibrary([makeTrack('a', { playCount: 4 })]);
+
+      expect(useTrackOverlayStore.getState().overlays.size).toBe(0);
+      const { result } = renderHook(() => useMergedLibrary());
+      expect(result.current[0].playCount).toBe(4);
     });
   });
 

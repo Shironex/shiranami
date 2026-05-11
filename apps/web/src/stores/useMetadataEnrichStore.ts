@@ -117,7 +117,7 @@ async function applyEnrichResults(results: EnrichTrackResult[]): Promise<void> {
   const allDbTracks = await window.electronAPI.db.tracks.getAll();
   const { mapDbTracksToTracks } = await import('@/lib/trackMapper');
   const refreshedTracks = mapDbTracksToTracks(allDbTracks as Record<string, unknown>[]);
-  useLibraryStore.setState({ library: refreshedTracks });
+  useLibraryStore.getState().setLibrary(refreshedTracks);
 
   // Patch playback store if the affected track is currently playing or queued —
   // otherwise the player bar / queue panel would render stale fields until the
