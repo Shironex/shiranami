@@ -1,3 +1,10 @@
+import type {
+  EnrichTrackInput,
+  EnrichTrackResult,
+  EnrichProgress,
+  MetadataLookupResult,
+} from '@shiranami/contracts';
+
 export interface Playlist {
   id: string;
   name: string;
@@ -357,87 +364,17 @@ export interface ElectronAPI {
     ) => () => void;
   };
   metadata: {
-    lookup: (
-      title: string,
-      artist: string
-    ) => Promise<{
-      title?: string;
-      artist?: string;
-      album?: string;
-      genre?: string;
-      year?: number;
-      trackNumber?: number;
-      coverImageUrl?: string;
-      source: 'itunes' | 'youtube' | 'none';
-      confidence: number;
-    }>;
+    lookup: (title: string, artist: string) => Promise<MetadataLookupResult>;
     enrichTracks: (
-      tracks: Array<{
-        id: string;
-        filePath: string;
-        title: string;
-        artist: string;
-        album: string;
-        albumArt: string | null;
-        genre: string;
-        year: number | null;
-        trackNumber: number | null;
-      }>,
+      tracks: EnrichTrackInput[],
       options: { writeToFile: boolean; onlyMissing: boolean }
-    ) => Promise<
-      Array<{
-        id: string;
-        success: boolean;
-        updatedFields: Partial<{
-          title: string;
-          artist: string;
-          album: string;
-          genre: string;
-          year: number;
-          trackNumber: number;
-          albumArt: string;
-        }>;
-        source: string;
-        error?: string;
-      }>
-    >;
+    ) => Promise<EnrichTrackResult[]>;
     previewEnrich: (
-      track: {
-        id: string;
-        filePath: string;
-        title: string;
-        artist: string;
-        album: string;
-        albumArt: string | null;
-        genre: string;
-        year: number | null;
-        trackNumber: number | null;
-      },
+      track: EnrichTrackInput,
       options: { onlyMissing: boolean }
-    ) => Promise<{
-      id: string;
-      success: boolean;
-      updatedFields: Partial<{
-        title: string;
-        artist: string;
-        album: string;
-        genre: string;
-        year: number;
-        trackNumber: number;
-        albumArt: string;
-      }>;
-      source: string;
-      error?: string;
-    }>;
+    ) => Promise<EnrichTrackResult>;
     cancelEnrichment: () => Promise<void>;
-    onEnrichProgress: (
-      callback: (data: {
-        current: number;
-        total: number;
-        trackName: string;
-        status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
-      }) => void
-    ) => () => void;
+    onEnrichProgress: (callback: (data: EnrichProgress) => void) => () => void;
   };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;

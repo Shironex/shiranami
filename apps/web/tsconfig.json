@@ -12,10 +12,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@shiranami/contracts": ["../../packages/contracts/src"],
       "@shiranami/shared": ["../../packages/shared/src"],
       "@shiranami/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": ["src/**/*", "../../packages/shared/src/**/*"],
+  "include": ["src/**/*", "../../packages/contracts/src/**/*", "../../packages/shared/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
