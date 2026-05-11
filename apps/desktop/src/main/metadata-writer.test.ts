@@ -197,6 +197,32 @@ describe('metadata-writer', () => {
     });
   });
 
+  describe('FFmpeg arguments', () => {
+    it('preserves embedded cover art with -map 0:v? when no new cover is supplied', async () => {
+      await writeMetadataToFile('/music/song.m4a', baseOptions);
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      const args = mockExecFile.mock.calls[0][1] as string[];
+      // The optional video-stream mapping is what stops a text-only tag write
+      // from dropping the embedded album art on m4a / ogg / opus files.
+      expect(args).toContain('-map');
+      expect(args).toContain('0:v?');
+      // ...and it must NOT be the unconditional (drop-art) form.
+      expect(args).not.toContain('0:v');
+    });
+
+    it('maps the supplied cover image as attached_pic instead of preserving the old one', async () => {
+      await writeMetadataToFile('/music/song.m4a', coverOptions);
+
+      expect(mockExecFile).toHaveBeenCalledTimes(1);
+      const args = mockExecFile.mock.calls[0][1] as string[];
+      expect(args).toContain('1:v');
+      expect(args).toContain('attached_pic');
+      // When a new cover is provided we don't also try to preserve a stale one.
+      expect(args).not.toContain('0:v?');
+    });
+  });
+
   describe('FFmpeg availability', () => {
     it('skips writing when ffmpeg is not installed', async () => {
       mockIsFFmpegInstalled.mockReturnValue(false);
