@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import type { EnrichTrackInput } from '../metadata-enrich';
+import type { EnrichTrackInput } from '@shiranami/contracts';
 
 const uuid = z.string().uuid();
 const nonEmpty = z.string().min(1);
 
 /**
- * Mirrors `EnrichTrackInput` at `metadata-enrich.ts:7-17`. The compile-time
+ * Mirrors `EnrichTrackInput` from `@shiranami/contracts`. The compile-time
  * check below fails the build if the interface and this schema drift apart.
  */
 export const enrichTrackInputSchema = z.object({

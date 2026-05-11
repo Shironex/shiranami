@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore, type EnrichUpdatedFields } from '@/stores/useMetadataEnrichStore';
+import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
 
 interface TrackEnrichDialogProps {
   open: boolean;
@@ -24,7 +25,13 @@ interface TrackEnrichDialogProps {
 
 type DialogState =
   | { kind: 'searching' }
-  | { kind: 'found'; updatedFields: EnrichUpdatedFields; source: string; coverArt?: string }
+  | {
+      kind: 'found';
+      updatedFields: EnrichUpdatedFields;
+      source: string;
+      confidence?: number;
+      coverArt?: string;
+    }
   | { kind: 'no-match' }
   | { kind: 'applied' }
   | { kind: 'error'; message: string };
@@ -75,6 +82,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
         kind: 'found',
         updatedFields: result.updatedFields,
         source: result.source,
+        confidence: result.confidence,
         coverArt: result.updatedFields.albumArt,
       });
     } catch (err) {
@@ -196,9 +204,12 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                 <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t('foundSubtitle', { source: state.source, count: fieldRows.length })}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                {t('foundSubtitle', { source: state.source, count: fieldRows.length })}
+              </p>
+              <EnrichConfidenceBadge confidence={state.confidence} />
+            </div>
 
             <div className="rounded-xl border border-border/30 divide-y divide-border/30 overflow-hidden">
               {fieldRows.map(({ key, current, proposed }) => (

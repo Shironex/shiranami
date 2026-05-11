@@ -9,6 +9,7 @@ import {
 import {
   registerMetadataEnrichHandlers,
   cleanupMetadataEnrichHandlers,
+  ENRICH_CONCURRENCY,
   type EnrichTrackInput,
   type EnrichTrackResult,
 } from './metadata-enrich';
@@ -201,23 +202,27 @@ describe('metadata-enrich handlers', () => {
   // metadata:enrich:cancel
   // ---------------------------------------------------------------
   describe('metadata:enrich:cancel', () => {
-    it('cancels in-progress enrichment', async () => {
-      const tracks = [
-        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'Song 1' }),
-        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Song 2' }),
-        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440003', title: 'Song 3' }),
-      ];
+    it('stops scheduling new tracks once cancelled (worker pool)', async () => {
+      // More tracks than the pool width: the first ENRICH_CONCURRENCY start
+      // immediately; cancelling during the first track's lookup means the rest
+      // of the queue is never picked up.
+      const total = ENRICH_CONCURRENCY + 4;
+      const tracks = Array.from({ length: total }, (_, i) =>
+        makeTrack({
+          id: `550e8400-e29b-41d4-a716-44665544${String(i).padStart(4, '0')}`,
+          title: `Song ${i + 1}`,
+        })
+      );
 
       const cancelHandler = ipcHandlers.get('metadata:enrich:cancel')!;
 
       mockedLookup
-        .mockResolvedValueOnce(makeLookupResult({ coverImageUrl: undefined })) // track 1: completes
         .mockImplementationOnce(async () => {
-          // track 2: trigger cancel mid-flight, then resolve
+          // First in-flight track triggers the cancel, then resolves.
           await cancelHandler(null as never);
           return makeLookupResult({ coverImageUrl: undefined });
         })
-        .mockResolvedValue(makeLookupResult({ coverImageUrl: undefined })); // unused safety
+        .mockResolvedValue(makeLookupResult({ coverImageUrl: undefined }));
 
       const handler = ipcHandlers.get('metadata:enrich:tracks')!;
       const results = (await handler(null as never, tracks, {
@@ -225,13 +230,13 @@ describe('metadata-enrich handlers', () => {
         onlyMissing: false,
       })) as EnrichTrackResult[];
 
-      // Track 1 completed; track 2 completed (cancel flag set after its lookup resolved);
-      // track 3 short-circuits at the top-of-loop enrichCancelled check and never runs.
-      expect(results.length).toBe(2);
-      expect(results[0].id).toBe('550e8400-e29b-41d4-a716-446655440001');
-      expect(results[0].success).toBe(true);
+      // Only the tracks the pool had already picked up complete; the queued
+      // remainder never runs.
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      expect(results.length).toBeLessThanOrEqual(ENRICH_CONCURRENCY);
+      expect(results.length).toBeLessThan(total);
 
-      // Should have sent a 'cancelled' progress event for track 3
+      // A 'cancelled' progress event was emitted.
       const progressCalls = win.webContents.send.mock.calls.filter(
         (c: unknown[]) => c[0] === 'metadata:enrich:progress'
       );
@@ -239,6 +244,58 @@ describe('metadata-enrich handlers', () => {
         (c: unknown[]) => (c[1] as { status: string }).status === 'cancelled'
       );
       expect(cancelledProgress).toBeDefined();
+    });
+
+    it('preserves input order even though tasks finish out of order', async () => {
+      // Make the second track's lookup resolve before the first's.
+      let releaseFirst: (() => void) | null = null;
+      mockedLookup
+        .mockImplementationOnce(
+          () =>
+            new Promise<MetadataLookupResult>(resolve => {
+              releaseFirst = () => resolve(makeLookupResult({ coverImageUrl: undefined }));
+            })
+        )
+        .mockImplementationOnce(async () => {
+          // Second track finishes immediately, then unblocks the first.
+          releaseFirst?.();
+          return makeLookupResult({ coverImageUrl: undefined });
+        });
+
+      const tracks = [
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440001', title: 'First' }),
+        makeTrack({ id: '550e8400-e29b-41d4-a716-446655440002', title: 'Second' }),
+      ];
+
+      const handler = ipcHandlers.get('metadata:enrich:tracks')!;
+      const results = (await handler(null as never, tracks, {
+        writeToFile: false,
+        onlyMissing: false,
+      })) as EnrichTrackResult[];
+
+      expect(results.map(r => r.id)).toEqual([
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440002',
+      ]);
+    });
+
+    it('threads match confidence + source into the done progress event', async () => {
+      mockedLookup.mockResolvedValue(
+        makeLookupResult({ coverImageUrl: undefined, confidence: 0.85, source: 'itunes' })
+      );
+
+      const handler = ipcHandlers.get('metadata:enrich:tracks')!;
+      await handler(null as never, [makeTrack()], { writeToFile: false, onlyMissing: false });
+
+      const progressCalls = win.webContents.send.mock.calls.filter(
+        (c: unknown[]) => c[0] === 'metadata:enrich:progress'
+      );
+      const doneEvent = progressCalls
+        .map(c => c[1] as { status: string; confidence?: number; source?: string })
+        .find(p => p.status === 'done');
+      expect(doneEvent).toBeDefined();
+      expect(doneEvent!.confidence).toBe(0.85);
+      expect(doneEvent!.source).toBe('itunes');
     });
   });
 

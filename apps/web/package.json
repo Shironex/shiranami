@@ -27,6 +27,7 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@shiranami/contracts": "workspace:*",
     "@shiranami/shared": "workspace:*",
     "@tanstack/react-query": "^5.100.9",
     "class-variance-authority": "^0.7.1",

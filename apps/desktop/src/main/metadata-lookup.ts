@@ -1,7 +1,10 @@
 import { spawn } from 'child_process';
+import type { MetadataLookupResult } from '@shiranami/contracts';
 import { requestBuffer, requestJson } from './http';
 import { getYtDlpPath, isYtDlpInstalled } from './ytdlp-manager';
 import { logger } from './logger';
+
+export type { MetadataLookupResult } from '@shiranami/contracts';
 
 /**
  * Clean a title for search: strip parenthetical noise like (Official Video),
@@ -46,18 +49,6 @@ export function cleanTitleForSearch(title: string, artist: string): string {
     .trim();
 
   return cleaned || title;
-}
-
-export interface MetadataLookupResult {
-  title?: string;
-  artist?: string;
-  album?: string;
-  genre?: string;
-  year?: number;
-  trackNumber?: number;
-  coverImageUrl?: string;
-  source: 'itunes' | 'youtube' | 'none';
-  confidence: number; // 0-1 how confident the match is
 }
 
 interface ITunesResult {
