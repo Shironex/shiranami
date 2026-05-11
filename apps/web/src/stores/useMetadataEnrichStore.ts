@@ -3,6 +3,7 @@ import type {
   EnrichProgress,
   EnrichTrackResult,
   EnrichUpdatedFields,
+  EnrichResultSource,
 } from '@shiranami/contracts';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -12,7 +13,7 @@ import i18n from '@/lib/i18n';
 
 const SKIPPED_IDS_STORE_KEY = 'metadata-enrich.skippedIds';
 
-export type { EnrichUpdatedFields, EnrichTrackResult } from '@shiranami/contracts';
+export type { EnrichUpdatedFields, EnrichTrackResult, EnrichResultSource } from '@shiranami/contracts';
 
 /** Field-level old→new change for one track in the last-run report. */
 export interface EnrichFieldDiff {
@@ -25,7 +26,7 @@ export interface EnrichFieldDiff {
 export interface EnrichLastRunEntry {
   id: string;
   trackName: string;
-  source: string;
+  source: EnrichResultSource;
   confidence?: number;
   success: boolean;
   error?: string;
@@ -273,7 +274,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
               const oldRaw = before ? before[field] : undefined;
               const oldValue =
                 oldRaw === undefined || oldRaw === '' ? null : (oldRaw as string | number);
-              return [{ field, oldValue, newValue }];
+              return newValue === oldValue ? [] : [{ field, oldValue, newValue }];
             });
             return {
               id: r.id,
