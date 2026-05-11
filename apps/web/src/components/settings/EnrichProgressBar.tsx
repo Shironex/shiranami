@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Loader2, Check, X, Ban } from 'lucide-react';
+import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
 
 /**
  * Isolated subscriber for high-frequency progress state.
@@ -36,9 +37,10 @@ export function EnrichProgressBar() {
         {progress.status === 'downloading' && t('lib.enrichDownloading')}
         {progress.status === 'writing' && t('lib.enrichWriting')}
         {progress.status === 'done' && (
-          <span className="flex items-center gap-1 min-w-0">
+          <span className="flex items-center gap-1.5 min-w-0">
             <Check className="w-3 h-3 text-green-500 shrink-0" aria-hidden="true" />
             <span className="truncate">{progress.trackName}</span>
+            <EnrichConfidenceBadge confidence={progress.confidence} />
           </span>
         )}
         {progress.status === 'error' && (
