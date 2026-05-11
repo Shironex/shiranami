@@ -1,4 +1,4 @@
-import { type ReactNode, useState, useCallback } from 'react';
+import { type ReactNode, memo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -25,7 +25,7 @@ export interface TrackRowContentProps {
   dragHandle?: ReactNode;
 }
 
-export function TrackRowContent({
+function TrackRowContentImpl({
   track,
   index,
   queue,
@@ -43,30 +43,30 @@ export function TrackRowContent({
 
   const isSelected = useSelectionStore(s => s.selectedTrackIds.has(track.id));
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
-  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
   const toggleTrack = useSelectionStore(s => s.toggleTrack);
   const selectRange = useSelectionStore(s => s.selectRange);
   const clearSelection = useSelectionStore(s => s.clearSelection);
 
-  // Heart icon reads the live overlay value so a toggle anywhere in the app
-  // (player bar, context menu, this row) reflects on every surface without
-  // reallocating the library array. Falls back to the seed value on the
-  // passed-in `track` when no overlay entry exists.
-  const overlayVersion = useTrackOverlayStore(s => s.version);
-  void overlayVersion;
-  const overlayFavorite = useTrackOverlayStore.getState().overlays.get(track.id)?.isFavorite;
+  // Heart icon subscribes to *this row's* overlay favorite value only — a
+  // toggle anywhere in the app (player bar, context menu, this row) updates
+  // the overlay store, and Zustand's Object.is comparison re-renders just the
+  // toggled row instead of every mounted virtual row. Falls back to the seed
+  // value on the passed-in `track` when no overlay entry exists.
+  const overlayFavorite = useTrackOverlayStore(s => s.overlays.get(track.id)?.isFavorite);
   const isFavorite = overlayFavorite ?? track.isFavorite;
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (hasSelection && !selectedTrackIds.has(track.id)) {
+      // Read the live Set via getState() instead of subscribing to it — the
+      // row only cares whether *it* is in the current selection at click time.
+      if (hasSelection && !useSelectionStore.getState().selectedTrackIds.has(track.id)) {
         clearSelection();
       }
       setContextMenu({ x: e.clientX, y: e.clientY });
     },
-    [hasSelection, track.id, selectedTrackIds, clearSelection]
+    [hasSelection, track.id, clearSelection]
   );
 
   const handleCloseContextMenu = useCallback(() => {
@@ -207,3 +207,13 @@ export function TrackRowContent({
     </>
   );
 }
+
+/**
+ * Memoised so a list re-render (e.g. `react-window` re-rendering all mounted
+ * rows when its `rowProps` object identity changes, or the now-playing row's
+ * `currentTrack`/`isPlaying` flipping) doesn't propagate into every row. The
+ * row's volatile state (its selection flag, its overlay favorite) is read via
+ * row-scoped Zustand selectors above, so a default shallow prop comparison is
+ * enough — only the now-playing flags legitimately change per row.
+ */
+export const TrackRowContent = memo(TrackRowContentImpl);
