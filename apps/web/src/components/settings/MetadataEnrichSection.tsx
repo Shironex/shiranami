@@ -8,6 +8,7 @@ import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsC
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
+import { EnrichLastRunPanel } from '@/components/settings/EnrichLastRunPanel';
 
 // DB writes these exact strings (scan-utility.ts, metadata-service.ts).
 // Module-level so the useMemo dep is a stable reference and never causes a spurious rebuild.
@@ -154,6 +155,9 @@ export function MetadataEnrichSection() {
 
           {/* Progress — isolated subscriber so parent does not re-render on every event */}
           <EnrichProgressBar />
+
+          {/* Post-run report — also an isolated subscriber (lastRunResults only) */}
+          <EnrichLastRunPanel />
 
           {/* Action row — swaps to an inline confirmation when about to write to disk. */}
           {confirmWrite && !isEnriching ? (

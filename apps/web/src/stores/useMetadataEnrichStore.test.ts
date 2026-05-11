@@ -18,6 +18,7 @@ describe('useMetadataEnrichStore', () => {
       progress: null,
       skippedIds: new Set(),
       skippedLoaded: false,
+      lastRunResults: [],
     });
   });
 
@@ -43,17 +44,6 @@ describe('useMetadataEnrichStore', () => {
       trackName: 'Test Track',
       status: 'searching',
     });
-  });
-
-  it('clearSkipped resets skipped IDs and persists', async () => {
-    useMetadataEnrichStore.setState({
-      skippedIds: new Set(['id-1', 'id-2']),
-    });
-
-    await useMetadataEnrichStore.getState().clearSkipped();
-
-    expect(useMetadataEnrichStore.getState().skippedIds.size).toBe(0);
-    expect(window.electronAPI.store.set).toHaveBeenCalledWith('metadata-enrich.skippedIds', []);
   });
 
   it('loadSkipped loads from electron store and prunes stale IDs', async () => {

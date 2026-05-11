@@ -1,4 +1,9 @@
 import { create } from 'zustand';
+import type {
+  EnrichProgress,
+  EnrichTrackResult,
+  EnrichUpdatedFields,
+} from '@shiranami/contracts';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -7,30 +12,34 @@ import i18n from '@/lib/i18n';
 
 const SKIPPED_IDS_STORE_KEY = 'metadata-enrich.skippedIds';
 
-interface EnrichProgress {
-  current: number;
-  total: number;
-  trackName: string;
-  status: 'searching' | 'downloading' | 'writing' | 'done' | 'error' | 'cancelled';
+export type { EnrichUpdatedFields, EnrichTrackResult } from '@shiranami/contracts';
+
+/** Field-level old→new change for one track in the last-run report. */
+export interface EnrichFieldDiff {
+  field: keyof EnrichUpdatedFields;
+  oldValue: string | number | null;
+  newValue: string | number;
 }
 
-interface EnrichTrackResult {
+/** One track's entry in the in-memory post-run report. */
+export interface EnrichLastRunEntry {
   id: string;
-  success: boolean;
-  updatedFields: Partial<{
-    title: string;
-    artist: string;
-    album: string;
-    genre: string;
-    year: number;
-    trackNumber: number;
-    albumArt: string;
-  }>;
+  trackName: string;
   source: string;
+  confidence?: number;
+  success: boolean;
   error?: string;
+  diffs: EnrichFieldDiff[];
 }
 
-export type EnrichUpdatedFields = EnrichTrackResult['updatedFields'];
+const DIFF_FIELD_ORDER: Array<keyof EnrichUpdatedFields> = [
+  'artist',
+  'album',
+  'genre',
+  'year',
+  'trackNumber',
+  'albumArt',
+];
 
 interface MetadataEnrichState {
   /** Bulk run flag (Settings → Library card). */
@@ -43,12 +52,16 @@ interface MetadataEnrichState {
   skippedIds: Set<string>;
   /** Whether skipped IDs have been loaded from disk */
   skippedLoaded: boolean;
+  /**
+   * Results of the most recent bulk run, kept in memory only (never persisted,
+   * cleared when the next run starts). Powers the "View last run" report panel.
+   */
+  lastRunResults: EnrichLastRunEntry[];
 }
 
 interface MetadataEnrichActions {
   updateProgress: (progress: EnrichProgress) => void;
   loadSkipped: () => Promise<void>;
-  clearSkipped: () => Promise<void>;
   cancelEnrichment: () => Promise<void>;
   startEnrichment: (options: {
     onlyMissing: boolean;
@@ -135,6 +148,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
     isSingleTrackEnriching: false,
     skippedIds: new Set(),
     skippedLoaded: false,
+    lastRunResults: [],
 
     updateProgress: progress => set({ progress }),
 
@@ -158,11 +172,6 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       } catch {
         set({ skippedLoaded: true });
       }
-    },
-
-    clearSkipped: async () => {
-      set({ skippedIds: new Set() });
-      await persistSkipped(new Set());
     },
 
     cancelEnrichment: async () => {
@@ -210,7 +219,14 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         await persistSkipped(new Set());
       }
 
-      set({ isEnriching: true, progress: null });
+      // Snapshot pre-run values so the post-run report can show old→new diffs
+      // before applyEnrichResults overwrites the library reference.
+      const beforeById = new Map<string, (typeof candidates)[number]>(
+        candidates.map(t => [t.id, t])
+      );
+
+      // New run starts: drop the previous run's report.
+      set({ isEnriching: true, progress: null, lastRunResults: [] });
 
       try {
         const input = candidates.map(track => ({
@@ -244,6 +260,35 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
         const failedCount = results.filter(r => !r.success).length;
 
         await applyEnrichResults(results);
+
+        // Build the in-memory post-run report. Only tracks that actually
+        // changed something carry diffs; failed / no-match tracks still appear
+        // so the user sees the full picture.
+        const lastRunResults: EnrichLastRunEntry[] = results
+          .map(r => {
+            const before = beforeById.get(r.id);
+            const diffs: EnrichFieldDiff[] = DIFF_FIELD_ORDER.flatMap(field => {
+              const newValue = r.updatedFields[field];
+              if (newValue === undefined) return [];
+              const oldRaw = before ? before[field] : undefined;
+              const oldValue =
+                oldRaw === undefined || oldRaw === '' ? null : (oldRaw as string | number);
+              return [{ field, oldValue, newValue }];
+            });
+            return {
+              id: r.id,
+              trackName: before?.title ?? r.id,
+              source: r.source,
+              confidence: r.confidence,
+              success: r.success,
+              error: r.error,
+              diffs,
+            };
+          })
+          // Skipped (filtered-out) tracks never made it into `results`, so the
+          // report mirrors exactly what the run touched.
+          .filter(entry => entry.success || entry.error);
+        set({ lastRunResults });
 
         // Show toast
         const tToast = (key: string, opts?: Record<string, unknown>) =>
