@@ -50,7 +50,7 @@
     "@shiranami/shared": "workspace:*",
     "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.7.0",
     "cross-env": "^10.1.0",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
