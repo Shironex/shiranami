@@ -132,6 +132,24 @@ pnpm install
 pnpm dev
 ```
 
+#### Native build toolchain
+
+`apps/desktop` depends on `better-sqlite3`, a native node module that needs
+to match Electron's V8 ABI. When a prebuilt binary isn't available for the
+current Electron release (which happens often around major Electron bumps
+— e.g. Electron 42 currently has no `better-sqlite3` prebuilt), the
+`electron-builder install-app-deps` postinstall hook falls back to
+compiling from source via `node-gyp`. That source build needs a working
+C++ toolchain on the host:
+
+- **macOS** — Xcode Command Line Tools: `xcode-select --install`
+- **Windows** — [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) with the **Desktop development with C++** workload, plus Python 3.x in `PATH`
+- **Linux** — `build-essential` (Debian/Ubuntu) or the distro equivalent, plus Python 3
+
+If `pnpm install` fails during the `apps/desktop postinstall` step with a
+`node-gyp` / `make` error, you're missing one of the above. Install it,
+then re-run `pnpm install`.
+
 <details>
 <summary>All commands</summary>
 
