@@ -33,7 +33,7 @@
     "test": "vitest run --project database"
   },
   "dependencies": {
-    "better-sqlite3": "^12.9.0",
+    "better-sqlite3": "^12.10.0",
     "drizzle-orm": "^0.45.2"
   },
   "devDependencies": {
