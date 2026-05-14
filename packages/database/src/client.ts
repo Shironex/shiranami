@@ -55,7 +55,7 @@ export function initializeDatabase(
   // Apply incremental schema migrations for existing databases
   migrateSchema(sqliteDb);
 
-  db = drizzle(sqliteDb, { schema });
+  db = drizzle({ client: sqliteDb, schema });
 
   return db;
 }
