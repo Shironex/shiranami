@@ -3,6 +3,7 @@ import * as path from 'path';
 import { registerIpcHandlers } from './ipc/register';
 import { VITE_DEV_PORT } from '@shiranami/shared';
 import { logger } from './logger';
+import { routeRendererConsoleMessage } from './renderer-console-route';
 
 function setupContentSecurityPolicy(isDev: boolean): void {
   const urlFilter = isDev
@@ -119,26 +120,11 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   });
 
   // Forward renderer console errors/warnings to main process log file.
-  // Uses the Event object API (positional args are deprecated in Electron 40+).
-  const NOISY_PATTERNS = [
-    'MediaImage src can only be of', // Known Chromium limitation with custom protocols
-    'Electron Security Warning', // Dev-only CSP warning
-    '[vite]', // Vite HMR messages (dev-only noise)
-    'Download the React DevTools', // React dev tools promo
-    'i18next is made possible', // i18next promo
-  ];
-
-  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    // level: 0=verbose, 1=info, 2=warning, 3=error
-    if (level < 2) return;
-    if (NOISY_PATTERNS.some(p => message.includes(p))) return;
-
-    const source = sourceId ? `${sourceId}:${line}` : '';
-    if (level === 3) {
-      logger.error(`[renderer] ${message}`, source);
-    } else {
-      logger.warn(`[renderer] ${message}`, source);
-    }
+  // Electron 35+ passes the payload on the `details` event object; the trailing
+  // positional args are kept in the type signature for backwards compatibility
+  // but are undefined at runtime.
+  mainWindow.webContents.on('console-message', details => {
+    routeRendererConsoleMessage(details, logger);
   });
 
   if (isDev) {
