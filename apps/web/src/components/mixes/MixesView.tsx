@@ -155,11 +155,7 @@ export function MixesView() {
   // ── Mix grid (overview) ──
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-2 pb-4 shrink-0">
-        <h1 className="font-display text-lg font-semibold text-foreground">{t('title')}</h1>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-6 pt-2 pb-6 scrollbar-thin">
         <div className="space-y-1.5">
           {MIX_DEFINITIONS.map(mix => {
             const Icon = mix.icon;

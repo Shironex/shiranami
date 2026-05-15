@@ -17,6 +17,8 @@ const VIEW_TITLE_KEYS: Record<string, string> = {
   'import-playlist': 'importPlaylist',
   radio: 'radio',
   settings: 'settings',
+  history: 'history',
+  mixes: 'mixes',
 };
 
 interface TopBarProps {
