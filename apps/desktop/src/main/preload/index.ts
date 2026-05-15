@@ -50,6 +50,14 @@ export interface ElectronAPI {
     VALIDATION_ERROR_CODES: typeof VALIDATION_ERROR_CODES;
   };
   platform: NodeJS.Platform;
+  /**
+   * True only when the main process was launched with SHIRANAMI_E2E=1.
+   * The renderer reads this and conditionally registers store handles on
+   * `window.__shiranami` so e2e specs can drive playback / library state
+   * via `page.evaluate`. Always-on rather than a dynamic call so the check
+   * is synchronous at bootstrap.
+   */
+  __e2e: boolean;
 }
 
 const electronAPI: ElectronAPI = {
@@ -75,6 +83,7 @@ const electronAPI: ElectronAPI = {
     VALIDATION_ERROR_CODES,
   },
   platform: process.platform,
+  __e2e: process.env.SHIRANAMI_E2E === '1',
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

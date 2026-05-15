@@ -135,10 +135,93 @@ jobs:
       - name: Build landing site
         run: pnpm build:landing
 
+  e2e:
+    name: E2E (Electron)
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    # Pin to 22.04 — this matches the Playwright-jammy Docker image we
+    # validate against locally. 24.04 (ubuntu-latest) ships libasound2t64
+    # instead of libasound2 + a slightly different xvfb defaults; until
+    # those quirks are sorted the e2e job stays on a known-good base.
+    runs-on: ubuntu-22.04
+    # Hard cap: setup + build + 30 specs at ~5 s avg + retries should land in
+    # 4–6 min. 15 min is generous; a job that hits this ceiling is in trouble
+    # and should fail fast rather than burn the rest of the runner budget.
+    timeout-minutes: 15
+    env:
+      # Capture renderer + main process logs so a silent boot hang leaves
+      # diagnosable evidence in the job log instead of just a timeout.
+      ELECTRON_ENABLE_LOGGING: '1'
+      ELECTRON_ENABLE_STACK_DUMPING: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # Electron uses Chromium under the hood, so it needs the same OS libs
+      # any headless Chromium installation needs. `playwright install-deps`
+      # is the canonical list — Playwright owns the matrix of "what does
+      # Chromium need on this distro" and we get free updates as Chromium
+      # versions move. xvfb is added explicitly because install-deps no
+      # longer pulls it on jammy.
+      - name: Install Chromium / Electron system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb
+          pnpm exec playwright install-deps chromium
+
+      # `pnpm build` chains build:packages → web build → desktop build (esbuild
+      # + renderer copy). E2E launches the built artefact at apps/desktop/dist,
+      # so the build must run before the spec command.
+      - name: Build
+        run: pnpm build
+
+      # better-sqlite3 ships a Node-ABI prebuilt binary that pnpm restores
+      # from the setup-node cache. electron-builder install-app-deps records
+      # rebuild status in .forge-meta — when the cache restores a binary
+      # whose ABI doesn't match the marker, the rebuild step assumes "done"
+      # and silently leaves a Node-ABI .node on disk. The renderer then dies
+      # at `bootstrap → initializeDatabase` with NODE_MODULE_VERSION 127 vs
+      # 145 and Playwright sees nothing but a firstWindow timeout. Forcing
+      # the rebuild — by clearing the markers and passing -f to
+      # @electron/rebuild — guarantees the .node file matches Electron's ABI.
+      - name: Force-rebuild native modules for Electron
+        working-directory: apps/desktop
+        run: |
+          find ../../node_modules -name '.forge-meta' -type f -delete || true
+          npx --no -- @electron/rebuild -f
+
+      # Start Xvfb explicitly with a known screen geometry. The xvfb-run
+      # wrapper picks defaults that have caused Electron renderers to hang
+      # waiting on a display; an explicit 1280x720x24 server is the recipe
+      # the Playwright Docker image uses and matches our local repro.
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+          # Give Xvfb a beat to bind the socket before the first launch.
+          sleep 1
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/desktop/playwright-report/
+            apps/desktop/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, landing]
+    needs: [lint, typecheck, test, e2e, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

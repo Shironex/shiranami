@@ -15,6 +15,13 @@ if (!rootElement) {
   throw new Error('Failed to find root element');
 }
 
+// Bring the e2e store registry online only when launched under SHIRANAMI_E2E=1.
+// The preload exposes the flag synchronously so the chunk loads in parallel
+// with the React bootstrap and is in place before any spec calls into it.
+if (window.electronAPI?.__e2e) {
+  void import('./e2e-bridge');
+}
+
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
