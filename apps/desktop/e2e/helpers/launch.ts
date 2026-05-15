@@ -58,9 +58,25 @@ export async function launchApp(options: LaunchOptions = {}): Promise<LaunchedAp
       // Force Electron to disable its sandbox at the bootstrap level too —
       // belt and braces alongside the --no-sandbox CLI flag.
       ELECTRON_DISABLE_SANDBOX: process.platform === 'linux' ? '1' : '',
+      // Make Electron noisy on stderr so a silent boot hang in CI leaves
+      // diagnosable evidence. We always pipe stderr to the spec runner's
+      // stderr below; in headed/dev runs the duplication is harmless.
+      ELECTRON_ENABLE_LOGGING: '1',
+      ELECTRON_ENABLE_STACK_DUMPING: '1',
       ...options.env,
     },
     timeout: 20_000,
+  });
+
+  // Tee Electron's stderr into the Playwright runner's stderr so any failure
+  // beyond firstWindow() timeout leaves real diagnostics in the CI log. The
+  // alternative is staring at "TimeoutError: waiting for window" forever.
+  const proc = app.process();
+  proc.stderr?.on('data', (chunk: Buffer) => {
+    process.stderr.write(`[electron] ${chunk.toString()}`);
+  });
+  proc.stdout?.on('data', (chunk: Buffer) => {
+    process.stderr.write(`[electron:out] ${chunk.toString()}`);
   });
 
   const page = await app.firstWindow();
