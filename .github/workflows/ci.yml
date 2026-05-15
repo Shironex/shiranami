@@ -135,10 +135,54 @@ jobs:
       - name: Build landing site
         run: pnpm build:landing
 
+  e2e:
+    name: E2E (Electron)
+    needs: [changes]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # Electron requires a display server on Linux. xvfb gives every test
+      # its own virtual display without needing a GUI runner image.
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # `pnpm build` chains build:packages → web build → desktop build (esbuild
+      # + renderer copy). E2E launches the built artefact at apps/desktop/dist,
+      # so the build must run before the spec command.
+      - name: Build
+        run: pnpm build
+
+      # better-sqlite3's native binding is rebuilt against Electron's ABI by
+      # the desktop app's postinstall hook (electron-builder install-app-deps).
+      # The setup action ran install with --frozen-lockfile, so the rebuild
+      # already happened; this step is a belt-and-braces no-op for clarity.
+      - name: Rebuild native modules for Electron (no-op if cached)
+        run: pnpm rebuild:electron
+
+      - name: Run E2E tests
+        run: xvfb-run --auto-servernum pnpm test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/desktop/playwright-report/
+            apps/desktop/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, landing]
+    needs: [lint, typecheck, test, e2e, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome
