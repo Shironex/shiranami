@@ -83,11 +83,56 @@ export interface E2EElectronAPI {
     onDeepLink: (cb: (code: string) => void) => () => void;
   };
   platform: NodeJS.Platform;
+  __e2e: boolean;
+}
+
+export interface E2ETrack {
+  id: string;
+  filePath: string;
+  title: string;
+  artist: string | null;
+  album: string | null;
+  duration: number | null;
+  isFavorite: boolean;
+}
+
+export interface E2EZustandStore<T> {
+  getState: () => T;
+  setState: (partial: Partial<T> | ((s: T) => Partial<T>)) => void;
+  subscribe: (cb: (s: T) => void) => () => void;
+}
+
+export interface E2EPlaybackState {
+  isPlaying: boolean;
+  currentTrack: E2ETrack | null;
+  queue: E2ETrack[];
+  queueIndex: number;
+  repeatMode: 'off' | 'all' | 'one';
+  shuffleEnabled: boolean;
+  play: () => void;
+  pause: () => void;
+  toggle: () => void;
+  next: () => void;
+  previous: () => void;
+  setQueue: (tracks: E2ETrack[], startIndex?: number) => void;
+}
+
+export interface E2EShiranamiBridge {
+  stores: {
+    playback: E2EZustandStore<E2EPlaybackState>;
+    library: E2EZustandStore<Record<string, unknown>>;
+    eq: E2EZustandStore<Record<string, unknown>>;
+    ui: E2EZustandStore<Record<string, unknown>>;
+    view: E2EZustandStore<Record<string, unknown>>;
+    playlistImport: E2EZustandStore<Record<string, unknown>>;
+    selection: E2EZustandStore<Record<string, unknown>>;
+  };
 }
 
 declare global {
   interface Window {
     electronAPI: E2EElectronAPI;
+    __shiranami?: E2EShiranamiBridge;
   }
 }
 

@@ -241,6 +241,7 @@ function createElectronAPIMock(): ElectronAPI {
       onExtractProgress: vi.fn(() => noopUnsub()),
     },
     platform: 'win32',
+    __e2e: false,
   };
 }
 

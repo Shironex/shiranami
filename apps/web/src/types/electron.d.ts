@@ -389,6 +389,8 @@ export interface ElectronAPI {
     onDeepLink: (callback: (code: string) => void) => () => void;
   };
   platform: NodeJS.Platform;
+  /** True when the main process was launched with SHIRANAMI_E2E=1. */
+  __e2e: boolean;
 }
 
 declare global {
