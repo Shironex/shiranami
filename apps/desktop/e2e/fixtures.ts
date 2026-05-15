@@ -15,7 +15,8 @@ interface AppFixtures {
  * these fixtures and call launchApp() directly twice with the same dir.
  */
 export const test = base.extend<AppFixtures>({
-  launched: async (_, use) => {
+  // eslint-disable-next-line no-empty-pattern -- playwright fixture API requires destructure
+  launched: async ({}, use) => {
     const launched = await launchApp();
     await use(launched);
     await launched.close();
