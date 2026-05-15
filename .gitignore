@@ -16,3 +16,4 @@ coverage
 .omniscribe
 .playwright-mcp
 docs/*
+packages/database/drizzle/

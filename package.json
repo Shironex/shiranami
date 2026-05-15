@@ -13,12 +13,14 @@
       "path-to-regexp": "8.4.0",
       "fastify": "5.8.5",
       "axios": "1.15.2",
+      "fast-uri": "3.1.2",
+      "devalue": "5.8.1",
       "yaml": "2.8.4",
       "postcss": "8.5.14",
       "lodash": "4.18.1",
-      "lucide-react": "^1.14.0",
-      "react": "^19.1.0",
-      "react-dom": "^19.1.0"
+      "lucide-react": "^1.16.0",
+      "react": "^19.2.6",
+      "react-dom": "^19.2.6"
     },
     "onlyBuiltDependencies": [
       "electron",
@@ -66,25 +68,25 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.0",
-    "@commitlint/config-conventional": "^21.0.0",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.6",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.5.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.0",
+    "lint-staged": "^17.0.4",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.8.3",
     "sharp": "^0.34.5",
     "sql.js": "^1.14.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.2",
-    "vitest": "^4.1.5",
-    "wait-on": "^9.0.5"
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6",
+    "wait-on": "^9.0.10"
   },
   "dependencies": {}
 }
