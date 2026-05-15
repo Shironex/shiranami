@@ -16,6 +16,12 @@ import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
 import { PRIVILEGED_SCHEMES } from './privileged-schemes';
 
+// E2E hatch: when running under @playwright/test we disable noisy bootstrap
+// side-effects (tray, Discord RPC, auto-updater, OS media-controls) so the
+// app window is the only observable surface and specs don't have to mock
+// transient external state. The renderer still loads the production preload.
+const isE2E = process.env.SHIRANAMI_E2E === '1';
+
 // Register shiranami:// deep link protocol for share imports.
 // Only register in packaged builds — dev mode can't resolve the Electron binary correctly on Windows.
 if (!process.defaultApp) {
@@ -118,28 +124,30 @@ async function bootstrap(): Promise<void> {
 
   mainWindow = await createMainWindow();
 
-  try {
-    createTray(mainWindow);
-  } catch (error) {
-    logger.warn('Failed to create system tray:', error);
-  }
+  if (!isE2E) {
+    try {
+      createTray(mainWindow);
+    } catch (error) {
+      logger.warn('Failed to create system tray:', error);
+    }
 
-  try {
-    initializeMediaControls(mainWindow);
-  } catch (error) {
-    logger.warn('Failed to initialize media controls:', error);
-  }
+    try {
+      initializeMediaControls(mainWindow);
+    } catch (error) {
+      logger.warn('Failed to initialize media controls:', error);
+    }
 
-  try {
-    initializeDiscordRpc();
-  } catch (error) {
-    logger.warn('Failed to initialize Discord RPC:', error);
-  }
+    try {
+      initializeDiscordRpc();
+    } catch (error) {
+      logger.warn('Failed to initialize Discord RPC:', error);
+    }
 
-  try {
-    initializeAutoUpdater(mainWindow, !app.isPackaged);
-  } catch (error) {
-    logger.warn('Failed to initialize auto-updater:', error);
+    try {
+      initializeAutoUpdater(mainWindow, !app.isPackaged);
+    } catch (error) {
+      logger.warn('Failed to initialize auto-updater:', error);
+    }
   }
 }
 
@@ -178,10 +186,12 @@ app.on('activate', async () => {
   } else if (BrowserWindow.getAllWindows().length === 0) {
     cleanupIpcHandlers();
     mainWindow = await createMainWindow();
-    try {
-      createTray(mainWindow);
-    } catch (error) {
-      logger.warn('Failed to create system tray on activate:', error);
+    if (!isE2E) {
+      try {
+        createTray(mainWindow);
+      } catch (error) {
+        logger.warn('Failed to create system tray on activate:', error);
+      }
     }
   }
 });

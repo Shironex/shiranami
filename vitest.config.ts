@@ -29,6 +29,7 @@ export default defineConfig({
         'apps/landing/**',
         'apps/web/src/test/**',
         'apps/desktop/test/**',
+        'apps/desktop/e2e/**',
         'packages/database/test/**',
         'packages/database/src/test/**',
         'scripts/**',
