@@ -26,6 +26,8 @@
     <a href="https://shiranami.app"><strong>Website</strong></a>
     &nbsp;·&nbsp;
     <a href="https://shiranami.app/changelog"><strong>Changelog</strong></a>
+    &nbsp;·&nbsp;
+    <a href="README.pl.md">Polski</a>
   </p>
 
   <blockquote>
@@ -39,13 +41,42 @@
 
 Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files and adds playlists, synced lyrics, internet radio, YouTube downloads, full playlist importing, crossfade, a compact mini player, audio visualizer, listening statistics, and Discord Rich Presence on top — all in a dark lavender interface that stays out of your way.
 
-### Screenshot
+### Screenshots
 
-<p align="center">
-  <img src="apps/landing/src/assets/library.png" alt="Shiranami library view" width="720" />
-  <br />
-  <em>Your library, now playing, and queue — all in one calm view.</em>
-</p>
+<table>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/en/library.png" alt="Library — your local music collection" /></td>
+    <td width="50%"><img src="assets/screenshots/en/playlists.png" alt="Playlists with custom covers" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Library — browse, sort, and play from your own folders.</sub></td>
+    <td align="center"><sub>Playlists — custom covers and quick sidebar access.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/en/favorites.png" alt="Favorites — all your hearted tracks" /></td>
+    <td width="50%"><img src="assets/screenshots/en/history.png" alt="Listening history with stats" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Favorites — every track you've hearted in one place.</sub></td>
+    <td align="center"><sub>History — play counts, top tracks, daily activity.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/en/mixes.png" alt="Auto-generated mixes" /></td>
+    <td width="50%"><img src="assets/screenshots/en/radio.png" alt="Internet radio from Radio Browser" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Mixes — smart collections from your listening patterns.</sub></td>
+    <td align="center"><sub>Radio — browse and stream stations worldwide.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/en/search.png" alt="Search and download tracks from YouTube" /></td>
+    <td width="50%"><img src="assets/screenshots/en/settings.png" alt="Settings — appearance, audio, integrations" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Search — find and download tracks with yt-dlp + ffmpeg.</sub></td>
+    <td align="center"><sub>Settings — appearance, audio, integrations, language.</sub></td>
+  </tr>
+</table>
 
 ### What's inside
 

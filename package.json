@@ -52,6 +52,7 @@
     "version:major": "node scripts/bump-version.mjs major",
     "rebuild:electron": "pnpm --filter @shiranami/desktop rebuild",
     "generate-icons": "node scripts/generate-icons.mjs",
+    "screenshots": "node scripts/screenshot-app.mjs",
     "prepare": "husky"
   },
   "engines": {
@@ -79,6 +80,7 @@
     "globals": "^17.5.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
+    "playwright": "^1.60.0",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.8.3",
     "sharp": "^0.34.5",
@@ -87,6 +89,5 @@
     "typescript-eslint": "^8.59.3",
     "vitest": "^4.1.6",
     "wait-on": "^9.0.10"
-  },
-  "dependencies": {}
+  }
 }
