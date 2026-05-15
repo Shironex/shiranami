@@ -140,6 +140,10 @@ jobs:
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    # Hard cap: setup + build + 30 specs at ~5 s avg + retries should land in
+    # 4–6 min. 15 min is generous; a job that hits this ceiling is in trouble
+    # and should fail fast rather than burn the rest of the runner budget.
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6

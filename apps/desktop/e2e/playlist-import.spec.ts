@@ -15,14 +15,33 @@ test.describe('playlist import (yt-dlp dependency contract)', () => {
     expect(typeof deps.ffmpegInstalled).toBe('boolean');
   });
 
-  test('cached tool status is null on a fresh launch', async ({ page }) => {
+  test('getCachedToolStatus returns either null or a valid cache shape', async ({ page }) => {
+    // downloader.ts kicks off a background fetchAndCacheToolStatus() at IPC
+    // registration time, so by the time a spec queries the cache it can
+    // legitimately be either:
+    //   - null (background fetch not finished yet — common on slower runners)
+    //   - a populated ToolStatusCache object (fetch completed first)
+    // Either is a valid state; what we pin is the SHAPE when populated.
     const cached = await page.evaluate(async () => {
       return await window.electronAPI.downloader.getCachedToolStatus();
     });
-    // No tool-status cache file yet; the handler returns null when there's
-    // nothing on disk. Pins the contract for the renderer's
-    // playlist-import "we haven't checked yet" state.
-    expect(cached).toBeNull();
+
+    if (cached === null) {
+      return;
+    }
+
+    const c = cached as {
+      ytdlp: { installed: boolean };
+      ffmpeg: { installed: boolean };
+      timestamp: number;
+      ytdlpPath: string;
+      downloadLocation: { path: string };
+    };
+    expect(typeof c.ytdlp?.installed).toBe('boolean');
+    expect(typeof c.ffmpeg?.installed).toBe('boolean');
+    expect(typeof c.timestamp).toBe('number');
+    expect(typeof c.ytdlpPath).toBe('string');
+    expect(typeof c.downloadLocation?.path).toBe('string');
   });
 
   test('playlistImport store hydrates with a sane initial shape', async ({ page }) => {
