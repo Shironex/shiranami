@@ -62,7 +62,7 @@ export function Sidebar() {
     <div
       className={cn(
         'shrink-0 flex flex-col h-full bg-sidebar border-r border-border/50 transition-[width] duration-200',
-        sidebarCollapsed ? 'w-[84px]' : 'w-[200px]'
+        sidebarCollapsed ? 'w-[5.25rem]' : 'w-[12.5rem]'
       )}
     >
       <div
@@ -78,7 +78,7 @@ export function Sidebar() {
           onClick={() => navigateTo('library')}
           className={cn(
             'no-drag flex items-center rounded-xl text-left transition-colors',
-            sidebarCollapsed ? 'justify-center w-9 h-9' : 'gap-2.5'
+            sidebarCollapsed ? 'justify-center w-9 h-9' : 'gap-2.5 min-w-0 flex-1'
           )}
           title={sidebarCollapsed ? t('library') : undefined}
           aria-label={t('openLibrary')}
@@ -87,11 +87,11 @@ export function Sidebar() {
             src="./mascot.png"
             alt=""
             aria-hidden="true"
-            className="w-7 h-7 rounded-lg object-cover"
+            className="w-7 h-7 rounded-lg object-cover shrink-0"
             draggable={false}
           />
           {!sidebarCollapsed && (
-            <span className="font-display font-semibold text-sm text-foreground tracking-tight">
+            <span className="font-display font-semibold text-sm text-foreground tracking-tight truncate">
               {t('shiranami', { ns: 'common' })}
             </span>
           )}
@@ -137,8 +137,10 @@ export function Sidebar() {
                       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     />
                   )}
-                  <Icon className="w-4 h-4 relative z-10" />
-                  {!sidebarCollapsed && <span className="relative z-10">{t(item.key)}</span>}
+                  <Icon className="w-4 h-4 relative z-10 shrink-0" />
+                  {!sidebarCollapsed && (
+                    <span className="relative z-10 min-w-0 truncate">{t(item.key)}</span>
+                  )}
                 </button>
               );
             })}

@@ -185,8 +185,8 @@ describe('Sidebar', () => {
     const { container } = render(<Sidebar />);
 
     const sidebarDiv = container.firstElementChild!;
-    expect(sidebarDiv.className).toContain('w-[84px]');
-    expect(sidebarDiv.className).not.toContain('w-[200px]');
+    expect(sidebarDiv.className).toContain('w-[5.25rem]');
+    expect(sidebarDiv.className).not.toContain('w-[12.5rem]');
   });
 
   // 4d. Expanded sidebar uses wider width
@@ -195,8 +195,8 @@ describe('Sidebar', () => {
     const { container } = render(<Sidebar />);
 
     const sidebarDiv = container.firstElementChild!;
-    expect(sidebarDiv.className).toContain('w-[200px]');
-    expect(sidebarDiv.className).not.toContain('w-[84px]');
+    expect(sidebarDiv.className).toContain('w-[12.5rem]');
+    expect(sidebarDiv.className).not.toContain('w-[5.25rem]');
   });
 
   // 5. Toggle collapse button calls toggleSidebarCollapsed
