@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.19.0': '灯', // "lamp / light" — cafe-window splash redesign
   '0.18.0': '整', // "tidy / arrange" — per-track metadata + topbar polish
   '0.17.1': '印', // "mark / insignia / logo" — about mascot fix
   '0.17.0': '軽', // "light/lightweight" — memory diet release
@@ -129,6 +130,105 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.19.0',
+    date: '2026-05-16',
+    title: l(
+      'New cafe-window splash, faster metadata enrich, and a snappier library',
+      'Nowy ekran startowy w stylu okna kawiarni, szybsze wzbogacanie metadanych i sprawniejsza biblioteka'
+    ),
+    description: l(
+      'A bigger release built around three things: a complete rewrite of the splash screen as a rainy cafe-window with a streetlamp glow, a metadata enrichment pass that now runs four tracks in parallel and shows you how confident each match is, and a quiet rework of the library so play-count updates no longer re-render every row. Plus a handful of polish fixes around the sidebar, topbar, and settings.',
+      'Większe wydanie zbudowane wokół trzech rzeczy: kompletnie przepisanego ekranu startowego w stylu deszczowego okna kawiarni z poświatą latarni ulicznej, wzbogacania metadanych, które przetwarza teraz cztery utwory równolegle i pokazuje pewność każdego dopasowania, oraz cichej przebudowy biblioteki, dzięki której aktualizacje licznika odtworzeń nie odświeżają już każdego wiersza. Plus garść poprawek w pasku bocznym, pasku górnym i ustawieniach.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Splash screen redesigned as a late-night cafe window — rain on the glass, a soft streetlamp glow, and a calmer wordmark; the loading bar reads as part of the scene instead of a generic progress widget',
+            'Ekran startowy został zaprojektowany na nowo w stylu okna nocnej kawiarni — deszcz na szybie, ciepła poświata latarni ulicznej i spokojniejszy znak słowny; pasek ładowania jest teraz częścią scenerii, a nie typowym widżetem postępu'
+          ),
+          l(
+            'Bulk metadata enrichment runs four tracks at a time instead of one, so going through a large library is noticeably faster',
+            'Zbiorcze wzbogacanie metadanych przetwarza teraz cztery utwory naraz zamiast jednego, więc przejście przez dużą bibliotekę jest zauważalnie szybsze'
+          ),
+          l(
+            'Each metadata match now shows a confidence indicator in the progress view, the per-track dialog, and the new post-run report — easier to tell a great match from a guess before applying it',
+            'Każde dopasowanie metadanych pokazuje teraz wskaźnik pewności w widoku postępu, oknie pojedynczego utworu i nowym raporcie po zakończeniu — łatwiej odróżnić trafne dopasowanie od zgadywania, zanim je zastosujesz'
+          ),
+          l(
+            'After a bulk enrich finishes, a summary panel opens showing what changed, what stayed the same, and which tracks could not be matched',
+            'Po zakończeniu wzbogacania zbiorczego otwiera się panel podsumowania z listą zmienionych utworów, niezmienionych dopasowań i utworów, dla których nie udało się znaleźć danych'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Play-count and recently-played updates no longer cascade through the whole track list — only the affected rows refresh, which keeps long library views responsive while music is playing',
+            'Aktualizacje licznika odtworzeń i historii nie kaskadują już przez całą listę utworów — odświeżają się tylko zmienione wiersze, dzięki czemu długie widoki biblioteki pozostają responsywne podczas odtwarzania'
+          ),
+          l(
+            'Each track row only watches its own favorite and selection state instead of the global store, so toggling favorites in a large library no longer causes a noticeable hitch',
+            'Każdy wiersz utworu obserwuje tylko własny stan ulubionych i zaznaczenia zamiast globalnego stanu, więc przełączanie ulubionych w dużej bibliotece nie powoduje już zauważalnego zacięcia'
+          ),
+        ],
+      },
+      {
+        label: l('Polish', 'Dopracowanie'),
+        entries: [
+          l(
+            'Sidebar width now scales with your font size setting so the labels fit cleanly at every text scale instead of getting clipped on the larger options',
+            'Szerokość paska bocznego skaluje się teraz wraz z ustawieniem rozmiaru czcionki, dzięki czemu etykiety mieszczą się prawidłowo przy każdym rozmiarze tekstu zamiast być przycinane na większych opcjach'
+          ),
+          l(
+            'History and Mixes views now show their correct page title in the topbar instead of a stale label from the previous view',
+            'Widoki Historia i Miksy pokazują teraz właściwy tytuł strony w pasku górnym zamiast pozostałości po poprzednim widoku'
+          ),
+          l(
+            'Settings section navigation now scrolls on its own when there are more sections than fit on screen, so the bottom items are always reachable',
+            'Nawigacja sekcji w Ustawieniach przewija się teraz samodzielnie, gdy jest więcej sekcji niż mieści się na ekranie, więc dolne pozycje są zawsze dostępne'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Metadata enrichment now correctly marks tracks that were matched but had no fields to change as successful instead of reporting them as failures',
+            'Wzbogacanie metadanych poprawnie oznacza teraz utwory, które zostały dopasowane, ale nie miały pól do zmiany, jako udane zamiast zgłaszać je jako błędy'
+          ),
+          l(
+            'Embedded album art is now reliably preserved when only tags are written, with a test pinned to that behaviour so it cannot regress quietly',
+            'Wbudowana okładka albumu jest teraz niezawodnie zachowywana, gdy zapisywane są tylko tagi, z testem pilnującym tego zachowania, żeby regresja nie przeszła niezauważona'
+          ),
+          l(
+            'When the local database fails to load because the native module was built for the wrong runtime, the error message now tells you exactly what to do instead of showing a raw stack trace',
+            'Gdy lokalna baza danych nie ładuje się, ponieważ moduł natywny został zbudowany dla niewłaściwej wersji środowiska, komunikat błędu mówi teraz dokładnie, co zrobić, zamiast pokazywać surowy ślad stosu'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Poprawki i dopracowania'),
+        entries: [
+          l(
+            'Renderer upgraded to React 19 across both the desktop app and the landing site — no behaviour changes, just a newer runtime',
+            'Renderer został zaktualizowany do React 19 zarówno w aplikacji desktopowej, jak i na stronie głównej — bez zmian zachowania, po prostu nowsze środowisko uruchomieniowe'
+          ),
+          l(
+            'New end-to-end test suite covering startup, library scanning, playback, favorites, playlists, settings persistence, deep links, and window controls — runs on every pull request so regressions surface before they ship',
+            'Nowy zestaw testów end-to-end pokrywający uruchomienie, skanowanie biblioteki, odtwarzanie, ulubione, playlisty, zapisywanie ustawień, linki głębokie i kontrolki okna — uruchamiany przy każdym pull requeście, dzięki czemu regresje wychodzą na jaw, zanim trafią do wydania'
+          ),
+          l(
+            'Updated app engine and library dependencies for better stability and security',
+            'Zaktualizowano silnik aplikacji i zależności biblioteczne dla lepszej stabilności i bezpieczeństwa'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.18.0',
     date: '2026-05-08',
