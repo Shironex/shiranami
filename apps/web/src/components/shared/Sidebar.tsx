@@ -68,7 +68,7 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        'shrink-0 flex flex-col h-full bg-sidebar border-r border-border/50 transition-[width] duration-200',
+        'shrink-0 flex flex-col h-full glass border-r border-border/50 transition-[width] duration-200',
         sidebarCollapsed ? 'w-[5.25rem]' : 'w-[12.5rem]'
       )}
     >
@@ -140,7 +140,7 @@ export function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="sidebar-active"
-                      className="absolute inset-0 bg-accent rounded-xl"
+                      className="absolute inset-0 rounded-xl bg-primary/12 ring-1 ring-primary/35 shadow-[0_0_16px_-4px_rgba(var(--primary-rgb),0.45),inset_0_0_12px_-6px_rgba(var(--primary-rgb),0.4)]"
                       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     />
                   )}
