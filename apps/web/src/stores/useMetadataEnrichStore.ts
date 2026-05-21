@@ -13,7 +13,7 @@ import i18n from '@/lib/i18n';
 
 const SKIPPED_IDS_STORE_KEY = 'metadata-enrich.skippedIds';
 
-export type { EnrichUpdatedFields, EnrichTrackResult, EnrichResultSource } from '@shiranami/contracts';
+export type { EnrichUpdatedFields } from '@shiranami/contracts';
 
 /** Field-level old→new change for one track in the last-run report. */
 export interface EnrichFieldDiff {

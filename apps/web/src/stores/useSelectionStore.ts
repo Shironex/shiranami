@@ -66,7 +66,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 
 // Clear selection when navigating to a different view
 let prevView = useViewStore.getState().activeView;
-export const _unsubscribeViewSync = useViewStore.subscribe(state => {
+void useViewStore.subscribe(state => {
   if (state.activeView !== prevView) {
     prevView = state.activeView;
     useSelectionStore.getState().clearSelection();

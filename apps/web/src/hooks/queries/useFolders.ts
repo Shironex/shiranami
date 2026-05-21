@@ -18,21 +18,6 @@ export function useFoldersQuery() {
   });
 }
 
-export function useAddFolderMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (path: string) => {
-      if (!IS_ELECTRON) return;
-      await window.electronAPI.db.folders.add(path);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: folderKeys.all });
-      queryClient.invalidateQueries({ queryKey: libraryKeys.all });
-    },
-  });
-}
-
 export function useRemoveFolderMutation() {
   const queryClient = useQueryClient();
 
@@ -44,20 +29,6 @@ export function useRemoveFolderMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
-    },
-  });
-}
-
-export function useUpdateFolderScannedMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      if (!IS_ELECTRON) return;
-      await window.electronAPI.db.folders.updateScanned(id);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: folderKeys.all });
     },
   });
 }
