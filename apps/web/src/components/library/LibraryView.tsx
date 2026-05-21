@@ -14,11 +14,11 @@ import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { AlbumGrid } from './AlbumGrid';
 import { AlbumDetailView } from './AlbumDetailView';
+import { ViewModeButton } from './ViewModeButton';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { AlbumSortControl } from '@/components/shared/AlbumSortControl';
 import { LibraryViewSkeleton } from './LibraryViewSkeleton';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 export function LibraryView() {
   const { t } = useTranslation('library');
@@ -166,32 +166,18 @@ export function LibraryView() {
 
             {/* View toggle */}
             <div className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5">
-              <button
+              <ViewModeButton
+                active={libraryViewMode === 'tracks'}
                 onClick={() => setLibraryViewMode('tracks')}
-                className={cn(
-                  'p-2 rounded-lg transition-colors',
-                  libraryViewMode === 'tracks'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground/50 hover:text-foreground'
-                )}
-                aria-label={t('viewTracks')}
-                title={t('viewTracks')}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
+                icon={List}
+                label={t('viewTracks')}
+              />
+              <ViewModeButton
+                active={libraryViewMode === 'albums'}
                 onClick={() => setLibraryViewMode('albums')}
-                className={cn(
-                  'p-2 rounded-lg transition-colors',
-                  libraryViewMode === 'albums'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground/50 hover:text-foreground'
-                )}
-                aria-label={t('viewAlbums')}
-                title={t('viewAlbums')}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
+                icon={LayoutGrid}
+                label={t('viewAlbums')}
+              />
             </div>
           </div>
           {isFiltered && libraryViewMode === 'tracks' && (
