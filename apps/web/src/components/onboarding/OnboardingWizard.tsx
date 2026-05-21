@@ -10,11 +10,12 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Play, SkipForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON } from '@/lib/platform';
+import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { Button } from '@/components/ui/button';
+import { WindowControls } from '@/components/shared/WindowControls';
 import { OnboardingScene } from './OnboardingScene';
 import { OnboardingStepContext } from './stepContext';
 import { useFocusTrap } from './useFocusTrap';
@@ -197,16 +198,27 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
       {/* Drag strip — keeps the frameless window movable */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
+      {/* Window controls — frameless chrome (Windows only; no-ops on mac/web).
+          The wizard sits above the shell, so it owns its own controls here. */}
+      <div className="absolute right-0 top-0 z-30 flex h-8 items-center pr-1">
+        <WindowControls />
+      </div>
+
       {/* Rainy-window backdrop */}
       <OnboardingScene reducedMotion={disableMotion} />
 
-      {/* Skip — always visible, top-right, never hover-gated */}
+      {/* Skip — always visible, top-right. Shifts left to clear the window
+          controls when they're present (Windows/Linux); hugs the corner on
+          macOS and web where the wizard draws no custom controls. */}
       <Button
         type="button"
         variant="ghost"
         size="sm"
         onClick={finish}
-        className="no-drag absolute right-6 top-5 z-20 gap-1.5 text-muted-foreground hover:text-foreground"
+        className={cn(
+          'no-drag absolute top-0 z-30 h-8 gap-1.5 text-muted-foreground hover:text-foreground',
+          IS_ELECTRON && !IS_MAC ? 'right-[8.5rem]' : 'right-4'
+        )}
       >
         <SkipForward className="h-3.5 w-3.5" />
         {t('wizard.skip')}
