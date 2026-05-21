@@ -7,7 +7,7 @@ import type { Track, RepeatMode } from '@/stores/types';
 
 export const DEFAULT_CROSSFADE_DURATION = 5;
 
-const NEW_KEY = 'shiranami.player-store';
+const STORE_KEY = 'shiranami.player-store';
 
 const LEGACY_KEYS = {
   crossfadeEnabled: 'shiranami.crossfade-enabled',
@@ -37,7 +37,7 @@ function sanitize(
   return out;
 }
 
-migrateLegacyKeys<PersistedPlaybackState>(NEW_KEY, {
+migrateLegacyKeys<PersistedPlaybackState>(STORE_KEY, {
   crossfadeEnabled: {
     legacyKey: LEGACY_KEYS.crossfadeEnabled,
     parse: raw => raw === 'true',
@@ -372,7 +372,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     },
   }),
   {
-    name: NEW_KEY,
+    name: STORE_KEY,
     version: 1,
     partialize: s => ({
       crossfadeEnabled: s.crossfadeEnabled,

@@ -7,6 +7,8 @@ import i18n from '@/lib/i18n';
 type InstallStatus = 'idle' | 'downloading' | 'done' | 'error';
 export type DependencyState = 'checking' | 'needs-install' | 'ready';
 
+const READY_DELAY_MS = 700;
+
 export function useSearchDependencies() {
   const [dependencyState, setDependencyState] = useState<DependencyState>('checking');
   const [dependencyInstallStatus, setDependencyInstallStatus] = useState<InstallStatus>('idle');
@@ -16,12 +18,12 @@ export function useSearchDependencies() {
     ffmpegInstalled: boolean;
   } | null>(null);
 
-  const isDependencyInstallInProgress = useDownloadStore((s) => s.isDependencyInstallInProgress);
-  const dependencyInstallProgress = useDownloadStore((s) => s.dependencyInstallProgress);
-  const dependencyInstallLabel = useDownloadStore((s) => s.dependencyInstallLabel);
-  const dependencyInstallTarget = useDownloadStore((s) => s.dependencyInstallTarget);
-  const startDependencyInstall = useDownloadStore((s) => s.startDependencyInstall);
-  const stopDependencyInstall = useDownloadStore((s) => s.stopDependencyInstall);
+  const isDependencyInstallInProgress = useDownloadStore(s => s.isDependencyInstallInProgress);
+  const dependencyInstallProgress = useDownloadStore(s => s.dependencyInstallProgress);
+  const dependencyInstallLabel = useDownloadStore(s => s.dependencyInstallLabel);
+  const dependencyInstallTarget = useDownloadStore(s => s.dependencyInstallTarget);
+  const startDependencyInstall = useDownloadStore(s => s.startDependencyInstall);
+  const stopDependencyInstall = useDownloadStore(s => s.stopDependencyInstall);
 
   const refreshDependencies = useCallback(async () => {
     if (!IS_ELECTRON) {
@@ -59,11 +61,13 @@ export function useSearchDependencies() {
     if (dependencyInstallTarget !== 'ffmpeg') return;
 
     let cancelled = false;
-    refreshDependencies().then((snapshot) => {
+    refreshDependencies().then(snapshot => {
       if (cancelled || !snapshot.ytdlpInstalled) return;
       setDependencyState('ready');
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dependencyInstallTarget, refreshDependencies]);
 
   // Post-install validation
@@ -73,7 +77,7 @@ export function useSearchDependencies() {
     if (dependencyInstallStatus !== 'downloading') return;
 
     let cancelled = false;
-    refreshDependencies().then((snapshot) => {
+    refreshDependencies().then(snapshot => {
       if (cancelled) return;
       if (snapshot.ytdlpInstalled) {
         setDependencyInstallStatus('done');
@@ -85,7 +89,9 @@ export function useSearchDependencies() {
       setDependencyInstallError(i18n.t('installationFailed', { ns: 'toast' }));
       setDependencyState('needs-install');
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dependencyInstallStatus, isDependencyInstallInProgress, refreshDependencies]);
 
   const handleInstallDependencies = useCallback(async () => {
@@ -99,30 +105,40 @@ export function useSearchDependencies() {
       const { results } = await window.electronAPI.downloader.installDependencies();
       const snapshot = await refreshDependencies();
 
-      const ytdlpResult = results.find((r) => r.tool === 'ytdlp');
+      const ytdlpResult = results.find(r => r.tool === 'ytdlp');
       const ytdlpFailed = ytdlpResult && !ytdlpResult.success;
 
       if (!ytdlpFailed && snapshot.ytdlpInstalled) {
         setDependencyInstallStatus('done');
-        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), { id: 'dependency-install' });
-        window.setTimeout(() => { setDependencyState('ready'); }, 700);
+        toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
+          id: 'dependency-install',
+        });
+        window.setTimeout(() => {
+          setDependencyState('ready');
+        }, READY_DELAY_MS);
         return;
       }
 
-      const failedResults = results.filter((r) => !r.success);
-      const errorMsg = failedResults.length > 0
-        ? failedResults.map((r) => r.error ?? i18n.t('installationFailed', { ns: 'toast' })).join('; ')
-        : i18n.t('installationFailed', { ns: 'toast' });
+      const failedResults = results.filter(r => !r.success);
+      const errorMsg =
+        failedResults.length > 0
+          ? failedResults
+              .map(r => r.error ?? i18n.t('installationFailed', { ns: 'toast' }))
+              .join('; ')
+          : i18n.t('installationFailed', { ns: 'toast' });
 
       setDependencyInstallStatus('error');
       setDependencyInstallError(errorMsg);
       toast.error(i18n.t('failedInstallSearch', { ns: 'toast' }), { id: 'dependency-install' });
     } catch (err) {
       await refreshDependencies();
-      const msg = err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
+      const msg =
+        err instanceof Error ? err.message : i18n.t('installationFailed', { ns: 'toast' });
       setDependencyInstallStatus('error');
       setDependencyInstallError(msg);
-      toast.error(i18n.t('failedInstallSearchError', { ns: 'toast', error: msg }), { id: 'dependency-install' });
+      toast.error(i18n.t('failedInstallSearchError', { ns: 'toast', error: msg }), {
+        id: 'dependency-install',
+      });
     } finally {
       stopDependencyInstall();
     }
