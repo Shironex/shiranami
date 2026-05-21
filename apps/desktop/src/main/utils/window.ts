@@ -13,3 +13,20 @@ export function getMainWindow(): BrowserWindow | null {
   const all = BrowserWindow.getAllWindows();
   return all[0] ?? null;
 }
+
+/**
+ * Send an IPC message to the renderer on the main window, guarding against a
+ * missing or destroyed window. Resolves the window fresh each call via
+ * `getMainWindow()` so it stays correct across window recreation, and is a
+ * no-op (returns false) when no live window is mounted — e.g. during teardown
+ * or background work.
+ *
+ * Replaces the `getMainWindow()`/`mainWindowRef` + `isDestroyed()` + `send`
+ * triple that was hand-rolled across the lifecycle and IPC modules.
+ */
+export function sendToRenderer(channel: string, ...args: unknown[]): boolean {
+  const win = getMainWindow();
+  if (!win || win.isDestroyed()) return false;
+  win.webContents.send(channel, ...args);
+  return true;
+}

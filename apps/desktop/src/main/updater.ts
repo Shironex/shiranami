@@ -2,10 +2,10 @@ import { BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo as ElectronUpdateInfo, ProgressInfo } from 'electron-updater';
 import { logger } from './logger';
+import { sendToRenderer } from './utils/window';
 
 let updaterEnabled = false;
 let updaterInitialized = false;
-let mainWindowRef: BrowserWindow | null = null;
 
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
@@ -19,15 +19,7 @@ function parseReleaseNotes(releaseNotes: ElectronUpdateInfo['releaseNotes']): st
     .join('\n\n');
 }
 
-function sendToMainWindow(channel: string, ...args: unknown[]): void {
-  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-    mainWindowRef.webContents.send(channel, ...args);
-  }
-}
-
-export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean): void {
-  mainWindowRef = mainWindow;
-
+export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean): void {
   if (isDev) {
     logger.info('[updater] Skipping auto-updater in development mode');
     updaterEnabled = false;
@@ -47,12 +39,12 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean)
 
   autoUpdater.on('checking-for-update', () => {
     logger.info('[updater] Checking for update...');
-    sendToMainWindow('updater:checking-for-update');
+    sendToRenderer('updater:checking-for-update');
   });
 
   autoUpdater.on('update-available', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Update available: ${info.version}`);
-    sendToMainWindow('updater:update-available', {
+    sendToRenderer('updater:update-available', {
       version: info.version,
       releaseNotes: parseReleaseNotes(info.releaseNotes),
       releaseDate: info.releaseDate,
@@ -61,11 +53,11 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean)
 
   autoUpdater.on('update-not-available', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Up to date: ${info.version}`);
-    sendToMainWindow('updater:update-not-available');
+    sendToRenderer('updater:update-not-available');
   });
 
   autoUpdater.on('download-progress', (progress: ProgressInfo) => {
-    sendToMainWindow('updater:download-progress', {
+    sendToRenderer('updater:download-progress', {
       bytesPerSecond: progress.bytesPerSecond,
       percent: progress.percent,
       transferred: progress.transferred,
@@ -75,7 +67,7 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean)
 
   autoUpdater.on('update-downloaded', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Update downloaded: ${info.version}`);
-    sendToMainWindow('updater:update-downloaded', {
+    sendToRenderer('updater:update-downloaded', {
       version: info.version,
       releaseNotes: parseReleaseNotes(info.releaseNotes),
       releaseDate: info.releaseDate,
@@ -89,10 +81,10 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean)
 
     if (isReleasePending) {
       logger.warn('[updater] Release artifacts not yet available (build may still be in progress)');
-      sendToMainWindow('updater:error', 'RELEASE_PENDING');
+      sendToRenderer('updater:error', 'RELEASE_PENDING');
     } else {
       logger.error('[updater] Error:', error.message);
-      sendToMainWindow('updater:error', error.message);
+      sendToRenderer('updater:error', error.message);
     }
   });
 
@@ -102,9 +94,12 @@ export function initializeAutoUpdater(mainWindow: BrowserWindow, isDev: boolean)
   }, 5000);
 
   // Periodic checks every hour
-  setInterval(() => {
-    checkForUpdates();
-  }, 60 * 60 * 1000);
+  setInterval(
+    () => {
+      checkForUpdates();
+    },
+    60 * 60 * 1000
+  );
 }
 
 export async function checkForUpdates(): Promise<{ enabled: boolean }> {

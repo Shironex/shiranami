@@ -1,5 +1,5 @@
 import { ipcMain, app } from 'electron';
-import { getMainWindow } from '../utils/window';
+import { sendToRenderer } from '../utils/window';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -333,12 +333,8 @@ export function registerDownloaderHandlers(): void {
 
       logger.info(`[downloader] Downloading: ${url} -> ${downloadDir}`);
 
-      const mainWindow = getMainWindow();
-
       const sendProgress = (progress: DownloadProgress) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('downloader:progress', progress);
-        }
+        sendToRenderer('downloader:progress', progress);
       };
 
       return new Promise<string>((resolve, reject) => {
@@ -512,11 +508,8 @@ export function registerDownloaderHandlers(): void {
     'downloader:install-ytdlp',
     async () => {
       try {
-        const mainWindow = getMainWindow();
         await downloadYtDlp(percent => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('downloader:install-progress', { percent });
-          }
+          sendToRenderer('downloader:install-progress', { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -549,11 +542,8 @@ export function registerDownloaderHandlers(): void {
     'downloader:install-ffmpeg',
     async () => {
       try {
-        const mainWindow = getMainWindow();
         await downloadFFmpeg(percent => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('downloader:ffmpeg-install-progress', { percent });
-          }
+          sendToRenderer('downloader:ffmpeg-install-progress', { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -570,7 +560,6 @@ export function registerDownloaderHandlers(): void {
   handle(
     'downloader:install-dependencies',
     async (): Promise<InstallDependenciesResult> => {
-      const mainWindow = getMainWindow();
       const targets: Array<'ytdlp' | 'ffmpeg'> = [];
 
       if (!isYtDlpInstalled()) {
@@ -586,9 +575,7 @@ export function registerDownloaderHandlers(): void {
 
       const stepWeight = 100 / targets.length;
       const sendProgress = (progress: DependencyInstallProgress) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('downloader:dependency-install-progress', progress);
-        }
+        sendToRenderer('downloader:dependency-install-progress', progress);
       };
 
       const results: ToolInstallResult[] = [];

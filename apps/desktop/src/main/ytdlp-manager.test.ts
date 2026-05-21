@@ -11,6 +11,7 @@ vi.mock('electron', async () => {
       isPackaged: true,
       getPath: vi.fn().mockReturnValue(mockUserDataPath),
       getAppPath: vi.fn().mockReturnValue('/mock/app'),
+      getVersion: vi.fn().mockReturnValue('0.0.0-test'),
     },
     net: {
       request: vi.fn(),

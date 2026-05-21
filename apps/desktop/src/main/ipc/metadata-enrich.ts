@@ -8,7 +8,7 @@ import type {
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from '../metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { logger } from '../logger';
-import { getMainWindow } from '../utils/window';
+import { sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
 import {
@@ -285,10 +285,7 @@ export function registerMetadataEnrichHandlers(): void {
         const slots: (EnrichTrackResult | undefined)[] = new Array(total);
 
         const sendProgress = (progress: EnrichProgress) => {
-          const mainWindow = getMainWindow();
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('metadata:enrich:progress', progress);
-          }
+          sendToRenderer('metadata:enrich:progress', progress);
         };
 
         // Monotonic completed-count so the renderer's progress bar never jumps
@@ -323,7 +320,11 @@ export function registerMetadataEnrichHandlers(): void {
             try {
               const result = await enrichSingleTrack(
                 track,
-                { writeToFile: options.writeToFile, onlyMissing: options.onlyMissing, mode: 'apply' },
+                {
+                  writeToFile: options.writeToFile,
+                  onlyMissing: options.onlyMissing,
+                  mode: 'apply',
+                },
                 signal,
                 {
                   onSearching: () =>

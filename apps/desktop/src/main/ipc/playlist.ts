@@ -4,7 +4,7 @@ import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
 import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
-import { getMainWindow } from '../utils/window';
+import { sendToRenderer } from '../utils/window';
 import { BROWSER_USER_AGENT } from '../shared/user-agent';
 
 export { parseYtDlpJsonLines };
@@ -200,7 +200,6 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
     );
   }
 
-  const mainWindow = getMainWindow();
   const results: SearchResult[] = [];
   const total = spotifyTracks.length;
 
@@ -208,13 +207,11 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
     if (cancelledFlag) break;
 
     // Send extraction progress
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('playlist:extract-progress', {
-        current: i + 1,
-        total,
-        trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
-      });
-    }
+    sendToRenderer('playlist:extract-progress', {
+      current: i + 1,
+      total,
+      trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
+    });
 
     const result = await resolveSpotifyTrackOnYouTube(spotifyTracks[i]);
     if (result) {

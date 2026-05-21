@@ -9,7 +9,7 @@ import {
   type ScanUtilityClient,
   type ScanProgressEvent,
 } from '../scan-utility-host';
-import { getMainWindow } from '../utils/window';
+import { sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {
   parseMetadataArgs,
@@ -151,9 +151,7 @@ async function parseAudioFilesViaUtility(
  * (background scans during teardown).
  */
 function forwardProgressToRenderer(evt: ScanProgressEvent): void {
-  const mainWindow = getMainWindow();
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.webContents.send('library:scan-progress', evt);
+  sendToRenderer('library:scan-progress', evt);
 }
 
 /**

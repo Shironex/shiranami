@@ -20,7 +20,7 @@
 import { app, ipcMain } from 'electron';
 import { IPC_CHANNELS, type MainMetricsSnapshot } from '@shiranami/contracts';
 import { logger } from '../logger';
-import { getMainWindow } from '../utils/window';
+import { getMainWindow, sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import { debugStartArgs, debugStopArgs } from './schemas/debug';
 
@@ -30,6 +30,8 @@ const SAMPLE_INTERVAL_MS = 1000;
 let timer: ReturnType<typeof setInterval> | null = null;
 
 function sample(): void {
+  // Skip the (relatively expensive) metric collection entirely when there's
+  // no live window to receive it.
   const win = getMainWindow();
   if (!win || win.isDestroyed()) return;
 
@@ -56,7 +58,7 @@ function sample(): void {
     procs,
   };
 
-  win.webContents.send(C.metrics, snapshot);
+  sendToRenderer(C.metrics, snapshot);
 }
 
 function startSampling(): void {
