@@ -20,6 +20,7 @@ import { OnboardingStepContext } from './stepContext';
 import { useFocusTrap } from './useFocusTrap';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { FoldersStep } from './steps/FoldersStep';
+import { ToolsStep } from './steps/ToolsStep';
 import { ThemeStep } from './steps/ThemeStep';
 import { ReadyStep } from './steps/ReadyStep';
 
@@ -27,7 +28,7 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-type StepId = 'welcome' | 'folders' | 'theme' | 'ready';
+type StepId = 'welcome' | 'folders' | 'tools' | 'theme' | 'ready';
 
 interface StepDef {
   id: StepId;
@@ -38,6 +39,7 @@ interface StepDef {
 const STEPS: readonly StepDef[] = [
   { id: 'welcome', kanji: '白波', Component: WelcomeStep },
   { id: 'folders', kanji: '蔵', Component: FoldersStep },
+  { id: 'tools', kanji: '取', Component: ToolsStep },
   { id: 'theme', kanji: '夜', Component: ThemeStep },
   { id: 'ready', kanji: '波', Component: ReadyStep },
 ];
@@ -46,7 +48,7 @@ const HEADING_ID = 'onboarding-step-heading';
 
 /**
  * First-run setup wizard. Full-screen overlay shown once after the splash on a
- * user's first launch. Four skippable steps; Skip == complete (we never show
+ * user's first launch. Skippable steps; Skip == complete (we never show
  * onboarding twice). Lazy-loaded by App.tsx so it never ships to returning
  * users — hence the default export.
  */

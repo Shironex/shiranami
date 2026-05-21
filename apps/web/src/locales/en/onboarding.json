@@ -39,6 +39,21 @@
     "desktopOnly": "Adding folders is available in the desktop app.",
     "doneHint": "Nice — your library is filling up. Add more or continue."
   },
+  "tools": {
+    "eyebrow": "02 · Bring the tools",
+    "headline": "Pull tracks <1>straight in</1>.",
+    "description": "Shiranami can fetch and import from a link — it just needs two small helpers: yt-dlp to fetch, ffmpeg to convert. Skip this if you only play files you already have; you can grab them later in Settings · Downloads.",
+    "title": "Download helpers",
+    "installAll": "Install both",
+    "installing": "Installing…",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "ffmpeg",
+    "updateBoth": "Update available",
+    "checking": "Checking for helpers…",
+    "allSet": "Both helpers are installed — you're ready to import.",
+    "skipHint": "Optional — only needed for downloading and importing.",
+    "desktopOnly": "Downloading is available in the desktop app."
+  },
   "theme": {
     "eyebrow": "02 · Pick your room",
     "headline": "The window dresses for your <1>mood</1>.",

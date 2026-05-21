@@ -41,6 +41,21 @@
     "desktopOnly": "Dodawanie folderów jest dostępne w aplikacji desktopowej.",
     "doneHint": "Świetnie — biblioteka się zapełnia. Dodaj więcej lub kontynuuj."
   },
+  "tools": {
+    "eyebrow": "02 · Dorzuć narzędzia",
+    "headline": "Pobieraj utwory <1>prosto do środka</1>.",
+    "description": "Shiranami pobiera i importuje z linku — potrzebuje tylko dwóch małych pomocników: yt-dlp do pobierania i ffmpeg do konwersji. Pomiń, jeśli odtwarzasz tylko własne pliki; możesz je dodać później w Ustawienia · Pobieranie.",
+    "title": "Pomocnicy do pobierania",
+    "installAll": "Zainstaluj oba",
+    "installing": "Instalowanie…",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "ffmpeg",
+    "updateBoth": "Dostępna aktualizacja",
+    "checking": "Sprawdzanie pomocników…",
+    "allSet": "Oba pomocniki są zainstalowane — możesz importować.",
+    "skipHint": "Opcjonalne — potrzebne tylko do pobierania i importu.",
+    "desktopOnly": "Pobieranie jest dostępne w aplikacji desktopowej."
+  },
   "theme": {
     "eyebrow": "02 · Wybierz nastrój",
     "headline": "Okno ubiera się pod Twój <1>nastrój</1>.",
