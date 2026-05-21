@@ -224,6 +224,111 @@
   }
 }
 
+/* ── Splash scene keyframes — defined outside @theme inline because they are
+   referenced by raw inline `animation:` styles + degradation selectors below,
+   not by Tailwind `--animate-*` utilities (same pattern as the EQ bars). ── */
+
+/* Distant warm window lights flicker (odd/even staggered durations) */
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Vertical water streak running down the glass */
+@keyframes streak-run {
+  0% {
+    transform: translateY(-40%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(420%);
+    opacity: 0;
+  }
+}
+
+/* Rising coffee steam — stroke-dash sweep + drift up + fade */
+@keyframes steam-rise {
+  0% {
+    stroke-dashoffset: 140;
+    transform: translateY(0) scale(0.9);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: -140;
+    transform: translateY(-30px) scale(1.05);
+    opacity: 0;
+  }
+}
+
+/* Badge LED pulse */
+@keyframes splash-led-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Loader sweep bar — indeterminate gradient travelling across the track */
+@keyframes splash-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(330%);
+  }
+}
+
+/* Splash degradation — collapse every animated scene layer to a static still
+   under reduced-motion OR low-performance mode. Steam + streaks have no
+   meaningful static state → hidden; lights / LED / sweep go static; the loader
+   track stays so "loading" still reads. Kept outside @layer so they reliably
+   beat the inline animation styles set by the components. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-steam,
+  .splash-streak {
+    display: none;
+  }
+  .splash-light,
+  .splash-led {
+    animation: none !important;
+  }
+  .splash-sweep {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+[data-perf-mode='low'] .splash-steam,
+[data-perf-mode='low'] .splash-streak {
+  display: none;
+}
+[data-perf-mode='low'] .splash-light,
+[data-perf-mode='low'] .splash-led {
+  animation: none !important;
+}
+[data-perf-mode='low'] .splash-sweep {
+  animation: none !important;
+  transform: none !important;
+}
+/* Drop wet-glass backdrop blur under low-perf (matches the .glass override). */
+[data-perf-mode='low'] .splash-glass-blur {
+  backdrop-filter: none !important;
+}
+
 /* Midnight Lofi Cafe Theme */
 :root {
   --background: oklch(0.08 0.02 280);
