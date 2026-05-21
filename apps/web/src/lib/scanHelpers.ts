@@ -1,6 +1,6 @@
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 import type { TrackMetadata } from '@/types/electron';
 
 export interface SubfolderGroup {
@@ -30,22 +30,19 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
   const { rootTracks, subfolders: scannedSubfolders } =
     await window.electronAPI.library.scanFolderGrouped(dirPath);
 
-  const results = [
-    ...rootTracks,
-    ...scannedSubfolders.flatMap((sf) => sf.tracks),
-  ];
+  const results = [...rootTracks, ...scannedSubfolders.flatMap(sf => sf.tracks)];
 
   if (results.length === 0) {
     return { addedCount: 0, subfolders: scannedSubfolders, empty: true, allExisted: false };
   }
 
-  const existingPaths = new Set(useLibraryStore.getState().library.map((t) => t.filePath));
-  const newResults = results.filter((r) => !existingPaths.has(r.filePath));
+  const existingPaths = new Set(useLibraryStore.getState().library.map(t => t.filePath));
+  const newResults = results.filter(r => !existingPaths.has(r.filePath));
 
   const existsInDb = new Set(
-    await window.electronAPI.db.tracks.existsMany(newResults.map((r) => r.filePath)),
+    await window.electronAPI.db.tracks.existsMany(newResults.map(r => r.filePath))
   );
-  const genuinelyNew = newResults.filter((r) => !existsInDb.has(r.filePath));
+  const genuinelyNew = newResults.filter(r => !existsInDb.has(r.filePath));
 
   if (genuinelyNew.length === 0) {
     return {
@@ -57,7 +54,7 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
   }
 
   const dbTracks = (await window.electronAPI.db.tracks.addMany(
-    genuinelyNew.map((r) => ({
+    genuinelyNew.map(r => ({
       filePath: r.filePath,
       title: r.metadata.title,
       artist: r.metadata.artist,
@@ -67,8 +64,8 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
       year: r.metadata.year ?? null,
       trackNumber: r.metadata.trackNumber ?? null,
       albumArt: r.metadata.albumArt ?? null,
-    })),
-  )) as Record<string, unknown>[];
+    }))
+  )) as DbTrackRecord[];
 
   const newTracks = mapDbTracksToTracks(dbTracks);
 

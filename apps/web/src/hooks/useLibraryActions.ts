@@ -6,7 +6,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { folderKeys } from '@/hooks/queries/useFolders';
@@ -80,7 +80,7 @@ export function useLibraryActions() {
           discNumber: r.metadata.discNumber ?? null,
           albumArt: r.metadata.albumArt ?? null,
         }))
-      )) as Record<string, unknown>[];
+      )) as DbTrackRecord[];
 
       const newTracks = mapDbTracksToTracks(dbTracks);
 

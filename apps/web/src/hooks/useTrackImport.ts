@@ -3,7 +3,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
-import { mapDbTrackToTrack } from '@/lib/trackMapper';
+import { mapDbTrackToTrack, type DbTrackRecord } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 
@@ -35,7 +35,7 @@ export function useTrackImport() {
         trackNumber: metadata.trackNumber ?? null,
         discNumber: metadata.discNumber ?? null,
         albumArt: metadata.albumArt ?? null,
-      })) as Record<string, unknown>;
+      })) as DbTrackRecord;
 
       const track: Track = mapDbTrackToTrack(dbTrack);
 

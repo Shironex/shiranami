@@ -11,6 +11,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
+import type { DbTrackRecord } from '@/lib/trackMapper';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 
@@ -138,7 +139,7 @@ async function applyEnrichResults(results: EnrichTrackResult[]): Promise<void> {
   // Refresh library from DB so memoized selectors see the new fields.
   const allDbTracks = await window.electronAPI.db.tracks.getAll();
   const { mapDbTracksToTracks } = await import('@/lib/trackMapper');
-  const refreshedTracks = mapDbTracksToTracks(allDbTracks as Record<string, unknown>[]);
+  const refreshedTracks = mapDbTracksToTracks(allDbTracks as DbTrackRecord[]);
   useLibraryStore.getState().setLibrary(refreshedTracks);
 
   // Patch playback store if the affected track is currently playing or queued —
