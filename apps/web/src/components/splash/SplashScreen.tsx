@@ -13,7 +13,6 @@ import { SplashSteam } from './SplashSteam';
 import { SplashCup } from './SplashCup';
 import { SplashBrand } from './SplashBrand';
 import { SplashMeta } from './SplashMeta';
-import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
   /** Library sync is still running — splash stays mounted until false. */
@@ -26,19 +25,29 @@ interface SplashScreenProps {
 }
 
 /**
- * Shiranami splash — "Cafe Window / Rain on Glass".
+ * Shiranami splash — "Cafe Window / Rain on Glass at night".
  *
- * Layer order (z-bottom → z-top):
- *  1. Canvas: bare --background. No additive wash.
- *  2. SplashLamp: single warm --favorite radial glow at (82%, 18%).
- *  3. SplashGlass: monochrome top/bottom film haze.
- *  4. SplashWordmark: 白波 etched on the glass, receding at 0.55 alpha.
- *  5. SplashRain: full-bleed canvas streaks — sits above the wordmark so
- *     rain reads as falling between the viewer and the etching.
- *  6. SplashFooter: absolute bottom, above the rain layer.
+ * Hybrid: production fullscreen shell (drag region, rounded-t, fog-out exit)
+ * with a full-bleed night scene layered behind wet glass. Layer order
+ * (z-bottom → z-top, explicit z-index on each layer):
+ *  z1  SplashScene   — night sky + skyline + moon + flickering lights
+ *  z2  SplashLamp    — broad ambient warm wash (breath-loop, off under degrade)
+ *  z3  SplashWordmark— big off-center 白波 reflection (etch → fade entrance)
+ *  z4  SplashDroplets— static clinging droplets + running streaks
+ *  z5  SplashRain    — rAF canvas streaks (static frame under degrade)
+ *  z6  SplashGlass   — film haze + edge vignette + texture mullion
+ *  z7  SplashSteam   — rising steam (hidden under degrade)
+ *  z8  SplashCup     — foreground coffee cup (static art)
+ *  z9  SplashMeta    — top-right v{version} + live clock
+ *  z9  SplashBrand   — bottom-left badge + LED + wordmark + kanji + loader + status
  *
- * Exit: 540ms opacity → 0, blur 0 → 8px (fog-out). No scale.
- * Palette rule: --primary appears only on the status dot. No other violet.
+ * Exit: 540ms opacity → 0, blur 0 → 8px (fog-out). No scale. Under
+ * reduced-motion the blur is dropped (opacity-only).
+ *
+ * Degradation: every animated layer collapses to a static still under
+ * reduced-motion OR lowPerformanceMode — flickering lights / LED / loader
+ * sweep go static, steam + streaks hide, rain freezes one frame, lamp stops
+ * breathing, and backdrop-filter is dropped (see globals.css guards).
  */
 export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashScreenProps) {
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
@@ -63,7 +72,7 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden',
+        'fixed inset-0 z-[9999] overflow-hidden bg-background',
         IS_ELECTRON && 'rounded-t-[10px]'
       )}
       style={{
@@ -75,53 +84,57 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       {/* Drag region — keeps the frameless window movable during boot */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
-      {/* Scene base: night sky + skyline + moon + flickering lights */}
-      <SplashScene reducedMotion={disableBreathLoop} />
+      {/* z1 — night scene base */}
+      <div className="absolute inset-0 z-[1]">
+        <SplashScene reducedMotion={disableBreathLoop} />
+      </div>
 
-      {/* Layer 1 & 2: Lamp + Glass film (below wordmark) */}
-      <SplashLamp disabled={disableBreathLoop} />
-      <SplashGlass />
+      {/* z2 — ambient warm lamp wash */}
+      <div className="absolute inset-0 z-[2]">
+        <SplashLamp disabled={disableBreathLoop} />
+      </div>
 
-      {/* Layer 3: Wordmark — big off-center 白波 reflection */}
-      <div className="pointer-events-none">
+      {/* z3 — big off-center 白波 reflection */}
+      <div className="absolute inset-0 z-[3] pointer-events-none">
         <SplashWordmark reducedMotion={reducedMotion} />
       </div>
 
-      {/* Glass droplets (static) + running streaks — above wordmark, around rain */}
-      <SplashDroplets />
+      {/* z4 — static droplets + running streaks */}
+      <div className="absolute inset-0 z-[4]">
+        <SplashDroplets />
+      </div>
 
-      {/* Layer 4: Rain canvas — above the wordmark */}
-      <SplashRain
-        paused={variant === 'error'}
-        lowPerformanceMode={lowPerformanceMode}
-        reducedMotion={reducedMotion}
-      />
+      {/* z5 — rAF canvas rain (above the reflection) */}
+      <div className="absolute inset-0 z-[5]">
+        <SplashRain
+          paused={variant === 'error'}
+          lowPerformanceMode={lowPerformanceMode}
+          reducedMotion={reducedMotion}
+        />
+      </div>
 
-      {/* Foreground: rising steam (z7) + coffee cup (z8) */}
-      <SplashSteam reducedMotion={disableBreathLoop} />
-      <SplashCup />
+      {/* z6 — glass surface cues: haze + edge vignette + texture mullion */}
+      <div className="absolute inset-0 z-[6]">
+        <SplashGlass />
+      </div>
 
-      {/* Meta corner (z9): real v{version} + live clock */}
+      {/* z7 — rising steam */}
+      <div className="absolute inset-0 z-[7] pointer-events-none">
+        <SplashSteam reducedMotion={disableBreathLoop} />
+      </div>
+
+      {/* z8 — foreground coffee cup */}
+      <div className="absolute inset-0 z-[8] pointer-events-none">
+        <SplashCup />
+      </div>
+
+      {/* z9 — UI: meta corner + brand block (interactive retry lives here) */}
       <SplashMeta version={version} clock={clock} />
-
-      {/* Brand block (z9): badge + LED + wordmark + kanji + loader + status.
-          NOTE: the old SplashFooter still renders below it during this step;
-          it is retired in the final stack-assembly step. */}
       <SplashBrand
         showStatus={showStatus}
         variant={variant}
         messageKey={messageKey}
         error={error}
-        reducedMotion={reducedMotion}
-      />
-
-      {/* Layer 5: Footer — retired in the final assembly step */}
-      <SplashFooter
-        showStatus={showStatus}
-        variant={variant}
-        messageKey={messageKey}
-        error={error}
-        version={version}
         reducedMotion={reducedMotion}
       />
     </div>
