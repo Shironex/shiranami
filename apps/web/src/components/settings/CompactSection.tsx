@@ -253,5 +253,3 @@ function OpacityControl({
     </div>
   );
 }
-
-export default CompactSection;
