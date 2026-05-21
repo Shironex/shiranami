@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { ProgressBar } from '@/components/ui/progress-bar';
 
 export function ScanProgressCard() {
   const { t } = useTranslation('settings');
@@ -35,12 +36,7 @@ export function ScanProgressCard() {
           {t('lib.scanCurrentFile', { file: scanProgress.currentFile })}
         </div>
       )}
-      <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full transition-all duration-300"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
+      <ProgressBar value={progressPercent} className="h-1.5 bg-border/30" />
       <Button
         variant="destructiveGhost"
         size="sm"

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, ArrowDownToLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchStateCard } from './SearchStateCard';
+import { ProgressBar } from '@/components/ui/progress-bar';
 
 interface DependencyInstallCardProps {
   ffmpegInstalled: boolean | undefined;
@@ -31,12 +32,7 @@ export function DependencyInstallCard({
       <div className="space-y-3">
         {installStatus === 'downloading' || isInstallInProgress ? (
           <div className="space-y-3">
-            <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${installProgress}%` }}
-              />
-            </div>
+            <ProgressBar value={installProgress} />
             <p className="text-xs text-muted-foreground">
               {installLabel}... {installProgress}%
             </p>

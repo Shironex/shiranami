@@ -23,6 +23,7 @@ import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
 import { ViewEmptyState } from '../shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ProgressBar } from '@/components/ui/progress-bar';
 
 export function SearchView() {
   const { t } = useTranslation('search');
@@ -232,12 +233,7 @@ export function SearchView() {
                 </p>
               </div>
             </div>
-            <div className="mt-3 w-full h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${dependencyInstallProgress}%` }}
-              />
-            </div>
+            <ProgressBar value={dependencyInstallProgress} className="mt-3 h-1.5" />
           </div>
         )}
       </div>
