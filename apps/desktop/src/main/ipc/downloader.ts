@@ -1,11 +1,8 @@
 import { ipcMain, app } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { sendToRenderer } from '../utils/window';
-import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
-import { randomUUID } from 'crypto';
 import { logger } from '../logger';
 import { requestJson } from '../http';
 import {
@@ -16,7 +13,6 @@ import {
   downloadYtDlp,
 } from '../ytdlp-manager';
 import {
-  getFFmpegDir,
   isFFmpegInstalled,
   getFFmpegVersion,
   getLatestFFmpegVersion,
@@ -26,6 +22,7 @@ import { store } from '../store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
+import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
 import {
   spawnYtDlp,
   ytSearch,
@@ -63,12 +60,7 @@ export type { SearchResult };
 
 const C = IPC_CHANNELS.downloader;
 
-export interface DownloadProgress {
-  url: string;
-  progress: number;
-  status: 'downloading' | 'converting' | 'done' | 'error';
-  error?: string;
-}
+export type { DownloadProgress };
 
 interface BinaryStatus {
   installed: boolean;
@@ -336,140 +328,8 @@ export function registerDownloaderHandlers(): void {
 
       logger.info(`[downloader] Downloading: ${url} -> ${downloadDir}`);
 
-      const sendProgress = (progress: DownloadProgress) => {
+      return runYtDlpDownload({ url, downloadDir }, progress => {
         sendToRenderer(C.progress, progress);
-      };
-
-      return new Promise<string>((resolve, reject) => {
-        const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
-
-        let hasFFmpeg = false;
-        let ffmpegLocation: string | null = null;
-
-        if (isFFmpegInstalled()) {
-          hasFFmpeg = true;
-          ffmpegLocation = getFFmpegDir();
-          logger.info(`[downloader] Using managed ffmpeg from ${ffmpegLocation}`);
-        } else {
-          try {
-            const { execFileSync: efs } = require('child_process');
-            efs('ffmpeg', ['-version'], { timeout: 5000, stdio: 'ignore' });
-            hasFFmpeg = true;
-            logger.info('[downloader] Using system ffmpeg');
-          } catch {
-            logger.info('[downloader] ffmpeg not found, downloading best audio without conversion');
-          }
-        }
-
-        const args: string[] = [];
-        if (ffmpegLocation) {
-          args.push('--ffmpeg-location', ffmpegLocation);
-        }
-        if (hasFFmpeg) {
-          args.push(
-            '-x',
-            '--audio-format',
-            'mp3',
-            '--audio-quality',
-            '0',
-            '--embed-thumbnail',
-            '--add-metadata'
-          );
-        } else {
-          args.push('-f', 'bestaudio', '--add-metadata');
-        }
-        const tmpFile = path.join(os.tmpdir(), `shiranami-ytdlp-${randomUUID()}.txt`);
-
-        args.push(
-          '--no-warnings',
-          '--newline',
-          '--print-to-file',
-          'after_move:filepath',
-          tmpFile,
-          '-o',
-          outputTemplate,
-          url
-        );
-
-        const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
-
-        let allOutput = '';
-        let downloadedFilePath = '';
-
-        proc.stdout.on('data', (data: Buffer) => {
-          const text = data.toString();
-          allOutput += text;
-
-          const progressMatch = text.match(/\[download\]\s+([\d.]+)%/);
-          if (progressMatch) {
-            const pct = parseFloat(progressMatch[1]);
-            sendProgress({ url, progress: pct, status: 'downloading' });
-          }
-
-          if (text.includes('[ExtractAudio]') || text.includes('[Merger]')) {
-            sendProgress({ url, progress: 100, status: 'converting' });
-          }
-        });
-
-        proc.stderr.on('data', (data: Buffer) => {
-          allOutput += data.toString();
-        });
-
-        proc.on('error', err => {
-          fs.promises.unlink(tmpFile).catch(() => {});
-          sendProgress({ url, progress: 0, status: 'error', error: err.message });
-          reject(err);
-        });
-
-        proc.on('close', code => {
-          void (async () => {
-            try {
-              if (code !== 0) {
-                const reason = classifyYtDlpFailure(allOutput);
-                logger.error(
-                  `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
-                  { outputTail: tailOutput(allOutput) }
-                );
-                sendProgress({ url, progress: 0, status: 'error', error: reason });
-                reject(new Error(reason));
-                return;
-              }
-
-              try {
-                const raw = await fs.promises.readFile(tmpFile, 'utf8');
-                // --print-to-file appends a line per emitted filepath; take the last non-empty one.
-                const lines = raw
-                  .split('\n')
-                  .map(line => line.trim())
-                  .filter(Boolean);
-                downloadedFilePath = lines[lines.length - 1] ?? '';
-                if (downloadedFilePath) {
-                  await fs.promises.access(downloadedFilePath);
-                }
-              } catch {
-                const errMsg = 'Could not determine downloaded file path';
-                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-                reject(new Error(errMsg));
-                return;
-              }
-
-              if (!downloadedFilePath) {
-                const errMsg = 'Could not determine downloaded file path';
-                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-                reject(new Error(errMsg));
-                return;
-              }
-
-              logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
-              sendProgress({ url, progress: 100, status: 'done' });
-              resolve(downloadedFilePath);
-            } catch (unexpected) {
-              reject(unexpected instanceof Error ? unexpected : new Error(String(unexpected)));
-            } finally {
-              fs.promises.unlink(tmpFile).catch(() => {});
-            }
-          })();
-        });
       });
     },
     { schema: downloaderDownloadArgs }
