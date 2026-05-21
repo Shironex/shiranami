@@ -159,12 +159,11 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
     }
     const last = points[points.length - 1];
     ctx.lineTo(last.x, last.y);
+    // Glow comes from a single CSS drop-shadow on the canvas element rather
+    // than canvas shadowBlur (a Gaussian-blur stroke every frame).
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.5)`;
     ctx.lineWidth = 1.5;
-    ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, 0.3)`;
-    ctx.shadowBlur = 4;
     ctx.stroke();
-    ctx.shadowBlur = 0;
 
     // ── Center line ──
     ctx.beginPath();
@@ -182,7 +181,10 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
     <canvas
       ref={canvasRef}
       className="w-full h-full pointer-events-none"
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 0 3px rgba(var(--primary-rgb), 0.3))',
+      }}
     />
   );
 }

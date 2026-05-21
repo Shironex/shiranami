@@ -118,18 +118,14 @@ export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
       const b = Math.round(pb - 45 + t * 45);
       const alpha = (0.35 + value * 0.3) * edgeFade;
 
-      // Subtle glow
-      ctx.shadowColor = `rgba(${r}, ${g}, ${b}, ${0.3 * edgeFade})`;
-      ctx.shadowBlur = 4;
-
-      // Main bar — center-aligned (grows up and down from center)
+      // Main bar — center-aligned (grows up and down from center).
+      // Glow comes from a single CSS drop-shadow on the canvas element rather
+      // than per-bar canvas shadowBlur (which cost ~2,880 Gaussian-blur fills/sec
+      // at 48 bars × 60fps — the dominant per-frame visualizer cost).
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
       ctx.beginPath();
       ctx.roundRect(x, centerY - barH / 2, barWidth, barH, barWidth / 2);
       ctx.fill();
-
-      // Reset shadow for reflection
-      ctx.shadowBlur = 0;
     }
   }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
@@ -140,7 +136,10 @@ export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
     <canvas
       ref={canvasRef}
       className="w-full h-full pointer-events-none"
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 0 3px rgba(var(--primary-rgb), 0.3))',
+      }}
     />
   );
 }

@@ -153,14 +153,13 @@ export function CircleVisualizer({ source, active }: CircleVisualizerProps = {})
     }
 
     // ── Base ring line ──
+    // Glow comes from a single CSS drop-shadow on the canvas element rather
+    // than canvas shadowBlur (a Gaussian-blur stroke every frame).
     ctx.beginPath();
     ctx.arc(centerX, centerY, barBaseRadius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.12 + avgEnergy * 0.2})`;
     ctx.lineWidth = 1;
-    ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, ${0.15 + avgEnergy * 0.15})`;
-    ctx.shadowBlur = 4;
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
   const shouldRun = active ?? (isPlaying && !!currentTrack);
@@ -170,7 +169,10 @@ export function CircleVisualizer({ source, active }: CircleVisualizerProps = {})
     <canvas
       ref={canvasRef}
       className="w-full h-full pointer-events-none"
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 0 3px rgba(var(--primary-rgb), 0.3))',
+      }}
     />
   );
 }
