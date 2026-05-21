@@ -100,8 +100,9 @@ export function SplashBrand({
       <div
         className={cn(
           'mt-1.5 flex flex-col gap-2.5 transition-opacity duration-500 ease-in',
-          showStatus ? 'opacity-100' : 'opacity-0'
+          showStatus ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
+        aria-hidden={!showStatus}
       >
         {variant === 'error' ? (
           <div className="flex flex-col items-start gap-2.5">

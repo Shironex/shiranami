@@ -29,6 +29,7 @@ export function SidebarPlaylistButton({
 }: SidebarPlaylistButtonProps) {
   return (
     <button
+      type="button"
       onClick={() => onNavigate(playlist.id)}
       onContextMenu={event => {
         event.preventDefault();

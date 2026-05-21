@@ -11,8 +11,10 @@ interface ViewModeButtonProps {
 export function ViewModeButton({ active, onClick, icon: Icon, label }: ViewModeButtonProps) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-label={label}
+      aria-pressed={active}
       title={label}
       className={cn(
         'p-2 rounded-lg transition-colors',
