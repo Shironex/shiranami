@@ -451,6 +451,15 @@
   background: oklch(0.08 0.02 280 / 0.6);
 }
 
+/* Content panel over the theme background — a notch more transparent than
+   .glass (0.82) so the theme image reads through, while staying opaque enough
+   to keep track-list body text legible over the bright themes. Degraded-mode
+   overrides below (low-perf + reduced-transparency) match the .glass pattern. */
+@utility glass-panel {
+  backdrop-filter: blur(7px) saturate(1.3);
+  background: oklch(0.1 0.02 280 / 0.7);
+}
+
 @utility text-gradient {
   background: linear-gradient(135deg, var(--primary), var(--brand-600));
   -webkit-background-clip: text;
@@ -546,6 +555,11 @@
   background: oklch(0.08 0.02 280 / 0.88);
 }
 
+[data-perf-mode='low'] .glass-panel {
+  backdrop-filter: none;
+  background: oklch(0.1 0.02 280 / 0.9);
+}
+
 /* ── Theme image paint surface (ThemeBackground) ─────────────────────────
    Lives outside @layer so --theme-bg resolves from the active [data-theme]
    block and the degraded-mode overrides below can reliably target it. The
@@ -588,5 +602,9 @@
   .glass-subtle {
     backdrop-filter: none;
     background: oklch(0.08 0.02 280 / 0.88);
+  }
+  .glass-panel {
+    backdrop-filter: none;
+    background: oklch(0.1 0.02 280 / 0.9);
   }
 }

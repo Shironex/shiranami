@@ -212,7 +212,7 @@ export function LibraryView() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass border border-border/30 overflow-hidden">
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
           <div className="h-full px-2">
             <VirtualList
               rowCount={filteredLibrary.length}
