@@ -11,6 +11,7 @@ import { SplashDroplets } from './SplashDroplets';
 import { SplashRain } from './SplashRain';
 import { SplashSteam } from './SplashSteam';
 import { SplashCup } from './SplashCup';
+import { SplashBrand } from './SplashBrand';
 import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
@@ -98,7 +99,18 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       <SplashSteam reducedMotion={disableBreathLoop} />
       <SplashCup />
 
-      {/* Layer 5: Footer — above the rain */}
+      {/* Brand block (z9): badge + LED + wordmark + kanji + loader + status.
+          NOTE: the old SplashFooter still renders below it during this step;
+          it is retired in the final stack-assembly step. */}
+      <SplashBrand
+        showStatus={showStatus}
+        variant={variant}
+        messageKey={messageKey}
+        error={error}
+        reducedMotion={reducedMotion}
+      />
+
+      {/* Layer 5: Footer — retired in the final assembly step */}
       <SplashFooter
         showStatus={showStatus}
         variant={variant}
