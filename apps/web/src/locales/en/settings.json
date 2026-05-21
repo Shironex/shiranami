@@ -230,6 +230,7 @@
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects",
+    "sectionsAriaLabel": "Settings sections",
     "theme": {
       "title": "Theme",
       "desc": "Choose a background scene for the app. None keeps the solid dark look.",

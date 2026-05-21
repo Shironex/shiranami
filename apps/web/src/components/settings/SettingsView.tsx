@@ -163,7 +163,7 @@ export function SettingsView() {
           {/* Section navigation */}
           <nav
             className="w-48 shrink-0 border-r border-border/40 p-3 overflow-y-auto scrollbar-thin min-h-0"
-            aria-label="Settings sections"
+            aria-label={t('app.sectionsAriaLabel')}
           >
             {GROUP_ORDER.map(group => {
               const items = SECTIONS.filter(s => s.group === group);

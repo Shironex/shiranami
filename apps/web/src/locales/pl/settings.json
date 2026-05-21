@@ -230,6 +230,7 @@
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",
+    "sectionsAriaLabel": "Sekcje ustawień",
     "theme": {
       "title": "Motyw",
       "desc": "Wybierz tło dla aplikacji. Brak zachowuje jednolity, ciemny wygląd.",
