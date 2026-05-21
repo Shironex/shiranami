@@ -573,16 +573,18 @@
   background-repeat: no-repeat;
 }
 
-/* Contrast scrim — the WCAG must-fix. A dark top-to-bottom wash keeps light
-   foreground text legible over the bright themes (summer/sunset). Ships WITH
-   the image (same component), never after, so no theme renders un-scrimmed.
-   The bottom stop (0.68) is slightly heavier than the top (0.55) to push the
-   bright horizon/water band toward a luminance where --foreground clears
-   4.5:1; the lighter top keeps the dark themes from going muddy. */
+/* Contrast scrim — a light dark wash that lets the theme photo read as a real
+   background while text-heavy regions (lists, settings) stay legible via their
+   own .glass / .glass-panel surfaces. Ships WITH the image (same component),
+   never after, so no theme renders un-scrimmed. The bottom stop (0.5) is
+   slightly heavier than the top (0.36) to tame the bright horizon/water band of
+   summer/sunset where the player bar sits; the lighter top keeps the photo
+   vivid and the dark themes from going muddy. Tuned against live captures so
+   the image is clearly visible AND body text over the glass clears ~4.5:1. */
 .theme-bg-scrim {
   background:
-    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.55) 0%, oklch(0.04 0.012 280 / 0.68) 100%),
-    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.55), transparent 70%);
+    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.36) 0%, oklch(0.04 0.012 280 / 0.5) 100%),
+    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
 }
 
 /* prefers-reduced-transparency: drop backdrop blur on glass, stay legible via
