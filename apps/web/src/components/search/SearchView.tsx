@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { formatViewCount } from '@/lib/formatViewCount';
 import { formatDuration } from '@shiranami/shared';
 import { useSearch } from '@/hooks/useSearch';
 import { useSearchDependencies } from '@/hooks/useSearchDependencies';
@@ -375,31 +376,16 @@ export function SearchView() {
                       <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {result.uploader}
-                        {result.view_count != null && (
-                          <span className="text-muted-foreground/50">
-                            {' '}
-                            ·{' '}
-                            {result.view_count >= 1_000_000_000
-                              ? t('viewsBillion', {
-                                  count: (result.view_count / 1_000_000_000)
-                                    .toFixed(1)
-                                    .replace(/\.0$/, ''),
-                                })
-                              : result.view_count >= 1_000_000
-                                ? t('viewsMillion', {
-                                    count: (result.view_count / 1_000_000)
-                                      .toFixed(1)
-                                      .replace(/\.0$/, ''),
-                                  })
-                                : result.view_count >= 1_000
-                                  ? t('viewsThousand', {
-                                      count: (result.view_count / 1_000)
-                                        .toFixed(1)
-                                        .replace(/\.0$/, ''),
-                                    })
-                                  : t('views', { count: result.view_count })}
-                          </span>
-                        )}
+                        {result.view_count != null &&
+                          (() => {
+                            const { key, count } = formatViewCount(result.view_count);
+                            return (
+                              <span className="text-muted-foreground/50">
+                                {' '}
+                                · {t(key, { count })}
+                              </span>
+                            );
+                          })()}
                       </p>
                     </div>
 
