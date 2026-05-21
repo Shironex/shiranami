@@ -13,7 +13,12 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
 }));
 vi.mock('@/hooks/useWindowControls', () => ({
-  useWindowControls: () => ({ isMaximized: false, minimize: vi.fn(), maximize: vi.fn(), close: vi.fn() }),
+  useWindowControls: () => ({
+    isMaximized: false,
+    minimize: vi.fn(),
+    maximize: vi.fn(),
+    close: vi.fn(),
+  }),
 }));
 vi.mock('@/hooks/useLibraryRescan', () => ({
   useLibraryRescan: () => ({ isScanning: false, rescan: vi.fn() }),

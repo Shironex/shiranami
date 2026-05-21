@@ -37,13 +37,13 @@ export function getRangeCopy(range: HistoryRange): string {
 
 export function buildActivitySeries(
   range: HistoryRange,
-  activity: ListeningActivityPoint[],
+  activity: ListeningActivityPoint[]
 ): ListeningActivityPoint[] {
   if (range === 'all' || activity.length === 0) {
     return activity;
   }
 
-  const byDate = new Map(activity.map((point) => [point.date, point]));
+  const byDate = new Map(activity.map(point => [point.date, point]));
   const days = range === '7d' ? 7 : 30;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -58,7 +58,7 @@ export function buildActivitySeries(
         date: key,
         playCount: 0,
         listenedMinutes: 0,
-      },
+      }
     );
   }
 

@@ -16,8 +16,7 @@ const selectionState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/stores/useSelectionStore', () => ({
-  useSelectionStore: <T,>(selector: (s: typeof selectionState) => T) =>
-    selector(selectionState),
+  useSelectionStore: <T,>(selector: (s: typeof selectionState) => T) => selector(selectionState),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -123,7 +122,7 @@ describe('TrackRowContent', () => {
   it('applies active styling when track is current track', () => {
     const track = makeTrack();
     const { container } = render(
-      <TrackRowContent {...defaultProps({ track, currentTrack: track })} />,
+      <TrackRowContent {...defaultProps({ track, currentTrack: track })} />
     );
 
     const title = screen.getByText('Test Song');
@@ -136,11 +135,7 @@ describe('TrackRowContent', () => {
 
   it('shows now-playing EqBars when active and playing without album art', () => {
     const track = makeTrack({ albumArt: undefined });
-    render(
-      <TrackRowContent
-        {...defaultProps({ track, currentTrack: track, isPlaying: true })}
-      />,
-    );
+    render(<TrackRowContent {...defaultProps({ track, currentTrack: track, isPlaying: true })} />);
 
     expect(screen.getByText('nowPlaying')).toBeInTheDocument();
   });
@@ -180,11 +175,7 @@ describe('TrackRowContent', () => {
     const onToggleFavorite = vi.fn();
     const track = makeTrack({ isFavorite: true });
 
-    render(
-      <TrackRowContent
-        {...defaultProps({ track, onToggleFavorite })}
-      />,
-    );
+    render(<TrackRowContent {...defaultProps({ track, onToggleFavorite })} />);
 
     const favButton = screen.getByRole('button', { name: 'removeFromFavorites' });
     expect(favButton).toBeInTheDocument();
@@ -195,36 +186,22 @@ describe('TrackRowContent', () => {
 
   it('renders unfavorited state with correct aria label', () => {
     const track = makeTrack({ isFavorite: false });
-    render(
-      <TrackRowContent
-        {...defaultProps({ track, onToggleFavorite: vi.fn() })}
-      />,
-    );
+    render(<TrackRowContent {...defaultProps({ track, onToggleFavorite: vi.fn() })} />);
 
-    expect(
-      screen.getByRole('button', { name: 'addToFavorites' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'addToFavorites' })).toBeInTheDocument();
   });
 
   it('does not render favorite button when onToggleFavorite is not provided', () => {
     render(<TrackRowContent {...defaultProps()} />);
 
-    expect(
-      screen.queryByRole('button', { name: 'removeFromFavorites' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'addToFavorites' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'removeFromFavorites' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'addToFavorites' })).not.toBeInTheDocument();
   });
 
   it('renders remove-from-playlist button when callback provided', async () => {
     const user = userEvent.setup();
     const onRemove = vi.fn();
-    render(
-      <TrackRowContent
-        {...defaultProps({ onRemoveFromPlaylist: onRemove })}
-      />,
-    );
+    render(<TrackRowContent {...defaultProps({ onRemoveFromPlaylist: onRemove })} />);
 
     const btn = screen.getByRole('button', { name: 'removeFromPlaylist' });
     await user.click(btn);
@@ -232,9 +209,7 @@ describe('TrackRowContent', () => {
   });
 
   it('renders AddToPlaylistButton when showAddToPlaylist is true', () => {
-    render(
-      <TrackRowContent {...defaultProps({ showAddToPlaylist: true })} />,
-    );
+    render(<TrackRowContent {...defaultProps({ showAddToPlaylist: true })} />);
 
     expect(screen.getByTestId('add-to-playlist-track-1')).toBeInTheDocument();
   });
@@ -255,9 +230,7 @@ describe('TrackRowContent', () => {
     const user = userEvent.setup();
     const track = makeTrack();
     const queue = [track, makeTrack({ id: 'track-2', title: 'Song 2' })];
-    render(
-      <TrackRowContent {...defaultProps({ track, queue })} />,
-    );
+    render(<TrackRowContent {...defaultProps({ track, queue })} />);
 
     const button = screen.getByRole('button', { name: /test song/i });
     await user.keyboard('{Shift>}');
@@ -300,7 +273,7 @@ describe('TrackRow', () => {
         currentTrack={null}
         isPlaying={false}
         handlePlayTrack={vi.fn()}
-      />,
+      />
     );
 
     expect(container.innerHTML).toBe('');
@@ -318,7 +291,7 @@ describe('TrackRow', () => {
         currentTrack={null}
         isPlaying={false}
         handlePlayTrack={vi.fn()}
-      />,
+      />
     );
     expect(screen.getByText('Test Song')).toBeInTheDocument();
   });

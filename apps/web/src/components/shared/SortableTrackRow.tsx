@@ -30,14 +30,9 @@ export function SortableTrackRow({
 }: SortableTrackRowProps) {
   const { t } = useTranslation('contextMenu');
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: track.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: track.id,
+  });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),

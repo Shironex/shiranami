@@ -47,17 +47,16 @@ export function SubfolderPlaylistDialog({
   useEffect(() => {
     if (!open || subfolders.length === 0) return;
 
-    const sourceNames = existingPlaylistNames
-      ?? new Set((fetchedPlaylists as Playlist[] | undefined)?.map(p => p.name) ?? []);
+    const sourceNames =
+      existingPlaylistNames ??
+      new Set((fetchedPlaylists as Playlist[] | undefined)?.map(p => p.name) ?? []);
 
     const existing = new Set<string>();
     for (const sf of subfolders) {
       if (sourceNames.has(sf.name)) existing.add(sf.name);
     }
     setExistingNames(existing);
-    setSelected(new Set(
-      subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)
-    ));
+    setSelected(new Set(subfolders.filter(sf => !existing.has(sf.name)).map(sf => sf.path)));
   }, [open, subfolders, existingPlaylistNames, fetchedPlaylists]);
 
   const toggleSubfolder = useCallback((path: string) => {
@@ -73,7 +72,8 @@ export function SubfolderPlaylistDialog({
   }, []);
 
   const selectableSubfolders = subfolders.filter(sf => !existingNames.has(sf.name));
-  const allSelected = selectableSubfolders.length > 0 && selectableSubfolders.every(sf => selected.has(sf.path));
+  const allSelected =
+    selectableSubfolders.length > 0 && selectableSubfolders.every(sf => selected.has(sf.path));
 
   const handleToggleAll = useCallback(() => {
     if (allSelected) {
@@ -137,9 +137,7 @@ export function SubfolderPlaylistDialog({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground truncate">
-                      {sf.name}
-                    </span>
+                    <span className="text-sm font-medium text-foreground truncate">{sf.name}</span>
                     {alreadyExists && (
                       <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
                         {t('folders.playlistAlreadyExists')}
@@ -159,10 +157,7 @@ export function SubfolderPlaylistDialog({
           <Button variant="ghost" onClick={handleSkip}>
             {t('folders.skipPlaylists')}
           </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={selected.size === 0}
-          >
+          <Button onClick={handleConfirm} disabled={selected.size === 0}>
             {t('folders.createPlaylists')}
           </Button>
         </DialogFooter>

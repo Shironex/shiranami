@@ -21,11 +21,17 @@ export function HistoryActivityGraph({ points, range }: HistoryActivityGraphProp
     );
   }
 
-  const maxPlayCount = Math.max(...points.map((point) => point.playCount), 1);
+  const maxPlayCount = Math.max(...points.map(point => point.playCount), 1);
   const labelEvery =
     points.length <= 10 ? 1 : points.length <= 20 ? 2 : points.length <= 40 ? 4 : 7;
   const barWidthClass =
-    points.length <= 10 ? 'w-10' : points.length <= 31 ? 'w-7' : points.length <= 90 ? 'w-5' : 'w-4';
+    points.length <= 10
+      ? 'w-10'
+      : points.length <= 31
+        ? 'w-7'
+        : points.length <= 90
+          ? 'w-5'
+          : 'w-4';
 
   const totalPlays = points.reduce((sum, p) => sum + p.playCount, 0);
 
@@ -45,10 +51,14 @@ export function HistoryActivityGraph({ points, range }: HistoryActivityGraphProp
                 <div
                   className={cn(
                     'w-full rounded-full border border-primary/30 bg-primary/70 transition-colors',
-                    point.playCount === 0 && 'border-border/20 bg-foreground/8',
+                    point.playCount === 0 && 'border-border/20 bg-foreground/8'
                   )}
                   style={{ height }}
-                  title={t('activityBarTitle', { label: formatActivityLabel(point.date), count: point.playCount, minutes: Math.round(point.listenedMinutes) })}
+                  title={t('activityBarTitle', {
+                    label: formatActivityLabel(point.date),
+                    count: point.playCount,
+                    minutes: Math.round(point.listenedMinutes),
+                  })}
                 />
               </div>
               <span className="text-[10px] text-muted-foreground/55">

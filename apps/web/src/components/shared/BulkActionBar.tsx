@@ -1,14 +1,7 @@
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Play,
-  ListPlus,
-  Heart,
-  Trash2,
-  X,
-  CheckCheck,
-} from 'lucide-react';
+import { Play, ListPlus, Heart, Trash2, X, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -76,23 +69,24 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
 
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
-  const selectAll = useSelectionStore((s) => s.selectAll);
+  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
+  const selectAll = useSelectionStore(s => s.selectAll);
   const count = selectedTrackIds.size;
 
-  const addToQueue = usePlaybackStore((s) => s.addToQueue);
-  const playNext = usePlaybackStore((s) => s.playNext);
-  const toggleFavorite = useLibraryStore((s) => s.toggleFavorite);
-  const library = useLibraryStore((s) => s.library);
+  const addToQueue = usePlaybackStore(s => s.addToQueue);
+  const playNext = usePlaybackStore(s => s.playNext);
+  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
+  const library = useLibraryStore(s => s.library);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
   const [showPlaylistPopover, setShowPlaylistPopover] = useState(false);
 
   if (count === 0) return null;
 
-  const selectedTracks = library.filter((t) => selectedTrackIds.has(t.id));
-  const resolvedTracks = selectedTracks.length > 0 ? selectedTracks : trackList.filter((t) => selectedTrackIds.has(t.id));
+  const selectedTracks = library.filter(t => selectedTrackIds.has(t.id));
+  const resolvedTracks =
+    selectedTracks.length > 0 ? selectedTracks : trackList.filter(t => selectedTrackIds.has(t.id));
   const ids = Array.from(selectedTrackIds);
 
   const handlePlayNext = () => {
@@ -152,12 +146,14 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
 
         <motion.button
           whileTap={{ scale: 0.92 }}
-          onClick={() => allSelected ? clearSelection() : selectAll(trackList)}
+          onClick={() => (allSelected ? clearSelection() : selectAll(trackList))}
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
           title={allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
         >
           <CheckCheck className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{allSelected ? tCommon('clearSelection') : tCommon('selectAll')}</span>
+          <span className="hidden sm:inline">
+            {allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
+          </span>
         </motion.button>
 
         <div className="w-px h-5 bg-border/50 mx-1" />
@@ -177,7 +173,7 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           <ActionButton
             icon={<ListPlus className="w-3.5 h-3.5" />}
             label={t('addToPlaylist')}
-            onClick={() => setShowPlaylistPopover((v) => !v)}
+            onClick={() => setShowPlaylistPopover(v => !v)}
           />
           <AnimatePresence>
             {showPlaylistPopover && (

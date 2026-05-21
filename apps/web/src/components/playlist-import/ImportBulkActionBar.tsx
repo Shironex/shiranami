@@ -21,15 +21,15 @@ export function ImportBulkActionBar({
   const { t } = useTranslation('import');
   const { t: tCommon } = useTranslation('common');
 
-  const selectedTrackIds = useSelectionStore((s) => s.selectedTrackIds);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
-  const selectAll = useSelectionStore((s) => s.selectAll);
+  const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
+  const selectAll = useSelectionStore(s => s.selectAll);
   const count = selectedTrackIds.size;
 
   if (count === 0) return null;
 
   const pendingSelectedCount = tracks.filter(
-    (t) => selectedTrackIds.has(t.id) && t.status === 'pending'
+    t => selectedTrackIds.has(t.id) && t.status === 'pending'
   ).length;
 
   const allSelected = count === tracks.length;

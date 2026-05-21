@@ -40,10 +40,7 @@ function FieldDiffRow({ diff }: { diff: EnrichFieldDiff }) {
       <span className="text-muted-foreground line-through truncate">
         {diffValueText(diff.oldValue, noneLabel)}
       </span>
-      <ArrowRight
-        className="w-3 h-3 text-muted-foreground/50 shrink-0 mt-0.5"
-        aria-hidden="true"
-      />
+      <ArrowRight className="w-3 h-3 text-muted-foreground/50 shrink-0 mt-0.5" aria-hidden="true" />
       <span className="text-foreground truncate">{diffValueText(diff.newValue, noneLabel)}</span>
     </div>
   );

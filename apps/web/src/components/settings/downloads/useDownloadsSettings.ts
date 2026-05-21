@@ -39,27 +39,40 @@ export function useDownloadsSettings() {
 
   const mountedRef = useRef(true);
 
-  const applyCacheSnapshot = useCallback((cache: {
-    ytdlp: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-    ffmpeg: { installed: boolean; version?: string; latestVersion?: string; updateAvailable?: boolean };
-    ytdlpPath: string;
-    downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
-  }) => {
-    setYtdlpInstalled(cache.ytdlp.installed);
-    setYtdlpVersion(cache.ytdlp.version);
-    setYtdlpLatestVersion(cache.ytdlp.latestVersion);
-    setYtdlpUpdateAvailable(Boolean(cache.ytdlp.updateAvailable));
-    setYtdlpPath(cache.ytdlpPath);
+  const applyCacheSnapshot = useCallback(
+    (cache: {
+      ytdlp: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ffmpeg: {
+        installed: boolean;
+        version?: string;
+        latestVersion?: string;
+        updateAvailable?: boolean;
+      };
+      ytdlpPath: string;
+      downloadLocation: { path: string; defaultPath: string; isDefault: boolean };
+    }) => {
+      setYtdlpInstalled(cache.ytdlp.installed);
+      setYtdlpVersion(cache.ytdlp.version);
+      setYtdlpLatestVersion(cache.ytdlp.latestVersion);
+      setYtdlpUpdateAvailable(Boolean(cache.ytdlp.updateAvailable));
+      setYtdlpPath(cache.ytdlpPath);
 
-    setFfmpegInstalled(cache.ffmpeg.installed);
-    setFfmpegVersion(cache.ffmpeg.version);
-    setFfmpegLatestVersion(cache.ffmpeg.latestVersion);
-    setFfmpegUpdateAvailable(Boolean(cache.ffmpeg.updateAvailable));
+      setFfmpegInstalled(cache.ffmpeg.installed);
+      setFfmpegVersion(cache.ffmpeg.version);
+      setFfmpegLatestVersion(cache.ffmpeg.latestVersion);
+      setFfmpegUpdateAvailable(Boolean(cache.ffmpeg.updateAvailable));
 
-    setDownloadLocation(cache.downloadLocation.path);
-    setDownloadLocationDefaultPath(cache.downloadLocation.defaultPath);
-    setDownloadLocationIsDefault(cache.downloadLocation.isDefault);
-  }, []);
+      setDownloadLocation(cache.downloadLocation.path);
+      setDownloadLocationDefaultPath(cache.downloadLocation.defaultPath);
+      setDownloadLocationIsDefault(cache.downloadLocation.isDefault);
+    },
+    []
+  );
 
   const refreshDownloadToolStatus = useCallback(async () => {
     if (!IS_ELECTRON) {
@@ -215,8 +228,8 @@ export function useDownloadsSettings() {
       const { results } = await window.electronAPI.downloader.installDependencies();
       await refreshDownloadToolStatus();
 
-      const failed = results.filter((r) => !r.success);
-      const succeeded = results.filter((r) => r.success);
+      const failed = results.filter(r => !r.success);
+      const succeeded = results.filter(r => r.success);
 
       if (failed.length === 0) {
         toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
@@ -226,12 +239,15 @@ export function useDownloadsSettings() {
         for (const r of failed) {
           const toolName = r.tool === 'ytdlp' ? 'yt-dlp' : 'ffmpeg';
           const msg = r.error ?? i18n.t('installationFailed', { ns: 'toast' });
-          toast.error(i18n.t('failedInstallToolsError', { ns: 'toast', error: `${toolName}: ${msg}` }), {
-            id: `dependency-install-${r.tool}`,
-          });
+          toast.error(
+            i18n.t('failedInstallToolsError', { ns: 'toast', error: `${toolName}: ${msg}` }),
+            {
+              id: `dependency-install-${r.tool}`,
+            }
+          );
         }
         if (succeeded.length > 0) {
-          const names = succeeded.map((r) => (r.tool === 'ytdlp' ? 'yt-dlp' : 'ffmpeg')).join(', ');
+          const names = succeeded.map(r => (r.tool === 'ytdlp' ? 'yt-dlp' : 'ffmpeg')).join(', ');
           toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }) + ` (${names})`, {
             id: 'dependency-install-partial',
           });

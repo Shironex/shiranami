@@ -19,11 +19,13 @@ export function GridSizeToggle({ size, onSizeChange, labels }: GridSizeTogglePro
       role="group"
       aria-label={labels.group}
     >
-      {([
-        { size: 'large', icon: Grid2x2, label: labels.large },
-        { size: 'medium', icon: LayoutGrid, label: labels.medium },
-        { size: 'small', icon: Grid3x3, label: labels.small },
-      ] as const).map(({ size: itemSize, icon: Icon, label }) => (
+      {(
+        [
+          { size: 'large', icon: Grid2x2, label: labels.large },
+          { size: 'medium', icon: LayoutGrid, label: labels.medium },
+          { size: 'small', icon: Grid3x3, label: labels.small },
+        ] as const
+      ).map(({ size: itemSize, icon: Icon, label }) => (
         <button
           key={itemSize}
           onClick={() => onSizeChange(itemSize)}

@@ -29,7 +29,7 @@ vi.mock('@/stores/useRadioStore', () => ({
       setSearchQuery: typeof setSearchQuery;
       setSelectedCountry: ReturnType<typeof vi.fn>;
       setActiveTab: typeof setActiveTab;
-    }) => T,
+    }) => T
   ) =>
     selector({
       stations: [],
@@ -56,7 +56,7 @@ vi.mock('@/stores/usePlaybackStore', () => ({
       currentTrack: null;
       isPlaying: boolean;
       setQueue: ReturnType<typeof vi.fn>;
-    }) => T,
+    }) => T
   ) =>
     selector({
       currentTrack: null,

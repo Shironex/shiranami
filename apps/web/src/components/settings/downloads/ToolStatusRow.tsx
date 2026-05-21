@@ -40,7 +40,9 @@ export function ToolStatusRow({
           <Download className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm text-foreground">{notInstalledTitle}</span>
           {notInstalledRight != null ? (
-            <span className="ml-auto text-[10px] text-muted-foreground/60">{notInstalledRight}</span>
+            <span className="ml-auto text-[10px] text-muted-foreground/60">
+              {notInstalledRight}
+            </span>
           ) : null}
         </>
       )}
