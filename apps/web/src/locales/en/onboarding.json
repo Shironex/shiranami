@@ -28,7 +28,7 @@
   "folders": {
     "eyebrow": "01 · Point it at your files",
     "headline": "Your folders are the <1>catalog</1>.",
-    "description": "Drop in directories. Shiranami scans your files, reads the tags, lifts cover art, and quietly hands you back a real library — no upload, no account, no maybe-it-syncs.",
+    "description": "Drop in directories. Shiranami scans your files, reads the tags, lifts cover art, and quietly hands you back a real library. No upload, no account, no maybe-it-syncs.",
     "title": "Music folders",
     "empty": "No folders yet. Add one to start building your library.",
     "addFolder": "Add folder",
@@ -37,12 +37,12 @@
     "trackCount_one": "{{count}} track",
     "trackCount_other": "{{count}} tracks",
     "desktopOnly": "Adding folders is available in the desktop app.",
-    "doneHint": "Nice — your library is filling up. Add more or continue."
+    "doneHint": "Nice. Your library is filling up. Add more or continue."
   },
   "tools": {
     "eyebrow": "02 · Bring the tools",
     "headline": "Pull tracks <1>straight in</1>.",
-    "description": "Shiranami can fetch and import from a link — it just needs two small helpers: yt-dlp to fetch, ffmpeg to convert. Skip this if you only play files you already have; you can grab them later in Settings · Downloads.",
+    "description": "Shiranami can fetch and import from a link. It just needs two small helpers: yt-dlp to fetch, ffmpeg to convert. Skip this if you only play files you already have; you can grab them later in Settings · Downloads.",
     "title": "Download helpers",
     "installAll": "Install both",
     "installing": "Installing…",
@@ -50,8 +50,8 @@
     "ffmpeg": "ffmpeg",
     "updateBoth": "Update available",
     "checking": "Checking for helpers…",
-    "allSet": "Both helpers are installed — you're ready to import.",
-    "skipHint": "Optional — only needed for downloading and importing.",
+    "allSet": "Both helpers are installed. You're ready to import.",
+    "skipHint": "Optional. Only needed for downloading and importing.",
     "desktopOnly": "Downloading is available in the desktop app."
   },
   "appearance": {
@@ -81,9 +81,9 @@
   "visualizer": {
     "eyebrow": "05 · The rhythm",
     "headline": "Give the sound a <1>shape</1>.",
-    "description": "An audio-reactive scene rides above your now-playing bar. Pick one you like — or none. Change it any time.",
+    "description": "An audio-reactive scene rides above your now-playing bar. Pick one you like, or none. Change it any time.",
     "title": "Choose a visualizer",
-    "hint": "Optional — preview updates live."
+    "hint": "Optional. Preview updates live."
   },
   "summary": {
     "eyebrow": "06 · All set",
@@ -106,7 +106,7 @@
       "ytdlpOnly": "yt-dlp only",
       "ffmpegOnly": "ffmpeg only",
       "none": "Not installed",
-      "checking": "—"
+      "checking": "Checking…"
     },
     "playback": {
       "resumeOn": "Resume on",
@@ -115,6 +115,6 @@
       "noCrossfade": "No crossfade",
       "discordOn": "Discord on"
     },
-    "value": { "none": "—" }
+    "value": { "none": "None" }
   }
 }

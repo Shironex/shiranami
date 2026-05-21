@@ -28,7 +28,7 @@
   "folders": {
     "eyebrow": "01 · Wskaż swoje pliki",
     "headline": "Twoje foldery to <1>katalog</1>.",
-    "description": "Dodaj katalogi. Shiranami przeskanuje pliki, odczyta tagi, pobierze okładki i po cichu zbuduje prawdziwą bibliotekę — bez przesyłania, bez konta, bez „może-się-zsynchronizuje”.",
+    "description": "Dodaj katalogi. Shiranami przeskanuje pliki, odczyta tagi, pobierze okładki i po cichu zbuduje prawdziwą bibliotekę. Bez przesyłania, bez konta, bez „może-się-zsynchronizuje”.",
     "title": "Foldery muzyczne",
     "empty": "Brak folderów. Dodaj pierwszy, aby zbudować bibliotekę.",
     "addFolder": "Dodaj folder",
@@ -39,12 +39,12 @@
     "trackCount_many": "{{count}} utworów",
     "trackCount_other": "{{count}} utworu",
     "desktopOnly": "Dodawanie folderów jest dostępne w aplikacji desktopowej.",
-    "doneHint": "Świetnie — biblioteka się zapełnia. Dodaj więcej lub kontynuuj."
+    "doneHint": "Świetnie. Biblioteka się zapełnia. Dodaj więcej lub kontynuuj."
   },
   "tools": {
     "eyebrow": "02 · Dorzuć narzędzia",
     "headline": "Pobieraj utwory <1>prosto do środka</1>.",
-    "description": "Shiranami pobiera i importuje z linku — potrzebuje tylko dwóch małych pomocników: yt-dlp do pobierania i ffmpeg do konwersji. Pomiń, jeśli odtwarzasz tylko własne pliki; możesz je dodać później w Ustawienia · Pobieranie.",
+    "description": "Shiranami pobiera i importuje z linku. Potrzebuje tylko dwóch małych pomocników: yt-dlp do pobierania i ffmpeg do konwersji. Pomiń, jeśli odtwarzasz tylko własne pliki; możesz je dodać później w Ustawienia · Pobieranie.",
     "title": "Pomocnicy do pobierania",
     "installAll": "Zainstaluj oba",
     "installing": "Instalowanie…",
@@ -52,8 +52,8 @@
     "ffmpeg": "ffmpeg",
     "updateBoth": "Dostępna aktualizacja",
     "checking": "Sprawdzanie pomocników…",
-    "allSet": "Oba pomocniki są zainstalowane — możesz importować.",
-    "skipHint": "Opcjonalne — potrzebne tylko do pobierania i importu.",
+    "allSet": "Oba pomocniki są zainstalowane. Możesz importować.",
+    "skipHint": "Opcjonalne. Potrzebne tylko do pobierania i importu.",
     "desktopOnly": "Pobieranie jest dostępne w aplikacji desktopowej."
   },
   "appearance": {
@@ -83,9 +83,9 @@
   "visualizer": {
     "eyebrow": "05 · Rytm",
     "headline": "Nadaj dźwiękowi <1>kształt</1>.",
-    "description": "Scena reagująca na dźwięk unosi się nad paskiem odtwarzania. Wybierz tę, którą lubisz — albo żadną. Zmień w dowolnej chwili.",
+    "description": "Scena reagująca na dźwięk unosi się nad paskiem odtwarzania. Wybierz tę, którą lubisz, albo żadną. Zmień w dowolnej chwili.",
     "title": "Wybierz wizualizację",
-    "hint": "Opcjonalne — podgląd aktualizuje się na żywo."
+    "hint": "Opcjonalne. Podgląd aktualizuje się na żywo."
   },
   "summary": {
     "eyebrow": "06 · Gotowe",
@@ -110,7 +110,7 @@
       "ytdlpOnly": "tylko yt-dlp",
       "ffmpegOnly": "tylko ffmpeg",
       "none": "Nie zainstalowano",
-      "checking": "—"
+      "checking": "Sprawdzanie…"
     },
     "playback": {
       "resumeOn": "Wznawianie wł.",
@@ -119,6 +119,6 @@
       "noCrossfade": "Bez przejść",
       "discordOn": "Discord wł."
     },
-    "value": { "none": "—" }
+    "value": { "none": "Brak" }
   }
 }
