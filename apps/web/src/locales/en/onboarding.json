@@ -1,0 +1,57 @@
+{
+  "wizard": {
+    "ariaLabel": "First-run setup",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "skipForNow": "Skip for now",
+    "finish": "Open library",
+    "progressAria": "Setup progress",
+    "stepDotAria": "Go to step {{number}}: {{id}}",
+    "stepCounter": "Step · {{current}} · of {{total}}",
+    "crumb": "Welcome"
+  },
+  "welcome": {
+    "eyebrow": "Vol · NS · {{version}} · late night build",
+    "headline": "A softer place for your <1>music library</1>.",
+    "description": "Shiranami plays the files you already own. Folders you point it at. Nothing streamed, nothing watched, nothing recommended over your shoulder.",
+    "language": {
+      "label": "Language",
+      "hint": "You can change this any time in Settings · Appearance."
+    },
+    "stats": {
+      "free": "Source-available",
+      "platforms": "Win · macOS",
+      "noTelemetry": "No telemetry"
+    }
+  },
+  "folders": {
+    "eyebrow": "01 · Point it at your files",
+    "headline": "Your folders are the <1>catalog</1>.",
+    "description": "Drop in directories. Shiranami scans your files, reads the tags, lifts cover art, and quietly hands you back a real library — no upload, no account, no maybe-it-syncs.",
+    "title": "Music folders",
+    "empty": "No folders yet. Add one to start building your library.",
+    "addFolder": "Add folder",
+    "scanning": "Scanning…",
+    "remove": "Remove folder",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "desktopOnly": "Adding folders is available in the desktop app.",
+    "doneHint": "Nice — your library is filling up. Add more or continue."
+  },
+  "theme": {
+    "eyebrow": "02 · Pick your room",
+    "headline": "The window dresses for your <1>mood</1>.",
+    "description": "One quiet theme with five scenes. The whole interface — accent color, glow, surfaces — shifts to match. Swap any time from Settings · Appearance.",
+    "title": "Theme",
+    "hint": "Tap any scene · the rain stays."
+  },
+  "ready": {
+    "eyebrow": "03 · Ready",
+    "headline": "Open the door. <1>Press play</1>.",
+    "description": "That's it. The library is waiting. We'll keep your queue, run your radio, hand you the lyrics, and resume the song you left at 2:47 a.m.",
+    "title": "Choose a visualizer",
+    "hint": "Optional — the rhythm behind your now-playing bar. Change it any time.",
+    "cta": "Press play."
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "wizard": {
+    "ariaLabel": "Pierwsze uruchomienie",
+    "skip": "Pomiń",
+    "back": "Wstecz",
+    "next": "Dalej",
+    "skipForNow": "Pomiń na razie",
+    "finish": "Otwórz bibliotekę",
+    "progressAria": "Postęp konfiguracji",
+    "stepDotAria": "Przejdź do kroku {{number}}: {{id}}",
+    "stepCounter": "Krok · {{current}} · z {{total}}",
+    "crumb": "Witaj"
+  },
+  "welcome": {
+    "eyebrow": "Vol · NS · {{version}} · nocny build",
+    "headline": "Spokojniejsze miejsce dla Twojej <1>biblioteki muzycznej</1>.",
+    "description": "Shiranami odtwarza pliki, które już masz. Foldery, które wskażesz. Nic ze streamingu, nic śledzonego, nic podpowiadanego przez ramię.",
+    "language": {
+      "label": "Język",
+      "hint": "Możesz to zmienić w każdej chwili w Ustawienia · Wygląd."
+    },
+    "stats": {
+      "free": "Kod dostępny",
+      "platforms": "Win · macOS",
+      "noTelemetry": "Bez telemetrii"
+    }
+  },
+  "folders": {
+    "eyebrow": "01 · Wskaż swoje pliki",
+    "headline": "Twoje foldery to <1>katalog</1>.",
+    "description": "Dodaj katalogi. Shiranami przeskanuje pliki, odczyta tagi, pobierze okładki i po cichu zbuduje prawdziwą bibliotekę — bez przesyłania, bez konta, bez „może-się-zsynchronizuje”.",
+    "title": "Foldery muzyczne",
+    "empty": "Brak folderów. Dodaj pierwszy, aby zbudować bibliotekę.",
+    "addFolder": "Dodaj folder",
+    "scanning": "Skanowanie…",
+    "remove": "Usuń folder",
+    "trackCount_one": "{{count}} utwór",
+    "trackCount_few": "{{count}} utwory",
+    "trackCount_many": "{{count}} utworów",
+    "trackCount_other": "{{count}} utworu",
+    "desktopOnly": "Dodawanie folderów jest dostępne w aplikacji desktopowej.",
+    "doneHint": "Świetnie — biblioteka się zapełnia. Dodaj więcej lub kontynuuj."
+  },
+  "theme": {
+    "eyebrow": "02 · Wybierz nastrój",
+    "headline": "Okno ubiera się pod Twój <1>nastrój</1>.",
+    "description": "Jeden spokojny motyw, pięć scenerii. Cały interfejs — kolor akcentu, poświata, powierzchnie — dopasowuje się. Zmień w dowolnej chwili w Ustawienia · Wygląd.",
+    "title": "Motyw",
+    "hint": "Dotknij dowolnej scenerii · deszcz zostaje."
+  },
+  "ready": {
+    "eyebrow": "03 · Gotowe",
+    "headline": "Otwórz drzwi. <1>Naciśnij play</1>.",
+    "description": "I to wszystko. Biblioteka czeka. Zachowamy kolejkę, uruchomimy radio, podamy teksty i wznowimy utwór porzucony o 2:47 w nocy.",
+    "title": "Wybierz wizualizację",
+    "hint": "Opcjonalne — rytm za paskiem odtwarzania. Zmień w dowolnej chwili.",
+    "cta": "Naciśnij play."
+  }
+}

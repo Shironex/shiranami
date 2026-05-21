@@ -339,6 +339,9 @@
     "storyP3Post": ".",
     "logsTitle": "Application logs",
     "logsSubtitle": "Open the log folder in your file explorer",
-    "openLogs": "Open logs folder"
+    "openLogs": "Open logs folder",
+    "replayTitle": "Replay onboarding",
+    "replaySubtitle": "Step through the first-run setup again",
+    "replayButton": "Replay setup"
   }
 }
