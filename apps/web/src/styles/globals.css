@@ -312,6 +312,28 @@
   }
 }
 
+/* App-wide reduced-motion gate (a11y + a free CPU win when the OS asks for it).
+   Neutralizes the decorative / looping steady-state animations only — the
+   equalizer bars, the always-pulsing status badges, the floating mascot, the
+   subtle opacity pulse, and the hover marquee. Functional transitions that
+   convey state (enter/exit, hover affordances) are intentionally left alone.
+   Kept outside @layer so it reliably beats the @utility animation declarations
+   without raising specificity. */
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar-1,
+  .eq-bar-2,
+  .eq-bar-3,
+  .animate-pulse,
+  .animate-pulse-subtle,
+  .float-mascot {
+    animation: none !important;
+  }
+  .animate-marquee {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 [data-perf-mode='low'] .splash-steam,
 [data-perf-mode='low'] .splash-streak {
   display: none;
@@ -505,6 +527,13 @@
 
 @utility font-display {
   font-family: var(--font-display);
+}
+
+/* Shared mascot float — stable class so the global reduced-motion gate can
+   neutralize it (replaces the duplicated arbitrary
+   animate-[shiranami-float_6s_ease-in-out_infinite] usages). */
+@utility float-mascot {
+  animation: shiranami-float 6s ease-in-out infinite;
 }
 
 @utility eq-bar-1 {
