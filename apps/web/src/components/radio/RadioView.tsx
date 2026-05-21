@@ -132,6 +132,11 @@ export function RadioView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 pt-5 pb-1 shrink-0">
+        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
+          {t('pageTitle')}
+        </h1>
+      </div>
       {/* Search bar */}
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
@@ -143,7 +148,7 @@ export function RadioView() {
             onChange={e => handleSearchChange(e.target.value)}
             placeholder={t('searchPlaceholder')}
             className={cn(
-              'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border-border/50',
+              'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               'text-foreground placeholder:text-muted-foreground/50',
               'focus-visible:ring-primary/40 focus-visible:border-primary/40',
               'shadow-none'
