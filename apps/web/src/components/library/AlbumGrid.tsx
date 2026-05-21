@@ -13,8 +13,6 @@ import {
 } from 'react-window';
 import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
 
-export type { AlbumData };
-
 interface AlbumGridProps {
   library: Track[];
   searchQuery: string;
