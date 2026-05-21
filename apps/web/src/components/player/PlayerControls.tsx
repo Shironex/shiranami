@@ -74,10 +74,13 @@ export const PlayerControls = memo(function PlayerControls() {
             disabled={!currentTrack}
             className={cn(
               'w-10 h-10 flex items-center justify-center rounded-full',
-              'bg-primary text-primary-foreground',
-              'shadow-md shadow-primary/20',
-              'hover:shadow-lg hover:shadow-primary/30',
-              'transition-shadow duration-200',
+              // rest: outlined accent ring, transparent fill, accent glyph + glow
+              'border-2 border-primary text-primary bg-transparent',
+              'shadow-[0_0_16px_-2px_rgba(var(--primary-rgb),0.5)]',
+              // hover/active: fill for affordance + glyph contrast
+              'hover:bg-primary hover:text-primary-foreground hover:border-primary',
+              'hover:shadow-[0_0_22px_-2px_rgba(var(--primary-rgb),0.6)]',
+              'transition-colors duration-200',
               'disabled:opacity-50'
             )}
             aria-label={isPlaying ? t('pause') : t('play')}
