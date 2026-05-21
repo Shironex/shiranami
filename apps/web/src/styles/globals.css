@@ -556,6 +556,14 @@
   background: oklch(0.1 0.02 280 / 0.9);
 }
 
+/* Full-viewport feTurbulence noise overlay — a live SVG filter the compositor
+   keeps as a top-most always-present layer. AmbientBackground already unmounts
+   it under low-perf, but drop it here too so the rule is self-documenting and
+   covers any future always-on mount. */
+[data-perf-mode='low'] .noise::before {
+  display: none;
+}
+
 /* ── Theme image paint surface (ThemeBackground) ─────────────────────────
    Sizing + first-paint fallback only. The actual `background-image` is set
    inline by ThemeBackground as a document-relative `url(./themes/<id>.webp)`
@@ -604,5 +612,11 @@
   .glass-panel {
     backdrop-filter: none;
     background: oklch(0.1 0.02 280 / 0.9);
+  }
+  /* The live feTurbulence noise overlay reads as a transparency effect — drop
+     it under reduced-transparency (it was previously only dropped under
+     low-perf via AmbientBackground unmount). */
+  .noise::before {
+    display: none;
   }
 }
