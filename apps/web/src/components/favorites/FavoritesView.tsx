@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Heart } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { NowPlayingHero } from '@/components/shared/NowPlayingHero';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -48,11 +49,7 @@ export function FavoritesView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-1 shrink-0">
-        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
-          {t('pageTitle')}
-        </h1>
-      </div>
+      <PageHeader title={t('pageTitle')} />
 
       {libraryHeroCardEnabled && <NowPlayingHero show={showIfFavorite} />}
 

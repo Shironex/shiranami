@@ -21,6 +21,7 @@ import { useSearchSuggestions } from '@/hooks/useSearchSuggestions';
 import { SearchStateCard } from './SearchStateCard';
 import { DependencyInstallCard } from './DependencyInstallCard';
 import { ViewEmptyState } from '../shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 export function SearchView() {
   const { t } = useTranslation('search');
@@ -146,11 +147,7 @@ export function SearchView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-1 shrink-0">
-        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
-          {t('pageTitle')}
-        </h1>
-      </div>
+      <PageHeader title={t('pageTitle')} />
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />

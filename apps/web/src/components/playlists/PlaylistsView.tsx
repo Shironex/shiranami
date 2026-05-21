@@ -4,6 +4,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { ListMusic, Plus, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { PlaylistsViewSkeleton } from './PlaylistsViewSkeleton';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
@@ -85,11 +86,7 @@ export function PlaylistsView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-1 shrink-0">
-        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
-          {t('pageTitle')}
-        </h1>
-      </div>
+      <PageHeader title={t('pageTitle')} />
 
       {/* Header */}
       <div className="px-6 pt-4 pb-4 shrink-0 flex items-center gap-3">

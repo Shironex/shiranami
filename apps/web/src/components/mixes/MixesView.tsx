@@ -6,6 +6,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Sparkles, Play, Shuffle, ArrowLeft } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -157,11 +158,7 @@ export function MixesView() {
   // ── Mix grid (overview) ──
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-6 pt-5 pb-1 shrink-0">
-        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
-          {t('pageTitle')}
-        </h1>
-      </div>
+      <PageHeader title={t('pageTitle')} />
 
       <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 scrollbar-thin">
         <div className="rounded-2xl glass-panel border border-border/30 p-2 space-y-1.5">
