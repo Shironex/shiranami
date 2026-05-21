@@ -36,6 +36,7 @@ const DebugOverlay = import.meta.env.DEV
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
+const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -53,6 +54,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -60,6 +62,16 @@ import { hydrateLanguageFromStore } from '@/lib/i18n';
 function App() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDismissed = useCallback(() => setSplashDone(true), []);
+
+  const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
+  const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
+  const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted);
+  // Replay (reset from Settings) flips the store flag back to false; mirror it
+  // locally so the wizard re-appears immediately over the running app.
+  useEffect(() => {
+    if (!onboardingCompleted) setOnboardingDone(false);
+  }, [onboardingCompleted]);
+  const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
 
   const { t } = useTranslation();
 
@@ -92,6 +104,10 @@ function App() {
   useEffect(() => {
     hydrateLanguageFromStore();
   }, []);
+
+  useEffect(() => {
+    void hydrateOnboarding();
+  }, [hydrateOnboarding]);
 
   // Auto-collapse sidebar on narrow viewports
   const setSidebarCollapsed = useUIStore(s => s.setSidebarCollapsed);
@@ -154,7 +170,13 @@ function App() {
         onDismissed={handleSplashDismissed}
       />
 
-      {splashDone && (
+      {splashDone && !onboardingDone && (
+        <Suspense fallback={null}>
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
+        </Suspense>
+      )}
+
+      {splashDone && onboardingDone && (
         <AmbientColorProvider>
           <div
             className={cn(
