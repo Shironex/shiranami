@@ -30,6 +30,23 @@ class ResizeObserverMock {
 
 globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
 
+// jsdom has no IntersectionObserver. useRafLoop constructs one to gate its loop
+// on element visibility, so any component using it (SeekBar, visualizers) needs
+// this in tests. The mock is inert — it never fires, so loops stay idle, which
+// is the correct default for unit tests that don't drive animation frames.
+class IntersectionObserverMock {
+  constructor(_callback: IntersectionObserverCallback) {}
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+
+globalThis.IntersectionObserver =
+  IntersectionObserverMock as unknown as typeof IntersectionObserver;
+
 export function triggerResize(target: Element, rect: { width: number; height: number }): void {
   const contentRect = {
     ...rect,

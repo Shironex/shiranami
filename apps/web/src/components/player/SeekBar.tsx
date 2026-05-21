@@ -1,8 +1,24 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
+import { useRafLoop } from '@/hooks/useRafLoop';
 import { formatDuration } from '@shiranami/shared';
+
+/** Apply a 0..1 progress ratio to the fill (scaleX) and thumb (translateX).
+ *  Both are compositor-only transforms — no layout/paint per frame. The thumb
+ *  offset is in track-relative pixels; translateX(-50%) keeps it centered on
+ *  the progress point regardless of the thumb's own (hover-animated) width. */
+function applyProgress(
+  ratio: number,
+  fill: HTMLDivElement | null,
+  thumb: HTMLDivElement | null,
+  trackWidth: number
+) {
+  const clamped = Math.max(0, Math.min(1, ratio));
+  if (fill) fill.style.transform = `scaleX(${clamped})`;
+  if (thumb) thumb.style.transform = `translateX(${clamped * trackWidth}px) translateX(-50%)`;
+}
 
 export function SeekBar() {
   const { t } = useTranslation('player');
@@ -16,7 +32,6 @@ export function SeekBar() {
   const fillRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
-  const rafRef = useRef<number>(0);
 
   const getValueFromPointer = useCallback(
     (clientX: number) => {
@@ -65,33 +80,31 @@ export function SeekBar() {
     [getValueFromPointer, setScrubTime, seek]
   );
 
-  // RAF loop for smooth seek bar updates while playing and not scrubbing
-  useEffect(() => {
-    if (!isPlaying || scrubTime !== null) {
-      cancelAnimationFrame(rafRef.current);
-      return;
-    }
+  // RAF loop for smooth seek bar updates while playing and not scrubbing.
+  // Routed through useRafLoop so it also stops when the window is hidden or the
+  // bar scrolls off-screen — not only when Chromium happens to throttle rAF.
+  const tick = useCallback(() => {
+    const trackWidth = trackRef.current?.clientWidth ?? 0;
+    const ratio = duration > 0 ? currentTimeRef.current / duration : 0;
+    applyProgress(ratio, fillRef.current, thumbRef.current, trackWidth);
+  }, [duration]);
 
-    const tick = () => {
-      const time = currentTimeRef.current;
-      const progress = duration > 0 ? (time / duration) * 100 : 0;
-      const pct = `${progress}%`;
+  const rafActive = isPlaying && scrubTime === null;
+  useRafLoop(tick, trackRef, rafActive);
 
-      if (fillRef.current) fillRef.current.style.width = pct;
-      if (thumbRef.current) thumbRef.current.style.left = pct;
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPlaying, scrubTime, duration]);
-
-  // When paused or scrubbing, compute progress from store values
+  // When paused or scrubbing, the rAF is inactive — drive the same transforms
+  // from store values in a layout effect so the position stays exact (and the
+  // thumb tracks pointer drags) without animating layout properties.
   const storeTime = usePlaybackStore(s => s.currentTime);
   const displayTime = scrubTime ?? storeTime;
-  const staticProgress = duration > 0 ? (displayTime / duration) * 100 : 0;
+  const staticRatio = duration > 0 ? displayTime / duration : 0;
   const needsStaticStyle = !isPlaying || scrubTime !== null;
+
+  useLayoutEffect(() => {
+    if (!needsStaticStyle) return;
+    const trackWidth = trackRef.current?.clientWidth ?? 0;
+    applyProgress(staticRatio, fillRef.current, thumbRef.current, trackWidth);
+  }, [needsStaticStyle, staticRatio]);
 
   return (
     <div
@@ -108,18 +121,16 @@ export function SeekBar() {
     >
       {/* Track */}
       <div className="relative h-1 w-full grow overflow-hidden rounded-full bg-foreground/[0.06] group-hover:h-[5px] transition-all duration-200">
-        {/* Range fill */}
+        {/* Range fill — full width, scaled along X (compositor-only). */}
         <div
           ref={fillRef}
-          className="absolute h-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200 group-hover:shadow-[0_0_8px_0_rgba(var(--primary-rgb),0.5)]"
-          style={needsStaticStyle ? { width: `${staticProgress}%` } : undefined}
+          className="absolute h-full w-full origin-left bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200 group-hover:shadow-[0_0_8px_0_rgba(var(--primary-rgb),0.5)]"
         />
       </div>
-      {/* Thumb */}
+      {/* Thumb — positioned via translateX (compositor-only). */}
       <div
         ref={thumbRef}
-        className="absolute h-0 w-0 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_10px_0_rgba(var(--primary-rgb),0.6)] transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
-        style={needsStaticStyle ? { left: `${staticProgress}%` } : undefined}
+        className="absolute left-0 h-0 w-0 rounded-full bg-primary shadow-[0_0_10px_0_rgba(var(--primary-rgb),0.6)] transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
       />
     </div>
   );
