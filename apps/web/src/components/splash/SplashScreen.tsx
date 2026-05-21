@@ -78,7 +78,7 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       style={{
         transition: isDismissing ? 'opacity 540ms ease-out, filter 540ms ease-out' : undefined,
         opacity: isDismissing ? 0 : 1,
-        filter: isDismissing ? (reducedMotion ? 'blur(0px)' : 'blur(8px)') : 'blur(0px)',
+        filter: isDismissing ? (disableBreathLoop ? 'blur(0px)' : 'blur(8px)') : 'blur(0px)',
       }}
     >
       {/* Drag region — keeps the frameless window movable during boot */}
