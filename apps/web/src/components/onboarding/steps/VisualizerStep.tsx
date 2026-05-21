@@ -35,14 +35,12 @@ export function VisualizerStep() {
               {t('visualizer.hint')}
             </p>
           </div>
-          <div className="max-h-40 overflow-y-auto scrollbar-thin pr-0.5">
-            <VisualizerStyleGrid
-              value={visualizerStyle}
-              onSelect={setVisualizerStyle}
-              columns={3}
-              compact
-            />
-          </div>
+          <VisualizerStyleGrid
+            value={visualizerStyle}
+            onSelect={setVisualizerStyle}
+            columns={3}
+            compact
+          />
         </div>
       </div>
     </OnboardingStepLayout>

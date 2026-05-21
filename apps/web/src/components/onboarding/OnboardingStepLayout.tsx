@@ -34,8 +34,10 @@ export function OnboardingStepLayout({
 }: OnboardingStepLayoutProps) {
   return (
     <div className="grid h-full w-full gap-8 md:grid-cols-[1.05fr_1fr] md:gap-12">
-      {/* Left — narrative */}
-      <div className="relative flex min-w-0 flex-col justify-center overflow-hidden">
+      {/* Left — narrative. Content block is centered within its pane so the copy
+          never hugs the window edge on wide/full-screen displays, while the
+          grid itself still spans the full width (no dead side-bands). */}
+      <div className="relative flex min-w-0 flex-col items-center justify-center overflow-hidden">
         <OnboardingKanji glyph={kanji} />
         {/* AA contrast scrim behind the copy */}
         <div
@@ -62,9 +64,13 @@ export function OnboardingStepLayout({
         </div>
       </div>
 
-      {/* Right — interactive control */}
-      <div className="relative flex min-w-0 flex-col justify-center">
-        <div className="glass rounded-2xl border border-border/30 bg-surface/50 p-5 shadow-[0_8px_40px_-12px_oklch(from_var(--background)_calc(l*0.4)_c_h_/_0.6)]">
+      {/* Right — interactive control. Centered in its pane with a comfortable
+          max width: never shrinks below its natural size at normal window
+          widths, just stops stretching too wide on full-screen displays. The
+          card scrolls inside itself (max-h-full) so tall steps like Appearance
+          stay reachable on short windows instead of clipping off-screen. */}
+      <div className="relative flex min-h-0 min-w-0 flex-col items-center justify-center">
+        <div className="glass max-h-full w-full max-w-xl overflow-y-auto scrollbar-thin rounded-2xl border border-border/30 bg-surface/50 p-5 shadow-[0_8px_40px_-12px_oklch(from_var(--background)_calc(l*0.4)_c_h_/_0.6)]">
           {children}
         </div>
       </div>
