@@ -6,6 +6,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { cn, isRadioTrack } from '@/lib/utils';
+import { PLAYER_BAR_HEIGHT } from '@/lib/layout';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
@@ -46,13 +47,14 @@ export function PlayerBar() {
     <AnimatePresence>
       {currentTrack && (
         <motion.div
-          initial={{ y: 88, opacity: 0 }}
+          initial={{ y: PLAYER_BAR_HEIGHT, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 88, opacity: 0 }}
+          exit={{ y: PLAYER_BAR_HEIGHT, opacity: 0 }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          style={{ height: PLAYER_BAR_HEIGHT }}
           className={cn(
             'absolute bottom-0 left-0 right-0 z-50',
-            'h-[88px] px-5',
+            'px-5',
             'flex items-center gap-5',
             'glass border-t border-border/30'
           )}
