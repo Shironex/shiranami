@@ -113,7 +113,7 @@ export function LibraryView() {
                     ? t('filterAlbumsPlaceholder')
                     : t('filterPlaceholder')
                 }
-                className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-card border-border/50 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
+                className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm glass-subtle border-border/40 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
               />
               <AnimatePresence>
                 {isFiltered && (
@@ -165,7 +165,7 @@ export function LibraryView() {
             )}
 
             {/* View toggle */}
-            <div className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5">
+            <div className="flex items-center rounded-xl border border-border/50 glass-subtle p-1 gap-0.5">
               <ViewModeButton
                 active={libraryViewMode === 'tracks'}
                 onClick={() => setLibraryViewMode('tracks')}
@@ -212,23 +212,25 @@ export function LibraryView() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <VirtualList
-            rowCount={filteredLibrary.length}
-            rowHeight={52}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={TrackRow}
-            rowProps={{
-              queue: filteredLibrary,
-              currentTrack,
-              isPlaying,
-              handlePlayTrack,
-              onToggleFavorite: toggleFavorite,
-              showAddToPlaylist: true,
-            }}
-          />
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <VirtualList
+              rowCount={filteredLibrary.length}
+              rowHeight={52}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={TrackRow}
+              rowProps={{
+                queue: filteredLibrary,
+                currentTrack,
+                isPlaying,
+                handlePlayTrack,
+                onToggleFavorite: toggleFavorite,
+                showAddToPlaylist: true,
+              }}
+            />
+          </div>
         </div>
       )}
 
