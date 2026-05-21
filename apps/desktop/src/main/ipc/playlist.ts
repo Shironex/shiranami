@@ -3,12 +3,9 @@ import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
-import {
-  spawnYtDlp,
-  parseYtDlpJsonLines,
-  type SearchResult,
-} from '../utils/ytdlp-spawn';
+import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
 import { getMainWindow } from '../utils/window';
+import { BROWSER_USER_AGENT } from '../shared/user-agent';
 
 export { parseYtDlpJsonLines };
 
@@ -79,15 +76,14 @@ async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack
   const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
   const response = await net.fetch(embedUrl, {
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': BROWSER_USER_AGENT,
     },
   });
 
   if (!response.ok) {
     throw new IpcError(
       PLAYLIST_ERROR_CODES.PRIVATE_PLAYLIST,
-      `Failed to fetch Spotify embed page: ${response.status}`,
+      `Failed to fetch Spotify embed page: ${response.status}`
     );
   }
 
@@ -200,7 +196,7 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
   if (spotifyTracks.length === 0) {
     throw new IpcError(
       PLAYLIST_ERROR_CODES.NO_TRACKS,
-      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.',
+      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.'
     );
   }
 
@@ -241,7 +237,7 @@ export function registerPlaylistHandlers(): void {
       if (playlistType === 'unknown') {
         throw new IpcError(
           PLAYLIST_ERROR_CODES.UNSUPPORTED_URL,
-          'Unsupported URL. Please provide a YouTube or Spotify playlist URL.',
+          'Unsupported URL. Please provide a YouTube or Spotify playlist URL.'
         );
       }
 
@@ -250,7 +246,7 @@ export function registerPlaylistHandlers(): void {
       }
       return await extractSpotifyPlaylist(url);
     },
-    { schema: playlistExtractArgs },
+    { schema: playlistExtractArgs }
   );
 
   handle(
@@ -259,7 +255,7 @@ export function registerPlaylistHandlers(): void {
       cancelledFlag = true;
       logger.info('[playlist] Extraction cancelled');
     },
-    { schema: playlistCancelArgs },
+    { schema: playlistCancelArgs }
   );
 }
 

@@ -1,6 +1,7 @@
 import { net, protocol } from 'electron';
 import { logger } from './logger';
 import { isStreamUrlAllowed } from './shared/url-safety';
+import { userAgent } from './shared/user-agent';
 
 /**
  * Maximum redirect hops we will follow before giving up. Each hop's
@@ -35,7 +36,7 @@ function forbidden(): Response {
  * Must be called after app.ready (inside bootstrap).
  */
 export function registerRadioProtocol(): void {
-  protocol.handle('shiranami-radio', async (request) => {
+  protocol.handle('shiranami-radio', async request => {
     try {
       const parsed = new URL(request.url);
       const streamUrl = parsed.searchParams.get('url');
@@ -49,9 +50,7 @@ export function registerRadioProtocol(): void {
       // URL points at a private / reserved address. See `shared/url-safety.ts`.
       const initialGuard = await isStreamUrlAllowed(streamUrl);
       if (!initialGuard.ok) {
-        logger.warn(
-          `[radio-protocol] blocked URL (${initialGuard.reason}): ${streamUrl}`,
-        );
+        logger.warn(`[radio-protocol] blocked URL (${initialGuard.reason}): ${streamUrl}`);
         return forbidden();
       }
 
@@ -66,7 +65,7 @@ export function registerRadioProtocol(): void {
       for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
         response = await net.fetch(currentUrl, {
           headers: {
-            'User-Agent': 'Shiranami/0.2.1',
+            'User-Agent': userAgent(),
             'Icy-MetaData': '0',
           },
           signal: request.signal,
@@ -80,7 +79,7 @@ export function registerRadioProtocol(): void {
 
         if (hop === MAX_REDIRECTS) {
           logger.warn(
-            `[radio-protocol] redirect chain exceeded ${MAX_REDIRECTS} hops, last URL: ${currentUrl}`,
+            `[radio-protocol] redirect chain exceeded ${MAX_REDIRECTS} hops, last URL: ${currentUrl}`
           );
           return forbidden();
         }
@@ -91,7 +90,7 @@ export function registerRadioProtocol(): void {
           nextUrl = new URL(location, currentUrl).toString();
         } catch {
           logger.warn(
-            `[radio-protocol] invalid Location header on redirect from ${currentUrl}: ${location}`,
+            `[radio-protocol] invalid Location header on redirect from ${currentUrl}: ${location}`
           );
           return forbidden();
         }
@@ -99,7 +98,7 @@ export function registerRadioProtocol(): void {
         const hopGuard = await isStreamUrlAllowed(nextUrl);
         if (!hopGuard.ok) {
           logger.warn(
-            `[radio-protocol] blocked redirect (${hopGuard.reason}) from ${currentUrl} -> ${nextUrl}`,
+            `[radio-protocol] blocked redirect (${hopGuard.reason}) from ${currentUrl} -> ${nextUrl}`
           );
           return forbidden();
         }

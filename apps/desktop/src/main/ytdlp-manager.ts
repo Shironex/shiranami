@@ -5,6 +5,7 @@ import { logger } from './logger';
 import { requestJson } from './http';
 import { getBinDir } from './utils/bin-paths';
 import { downloadFile } from './utils/net-download';
+import { userAgent } from './shared/user-agent';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
 const GITHUB_RELEASE_API = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';
@@ -40,20 +41,15 @@ export function isYtDlpInstalled(): boolean {
 export async function getYtDlpVersion(): Promise<string | null> {
   if (!isYtDlpInstalled()) return null;
   try {
-    return new Promise((resolve) => {
-      const child = execFile(
-        getYtDlpPath(),
-        ['--version'],
-        { timeout: 30000 },
-        (err, stdout) => {
-          if (err) {
-            logger.error('[ytdlp-manager] Failed to get version:', err.message);
-            resolve(null);
-          } else {
-            resolve(stdout.trim());
-          }
+    return new Promise(resolve => {
+      const child = execFile(getYtDlpPath(), ['--version'], { timeout: 30000 }, (err, stdout) => {
+        if (err) {
+          logger.error('[ytdlp-manager] Failed to get version:', err.message);
+          resolve(null);
+        } else {
+          resolve(stdout.trim());
         }
-      );
+      });
       // Safety: kill if process hangs
       child.on('error', () => resolve(null));
     });
@@ -68,7 +64,7 @@ export async function getLatestYtDlpVersion(): Promise<string | null> {
     const release = await requestJson<GithubLatestReleaseResponse>(GITHUB_RELEASE_API, {
       headers: {
         Accept: 'application/vnd.github+json',
-        'User-Agent': 'Shiranami',
+        'User-Agent': userAgent(),
       },
     });
     return release.tag_name?.trim() || null;
@@ -78,9 +74,7 @@ export async function getLatestYtDlpVersion(): Promise<string | null> {
   }
 }
 
-export async function downloadYtDlp(
-  onProgress?: (percent: number) => void
-): Promise<void> {
+export async function downloadYtDlp(onProgress?: (percent: number) => void): Promise<void> {
   const binDir = getBinDir();
   const binPath = getYtDlpPath();
   const tmpPath = binPath + '.tmp';
@@ -129,4 +123,3 @@ export async function downloadYtDlp(
     throw err;
   }
 }
-
