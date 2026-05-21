@@ -12,6 +12,7 @@ import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
+import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
@@ -150,6 +151,7 @@ function App() {
               IS_ELECTRON && 'rounded-t-[10px]'
             )}
           >
+            <ThemeBackground />
             <AmbientBackground />
             <CommandPalette />
             <ErrorBoundary viewName="KeyboardShortcutsHelp">
