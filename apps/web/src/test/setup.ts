@@ -240,6 +240,11 @@ function createElectronAPIMock(): ElectronAPI {
       cancel: asyncFn(undefined),
       onExtractProgress: vi.fn(() => noopUnsub()),
     },
+    debug: {
+      start: asyncFn(undefined),
+      stop: asyncFn(undefined),
+      onMetrics: vi.fn(() => noopUnsub()),
+    },
     platform: 'win32',
     __e2e: false,
   };
