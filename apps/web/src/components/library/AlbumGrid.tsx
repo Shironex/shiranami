@@ -108,7 +108,7 @@ function AlbumCell({
     <div style={insetStyle}>
       <button
         onClick={() => onAlbumClick(album.name)}
-        className={`text-left ${cardPaddingClass} rounded-2xl glass-subtle border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col`}
+        className={`text-left ${cardPaddingClass} rounded-2xl bg-card/70 border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col`}
       >
         <div
           className="w-full rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden"

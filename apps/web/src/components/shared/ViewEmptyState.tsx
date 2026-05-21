@@ -42,9 +42,7 @@ export function ViewEmptyState({
               aria-hidden="true"
               className={cn(
                 'w-[4.5rem] h-[4.5rem] object-contain',
-                isError
-                  ? 'opacity-50'
-                  : 'opacity-70 animate-[shiranami-float_6s_ease-in-out_infinite]'
+                isError ? 'opacity-50' : 'opacity-70 float-mascot'
               )}
               draggable={false}
             />

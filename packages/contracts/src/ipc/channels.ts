@@ -25,6 +25,11 @@ export const IPC_CHANNELS = {
     getVersion: 'app:get-version',
     openLogsFolder: 'app:open-logs-folder',
   },
+  debug: {
+    start: 'debug:start',
+    stop: 'debug:stop',
+    metrics: 'debug:metrics',
+  },
   store: {
     get: 'store:get',
     set: 'store:set',

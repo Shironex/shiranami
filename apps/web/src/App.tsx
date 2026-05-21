@@ -9,6 +9,7 @@ import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { CompactPlayer } from '@/components/player/CompactPlayer';
+import { MediaSessionSync } from '@/components/player/MediaSessionSync';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
@@ -30,6 +31,11 @@ const AudioVisualizer = lazy(() => import('@/components/player/AudioVisualizer')
 const WaveformVisualizer = lazy(() => import('@/components/player/WaveformVisualizer'));
 const CircleVisualizer = lazy(() => import('@/components/player/CircleVisualizer'));
 const ParticleVisualizer = lazy(() => import('@/components/player/ParticleVisualizer'));
+// Dev-only: the import expression is dead code in prod (the ternary collapses
+// to `null`), so Rollup never emits the chunk for a production build.
+const DebugOverlay = import.meta.env.DEV
+  ? lazy(() => import('@/components/debug/DebugOverlay').then(m => ({ default: m.DebugOverlay })))
+  : null;
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
@@ -41,6 +47,8 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useDebugPanel } from '@/hooks/useDebugPanel';
+import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
@@ -82,6 +90,7 @@ function App() {
   }, [libraryError, refetchLibrary, t]);
   useUpdateNotifications();
   useKeyboardShortcuts();
+  const debugOpen = useDebugPanel();
 
   useEffect(() => {
     hydrateLanguageFromStore();
@@ -137,6 +146,10 @@ function App() {
 
   return (
     <>
+      {/* Isolated leaf: owns the currentTime media-session side-effects so the
+          root App tree does not re-render on every 250ms time tick. */}
+      <MediaSessionSync />
+
       <SplashScreen
         isLoading={libraryLoading}
         isError={libraryError}
@@ -155,6 +168,11 @@ function App() {
             <ThemeBackground />
             <AmbientBackground />
             <CommandPalette />
+            {debugOpen && DebugOverlay && (
+              <Suspense fallback={null}>
+                <DebugOverlay />
+              </Suspense>
+            )}
             <ErrorBoundary viewName="KeyboardShortcutsHelp">
               <Suspense fallback={null}>
                 <KeyboardShortcutsHelp />
@@ -213,7 +231,9 @@ function App() {
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
                       {activeView === 'library' && (
                         <ErrorBoundary viewName="LibraryView">
-                          <LibraryView />
+                          <DevProfiler id="library">
+                            <LibraryView />
+                          </DevProfiler>
                         </ErrorBoundary>
                       )}
                       {activeView === 'playlists' && (
@@ -308,22 +328,28 @@ function App() {
                       >
                         <ErrorBoundary viewName="Visualizer">
                           <Suspense fallback={null}>
-                            {visualizerStyle === 'waveform' ? (
-                              <WaveformVisualizer />
-                            ) : visualizerStyle === 'circle' ? (
-                              <CircleVisualizer />
-                            ) : visualizerStyle === 'particles' ? (
-                              <ParticleVisualizer />
-                            ) : (
-                              <AudioVisualizer />
-                            )}
+                            <DevProfiler id="visualizer">
+                              {visualizerStyle === 'waveform' ? (
+                                <WaveformVisualizer />
+                              ) : visualizerStyle === 'circle' ? (
+                                <CircleVisualizer />
+                              ) : visualizerStyle === 'particles' ? (
+                                <ParticleVisualizer />
+                              ) : (
+                                <AudioVisualizer />
+                              )}
+                            </DevProfiler>
                           </Suspense>
                         </ErrorBoundary>
                       </div>
                     )}
 
                   {/* Player bar (hidden in now-playing view — controls are inline) */}
-                  {activeView !== 'now-playing' && <PlayerBar />}
+                  {activeView !== 'now-playing' && (
+                    <DevProfiler id="player">
+                      <PlayerBar />
+                    </DevProfiler>
+                  )}
                 </div>
               </>
             )}

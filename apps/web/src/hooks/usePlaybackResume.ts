@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -162,42 +162,72 @@ export function usePlaybackResume(enabled = true) {
     };
   }, [enabled, isReady, isRestoreResolved, library, persistedState, shouldRestore]);
 
+  // Cheap scalar dedupe key for the last persisted snapshot. `undefined` means
+  // "never persisted this session" so the first write always goes through; an
+  // empty string means "last action was a delete (no track)". Used to skip
+  // redundant 1Hz writes when the player is paused and nothing has changed,
+  // without paying a full-queue serialize on every tick. Queue/track/index
+  // changes are caught by the change-driven effect below (which forces a
+  // write), so the key only needs the scalars the interval can observe.
+  const lastKeyRef = useRef<string | undefined>(undefined);
+
+  // Single persist path shared by the 1Hz interval and the change-driven effect.
+  // Persists when playing (currentTime is advancing, so resume stays fresh),
+  // when forced (change events / unload / teardown), or when the cheap key
+  // differs from the last write. Skips the steady stream of identical writes
+  // while paused/hidden — and avoids building queuePaths / serializing the
+  // queue at all on those skipped ticks.
+  const persistState = useCallback((force = false) => {
+    const { currentTrack, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
+
+    if (!currentTrack) {
+      if (force || lastKeyRef.current !== '') {
+        lastKeyRef.current = '';
+        window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
+      }
+      return;
+    }
+
+    const key = `${currentTrack.filePath}|${queueIndex}|${currentTime}|${isPlaying}`;
+    if (!force && !isPlaying && key === lastKeyRef.current) {
+      return;
+    }
+
+    const state = buildPersistedState();
+    if (!state) return;
+
+    lastKeyRef.current = key;
+    window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (!IS_ELECTRON || !enabled || !isReady || !isRestoreResolved) return;
 
-    const persistState = () => {
-      const state = buildPersistedState();
-      if (!state) {
-        window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
-        return;
-      }
-
-      window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(() => {});
-    };
-
-    const intervalId = window.setInterval(persistState, 1000);
-    window.addEventListener('beforeunload', persistState);
+    const intervalId = window.setInterval(() => persistState(), 1000);
+    // Always flush on unload and on teardown so the final position is never lost.
+    const flush = () => persistState(true);
+    window.addEventListener('beforeunload', flush);
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener('beforeunload', persistState);
-      persistState();
+      window.removeEventListener('beforeunload', flush);
+      flush();
     };
-  }, [enabled, isReady, isRestoreResolved]);
+  }, [enabled, isReady, isRestoreResolved, persistState]);
 
   useEffect(() => {
     if (!IS_ELECTRON || !enabled || !isReady || !isRestoreResolved) return;
-
-    const persistState = () => {
-      const state = buildPersistedState();
-      if (!state) {
-        window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
-        return;
-      }
-
-      window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(() => {});
-    };
-
-    persistState();
-  }, [enabled, isReady, isRestoreResolved, currentTrackPath, queue, queueIndex, isPlaying]);
+    // Track/queue/index/play-state changes are always meaningful — force a write
+    // (and refresh the dedupe snapshot so the next interval tick can skip).
+    persistState(true);
+  }, [
+    enabled,
+    isReady,
+    isRestoreResolved,
+    currentTrackPath,
+    queue,
+    queueIndex,
+    isPlaying,
+    persistState,
+  ]);
 }

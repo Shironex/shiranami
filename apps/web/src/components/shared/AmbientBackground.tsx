@@ -1,13 +1,14 @@
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 
 export function AmbientBackground() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
+  const prefersReducedMotion = useReducedMotion();
 
   if (lowPerformanceMode) return null;
 
@@ -22,7 +23,7 @@ export function AmbientBackground() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 2 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 2 }}
             className="fixed inset-0 pointer-events-none z-0"
             style={{
               background: `

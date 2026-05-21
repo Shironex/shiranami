@@ -3,6 +3,7 @@ import type {
   EnrichTrackResult,
   EnrichProgress,
   MetadataLookupResult,
+  MainMetricsSnapshot,
 } from '@shiranami/contracts';
 
 export interface Playlist {
@@ -387,6 +388,11 @@ export interface ElectronAPI {
     }>;
     cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
     onDeepLink: (callback: (code: string) => void) => () => void;
+  };
+  debug: {
+    start: () => Promise<void>;
+    stop: () => Promise<void>;
+    onMetrics: (callback: (snapshot: MainMetricsSnapshot) => void) => () => void;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */

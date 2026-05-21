@@ -4,7 +4,7 @@ import { getAnalyser } from '@/lib/audioAnalyser';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import type { FrequencySource } from './visualizer-source';
+import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
 
 /**
  * Compact circular frequency visualizer.
@@ -153,24 +153,26 @@ export function CircleVisualizer({ source, active }: CircleVisualizerProps = {})
     }
 
     // ── Base ring line ──
+    // Glow comes from a single CSS drop-shadow on the canvas element rather
+    // than canvas shadowBlur (a Gaussian-blur stroke every frame).
     ctx.beginPath();
     ctx.arc(centerX, centerY, barBaseRadius, 0, Math.PI * 2);
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, ${0.12 + avgEnergy * 0.2})`;
     ctx.lineWidth = 1;
-    ctx.shadowColor = `rgba(${pr}, ${pg}, ${pb}, ${0.15 + avgEnergy * 0.15})`;
-    ctx.shadowBlur = 4;
     ctx.stroke();
-    ctx.shadowBlur = 0;
   }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
   const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun);
+  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
 
   return (
     <canvas
       ref={canvasRef}
       className="w-full h-full pointer-events-none"
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        filter: 'drop-shadow(0 0 3px rgba(var(--primary-rgb), 0.3))',
+      }}
     />
   );
 }
