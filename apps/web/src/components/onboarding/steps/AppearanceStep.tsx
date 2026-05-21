@@ -4,7 +4,7 @@ import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { OnboardingStepLayout } from '../OnboardingStepLayout';
 import { useOnboardingStepContext } from '../stepContext';
 
-export function ThemeStep() {
+export function AppearanceStep() {
   const { t } = useTranslation('onboarding');
   const { kanji, headingId, headingRef } = useOnboardingStepContext();
   const theme = useThemeStore(s => s.theme);
@@ -15,20 +15,22 @@ export function ThemeStep() {
       kanji={kanji}
       headingId={headingId}
       headingRef={headingRef}
-      stepMarker={t('theme.eyebrow')}
+      stepMarker={t('appearance.eyebrow')}
       headline={
         <Trans
           t={t}
-          i18nKey="theme.headline"
+          i18nKey="appearance.headline"
           components={{ 1: <em className="not-italic text-primary" /> }}
         />
       }
-      description={t('theme.description')}
+      description={t('appearance.description')}
     >
       <div className="space-y-3">
-        <p className="text-xs font-medium text-foreground">{t('theme.title')}</p>
+        <p className="text-xs font-medium text-foreground">{t('appearance.themeTitle')}</p>
         <ThemeTileGrid value={theme} onSelect={setTheme} columns={2} />
-        <p className="text-center text-[11px] text-muted-foreground/70">{t('theme.hint')}</p>
+        <p className="text-center text-[11px] text-muted-foreground/70">
+          {t('appearance.themeHint')}
+        </p>
       </div>
     </OnboardingStepLayout>
   );

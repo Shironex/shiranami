@@ -21,14 +21,14 @@ import { useFocusTrap } from './useFocusTrap';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { FoldersStep } from './steps/FoldersStep';
 import { ToolsStep } from './steps/ToolsStep';
-import { ThemeStep } from './steps/ThemeStep';
+import { AppearanceStep } from './steps/AppearanceStep';
 import { ReadyStep } from './steps/ReadyStep';
 
 interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-type StepId = 'welcome' | 'folders' | 'tools' | 'theme' | 'ready';
+type StepId = 'welcome' | 'folders' | 'tools' | 'appearance' | 'ready';
 
 interface StepDef {
   id: StepId;
@@ -40,7 +40,7 @@ const STEPS: readonly StepDef[] = [
   { id: 'welcome', kanji: '白波', Component: WelcomeStep },
   { id: 'folders', kanji: '蔵', Component: FoldersStep },
   { id: 'tools', kanji: '取', Component: ToolsStep },
-  { id: 'theme', kanji: '夜', Component: ThemeStep },
+  { id: 'appearance', kanji: '夜', Component: AppearanceStep },
   { id: 'ready', kanji: '波', Component: ReadyStep },
 ];
 

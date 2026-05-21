@@ -54,12 +54,12 @@
     "skipHint": "Optional — only needed for downloading and importing.",
     "desktopOnly": "Downloading is available in the desktop app."
   },
-  "theme": {
-    "eyebrow": "02 · Pick your room",
+  "appearance": {
+    "eyebrow": "03 · Make it yours",
     "headline": "The window dresses for your <1>mood</1>.",
     "description": "One quiet theme with five scenes. The whole interface — accent color, glow, surfaces — shifts to match. Swap any time from Settings · Appearance.",
-    "title": "Theme",
-    "hint": "Tap any scene · the rain stays."
+    "themeTitle": "Theme",
+    "themeHint": "Tap any scene · the rain stays."
   },
   "ready": {
     "eyebrow": "03 · Ready",
