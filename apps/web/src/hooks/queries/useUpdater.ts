@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 
 export function useCheckForUpdatesMutation() {
@@ -26,7 +27,7 @@ export function useInstallUpdateMutation() {
       await window.electronAPI.updater.installNow();
     },
     onError: err => {
-      console.warn('Failed to install update', err);
+      logger.warn('Failed to install update', err);
     },
   });
 }

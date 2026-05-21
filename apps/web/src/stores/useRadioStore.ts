@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import { RadioBrowserApi, type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
@@ -66,7 +67,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : i18n.t('searchFailed', { ns: 'toast' }), isLoading: false });
+      set({
+        error: err instanceof Error ? err.message : i18n.t('searchFailed', { ns: 'toast' }),
+        isLoading: false,
+      });
     }
   },
 
@@ -84,7 +88,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }), isLoading: false });
+      set({
+        error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }),
+        isLoading: false,
+      });
     }
   },
 
@@ -103,7 +110,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }), isLoading: false });
+      set({
+        error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }),
+        isLoading: false,
+      });
     }
   },
 
@@ -126,9 +136,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         bitrate?: number;
         tags?: string;
       }>;
-      const favoriteIds = rows.map((r) => r.stationUuid);
+      const favoriteIds = rows.map(r => r.stationUuid);
       // Convert DB rows to Station-like objects for display
-      const stations = rows.map((r) => ({
+      const stations = rows.map(r => ({
         changeId: '',
         id: r.stationUuid,
         name: r.name,
@@ -158,7 +168,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       set({ stations, favorites: favoriteIds, isLoading: false });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
-      set({ error: err instanceof Error ? err.message : i18n.t('failedLoadFavorites', { ns: 'toast' }), isLoading: false });
+      set({
+        error: err instanceof Error ? err.message : i18n.t('failedLoadFavorites', { ns: 'toast' }),
+        isLoading: false,
+      });
     }
   },
 
@@ -171,7 +184,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     try {
       if (isFav) {
         await window.electronAPI.radio.favorites.remove(stationId);
-        set({ favorites: favorites.filter((f) => f !== stationId) });
+        set({ favorites: favorites.filter(f => f !== stationId) });
       } else {
         await window.electronAPI.radio.favorites.add({
           stationUuid: stationId,
@@ -190,7 +203,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
         set({ favorites: [...favorites, stationId] });
       }
     } catch (err) {
-      console.warn('[radio] Failed to toggle favorite:', err);
+      logger.warn('[radio] Failed to toggle favorite:', err);
     }
   },
 
@@ -198,10 +211,10 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     return get().favorites.includes(stationId);
   },
 
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  setSelectedCountry: (country) => set({ selectedCountry: country }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  setError: (error) => set({ error }),
+  setSearchQuery: query => set({ searchQuery: query }),
+  setSelectedCountry: country => set({ selectedCountry: country }),
+  setActiveTab: tab => set({ activeTab: tab }),
+  setError: error => set({ error }),
 }));
 
 if (import.meta.hot) {

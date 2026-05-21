@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
@@ -28,7 +29,7 @@ export function useLibraryActions() {
 
       toast.success(i18n.t('added1Track', { ns: 'toast' }));
     } catch (err) {
-      console.error('Failed to add file:', err);
+      logger.error('Failed to add file:', err);
       toast.error(i18n.t('failedAddTrack', { ns: 'toast' }));
     }
   }, [importTrack]);
@@ -99,7 +100,7 @@ export function useLibraryActions() {
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
       toast.success(i18n.t('addedTracks', { ns: 'toast', count: newTracks.length }));
     } catch (err) {
-      console.error('Failed to add folder:', err);
+      logger.error('Failed to add folder:', err);
       toast.error(i18n.t('failedScanFolder', { ns: 'toast' }));
     } finally {
       setIsScanning(false);

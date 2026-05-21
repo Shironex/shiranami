@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import type {
   EnrichProgress,
   EnrichTrackInput,
@@ -202,7 +203,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       try {
         await window.electronAPI.metadata.cancelEnrichment();
       } catch (err) {
-        console.warn('Failed to cancel metadata enrichment', err);
+        logger.warn('Failed to cancel metadata enrichment', err);
       }
     },
 
@@ -320,7 +321,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           toast.info(tToast('enrichNoneFound'));
         }
       } catch (err) {
-        console.error('Metadata enrichment failed:', err);
+        logger.error('Metadata enrichment failed:', err);
         toast.error(i18n.t('enrichFailed', { ns: 'toast' }));
       } finally {
         set({ isEnriching: false, isCancelling: false, progress: null });
@@ -387,7 +388,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       try {
         await window.electronAPI.metadata.cancelEnrichment();
       } catch (err) {
-        console.warn('Failed to cancel single-track enrichment', err);
+        logger.warn('Failed to cancel single-track enrichment', err);
       }
     },
   })

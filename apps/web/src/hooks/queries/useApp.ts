@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 import appPackage from '../../../package.json';
 
@@ -17,7 +18,7 @@ export function useAppVersionQuery() {
       try {
         return await window.electronAPI.app.getVersion();
       } catch (err) {
-        console.error('Failed to load app version:', err);
+        logger.error('Failed to load app version:', err);
         return FALLBACK_VERSION;
       }
     },
@@ -32,8 +33,8 @@ export function useOpenLogsFolderMutation() {
       if (!IS_ELECTRON) return;
       await window.electronAPI.app.openLogsFolder();
     },
-    onError: (err) => {
-      console.warn('Failed to open logs folder', err);
+    onError: err => {
+      logger.warn('Failed to open logs folder', err);
     },
   });
 }

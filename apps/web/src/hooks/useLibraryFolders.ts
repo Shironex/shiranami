@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import i18n from '@/lib/i18n';
@@ -88,7 +89,7 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
         releaseScanLock();
       }
     } catch (err) {
-      console.error('Failed to add folder:', err);
+      logger.error('Failed to add folder:', err);
       toast.error(i18n.t('failedAddFolder', { ns: 'toast' }));
       resetScanProgress();
       releaseScanLock();
