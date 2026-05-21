@@ -1,18 +1,13 @@
-import { useCallback, useEffect, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import {
   useLyricsAppearanceStore,
   LYR_SIZE_CLASS,
-  LYRICS_SYNCED_PAST_RATIO,
   nextLyricsFontSize,
 } from '@/stores/useLyricsAppearanceStore';
-import { useLyricsQuery } from '@/hooks/queries/useLyrics';
-import { useActiveLineIndex } from '@/lib/lyrics';
-import { LyricsList } from '@/components/lyrics/LyricsList';
+import { useLyricsView } from '@/hooks/useLyricsView';
+import { LyricsBody } from '@/components/lyrics/LyricsBody';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { cn } from '@/lib/utils';
-import { Loader2, Music2 } from 'lucide-react';
 
 // Common per-line affordances. Size + opacity come from user prefs and are
 // composed below via LYR_SIZE_CLASS + CSS custom properties.
@@ -29,95 +24,18 @@ const PANEL_ACTIVE_AFFORDANCES = 'text-foreground font-semibold';
 
 export function LyricsPanel() {
   const { t } = useTranslation('lyrics');
-  const { t: tToast } = useTranslation('toast');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const seek = usePlaybackStore(s => s.seek);
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
-  const { data, isLoading, isError } = useLyricsQuery(
-    currentTrack?.id ?? null,
-    currentTrack?.title ?? '',
-    currentTrack?.artist ?? '',
-    currentTrack?.album,
-    currentTrack?.duration
-  );
-
-  useEffect(() => {
-    if (isError) {
-      toast.error(tToast('failedFetchLyrics'), { id: 'lyrics-fetch-error' });
-    }
-  }, [isError, tToast]);
-
-  const synced = data?.synced ?? null;
-  const plain = data?.plain ?? null;
-  const activeLine = useActiveLineIndex(synced);
-
-  const handleLineClick = useCallback((time: number) => seek(time), [seek]);
+  const { synced, plain, activeLine, isLoading, handleLineClick } = useLyricsView();
 
   if (!currentTrack) return null;
 
-  let content: React.ReactNode;
-
-  if (isLoading) {
-    content = (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center gap-2.5 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-          <span className="text-xs font-medium">{t('finding')}</span>
-        </div>
-      </div>
-    );
-  } else if (synced && synced.length > 0) {
-    const baseSizeClass = LYR_SIZE_CLASS[lyricsSyncedFontSize];
-    const activeSizeClass = LYR_SIZE_CLASS[nextLyricsFontSize(lyricsSyncedFontSize)];
-    // CSS vars carry the dynamic opacity values; classes only ever reference
-    // them, so Tailwind's compile-time scanning still works.
-    const lyricsVars = {
-      '--lyrics-idle-opacity': String(lyricsSyncedDimOpacity),
-      '--lyrics-past-opacity': String(lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO),
-    } as CSSProperties;
-
-    content = (
-      <div className="flex-1 flex flex-col min-h-0" style={lyricsVars}>
-        <LyricsList
-          lines={synced}
-          activeIndex={activeLine}
-          onLineClick={handleLineClick}
-          containerClassName="px-5 py-6"
-          spacingClassName="space-y-4"
-          bottomSpacerClassName="h-[50vh]"
-          baseClassName={cn(PANEL_BASE_AFFORDANCES, baseSizeClass)}
-          activeClassName={cn(PANEL_ACTIVE_AFFORDANCES, activeSizeClass)}
-          pastClassName={PANEL_PAST}
-          idleClassName={PANEL_IDLE}
-        />
-      </div>
-    );
-  } else if (plain) {
-    content = (
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-6">
-        <pre
-          className={cn(
-            'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em]',
-            LYR_SIZE_CLASS[lyricsPlainFontSize]
-          )}
-          style={{ opacity: lyricsPlainOpacity }}
-        >
-          {plain}
-        </pre>
-      </div>
-    );
-  } else {
-    content = (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3">
-        <Music2 className="w-7 h-7 text-muted-foreground/20" aria-hidden="true" />
-        <p className="text-xs text-muted-foreground font-medium">{t('notFound')}</p>
-      </div>
-    );
-  }
+  const baseSizeClass = LYR_SIZE_CLASS[lyricsSyncedFontSize];
+  const activeSizeClass = LYR_SIZE_CLASS[nextLyricsFontSize(lyricsSyncedFontSize)];
 
   return (
     <div className="flex flex-col h-full">
@@ -126,7 +44,29 @@ export function LyricsPanel() {
           {t('title')}
         </h2>
       </div>
-      {content}
+      <LyricsBody
+        synced={synced}
+        plain={plain}
+        activeLine={activeLine}
+        isLoading={isLoading}
+        onLineClick={handleLineClick}
+        loadingLabel={t('finding')}
+        emptyLabel={t('notFound')}
+        syncedDimOpacity={lyricsSyncedDimOpacity}
+        plainOpacity={lyricsPlainOpacity}
+        syncedContainerClassName="px-5 py-6"
+        syncedSpacingClassName="space-y-4"
+        syncedBottomSpacerClassName="h-[50vh]"
+        syncedBaseClassName={cn(PANEL_BASE_AFFORDANCES, baseSizeClass)}
+        syncedActiveClassName={cn(PANEL_ACTIVE_AFFORDANCES, activeSizeClass)}
+        syncedPastClassName={PANEL_PAST}
+        syncedIdleClassName={PANEL_IDLE}
+        plainContainerClassName="px-5 py-6"
+        plainTextClassName={cn(
+          'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em]',
+          LYR_SIZE_CLASS[lyricsPlainFontSize]
+        )}
+      />
     </div>
   );
 }
