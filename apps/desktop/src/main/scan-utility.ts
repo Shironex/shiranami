@@ -18,6 +18,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import type { TrackMetadata } from '@shiranami/contracts';
 import { artUrlFor, downscaleAndHash } from './lib/album-art-image';
 
 interface ParentPortMessageEvent {
@@ -71,17 +72,7 @@ interface InitAckMessage {
   type: 'init-ack';
 }
 
-interface ParseSuccessMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
-}
+type ParseSuccessMetadata = TrackMetadata;
 interface ParseSuccessMessage {
   type: 'parse-result';
   requestId: number;

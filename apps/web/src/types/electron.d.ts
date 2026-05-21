@@ -6,6 +6,8 @@ import type {
   MainMetricsSnapshot,
 } from '@shiranami/contracts';
 
+export type { TrackMetadata, SearchResult } from '@shiranami/contracts';
+
 export interface Playlist {
   id: string;
   name: string;
@@ -15,34 +17,11 @@ export interface Playlist {
   updatedAt: string;
 }
 
-export interface SearchResult {
-  id: string;
-  title: string;
-  uploader: string;
-  duration: number;
-  thumbnail: string;
-  url: string;
-  webpage_url: string;
-  view_count?: number;
-}
-
 export interface DownloadProgress {
   url: string;
   progress: number;
   status: 'downloading' | 'converting' | 'done' | 'error';
   error?: string;
-}
-
-export interface TrackMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
 }
 
 export interface ListeningHistoryEntry {

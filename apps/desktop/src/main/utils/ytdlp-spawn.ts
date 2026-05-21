@@ -1,17 +1,9 @@
 import { spawn } from 'child_process';
+import type { SearchResult } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { getYtDlpPath } from '../ytdlp-manager';
 
-export interface SearchResult {
-  id: string;
-  title: string;
-  uploader: string;
-  duration: number;
-  thumbnail: string;
-  url: string;
-  webpage_url: string;
-  view_count?: number;
-}
+export type { SearchResult };
 
 /**
  * Spawn the bundled yt-dlp binary with the given args and buffer its full

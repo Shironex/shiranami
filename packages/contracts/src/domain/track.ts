@@ -44,3 +44,34 @@ export interface NewTrack {
   createdAt?: string;
   updatedAt?: string;
 }
+
+/**
+ * Renderer-facing display shape derived from the canonical `Track`. The mapper
+ * boundary (`apps/web/src/lib/trackMapper.ts`) collapses the DB's nullable
+ * `artist`/`album`/`duration` into non-null display values (e.g.
+ * `'Unknown Artist'`, `0`) and narrows `albumArt`/`isFavorite`/`playCount` to
+ * optional. Renderer stores import this as `Track`; it is intentionally NOT the
+ * DB-mirror shape — never tighten `Track` (the wire type) to match it.
+ */
+export interface DisplayTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album: string;
+  duration: number;
+  filePath: string;
+  albumArt?: string;
+  genre?: string | null;
+  year?: number | null;
+  trackNumber?: number | null;
+  discNumber?: number | null;
+  /**
+   * Seed value from the DB. After an in-session toggle, the live value lives
+   * in the renderer's track-overlay store keyed by track id; read it via the
+   * merged-library selectors rather than off this raw field.
+   */
+  isFavorite?: boolean;
+  playCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}

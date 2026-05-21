@@ -11,6 +11,7 @@
 
 import * as path from 'path';
 import { utilityProcess, type UtilityProcess } from 'electron';
+import type { TrackMetadata } from '@shiranami/contracts';
 import { logger } from './logger';
 
 /**
@@ -51,18 +52,8 @@ export class ScanCancelledError extends Error {
  * the host calling kill() at scan teardown.
  */
 
-/** Metadata shape echoed back from the utility. Mirrors TrackMetadata. */
-export interface ScanUtilityMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
-}
+/** Metadata shape echoed back from the utility. The canonical `TrackMetadata`. */
+export type ScanUtilityMetadata = TrackMetadata;
 
 export type ParseResult =
   | { ok: true; metadata: ScanUtilityMetadata }

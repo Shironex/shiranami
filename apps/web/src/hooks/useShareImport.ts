@@ -1,16 +1,11 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { TrackPayload } from '@shiranami/contracts';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { playlistKeys } from '@/hooks/queries/usePlaylists';
 
 export type ShareImportState = 'idle' | 'loading' | 'ready' | 'downloading' | 'done' | 'error';
-
-interface TrackPayload {
-  title: string;
-  artist: string;
-  ytId: string;
-}
 
 export interface ImportData {
   type: 'TRACK' | 'PLAYLIST';
@@ -62,13 +57,11 @@ export function useShareImport(): UseShareImportResult {
 
     window.electronAPI.share
       .import(code)
-      .then((result) => {
+      .then(result => {
         if (cancelled) return;
         const importData = result as ImportData;
         setData(importData);
-        setPlaylistName(
-          importData.type === 'PLAYLIST' ? importData.payload.name ?? '' : '',
-        );
+        setPlaylistName(importData.type === 'PLAYLIST' ? (importData.payload.name ?? '') : '');
         setState('ready');
       })
       .catch((err: Error) => {
@@ -87,7 +80,7 @@ export function useShareImport(): UseShareImportResult {
 
     const trackList =
       data.type === 'PLAYLIST'
-        ? data.payload.tracks ?? []
+        ? (data.payload.tracks ?? [])
         : [
             {
               title: data.payload.title!,
@@ -115,7 +108,7 @@ export function useShareImport(): UseShareImportResult {
             id: string;
             filePath: string;
           }>;
-          const existing = allTracks.find((t) => t.filePath === filePath);
+          const existing = allTracks.find(t => t.filePath === filePath);
           if (existing) importedTrackIds.push(existing.id);
         }
       } catch {
@@ -127,8 +120,7 @@ export function useShareImport(): UseShareImportResult {
     // Create playlist if it's a playlist import and we have tracks
     if (data.type === 'PLAYLIST' && importedTrackIds.length > 0) {
       try {
-        const name =
-          playlistName.trim() || data.payload.name || 'Imported Playlist';
+        const name = playlistName.trim() || data.payload.name || 'Imported Playlist';
         const playlist = (await window.electronAPI.db.playlists.create({
           name,
         })) as { id: string };

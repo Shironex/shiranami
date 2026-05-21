@@ -1,19 +1,10 @@
 import * as path from 'path';
+import type { TrackMetadata } from '@shiranami/contracts';
 import { logger } from './logger';
 import { saveAlbumArt } from './art-protocol';
 import { isAudioExtension } from './shared/media-types';
 
-export interface TrackMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number; // seconds
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null; // shiranami-art:// protocol URL
-}
+export type { TrackMetadata };
 
 // Cache the dynamic import
 let mmModule: typeof import('music-metadata') | null = null;
