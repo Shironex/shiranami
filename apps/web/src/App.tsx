@@ -9,6 +9,7 @@ import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
 import { CompactPlayer } from '@/components/player/CompactPlayer';
+import { MediaSessionSync } from '@/components/player/MediaSessionSync';
 import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
@@ -145,6 +146,10 @@ function App() {
 
   return (
     <>
+      {/* Isolated leaf: owns the currentTime media-session side-effects so the
+          root App tree does not re-render on every 250ms time tick. */}
+      <MediaSessionSync />
+
       <SplashScreen
         isLoading={libraryLoading}
         isError={libraryError}
