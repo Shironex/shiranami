@@ -57,9 +57,14 @@
   "appearance": {
     "eyebrow": "03 · Make it yours",
     "headline": "The window dresses for your <1>mood</1>.",
-    "description": "One quiet theme with five scenes. The whole interface — accent color, glow, surfaces — shifts to match. Swap any time from Settings · Appearance.",
+    "description": "Pick a scene, then size it to your screen. Everything here is reversible from Settings · Appearance.",
     "themeTitle": "Theme",
-    "themeHint": "Tap any scene · the rain stays."
+    "themeHint": "Tap any scene · the rain stays.",
+    "comfortTitle": "Comfort",
+    "uiScale": "Interface size",
+    "uiScaleReset": "Reset to {{value}}%",
+    "reduceEffects": "Reduce effects",
+    "reduceEffectsDesc": "Lighter animations and blur for slower machines."
   },
   "ready": {
     "eyebrow": "03 · Ready",

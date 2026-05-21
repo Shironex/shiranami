@@ -59,9 +59,14 @@
   "appearance": {
     "eyebrow": "03 · Dopasuj do siebie",
     "headline": "Okno ubiera się pod Twój <1>nastrój</1>.",
-    "description": "Jeden spokojny motyw, pięć scenerii. Cały interfejs — kolor akcentu, poświata, powierzchnie — dopasowuje się. Zmień w dowolnej chwili w Ustawienia · Wygląd.",
+    "description": "Wybierz scenerię, a potem dopasuj rozmiar do ekranu. Wszystko tutaj można cofnąć w Ustawienia · Wygląd.",
     "themeTitle": "Motyw",
-    "themeHint": "Dotknij dowolnej scenerii · deszcz zostaje."
+    "themeHint": "Dotknij dowolnej scenerii · deszcz zostaje.",
+    "comfortTitle": "Komfort",
+    "uiScale": "Rozmiar interfejsu",
+    "uiScaleReset": "Przywróć {{value}}%",
+    "reduceEffects": "Ogranicz efekty",
+    "reduceEffectsDesc": "Lżejsze animacje i rozmycie dla wolniejszych maszyn."
   },
   "ready": {
     "eyebrow": "03 · Gotowe",
