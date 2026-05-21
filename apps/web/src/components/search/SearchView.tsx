@@ -253,7 +253,7 @@ export function SearchView() {
         {showCenteredSearchState ? (
           isSearching ? (
             <div className="flex-1 min-h-full flex items-center justify-center">
-              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
+              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center glass-subtle rounded-[28px] border border-border/30">
                 <div className="relative">
                   <div className="w-28 h-28 rounded-[28px] bg-primary/8 border border-primary/10 flex items-center justify-center">
                     <img
@@ -280,7 +280,7 @@ export function SearchView() {
             </div>
           ) : searchError ? (
             <div className="flex-1 min-h-full flex items-center justify-center">
-              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
+              <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center glass-subtle rounded-[28px] border border-border/30">
                 <div className="relative">
                   <div className="w-28 h-28 rounded-[28px] bg-destructive/8 border border-destructive/10 flex items-center justify-center">
                     <img
@@ -314,131 +314,133 @@ export function SearchView() {
             />
           )
         ) : (
-          <div className="space-y-1">
-            {results.map(result => {
-              const dlState = getDownloadState(result);
-              const isDownloading =
-                dlState.status === 'downloading' || dlState.status === 'converting';
-              const isDone = dlState.status === 'done';
-              const isError = dlState.status === 'error';
+          <div className="mx-0 mb-0 rounded-2xl glass-panel border border-border/30 overflow-hidden px-2 py-1">
+            <div className="space-y-1">
+              {results.map(result => {
+                const dlState = getDownloadState(result);
+                const isDownloading =
+                  dlState.status === 'downloading' || dlState.status === 'converting';
+                const isDone = dlState.status === 'done';
+                const isError = dlState.status === 'error';
 
-              return (
-                <div
-                  key={result.id}
-                  className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/50 transition-colors relative overflow-hidden"
-                >
-                  {isDownloading && (
-                    <div
-                      className="absolute inset-0 bg-primary/5 transition-all duration-300"
-                      role="progressbar"
-                      aria-valuenow={dlState.progress}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      style={{ width: `${dlState.progress}%` }}
-                    />
-                  )}
-
-                  <button
-                    onClick={() => handlePreview(result)}
-                    className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
-                    title={isPreviewPlaying(result) ? t('pausePreview') : t('preview')}
+                return (
+                  <div
+                    key={result.id}
+                    className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/50 transition-colors relative overflow-hidden"
                   >
-                    {result.thumbnail ? (
-                      <img
-                        src={result.thumbnail}
-                        alt={result.title}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                    {isDownloading && (
+                      <div
+                        className="absolute inset-0 bg-primary/5 transition-all duration-300"
+                        role="progressbar"
+                        aria-valuenow={dlState.progress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        style={{ width: `${dlState.progress}%` }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Music className="w-4 h-4 text-muted-foreground/40" />
-                      </div>
                     )}
-                    <div
-                      className={cn(
-                        'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
-                        isPreviewPlaying(result)
-                          ? 'opacity-100'
-                          : 'opacity-0 group-hover/thumb:opacity-100'
-                      )}
-                    >
-                      {previewLoadingId === result.id ? (
-                        <Loader2 className="w-4 h-4 text-white animate-spin" />
-                      ) : isPreviewPlaying(result) ? (
-                        <Pause className="w-4 h-4 text-white" />
-                      ) : (
-                        <Play className="w-4 h-4 text-white" />
-                      )}
-                    </div>
-                  </button>
 
-                  <div className="flex-1 min-w-0 relative z-10">
-                    <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {result.uploader}
-                      {result.view_count != null && (
-                        <span className="text-muted-foreground/50">
-                          {' '}
-                          ·{' '}
-                          {result.view_count >= 1_000_000_000
-                            ? t('viewsBillion', {
-                                count: (result.view_count / 1_000_000_000)
-                                  .toFixed(1)
-                                  .replace(/\.0$/, ''),
-                              })
-                            : result.view_count >= 1_000_000
-                              ? t('viewsMillion', {
-                                  count: (result.view_count / 1_000_000)
+                    <button
+                      onClick={() => handlePreview(result)}
+                      className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
+                      title={isPreviewPlaying(result) ? t('pausePreview') : t('preview')}
+                    >
+                      {result.thumbnail ? (
+                        <img
+                          src={result.thumbnail}
+                          alt={result.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Music className="w-4 h-4 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      <div
+                        className={cn(
+                          'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
+                          isPreviewPlaying(result)
+                            ? 'opacity-100'
+                            : 'opacity-0 group-hover/thumb:opacity-100'
+                        )}
+                      >
+                        {previewLoadingId === result.id ? (
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        ) : isPreviewPlaying(result) ? (
+                          <Pause className="w-4 h-4 text-white" />
+                        ) : (
+                          <Play className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                    </button>
+
+                    <div className="flex-1 min-w-0 relative z-10">
+                      <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {result.uploader}
+                        {result.view_count != null && (
+                          <span className="text-muted-foreground/50">
+                            {' '}
+                            ·{' '}
+                            {result.view_count >= 1_000_000_000
+                              ? t('viewsBillion', {
+                                  count: (result.view_count / 1_000_000_000)
                                     .toFixed(1)
                                     .replace(/\.0$/, ''),
                                 })
-                              : result.view_count >= 1_000
-                                ? t('viewsThousand', {
-                                    count: (result.view_count / 1_000)
+                              : result.view_count >= 1_000_000
+                                ? t('viewsMillion', {
+                                    count: (result.view_count / 1_000_000)
                                       .toFixed(1)
                                       .replace(/\.0$/, ''),
                                   })
-                                : t('views', { count: result.view_count })}
-                        </span>
+                                : result.view_count >= 1_000
+                                  ? t('viewsThousand', {
+                                      count: (result.view_count / 1_000)
+                                        .toFixed(1)
+                                        .replace(/\.0$/, ''),
+                                    })
+                                  : t('views', { count: result.view_count })}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <span className="text-xs text-muted-foreground/60 tabular-nums shrink-0 relative z-10">
+                      {formatDuration(result.duration)}
+                    </span>
+
+                    <div className="shrink-0 relative z-10 w-9">
+                      {isDone ? (
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-green-400">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      ) : isDownloading ? (
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center">
+                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        </div>
+                      ) : isError ? (
+                        <button
+                          onClick={() => handleDownload(result)}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
+                          title={dlState.error ?? t('retryDownload')}
+                        >
+                          <AlertCircle className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDownload(result)}
+                          className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors opacity-0 group-hover:opacity-100"
+                          title={t('download')}
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
                       )}
-                    </p>
+                    </div>
                   </div>
-
-                  <span className="text-xs text-muted-foreground/60 tabular-nums shrink-0 relative z-10">
-                    {formatDuration(result.duration)}
-                  </span>
-
-                  <div className="shrink-0 relative z-10 w-9">
-                    {isDone ? (
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center text-green-400">
-                        <Check className="w-4 h-4" />
-                      </div>
-                    ) : isDownloading ? (
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center">
-                        <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                      </div>
-                    ) : isError ? (
-                      <button
-                        onClick={() => handleDownload(result)}
-                        className="w-9 h-9 rounded-lg flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
-                        title={dlState.error ?? t('retryDownload')}
-                      >
-                        <AlertCircle className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleDownload(result)}
-                        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors opacity-0 group-hover:opacity-100"
-                        title={t('download')}
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

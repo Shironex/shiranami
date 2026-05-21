@@ -195,8 +195,8 @@ export function PlaylistImportView() {
       </div>
 
       {/* Track list or empty state */}
-      <div className={cn('flex-1 min-h-0 px-6 pb-6', !hasResults && 'flex overflow-y-auto')}>
-        {!hasResults ? (
+      {!hasResults ? (
+        <div className="flex-1 min-h-0 flex overflow-y-auto">
           <ViewEmptyState
             title={t('emptyTitle')}
             subtitle={t('emptySubtitle')}
@@ -206,26 +206,30 @@ export function PlaylistImportView() {
               { icon: Link, label: 'Spotify' },
             ]}
           />
-        ) : (
-          <List
-            rowCount={tracks.length}
-            rowHeight={52}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={PlaylistRow}
-            rowProps={{
-              tracks,
-              isImporting,
-              previewLoadingId,
-              isPreviewPlaying,
-              handlePreview,
-              handleRemoveTrack,
-              handleDownloadTrack,
-            }}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <List
+              rowCount={tracks.length}
+              rowHeight={52}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={PlaylistRow}
+              rowProps={{
+                tracks,
+                isImporting,
+                previewLoadingId,
+                isPreviewPlaying,
+                handlePreview,
+                handleRemoveTrack,
+                handleDownloadTrack,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bulk action bar for multi-select */}
       {hasResults && hasSelection && (
