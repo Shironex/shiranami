@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
+import { SplashScene } from './SplashScene';
 import { SplashLamp } from './SplashLamp';
 import { SplashGlass } from './SplashGlass';
 import { SplashWordmark } from './SplashWordmark';
@@ -67,6 +68,9 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
     >
       {/* Drag region — keeps the frameless window movable during boot */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
+
+      {/* Scene base: night sky + skyline + moon + flickering lights */}
+      <SplashScene reducedMotion={disableBreathLoop} />
 
       {/* Layer 1 & 2: Lamp + Glass film (below wordmark) */}
       <SplashLamp disabled={disableBreathLoop} />
