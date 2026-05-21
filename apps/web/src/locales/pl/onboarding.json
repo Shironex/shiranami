@@ -87,12 +87,37 @@
     "title": "Wybierz wizualizację",
     "hint": "Opcjonalne — podgląd aktualizuje się na żywo."
   },
-  "ready": {
-    "eyebrow": "03 · Gotowe",
-    "headline": "Otwórz drzwi. <1>Naciśnij play</1>.",
-    "description": "I to wszystko. Biblioteka czeka. Zachowamy kolejkę, uruchomimy radio, podamy teksty i wznowimy utwór porzucony o 2:47 w nocy.",
-    "title": "Wybierz wizualizację",
-    "hint": "Opcjonalne — rytm za paskiem odtwarzania. Zmień w dowolnej chwili.",
-    "cta": "Naciśnij play."
+  "summary": {
+    "eyebrow": "06 · Gotowe",
+    "headline": "Twój pokój jest <1>gotowy</1>.",
+    "description": "Oto, co wybrałeś. Wszystko możesz dostroić później w Ustawieniach.",
+    "intro": "Szybkie podsumowanie, zanim otworzy się biblioteka.",
+    "row": {
+      "language": "Język",
+      "folders": "Foldery muzyczne",
+      "tools": "Pomocnicy do pobierania",
+      "playback": "Odtwarzanie",
+      "theme": "Motyw",
+      "visualizer": "Wizualizacja"
+    },
+    "folders_one": "{{count}} folder",
+    "folders_few": "{{count}} foldery",
+    "folders_many": "{{count}} folderów",
+    "folders_other": "{{count}} folderu",
+    "tools": {
+      "both": "yt-dlp + ffmpeg",
+      "ytdlpOnly": "tylko yt-dlp",
+      "ffmpegOnly": "tylko ffmpeg",
+      "none": "Nie zainstalowano",
+      "checking": "—"
+    },
+    "playback": {
+      "resumeOn": "Wznawianie wł.",
+      "resumeOff": "Wznawianie wył.",
+      "crossfade": "Przejścia {{seconds}}s",
+      "noCrossfade": "Bez przejść",
+      "discordOn": "Discord wł."
+    },
+    "value": { "none": "—" }
   }
 }

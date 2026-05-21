@@ -6,7 +6,8 @@ export type OnboardingStepId =
   | 'tools'
   | 'appearance'
   | 'playback'
-  | 'visualizer';
+  | 'visualizer'
+  | 'summary';
 
 export interface OnboardingStepContextValue {
   stepId: OnboardingStepId;

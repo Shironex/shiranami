@@ -85,12 +85,35 @@
     "title": "Choose a visualizer",
     "hint": "Optional — preview updates live."
   },
-  "ready": {
-    "eyebrow": "03 · Ready",
-    "headline": "Open the door. <1>Press play</1>.",
-    "description": "That's it. The library is waiting. We'll keep your queue, run your radio, hand you the lyrics, and resume the song you left at 2:47 a.m.",
-    "title": "Choose a visualizer",
-    "hint": "Optional — the rhythm behind your now-playing bar. Change it any time.",
-    "cta": "Press play."
+  "summary": {
+    "eyebrow": "06 · All set",
+    "headline": "Your room is <1>ready</1>.",
+    "description": "Here's what you chose. Tweak any of it later from Settings.",
+    "intro": "A quick recap before the library opens.",
+    "row": {
+      "language": "Language",
+      "folders": "Music folders",
+      "tools": "Download helpers",
+      "playback": "Playback",
+      "theme": "Theme",
+      "visualizer": "Visualizer"
+    },
+    "folders_one": "{{count}} folder",
+    "folders_other": "{{count}} folders",
+    "tools": {
+      "both": "yt-dlp + ffmpeg",
+      "ytdlpOnly": "yt-dlp only",
+      "ffmpegOnly": "ffmpeg only",
+      "none": "Not installed",
+      "checking": "—"
+    },
+    "playback": {
+      "resumeOn": "Resume on",
+      "resumeOff": "Resume off",
+      "crossfade": "Crossfade {{seconds}}s",
+      "noCrossfade": "No crossfade",
+      "discordOn": "Discord on"
+    },
+    "value": { "none": "—" }
   }
 }
