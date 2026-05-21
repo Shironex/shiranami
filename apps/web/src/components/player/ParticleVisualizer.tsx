@@ -4,7 +4,7 @@ import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 import { getAnalyser } from '@/lib/audioAnalyser';
-import type { FrequencySource } from './visualizer-source';
+import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
 
 /**
  * Smooth wave visualizer with gradient fill.
@@ -175,7 +175,7 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
   }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
 
   const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun);
+  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
 
   return (
     <canvas

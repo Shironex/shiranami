@@ -4,7 +4,7 @@ import { getAnalyser } from '@/lib/audioAnalyser';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import type { FrequencySource } from './visualizer-source';
+import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
 
 /**
  * Canvas-based frequency visualizer with a soft lofi aesthetic.
@@ -130,7 +130,7 @@ export function AudioVisualizer({ source, active }: AudioVisualizerProps = {}) {
   }, [widthRef, heightRef, dprRef, rgbRef, source]);
 
   const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun);
+  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
 
   return (
     <canvas
