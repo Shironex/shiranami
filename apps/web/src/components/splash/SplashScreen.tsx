@@ -96,7 +96,7 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
 
       {/* z3 — big off-center 白波 reflection */}
       <div className="absolute inset-0 z-[3] pointer-events-none">
-        <SplashWordmark reducedMotion={reducedMotion} />
+        <SplashWordmark reducedMotion={disableBreathLoop} />
       </div>
 
       {/* z4 — static droplets + running streaks */}
