@@ -17,7 +17,9 @@ interface OnboardingState {
   completeOnboarding: () => void;
   /** Re-show the wizard (replay from Settings) + clear the electron-store mirror. */
   resetOnboarding: () => void;
-  /** Reconcile from electron-store on boot — the durable source of truth. */
+  /** One-way sync from electron-store on boot: upgrades a cleared/un-migrated
+   *  localStorage to completed when the mirror says so. localStorage is the
+   *  working source of truth; the mirror only upgrades it, never downgrades. */
   hydrateOnboarding: () => Promise<void>;
 }
 

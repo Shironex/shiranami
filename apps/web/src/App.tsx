@@ -66,10 +66,11 @@ function App() {
   const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
   const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
   const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted);
-  // Replay (reset from Settings) flips the store flag back to false; mirror it
-  // locally so the wizard re-appears immediately over the running app.
+  // Mirror the durable store flag locally so the wizard appears/disappears in
+  // step with it — covers both replay (true→false from Settings) and boot-time
+  // hydration (false→true from the electron-store mirror).
   useEffect(() => {
-    if (!onboardingCompleted) setOnboardingDone(false);
+    setOnboardingDone(onboardingCompleted);
   }, [onboardingCompleted]);
   const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
 

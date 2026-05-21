@@ -115,12 +115,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   }, [isExiting, disableMotion, completeOnboarding, onComplete]);
 
   const goNext = useCallback(() => {
+    if (isExiting) return;
     setStepIndex(i => (i >= STEPS.length - 1 ? i : i + 1));
-  }, []);
+  }, [isExiting]);
 
   const goBack = useCallback(() => {
+    if (isExiting) return;
     setStepIndex(i => (i <= 0 ? i : i - 1));
-  }, []);
+  }, [isExiting]);
 
   const handlePrimary = useCallback(() => {
     if (isLast) {
@@ -135,13 +137,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     headingRef.current?.focus();
   }, [stepIndex]);
 
-  // Keyboard: → / Enter advance (or finish), ← back, Esc skips. Never hijack
-  // while a text input is focused, nor while a layered Radix dialog (e.g. the
-  // subfolder-playlist prompt at z-9999) is open — that overlay owns the keys.
-  // Sliders (UI scale, crossfade) consume Arrow keys for value adjustment, so a
-  // focused slider must also keep its keys instead of changing steps.
+  // Keyboard: → / Enter advance (or finish), ← back, Esc skips. Defers to
+  // focused buttons/links/selects/radios so Enter on "Add folder"/Back/Skip
+  // fires the control and arrows on a theme radio navigate the radiogroup.
+  // Never hijacks while a text input is focused, a Radix dialog is open, a
+  // slider has focus, or the wizard is in its exit animation.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isExiting) return;
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       const isRangeInput = tag === 'INPUT' && (target as HTMLInputElement).type === 'range';
@@ -153,16 +156,18 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         e.preventDefault();
         finish();
       } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (target?.closest('button, a, select, [role="radio"]')) return;
         e.preventDefault();
         handlePrimary();
       } else if (e.key === 'ArrowLeft') {
+        if (target?.closest('button, a, select, [role="radio"]')) return;
         e.preventDefault();
         if (!isFirst) goBack();
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [finish, handlePrimary, goBack, isFirst]);
+  }, [finish, handlePrimary, goBack, isFirst, isExiting]);
 
   const primaryLabel = isLast
     ? t('wizard.finish')
@@ -251,7 +256,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                   type="button"
                   aria-label={t('wizard.stepDotAria', { number: i + 1, id: s.id })}
                   aria-current={active ? 'step' : undefined}
-                  onClick={() => setStepIndex(i)}
+                  onClick={() => !isExiting && setStepIndex(i)}
                   className={cn(
                     'h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     active ? 'w-6 bg-primary' : 'w-1.5 bg-foreground/25 hover:bg-foreground/40'
