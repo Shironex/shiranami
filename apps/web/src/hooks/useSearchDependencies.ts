@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ export function useSearchDependencies() {
     ytdlpInstalled: boolean;
     ffmpegInstalled: boolean;
   } | null>(null);
+  const readyTimeoutRef = useRef<number | null>(null);
 
   const isDependencyInstallInProgress = useDownloadStore(s => s.isDependencyInstallInProgress);
   const dependencyInstallProgress = useDownloadStore(s => s.dependencyInstallProgress);
@@ -94,6 +95,16 @@ export function useSearchDependencies() {
     };
   }, [dependencyInstallStatus, isDependencyInstallInProgress, refreshDependencies]);
 
+  // Clear the pending ready-state timer on unmount to avoid setting state
+  // after the hook's owner has gone away.
+  useEffect(() => {
+    return () => {
+      if (readyTimeoutRef.current !== null) {
+        window.clearTimeout(readyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleInstallDependencies = useCallback(async () => {
     if (!IS_ELECTRON) return;
 
@@ -113,7 +124,7 @@ export function useSearchDependencies() {
         toast.success(i18n.t('downloadToolsInstalled', { ns: 'toast' }), {
           id: 'dependency-install',
         });
-        window.setTimeout(() => {
+        readyTimeoutRef.current = window.setTimeout(() => {
           setDependencyState('ready');
         }, READY_DELAY_MS);
         return;
