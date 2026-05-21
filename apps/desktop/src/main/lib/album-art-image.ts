@@ -17,6 +17,17 @@
 import * as crypto from 'node:crypto';
 import sharp from 'sharp';
 
+/**
+ * Build the `shiranami-art://` protocol URL for a cached cover filename.
+ *
+ * Lives here (rather than in the Electron-heavy `art-protocol.ts`) so the
+ * utility process — which cannot import `art-protocol.ts` — and the main
+ * process resolve the URL through one shared template.
+ */
+export function artUrlFor(fileName: string): string {
+  return `shiranami-art://art/${fileName}`;
+}
+
 /** Longer-edge clamp for cached covers. Matches art-protocol.ts. */
 export const ALBUM_ART_MAX_DIMENSION = 512;
 /** JPEG re-encode quality. Matches art-protocol.ts. */

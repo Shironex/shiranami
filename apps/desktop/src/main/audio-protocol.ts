@@ -3,20 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
 import { isPathAllowed } from './shared/folders-cache';
-
-/** Audio file extensions we allow serving */
-const ALLOWED_EXTENSIONS = new Set([
-  '.mp3',
-  '.flac',
-  '.wav',
-  '.ogg',
-  '.aac',
-  '.m4a',
-  '.opus',
-  '.wma',
-  '.weba',
-  '.webm',
-]);
+import { AUDIO_EXTENSIONS, audioMime } from './shared/media-types';
 
 /**
  * Register the shiranami-audio: protocol for streaming local audio files.
@@ -39,7 +26,7 @@ export function registerAudioProtocol(): void {
 
       // Security: validate extension
       const ext = path.extname(filePath).toLowerCase();
-      if (!ALLOWED_EXTENSIONS.has(ext)) {
+      if (!AUDIO_EXTENSIONS.has(ext)) {
         logger.warn(`[audio-protocol] Blocked non-audio extension: ${ext}`);
         return new Response('Forbidden', { status: 403 });
       }
@@ -65,13 +52,7 @@ export function registerAudioProtocol(): void {
 
       // Handle Range requests for seeking support
       const fileSize = stat.size;
-      const mimeTypes: Record<string, string> = {
-        '.mp3': 'audio/mpeg', '.flac': 'audio/flac', '.wav': 'audio/wav',
-        '.ogg': 'audio/ogg', '.aac': 'audio/aac', '.m4a': 'audio/mp4',
-        '.opus': 'audio/opus', '.wma': 'audio/x-ms-wma',
-        '.weba': 'audio/webm', '.webm': 'audio/webm',
-      };
-      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      const contentType = audioMime(ext);
       const rangeHeader = request.headers.get('Range');
 
       if (rangeHeader) {
@@ -86,9 +67,11 @@ export function registerAudioProtocol(): void {
             start(controller) {
               stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));
               stream.on('end', () => controller.close());
-              stream.on('error', (err) => controller.error(err));
+              stream.on('error', err => controller.error(err));
             },
-            cancel() { stream.destroy(); },
+            cancel() {
+              stream.destroy();
+            },
           });
 
           return new Response(readable as unknown as ReadableStream, {
@@ -109,9 +92,11 @@ export function registerAudioProtocol(): void {
         start(controller) {
           stream.on('data', (chunk: Buffer) => controller.enqueue(chunk));
           stream.on('end', () => controller.close());
-          stream.on('error', (err) => controller.error(err));
+          stream.on('error', err => controller.error(err));
         },
-        cancel() { stream.destroy(); },
+        cancel() {
+          stream.destroy();
+        },
       });
 
       return new Response(readable as unknown as ReadableStream, {

@@ -18,7 +18,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { downscaleAndHash } from './lib/album-art-image';
+import { artUrlFor, downscaleAndHash } from './lib/album-art-image';
 
 interface ParentPortMessageEvent {
   data: unknown;
@@ -191,10 +191,6 @@ function ensureArtDir(s: UtilityState): void {
   s.artDirEnsured = true;
 }
 
-function toArtUrl(fileName: string): string {
-  return `shiranami-art://art/${fileName}`;
-}
-
 // ---------------------------------------------------------------------------
 // Cover write — content-addressed JPEG cache. Mirrors saveAlbumArt() in
 // art-protocol.ts but uses sharp (via downscaleAndHash) and does no logging.
@@ -222,7 +218,7 @@ async function saveAlbumArtToDisk(
     }
   }
 
-  return toArtUrl(downscaled.fileName);
+  return artUrlFor(downscaled.fileName);
 }
 
 // ---------------------------------------------------------------------------

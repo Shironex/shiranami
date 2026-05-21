@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { logger } from './logger';
 import { saveAlbumArt } from './art-protocol';
+import { isAudioExtension } from './shared/media-types';
 
 export interface TrackMetadata {
   title: string;
@@ -74,12 +75,10 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
   }
 }
 
-/** Audio extensions we support */
-export const AUDIO_EXTENSIONS = new Set([
-  '.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a', '.opus', '.wma', '.weba', '.webm',
-]);
+/** Audio extensions we support. Re-exported from the shared media-types map. */
+export { AUDIO_EXTENSIONS } from './shared/media-types';
 
 /** Check if a file path has a supported audio extension */
 export function isAudioFile(filePath: string): boolean {
-  return AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+  return isAudioExtension(filePath);
 }

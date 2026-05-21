@@ -2,6 +2,7 @@ import { net, protocol } from 'electron';
 import { logger } from './logger';
 import { isStreamUrlAllowed } from './shared/url-safety';
 import { userAgent } from './shared/user-agent';
+import { DEFAULT_AUDIO_MIME } from './shared/media-types';
 
 /**
  * Maximum redirect hops we will follow before giving up. Each hop's
@@ -125,7 +126,7 @@ export function registerRadioProtocol(): void {
         headers.set('Content-Type', contentType);
       } else {
         // Default to audio/mpeg for radio streams
-        headers.set('Content-Type', 'audio/mpeg');
+        headers.set('Content-Type', DEFAULT_AUDIO_MIME);
       }
       headers.set('Accept-Ranges', 'none');
       headers.set('Cache-Control', 'no-cache, no-store');
