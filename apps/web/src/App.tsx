@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
+import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
@@ -12,6 +13,7 @@ import { LibraryView } from '@/components/library/LibraryView';
 import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
+import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
@@ -150,6 +152,7 @@ function App() {
               IS_ELECTRON && 'rounded-t-[10px]'
             )}
           >
+            <ThemeBackground />
             <AmbientBackground />
             <CommandPalette />
             <ErrorBoundary viewName="KeyboardShortcutsHelp">
@@ -194,16 +197,17 @@ function App() {
                   <main
                     id="main-content"
                     aria-label={activeView}
-                    className={cn(
-                      'flex-1 flex overflow-hidden min-h-0',
-                      activeView === 'now-playing'
-                        ? ''
-                        : currentTrack && showVisualizer && !lowPerformanceMode
-                          ? 'pb-[136px]'
-                          : currentTrack
-                            ? 'pb-[88px]'
-                            : ''
-                    )}
+                    className="flex-1 flex overflow-hidden min-h-0"
+                    style={{
+                      paddingBottom:
+                        activeView === 'now-playing'
+                          ? undefined
+                          : currentTrack && showVisualizer && !lowPerformanceMode
+                            ? PLAYER_BAR_PLUS_VIZ
+                            : currentTrack
+                              ? PLAYER_BAR_HEIGHT
+                              : undefined,
+                    }}
                   >
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -298,7 +302,10 @@ function App() {
                     showVisualizer &&
                     !lowPerformanceMode &&
                     activeView !== 'now-playing' && (
-                      <div className="absolute bottom-[88px] left-0 right-0 z-40 h-[48px]">
+                      <div
+                        className="absolute left-0 right-0 z-40"
+                        style={{ bottom: PLAYER_BAR_HEIGHT, height: VISUALIZER_HEIGHT }}
+                      >
                         <ErrorBoundary viewName="Visualizer">
                           <Suspense fallback={null}>
                             {visualizerStyle === 'waveform' ? (

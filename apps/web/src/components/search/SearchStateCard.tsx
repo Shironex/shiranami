@@ -15,7 +15,7 @@ export function SearchStateCard({
 }: SearchStateCardProps) {
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md rounded-[28px] border border-border/30 bg-surface/40 px-8 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+      <div className="w-full max-w-md rounded-[28px] border border-border/30 glass-subtle px-8 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
         <div className="mx-auto relative w-24 h-24 rounded-[28px] bg-primary/8 border border-primary/10 flex items-center justify-center">
           <img
             src="./mascot.png"

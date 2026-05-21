@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Sora:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Shippori+Mincho:wght@800&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -38,6 +39,8 @@
 
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --font-display: 'Sora', 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
 
   --animate-fade-in: fadeIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.3s ease-out;
@@ -221,6 +224,115 @@
   }
 }
 
+/* ── Splash scene keyframes — defined outside @theme inline because they are
+   referenced by raw inline `animation:` styles + degradation selectors below,
+   not by Tailwind `--animate-*` utilities (same pattern as the EQ bars). ── */
+
+/* Distant warm window lights flicker (odd/even staggered durations) */
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Vertical water streak running down the glass */
+@keyframes streak-run {
+  0% {
+    transform: translateY(-40%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(420%);
+    opacity: 0;
+  }
+}
+
+/* Rising coffee steam — stroke-dash sweep + drift up + fade */
+@keyframes steam-rise {
+  0% {
+    stroke-dashoffset: 140;
+    transform: translateY(0) scale(0.9);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.6;
+  }
+  100% {
+    stroke-dashoffset: -140;
+    transform: translateY(-30px) scale(1.05);
+    opacity: 0;
+  }
+}
+
+/* Badge LED pulse */
+@keyframes splash-led-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Loader sweep bar — indeterminate gradient travelling across the track */
+@keyframes splash-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(330%);
+  }
+}
+
+/* Splash degradation — collapse every animated scene layer to a static still
+   under reduced-motion OR low-performance mode. Steam + streaks have no
+   meaningful static state → hidden; lights / LED / sweep go static; the loader
+   track stays so "loading" still reads. Kept outside @layer so they reliably
+   beat the inline animation styles set by the components. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-steam,
+  .splash-streak {
+    display: none;
+  }
+  .splash-light,
+  .splash-led {
+    animation: none !important;
+  }
+  .splash-sweep {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+[data-perf-mode='low'] .splash-steam,
+[data-perf-mode='low'] .splash-streak {
+  display: none;
+}
+[data-perf-mode='low'] .splash-light,
+[data-perf-mode='low'] .splash-led {
+  animation: none !important;
+}
+[data-perf-mode='low'] .splash-sweep {
+  animation: none !important;
+  transform: none !important;
+}
+/* Drop wet-glass backdrop blur under low-perf (matches the .glass override). */
+[data-perf-mode='low'] .splash-glass-blur {
+  backdrop-filter: none !important;
+}
+/* Drop the cup drop-shadow filter under low-perf (compositor cost). */
+[data-perf-mode='low'] .splash-cup-shadow {
+  filter: none !important;
+}
+
 /* Midnight Lofi Cafe Theme */
 :root {
   --background: oklch(0.08 0.02 280);
@@ -267,6 +379,48 @@
   --status-success-rgb: 110, 231, 183;
 }
 
+/* ── Theme image + per-theme accent ──────────────────────────────────────
+   "none" is the default and is intentionally ABSENT here: with no data-theme
+   attribute the app renders from :root only (byte-identical to today). Each
+   block below redefines ONLY the tokens that change; everything else inherits
+   :root. The theme IMAGE is no longer a CSS token: ThemeBackground sets it
+   inline as a document-relative `url(./themes/<id>.webp)` so it resolves
+   against dist/index.html (the CSS lives at dist/assets/, where a relative
+   `./themes/` 404'd). These blocks now carry only the accent. The
+   --primary-rgb triplets mirror each --primary so the canvas visualizers and
+   inline glows (which read the raw triplet) stay in sync with the accent. */
+
+/* Lofi Night — today's "Midnight Lofi Cafe" palette as a photo.
+   ACCENT UNCHANGED on purpose (keeps today's violet). Image only. */
+
+/* Snow — cool blue twilight */
+[data-theme='snow'] {
+  --primary: oklch(0.74 0.12 250);
+  --primary-rgb: 138, 170, 235;
+  --ring: var(--primary);
+}
+
+/* Summer — bright lake daytime, cool cyan-blue accent */
+[data-theme='summer'] {
+  --primary: oklch(0.74 0.13 220);
+  --primary-rgb: 96, 184, 224;
+  --ring: var(--primary);
+}
+
+/* Sunset — warm orange */
+[data-theme='sunset'] {
+  --primary: oklch(0.78 0.15 45);
+  --primary-rgb: 240, 158, 96;
+  --ring: var(--primary);
+}
+
+/* Wisteria — purple/pink spring dusk */
+[data-theme='wisteria'] {
+  --primary: oklch(0.74 0.13 315);
+  --primary-rgb: 205, 142, 230;
+  --ring: var(--primary);
+}
+
 /* Sonner toast – override default dark-theme colors with app tokens */
 [data-sonner-toaster][data-sonner-theme='dark'] {
   --normal-bg: var(--card);
@@ -291,6 +445,15 @@
 @utility glass-subtle {
   backdrop-filter: blur(6px) saturate(1.2);
   background: oklch(0.08 0.02 280 / 0.6);
+}
+
+/* Content panel over the theme background — a notch more transparent than
+   .glass (0.82) so the theme image reads through, while staying opaque enough
+   to keep track-list body text legible over the bright themes. Degraded-mode
+   overrides below (low-perf + reduced-transparency) match the .glass pattern. */
+@utility glass-panel {
+  backdrop-filter: blur(7px) saturate(1.3);
+  background: oklch(0.1 0.02 280 / 0.7);
 }
 
 @utility text-gradient {
@@ -386,4 +549,60 @@
 [data-perf-mode='low'] .glass-subtle {
   backdrop-filter: none;
   background: oklch(0.08 0.02 280 / 0.88);
+}
+
+[data-perf-mode='low'] .glass-panel {
+  backdrop-filter: none;
+  background: oklch(0.1 0.02 280 / 0.9);
+}
+
+/* ── Theme image paint surface (ThemeBackground) ─────────────────────────
+   Sizing + first-paint fallback only. The actual `background-image` is set
+   inline by ThemeBackground as a document-relative `url(./themes/<id>.webp)`
+   (single source of truth) so it resolves against dist/index.html. The image
+   is a single static bitmap with no animation or blur, so it is cheap enough
+   to keep in BOTH low-perf and reduced-transparency modes (only the animated
+   glow and backdrop blurs are dropped). */
+
+/* First-paint fallback = solid --background so the shell never flashes empty
+   before the WebP decodes (background-image loads async, never blocks paint). */
+.theme-bg-image {
+  background-color: var(--background);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Contrast scrim — a light dark wash that lets the theme photo read as a real
+   background while text-heavy regions (lists, settings) stay legible via their
+   own .glass / .glass-panel surfaces. Ships WITH the image (same component),
+   never after, so no theme renders un-scrimmed. The bottom stop (0.5) is
+   slightly heavier than the top (0.36) to tame the bright horizon/water band of
+   summer/sunset where the player bar sits; the lighter top keeps the photo
+   vivid and the dark themes from going muddy. Tuned against live captures so
+   the image is clearly visible AND body text over the glass clears ~4.5:1. */
+.theme-bg-scrim {
+  background:
+    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.36) 0%, oklch(0.04 0.012 280 / 0.5) 100%),
+    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
+}
+
+/* prefers-reduced-transparency: drop backdrop blur on glass, stay legible via
+   higher opacity. Mirrors the low-perf .glass override intent. Kept outside
+   @layer (same region as the low-perf rules) so it reliably beats the
+   @utility definitions. The theme image itself is retained — it is opaque,
+   not a transparency effect. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    backdrop-filter: none;
+    background: oklch(0.1 0.02 280 / 0.92);
+  }
+  .glass-subtle {
+    backdrop-filter: none;
+    background: oklch(0.08 0.02 280 / 0.88);
+  }
+  .glass-panel {
+    backdrop-filter: none;
+    background: oklch(0.1 0.02 280 / 0.9);
+  }
 }

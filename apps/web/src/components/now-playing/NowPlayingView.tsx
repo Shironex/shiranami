@@ -203,11 +203,11 @@ export function NowPlayingView() {
               transition={{ duration: 0.3 }}
               className="text-center w-full max-w-[360px] @5xl:max-w-[420px] px-2"
             >
-              <h1 className="font-display text-lg @5xl:text-2xl @7xl:text-3xl font-semibold text-foreground truncate">
+              <h1 className="font-serif italic text-2xl @5xl:text-3xl @7xl:text-4xl text-foreground truncate">
                 {currentTrack.title}
               </h1>
               <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
-                {currentTrack.artist} — {currentTrack.album}
+                {currentTrack.artist} · {currentTrack.album}
               </p>
             </motion.div>
           </AnimatePresence>

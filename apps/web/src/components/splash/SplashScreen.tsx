@@ -3,11 +3,16 @@ import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
+import { SplashScene } from './SplashScene';
 import { SplashLamp } from './SplashLamp';
 import { SplashGlass } from './SplashGlass';
 import { SplashWordmark } from './SplashWordmark';
+import { SplashDroplets } from './SplashDroplets';
 import { SplashRain } from './SplashRain';
-import { SplashFooter } from './SplashFooter';
+import { SplashSteam } from './SplashSteam';
+import { SplashCup } from './SplashCup';
+import { SplashBrand } from './SplashBrand';
+import { SplashMeta } from './SplashMeta';
 
 interface SplashScreenProps {
   /** Library sync is still running — splash stays mounted until false. */
@@ -20,19 +25,29 @@ interface SplashScreenProps {
 }
 
 /**
- * Shiranami splash — "Cafe Window / Rain on Glass".
+ * Shiranami splash — "Cafe Window / Rain on Glass at night".
  *
- * Layer order (z-bottom → z-top):
- *  1. Canvas: bare --background. No additive wash.
- *  2. SplashLamp: single warm --favorite radial glow at (82%, 18%).
- *  3. SplashGlass: monochrome top/bottom film haze.
- *  4. SplashWordmark: 白波 etched on the glass, receding at 0.55 alpha.
- *  5. SplashRain: full-bleed canvas streaks — sits above the wordmark so
- *     rain reads as falling between the viewer and the etching.
- *  6. SplashFooter: absolute bottom, above the rain layer.
+ * Hybrid: production fullscreen shell (drag region, rounded-t, fog-out exit)
+ * with a full-bleed night scene layered behind wet glass. Layer order
+ * (z-bottom → z-top, explicit z-index on each layer):
+ *  z1  SplashScene   — night sky + skyline + moon + flickering lights
+ *  z2  SplashLamp    — broad ambient warm wash (breath-loop, off under degrade)
+ *  z3  SplashWordmark— big off-center 白波 reflection (etch → fade entrance)
+ *  z4  SplashDroplets— static clinging droplets + running streaks
+ *  z5  SplashRain    — rAF canvas streaks (static frame under degrade)
+ *  z6  SplashGlass   — film haze + edge vignette + texture mullion
+ *  z7  SplashSteam   — rising steam (hidden under degrade)
+ *  z8  SplashCup     — foreground coffee cup (static art)
+ *  z9  SplashMeta    — top-right v{version} + live clock
+ *  z9  SplashBrand   — bottom-left badge + LED + wordmark + kanji + loader + status
  *
- * Exit: 540ms opacity → 0, blur 0 → 8px (fog-out). No scale.
- * Palette rule: --primary appears only on the status dot. No other violet.
+ * Exit: 540ms opacity → 0, blur 0 → 8px (fog-out). No scale. Under
+ * reduced-motion the blur is dropped (opacity-only).
+ *
+ * Degradation: every animated layer collapses to a static still under
+ * reduced-motion OR lowPerformanceMode — flickering lights / LED / loader
+ * sweep go static, steam + streaks hide, rain freezes one frame, lamp stops
+ * breathing, and backdrop-filter is dropped (see globals.css guards).
  */
 export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashScreenProps) {
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
@@ -43,11 +58,12 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
     []
   );
 
-  const { isVisible, isDismissing, showStatus, variant, messageKey, version } = useSplashScreen({
-    isLoading,
-    isError,
-    onDismissed,
-  });
+  const { isVisible, isDismissing, showStatus, variant, messageKey, version, clock } =
+    useSplashScreen({
+      isLoading,
+      isError,
+      onDismissed,
+    });
 
   if (!isVisible) return null;
 
@@ -56,44 +72,69 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
   return (
     <div
       className={cn(
-        'fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background overflow-hidden',
+        'fixed inset-0 z-[9999] overflow-hidden bg-background',
         IS_ELECTRON && 'rounded-t-[10px]'
       )}
       style={{
         transition: isDismissing ? 'opacity 540ms ease-out, filter 540ms ease-out' : undefined,
         opacity: isDismissing ? 0 : 1,
-        filter: isDismissing ? (reducedMotion ? 'blur(0px)' : 'blur(8px)') : 'blur(0px)',
+        filter: isDismissing ? (disableBreathLoop ? 'blur(0px)' : 'blur(8px)') : 'blur(0px)',
       }}
     >
       {/* Drag region — keeps the frameless window movable during boot */}
       {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
-      {/* Layer 1 & 2: Lamp + Glass film (below wordmark) */}
-      <SplashLamp disabled={disableBreathLoop} />
-      <SplashGlass />
-
-      {/* Layer 3: Wordmark — centered, slightly above true vertical center */}
-      <div
-        className="relative z-10 flex flex-col items-center justify-center pointer-events-none"
-        style={{ marginTop: '-2vh' }}
-      >
-        <SplashWordmark reducedMotion={reducedMotion} />
+      {/* z1 — night scene base */}
+      <div className="absolute inset-0 z-[1]">
+        <SplashScene reducedMotion={disableBreathLoop} />
       </div>
 
-      {/* Layer 4: Rain canvas — above the wordmark */}
-      <SplashRain
-        paused={variant === 'error'}
-        lowPerformanceMode={lowPerformanceMode}
-        reducedMotion={reducedMotion}
-      />
+      {/* z2 — ambient warm lamp wash */}
+      <div className="absolute inset-0 z-[2]">
+        <SplashLamp disabled={disableBreathLoop} />
+      </div>
 
-      {/* Layer 5: Footer — above the rain */}
-      <SplashFooter
+      {/* z3 — big off-center 白波 reflection */}
+      <div className="absolute inset-0 z-[3] pointer-events-none">
+        <SplashWordmark reducedMotion={disableBreathLoop} />
+      </div>
+
+      {/* z4 — static droplets + running streaks */}
+      <div className="absolute inset-0 z-[4]">
+        <SplashDroplets />
+      </div>
+
+      {/* z5 — rAF canvas rain (above the reflection) */}
+      <div className="absolute inset-0 z-[5]">
+        <SplashRain
+          paused={variant === 'error'}
+          lowPerformanceMode={lowPerformanceMode}
+          reducedMotion={reducedMotion}
+        />
+      </div>
+
+      {/* z6 — glass surface cues: haze + edge vignette + texture mullion */}
+      <div className="absolute inset-0 z-[6]">
+        <SplashGlass />
+      </div>
+
+      {/* z7 — rising steam */}
+      <div className="absolute inset-0 z-[7] pointer-events-none">
+        <SplashSteam reducedMotion={disableBreathLoop} />
+      </div>
+
+      {/* z8 — foreground coffee cup */}
+      <div className="absolute inset-0 z-[8] pointer-events-none">
+        <SplashCup />
+      </div>
+
+      {/* z9 — UI: meta corner + brand block (interactive retry lives here) */}
+      <SplashMeta version={version} clock={clock} />
+      <SplashBrand
         showStatus={showStatus}
         variant={variant}
         messageKey={messageKey}
         error={error}
-        version={version}
         reducedMotion={reducedMotion}
       />
     </div>

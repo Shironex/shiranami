@@ -27,7 +27,7 @@ export function ViewEmptyState({
   const isError = variant === 'error';
   return (
     <div className="flex-1 min-h-full flex items-center justify-center">
-      <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
+      <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center glass-subtle rounded-[28px] border border-border/30">
         {/* Mascot + contextual badge */}
         <div className="relative">
           <div

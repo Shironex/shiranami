@@ -17,6 +17,7 @@ function Switch({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'data-[state=checked]:bg-primary data-[state=unchecked]:bg-[oklch(0.32_0.02_280)]',
+        'data-[state=checked]:shadow-[0_0_10px_-2px_rgba(var(--primary-rgb),0.6)]',
         className
       )}
       {...props}

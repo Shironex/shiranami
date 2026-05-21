@@ -111,14 +111,14 @@ export function SeekBar() {
         {/* Range fill */}
         <div
           ref={fillRef}
-          className="absolute h-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200"
+          className="absolute h-full bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200 group-hover:shadow-[0_0_8px_0_rgba(var(--primary-rgb),0.5)]"
           style={needsStaticStyle ? { width: `${staticProgress}%` } : undefined}
         />
       </div>
       {/* Thumb */}
       <div
         ref={thumbRef}
-        className="absolute h-0 w-0 -translate-x-1/2 rounded-full bg-primary shadow-md shadow-primary/30 transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
+        className="absolute h-0 w-0 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_10px_0_rgba(var(--primary-rgb),0.6)] transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
         style={needsStaticStyle ? { left: `${staticProgress}%` } : undefined}
       />
     </div>

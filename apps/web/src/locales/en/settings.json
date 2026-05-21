@@ -229,7 +229,21 @@
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default. Adds a small amount of GPU work.",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
-    "effects": "Visual effects"
+    "effects": "Visual effects",
+    "sectionsAriaLabel": "Settings sections",
+    "theme": {
+      "title": "Theme",
+      "desc": "Choose a background scene for the app. None keeps the solid dark look.",
+      "apply": "Apply {{name}} theme",
+      "names": {
+        "none": "None",
+        "lofiNight": "Lofi Night",
+        "snow": "Snow",
+        "summer": "Summer",
+        "sunset": "Sunset",
+        "wisteria": "Wisteria"
+      }
+    }
   },
   "dl": {
     "title": "Downloads",

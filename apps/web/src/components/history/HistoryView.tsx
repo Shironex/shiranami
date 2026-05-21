@@ -1,5 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, BarChart3, CheckCircle2, Clock3, Disc3, Music, PlayCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  BarChart3,
+  CheckCircle2,
+  Clock3,
+  Disc3,
+  Music,
+  PlayCircle,
+} from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { useListeningHistoryView } from '@/hooks/useListeningHistoryView';
 import { formatTotalTime, getRangeCopy } from '@/components/history/historyUtils';
@@ -32,7 +40,12 @@ export default function HistoryView() {
         title={t('errorTitle')}
         subtitle={t('errorSubtitle')}
         icon={AlertCircle}
-        action={{ label: tCommon('retry'), onClick: () => { void refetch(); } }}
+        action={{
+          label: tCommon('retry'),
+          onClick: () => {
+            void refetch();
+          },
+        }}
       />
     );
   }
@@ -47,7 +60,7 @@ export default function HistoryView() {
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-10 pt-6">
+      <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6">
         <HistoryHeroSection selectedRange={selectedRange} onRangeChange={setSelectedRange} />
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -77,7 +90,7 @@ export default function HistoryView() {
           />
         </section>
 
-        <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-primary/80" />
             <h2 className="font-display text-lg font-semibold text-foreground">{t('activity')}</h2>
@@ -91,33 +104,34 @@ export default function HistoryView() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
             <div className="flex items-center gap-2">
               <Disc3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">{t('topTracks')}</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {t('topTracks')}
+              </h2>
             </div>
             <div className="mt-4 space-y-3">
               {summary.topTracks.length > 0 ? (
-                summary.topTracks.map((track) => (
+                summary.topTracks.map(track => (
                   <TopTrackRow key={track.trackId} track={track} onPlay={handlePlayTrack} />
                 ))
               ) : (
-                <HistoryEmptyState
-                  title={t('noTopTracksTitle')}
-                  copy={t('noTopTracksCopy')}
-                />
+                <HistoryEmptyState title={t('noTopTracksTitle')} copy={t('noTopTracksCopy')} />
               )}
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">{t('topArtists')}</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">
+                {t('topArtists')}
+              </h2>
             </div>
             <div className="mt-4 space-y-3">
               {summary.topArtists.length > 0 ? (
-                summary.topArtists.map((artist) => (
+                summary.topArtists.map(artist => (
                   <TopArtistRow key={artist.artist} artist={artist} />
                 ))
               ) : (
@@ -130,21 +144,20 @@ export default function HistoryView() {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
           <div className="flex items-center gap-2">
             <Clock3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">{t('recentPlays')}</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">
+              {t('recentPlays')}
+            </h2>
           </div>
           <div className="mt-4 space-y-3">
             {recent.length > 0 ? (
-              recent.map((entry) => (
+              recent.map(entry => (
                 <RecentRow key={entry.id} entry={entry} onPlay={handlePlayTrack} />
               ))
             ) : (
-              <HistoryEmptyState
-                title={t('noRecentPlaysTitle')}
-                copy={t('noRecentPlaysCopy')}
-              />
+              <HistoryEmptyState title={t('noRecentPlaysTitle')} copy={t('noRecentPlaysCopy')} />
             )}
           </div>
         </section>

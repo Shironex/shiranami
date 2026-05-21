@@ -93,11 +93,11 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <h2 className="font-display text-lg font-semibold text-foreground truncate">
+                  <h2 className="font-serif italic text-2xl text-foreground truncate">
                     {currentTrack.title}
                   </h2>
                   <p className="text-sm text-muted-foreground truncate mt-0.5">
-                    {currentTrack.artist} — {currentTrack.album}
+                    {currentTrack.artist} · {currentTrack.album}
                   </p>
                 </motion.div>
               </AnimatePresence>

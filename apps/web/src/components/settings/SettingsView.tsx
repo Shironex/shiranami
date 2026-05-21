@@ -158,55 +158,60 @@ export function SettingsView() {
         title={t(activeEntry.labelKey)}
         subtitle={t(activeEntry.subtitleKey)}
       />
-      <div className="flex flex-1 overflow-hidden">
-        {/* Section navigation */}
-        <nav className="w-48 shrink-0 border-r border-border/40 p-3 overflow-y-auto scrollbar-thin min-h-0" aria-label="Settings sections">
-          {GROUP_ORDER.map(group => {
-            const items = SECTIONS.filter(s => s.group === group);
-            return (
-              <div key={group} className="mb-1.5">
-                <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/80 px-3 mb-1.5 mt-3 first:mt-0">
-                  {t(GROUP_LABELS[group])}
+      <div className="flex-1 min-h-0 px-4 pb-4 overflow-hidden">
+        <div className="flex h-full rounded-2xl glass border border-border/30 overflow-hidden">
+          {/* Section navigation */}
+          <nav
+            className="w-48 shrink-0 border-r border-border/40 p-3 overflow-y-auto scrollbar-thin min-h-0"
+            aria-label={t('app.sectionsAriaLabel')}
+          >
+            {GROUP_ORDER.map(group => {
+              const items = SECTIONS.filter(s => s.group === group);
+              return (
+                <div key={group} className="mb-1.5">
+                  <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground/80 px-3 mb-1.5 mt-3 first:mt-0">
+                    {t(GROUP_LABELS[group])}
+                  </div>
+                  {items.map(section => {
+                    const isActive = activeSection === section.id;
+                    return (
+                      <button
+                        key={section.id}
+                        aria-current={isActive ? 'page' : undefined}
+                        onClick={() => setActiveSection(section.id)}
+                        title={t(section.labelKey)}
+                        className={cn(
+                          'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm',
+                          'transition-all duration-150',
+                          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                          isActive
+                            ? 'bg-primary/15 text-primary font-medium shadow-[inset_0_0_12px_-6px_rgba(var(--primary-rgb),0.5)]'
+                            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80'
+                        )}
+                      >
+                        {isActive && (
+                          <span
+                            aria-hidden="true"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary"
+                          />
+                        )}
+                        <section.Icon className="w-4 h-4 shrink-0" />
+                        <span className="min-w-0 truncate whitespace-nowrap">
+                          {t(section.labelKey)}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                {items.map(section => {
-                  const isActive = activeSection === section.id;
-                  return (
-                    <button
-                      key={section.id}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => setActiveSection(section.id)}
-                      title={t(section.labelKey)}
-                      className={cn(
-                        'relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm',
-                        'transition-all duration-150',
-                        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                        isActive
-                          ? 'bg-primary/15 text-primary font-medium'
-                          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground/80'
-                      )}
-                    >
-                      {isActive && (
-                        <span
-                          aria-hidden="true"
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary"
-                        />
-                      )}
-                      <section.Icon className="w-4 h-4 shrink-0" />
-                      <span className="min-w-0 truncate whitespace-nowrap">
-                        {t(section.labelKey)}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </nav>
+              );
+            })}
+          </nav>
 
-        {/* Section content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20">
-          <div className="max-w-xl space-y-4">
-            <Panel />
+          {/* Section content */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20">
+            <div className="max-w-xl space-y-4">
+              <Panel />
+            </div>
           </div>
         </div>
       </div>

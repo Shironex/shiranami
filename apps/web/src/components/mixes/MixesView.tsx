@@ -6,6 +6,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Sparkles, Play, Shuffle, ArrowLeft } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { motion } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
@@ -127,23 +128,25 @@ export function MixesView() {
             <p className="text-sm text-muted-foreground/50">{t(selectedDef.emptyKey)}</p>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 px-4">
-            <List
-              rowCount={mixTracks.length}
-              rowHeight={52}
-              overscanCount={10}
-              className="scrollbar-thin"
-              style={{ height: '100%' }}
-              rowComponent={TrackRow}
-              rowProps={{
-                queue: mixTracks,
-                currentTrack,
-                isPlaying,
-                handlePlayTrack,
-                onToggleFavorite: toggleFavorite,
-                showAddToPlaylist: true,
-              }}
-            />
+          <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+            <div className="h-full px-2">
+              <List
+                rowCount={mixTracks.length}
+                rowHeight={52}
+                overscanCount={10}
+                className="scrollbar-thin"
+                style={{ height: '100%' }}
+                rowComponent={TrackRow}
+                rowProps={{
+                  queue: mixTracks,
+                  currentTrack,
+                  isPlaying,
+                  handlePlayTrack,
+                  onToggleFavorite: toggleFavorite,
+                  showAddToPlaylist: true,
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -155,8 +158,10 @@ export function MixesView() {
   // ── Mix grid (overview) ──
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto px-6 pt-2 pb-6 scrollbar-thin">
-        <div className="space-y-1.5">
+      <PageHeader title={t('pageTitle')} />
+
+      <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 scrollbar-thin">
+        <div className="rounded-2xl glass-panel border border-border/30 p-2 space-y-1.5">
           {MIX_DEFINITIONS.map(mix => {
             const Icon = mix.icon;
             const preview = getMixPreviewCount(mix.id, library);

@@ -3,22 +3,26 @@ interface SplashWordmarkProps {
 }
 
 /**
- * 白波 wordmark etched on the glass.
+ * Big off-center 白波 reflection on the glass.
  *
- * Sits behind the rain layer so the streaks pass in front of it — the
- * compositional read is that the wordmark is on the inside of the glass and
- * the viewer is looking through both the etching and the rain at once.
+ * Repurposed from the old centered 64px etching into a large, low-alpha
+ * reflection sitting off to the upper-left, rotated -2deg — the kanji read as
+ * a faint reflection cast across the wet pane rather than a centered logo.
  *
- * Size is 64px (up from 56 in Direction A) to compensate for the lower 0.55
- * alpha and the rain layer that competes for attention.
+ * Sits behind the rain + droplets so the streaks pass in front of it: the
+ * compositional read is the reflection is on the inside of the glass and the
+ * viewer looks through both the etching and the rain at once.
  *
- * Entrance: blur 4px → 0 + opacity 0 → 0.55 over 600ms (220ms delay).
- * The blur-to-clarity reads as the etching being seen through condensation
- * that is wiping clear. Under reduced-motion, the blur step is dropped and
- * it fades opacity-only.
+ * Entrance: blur 4px -> 0 + opacity fade over 600ms (220ms delay) — the
+ * blur-to-clarity reads as condensation wiping clear. Under reduced-motion the
+ * blur step is dropped and it fades opacity-only.
  *
- * CJK fallback pinned explicitly — Sora lacks full CJK glyph coverage and
- * falls back to Hiragino Sans / Noto Sans JP which have different metrics.
+ * CJK fallback pinned explicitly: Shippori Mincho (mock face, heavier serif),
+ * then Noto Sans JP / Hiragino Sans which have full CJK coverage. Sora lacks
+ * CJK glyphs so it is intentionally not in this chain.
+ *
+ * Mock literal mapping: reflection color `oklch(0.85 0.14 295 / 0.06)` ->
+ * `--foreground` at low alpha (cool glass reflection, not violet).
  */
 export function SplashWordmark({ reducedMotion }: SplashWordmarkProps) {
   const animation = reducedMotion
@@ -26,26 +30,22 @@ export function SplashWordmark({ reducedMotion }: SplashWordmarkProps) {
     : 'shiranami-wordmark-etch 600ms ease-out 220ms both';
 
   return (
-    <div
-      className="flex flex-col items-center gap-1"
+    <span
+      className="absolute select-none leading-[0.85]"
       aria-label="白波 Shiranami"
-      style={{ animation }}
+      style={{
+        top: '20%',
+        left: '5%',
+        fontFamily: "'Shippori Mincho', 'Noto Sans JP', 'Hiragino Sans', serif",
+        fontWeight: 800,
+        fontSize: 'clamp(140px, 22vw, 220px)',
+        letterSpacing: '-0.05em',
+        color: 'oklch(from var(--foreground) l c h / 0.07)',
+        transform: 'rotate(-2deg)',
+        animation,
+      }}
     >
-      <span
-        className="text-[64px] font-semibold leading-none tracking-[-0.02em] select-none"
-        style={{
-          fontFamily: "'Sora', 'Noto Sans JP', 'Hiragino Sans', system-ui",
-          color: 'oklch(from var(--foreground) l c h / 0.55)',
-        }}
-      >
-        白波
-      </span>
-      <span
-        className="font-mono text-[10px] uppercase tracking-[0.28em] select-none"
-        style={{ color: 'oklch(from var(--muted-foreground) l c h / 0.65)' }}
-      >
-        lofi · since 2024
-      </span>
-    </div>
+      白波
+    </span>
   );
 }

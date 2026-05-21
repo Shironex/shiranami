@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Radio, Search, Heart, Globe, Loader2, Star } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { List } from 'react-window';
 import { COUNTRIES, stationToTrack } from './radioUtils';
 import { StationRow } from './StationRow';
@@ -132,6 +133,7 @@ export function RadioView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <PageHeader title={t('pageTitle')} />
       {/* Search bar */}
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
@@ -143,7 +145,7 @@ export function RadioView() {
             onChange={e => handleSearchChange(e.target.value)}
             placeholder={t('searchPlaceholder')}
             className={cn(
-              'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-card border-border/50',
+              'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               'text-foreground placeholder:text-muted-foreground/50',
               'focus-visible:ring-primary/40 focus-visible:border-primary/40',
               'shadow-none'
@@ -233,8 +235,8 @@ export function RadioView() {
           </div>
         </div>
       ) : isLoading ? (
-        <div className="flex-1 min-h-0 px-4">
-          <div className="flex h-full flex-col gap-1 overflow-hidden">
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="flex h-full flex-col gap-1 overflow-hidden px-2">
             {Array.from({ length: RADIO_SKELETON_ROWS }, (_, index) => (
               <StationRowSkeleton key={index} />
             ))}
@@ -255,23 +257,25 @@ export function RadioView() {
           />
         )
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <List
-            rowCount={stations.length}
-            rowHeight={56}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={StationRow}
-            rowProps={{
-              stations,
-              currentTrackId,
-              isPlaying,
-              favorites,
-              onPlay: handlePlayStation,
-              onToggleFavorite: toggleFavorite,
-            }}
-          />
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <List
+              rowCount={stations.length}
+              rowHeight={56}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={StationRow}
+              rowProps={{
+                stations,
+                currentTrackId,
+                isPlaying,
+                favorites,
+                onPlay: handlePlayStation,
+                onToggleFavorite: toggleFavorite,
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

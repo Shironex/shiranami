@@ -7,6 +7,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Download, LayoutGrid, List, Music, Search, X } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { NowPlayingHero } from '@/components/shared/NowPlayingHero';
 import { motion, AnimatePresence } from 'motion/react';
 import { List as VirtualList } from 'react-window';
@@ -14,11 +15,11 @@ import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { AlbumGrid } from './AlbumGrid';
 import { AlbumDetailView } from './AlbumDetailView';
+import { ViewModeButton } from './ViewModeButton';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
 import { AlbumSortControl } from '@/components/shared/AlbumSortControl';
 import { LibraryViewSkeleton } from './LibraryViewSkeleton';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 export function LibraryView() {
   const { t } = useTranslation('library');
@@ -88,6 +89,8 @@ export function LibraryView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" onKeyDown={handleKeyDown} tabIndex={-1}>
+      <PageHeader title={t('pageTitle')} />
+
       {libraryHeroCardEnabled && <NowPlayingHero />}
 
       {/* Search bar + view toggle */}
@@ -107,7 +110,7 @@ export function LibraryView() {
                     ? t('filterAlbumsPlaceholder')
                     : t('filterPlaceholder')
                 }
-                className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm bg-card border-border/50 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
+                className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm glass-subtle border-border/40 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
               />
               <AnimatePresence>
                 {isFiltered && (
@@ -159,33 +162,19 @@ export function LibraryView() {
             )}
 
             {/* View toggle */}
-            <div className="flex items-center rounded-xl border border-border/50 bg-card p-1 gap-0.5">
-              <button
+            <div className="flex items-center rounded-xl border border-border/50 glass-subtle p-1 gap-0.5">
+              <ViewModeButton
+                active={libraryViewMode === 'tracks'}
                 onClick={() => setLibraryViewMode('tracks')}
-                className={cn(
-                  'p-2 rounded-lg transition-colors',
-                  libraryViewMode === 'tracks'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground/50 hover:text-foreground'
-                )}
-                aria-label={t('viewTracks')}
-                title={t('viewTracks')}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
+                icon={List}
+                label={t('viewTracks')}
+              />
+              <ViewModeButton
+                active={libraryViewMode === 'albums'}
                 onClick={() => setLibraryViewMode('albums')}
-                className={cn(
-                  'p-2 rounded-lg transition-colors',
-                  libraryViewMode === 'albums'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground/50 hover:text-foreground'
-                )}
-                aria-label={t('viewAlbums')}
-                title={t('viewAlbums')}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
+                icon={LayoutGrid}
+                label={t('viewAlbums')}
+              />
             </div>
           </div>
           {isFiltered && libraryViewMode === 'tracks' && (
@@ -220,23 +209,25 @@ export function LibraryView() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <VirtualList
-            rowCount={filteredLibrary.length}
-            rowHeight={52}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={TrackRow}
-            rowProps={{
-              queue: filteredLibrary,
-              currentTrack,
-              isPlaying,
-              handlePlayTrack,
-              onToggleFavorite: toggleFavorite,
-              showAddToPlaylist: true,
-            }}
-          />
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <VirtualList
+              rowCount={filteredLibrary.length}
+              rowHeight={52}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={TrackRow}
+              rowProps={{
+                queue: filteredLibrary,
+                currentTrack,
+                isPlaying,
+                handlePlayTrack,
+                onToggleFavorite: toggleFavorite,
+                showAddToPlaylist: true,
+              }}
+            />
+          </div>
         </div>
       )}
 
