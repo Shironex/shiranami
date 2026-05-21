@@ -17,6 +17,7 @@ import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { Button } from '@/components/ui/button';
 import { OnboardingScene } from './OnboardingScene';
 import { OnboardingStepContext } from './stepContext';
+import { useFocusTrap } from './useFocusTrap';
 import { WelcomeStep } from './steps/WelcomeStep';
 import { FoldersStep } from './steps/FoldersStep';
 import { ThemeStep } from './steps/ThemeStep';
@@ -57,7 +58,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
+  const [isEntering, setIsEntering] = useState(true);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Cached at mount — the OS preference doesn't change mid-wizard.
   const reducedMotion = useMemo(
@@ -65,6 +68,18 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
     []
   );
   const disableMotion = reducedMotion || lowPerformanceMode;
+
+  useFocusTrap(containerRef, !isExiting);
+
+  // Entrance fade-in (skipped under reduced-motion / low-perf).
+  useEffect(() => {
+    if (disableMotion) {
+      setIsEntering(false);
+      return;
+    }
+    const id = window.requestAnimationFrame(() => setIsEntering(false));
+    return () => window.cancelAnimationFrame(id);
+  }, [disableMotion]);
 
   const step = STEPS[stepIndex];
   const isFirst = stepIndex === 0;
@@ -108,13 +123,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   }, [stepIndex]);
 
   // Keyboard: → / Enter advance (or finish), ← back, Esc skips. Never hijack
-  // while a text input is focused (the folder step has none today, but keep
-  // the guard for safety).
+  // while a text input is focused, nor while a layered Radix dialog (e.g. the
+  // subfolder-playlist prompt at z-9999) is open — that overlay owns the keys.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
 
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -141,6 +157,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
 
   return (
     <div
+      ref={containerRef}
       role="dialog"
       aria-modal="true"
       aria-label={t('wizard.ariaLabel')}
@@ -149,8 +166,9 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         IS_ELECTRON && 'rounded-t-[10px]'
       )}
       style={{
-        transition: isExiting ? 'opacity 520ms ease-out, filter 520ms ease-out' : undefined,
-        opacity: isExiting ? 0 : 1,
+        transition:
+          isExiting || !disableMotion ? 'opacity 520ms ease-out, filter 520ms ease-out' : undefined,
+        opacity: isExiting || isEntering ? 0 : 1,
         filter: isExiting && !disableMotion ? 'blur(8px)' : 'blur(0px)',
       }}
     >
