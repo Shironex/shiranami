@@ -17,9 +17,7 @@
  */
 
 /** 10 ISO-style bands used by the EQ chain. */
-export const EQ_BANDS = [
-  31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000,
-] as const;
+export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const;
 
 /** Q for the 8 peaking filters (positions 1..8). */
 const PEAKING_Q = 1.414;
@@ -54,10 +52,7 @@ let eqReady = false;
  * Must be called from a user-gesture context so the AudioContext can start.
  * Safe to call multiple times — only the first call wires things up.
  */
-export function initAnalyser(
-  audioA: HTMLAudioElement,
-  audioB: HTMLAudioElement,
-): AnalyserNode {
+export function initAnalyser(audioA: HTMLAudioElement, audioB: HTMLAudioElement): AnalyserNode {
   if (analyserNode && connected) return analyserNode;
 
   if (!audioContext) {
@@ -136,8 +131,16 @@ export function initEq(): void {
   limiter.release.value = LIMITER_RELEASE_S;
 
   // Detach the per-deck gains from the analyser — they now feed the chain.
-  try { gainA.disconnect(analyserNode); } catch { /* ok */ }
-  try { gainB.disconnect(analyserNode); } catch { /* ok */ }
+  try {
+    gainA.disconnect(analyserNode);
+  } catch {
+    /* ok */
+  }
+  try {
+    gainB.disconnect(analyserNode);
+  } catch {
+    /* ok */
+  }
 
   // Wire the chain.
   gainA.connect(mixGain);
@@ -212,15 +215,6 @@ export function setPreampDb(db: number): void {
 }
 
 /**
- * Current dB gains of every band, in EQ_BANDS order. Returns an empty array
- * if the EQ is not yet initialised.
- */
-export function getEqBands(): readonly number[] {
-  if (!eqReady) return [];
-  return eqNodes.map((n) => n.gain.value);
-}
-
-/**
  * Set the gain (volume) for a specific deck.
  * Value should be 0-1 (will be clamped).
  */
@@ -256,13 +250,6 @@ export function getFrequencyData(buffer: Uint8Array<ArrayBuffer>): boolean {
 }
 
 /**
- * Number of frequency bins (fftSize / 2).
- */
-export function getFrequencyBinCount(): number {
-  return analyserNode ? analyserNode.frequencyBinCount : 128;
-}
-
-/**
  * Ensure the AudioContext is running. Call before any play() operation.
  * Once a MediaElementAudioSourceNode captures an element, ALL audio must
  * flow through the AudioContext. If it becomes suspended (Chromium power-
@@ -278,17 +265,53 @@ export function resumeAudioContext(): void {
  * Tear down the audio graph. Called on app unmount.
  */
 export function destroyAnalyser() {
-  try { sourceA?.disconnect(); } catch { /* ok */ }
-  try { sourceB?.disconnect(); } catch { /* ok */ }
-  try { gainA?.disconnect(); } catch { /* ok */ }
-  try { gainB?.disconnect(); } catch { /* ok */ }
-  try { mixGain?.disconnect(); } catch { /* ok */ }
-  try { preamp?.disconnect(); } catch { /* ok */ }
-  for (const node of eqNodes) {
-    try { node.disconnect(); } catch { /* ok */ }
+  try {
+    sourceA?.disconnect();
+  } catch {
+    /* ok */
   }
-  try { limiter?.disconnect(); } catch { /* ok */ }
-  try { analyserNode?.disconnect(); } catch { /* ok */ }
+  try {
+    sourceB?.disconnect();
+  } catch {
+    /* ok */
+  }
+  try {
+    gainA?.disconnect();
+  } catch {
+    /* ok */
+  }
+  try {
+    gainB?.disconnect();
+  } catch {
+    /* ok */
+  }
+  try {
+    mixGain?.disconnect();
+  } catch {
+    /* ok */
+  }
+  try {
+    preamp?.disconnect();
+  } catch {
+    /* ok */
+  }
+  for (const node of eqNodes) {
+    try {
+      node.disconnect();
+    } catch {
+      /* ok */
+    }
+  }
+  try {
+    limiter?.disconnect();
+  } catch {
+    /* ok */
+  }
+  try {
+    analyserNode?.disconnect();
+  } catch {
+    /* ok */
+  }
   if (audioContext) {
     audioContext.close().catch(() => {});
   }

@@ -32,6 +32,5 @@ export const createShareSchema = z.discriminatedUnion('type', [
 ]);
 
 export type CreateShareDto = z.infer<typeof createShareSchema>;
-export type CreateShareInput = CreateShareDto;
 export type TrackPayload = z.infer<typeof trackPayloadSchema>;
 export type PlaylistPayload = z.infer<typeof playlistPayloadSchema>;

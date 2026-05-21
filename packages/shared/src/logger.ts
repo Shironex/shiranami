@@ -147,16 +147,13 @@ export interface Logger {
   warn: (...args: unknown[]) => void;
   info: (...args: unknown[]) => void;
   debug: (...args: unknown[]) => void;
-  log: (...args: unknown[]) => void;
 }
 
 export interface LoggerOptions {
-  useStderr?: boolean;
   fileTransport?: (message: string) => void;
 }
 
 export function createLogger(context: string, options?: LoggerOptions): Logger {
-  const useStderr = options?.useStderr ?? false;
   const fileTransport = options?.fileTransport;
 
   if (isBrowser) {
@@ -217,24 +214,10 @@ export function createLogger(context: string, options?: LoggerOptions): Logger {
           );
         }
       },
-      log: (...args: unknown[]): void => {
-        if (currentLogLevel >= LogLevel.INFO) {
-          console.log(
-            `%cINFO%c %c${formatShortTime()}%c %c[${context}]%c`,
-            BROWSER_STYLES.levels.INFO,
-            BROWSER_STYLES.reset,
-            BROWSER_STYLES.timestamp,
-            BROWSER_STYLES.reset,
-            BROWSER_STYLES.context,
-            BROWSER_STYLES.reset,
-            ...args
-          );
-        }
-      },
     };
   }
 
-  const output = useStderr ? console.error : console.log;
+  const output = console.log;
   const errorOutput = console.error;
 
   return {
@@ -260,12 +243,6 @@ export function createLogger(context: string, options?: LoggerOptions): Logger {
       if (currentLogLevel >= LogLevel.DEBUG) {
         output(formatNodeLog('DEBUG', context, ANSI.magenta), ...args);
         if (fileTransport) fileTransport(formatFileLog('DEBUG', context, args));
-      }
-    },
-    log: (...args: unknown[]): void => {
-      if (currentLogLevel >= LogLevel.INFO) {
-        output(formatNodeLog('INFO', context, ANSI.cyan), ...args);
-        if (fileTransport) fileTransport(formatFileLog('INFO', context, args));
       }
     },
   };
