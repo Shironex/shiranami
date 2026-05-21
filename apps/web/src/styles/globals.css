@@ -383,22 +383,21 @@
    "none" is the default and is intentionally ABSENT here: with no data-theme
    attribute the app renders from :root only (byte-identical to today). Each
    block below redefines ONLY the tokens that change; everything else inherits
-   :root. --theme-bg is consumed by .theme-bg-image (ThemeBackground). The
+   :root. The theme IMAGE is no longer a CSS token: ThemeBackground sets it
+   inline as a document-relative `url(./themes/<id>.webp)` so it resolves
+   against dist/index.html (the CSS lives at dist/assets/, where a relative
+   `./themes/` 404'd). These blocks now carry only the accent. The
    --primary-rgb triplets mirror each --primary so the canvas visualizers and
    inline glows (which read the raw triplet) stay in sync with the accent. */
 
 /* Lofi Night — today's "Midnight Lofi Cafe" palette as a photo.
    ACCENT UNCHANGED on purpose (keeps today's violet). Image only. */
-[data-theme='lofi-night'] {
-  --theme-bg: url('./themes/lofi-night.webp');
-}
 
 /* Snow — cool blue twilight */
 [data-theme='snow'] {
   --primary: oklch(0.74 0.12 250);
   --primary-rgb: 138, 170, 235;
   --ring: var(--primary);
-  --theme-bg: url('./themes/snow.webp');
 }
 
 /* Summer — bright lake daytime, cool cyan-blue accent */
@@ -406,7 +405,6 @@
   --primary: oklch(0.74 0.13 220);
   --primary-rgb: 96, 184, 224;
   --ring: var(--primary);
-  --theme-bg: url('./themes/summer.webp');
 }
 
 /* Sunset — warm orange */
@@ -414,7 +412,6 @@
   --primary: oklch(0.78 0.15 45);
   --primary-rgb: 240, 158, 96;
   --ring: var(--primary);
-  --theme-bg: url('./themes/sunset.webp');
 }
 
 /* Wisteria — purple/pink spring dusk */
@@ -422,7 +419,6 @@
   --primary: oklch(0.74 0.13 315);
   --primary-rgb: 205, 142, 230;
   --ring: var(--primary);
-  --theme-bg: url('./themes/wisteria.webp');
 }
 
 /* Sonner toast – override default dark-theme colors with app tokens */
@@ -561,17 +557,17 @@
 }
 
 /* ── Theme image paint surface (ThemeBackground) ─────────────────────────
-   Lives outside @layer so --theme-bg resolves from the active [data-theme]
-   block and the degraded-mode overrides below can reliably target it. The
-   image is a single static bitmap with no animation or blur, so it is cheap
-   enough to keep in BOTH low-perf and reduced-transparency modes (only the
-   animated glow and backdrop blurs are dropped). */
+   Sizing + first-paint fallback only. The actual `background-image` is set
+   inline by ThemeBackground as a document-relative `url(./themes/<id>.webp)`
+   (single source of truth) so it resolves against dist/index.html. The image
+   is a single static bitmap with no animation or blur, so it is cheap enough
+   to keep in BOTH low-perf and reduced-transparency modes (only the animated
+   glow and backdrop blurs are dropped). */
 
 /* First-paint fallback = solid --background so the shell never flashes empty
    before the WebP decodes (background-image loads async, never blocks paint). */
 .theme-bg-image {
   background-color: var(--background);
-  background-image: var(--theme-bg);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
