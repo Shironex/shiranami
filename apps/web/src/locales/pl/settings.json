@@ -229,7 +229,20 @@
     "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona. Dodaje niewielkie obciążenie GPU.",
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
-    "effects": "Efekty wizualne"
+    "effects": "Efekty wizualne",
+    "theme": {
+      "title": "Motyw",
+      "desc": "Wybierz tło dla aplikacji. Brak zachowuje jednolity, ciemny wygląd.",
+      "apply": "Zastosuj motyw {{name}}",
+      "names": {
+        "none": "Brak",
+        "lofiNight": "Noc Lofi",
+        "snow": "Śnieg",
+        "summer": "Lato",
+        "sunset": "Zachód słońca",
+        "wisteria": "Glicynia"
+      }
+    }
   },
   "dl": {
     "title": "Pobieranie",
