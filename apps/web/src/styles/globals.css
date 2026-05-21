@@ -328,6 +328,10 @@
 [data-perf-mode='low'] .splash-glass-blur {
   backdrop-filter: none !important;
 }
+/* Drop the cup drop-shadow filter under low-perf (compositor cost). */
+[data-perf-mode='low'] .splash-cup-shadow {
+  filter: none !important;
+}
 
 /* Midnight Lofi Cafe Theme */
 :root {

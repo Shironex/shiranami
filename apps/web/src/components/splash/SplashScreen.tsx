@@ -9,6 +9,8 @@ import { SplashGlass } from './SplashGlass';
 import { SplashWordmark } from './SplashWordmark';
 import { SplashDroplets } from './SplashDroplets';
 import { SplashRain } from './SplashRain';
+import { SplashSteam } from './SplashSteam';
+import { SplashCup } from './SplashCup';
 import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
@@ -91,6 +93,10 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
         lowPerformanceMode={lowPerformanceMode}
         reducedMotion={reducedMotion}
       />
+
+      {/* Foreground: rising steam (z7) + coffee cup (z8) */}
+      <SplashSteam reducedMotion={disableBreathLoop} />
+      <SplashCup />
 
       {/* Layer 5: Footer — above the rain */}
       <SplashFooter
