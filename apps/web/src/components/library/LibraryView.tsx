@@ -88,6 +88,12 @@ export function LibraryView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" onKeyDown={handleKeyDown} tabIndex={-1}>
+      <div className="px-6 pt-5 pb-1 shrink-0">
+        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
+          {t('pageTitle')}
+        </h1>
+      </div>
+
       {libraryHeroCardEnabled && <NowPlayingHero />}
 
       {/* Search bar + view toggle */}

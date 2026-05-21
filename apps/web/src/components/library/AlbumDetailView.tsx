@@ -165,7 +165,7 @@ export function AlbumDetailView() {
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-semibold text-foreground truncate">
+            <p className="font-serif italic text-2xl text-foreground truncate">
               {selectedAlbumName}
             </p>
             <p className="text-sm text-muted-foreground/60 truncate">{headerMeta}</p>

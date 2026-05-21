@@ -13,7 +13,7 @@ export function SettingsHeader({ icon: Icon, title, subtitle }: SettingsHeaderPr
         <Icon className="w-4 h-4 text-primary" aria-hidden="true" focusable="false" />
       </div>
       <div className="min-w-0">
-        <h2 className="text-base font-semibold leading-tight">{title}</h2>
+        <h2 className="font-serif italic text-xl leading-tight text-foreground">{title}</h2>
         {subtitle && (
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mt-0.5">
             {subtitle}

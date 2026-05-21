@@ -1,4 +1,5 @@
 {
+  "pageTitle": "Twoja biblioteka",
   "filterPlaceholder": "Szukaj utworów...",
   "filterAlbumsPlaceholder": "Szukaj albumów...",
   "filterCount": "{{filtered}} z {{total}} utworów",
