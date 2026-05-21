@@ -7,6 +7,7 @@ import { SplashScene } from './SplashScene';
 import { SplashLamp } from './SplashLamp';
 import { SplashGlass } from './SplashGlass';
 import { SplashWordmark } from './SplashWordmark';
+import { SplashDroplets } from './SplashDroplets';
 import { SplashRain } from './SplashRain';
 import { SplashFooter } from './SplashFooter';
 
@@ -83,6 +84,9 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       >
         <SplashWordmark reducedMotion={reducedMotion} />
       </div>
+
+      {/* Glass droplets (static) + running streaks — above wordmark, around rain */}
+      <SplashDroplets />
 
       {/* Layer 4: Rain canvas — above the wordmark */}
       <SplashRain
