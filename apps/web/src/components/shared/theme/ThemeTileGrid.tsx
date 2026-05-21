@@ -30,10 +30,26 @@ interface ThemeTileGridProps {
 export function ThemeTileGrid({ value, onSelect, columns = 3 }: ThemeTileGridProps) {
   const { t } = useTranslation('settings');
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (
+      e.key !== 'ArrowRight' &&
+      e.key !== 'ArrowDown' &&
+      e.key !== 'ArrowLeft' &&
+      e.key !== 'ArrowUp'
+    )
+      return;
+    e.preventDefault();
+    const currentIndex = THEME_TILES.findIndex(tile => tile.id === value);
+    const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex = (currentIndex + delta + THEME_TILES.length) % THEME_TILES.length;
+    onSelect(THEME_TILES[nextIndex].id);
+  };
+
   return (
     <div
       role="radiogroup"
       aria-label={t('app.theme.title')}
+      onKeyDown={handleKeyDown}
       className={cn('grid gap-2.5', columns === 2 ? 'grid-cols-2' : 'grid-cols-3')}
     >
       {THEME_TILES.map(tile => {
@@ -42,9 +58,11 @@ export function ThemeTileGrid({ value, onSelect, columns = 3 }: ThemeTileGridPro
         return (
           <button
             key={tile.id}
+            type="button"
             role="radio"
             aria-checked={isActive}
             aria-label={t('app.theme.apply', { name })}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onSelect(tile.id)}
             className={cn(
               'group relative aspect-video rounded-xl overflow-hidden border text-left transition-all',
