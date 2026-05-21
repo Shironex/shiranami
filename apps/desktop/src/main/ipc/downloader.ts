@@ -25,7 +25,21 @@ import { store } from '../store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
-import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
+import {
+  spawnYtDlp,
+  ytSearch,
+  classifyYtDlpFailure,
+  tailOutput,
+  hasUpdate,
+  extractVersionSegments,
+  YT_DLP_ERROR_CODES,
+  type SearchResult,
+} from '../utils/ytdlp-spawn';
+
+// Re-exported so existing `./downloader` consumers (and the co-located test)
+// keep importing the canonical yt-dlp helpers from one place after they moved
+// into utils/ytdlp-spawn.ts.
+export { classifyYtDlpFailure, tailOutput, hasUpdate, extractVersionSegments, YT_DLP_ERROR_CODES };
 import {
   downloaderCheckArgs,
   downloaderGetDownloadLocationArgs,
@@ -190,100 +204,6 @@ function getDownloadLocationState(): DownloadLocationState {
   };
 }
 
-/**
- * Extract the last N non-empty lines from mixed yt-dlp/ffmpeg output, capped
- * to ~2KB. Used to build concise error messages — some yt-dlp failures (e.g.
- * format enumeration) can emit hundreds of lines we don't want in the log.
- */
-export function tailOutput(output: string, maxLines = 20, maxBytes = 2048): string {
-  const lines = output
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-  const tail = lines.slice(-maxLines).join('\n');
-  return tail.length > maxBytes ? tail.slice(-maxBytes) : tail;
-}
-
-/**
- * Stable error codes returned by classifyYtDlpFailure for known failure
- * modes. The renderer maps these to i18n strings (EN + PL) — see
- * apps/web/src/lib/ytdlpErrors.ts. Unknown failures return the raw tail
- * of yt-dlp/ffmpeg output, which is technical English from the tool itself.
- *
- * When adding a new code here, add a matching translation entry in
- * toast.json (both locales) and map it in translateYtDlpError().
- */
-export const YT_DLP_ERROR_CODES = {
-  AGE_RESTRICTED: 'yt_dlp_age_restricted',
-  VIDEO_UNAVAILABLE: 'yt_dlp_video_unavailable',
-  NO_AUDIO_FORMAT: 'yt_dlp_no_audio_format',
-} as const;
-
-/**
- * Classify a yt-dlp failure from its captured stdout+stderr and return a
- * stable error code (translated in the renderer) or a raw output tail for
- * unknown cases. Age-restriction is the #1 cause of per-video failures in
- * 2026 — YouTube will not hand out stream URLs or formats without sign-in
- * cookies for videos flagged by the content classifier. The proper fix
- * (browser cookie import) is tracked as a follow-up issue; here we only
- * surface a clear, translated message.
- */
-export function classifyYtDlpFailure(output: string): string {
-  const text = output.toLowerCase();
-
-  if (
-    text.includes('sign in to confirm your age') ||
-    text.includes('login_required') ||
-    text.includes('age-restricted')
-  ) {
-    return YT_DLP_ERROR_CODES.AGE_RESTRICTED;
-  }
-
-  if (text.includes('video unavailable') || text.includes('unplayable')) {
-    return YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE;
-  }
-
-  if (text.includes('requested format is not available')) {
-    return YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT;
-  }
-
-  const tail = tailOutput(output);
-  return tail || 'yt-dlp failed without producing any output';
-}
-
-export function extractVersionSegments(version: string | null | undefined): number[] {
-  if (!version) return [];
-
-  const match = version.match(/\d+(?:\.\d+)*/);
-  if (!match) return [];
-
-  return match[0]
-    .split('.')
-    .map(part => Number.parseInt(part, 10))
-    .filter(part => Number.isFinite(part));
-}
-
-export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
-  const currentSegments = extractVersionSegments(currentVersion);
-  const latestSegments = extractVersionSegments(latestVersion);
-
-  if (currentSegments.length === 0 || latestSegments.length === 0) {
-    return false;
-  }
-
-  const maxLength = Math.max(currentSegments.length, latestSegments.length);
-
-  for (let index = 0; index < maxLength; index += 1) {
-    const current = currentSegments[index] ?? 0;
-    const latest = latestSegments[index] ?? 0;
-
-    if (latest > current) return true;
-    if (latest < current) return false;
-  }
-
-  return false;
-}
-
 async function getYtDlpStatus(): Promise<BinaryStatus> {
   const installed = isYtDlpInstalled();
 
@@ -386,19 +306,7 @@ export function registerDownloaderHandlers(): void {
     'downloader:search',
     async (_event, query: string) => {
       logger.info(`[downloader] Searching: ${query}`);
-      const { stdout, code } = await spawnYtDlp([
-        '--flat-playlist',
-        '--dump-json',
-        '--no-warnings',
-        `ytsearch10:${query}`,
-      ]);
-
-      if (code !== 0) {
-        throw new Error('yt-dlp search failed');
-      }
-
-      const results = parseYtDlpJsonLines(stdout);
-
+      const results = await ytSearch(query, { limit: 10 });
       logger.info(`[downloader] Found ${results.length} results`);
       return results;
     },

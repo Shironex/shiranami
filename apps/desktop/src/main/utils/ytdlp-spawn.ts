@@ -17,14 +17,31 @@ export interface SearchResult {
  * Spawn the bundled yt-dlp binary with the given args and buffer its full
  * stdout / stderr. Resolves with the captured streams and the process exit
  * code (defaulting to 1 if the child exited without one).
+ *
+ * When a `signal` is supplied, aborting it kills the child and rejects with an
+ * `AbortError` — used by the metadata-enrichment pool to cancel in-flight
+ * lookups.
  */
 export function spawnYtDlp(
-  args: string[]
+  args: string[],
+  signal?: AbortSignal
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('The operation was aborted', 'AbortError'));
+      return;
+    }
+
     const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
     let stdout = '';
     let stderr = '';
+
+    const onAbort = () => {
+      proc.kill();
+      reject(new DOMException('The operation was aborted', 'AbortError'));
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
 
     proc.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
@@ -32,13 +49,132 @@ export function spawnYtDlp(
     proc.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
-    proc.on('error', (err) => {
+    proc.on('error', err => {
+      signal?.removeEventListener('abort', onAbort);
       reject(err);
     });
-    proc.on('close', (code) => {
+    proc.on('close', code => {
+      signal?.removeEventListener('abort', onAbort);
       resolve({ stdout, stderr, code: code ?? 1 });
     });
   });
+}
+
+/**
+ * Run a `ytsearch<n>:<query>` against yt-dlp and parse the JSON-lines output
+ * into `SearchResult`s. Centralizes the `--flat-playlist --dump-json
+ * --no-warnings` arg array shared by the download-search, single-match, and
+ * playlist-resolution call sites. Throws when yt-dlp exits non-zero.
+ */
+export async function ytSearch(
+  query: string,
+  options: { limit?: number; signal?: AbortSignal } = {}
+): Promise<SearchResult[]> {
+  const { limit = 10, signal } = options;
+  const { stdout, code } = await spawnYtDlp(
+    ['--flat-playlist', '--dump-json', '--no-warnings', `ytsearch${limit}:${query}`],
+    signal
+  );
+
+  if (code !== 0) {
+    throw new Error('yt-dlp search failed');
+  }
+
+  return parseYtDlpJsonLines(stdout);
+}
+
+/**
+ * Trim verbose yt-dlp/ffmpeg output down to the last few non-empty lines,
+ * bounded by both a line count and a byte cap, for safe inclusion in error
+ * messages and logs (format enumeration can emit hundreds of lines).
+ */
+export function tailOutput(output: string, maxLines = 20, maxBytes = 2048): string {
+  const lines = output
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+  const tail = lines.slice(-maxLines).join('\n');
+  return tail.length > maxBytes ? tail.slice(-maxBytes) : tail;
+}
+
+/**
+ * Stable error codes returned by classifyYtDlpFailure for known failure
+ * modes. The renderer maps these to i18n strings (EN + PL) — see
+ * apps/web/src/lib/ytdlpErrors.ts. Unknown failures return the raw tail
+ * of yt-dlp/ffmpeg output, which is technical English from the tool itself.
+ *
+ * When adding a new code here, add a matching translation entry in
+ * toast.json (both locales) and map it in translateYtDlpError().
+ */
+export const YT_DLP_ERROR_CODES = {
+  AGE_RESTRICTED: 'yt_dlp_age_restricted',
+  VIDEO_UNAVAILABLE: 'yt_dlp_video_unavailable',
+  NO_AUDIO_FORMAT: 'yt_dlp_no_audio_format',
+} as const;
+
+/**
+ * Classify a yt-dlp failure from its captured stdout+stderr and return a
+ * stable error code (translated in the renderer) or a raw output tail for
+ * unknown cases. Age-restriction is the #1 cause of per-video failures in
+ * 2026 — YouTube will not hand out stream URLs or formats without sign-in
+ * cookies for videos flagged by the content classifier.
+ */
+export function classifyYtDlpFailure(output: string): string {
+  const text = output.toLowerCase();
+
+  if (
+    text.includes('sign in to confirm your age') ||
+    text.includes('login_required') ||
+    text.includes('age-restricted')
+  ) {
+    return YT_DLP_ERROR_CODES.AGE_RESTRICTED;
+  }
+
+  if (text.includes('video unavailable') || text.includes('unplayable')) {
+    return YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE;
+  }
+
+  if (text.includes('requested format is not available')) {
+    return YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT;
+  }
+
+  const tail = tailOutput(output);
+  return tail || 'yt-dlp failed without producing any output';
+}
+
+/** Extract the numeric `.`-separated segments from a yt-dlp version string. */
+export function extractVersionSegments(version: string | null | undefined): number[] {
+  if (!version) return [];
+
+  const match = version.match(/\d+(?:\.\d+)*/);
+  if (!match) return [];
+
+  return match[0]
+    .split('.')
+    .map(part => Number.parseInt(part, 10))
+    .filter(part => Number.isFinite(part));
+}
+
+/** True when `latestVersion` is strictly newer than `currentVersion`. */
+export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
+  const currentSegments = extractVersionSegments(currentVersion);
+  const latestSegments = extractVersionSegments(latestVersion);
+
+  if (currentSegments.length === 0 || latestSegments.length === 0) {
+    return false;
+  }
+
+  const maxLength = Math.max(currentSegments.length, latestSegments.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const current = currentSegments[index] ?? 0;
+    const latest = latestSegments[index] ?? 0;
+
+    if (latest > current) return true;
+    if (latest < current) return false;
+  }
+
+  return false;
 }
 
 /**
@@ -50,7 +186,7 @@ export function parseYtDlpJsonLines(stdout: string): SearchResult[] {
     .trim()
     .split('\n')
     .filter(Boolean)
-    .map((line) => {
+    .map(line => {
       try {
         const data = JSON.parse(line);
         const result: SearchResult = {
