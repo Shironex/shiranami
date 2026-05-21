@@ -189,8 +189,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
         IS_ELECTRON && 'rounded-t-[10px]'
       )}
       style={{
-        transition:
-          isExiting || !disableMotion ? 'opacity 520ms ease-out, filter 520ms ease-out' : undefined,
+        transition: disableMotion ? undefined : 'opacity 520ms ease-out, filter 520ms ease-out',
         opacity: isExiting || isEntering ? 0 : 1,
         filter: isExiting && !disableMotion ? 'blur(8px)' : 'blur(0px)',
       }}
