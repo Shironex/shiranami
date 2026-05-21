@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { SplashScene } from './SplashScene';
 import { SplashLamp } from './SplashLamp';
 import { SplashGlass } from './SplashGlass';
@@ -53,10 +53,7 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
 
   // Cached at mount — doesn't change during a 2.5s splash.
-  const reducedMotion = useMemo(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  );
+  const reducedMotion = useReducedMotion();
 
   const { isVisible, isDismissing, showStatus, variant, messageKey, version, clock } =
     useSplashScreen({

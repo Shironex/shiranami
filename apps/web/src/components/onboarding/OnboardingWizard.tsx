@@ -14,6 +14,7 @@ import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useUIStore } from '@/stores/useUIStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Button } from '@/components/ui/button';
 import { WindowControls } from '@/components/shared/WindowControls';
 import { OnboardingScene } from './OnboardingScene';
@@ -77,10 +78,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Cached at mount — the OS preference doesn't change mid-wizard.
-  const reducedMotion = useMemo(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
-  );
+  const reducedMotion = useReducedMotion();
   const disableMotion = reducedMotion || lowPerformanceMode;
 
   useFocusTrap(containerRef, !isExiting);
