@@ -353,7 +353,7 @@ export function registerDownloaderHandlers(): void {
           `[downloader] yt-dlp failed to extract stream URL for ${url} (exit ${code}): ${reason}`,
           { stderrTail: tailOutput(stderr) }
         );
-        throw new IpcError(reason, reason);
+        throw new IpcError('downloader.stream_url_failed', reason);
       }
 
       const streamUrl = stdout.trim().split('\n')[0];
