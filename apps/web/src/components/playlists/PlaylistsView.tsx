@@ -85,8 +85,14 @@ export function PlaylistsView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 pt-5 pb-1 shrink-0">
+        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
+          {t('pageTitle')}
+        </h1>
+      </div>
+
       {/* Header */}
-      <div className="px-6 pt-2 pb-4 shrink-0 flex items-center gap-3">
+      <div className="px-6 pt-4 pb-4 shrink-0 flex items-center gap-3">
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowNewForm(true)}
