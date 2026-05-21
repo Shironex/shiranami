@@ -13,6 +13,7 @@ import {
 } from '../ipc/errors';
 import { appApi, type AppApi } from './api/app';
 import { dbApi, type DbApi } from './api/db';
+import { debugApi, type DebugApi } from './api/debug';
 import { dialogApi, type DialogApi } from './api/dialog';
 import { downloaderApi, type DownloaderApi } from './api/downloader';
 import { libraryApi, type LibraryApi } from './api/library';
@@ -43,6 +44,7 @@ export interface ElectronAPI {
   playlist: PlaylistApi;
   metadata: MetadataApi;
   share: ShareApi;
+  debug: DebugApi;
   errors: {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
     SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
@@ -76,6 +78,7 @@ const electronAPI: ElectronAPI = {
   playlist: playlistApi,
   metadata: metadataApi,
   share: shareApi,
+  debug: debugApi,
   errors: {
     isIpcError,
     SHARE_ERROR_CODES,

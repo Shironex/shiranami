@@ -36,6 +36,8 @@ import {
   cleanupStoreHandlers,
   registerAppHandlers,
   cleanupAppHandlers,
+  registerDebugHandlers,
+  cleanupDebugHandlers,
   registerDialogHandlers,
   cleanupDialogHandlers,
   registerLibraryHandlers,
@@ -66,6 +68,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerWindowHandlers(mainWindow);
   registerStoreHandlers();
   registerAppHandlers();
+  registerDebugHandlers();
   registerDialogHandlers(mainWindow);
   registerLibraryHandlers();
   registerMediaHandlers();
@@ -84,6 +87,7 @@ export function cleanupIpcHandlers(): void {
   cleanupWindowHandlers();
   cleanupStoreHandlers();
   cleanupAppHandlers();
+  cleanupDebugHandlers();
   cleanupDialogHandlers();
   cleanupLibraryHandlers();
   cleanupMediaHandlers();
