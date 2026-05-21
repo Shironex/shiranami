@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 import { useViewStore } from '@/stores/useViewStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -233,7 +234,7 @@ export function PlaylistDetailView() {
               whileTap={{ scale: 0.9 }}
               onClick={() => {
                 window.dispatchEvent(
-                  new CustomEvent('open-share-dialog', {
+                  new CustomEvent(DIALOG_EVENTS.openShare, {
                     detail: { type: 'playlist', id: selectedPlaylistId },
                   })
                 );

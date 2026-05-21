@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import { ShareDialog } from './ShareDialog';
 import { ImportDialog } from './ImportDialog';
 import { useShareDeepLink } from '@/hooks/useShareDeepLink';
+import { useDialogEventBridge } from '@/hooks/useDialogEventBridge';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 
 interface ShareRequest {
   type: 'track' | 'playlist';
@@ -9,21 +10,14 @@ interface ShareRequest {
 }
 
 export default function ShareDialogManager() {
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareRequest, setShareRequest] = useState<ShareRequest | null>(null);
+  // Listen for share dialog open events (from context menu / playlist header)
+  const {
+    open: shareOpen,
+    setOpen: setShareOpen,
+    request: shareRequest,
+  } = useDialogEventBridge<ShareRequest>(DIALOG_EVENTS.openShare);
 
   const { importCode, importOpen, setImportOpen } = useShareDeepLink();
-
-  // Listen for share dialog open events (from context menu / playlist header)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<ShareRequest>).detail;
-      setShareRequest(detail);
-      setShareOpen(true);
-    };
-    window.addEventListener('open-share-dialog', handler);
-    return () => window.removeEventListener('open-share-dialog', handler);
-  }, []);
 
   return (
     <>
@@ -36,11 +30,7 @@ export default function ShareDialogManager() {
         />
       )}
       {importCode && (
-        <ImportDialog
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          code={importCode}
-        />
+        <ImportDialog open={importOpen} onOpenChange={setImportOpen} code={importCode} />
       )}
     </>
   );

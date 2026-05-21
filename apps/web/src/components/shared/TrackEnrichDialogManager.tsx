@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
 import { TrackEnrichDialog } from './TrackEnrichDialog';
+import { useDialogEventBridge } from '@/hooks/useDialogEventBridge';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 
 interface TrackEnrichRequest {
   trackId: string;
@@ -9,21 +10,13 @@ interface TrackEnrichRequest {
  * Singleton mounted at the app root. Listens for `open-track-enrich-dialog`
  * custom events (dispatched from `TrackContextMenu`) and owns the dialog's
  * open/close state so the menu doesn't have to keep its portal alive after
- * dismissal. Mirrors `ShareDialogManager`.
+ * dismissal. Mirrors `ShareDialogManager` — both go through
+ * `useDialogEventBridge`.
  */
 export default function TrackEnrichDialogManager() {
-  const [open, setOpen] = useState(false);
-  const [request, setRequest] = useState<TrackEnrichRequest | null>(null);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent<TrackEnrichRequest>).detail;
-      setRequest(detail);
-      setOpen(true);
-    };
-    window.addEventListener('open-track-enrich-dialog', handler);
-    return () => window.removeEventListener('open-track-enrich-dialog', handler);
-  }, []);
+  const { open, setOpen, request } = useDialogEventBridge<TrackEnrichRequest>(
+    DIALOG_EVENTS.openTrackEnrich
+  );
 
   if (!request) return null;
 

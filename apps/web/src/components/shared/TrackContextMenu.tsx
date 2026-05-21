@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
@@ -305,7 +306,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
             label={t('share', { ns: 'share' })}
             onClick={() => {
               window.dispatchEvent(
-                new CustomEvent('open-share-dialog', {
+                new CustomEvent(DIALOG_EVENTS.openShare, {
                   detail: { type: 'track', id: track.id },
                 })
               );
@@ -323,7 +324,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
             onClick={() => {
               if (isBulkEnriching) return;
               window.dispatchEvent(
-                new CustomEvent('open-track-enrich-dialog', {
+                new CustomEvent(DIALOG_EVENTS.openTrackEnrich, {
                   detail: { trackId: track.id },
                 })
               );

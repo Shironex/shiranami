@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -231,7 +232,7 @@ export function useKeyboardShortcuts() {
         }
         case '?': {
           e.preventDefault();
-          window.dispatchEvent(new CustomEvent('open-shortcut-help'));
+          window.dispatchEvent(new CustomEvent(DIALOG_EVENTS.openShortcutHelp));
           return;
         }
         case 'Escape': {
