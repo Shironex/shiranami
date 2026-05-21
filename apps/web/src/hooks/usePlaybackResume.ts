@@ -162,34 +162,41 @@ export function usePlaybackResume(enabled = true) {
     };
   }, [enabled, isReady, isRestoreResolved, library, persistedState, shouldRestore]);
 
-  // Last snapshot actually written to the store, serialized. `undefined` means
+  // Cheap scalar dedupe key for the last persisted snapshot. `undefined` means
   // "never persisted this session" so the first write always goes through; an
   // empty string means "last action was a delete (no track)". Used to skip
-  // redundant 1Hz writes when the player is paused and nothing has changed.
-  const lastPersistedRef = useRef<string | undefined>(undefined);
+  // redundant 1Hz writes when the player is paused and nothing has changed,
+  // without paying a full-queue serialize on every tick. Queue/track/index
+  // changes are caught by the change-driven effect below (which forces a
+  // write), so the key only needs the scalars the interval can observe.
+  const lastKeyRef = useRef<string | undefined>(undefined);
 
   // Single persist path shared by the 1Hz interval and the change-driven effect.
   // Persists when playing (currentTime is advancing, so resume stays fresh),
-  // when forced (change events / unload / teardown), or when the snapshot
+  // when forced (change events / unload / teardown), or when the cheap key
   // differs from the last write. Skips the steady stream of identical writes
-  // while paused/hidden.
+  // while paused/hidden — and avoids building queuePaths / serializing the
+  // queue at all on those skipped ticks.
   const persistState = useCallback((force = false) => {
-    const state = buildPersistedState();
+    const { currentTrack, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
 
-    if (!state) {
-      if (force || lastPersistedRef.current !== '') {
-        lastPersistedRef.current = '';
+    if (!currentTrack) {
+      if (force || lastKeyRef.current !== '') {
+        lastKeyRef.current = '';
         window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
       }
       return;
     }
 
-    const serialized = JSON.stringify(state);
-    if (!force && !state.isPlaying && serialized === lastPersistedRef.current) {
+    const key = `${currentTrack.filePath}|${queueIndex}|${currentTime}|${isPlaying}`;
+    if (!force && !isPlaying && key === lastKeyRef.current) {
       return;
     }
 
-    lastPersistedRef.current = serialized;
+    const state = buildPersistedState();
+    if (!state) return;
+
+    lastKeyRef.current = key;
     window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(() => {});
   }, []);
 

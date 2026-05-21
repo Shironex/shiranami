@@ -5,19 +5,20 @@ import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { formatDuration } from '@shiranami/shared';
 
-/** Apply a 0..1 progress ratio to the fill (scaleX) and thumb (translateX).
- *  Both are compositor-only transforms — no layout/paint per frame. The thumb
- *  offset is in track-relative pixels; translateX(-50%) keeps it centered on
- *  the progress point regardless of the thumb's own (hover-animated) width. */
-function applyProgress(
-  ratio: number,
-  fill: HTMLDivElement | null,
-  thumb: HTMLDivElement | null,
-  trackWidth: number
-) {
+/** Apply a 0..1 progress ratio to the fill (scaleX) and thumb (left + translateX).
+ *  The fill is a compositor-only transform — no layout/paint per frame. The thumb
+ *  is positioned with a percentage `left` so it stays correct across track
+ *  resizes without depending on a cached pixel width; translateX(-50%) keeps it
+ *  centered on the progress point regardless of the thumb's own (hover-animated)
+ *  width. The percentage `left` resolves against the live track width on every
+ *  layout, so this is a one-time layout on value change (not per-frame). */
+function applyProgress(ratio: number, fill: HTMLDivElement | null, thumb: HTMLDivElement | null) {
   const clamped = Math.max(0, Math.min(1, ratio));
   if (fill) fill.style.transform = `scaleX(${clamped})`;
-  if (thumb) thumb.style.transform = `translateX(${clamped * trackWidth}px) translateX(-50%)`;
+  if (thumb) {
+    thumb.style.left = `${clamped * 100}%`;
+    thumb.style.transform = 'translateX(-50%)';
+  }
 }
 
 export function SeekBar() {
@@ -84,9 +85,8 @@ export function SeekBar() {
   // Routed through useRafLoop so it also stops when the window is hidden or the
   // bar scrolls off-screen — not only when Chromium happens to throttle rAF.
   const tick = useCallback(() => {
-    const trackWidth = trackRef.current?.clientWidth ?? 0;
     const ratio = duration > 0 ? currentTimeRef.current / duration : 0;
-    applyProgress(ratio, fillRef.current, thumbRef.current, trackWidth);
+    applyProgress(ratio, fillRef.current, thumbRef.current);
   }, [duration]);
 
   const rafActive = isPlaying && scrubTime === null;
@@ -102,8 +102,7 @@ export function SeekBar() {
 
   useLayoutEffect(() => {
     if (!needsStaticStyle) return;
-    const trackWidth = trackRef.current?.clientWidth ?? 0;
-    applyProgress(staticRatio, fillRef.current, thumbRef.current, trackWidth);
+    applyProgress(staticRatio, fillRef.current, thumbRef.current);
   }, [needsStaticStyle, staticRatio]);
 
   return (
