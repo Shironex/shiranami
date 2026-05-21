@@ -92,6 +92,7 @@
     "headline": "Twój pokój jest <1>gotowy</1>.",
     "description": "Oto, co wybrałeś. Wszystko możesz dostroić później w Ustawieniach.",
     "intro": "Szybkie podsumowanie, zanim otworzy się biblioteka.",
+    "listAria": "Twoje wybory konfiguracji",
     "row": {
       "language": "Język",
       "folders": "Foldery muzyczne",

@@ -90,6 +90,7 @@
     "headline": "Your room is <1>ready</1>.",
     "description": "Here's what you chose. Tweak any of it later from Settings.",
     "intro": "A quick recap before the library opens.",
+    "listAria": "Your setup choices",
     "row": {
       "language": "Language",
       "folders": "Music folders",

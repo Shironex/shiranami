@@ -88,7 +88,7 @@ export function AppearanceStep() {
                   aria-pressed={uiScale === preset}
                   onClick={() => setUiScale(preset)}
                   className={cn(
-                    'flex-1 rounded-md py-1 text-[11px] font-medium tabular-nums transition-colors',
+                    'flex-1 rounded-md py-1.5 text-[11px] font-medium tabular-nums transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
                     uiScale === preset
                       ? 'border border-primary/40 bg-primary/15 text-primary'

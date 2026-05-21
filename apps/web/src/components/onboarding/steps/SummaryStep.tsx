@@ -95,7 +95,7 @@ export function SummaryStep() {
     >
       <div className="space-y-3">
         <p className="text-xs font-medium text-foreground">{t('summary.intro')}</p>
-        <div className="flex flex-col gap-2">
+        <div role="list" aria-label={t('summary.listAria')} className="flex flex-col gap-2">
           <SummaryRow
             icon={<Languages />}
             label={t('summary.row.language')}

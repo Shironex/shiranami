@@ -80,7 +80,7 @@ export function ToolsStep() {
               <ToolsInstaller s={s} />
             ) : (
               <div className="flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
+                <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
                 <p className="text-sm leading-snug text-foreground">{t('tools.allSet')}</p>
               </div>
             )}
@@ -153,7 +153,7 @@ function ToolsCheckingSkeleton({ label }: { label: string }) {
           key={i}
           className="flex items-center gap-3 rounded-xl border border-border/20 bg-background/50 px-3 py-2.5"
         >
-          <Download className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+          <Download aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="ml-auto h-3 w-16" />
         </div>
