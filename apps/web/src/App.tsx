@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
+import { VISUALIZER_COMPONENTS } from '@/components/player/visualizerRegistry';
 import { CompactPlayer } from '@/components/player/CompactPlayer';
 import { MediaSessionSync } from '@/components/player/MediaSessionSync';
 import { LibraryView } from '@/components/library/LibraryView';
@@ -27,10 +28,6 @@ const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingVie
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
-const AudioVisualizer = lazy(() => import('@/components/player/AudioVisualizer'));
-const WaveformVisualizer = lazy(() => import('@/components/player/WaveformVisualizer'));
-const CircleVisualizer = lazy(() => import('@/components/player/CircleVisualizer'));
-const ParticleVisualizer = lazy(() => import('@/components/player/ParticleVisualizer'));
 // Dev-only: the import expression is dead code in prod (the ternary collapses
 // to `null`), so Rollup never emits the chunk for a production build.
 const DebugOverlay = import.meta.env.DEV
@@ -115,6 +112,7 @@ function App() {
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerStyle = useUIStore(s => s.visualizerStyle);
+  const Visualizer = VISUALIZER_COMPONENTS[visualizerStyle];
   const compactMode = useCompactStore(s => s.compactMode);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
@@ -329,15 +327,7 @@ function App() {
                         <ErrorBoundary viewName="Visualizer">
                           <Suspense fallback={null}>
                             <DevProfiler id="visualizer">
-                              {visualizerStyle === 'waveform' ? (
-                                <WaveformVisualizer />
-                              ) : visualizerStyle === 'circle' ? (
-                                <CircleVisualizer />
-                              ) : visualizerStyle === 'particles' ? (
-                                <ParticleVisualizer />
-                              ) : (
-                                <AudioVisualizer />
-                              )}
+                              <Visualizer />
                             </DevProfiler>
                           </Suspense>
                         </ErrorBoundary>

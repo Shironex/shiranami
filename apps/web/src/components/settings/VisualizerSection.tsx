@@ -2,31 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { cn } from '@/lib/utils';
 import { AudioLines } from 'lucide-react';
-import { useUIStore, type VisualizerStyle } from '@/stores/useUIStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { VISUALIZER_STYLES } from '@/components/player/visualizerRegistry';
 import { VisualizerStylePreview } from '@/components/settings/VisualizerStylePreview';
-
-const VISUALIZER_STYLE_OPTIONS = [
-  {
-    value: 'bars' as VisualizerStyle,
-    labelKey: 'vis.bars',
-    descKey: 'vis.barsDesc',
-  },
-  {
-    value: 'waveform' as VisualizerStyle,
-    labelKey: 'vis.waveform',
-    descKey: 'vis.waveformDesc',
-  },
-  {
-    value: 'circle' as VisualizerStyle,
-    labelKey: 'vis.circle',
-    descKey: 'vis.circleDesc',
-  },
-  {
-    value: 'particles' as VisualizerStyle,
-    labelKey: 'vis.particles',
-    descKey: 'vis.particlesDesc',
-  },
-] as const;
 
 export function VisualizerSection() {
   const { t } = useTranslation('settings');
@@ -52,7 +30,7 @@ export function VisualizerSection() {
             <div className="px-3">
               <p className="text-xs text-muted-foreground mb-3">{t('vis.style')}</p>
               <div className="grid grid-cols-2 gap-3">
-                {VISUALIZER_STYLE_OPTIONS.map(opt => {
+                {VISUALIZER_STYLES.map(opt => {
                   const selected = visualizerStyle === opt.value;
                   return (
                     <button

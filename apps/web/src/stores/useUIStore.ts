@@ -2,7 +2,40 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 
-export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
+export type VisualizerStyle =
+  | 'bars'
+  | 'waveform'
+  | 'circle'
+  | 'particles'
+  | 'mirror'
+  | 'mountain'
+  | 'rings'
+  | 'vinyl'
+  | 'liquid'
+  | 'constellation'
+  | 'vu'
+  | 'kanji';
+
+/**
+ * Plain value list backing `coerceVisualizerStyle`. Kept here (not imported
+ * from the registry) so the store has no dependency on the registry, which
+ * imports the `VisualizerStyle` type from this module — avoids an import cycle.
+ */
+export const VISUALIZER_STYLE_VALUES = [
+  'bars',
+  'waveform',
+  'circle',
+  'particles',
+  'mirror',
+  'mountain',
+  'rings',
+  'vinyl',
+  'liquid',
+  'constellation',
+  'vu',
+  'kanji',
+] as const satisfies readonly VisualizerStyle[];
+
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
@@ -55,7 +88,9 @@ function applyLowPerformanceMode(enabled: boolean) {
 // --- Coercion helpers (mirror the original getInitial* behavior) ---
 
 function coerceVisualizerStyle(v: unknown): VisualizerStyle {
-  return v === 'bars' || v === 'waveform' || v === 'circle' || v === 'particles' ? v : 'bars';
+  return (VISUALIZER_STYLE_VALUES as readonly string[]).includes(v as string)
+    ? (v as VisualizerStyle)
+    : 'bars';
 }
 function coerceLibraryViewMode(v: unknown): LibraryViewMode {
   return v === 'tracks' || v === 'albums' ? v : 'tracks';
