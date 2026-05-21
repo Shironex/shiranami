@@ -282,7 +282,7 @@ describe('usePlaybackResume hook', () => {
   // Periodic persistence
   // -------------------------------------------------------------------------
 
-  it('persists state on a 1-second interval when ready', async () => {
+  it('persists state on every 1-second interval tick while playing', async () => {
     // Return settings with rememberPlaybackPosition OFF so restore resolves immediately,
     // letting the persist-interval effect activate.
     vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
@@ -292,7 +292,8 @@ describe('usePlaybackResume hook', () => {
 
     const { usePlaybackResume } = await import('./usePlaybackResume');
 
-    // Set a current track so buildPersistedState returns non-null
+    // Set a current track so buildPersistedState returns non-null. While playing,
+    // currentTime advances in real use, so the interval persists every tick.
     usePlaybackStore.setState({
       currentTrack: tracks[0],
       queue: tracks,
@@ -323,6 +324,43 @@ describe('usePlaybackResume hook', () => {
     expect(setCalls.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('skips redundant interval writes while paused and unchanged', async () => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
+      if (key === 'settings') return { rememberPlaybackPosition: false };
+      return undefined;
+    });
+
+    const { usePlaybackResume } = await import('./usePlaybackResume');
+
+    // Paused track with a stable position — nothing changes between ticks.
+    usePlaybackStore.setState({
+      currentTrack: tracks[0],
+      queue: tracks,
+      queueIndex: 0,
+      currentTime: 10,
+      isPlaying: false,
+    });
+
+    renderHook(() => usePlaybackResume(true));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    // The change-driven effect persists once on mount; clear so we only observe
+    // the interval. Paused + unchanged snapshot -> no further writes.
+    vi.mocked(window.electronAPI.store.set).mockClear();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    const setCalls = vi
+      .mocked(window.electronAPI.store.set)
+      .mock.calls.filter(call => call[0] === PLAYER_STATE_KEY);
+    expect(setCalls).toHaveLength(0);
+  });
+
   it('calls store.delete when there is no current track during persist', async () => {
     vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
       if (key === 'settings') return { rememberPlaybackPosition: false };
@@ -336,12 +374,9 @@ describe('usePlaybackResume hook', () => {
 
     renderHook(() => usePlaybackResume(true));
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
-    });
-
-    vi.mocked(window.electronAPI.store.delete).mockClear();
-
+    // Persist now skips redundant identical writes, so the no-track delete fires
+    // once (on the initial change-driven persist) rather than every interval
+    // tick. Assert that a delete happened — without clearing the mock first.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
