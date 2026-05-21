@@ -23,13 +23,13 @@ import { FoldersStep } from './steps/FoldersStep';
 import { ToolsStep } from './steps/ToolsStep';
 import { AppearanceStep } from './steps/AppearanceStep';
 import { PlaybackStep } from './steps/PlaybackStep';
-import { ReadyStep } from './steps/ReadyStep';
+import { VisualizerStep } from './steps/VisualizerStep';
 
 interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-type StepId = 'welcome' | 'folders' | 'tools' | 'appearance' | 'playback' | 'ready';
+type StepId = 'welcome' | 'folders' | 'tools' | 'appearance' | 'playback' | 'visualizer';
 
 interface StepDef {
   id: StepId;
@@ -43,7 +43,7 @@ const STEPS: readonly StepDef[] = [
   { id: 'tools', kanji: '取', Component: ToolsStep },
   { id: 'appearance', kanji: '夜', Component: AppearanceStep },
   { id: 'playback', kanji: '音', Component: PlaybackStep },
-  { id: 'ready', kanji: '波', Component: ReadyStep },
+  { id: 'visualizer', kanji: '波', Component: VisualizerStep },
 ];
 
 const HEADING_ID = 'onboarding-step-heading';

@@ -78,6 +78,13 @@
     "discord": "Show what I'm playing on Discord",
     "discordDesc": "Your now-playing track appears on your Discord profile."
   },
+  "visualizer": {
+    "eyebrow": "05 · The rhythm",
+    "headline": "Give the sound a <1>shape</1>.",
+    "description": "An audio-reactive scene rides above your now-playing bar. Pick one you like — or none. Change it any time.",
+    "title": "Choose a visualizer",
+    "hint": "Optional — preview updates live."
+  },
   "ready": {
     "eyebrow": "03 · Ready",
     "headline": "Open the door. <1>Press play</1>.",

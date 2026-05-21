@@ -80,6 +80,13 @@
     "discord": "Pokaż na Discordzie, co gram",
     "discordDesc": "Aktualnie odtwarzany utwór pojawi się na Twoim profilu Discord."
   },
+  "visualizer": {
+    "eyebrow": "05 · Rytm",
+    "headline": "Nadaj dźwiękowi <1>kształt</1>.",
+    "description": "Scena reagująca na dźwięk unosi się nad paskiem odtwarzania. Wybierz tę, którą lubisz — albo żadną. Zmień w dowolnej chwili.",
+    "title": "Wybierz wizualizację",
+    "hint": "Opcjonalne — podgląd aktualizuje się na żywo."
+  },
   "ready": {
     "eyebrow": "03 · Gotowe",
     "headline": "Otwórz drzwi. <1>Naciśnij play</1>.",
