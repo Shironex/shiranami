@@ -92,6 +92,22 @@ async function bootstrap(): Promise<void> {
     `[system] Memory: ${Math.round(os.totalmem() / 1024 / 1024)}MB, userData: ${app.getPath('userData')}`
   );
   logger.info(`[security] App packaged: ${app.isPackaged}`);
+  // One-time GPU/HW-accel assertion so a future regression that disables
+  // hardware acceleration (which would sharply raise open-state CPU because
+  // compositing falls back to the CPU) is detectable in logs immediately.
+  // We never call app.disableHardwareAcceleration(), so this should report
+  // hardware-backed compositing.
+  try {
+    const gpu = app.getGPUFeatureStatus();
+    logger.info(
+      `[gpu] HW acceleration enabled: ${!app.commandLine.hasSwitch('disable-gpu')} | ` +
+        `gpu_compositing: ${gpu.gpu_compositing ?? 'unknown'}, ` +
+        `webgl: ${gpu.webgl ?? 'unknown'}, ` +
+        `video_decode: ${gpu.video_decode ?? 'unknown'}`
+    );
+  } catch (err) {
+    logger.warn('[gpu] Failed to read GPU feature status:', err);
+  }
   logger.info('════════════════════════════════════════════════════════════');
 
   initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
