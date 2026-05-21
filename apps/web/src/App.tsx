@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON } from '@/lib/platform';
+import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
@@ -65,11 +65,14 @@ function App() {
 
   const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
   const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
-  const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted);
+  // Under the e2e harness, treat onboarding as done so specs land on the app
+  // shell instead of the first-run wizard (fresh userDataDir → never completed).
+  const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted || IS_E2E);
   // Mirror the durable store flag locally so the wizard appears/disappears in
   // step with it — covers both replay (true→false from Settings) and boot-time
   // hydration (false→true from the electron-store mirror).
   useEffect(() => {
+    if (IS_E2E) return;
     setOnboardingDone(onboardingCompleted);
   }, [onboardingCompleted]);
   const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
