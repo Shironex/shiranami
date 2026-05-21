@@ -1,4 +1,5 @@
 {
+  "pageTitle": "Wyszukiwanie",
   "placeholder": "Szukaj muzyki...",
   "searchingYoutube": "Przeszukiwanie YouTube",
   "pullingMatches": "Szukam najlepszych dopasowań dla \"{{query}}\"",
