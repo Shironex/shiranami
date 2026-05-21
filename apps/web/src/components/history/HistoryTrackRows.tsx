@@ -6,23 +6,17 @@ import type {
   ListeningStatsArtist,
   ListeningStatsTrack,
 } from '@/types/electron';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { formatListenTime, formatPlayedAt } from './historyUtils';
 
 function TrackArtwork({ albumArt, title }: { albumArt: string | null; title: string }) {
   return (
-    <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/35">
-      {albumArt ? (
-        <img
-          src={albumArt}
-          alt={title}
-          className="h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <Music className="size-4 text-muted-foreground/45" />
-      )}
-    </div>
+    <TrackThumbnail
+      albumArt={albumArt}
+      alt={title}
+      className="size-11 rounded-xl bg-muted/35"
+      fallback={<Music className="size-4 text-muted-foreground/45" />}
+    />
   );
 }
 
