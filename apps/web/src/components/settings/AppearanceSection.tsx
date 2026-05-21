@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Languages, Sparkles, LayoutGrid, Palette, Check } from 'lucide-react';
+import { Languages, Sparkles, LayoutGrid, Palette } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -10,22 +10,11 @@ import {
   UI_SCALE_DEFAULT,
   UI_SCALE_PRESETS,
 } from '@/stores/useUIStore';
-import { useThemeStore, type ThemeId } from '@/stores/useThemeStore';
+import { useThemeStore } from '@/stores/useThemeStore';
 import type { AppView } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
+import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
-
-// Drives the theme picker grid. `thumb` reuses the same committed WebP the
-// background uses, downscaled by CSS object-fit. The "none" tile has no thumb
-// and renders a solid swatch so the default reads as "no photo".
-const THEME_TILES: Array<{ id: ThemeId; nameKey: string; thumb?: string }> = [
-  { id: 'none', nameKey: 'none' },
-  { id: 'lofi-night', nameKey: 'lofiNight', thumb: './themes/lofi-night.webp' },
-  { id: 'snow', nameKey: 'snow', thumb: './themes/snow.webp' },
-  { id: 'summer', nameKey: 'summer', thumb: './themes/summer.webp' },
-  { id: 'sunset', nameKey: 'sunset', thumb: './themes/sunset.webp' },
-  { id: 'wisteria', nameKey: 'wisteria', thumb: './themes/wisteria.webp' },
-];
 
 const TOGGLEABLE_SIDEBAR_ITEMS: Array<{ id: AppView; key: string }> = [
   { id: 'library', key: 'library' },
@@ -172,54 +161,7 @@ export function AppearanceSection() {
 
       {/* Card 3 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
-        <div
-          role="radiogroup"
-          aria-label={t('app.theme.title')}
-          className="grid grid-cols-3 gap-2.5"
-        >
-          {THEME_TILES.map(tile => {
-            const isActive = theme === tile.id;
-            const name = t(`app.theme.names.${tile.nameKey}`);
-            return (
-              <button
-                key={tile.id}
-                role="radio"
-                aria-checked={isActive}
-                aria-label={t('app.theme.apply', { name })}
-                onClick={() => setTheme(tile.id)}
-                className={cn(
-                  'group relative aspect-video rounded-xl overflow-hidden border text-left transition-all',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                  isActive
-                    ? 'border-primary/60 ring-1 ring-primary/40 shadow-[0_0_18px_-4px_rgba(var(--primary-rgb),0.5)]'
-                    : 'border-border/40 hover:border-border/60'
-                )}
-              >
-                {tile.thumb ? (
-                  <img
-                    src={tile.thumb}
-                    alt=""
-                    aria-hidden="true"
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-background" />
-                )}
-                <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-md bg-black/45 px-1.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-                  {name}
-                </span>
-                {isActive && (
-                  <span className="absolute top-1.5 right-1.5 grid place-items-center w-5 h-5 rounded-full bg-primary text-primary-foreground shadow">
-                    <Check className="w-3 h-3" />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <ThemeTileGrid value={theme} onSelect={setTheme} />
       </SettingsCard>
 
       {/* Card 4 — Sidebar */}
