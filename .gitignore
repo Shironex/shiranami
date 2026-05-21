@@ -20,3 +20,4 @@ packages/database/drizzle/
 playwright-report/
 test-results/
 apps/desktop/e2e/.tmp/
+design
