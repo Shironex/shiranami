@@ -1,9 +1,10 @@
-import { ipcMain, net } from 'electron';
+import { ipcMain } from 'electron';
 import { randomUUID } from 'crypto';
 import { eq, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { createShareSchema, IPC_CHANNELS, type CreateShareDto } from '@shiranami/contracts';
 import { logger } from '../logger';
+import { HttpError, requestJson } from '../http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
 import { spawnYtDlp } from '../utils/ytdlp-spawn';
 import { handle } from './with-ipc-handler';
@@ -93,49 +94,40 @@ function assertShareBody(body: CreateShareDto): CreateShareDto {
   return parsed.data;
 }
 
+/**
+ * Issue a JSON request against the share API via the shared `requestJson`
+ * helper. `readErrorBody` lets us preserve the previous behavior of surfacing
+ * the server's `message` field on a 4xx/5xx instead of the generic status text;
+ * unparseable bodies fall back to a `Failed to parse response` error.
+ */
 async function fetchApi(
   path: string,
   options: { method: string; body?: unknown }
 ): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const url = `${SHARE_API_URL}${path}`;
-    const request = net.request({
-      url,
+  const url = `${SHARE_API_URL}${path}`;
+  try {
+    return await requestJson<unknown>(url, {
       method: options.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      readErrorBody: true,
     });
-
-    request.setHeader('Content-Type', 'application/json');
-
-    let responseData = '';
-    request.on('response', response => {
-      response.on('data', chunk => {
-        responseData += chunk.toString();
-      });
-      response.on('end', () => {
-        try {
-          const parsed = JSON.parse(responseData);
-          if (response.statusCode && response.statusCode >= 400) {
-            reject(new Error(parsed.message ?? `HTTP ${response.statusCode}`));
-          } else {
-            resolve(parsed);
-          }
-        } catch {
-          logger.warn(
-            `[share] Failed to parse API response from ${path}:`,
-            responseData.slice(0, 200)
-          );
-          reject(new Error(`Failed to parse response from ${path}`));
-        }
-      });
-    });
-
-    request.on('error', err => reject(err));
-
-    if (options.body) {
-      request.write(JSON.stringify(options.body));
+  } catch (err) {
+    if (err instanceof HttpError) {
+      let message: string | undefined;
+      try {
+        message = (JSON.parse(err.bodyText ?? '') as { message?: string }).message;
+      } catch {
+        // Non-JSON error body — fall back to the status-based message below.
+      }
+      throw new Error(message ?? `HTTP ${err.status}`, { cause: err });
     }
-    request.end();
-  });
+    if (err instanceof SyntaxError) {
+      logger.warn(`[share] Failed to parse API response from ${path}`);
+      throw new Error(`Failed to parse response from ${path}`, { cause: err });
+    }
+    throw err;
+  }
 }
 
 export function registerShareHandlers(): void {

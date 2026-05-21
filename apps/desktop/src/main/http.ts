@@ -6,6 +6,22 @@ type RequestOptions = {
   headers?: Record<string, string>;
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** HTTP method. Defaults to GET. */
+  method?: string;
+  /** Request body (already serialized, e.g. a JSON string). */
+  body?: string;
+};
+
+/**
+ * Options for the raw request core. `maxBytes` caps a buffered response;
+ * `readErrorBody` makes a non-2xx response accumulate its body and attach it to
+ * the thrown `HttpError` (so callers can surface a server-provided error
+ * message). Default behavior rejects immediately on non-2xx without reading the
+ * body.
+ */
+type RawRequestOptions = RequestOptions & {
+  maxBytes?: number;
+  readErrorBody?: boolean;
 };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -23,7 +39,13 @@ export class HttpError extends Error {
     public readonly url: string,
     public readonly status: number,
     public readonly headers: Record<string, string | string[]>,
-    public readonly retryAfterMs: number | null
+    public readonly retryAfterMs: number | null,
+    /**
+     * Response body text, populated only when the request was made with
+     * `readErrorBody: true`. Lets callers surface a server-provided error
+     * message instead of the generic status message.
+     */
+    public readonly bodyText?: string
   ) {
     super(`Request failed with status ${status}: ${url}`);
     this.name = 'HttpError';
@@ -121,108 +143,20 @@ export function __resetGatesForTests(): void {
   gates.clear();
 }
 
-function requestTextRaw(url: string, options: RequestOptions = {}): Promise<string> {
+/**
+ * The single request core. Buffers the full response and resolves with the
+ * bytes. Owns the timer / abort / `settled` race bookkeeping, header loop,
+ * status check, optional `maxBytes` cap, optional method/body (POST), and
+ * optional error-body read. `requestTextRaw` decodes the result; the duplicate
+ * text/buffer plumbing was collapsed into this one function.
+ */
+function requestBufferRaw(url: string, options: RawRequestOptions = {}): Promise<Buffer> {
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const { signal } = options;
-  const startTime = Date.now();
-
-  return new Promise<string>((resolve, reject) => {
-    let settled = false;
-    // eslint-disable-next-line prefer-const
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const request = net.request(url);
-
-    const onAbort = () => {
-      if (!settled) {
-        settled = true;
-        if (timer) clearTimeout(timer);
-        request.abort();
-        reject(new DOMException('The operation was aborted', 'AbortError'));
-      }
-    };
-
-    if (signal) {
-      if (signal.aborted) {
-        reject(new DOMException('The operation was aborted', 'AbortError'));
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-
-    timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        request.abort();
-        signal?.removeEventListener('abort', onAbort);
-        logger.warn(`[http] Request timed out after ${timeout}ms: ${url}`);
-        reject(new Error(`Request timed out after ${timeout}ms: ${url}`));
-      }
-    }, timeout);
-
-    for (const [key, value] of Object.entries(options.headers ?? {})) {
-      request.setHeader(key, value);
-    }
-
-    request.on('response', response => {
-      const statusCode = response.statusCode;
-      const responseHeaders = response.headers as Record<string, string | string[]>;
-
-      if (statusCode < 200 || statusCode >= 300) {
-        clearTimeout(timer);
-        settled = true;
-        signal?.removeEventListener('abort', onAbort);
-        logger.warn(`[http] Request failed: ${url} - status ${statusCode}`);
-        reject(new HttpError(url, statusCode, responseHeaders, parseRetryAfter(responseHeaders)));
-        return;
-      }
-
-      const chunks: Buffer[] = [];
-
-      response.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
-      });
-
-      response.on('end', () => {
-        if (!settled) {
-          clearTimeout(timer);
-          settled = true;
-          signal?.removeEventListener('abort', onAbort);
-          logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
-          resolve(Buffer.concat(chunks).toString('utf-8'));
-        }
-      });
-
-      response.on('error', (err: Error) => {
-        if (!settled) {
-          clearTimeout(timer);
-          settled = true;
-          signal?.removeEventListener('abort', onAbort);
-          logger.warn(`[http] Response error: ${url}`, err.message);
-          reject(err);
-        }
-      });
-    });
-
-    request.on('error', (err: Error) => {
-      if (!settled) {
-        clearTimeout(timer);
-        settled = true;
-        signal?.removeEventListener('abort', onAbort);
-        logger.warn(`[http] Request error: ${url}`, err.message);
-        reject(err);
-      }
-    });
-
-    request.end();
-  });
-}
-
-function requestBufferRaw(
-  url: string,
-  options: RequestOptions & { maxBytes?: number } = {}
-): Promise<Buffer> {
-  const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const { signal } = options;
+  const { signal, body, readErrorBody } = options;
+  // Callers that pass an explicit method (or a body) get the options-form
+  // net.request; the implicit-GET callers keep the bare-URL form unchanged.
+  const explicitMethod = options.method;
+  const method = explicitMethod ?? 'GET';
   const maxBytes = options.maxBytes;
   const startTime = Date.now();
 
@@ -230,7 +164,13 @@ function requestBufferRaw(
     let settled = false;
     // eslint-disable-next-line prefer-const
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const request = net.request(url);
+    // Use the bare-URL form for implicit GETs (the common path) and the options
+    // form whenever the caller specifies a method or body, so existing implicit
+    // GET callers are byte-for-byte unchanged.
+    const request =
+      explicitMethod === undefined && body === undefined
+        ? net.request(url)
+        : net.request({ url, method });
 
     const onAbort = () => {
       if (!settled) {
@@ -265,9 +205,11 @@ function requestBufferRaw(
 
     request.on('response', response => {
       const statusCode = response.statusCode;
-      const responseHeaders = response.headers as Record<string, string | string[]>;
+      const responseHeaders = (response.headers ?? {}) as Record<string, string | string[]>;
 
-      if (statusCode < 200 || statusCode >= 300) {
+      const isError = statusCode < 200 || statusCode >= 300;
+
+      if (isError && !readErrorBody) {
         clearTimeout(timer);
         settled = true;
         signal?.removeEventListener('abort', onAbort);
@@ -294,13 +236,26 @@ function requestBufferRaw(
       });
 
       response.on('end', () => {
-        if (!settled) {
-          clearTimeout(timer);
-          settled = true;
-          signal?.removeEventListener('abort', onAbort);
-          logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
-          resolve(Buffer.concat(chunks));
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        signal?.removeEventListener('abort', onAbort);
+        const buffer = Buffer.concat(chunks);
+        if (isError) {
+          logger.warn(`[http] Request failed: ${url} - status ${statusCode}`);
+          reject(
+            new HttpError(
+              url,
+              statusCode,
+              responseHeaders,
+              parseRetryAfter(responseHeaders),
+              buffer.toString('utf-8')
+            )
+          );
+          return;
         }
+        logger.debug(`[http] ${statusCode} ${url} (${Date.now() - startTime}ms)`);
+        resolve(buffer);
       });
 
       response.on('error', (err: Error) => {
@@ -324,8 +279,17 @@ function requestBufferRaw(
       }
     });
 
+    if (body !== undefined) {
+      request.write(body);
+    }
     request.end();
   });
+}
+
+/** Decode the buffered response as UTF-8 text. Thin wrapper over the core. */
+async function requestTextRaw(url: string, options: RawRequestOptions = {}): Promise<string> {
+  const buffer = await requestBufferRaw(url, options);
+  return buffer.toString('utf-8');
 }
 
 /**
@@ -358,18 +322,15 @@ function runGated<T>(url: string, op: () => Promise<T>): Promise<T> {
   });
 }
 
-export function requestText(url: string, options: RequestOptions = {}): Promise<string> {
+export function requestText(url: string, options: RawRequestOptions = {}): Promise<string> {
   return runGated(url, () => requestTextRaw(url, options));
 }
 
-export function requestBuffer(
-  url: string,
-  options: RequestOptions & { maxBytes?: number } = {}
-): Promise<Buffer> {
+export function requestBuffer(url: string, options: RawRequestOptions = {}): Promise<Buffer> {
   return runGated(url, () => requestBufferRaw(url, options));
 }
 
-export async function requestJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
+export async function requestJson<T>(url: string, options: RawRequestOptions = {}): Promise<T> {
   const text = await requestText(url, options);
   return JSON.parse(text) as T;
 }
