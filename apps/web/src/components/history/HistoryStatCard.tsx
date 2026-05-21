@@ -9,7 +9,7 @@ type HistoryStatCardProps = {
 
 export function HistoryStatCard({ label, value, hint, icon: Icon }: HistoryStatCardProps) {
   return (
-    <div className="rounded-2xl border border-border/25 bg-background/35 p-4">
+    <div className="rounded-2xl border border-border/25 glass-subtle p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground/55">
           {label}

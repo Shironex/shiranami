@@ -90,7 +90,7 @@ export default function HistoryView() {
           />
         </section>
 
-        <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="size-4 text-primary/80" />
             <h2 className="font-display text-lg font-semibold text-foreground">{t('activity')}</h2>
@@ -104,7 +104,7 @@ export default function HistoryView() {
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
             <div className="flex items-center gap-2">
               <Disc3 className="size-4 text-primary/80" />
               <h2 className="font-display text-lg font-semibold text-foreground">
@@ -122,7 +122,7 @@ export default function HistoryView() {
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="size-4 text-primary/80" />
               <h2 className="font-display text-lg font-semibold text-foreground">
@@ -144,7 +144,7 @@ export default function HistoryView() {
           </div>
         </section>
 
-        <section className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
           <div className="flex items-center gap-2">
             <Clock3 className="size-4 text-primary/80" />
             <h2 className="font-display text-lg font-semibold text-foreground">
