@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * Smooth wave visualizer with gradient fill.
@@ -19,13 +15,7 @@ interface ParticleVisualizerProps {
 }
 
 export function ParticleVisualizer({ source, active }: ParticleVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef, versionRef } = usePrimaryRGB();
 
   // Cached gradients for drawWaveFill. Invalidated when centerY, primary-rgb,
   // or the canvas context changes — see issue #50. Pre-cache avoids allocating
@@ -36,53 +26,10 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
     ctx: CanvasRenderingContext2D | null;
   }>({ grad: null, key: '', ctx: null });
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
+  const draw = useCallback(({ ctx, w, h, raw, binCount, rgb }: VisualizerFrame) => {
     if (!smoothedRef.current) {
       smoothedRef.current = new Float32Array(200);
     }
-
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
     const smoothed = smoothedRef.current;
     const ease = 0.1;
 
@@ -90,14 +37,11 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
     const centerY = h * 0.5;
     const maxAmp = h * 0.38;
 
-    // Hoist theme color once per frame (issue #49).
-    const [pr, pg, pb] = rgbRef.current;
+    const [pr, pg, pb] = rgb;
 
     // Rebuild gradient cache if centerY, theme color, or ctx identity changed.
-    // versionRef bumps on any primary-rgb change, so we don't need to stringify
-    // pr/pg/pb in the key.
     const cache = gradientCacheRef.current;
-    const key = `${centerY}|${versionRef.current}`;
+    const key = `${centerY}|${pr},${pg},${pb}`;
     if (cache.key !== key || cache.ctx !== ctx) {
       // Single gradient shared by both halves — the bottom wave is drawn with
       // a scale(1,-1) transform, which mirrors the gradient's CTM-space
@@ -172,10 +116,9 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
     ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, 0.06)`;
     ctx.lineWidth = 1;
     ctx.stroke();
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas

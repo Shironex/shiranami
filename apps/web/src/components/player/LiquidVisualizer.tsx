@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * Liquid visualizer — a soft metaball blob whose vertices wobble with audio
@@ -29,65 +25,16 @@ interface GradientCache {
 }
 
 export function LiquidVisualizer({ source, active }: LiquidVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const pointsRef = useRef<{ x: number; y: number }[] | null>(null);
   const gradientCacheRef = useRef<GradientCache>({ key: '', ctx: null, halo: null, blob: null });
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef, versionRef } = usePrimaryRGB();
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
-
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
+  const draw = useCallback(({ ctx, w, h, raw, binCount, rgb }: VisualizerFrame) => {
     const t = performance.now() / 1000;
     const cx = w / 2;
     const cy = h / 2;
     const baseR = Math.min(w, h) * 0.22;
     const N = 18;
-    const [pr, pg, pb] = rgbRef.current;
+    const [pr, pg, pb] = rgb;
 
     // Allocate the vertex array once.
     let pts = pointsRef.current;
@@ -112,7 +59,7 @@ export function LiquidVisualizer({ source, active }: LiquidVisualizerProps = {})
     // Rebuild cached gradients on resize / theme change. The halo is baked at
     // full inner opacity and modulated via globalAlpha below.
     const cache = gradientCacheRef.current;
-    const key = `${Math.round(w)}x${Math.round(h)}|${versionRef.current}`;
+    const key = `${Math.round(w)}x${Math.round(h)}|${pr},${pg},${pb}`;
     if (cache.key !== key || cache.ctx !== ctx) {
       const halo = ctx.createRadialGradient(cx, cy, baseR * 0.6, cx, cy, baseR * 2.4);
       halo.addColorStop(0, `rgba(${pr}, ${pg}, ${pb}, 1)`);
@@ -165,10 +112,9 @@ export function LiquidVisualizer({ source, active }: LiquidVisualizerProps = {})
     ctx.arc(cx - baseR * 0.25, cy - baseR * 0.25, baseR * 0.25, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
     ctx.fill();
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas
