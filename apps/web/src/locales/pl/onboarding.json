@@ -68,6 +68,18 @@
     "reduceEffects": "Ogranicz efekty",
     "reduceEffectsDesc": "Lżejsze animacje i rozmycie dla wolniejszych maszyn."
   },
+  "playback": {
+    "eyebrow": "04 · Jak odtwarza",
+    "headline": "Ustaw <1>przepływ</1> dźwięku.",
+    "description": "Kilka drobiazgów dotyczących tego, jak muzyka przechodzi z utworu na utwór. Zmień w dowolnej chwili w Ustawienia · Odtwarzanie.",
+    "resume": "Wznów tam, gdzie skończyłem",
+    "resumeDesc": "Otwórz ponownie na utworze i w miejscu, gdzie przerwałeś.",
+    "crossfade": "Płynne przejścia",
+    "crossfadeDesc": "Płynnie połącz koniec jednego utworu z początkiem następnego.",
+    "crossfadeDuration": "Długość przejścia",
+    "discord": "Pokaż na Discordzie, co gram",
+    "discordDesc": "Aktualnie odtwarzany utwór pojawi się na Twoim profilu Discord."
+  },
   "ready": {
     "eyebrow": "03 · Gotowe",
     "headline": "Otwórz drzwi. <1>Naciśnij play</1>.",

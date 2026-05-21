@@ -1,6 +1,12 @@
 import { createContext, useContext, type RefObject } from 'react';
 
-export type OnboardingStepId = 'welcome' | 'folders' | 'tools' | 'appearance' | 'ready';
+export type OnboardingStepId =
+  | 'welcome'
+  | 'folders'
+  | 'tools'
+  | 'appearance'
+  | 'playback'
+  | 'ready';
 
 export interface OnboardingStepContextValue {
   stepId: OnboardingStepId;

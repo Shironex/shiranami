@@ -66,6 +66,18 @@
     "reduceEffects": "Reduce effects",
     "reduceEffectsDesc": "Lighter animations and blur for slower machines."
   },
+  "playback": {
+    "eyebrow": "04 · How it plays",
+    "headline": "Set the <1>flow</1> of the room.",
+    "description": "A couple of touches for how music carries from one track to the next. Change any of it later in Settings · Playback.",
+    "resume": "Resume where I left off",
+    "resumeDesc": "Reopen to the song and spot you stopped at.",
+    "crossfade": "Crossfade tracks",
+    "crossfadeDesc": "Blend the end of one song into the start of the next.",
+    "crossfadeDuration": "Crossfade length",
+    "discord": "Show what I'm playing on Discord",
+    "discordDesc": "Your now-playing track appears on your Discord profile."
+  },
   "ready": {
     "eyebrow": "03 · Ready",
     "headline": "Open the door. <1>Press play</1>.",
