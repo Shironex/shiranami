@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON } from '@/lib/platform';
+import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
@@ -36,6 +36,7 @@ const DebugOverlay = import.meta.env.DEV
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
+const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -53,6 +54,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -60,6 +62,20 @@ import { hydrateLanguageFromStore } from '@/lib/i18n';
 function App() {
   const [splashDone, setSplashDone] = useState(false);
   const handleSplashDismissed = useCallback(() => setSplashDone(true), []);
+
+  const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
+  const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
+  // Under the e2e harness, treat onboarding as done so specs land on the app
+  // shell instead of the first-run wizard (fresh userDataDir → never completed).
+  const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted || IS_E2E);
+  // Mirror the durable store flag locally so the wizard appears/disappears in
+  // step with it — covers both replay (true→false from Settings) and boot-time
+  // hydration (false→true from the electron-store mirror).
+  useEffect(() => {
+    if (IS_E2E) return;
+    setOnboardingDone(onboardingCompleted);
+  }, [onboardingCompleted]);
+  const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
 
   const { t } = useTranslation();
 
@@ -92,6 +108,10 @@ function App() {
   useEffect(() => {
     hydrateLanguageFromStore();
   }, []);
+
+  useEffect(() => {
+    void hydrateOnboarding();
+  }, [hydrateOnboarding]);
 
   // Auto-collapse sidebar on narrow viewports
   const setSidebarCollapsed = useUIStore(s => s.setSidebarCollapsed);
@@ -154,7 +174,13 @@ function App() {
         onDismissed={handleSplashDismissed}
       />
 
-      {splashDone && (
+      {splashDone && !onboardingDone && (
+        <Suspense fallback={null}>
+          <OnboardingWizard onComplete={handleOnboardingComplete} />
+        </Suspense>
+      )}
+
+      {splashDone && onboardingDone && (
         <AmbientColorProvider>
           <div
             className={cn(

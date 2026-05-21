@@ -1,0 +1,120 @@
+{
+  "wizard": {
+    "ariaLabel": "First-run setup",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "skipForNow": "Skip for now",
+    "finish": "Open library",
+    "progressAria": "Setup progress",
+    "stepDotAria": "Go to step {{number}}: {{id}}",
+    "stepCounter": "Step · {{current}} · of {{total}}",
+    "crumb": "Welcome"
+  },
+  "welcome": {
+    "eyebrow": "Vol · NS · {{version}} · late night build",
+    "headline": "A softer place for your <1>music library</1>.",
+    "description": "Shiranami plays the files you already own. Folders you point it at. Nothing streamed, nothing watched, nothing recommended over your shoulder.",
+    "language": {
+      "label": "Language",
+      "hint": "You can change this any time in Settings · Appearance."
+    },
+    "stats": {
+      "free": "Source-available",
+      "platforms": "Win · macOS",
+      "noTelemetry": "No telemetry"
+    }
+  },
+  "folders": {
+    "eyebrow": "01 · Point it at your files",
+    "headline": "Your folders are the <1>catalog</1>.",
+    "description": "Drop in directories. Shiranami scans your files, reads the tags, lifts cover art, and quietly hands you back a real library. No upload, no account, no maybe-it-syncs.",
+    "title": "Music folders",
+    "empty": "No folders yet. Add one to start building your library.",
+    "addFolder": "Add folder",
+    "scanning": "Scanning…",
+    "remove": "Remove folder",
+    "trackCount_one": "{{count}} track",
+    "trackCount_other": "{{count}} tracks",
+    "desktopOnly": "Adding folders is available in the desktop app.",
+    "doneHint": "Nice. Your library is filling up. Add more or continue."
+  },
+  "tools": {
+    "eyebrow": "02 · Bring the tools",
+    "headline": "Pull tracks <1>straight in</1>.",
+    "description": "Shiranami can fetch and import from a link. It just needs two small helpers: yt-dlp to fetch, ffmpeg to convert. Skip this if you only play files you already have; you can grab them later in Settings · Downloads.",
+    "title": "Download helpers",
+    "installAll": "Install both",
+    "installing": "Installing…",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "ffmpeg",
+    "updateBoth": "Update available",
+    "checking": "Checking for helpers…",
+    "allSet": "Both helpers are installed. You're ready to import.",
+    "skipHint": "Optional. Only needed for downloading and importing.",
+    "desktopOnly": "Downloading is available in the desktop app."
+  },
+  "appearance": {
+    "eyebrow": "03 · Make it yours",
+    "headline": "The window dresses for your <1>mood</1>.",
+    "description": "Pick a scene, then size it to your screen. Everything here is reversible from Settings · Appearance.",
+    "themeTitle": "Theme",
+    "themeHint": "Tap any scene · the rain stays.",
+    "comfortTitle": "Comfort",
+    "uiScale": "Interface size",
+    "uiScaleReset": "Reset to {{value}}%",
+    "reduceEffects": "Reduce effects",
+    "reduceEffectsDesc": "Lighter animations and blur for slower machines."
+  },
+  "playback": {
+    "eyebrow": "04 · How it plays",
+    "headline": "Set the <1>flow</1> of the room.",
+    "description": "A couple of touches for how music carries from one track to the next. Change any of it later in Settings · Playback.",
+    "resume": "Resume where I left off",
+    "resumeDesc": "Reopen to the song and spot you stopped at.",
+    "crossfade": "Crossfade tracks",
+    "crossfadeDesc": "Blend the end of one song into the start of the next.",
+    "crossfadeDuration": "Crossfade length",
+    "discord": "Show what I'm playing on Discord",
+    "discordDesc": "Your now-playing track appears on your Discord profile."
+  },
+  "visualizer": {
+    "eyebrow": "05 · The rhythm",
+    "headline": "Give the sound a <1>shape</1>.",
+    "description": "An audio-reactive scene rides above your now-playing bar. Pick one you like, or none. Change it any time.",
+    "title": "Choose a visualizer",
+    "hint": "Optional. Preview updates live."
+  },
+  "summary": {
+    "eyebrow": "06 · All set",
+    "headline": "Your room is <1>ready</1>.",
+    "description": "Here's what you chose. Tweak any of it later from Settings.",
+    "intro": "A quick recap before the library opens.",
+    "listAria": "Your setup choices",
+    "row": {
+      "language": "Language",
+      "folders": "Music folders",
+      "tools": "Download helpers",
+      "playback": "Playback",
+      "theme": "Theme",
+      "visualizer": "Visualizer"
+    },
+    "folders_one": "{{count}} folder",
+    "folders_other": "{{count}} folders",
+    "tools": {
+      "both": "yt-dlp + ffmpeg",
+      "ytdlpOnly": "yt-dlp only",
+      "ffmpegOnly": "ffmpeg only",
+      "none": "Not installed",
+      "checking": "Checking…"
+    },
+    "playback": {
+      "resumeOn": "Resume on",
+      "resumeOff": "Resume off",
+      "crossfade": "Crossfade {{seconds}}s",
+      "noCrossfade": "No crossfade",
+      "discordOn": "Discord on"
+    },
+    "value": { "none": "None" }
+  }
+}

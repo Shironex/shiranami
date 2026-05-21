@@ -34,6 +34,7 @@ export interface StoreSchema {
   'player.isMuted': boolean;
   theme: 'light' | 'dark' | 'system';
   'app.language': string;
+  'app.onboardingCompleted': boolean;
   'metadata-enrich.skippedIds': string[];
 
   // Main-only (downloader.ts).

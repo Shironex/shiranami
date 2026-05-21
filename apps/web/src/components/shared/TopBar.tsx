@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Minus, Square, Copy, X, Plus, FolderOpen, File, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, FolderOpen, File, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { useViewStore } from '@/stores/useViewStore';
-import { useWindowControls } from '@/hooks/useWindowControls';
+import { WindowControls } from '@/components/shared/WindowControls';
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
@@ -30,7 +29,6 @@ interface TopBarProps {
 export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const { t, i18n } = useTranslation('topbar');
   const activeView = useViewStore(s => s.activeView);
-  const { isMaximized, minimize, maximize, close } = useWindowControls();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isScanning: isRescanning, rescan } = useLibraryRescan();
@@ -146,38 +144,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
       </div>
 
       {/* Window controls (Windows only) */}
-      {IS_ELECTRON && !IS_MAC && (
-        <div className="no-drag flex h-full items-center gap-1 pr-1.5">
-          <button
-            type="button"
-            onClick={minimize}
-            className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={t('minimize')}
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={maximize}
-            className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={isMaximized ? t('restore') : t('maximize')}
-          >
-            {isMaximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={close}
-            className={cn(
-              'flex h-8 w-10 items-center justify-center rounded-md',
-              'text-muted-foreground/55 transition-colors',
-              'hover:bg-red-500/85 hover:text-white'
-            )}
-            aria-label={t('close')}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
+      <WindowControls className="pr-1.5" />
     </div>
   );
 }

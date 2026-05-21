@@ -1,15 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { Globe, BookOpen, FolderOpen, Music2 } from 'lucide-react';
+import { Globe, BookOpen, FolderOpen, Music2, Sparkles } from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useAbout } from '@/hooks/useAbout';
+import { useOnboardingStore } from '@/stores/useOnboardingStore';
 
 export function AboutSection() {
   const { t } = useTranslation('settings');
   const version = useAppVersion();
   const { openLogsFolder } = useAbout();
+  const resetOnboarding = useOnboardingStore(s => s.resetOnboarding);
 
   const heroIcon = (
     <div className="w-[42px] h-[42px] rounded-xl bg-primary/10 border border-border/30 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -93,6 +95,19 @@ export function AboutSection() {
           </Button>
         </SettingsCard>
       )}
+
+      {/* Card 4: Replay onboarding */}
+      <SettingsCard icon={Sparkles} title={t('abt.replayTitle')} subtitle={t('abt.replaySubtitle')}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-border/40"
+          onClick={() => resetOnboarding()}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          {t('abt.replayButton')}
+        </Button>
+      </SettingsCard>
     </div>
   );
 }

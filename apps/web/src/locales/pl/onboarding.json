@@ -1,0 +1,124 @@
+{
+  "wizard": {
+    "ariaLabel": "Pierwsze uruchomienie",
+    "skip": "Pomiń",
+    "back": "Wstecz",
+    "next": "Dalej",
+    "skipForNow": "Pomiń na razie",
+    "finish": "Otwórz bibliotekę",
+    "progressAria": "Postęp konfiguracji",
+    "stepDotAria": "Przejdź do kroku {{number}}: {{id}}",
+    "stepCounter": "Krok · {{current}} · z {{total}}",
+    "crumb": "Witaj"
+  },
+  "welcome": {
+    "eyebrow": "Vol · NS · {{version}} · nocny build",
+    "headline": "Spokojniejsze miejsce dla Twojej <1>biblioteki muzycznej</1>.",
+    "description": "Shiranami odtwarza pliki, które już masz. Foldery, które wskażesz. Nic ze streamingu, nic śledzonego, nic podpowiadanego przez ramię.",
+    "language": {
+      "label": "Język",
+      "hint": "Możesz to zmienić w każdej chwili w Ustawienia · Wygląd."
+    },
+    "stats": {
+      "free": "Kod dostępny",
+      "platforms": "Win · macOS",
+      "noTelemetry": "Bez telemetrii"
+    }
+  },
+  "folders": {
+    "eyebrow": "01 · Wskaż swoje pliki",
+    "headline": "Twoje foldery to <1>katalog</1>.",
+    "description": "Dodaj katalogi. Shiranami przeskanuje pliki, odczyta tagi, pobierze okładki i po cichu zbuduje prawdziwą bibliotekę. Bez przesyłania, bez konta, bez „może-się-zsynchronizuje”.",
+    "title": "Foldery muzyczne",
+    "empty": "Brak folderów. Dodaj pierwszy, aby zbudować bibliotekę.",
+    "addFolder": "Dodaj folder",
+    "scanning": "Skanowanie…",
+    "remove": "Usuń folder",
+    "trackCount_one": "{{count}} utwór",
+    "trackCount_few": "{{count}} utwory",
+    "trackCount_many": "{{count}} utworów",
+    "trackCount_other": "{{count}} utworu",
+    "desktopOnly": "Dodawanie folderów jest dostępne w aplikacji desktopowej.",
+    "doneHint": "Świetnie. Biblioteka się zapełnia. Dodaj więcej lub kontynuuj."
+  },
+  "tools": {
+    "eyebrow": "02 · Dorzuć narzędzia",
+    "headline": "Pobieraj utwory <1>prosto do środka</1>.",
+    "description": "Shiranami pobiera i importuje z linku. Potrzebuje tylko dwóch małych pomocników: yt-dlp do pobierania i ffmpeg do konwersji. Pomiń, jeśli odtwarzasz tylko własne pliki; możesz je dodać później w Ustawienia · Pobieranie.",
+    "title": "Pomocnicy do pobierania",
+    "installAll": "Zainstaluj oba",
+    "installing": "Instalowanie…",
+    "ytdlp": "yt-dlp",
+    "ffmpeg": "ffmpeg",
+    "updateBoth": "Dostępna aktualizacja",
+    "checking": "Sprawdzanie pomocników…",
+    "allSet": "Oba pomocniki są zainstalowane. Możesz importować.",
+    "skipHint": "Opcjonalne. Potrzebne tylko do pobierania i importu.",
+    "desktopOnly": "Pobieranie jest dostępne w aplikacji desktopowej."
+  },
+  "appearance": {
+    "eyebrow": "03 · Dopasuj do siebie",
+    "headline": "Okno ubiera się pod Twój <1>nastrój</1>.",
+    "description": "Wybierz scenerię, a potem dopasuj rozmiar do ekranu. Wszystko tutaj można cofnąć w Ustawienia · Wygląd.",
+    "themeTitle": "Motyw",
+    "themeHint": "Dotknij dowolnej scenerii · deszcz zostaje.",
+    "comfortTitle": "Komfort",
+    "uiScale": "Rozmiar interfejsu",
+    "uiScaleReset": "Przywróć {{value}}%",
+    "reduceEffects": "Ogranicz efekty",
+    "reduceEffectsDesc": "Lżejsze animacje i rozmycie dla wolniejszych maszyn."
+  },
+  "playback": {
+    "eyebrow": "04 · Jak odtwarza",
+    "headline": "Ustaw <1>przepływ</1> dźwięku.",
+    "description": "Kilka drobiazgów dotyczących tego, jak muzyka przechodzi z utworu na utwór. Zmień w dowolnej chwili w Ustawienia · Odtwarzanie.",
+    "resume": "Wznów tam, gdzie skończyłem",
+    "resumeDesc": "Otwórz ponownie na utworze i w miejscu, gdzie przerwałeś.",
+    "crossfade": "Płynne przejścia",
+    "crossfadeDesc": "Płynnie połącz koniec jednego utworu z początkiem następnego.",
+    "crossfadeDuration": "Długość przejścia",
+    "discord": "Pokaż na Discordzie, co gram",
+    "discordDesc": "Aktualnie odtwarzany utwór pojawi się na Twoim profilu Discord."
+  },
+  "visualizer": {
+    "eyebrow": "05 · Rytm",
+    "headline": "Nadaj dźwiękowi <1>kształt</1>.",
+    "description": "Scena reagująca na dźwięk unosi się nad paskiem odtwarzania. Wybierz tę, którą lubisz, albo żadną. Zmień w dowolnej chwili.",
+    "title": "Wybierz wizualizację",
+    "hint": "Opcjonalne. Podgląd aktualizuje się na żywo."
+  },
+  "summary": {
+    "eyebrow": "06 · Gotowe",
+    "headline": "Twój pokój jest <1>gotowy</1>.",
+    "description": "Oto, co wybrałeś. Wszystko możesz dostroić później w Ustawieniach.",
+    "intro": "Szybkie podsumowanie, zanim otworzy się biblioteka.",
+    "listAria": "Twoje wybory konfiguracji",
+    "row": {
+      "language": "Język",
+      "folders": "Foldery muzyczne",
+      "tools": "Pomocnicy do pobierania",
+      "playback": "Odtwarzanie",
+      "theme": "Motyw",
+      "visualizer": "Wizualizacja"
+    },
+    "folders_one": "{{count}} folder",
+    "folders_few": "{{count}} foldery",
+    "folders_many": "{{count}} folderów",
+    "folders_other": "{{count}} folderu",
+    "tools": {
+      "both": "yt-dlp + ffmpeg",
+      "ytdlpOnly": "tylko yt-dlp",
+      "ffmpegOnly": "tylko ffmpeg",
+      "none": "Nie zainstalowano",
+      "checking": "Sprawdzanie…"
+    },
+    "playback": {
+      "resumeOn": "Wznawianie wł.",
+      "resumeOff": "Wznawianie wył.",
+      "crossfade": "Przejścia {{seconds}}s",
+      "noCrossfade": "Bez przejść",
+      "discordOn": "Discord wł."
+    },
+    "value": { "none": "Brak" }
+  }
+}

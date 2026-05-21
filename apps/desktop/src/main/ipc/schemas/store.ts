@@ -19,6 +19,7 @@ const RENDERER_STORE_KEYS = [
   'theme',
   'window-bounds',
   'app.language',
+  'app.onboardingCompleted',
   'metadata-enrich.skippedIds',
 ] as const;
 
