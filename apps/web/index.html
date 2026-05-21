@@ -8,6 +8,16 @@
     <style>
       html { background-color: #110e1a; }
     </style>
+    <script>
+      // Apply the persisted theme before React mounts so a non-default theme
+      // never flashes the bare baseline for one frame. Read-only + defensive:
+      // wrapped in try/catch and guarded so "none" leaves <html> attribute-free.
+      try {
+        var t = JSON.parse(localStorage.getItem('shiranami.theme') || '{}');
+        var id = t && t.state && t.state.theme;
+        if (id && id !== 'none') document.documentElement.dataset.theme = id;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
