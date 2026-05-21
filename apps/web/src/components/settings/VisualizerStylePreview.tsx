@@ -1,11 +1,8 @@
-import { useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@/stores/useUIStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
-import { AudioVisualizer } from '@/components/player/AudioVisualizer';
-import { WaveformVisualizer } from '@/components/player/WaveformVisualizer';
-import { CircleVisualizer } from '@/components/player/CircleVisualizer';
-import { ParticleVisualizer } from '@/components/player/ParticleVisualizer';
+import { VISUALIZER_COMPONENTS } from '@/components/player/visualizerRegistry';
 import type { FrequencySource } from '@/components/player/visualizer-source';
 
 function createSyntheticSource(): FrequencySource {
@@ -31,6 +28,7 @@ export function VisualizerStylePreview() {
   const sourceRef = useRef<FrequencySource | null>(null);
   if (sourceRef.current === null) sourceRef.current = createSyntheticSource();
   const source = sourceRef.current;
+  const Visualizer = VISUALIZER_COMPONENTS[visualizerStyle];
 
   return (
     <SettingsPreview title={t('vis.preview')}>
@@ -50,15 +48,9 @@ export function VisualizerStylePreview() {
           }}
         />
         <div className="relative h-full">
-          {visualizerStyle === 'waveform' ? (
-            <WaveformVisualizer source={source} active={true} />
-          ) : visualizerStyle === 'circle' ? (
-            <CircleVisualizer source={source} active={true} />
-          ) : visualizerStyle === 'particles' ? (
-            <ParticleVisualizer source={source} active={true} />
-          ) : (
-            <AudioVisualizer source={source} active={true} />
-          )}
+          <Suspense fallback={null}>
+            <Visualizer source={source} active />
+          </Suspense>
         </div>
       </div>
     </SettingsPreview>
