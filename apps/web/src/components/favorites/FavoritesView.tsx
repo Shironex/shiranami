@@ -48,28 +48,36 @@ export function FavoritesView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 pt-5 pb-1 shrink-0">
+        <h1 className="font-serif italic text-3xl leading-tight text-foreground">
+          {t('pageTitle')}
+        </h1>
+      </div>
+
       {libraryHeroCardEnabled && <NowPlayingHero show={showIfFavorite} />}
 
       {favorites.length === 0 ? (
         <ViewEmptyState title={t('emptyTitle')} subtitle={t('emptySubtitle')} icon={Heart} />
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <List
-            rowCount={favorites.length}
-            rowHeight={52}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={TrackRow}
-            rowProps={{
-              queue: favorites,
-              currentTrack,
-              isPlaying,
-              handlePlayTrack,
-              onToggleFavorite: toggleFavorite,
-              showAddToPlaylist: true,
-            }}
-          />
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <List
+              rowCount={favorites.length}
+              rowHeight={52}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={TrackRow}
+              rowProps={{
+                queue: favorites,
+                currentTrack,
+                isPlaying,
+                handlePlayTrack,
+                onToggleFavorite: toggleFavorite,
+                showAddToPlaylist: true,
+              }}
+            />
+          </div>
         </div>
       )}
 
