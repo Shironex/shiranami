@@ -68,7 +68,9 @@ if (import.meta.hot) {
   const hot = import.meta.hot;
   const data = (hot.data ?? {}) as HmrData;
   if (data.store) {
-    useThemeStore.setState(data.store.getState());
+    const prevTheme = coerceTheme(data.store.getState().theme);
+    useThemeStore.setState({ theme: prevTheme });
+    applyTheme(prevTheme);
   }
   data.store = useThemeStore;
   hot.accept();
