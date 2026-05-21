@@ -31,6 +31,15 @@ export interface SplashScreenState {
   messageKey: SplashMessageKey;
   /** App version string. */
   version: string;
+  /** Locale-formatted current time (HH:MM), ticking each minute. */
+  clock: string;
+}
+
+function formatClock(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 }
 
 interface UseSplashScreenOptions {
@@ -57,7 +66,15 @@ export function useSplashScreen({
   const [isDismissing, setIsDismissing] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [messageIndex, setMessageIndex] = useState(randomStartIndex);
+  const [clock, setClock] = useState(() => formatClock(new Date()));
   const hasDismissedRef = useRef(false);
+
+  // Live clock — refresh each minute. Splash is short-lived but this keeps the
+  // meta corner correct if boot stalls past a minute boundary.
+  useEffect(() => {
+    const t = setInterval(() => setClock(formatClock(new Date())), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Minimum display floor
   useEffect(() => {
@@ -108,5 +125,6 @@ export function useSplashScreen({
     variant,
     messageKey: LOADING_MESSAGE_KEYS[messageIndex],
     version,
+    clock,
   };
 }

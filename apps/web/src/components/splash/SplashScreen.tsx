@@ -12,6 +12,7 @@ import { SplashRain } from './SplashRain';
 import { SplashSteam } from './SplashSteam';
 import { SplashCup } from './SplashCup';
 import { SplashBrand } from './SplashBrand';
+import { SplashMeta } from './SplashMeta';
 import { SplashFooter } from './SplashFooter';
 
 interface SplashScreenProps {
@@ -48,11 +49,12 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
     []
   );
 
-  const { isVisible, isDismissing, showStatus, variant, messageKey, version } = useSplashScreen({
-    isLoading,
-    isError,
-    onDismissed,
-  });
+  const { isVisible, isDismissing, showStatus, variant, messageKey, version, clock } =
+    useSplashScreen({
+      isLoading,
+      isError,
+      onDismissed,
+    });
 
   if (!isVisible) return null;
 
@@ -98,6 +100,9 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       {/* Foreground: rising steam (z7) + coffee cup (z8) */}
       <SplashSteam reducedMotion={disableBreathLoop} />
       <SplashCup />
+
+      {/* Meta corner (z9): real v{version} + live clock */}
+      <SplashMeta version={version} clock={clock} />
 
       {/* Brand block (z9): badge + LED + wordmark + kanji + loader + status.
           NOTE: the old SplashFooter still renders below it during this step;
