@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
 
 const STORE_KEY = 'shiranami.eq-store';
@@ -104,9 +103,7 @@ const DEFAULT_STATE: PersistedEqState = {
   gains: [...EQ_PRESETS.flat],
 };
 
-function sanitize(
-  persisted: Partial<PersistedEqState> | undefined,
-): Partial<PersistedEqState> {
+function sanitize(persisted: Partial<PersistedEqState> | undefined): Partial<PersistedEqState> {
   if (!persisted || typeof persisted !== 'object') return {};
   const out: Partial<PersistedEqState> = {};
 
@@ -119,7 +116,7 @@ function sanitize(
   let gains: number[] | undefined;
   if (Array.isArray(persisted.gains)) {
     if (persisted.gains.length === BAND_COUNT) {
-      gains = persisted.gains.map((v) => clampDb(Number(v)));
+      gains = persisted.gains.map(v => clampDb(Number(v)));
     } else {
       gains = [...EQ_PRESETS.flat];
     }
@@ -139,55 +136,54 @@ function sanitize(
   return out;
 }
 
-export const useEqStore = create<EqState>()(
-  persist(
-    (set, get) => ({
-      enabled: DEFAULT_STATE.enabled,
-      preset: DEFAULT_STATE.preset,
-      preampDb: DEFAULT_STATE.preampDb,
-      gains: [...DEFAULT_STATE.gains],
+export const useEqStore = createPersistedStore<EqState>(
+  (set, get) => ({
+    enabled: DEFAULT_STATE.enabled,
+    preset: DEFAULT_STATE.preset,
+    preampDb: DEFAULT_STATE.preampDb,
+    gains: [...DEFAULT_STATE.gains],
 
-      setEnabled: (on) => set({ enabled: on }),
+    setEnabled: on => set({ enabled: on }),
 
-      setBandGain: (index, db) => {
-        if (index < 0 || index >= BAND_COUNT) return;
-        const clamped = clampDb(db);
-        const gains = [...get().gains];
-        if (Math.abs(gains[index] - clamped) <= GAIN_EPSILON) return;
-        gains[index] = clamped;
-        set({ gains, preset: detectPreset(gains) });
-      },
-
-      setPreampDb: (db) => set({ preampDb: clampDb(db) }),
-
-      applyPreset: (id) => {
-        if (id === 'custom') return;
-        const preset = EQ_PRESETS[id];
-        if (!preset) return;
-        set({ preset: id, gains: [...preset] });
-      },
-
-      reset: () =>
-        set({
-          preset: 'flat',
-          preampDb: 0,
-          gains: [...EQ_PRESETS.flat],
-        }),
-    }),
-    {
-      name: STORE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s): PersistedEqState => ({
-        enabled: s.enabled,
-        preset: s.preset,
-        preampDb: s.preampDb,
-        gains: s.gains,
-      }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...sanitize(persisted as Partial<PersistedEqState>),
-      }),
+    setBandGain: (index, db) => {
+      if (index < 0 || index >= BAND_COUNT) return;
+      const clamped = clampDb(db);
+      const gains = [...get().gains];
+      if (Math.abs(gains[index] - clamped) <= GAIN_EPSILON) return;
+      gains[index] = clamped;
+      set({ gains, preset: detectPreset(gains) });
     },
-  ),
+
+    setPreampDb: db => set({ preampDb: clampDb(db) }),
+
+    applyPreset: id => {
+      if (id === 'custom') return;
+      const preset = EQ_PRESETS[id];
+      if (!preset) return;
+      set({ preset: id, gains: [...preset] });
+    },
+
+    reset: () =>
+      set({
+        preset: 'flat',
+        preampDb: 0,
+        gains: [...EQ_PRESETS.flat],
+      }),
+  }),
+  {
+    name: STORE_KEY,
+    version: 1,
+    partialize: (s): PersistedEqState => ({
+      enabled: s.enabled,
+      preset: s.preset,
+      preampDb: s.preampDb,
+      gains: s.gains,
+    }),
+    sanitize: (persisted, current) => ({
+      ...current,
+      ...sanitize(persisted as Partial<PersistedEqState>),
+    }),
+  }
 );
+
+acceptStoreHmr(useEqStore, import.meta.hot);
