@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
@@ -24,6 +24,7 @@ import {
 import { motion } from 'motion/react';
 import { IconButton } from '@/components/ui/icon-button';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
+import { SidebarPlaylistButton } from './SidebarPlaylistButton';
 import type { ContextMenuPosition } from './TrackContextMenu';
 
 const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
@@ -53,6 +54,12 @@ export function Sidebar() {
     playlist: Playlist;
     position: ContextMenuPosition;
   } | null>(null);
+  const handlePlaylistContextMenu = useCallback(
+    (playlist: Playlist, position: ContextMenuPosition) => {
+      setContextMenuState({ playlist, position });
+    },
+    []
+  );
   const versionLabel = `v${version}`;
   const sidebarVersionLabel = sidebarCollapsed
     ? versionLabel
@@ -157,46 +164,16 @@ export function Sidebar() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     </div>
                   ) : (
-                    playlists.map(playlist => {
-                      const isPlaylistActive =
-                        activeView === 'playlists' && selectedPlaylistId === playlist.id;
-
-                      return (
-                        <button
-                          key={playlist.id}
-                          onClick={() => navigateTo('playlists', playlist.id)}
-                          onContextMenu={event => {
-                            event.preventDefault();
-                            setContextMenuState({
-                              playlist,
-                              position: { x: event.clientX, y: event.clientY },
-                            });
-                          }}
-                          title={playlist.name}
-                          aria-label={playlist.name}
-                          className={cn(
-                            'w-full flex items-center justify-center px-0 py-2 rounded-xl transition-colors',
-                            isPlaylistActive
-                              ? 'bg-accent text-foreground'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/70'
-                          )}
-                        >
-                          <div className="w-9 h-9 rounded-lg bg-muted/30 border border-border/20 overflow-hidden shrink-0 flex items-center justify-center">
-                            {playlist.coverArt ? (
-                              <img
-                                src={playlist.coverArt}
-                                alt={playlist.name}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <ListMusic className="w-4 h-4 text-muted-foreground/30" />
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })
+                    playlists.map(playlist => (
+                      <SidebarPlaylistButton
+                        key={playlist.id}
+                        playlist={playlist}
+                        collapsed
+                        isActive={activeView === 'playlists' && selectedPlaylistId === playlist.id}
+                        onNavigate={id => navigateTo('playlists', id)}
+                        onContextMenu={handlePlaylistContextMenu}
+                      />
+                    ))
                   )}
                 </div>
               </>
@@ -220,47 +197,16 @@ export function Sidebar() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                     </div>
                   ) : (
-                    playlists.map(playlist => {
-                      const isPlaylistActive =
-                        activeView === 'playlists' && selectedPlaylistId === playlist.id;
-
-                      return (
-                        <button
-                          key={playlist.id}
-                          onClick={() => navigateTo('playlists', playlist.id)}
-                          onContextMenu={event => {
-                            event.preventDefault();
-                            setContextMenuState({
-                              playlist,
-                              position: { x: event.clientX, y: event.clientY },
-                            });
-                          }}
-                          className={cn(
-                            'w-full flex items-center gap-2 px-2 py-2 rounded-xl text-left transition-colors',
-                            isPlaylistActive
-                              ? 'bg-accent text-foreground'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/70'
-                          )}
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-muted/30 border border-border/20 overflow-hidden shrink-0 flex items-center justify-center">
-                            {playlist.coverArt ? (
-                              <img
-                                src={playlist.coverArt}
-                                alt={playlist.name}
-                                loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <ListMusic className="w-4 h-4 text-muted-foreground/30" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-medium truncate">{playlist.name}</p>
-                          </div>
-                        </button>
-                      );
-                    })
+                    playlists.map(playlist => (
+                      <SidebarPlaylistButton
+                        key={playlist.id}
+                        playlist={playlist}
+                        collapsed={false}
+                        isActive={activeView === 'playlists' && selectedPlaylistId === playlist.id}
+                        onNavigate={id => navigateTo('playlists', id)}
+                        onContextMenu={handlePlaylistContextMenu}
+                      />
+                    ))
                   )}
                 </div>
               </>
