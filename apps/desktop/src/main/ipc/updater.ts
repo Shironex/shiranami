@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater';
 import { handle } from './with-ipc-handler';
 import {
@@ -7,24 +8,26 @@ import {
   updaterInstallNowArgs,
 } from './schemas/updater';
 
+const C = IPC_CHANNELS.updater;
+
 export function registerUpdaterHandlers(): void {
-  handle('updater:check-for-updates', () => checkForUpdates(), {
+  handle(C.checkForUpdates, () => checkForUpdates(), {
     schema: updaterCheckForUpdatesArgs,
   });
-  handle('updater:start-download', () => downloadUpdate(), {
+  handle(C.startDownload, () => downloadUpdate(), {
     schema: updaterStartDownloadArgs,
   });
   handle(
-    'updater:install-now',
+    C.installNow,
     () => {
       quitAndInstall();
     },
-    { schema: updaterInstallNowArgs },
+    { schema: updaterInstallNowArgs }
   );
 }
 
 export function cleanupUpdaterHandlers(): void {
-  ipcMain.removeHandler('updater:check-for-updates');
-  ipcMain.removeHandler('updater:start-download');
-  ipcMain.removeHandler('updater:install-now');
+  ipcMain.removeHandler(C.checkForUpdates);
+  ipcMain.removeHandler(C.startDownload);
+  ipcMain.removeHandler(C.installNow);
 }

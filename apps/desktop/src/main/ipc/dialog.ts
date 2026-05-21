@@ -1,21 +1,24 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { handle } from './with-ipc-handler';
 import { dialogOpenDirectoryArgs, dialogOpenFileArgs } from './schemas/dialog';
 
+const C = IPC_CHANNELS.dialog;
+
 export function registerDialogHandlers(mainWindow: BrowserWindow): void {
   handle(
-    'dialog:open-directory',
+    C.openDirectory,
     async () => {
       const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory'],
       });
       return result.canceled ? null : result.filePaths[0];
     },
-    { schema: dialogOpenDirectoryArgs },
+    { schema: dialogOpenDirectoryArgs }
   );
 
   handle(
-    'dialog:open-file',
+    C.openFile,
     async (_event, options?: { filters?: Electron.FileFilter[] }) => {
       const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile'],
@@ -29,11 +32,11 @@ export function registerDialogHandlers(mainWindow: BrowserWindow): void {
       });
       return result.canceled ? null : result.filePaths[0];
     },
-    { schema: dialogOpenFileArgs },
+    { schema: dialogOpenFileArgs }
   );
 }
 
 export function cleanupDialogHandlers(): void {
-  ipcMain.removeHandler('dialog:open-directory');
-  ipcMain.removeHandler('dialog:open-file');
+  ipcMain.removeHandler(C.openDirectory);
+  ipcMain.removeHandler(C.openFile);
 }

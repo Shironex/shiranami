@@ -2,7 +2,7 @@ import { ipcMain, net } from 'electron';
 import { randomUUID } from 'crypto';
 import { eq, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { createShareSchema, type CreateShareDto } from '@shiranami/contracts';
+import { createShareSchema, IPC_CHANNELS, type CreateShareDto } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
 import { spawnYtDlp } from '../utils/ytdlp-spawn';
@@ -13,6 +13,8 @@ import {
   shareImportArgs,
   shareCacheYoutubeIdArgs,
 } from './schemas/share';
+
+const C = IPC_CHANNELS.share;
 
 const SHARE_API_URL =
   process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.shiranami.app';
@@ -139,7 +141,7 @@ async function fetchApi(
 export function registerShareHandlers(): void {
   // Share a single track
   handle(
-    'share:track',
+    C.track,
     async (_event, trackId: string) => {
       const db = getDatabase();
       const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
@@ -171,7 +173,7 @@ export function registerShareHandlers(): void {
 
   // Share a playlist
   handle(
-    'share:playlist',
+    C.playlist,
     async (_event, playlistId: string) => {
       const db = getDatabase();
 
@@ -238,7 +240,7 @@ export function registerShareHandlers(): void {
 
   // Import shared content (fetch share data by code)
   handle(
-    'share:import',
+    C.import,
     async (_event, code: string) => {
       logger.info(`[share] Importing share code: ${code}`);
       const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
@@ -249,7 +251,7 @@ export function registerShareHandlers(): void {
 
   // Cache a known YouTube ID for a track (called after download from search)
   handle(
-    'share:cache-youtube-id',
+    C.cacheYoutubeId,
     async (_event, trackId: string, youtubeId: string) => {
       const db = getDatabase();
       await db
@@ -269,8 +271,8 @@ export function registerShareHandlers(): void {
 }
 
 export function cleanupShareHandlers(): void {
-  ipcMain.removeHandler('share:track');
-  ipcMain.removeHandler('share:playlist');
-  ipcMain.removeHandler('share:import');
-  ipcMain.removeHandler('share:cache-youtube-id');
+  ipcMain.removeHandler(C.track);
+  ipcMain.removeHandler(C.playlist);
+  ipcMain.removeHandler(C.import);
+  ipcMain.removeHandler(C.cacheYoutubeId);
 }

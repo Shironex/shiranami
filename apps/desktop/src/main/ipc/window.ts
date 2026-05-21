@@ -1,4 +1,5 @@
 import { BrowserWindow, ipcMain, screen, type Rectangle } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { handle } from './with-ipc-handler';
 import { store } from '../store';
 import {
@@ -9,6 +10,8 @@ import {
   windowSetAlwaysOnTopArgs,
   windowSetCompactModeArgs,
 } from './schemas/window';
+
+const C = IPC_CHANNELS.window;
 
 const DEFAULT_MIN_WIDTH = 800;
 const DEFAULT_MIN_HEIGHT = 600;
@@ -68,7 +71,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   mainWindow.on('close', persistCompactBounds);
 
   handle(
-    'window:minimize',
+    C.minimize,
     () => {
       mainWindow.minimize();
     },
@@ -76,7 +79,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   handle(
-    'window:maximize',
+    C.maximize,
     () => {
       if (mainWindow.isMaximized()) {
         mainWindow.unmaximize();
@@ -88,7 +91,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   handle(
-    'window:close',
+    C.close,
     () => {
       mainWindow.close();
     },
@@ -96,7 +99,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   handle(
-    'window:is-maximized',
+    C.isMaximized,
     () => {
       return mainWindow.isMaximized();
     },
@@ -104,7 +107,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   handle(
-    'window:set-always-on-top',
+    C.setAlwaysOnTop,
     (_event, alwaysOnTop: boolean) => {
       mainWindow.setAlwaysOnTop(alwaysOnTop);
     },
@@ -112,7 +115,7 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   handle(
-    'window:set-compact-mode',
+    C.setCompactMode,
     (_event, compactMode: boolean, dimensions?: { width: number; height: number }) => {
       const width = dimensions?.width ?? COMPACT_DEFAULT_WIDTH;
       const height = dimensions?.height ?? COMPACT_DEFAULT_HEIGHT;
@@ -175,19 +178,19 @@ export function registerWindowHandlers(mainWindow: BrowserWindow): void {
   );
 
   mainWindow.on('maximize', () => {
-    mainWindow.webContents.send('window:maximized-change', true);
+    mainWindow.webContents.send(C.maximizedChange, true);
   });
 
   mainWindow.on('unmaximize', () => {
-    mainWindow.webContents.send('window:maximized-change', false);
+    mainWindow.webContents.send(C.maximizedChange, false);
   });
 }
 
 export function cleanupWindowHandlers(): void {
-  ipcMain.removeHandler('window:minimize');
-  ipcMain.removeHandler('window:maximize');
-  ipcMain.removeHandler('window:close');
-  ipcMain.removeHandler('window:is-maximized');
-  ipcMain.removeHandler('window:set-always-on-top');
-  ipcMain.removeHandler('window:set-compact-mode');
+  ipcMain.removeHandler(C.minimize);
+  ipcMain.removeHandler(C.maximize);
+  ipcMain.removeHandler(C.close);
+  ipcMain.removeHandler(C.isMaximized);
+  ipcMain.removeHandler(C.setAlwaysOnTop);
+  ipcMain.removeHandler(C.setCompactMode);
 }

@@ -5,6 +5,7 @@ import type {
   EnrichProgress,
   MetadataLookupSource,
 } from '@shiranami/contracts';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from '../metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { logger } from '../logger';
@@ -17,6 +18,8 @@ import {
   metadataEnrichPreviewArgs,
   metadataEnrichCancelArgs,
 } from './schemas/metadata';
+
+const C = IPC_CHANNELS.metadata;
 
 export type { EnrichTrackInput, EnrichTrackResult, EnrichProgress } from '@shiranami/contracts';
 
@@ -178,7 +181,7 @@ export async function enrichSingleTrack(
 export function registerMetadataEnrichHandlers(): void {
   // Look up metadata for a single track (for preview / confirmation)
   handle(
-    'metadata:lookup',
+    C.lookup,
     async (_event, title: string, artist: string): Promise<MetadataLookupResult> => {
       return lookupMetadata(title, artist);
     },
@@ -188,7 +191,7 @@ export function registerMetadataEnrichHandlers(): void {
   // Cancel ongoing enrichment. No-op when idle — avoids leaving stale state
   // that would poison the next run (which the old boolean flag could not prevent).
   handle(
-    'metadata:enrich:cancel',
+    C.enrichCancel,
     async () => {
       if (activeEnrichAbort) {
         logger.info('[metadata:enrich] Cancellation requested');
@@ -206,7 +209,7 @@ export function registerMetadataEnrichHandlers(): void {
   // file, never updates the DB. Rejects with `metadata.enrich_busy` if a bulk
   // run holds the abort slot.
   handle(
-    'metadata:enrich:preview',
+    C.enrichPreview,
     async (
       _event,
       track: EnrichTrackInput,
@@ -257,7 +260,7 @@ export function registerMetadataEnrichHandlers(): void {
 
   // Batch enrich multiple tracks
   handle(
-    'metadata:enrich:tracks',
+    C.enrichTracks,
     async (
       _event,
       tracks: EnrichTrackInput[],
@@ -285,7 +288,7 @@ export function registerMetadataEnrichHandlers(): void {
         const slots: (EnrichTrackResult | undefined)[] = new Array(total);
 
         const sendProgress = (progress: EnrichProgress) => {
-          sendToRenderer('metadata:enrich:progress', progress);
+          sendToRenderer(C.enrichProgress, progress);
         };
 
         // Monotonic completed-count so the renderer's progress bar never jumps
@@ -427,8 +430,8 @@ export function registerMetadataEnrichHandlers(): void {
 }
 
 export function cleanupMetadataEnrichHandlers(): void {
-  ipcMain.removeHandler('metadata:lookup');
-  ipcMain.removeHandler('metadata:enrich:cancel');
-  ipcMain.removeHandler('metadata:enrich:preview');
-  ipcMain.removeHandler('metadata:enrich:tracks');
+  ipcMain.removeHandler(C.lookup);
+  ipcMain.removeHandler(C.enrichCancel);
+  ipcMain.removeHandler(C.enrichPreview);
+  ipcMain.removeHandler(C.enrichTracks);
 }

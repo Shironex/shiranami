@@ -1,4 +1,5 @@
 import { ipcMain, app } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { sendToRenderer } from '../utils/window';
 import { spawn } from 'child_process';
 import * as path from 'path';
@@ -59,6 +60,8 @@ import {
 } from './schemas/downloader';
 
 export type { SearchResult };
+
+const C = IPC_CHANNELS.downloader;
 
 export interface DownloadProgress {
   url: string;
@@ -238,7 +241,7 @@ async function getFFmpegStatus(): Promise<BinaryStatus> {
 
 export function registerDownloaderHandlers(): void {
   handle(
-    'downloader:get-download-location',
+    C.getDownloadLocation,
     async () => {
       return getDownloadLocationState();
     },
@@ -246,7 +249,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:set-download-location',
+    C.setDownloadLocation,
     async (_event, downloadDir: string | null) => {
       const defaultPath = getDefaultDownloadDir();
 
@@ -270,7 +273,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:check-dependencies',
+    C.checkDependencies,
     async () => {
       return {
         ytdlpInstalled: isYtDlpInstalled(),
@@ -281,7 +284,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:get-cached-tool-status',
+    C.getCachedToolStatus,
     async () => {
       return loadCachedToolStatus();
     },
@@ -289,21 +292,21 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:refresh-tool-status',
+    C.refreshToolStatus,
     () => fetchAndCacheToolStatus(),
     () => loadCachedToolStatus(),
     { schema: downloaderRefreshToolStatusArgs }
   );
 
   handleWithFallback(
-    'downloader:check',
+    C.check,
     () => getYtDlpStatus(),
     () => ({ installed: isYtDlpInstalled() }) as BinaryStatus,
     { schema: downloaderCheckArgs }
   );
 
   handle(
-    'downloader:search',
+    C.search,
     async (_event, query: string) => {
       logger.info(`[downloader] Searching: ${query}`);
       const results = await ytSearch(query, { limit: 10 });
@@ -314,7 +317,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:suggest',
+    C.suggest,
     async (_event, query: string) => {
       const url = `https://clients1.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
       const data = await requestJson<[string, string[]]>(url);
@@ -325,7 +328,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:download',
+    C.download,
     async (_event, opts: { url: string; outputDir?: string }) => {
       const { url, outputDir } = opts;
       const downloadDir = outputDir ?? getDownloadDir();
@@ -334,7 +337,7 @@ export function registerDownloaderHandlers(): void {
       logger.info(`[downloader] Downloading: ${url} -> ${downloadDir}`);
 
       const sendProgress = (progress: DownloadProgress) => {
-        sendToRenderer('downloader:progress', progress);
+        sendToRenderer(C.progress, progress);
       };
 
       return new Promise<string>((resolve, reject) => {
@@ -473,7 +476,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:get-stream-url',
+    C.getStreamUrl,
     async (_event, url: string) => {
       logger.info(`[downloader] Getting stream URL for: ${url}`);
       const { stdout, stderr, code } = await spawnYtDlp([
@@ -505,11 +508,11 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:install-ytdlp',
+    C.installYtdlp,
     async () => {
       try {
         await downloadYtDlp(percent => {
-          sendToRenderer('downloader:install-progress', { percent });
+          sendToRenderer(C.installProgress, { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -524,7 +527,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:get-ytdlp-path',
+    C.getYtdlpPath,
     async () => {
       return getYtDlpPath();
     },
@@ -532,18 +535,18 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:check-ffmpeg',
+    C.checkFfmpeg,
     () => getFFmpegStatus(),
     () => ({ installed: isFFmpegInstalled() }) as BinaryStatus,
     { schema: downloaderCheckFfmpegArgs }
   );
 
   handle(
-    'downloader:install-ffmpeg',
+    C.installFfmpeg,
     async () => {
       try {
         await downloadFFmpeg(percent => {
-          sendToRenderer('downloader:ffmpeg-install-progress', { percent });
+          sendToRenderer(C.ffmpegInstallProgress, { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -558,7 +561,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:install-dependencies',
+    C.installDependencies,
     async (): Promise<InstallDependenciesResult> => {
       const targets: Array<'ytdlp' | 'ffmpeg'> = [];
 
@@ -575,7 +578,7 @@ export function registerDownloaderHandlers(): void {
 
       const stepWeight = 100 / targets.length;
       const sendProgress = (progress: DependencyInstallProgress) => {
-        sendToRenderer('downloader:dependency-install-progress', progress);
+        sendToRenderer(C.dependencyInstallProgress, progress);
       };
 
       const results: ToolInstallResult[] = [];
@@ -634,18 +637,18 @@ export function registerDownloaderHandlers(): void {
 }
 
 export function cleanupDownloaderHandlers(): void {
-  ipcMain.removeHandler('downloader:get-download-location');
-  ipcMain.removeHandler('downloader:set-download-location');
-  ipcMain.removeHandler('downloader:check-dependencies');
-  ipcMain.removeHandler('downloader:get-cached-tool-status');
-  ipcMain.removeHandler('downloader:refresh-tool-status');
-  ipcMain.removeHandler('downloader:check');
-  ipcMain.removeHandler('downloader:search');
-  ipcMain.removeHandler('downloader:download');
-  ipcMain.removeHandler('downloader:get-stream-url');
-  ipcMain.removeHandler('downloader:install-ytdlp');
-  ipcMain.removeHandler('downloader:get-ytdlp-path');
-  ipcMain.removeHandler('downloader:check-ffmpeg');
-  ipcMain.removeHandler('downloader:install-ffmpeg');
-  ipcMain.removeHandler('downloader:install-dependencies');
+  ipcMain.removeHandler(C.getDownloadLocation);
+  ipcMain.removeHandler(C.setDownloadLocation);
+  ipcMain.removeHandler(C.checkDependencies);
+  ipcMain.removeHandler(C.getCachedToolStatus);
+  ipcMain.removeHandler(C.refreshToolStatus);
+  ipcMain.removeHandler(C.check);
+  ipcMain.removeHandler(C.search);
+  ipcMain.removeHandler(C.download);
+  ipcMain.removeHandler(C.getStreamUrl);
+  ipcMain.removeHandler(C.installYtdlp);
+  ipcMain.removeHandler(C.getYtdlpPath);
+  ipcMain.removeHandler(C.checkFfmpeg);
+  ipcMain.removeHandler(C.installFfmpeg);
+  ipcMain.removeHandler(C.installDependencies);
 }

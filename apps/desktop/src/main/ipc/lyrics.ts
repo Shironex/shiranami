@@ -1,11 +1,14 @@
 import { ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { fetchLyrics, type LyricsResult } from '../lyrics-service';
 import { handle } from './with-ipc-handler';
 import { lyricsFetchArgs } from './schemas/lyrics';
 
+const C = IPC_CHANNELS.lyrics;
+
 export function registerLyricsHandlers(): void {
   handle(
-    'lyrics:fetch',
+    C.fetch,
     async (
       _event,
       title: string,
@@ -15,10 +18,10 @@ export function registerLyricsHandlers(): void {
     ): Promise<LyricsResult> => {
       return fetchLyrics(title, artist, album, duration);
     },
-    { schema: lyricsFetchArgs },
+    { schema: lyricsFetchArgs }
   );
 }
 
 export function cleanupLyricsHandlers(): void {
-  ipcMain.removeHandler('lyrics:fetch');
+  ipcMain.removeHandler(C.fetch);
 }

@@ -1,4 +1,5 @@
 import { ipcMain, net } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
@@ -6,6 +7,8 @@ import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
 import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
 import { sendToRenderer } from '../utils/window';
 import { BROWSER_USER_AGENT } from '../shared/user-agent';
+
+const C = IPC_CHANNELS.playlist;
 
 export { parseYtDlpJsonLines };
 
@@ -207,7 +210,7 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
     if (cancelledFlag) break;
 
     // Send extraction progress
-    sendToRenderer('playlist:extract-progress', {
+    sendToRenderer(C.extractProgress, {
       current: i + 1,
       total,
       trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
@@ -225,7 +228,7 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
 
 export function registerPlaylistHandlers(): void {
   handle(
-    'playlist:extract',
+    C.extract,
     async (_event, url: string) => {
       cancelledFlag = false;
 
@@ -247,7 +250,7 @@ export function registerPlaylistHandlers(): void {
   );
 
   handle(
-    'playlist:cancel',
+    C.cancel,
     async () => {
       cancelledFlag = true;
       logger.info('[playlist] Extraction cancelled');
@@ -257,6 +260,6 @@ export function registerPlaylistHandlers(): void {
 }
 
 export function cleanupPlaylistHandlers(): void {
-  ipcMain.removeHandler('playlist:extract');
-  ipcMain.removeHandler('playlist:cancel');
+  ipcMain.removeHandler(C.extract);
+  ipcMain.removeHandler(C.cancel);
 }

@@ -1,11 +1,7 @@
 import { ipcMain } from 'electron';
-import {
-  radioFavorites,
-  eq,
-  desc,
-  type NewRadioFavorite,
-} from '@shiranami/database';
+import { radioFavorites, eq, desc, type NewRadioFavorite } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import {
@@ -15,39 +11,45 @@ import {
   radioFavoritesIsFavoriteArgs,
 } from './schemas/radio';
 
+const C = IPC_CHANNELS.radio.favorites;
+
 export function registerRadioHandlers(): void {
   handle(
-    'radio:favorites:get-all',
+    C.getAll,
     async () => {
       const db = getDatabase();
       return db.select().from(radioFavorites).orderBy(desc(radioFavorites.createdAt)).all();
     },
-    { schema: radioFavoritesGetAllArgs },
+    { schema: radioFavoritesGetAllArgs }
   );
 
   handle(
-    'radio:favorites:add',
+    C.add,
     async (_event, station: Omit<NewRadioFavorite, 'id'>) => {
       logger.info(`[radio] Added favorite: "${station.name}" (${station.stationUuid})`);
       const db = getDatabase();
       const id = crypto.randomUUID();
-      return db.insert(radioFavorites).values({ ...station, id }).returning().get();
+      return db
+        .insert(radioFavorites)
+        .values({ ...station, id })
+        .returning()
+        .get();
     },
-    { schema: radioFavoritesAddArgs },
+    { schema: radioFavoritesAddArgs }
   );
 
   handle(
-    'radio:favorites:remove',
+    C.remove,
     async (_event, stationUuid: string) => {
       logger.info(`[radio] Removed favorite: ${stationUuid}`);
       const db = getDatabase();
       db.delete(radioFavorites).where(eq(radioFavorites.stationUuid, stationUuid)).run();
     },
-    { schema: radioFavoritesRemoveArgs },
+    { schema: radioFavoritesRemoveArgs }
   );
 
   handle(
-    'radio:favorites:is-favorite',
+    C.isFavorite,
     async (_event, stationUuid: string) => {
       const db = getDatabase();
       const row = db
@@ -57,13 +59,13 @@ export function registerRadioHandlers(): void {
         .get();
       return !!row;
     },
-    { schema: radioFavoritesIsFavoriteArgs },
+    { schema: radioFavoritesIsFavoriteArgs }
   );
 }
 
 export function cleanupRadioHandlers(): void {
-  ipcMain.removeHandler('radio:favorites:get-all');
-  ipcMain.removeHandler('radio:favorites:add');
-  ipcMain.removeHandler('radio:favorites:remove');
-  ipcMain.removeHandler('radio:favorites:is-favorite');
+  ipcMain.removeHandler(C.getAll);
+  ipcMain.removeHandler(C.add);
+  ipcMain.removeHandler(C.remove);
+  ipcMain.removeHandler(C.isFavorite);
 }

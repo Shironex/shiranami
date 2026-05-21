@@ -1,27 +1,30 @@
 import { app, ipcMain, shell } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { getLogsDir } from '../logger';
 import { handle } from './with-ipc-handler';
 import { appGetVersionArgs, appOpenLogsFolderArgs } from './schemas/app';
 
+const C = IPC_CHANNELS.app;
+
 export function registerAppHandlers(): void {
   handle(
-    'app:get-version',
+    C.getVersion,
     () => {
       return app.getVersion();
     },
-    { schema: appGetVersionArgs },
+    { schema: appGetVersionArgs }
   );
 
   handle(
-    'app:open-logs-folder',
+    C.openLogsFolder,
     async () => {
       await shell.openPath(getLogsDir());
     },
-    { schema: appOpenLogsFolderArgs },
+    { schema: appOpenLogsFolderArgs }
   );
 }
 
 export function cleanupAppHandlers(): void {
-  ipcMain.removeHandler('app:get-version');
-  ipcMain.removeHandler('app:open-logs-folder');
+  ipcMain.removeHandler(C.getVersion);
+  ipcMain.removeHandler(C.openLogsFolder);
 }

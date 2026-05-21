@@ -16,6 +16,7 @@ import {
   type NewPlayHistory,
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
@@ -60,6 +61,11 @@ import {
   foldersUpdateScannedArgs,
 } from './schemas/db-folders';
 
+const T = IPC_CHANNELS.db.tracks;
+const H = IPC_CHANNELS.db.history;
+const F = IPC_CHANNELS.db.folders;
+const P = IPC_CHANNELS.db.playlists;
+
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
   return sql`${playHistory.playedAt} >= ${since}`;
@@ -69,7 +75,7 @@ export function registerDatabaseHandlers(): void {
   // Tracks
 
   handle(
-    'db:tracks:get-all',
+    T.getAll,
     async () => {
       const db = getDatabase();
       return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
@@ -78,7 +84,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:add',
+    T.add,
     async (_event, track: Omit<NewTrack, 'id'>) => {
       const db = getDatabase();
       const id = crypto.randomUUID();
@@ -89,7 +95,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:add-many',
+    T.addMany,
     async (_event, incoming: Omit<NewTrack, 'id'>[]) => {
       const start = Date.now();
       const db = getDatabase();
@@ -121,7 +127,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:remove',
+    T.remove,
     async (_event, id: string) => {
       const db = getDatabase();
       db.delete(tracks).where(eq(tracks.id, id)).run();
@@ -130,7 +136,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:remove-many',
+    T.removeMany,
     async (_event, ids: string[]) => {
       if (ids.length === 0) return;
       logger.info(`[database] tracks:remove-many: removing ${ids.length} tracks`);
@@ -157,7 +163,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:update',
+    T.update,
     async (_event, id: string, data: Partial<NewTrack>) => {
       const db = getDatabase();
       return db.update(tracks).set(data).where(eq(tracks.id, id)).returning().get();
@@ -166,7 +172,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:update-many',
+    T.updateMany,
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
       if (updates.length === 0) return [];
       logger.info(`[database] tracks:update-many: updating ${updates.length} tracks`);
@@ -181,7 +187,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:toggle-favorite',
+    T.toggleFavorite,
     async (_event, id: string) => {
       const db = getDatabase();
       return db
@@ -195,7 +201,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:get-favorites',
+    T.getFavorites,
     async () => {
       const db = getDatabase();
       return db
@@ -209,7 +215,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:increment-play-count',
+    T.incrementPlayCount,
     async (_event, id: string) => {
       const db = getDatabase();
       return db
@@ -223,7 +229,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:exists',
+    T.exists,
     async (_event, filePath: string) => {
       const db = getDatabase();
       const row = db
@@ -237,7 +243,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:tracks:exists-many',
+    T.existsMany,
     async (_event, filePaths: string[]) => {
       if (filePaths.length === 0) return new Set<string>();
       const db = getDatabase();
@@ -258,7 +264,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:history:record-play',
+    H.recordPlay,
     async (
       _event,
       data: { trackId: string; playedSeconds: number; duration: number | null; source?: string }
@@ -297,7 +303,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:history:get-recent',
+    H.getRecent,
     async (_event, options?: { limit?: number; since?: string | null }) => {
       const db = getDatabase();
       const safeLimit = Math.max(1, Math.min(100, options?.limit ?? 30));
@@ -328,7 +334,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:history:get-summary',
+    H.getSummary,
     async (_event, options?: { since?: string | null }) => {
       const db = getDatabase();
       const sinceFilter = buildHistorySinceFilter(options?.since);
@@ -392,7 +398,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:history:get-activity',
+    H.getActivity,
     async (_event, options?: { since?: string | null }) => {
       const db = getDatabase();
       const sinceFilter = buildHistorySinceFilter(options?.since);
@@ -417,7 +423,7 @@ export function registerDatabaseHandlers(): void {
   // Folders
 
   handle(
-    'db:folders:get-all',
+    F.getAll,
     async () => {
       const db = getDatabase();
       return db.select().from(folders).all();
@@ -426,7 +432,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:folders:add',
+    F.add,
     async (_event, folderPath: string) => {
       logger.info(`[database] folders:add: "${folderPath}"`);
       const db = getDatabase();
@@ -440,7 +446,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:folders:remove',
+    F.remove,
     async (_event, id: string) => {
       logger.info(`[database] folders:remove: ${id}`);
       const db = getDatabase();
@@ -451,7 +457,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:folders:update-scanned',
+    F.updateScanned,
     async (_event, id: string) => {
       const db = getDatabase();
       return db
@@ -467,7 +473,7 @@ export function registerDatabaseHandlers(): void {
   // Playlists
 
   handle(
-    'db:playlists:get-all',
+    P.getAll,
     async () => {
       const db = getDatabase();
       return db.select().from(playlists).orderBy(desc(playlists.createdAt)).all();
@@ -476,7 +482,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:get',
+    P.get,
     async (_event, id: string) => {
       const db = getDatabase();
       return db.select().from(playlists).where(eq(playlists.id, id)).get();
@@ -485,7 +491,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:create',
+    P.create,
     async (_event, data: { name: string; description?: string; coverArt?: string }) => {
       logger.info(`[database] playlists:create: "${data.name}"`);
       const db = getDatabase();
@@ -497,7 +503,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:update',
+    P.update,
     async (
       _event,
       id: string,
@@ -515,7 +521,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:delete',
+    P.delete,
     async (_event, id: string) => {
       logger.info(`[database] playlists:delete: ${id}`);
       const db = getDatabase();
@@ -525,7 +531,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:get-tracks',
+    P.getTracks,
     async (_event, playlistId: string) => {
       const db = getDatabase();
       const rows = db
@@ -541,7 +547,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:add-track',
+    P.addTrack,
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
 
@@ -581,7 +587,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:create-with-tracks',
+    P.createWithTracks,
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
       logger.info(
         `[database] playlists:create-with-tracks: "${data.name}" (${data.trackIds.length} tracks)`
@@ -611,7 +617,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:remove-track',
+    P.removeTrack,
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
       db.delete(playlistTracks)
@@ -627,7 +633,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:get-playlists-for-tracks',
+    P.getPlaylistsForTracks,
     async (_event, trackIds: string[]) => {
       const db = getDatabase();
       const uniqueTrackIds = [...new Set(trackIds)];
@@ -647,7 +653,7 @@ export function registerDatabaseHandlers(): void {
   );
 
   handle(
-    'db:playlists:reorder',
+    P.reorder,
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
       db.transaction(tx => {
@@ -669,35 +675,35 @@ export function registerDatabaseHandlers(): void {
 }
 
 export function cleanupDatabaseHandlers(): void {
-  ipcMain.removeHandler('db:tracks:get-all');
-  ipcMain.removeHandler('db:tracks:add');
-  ipcMain.removeHandler('db:tracks:add-many');
-  ipcMain.removeHandler('db:tracks:remove');
-  ipcMain.removeHandler('db:tracks:remove-many');
-  ipcMain.removeHandler('db:tracks:update');
-  ipcMain.removeHandler('db:tracks:update-many');
-  ipcMain.removeHandler('db:tracks:toggle-favorite');
-  ipcMain.removeHandler('db:tracks:get-favorites');
-  ipcMain.removeHandler('db:tracks:increment-play-count');
-  ipcMain.removeHandler('db:tracks:exists');
-  ipcMain.removeHandler('db:tracks:exists-many');
-  ipcMain.removeHandler('db:history:record-play');
-  ipcMain.removeHandler('db:history:get-recent');
-  ipcMain.removeHandler('db:history:get-summary');
-  ipcMain.removeHandler('db:history:get-activity');
-  ipcMain.removeHandler('db:folders:get-all');
-  ipcMain.removeHandler('db:folders:add');
-  ipcMain.removeHandler('db:folders:remove');
-  ipcMain.removeHandler('db:folders:update-scanned');
-  ipcMain.removeHandler('db:playlists:get-all');
-  ipcMain.removeHandler('db:playlists:get');
-  ipcMain.removeHandler('db:playlists:create');
-  ipcMain.removeHandler('db:playlists:update');
-  ipcMain.removeHandler('db:playlists:delete');
-  ipcMain.removeHandler('db:playlists:get-tracks');
-  ipcMain.removeHandler('db:playlists:add-track');
-  ipcMain.removeHandler('db:playlists:create-with-tracks');
-  ipcMain.removeHandler('db:playlists:remove-track');
-  ipcMain.removeHandler('db:playlists:get-playlists-for-tracks');
-  ipcMain.removeHandler('db:playlists:reorder');
+  ipcMain.removeHandler(T.getAll);
+  ipcMain.removeHandler(T.add);
+  ipcMain.removeHandler(T.addMany);
+  ipcMain.removeHandler(T.remove);
+  ipcMain.removeHandler(T.removeMany);
+  ipcMain.removeHandler(T.update);
+  ipcMain.removeHandler(T.updateMany);
+  ipcMain.removeHandler(T.toggleFavorite);
+  ipcMain.removeHandler(T.getFavorites);
+  ipcMain.removeHandler(T.incrementPlayCount);
+  ipcMain.removeHandler(T.exists);
+  ipcMain.removeHandler(T.existsMany);
+  ipcMain.removeHandler(H.recordPlay);
+  ipcMain.removeHandler(H.getRecent);
+  ipcMain.removeHandler(H.getSummary);
+  ipcMain.removeHandler(H.getActivity);
+  ipcMain.removeHandler(F.getAll);
+  ipcMain.removeHandler(F.add);
+  ipcMain.removeHandler(F.remove);
+  ipcMain.removeHandler(F.updateScanned);
+  ipcMain.removeHandler(P.getAll);
+  ipcMain.removeHandler(P.get);
+  ipcMain.removeHandler(P.create);
+  ipcMain.removeHandler(P.update);
+  ipcMain.removeHandler(P.delete);
+  ipcMain.removeHandler(P.getTracks);
+  ipcMain.removeHandler(P.addTrack);
+  ipcMain.removeHandler(P.createWithTracks);
+  ipcMain.removeHandler(P.removeTrack);
+  ipcMain.removeHandler(P.getPlaylistsForTracks);
+  ipcMain.removeHandler(P.reorder);
 }
