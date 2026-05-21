@@ -8,6 +8,8 @@
     "rootDir": "./src",
     "lib": ["ES2022"],
     "types": ["node"],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "baseUrl": ".",
     "paths": {
       "@shiranami/shared": ["../../packages/shared/dist"],
