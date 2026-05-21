@@ -238,8 +238,8 @@ export function RadioView() {
           </div>
         </div>
       ) : isLoading ? (
-        <div className="flex-1 min-h-0 px-4">
-          <div className="flex h-full flex-col gap-1 overflow-hidden">
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="flex h-full flex-col gap-1 overflow-hidden px-2">
             {Array.from({ length: RADIO_SKELETON_ROWS }, (_, index) => (
               <StationRowSkeleton key={index} />
             ))}
@@ -260,23 +260,25 @@ export function RadioView() {
           />
         )
       ) : (
-        <div className="flex-1 min-h-0 px-4">
-          <List
-            rowCount={stations.length}
-            rowHeight={56}
-            overscanCount={10}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-            rowComponent={StationRow}
-            rowProps={{
-              stations,
-              currentTrackId,
-              isPlaying,
-              favorites,
-              onPlay: handlePlayStation,
-              onToggleFavorite: toggleFavorite,
-            }}
-          />
+        <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+          <div className="h-full px-2">
+            <List
+              rowCount={stations.length}
+              rowHeight={56}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={StationRow}
+              rowProps={{
+                stations,
+                currentTrackId,
+                isPlaying,
+                favorites,
+                onPlay: handlePlayStation,
+                onToggleFavorite: toggleFavorite,
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
