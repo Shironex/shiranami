@@ -2,7 +2,19 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 
-export type VisualizerStyle = 'bars' | 'waveform' | 'circle' | 'particles';
+export type VisualizerStyle =
+  | 'bars'
+  | 'waveform'
+  | 'circle'
+  | 'particles'
+  | 'mirror'
+  | 'mountain'
+  | 'rings'
+  | 'vinyl'
+  | 'liquid'
+  | 'constellation'
+  | 'vu'
+  | 'kanji';
 
 /**
  * Plain value list backing `coerceVisualizerStyle`. Kept here (not imported
@@ -14,6 +26,14 @@ export const VISUALIZER_STYLE_VALUES = [
   'waveform',
   'circle',
   'particles',
+  'mirror',
+  'mountain',
+  'rings',
+  'vinyl',
+  'liquid',
+  'constellation',
+  'vu',
+  'kanji',
 ] as const satisfies readonly VisualizerStyle[];
 
 export type LibraryViewMode = 'tracks' | 'albums';

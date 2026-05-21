@@ -25,6 +25,14 @@ export const VISUALIZER_COMPONENTS: Record<
   waveform: lazy(() => import('./WaveformVisualizer')),
   circle: lazy(() => import('./CircleVisualizer')),
   particles: lazy(() => import('./ParticleVisualizer')),
+  mirror: lazy(() => import('./MirrorVisualizer')),
+  mountain: lazy(() => import('./MountainVisualizer')),
+  rings: lazy(() => import('./RingsVisualizer')),
+  vinyl: lazy(() => import('./VinylVisualizer')),
+  liquid: lazy(() => import('./LiquidVisualizer')),
+  constellation: lazy(() => import('./ConstellationVisualizer')),
+  vu: lazy(() => import('./VuVisualizer')),
+  kanji: lazy(() => import('./KanjiVisualizer')),
 };
 
 export interface VisualizerStyleMeta {
@@ -39,4 +47,12 @@ export const VISUALIZER_STYLES: ReadonlyArray<VisualizerStyleMeta> = [
   { value: 'waveform', labelKey: 'vis.waveform', descKey: 'vis.waveformDesc' },
   { value: 'circle', labelKey: 'vis.circle', descKey: 'vis.circleDesc' },
   { value: 'particles', labelKey: 'vis.particles', descKey: 'vis.particlesDesc' },
+  { value: 'mirror', labelKey: 'vis.mirror', descKey: 'vis.mirrorDesc' },
+  { value: 'mountain', labelKey: 'vis.mountain', descKey: 'vis.mountainDesc' },
+  { value: 'rings', labelKey: 'vis.rings', descKey: 'vis.ringsDesc' },
+  { value: 'vinyl', labelKey: 'vis.vinyl', descKey: 'vis.vinylDesc' },
+  { value: 'liquid', labelKey: 'vis.liquid', descKey: 'vis.liquidDesc' },
+  { value: 'constellation', labelKey: 'vis.constellation', descKey: 'vis.constellationDesc' },
+  { value: 'vu', labelKey: 'vis.vu', descKey: 'vis.vuDesc' },
+  { value: 'kanji', labelKey: 'vis.kanji', descKey: 'vis.kanjiDesc' },
 ];

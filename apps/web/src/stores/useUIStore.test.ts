@@ -122,6 +122,54 @@ describe('useUIStore', () => {
   });
 });
 
+describe('coerceVisualizerStyle (persist merge path)', () => {
+  const ALL_STYLES = [
+    'bars',
+    'waveform',
+    'circle',
+    'particles',
+    'mirror',
+    'mountain',
+    'rings',
+    'vinyl',
+    'liquid',
+    'constellation',
+    'vu',
+    'kanji',
+  ] as const;
+
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('accepts every valid visualizer style from persisted storage', async () => {
+    for (const style of ALL_STYLES) {
+      localStorage.clear();
+      vi.resetModules();
+      localStorage.setItem(
+        STORE_KEY,
+        JSON.stringify({ state: { visualizerStyle: style }, version: 1 })
+      );
+      const { useUIStore: store } = await import('./useUIStore');
+      expect(store.getState().visualizerStyle).toBe(style);
+    }
+  });
+
+  it('falls back to "bars" for unknown / garbage values', async () => {
+    for (const garbage of ['nope', 'WAVE', 42, null, '', 'particless']) {
+      localStorage.clear();
+      vi.resetModules();
+      localStorage.setItem(
+        STORE_KEY,
+        JSON.stringify({ state: { visualizerStyle: garbage }, version: 1 })
+      );
+      const { useUIStore: store } = await import('./useUIStore');
+      expect(store.getState().visualizerStyle).toBe('bars');
+    }
+  });
+});
+
 describe('useUIStore legacy localStorage migration', () => {
   beforeEach(() => {
     localStorage.clear();
