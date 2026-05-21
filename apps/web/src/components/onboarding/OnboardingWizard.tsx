@@ -138,10 +138,14 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
   // Keyboard: → / Enter advance (or finish), ← back, Esc skips. Never hijack
   // while a text input is focused, nor while a layered Radix dialog (e.g. the
   // subfolder-playlist prompt at z-9999) is open — that overlay owns the keys.
+  // Sliders (UI scale, crossfade) consume Arrow keys for value adjustment, so a
+  // focused slider must also keep its keys instead of changing steps.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
+      const isRangeInput = tag === 'INPUT' && (target as HTMLInputElement).type === 'range';
+      if (target?.getAttribute('role') === 'slider' || isRangeInput) return;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
       if (document.querySelector('[role="dialog"][data-state="open"]')) return;
 
