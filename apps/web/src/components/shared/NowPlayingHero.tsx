@@ -6,6 +6,7 @@ import type { Track } from '@/stores/types';
 import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { cn } from '@/lib/utils';
 
 interface NowPlayingHeroProps {
@@ -68,16 +69,12 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
                   nowPlayingViewEnabled && 'cursor-pointer transition-transform hover:scale-[1.02]'
                 )}
               >
-                {currentTrack.albumArt ? (
-                  <img
-                    src={currentTrack.albumArt}
-                    alt={currentTrack.title}
-                    className="w-full h-full object-cover"
-                    decoding="async"
-                  />
-                ) : (
-                  <Music className="w-8 h-8 text-muted-foreground/40" />
-                )}
+                <TrackThumbnail
+                  fill
+                  albumArt={currentTrack.albumArt}
+                  alt={currentTrack.title}
+                  fallback={<Music className="w-8 h-8 text-muted-foreground/40" />}
+                />
               </motion.div>
             </AnimatePresence>
 

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
 import { EqBars } from '@/components/shared/EqBars';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { TrackContextMenu, type ContextMenuPosition } from '@/components/shared/TrackContextMenu';
 
 export interface TrackRowContentProps {
@@ -124,31 +125,27 @@ function TrackRowContentImpl({
         {dragHandle}
 
         <button onClick={handleClick} className="flex items-center gap-3 min-w-0 flex-1">
-          <div
+          <TrackThumbnail
+            albumArt={isSelected ? null : track.albumArt}
+            alt={track.title}
+            imgClassName="rounded-lg"
             className={cn(
-              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden relative',
+              'w-9 h-9 rounded-lg relative',
               isSelected ? 'bg-primary/20' : isActive ? 'bg-primary/15' : 'bg-surface'
             )}
-          >
-            {isSelected ? (
-              <Check className="w-4 h-4 text-primary" />
-            ) : track.albumArt ? (
-              <img
-                src={track.albumArt}
-                alt={track.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : isActive && isPlaying ? (
-              <>
-                <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
-                <EqBars />
-              </>
-            ) : (
-              <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
-            )}
-          </div>
+            fallback={
+              isSelected ? (
+                <Check className="w-4 h-4 text-primary" />
+              ) : isActive && isPlaying ? (
+                <>
+                  <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
+                  <EqBars />
+                </>
+              ) : (
+                <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
+              )
+            }
+          />
           <div className="min-w-0 flex-1">
             <p className={cn('text-sm font-medium truncate text-left', isActive && 'text-primary')}>
               {track.title}

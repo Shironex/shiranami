@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { X, Trash2, Music, Play, Pause, GripVertical } from 'lucide-react';
 import { EqBars } from '@/components/shared/EqBars';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { motion } from 'motion/react';
 import {
   DndContext,
@@ -68,19 +69,13 @@ function SortableQueueRow({
         <GripVertical className="w-3 h-3" />
       </button>
 
-      <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
-        {track.albumArt ? (
-          <img
-            src={track.albumArt}
-            alt={track.title}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover rounded-md"
-          />
-        ) : (
-          <Play className="w-3 h-3 text-muted-foreground/40" />
-        )}
-      </div>
+      <TrackThumbnail
+        albumArt={track.albumArt}
+        alt={track.title}
+        imgClassName="rounded-md"
+        className="w-8 h-8 rounded-md bg-surface"
+        fallback={<Play className="w-3 h-3 text-muted-foreground/40" />}
+      />
 
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium truncate">{track.title}</p>
@@ -111,19 +106,13 @@ function DragOverlayContent({ track }: { track: Track }) {
       <div className="shrink-0 p-0.5 text-muted-foreground/40">
         <GripVertical className="w-3 h-3" />
       </div>
-      <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden bg-surface">
-        {track.albumArt ? (
-          <img
-            src={track.albumArt}
-            alt={track.title}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover rounded-md"
-          />
-        ) : (
-          <Play className="w-3 h-3 text-muted-foreground/40" />
-        )}
-      </div>
+      <TrackThumbnail
+        albumArt={track.albumArt}
+        alt={track.title}
+        imgClassName="rounded-md"
+        className="w-8 h-8 rounded-md bg-surface"
+        fallback={<Play className="w-3 h-3 text-muted-foreground/40" />}
+      />
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium truncate">{track.title}</p>
         <p className="text-[10px] text-muted-foreground/50 truncate">{track.artist}</p>
@@ -329,31 +318,24 @@ const QueueItem = memo(function QueueItem({
       )}
       onClick={() => onPlay(index)}
     >
-      <div
-        className={cn(
-          'w-8 h-8 rounded-md flex items-center justify-center shrink-0 overflow-hidden',
-          isActive ? 'bg-primary/15' : 'bg-surface'
-        )}
-      >
-        {track.albumArt ? (
-          <img
-            src={track.albumArt}
-            alt={track.title}
-            loading="lazy"
-            decoding="async"
-            className="w-full h-full object-cover rounded-md"
-          />
-        ) : isActive && isPlaying ? (
-          <>
-            <span className="sr-only">{t('nowPlaying')}</span>
-            <EqBars size="sm" />
-          </>
-        ) : isActive ? (
-          <Pause className="w-3 h-3 text-primary" />
-        ) : (
-          <Play className="w-3 h-3 text-muted-foreground/40" />
-        )}
-      </div>
+      <TrackThumbnail
+        albumArt={track.albumArt}
+        alt={track.title}
+        imgClassName="rounded-md"
+        className={cn('w-8 h-8 rounded-md', isActive ? 'bg-primary/15' : 'bg-surface')}
+        fallback={
+          isActive && isPlaying ? (
+            <>
+              <span className="sr-only">{t('nowPlaying')}</span>
+              <EqBars size="sm" />
+            </>
+          ) : isActive ? (
+            <Pause className="w-3 h-3 text-primary" />
+          ) : (
+            <Play className="w-3 h-3 text-muted-foreground/40" />
+          )
+        }
+      />
 
       <div className="min-w-0 flex-1">
         <p className={cn('text-xs font-medium truncate', isActive && 'text-primary')}>

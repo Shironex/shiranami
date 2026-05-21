@@ -19,6 +19,7 @@ import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-rea
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 
 import { TimeDisplay } from './TimeDisplay';
 
@@ -84,16 +85,12 @@ export function PlayerBar() {
                   nowPlayingViewEnabled && 'cursor-pointer'
                 )}
               >
-                {currentTrack.albumArt ? (
-                  <img
-                    src={currentTrack.albumArt}
-                    alt={currentTrack.album}
-                    className="w-full h-full object-cover"
-                    decoding="async"
-                  />
-                ) : (
-                  <Music className="w-6 h-6 text-muted-foreground/50" />
-                )}
+                <TrackThumbnail
+                  fill
+                  albumArt={currentTrack.albumArt}
+                  alt={currentTrack.album}
+                  fallback={<Music className="w-6 h-6 text-muted-foreground/50" />}
+                />
               </motion.div>
             </AnimatePresence>
 
