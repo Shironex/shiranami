@@ -77,11 +77,8 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       <SplashLamp disabled={disableBreathLoop} />
       <SplashGlass />
 
-      {/* Layer 3: Wordmark — centered, slightly above true vertical center */}
-      <div
-        className="relative z-10 flex flex-col items-center justify-center pointer-events-none"
-        style={{ marginTop: '-2vh' }}
-      >
+      {/* Layer 3: Wordmark — big off-center 白波 reflection */}
+      <div className="pointer-events-none">
         <SplashWordmark reducedMotion={reducedMotion} />
       </div>
 
