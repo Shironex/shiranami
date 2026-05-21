@@ -379,6 +379,52 @@
   --status-success-rgb: 110, 231, 183;
 }
 
+/* ── Theme image + per-theme accent ──────────────────────────────────────
+   "none" is the default and is intentionally ABSENT here: with no data-theme
+   attribute the app renders from :root only (byte-identical to today). Each
+   block below redefines ONLY the tokens that change; everything else inherits
+   :root. --theme-bg is consumed by .theme-bg-image (ThemeBackground). The
+   --primary-rgb triplets mirror each --primary so the canvas visualizers and
+   inline glows (which read the raw triplet) stay in sync with the accent. */
+
+/* Lofi Night — today's "Midnight Lofi Cafe" palette as a photo.
+   ACCENT UNCHANGED on purpose (keeps today's violet). Image only. */
+[data-theme='lofi-night'] {
+  --theme-bg: url('./themes/lofi-night.webp');
+}
+
+/* Snow — cool blue twilight */
+[data-theme='snow'] {
+  --primary: oklch(0.74 0.12 250);
+  --primary-rgb: 138, 170, 235;
+  --ring: var(--primary);
+  --theme-bg: url('./themes/snow.webp');
+}
+
+/* Summer — bright lake daytime, cool cyan-blue accent */
+[data-theme='summer'] {
+  --primary: oklch(0.74 0.13 220);
+  --primary-rgb: 96, 184, 224;
+  --ring: var(--primary);
+  --theme-bg: url('./themes/summer.webp');
+}
+
+/* Sunset — warm orange */
+[data-theme='sunset'] {
+  --primary: oklch(0.78 0.15 45);
+  --primary-rgb: 240, 158, 96;
+  --ring: var(--primary);
+  --theme-bg: url('./themes/sunset.webp');
+}
+
+/* Wisteria — purple/pink spring dusk */
+[data-theme='wisteria'] {
+  --primary: oklch(0.74 0.13 315);
+  --primary-rgb: 205, 142, 230;
+  --ring: var(--primary);
+  --theme-bg: url('./themes/wisteria.webp');
+}
+
 /* Sonner toast – override default dark-theme colors with app tokens */
 [data-sonner-toaster][data-sonner-theme='dark'] {
   --normal-bg: var(--card);
@@ -498,4 +544,49 @@
 [data-perf-mode='low'] .glass-subtle {
   backdrop-filter: none;
   background: oklch(0.08 0.02 280 / 0.88);
+}
+
+/* ── Theme image paint surface (ThemeBackground) ─────────────────────────
+   Lives outside @layer so --theme-bg resolves from the active [data-theme]
+   block and the degraded-mode overrides below can reliably target it. The
+   image is a single static bitmap with no animation or blur, so it is cheap
+   enough to keep in BOTH low-perf and reduced-transparency modes (only the
+   animated glow and backdrop blurs are dropped). */
+
+/* First-paint fallback = solid --background so the shell never flashes empty
+   before the WebP decodes (background-image loads async, never blocks paint). */
+.theme-bg-image {
+  background-color: var(--background);
+  background-image: var(--theme-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Contrast scrim — the WCAG must-fix. A dark top-to-bottom wash keeps light
+   foreground text legible over the bright themes (summer/sunset). Ships WITH
+   the image (same component), never after, so no theme renders un-scrimmed.
+   The bottom stop (0.68) is slightly heavier than the top (0.55) to push the
+   bright horizon/water band toward a luminance where --foreground clears
+   4.5:1; the lighter top keeps the dark themes from going muddy. */
+.theme-bg-scrim {
+  background:
+    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.55) 0%, oklch(0.04 0.012 280 / 0.68) 100%),
+    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.55), transparent 70%);
+}
+
+/* prefers-reduced-transparency: drop backdrop blur on glass, stay legible via
+   higher opacity. Mirrors the low-perf .glass override intent. Kept outside
+   @layer (same region as the low-perf rules) so it reliably beats the
+   @utility definitions. The theme image itself is retained — it is opaque,
+   not a transparency effect. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    backdrop-filter: none;
+    background: oklch(0.1 0.02 280 / 0.92);
+  }
+  .glass-subtle {
+    backdrop-filter: none;
+    background: oklch(0.08 0.02 280 / 0.88);
+  }
 }
