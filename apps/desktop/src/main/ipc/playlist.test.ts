@@ -114,6 +114,23 @@ describe('parseSpotifyEmbedHtml', () => {
     expect(tracks.map(t => t.title)).toEqual(['Janice STFU', 'Babydoll', 'DAISIES']);
   });
 
+  // V4 regression: the old non-greedy regex stopped at the first `]` in any
+  // nested array (e.g. `"contentRatings":{"labels":["EXPLICIT"]}`), so fallbackA
+  // always yielded zero tracks on a real-shaped embed. The bracket-depth scanner
+  // must correctly extract the full trackList even when nested arrays are present.
+  it('extracts tracks via fallbackA bracket scanner when __NEXT_DATA__ is absent (V4 regression)', () => {
+    // Minimal HTML: no __NEXT_DATA__ script tag; a bare trackList key with nested arrays.
+    const fallbackHtml = `<html><body><script>
+var data = {"trackList":[
+  {"title":"Song One","subtitle":"Artist A","duration":180000,"contentRatings":{"labels":["EXPLICIT"]}},
+  {"title":"Song Two","subtitle":"Artist B","duration":240000,"contentRatings":{"labels":[]}}
+]}</script></body></html>`;
+    const tracks = parseSpotifyEmbedHtml(fallbackHtml);
+    expect(tracks).toHaveLength(2);
+    expect(tracks.map(t => t.title)).toEqual(['Song One', 'Song Two']);
+    expect(tracks.map(t => t.artist)).toEqual(['Artist A', 'Artist B']);
+  });
+
   // Regression guard for the original bug: the parser read artists[].name and
   // never `subtitle`, so every artist came back "Unknown". The artist MUST come
   // from `subtitle`.

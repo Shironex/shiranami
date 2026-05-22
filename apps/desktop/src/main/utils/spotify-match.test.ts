@@ -33,6 +33,13 @@ describe('normalizeForMatch', () => {
   it('collapses punctuation and whitespace', () => {
     expect(normalizeForMatch('A.B - C!!  D')).toBe('a b c d');
   });
+
+  // V3 regression: "with" is a common preposition and must NOT be stripped.
+  it('keeps "with" in song titles (V3 regression)', () => {
+    expect(normalizeForMatch('Stay With Me')).toBe('stay with me');
+    expect(normalizeForMatch('Walking with a Ghost')).toBe('walking with a ghost');
+    expect(normalizeForMatch('Live With Me')).toBe('live with me');
+  });
 });
 
 describe('tokenSimilarity', () => {
@@ -115,6 +122,66 @@ describe('scoreCandidate', () => {
     );
     // The remix word is legitimate here, so the candidate stays high.
     expect(withWord).toBeGreaterThan(0.7);
+  });
+});
+
+describe('forbiddenHitCount (via scoreCandidate)', () => {
+  // V5 regression: "Alive" contains "live" as a substring but must NOT suppress
+  // the live-penalty for a candidate that truly is a live recording.
+  it('penalizes "Band - Live" even when Spotify track is titled "Alive" (V5 regression)', () => {
+    const aliveTrack: SpotifyTrack = {
+      title: 'Alive',
+      artist: 'Pearl Jam',
+      durationSec: 220,
+    };
+    const liveCandidateScore = scoreCandidate(
+      aliveTrack,
+      candidate({ title: 'Band - Live at the Garden', duration: 340 })
+    );
+    const studioScore = scoreCandidate(
+      aliveTrack,
+      candidate({ title: 'Pearl Jam - Alive', duration: 221 })
+    );
+    expect(studioScore).toBeGreaterThan(liveCandidateScore);
+  });
+
+  // V5 regression: a track whose own Spotify title is "... (Live)" must suppress
+  // the live-penalty for a matching live candidate.
+  it('does NOT penalize live candidate when Spotify track title legitimately contains "live" (V5 regression)', () => {
+    const officialLiveTrack: SpotifyTrack = {
+      title: 'Something in the Way (Live)',
+      artist: 'Nirvana',
+      durationSec: 230,
+    };
+    const scoreWithLive = scoreCandidate(
+      officialLiveTrack,
+      candidate({ title: 'Nirvana - Something in the Way (Live)', duration: 232 })
+    );
+    const scoreWithoutLive = scoreCandidate(
+      officialLiveTrack,
+      candidate({ title: 'Nirvana - Something in the Way', duration: 232 })
+    );
+    // Both should be similarly scored; the live word must not cause a penalty
+    // when the Spotify track itself is the live release.
+    expect(scoreWithLive).toBeGreaterThanOrEqual(scoreWithoutLive - 0.01);
+  });
+
+  // V5 regression: "Song - Remix" / "Song -Remix-" must register the remix penalty.
+  it('penalizes "Song -Remix-" (adjacent punctuation, V5 regression)', () => {
+    const studioTrack: SpotifyTrack = {
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      durationSec: 248,
+    };
+    const remixDashScore = scoreCandidate(
+      studioTrack,
+      candidate({ title: 'Get Lucky -Remix-', duration: 248 })
+    );
+    const cleanScore = scoreCandidate(
+      studioTrack,
+      candidate({ title: 'Daft Punk - Get Lucky', duration: 248 })
+    );
+    expect(cleanScore).toBeGreaterThan(remixDashScore);
   });
 });
 

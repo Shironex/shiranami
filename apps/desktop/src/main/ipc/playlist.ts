@@ -186,10 +186,56 @@ export function parseSpotifyEmbedHtml(html: string): SpotifyTrack[] {
   }
 
   // Fallback A: a bare "trackList": [...] array anywhere in the HTML.
+  // A non-greedy regex stops at the first `]`, which breaks on nested arrays
+  // (e.g. `"contentRatings":{"labels":["EXPLICIT"]}`). Instead we scan by
+  // bracket depth to capture the full top-level array.
   const fallbackA: SpotifyTrack[] = [];
-  for (const match of html.matchAll(/"trackList"\s*:\s*(\[[\s\S]*?\])\s*[,}]/g)) {
+  const trackListKey = '"trackList"';
+  let searchFrom = 0;
+  while (true) {
+    const keyIdx = html.indexOf(trackListKey, searchFrom);
+    if (keyIdx === -1) break;
+    // Advance past the key, optional whitespace, colon, optional whitespace, then '['.
+    let i = keyIdx + trackListKey.length;
+    while (
+      i < html.length &&
+      (html[i] === ' ' || html[i] === '\t' || html[i] === '\n' || html[i] === '\r')
+    )
+      i++;
+    if (html[i] !== ':') {
+      searchFrom = keyIdx + 1;
+      continue;
+    }
+    i++;
+    while (
+      i < html.length &&
+      (html[i] === ' ' || html[i] === '\t' || html[i] === '\n' || html[i] === '\r')
+    )
+      i++;
+    if (html[i] !== '[') {
+      searchFrom = keyIdx + 1;
+      continue;
+    }
+    const start = i;
+    let depth = 0;
+    while (i < html.length) {
+      if (html[i] === '[') depth++;
+      else if (html[i] === ']') {
+        depth--;
+        if (depth === 0) break;
+      } else if (html[i] === '"') {
+        i++;
+        while (i < html.length && html[i] !== '"') {
+          if (html[i] === '\\') i++;
+          i++;
+        }
+      }
+      i++;
+    }
+    const end = i + 1;
+    searchFrom = end;
     try {
-      const trackList = JSON.parse(match[1]);
+      const trackList = JSON.parse(html.slice(start, end));
       if (!Array.isArray(trackList)) continue;
       for (const item of trackList) {
         if (!item || typeof item !== 'object') continue;
@@ -219,7 +265,13 @@ export function parseSpotifyEmbedHtml(html: string): SpotifyTrack[] {
     }
   }
 
-  // Return whichever fallback produced anything (A preferred), else empty.
+  // Prefer fallbackB when it has real tracks — fallbackA at this point has
+  // no real (non-"Unknown") artists (already checked above), so discarding it
+  // in favour of real-track fallbackB is always correct.
+  if (fallbackB.some(isRealTrack)) {
+    return fallbackB;
+  }
+  // No fallback produced real tracks; return any parsed tracks (A preferred), else empty.
   return fallbackA.length > 0 ? fallbackA : fallbackB;
 }
 

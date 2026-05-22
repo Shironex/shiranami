@@ -77,9 +77,10 @@ const DURATION_DECAY = 0.1;
 const DURATION_EXACT_WINDOW_SEC = 4;
 
 /**
- * Lowercase, strip diacritics, drop feat./with credits and all bracketed /
- * parenthetical noise, and collapse punctuation to spaces. Used for both title
- * and artist comparison so "Söng (Official Video) feat. X" and "song" align.
+ * Lowercase, strip diacritics, drop feat./ft./featuring credits and all
+ * bracketed / parenthetical noise, and collapse punctuation to spaces. Used
+ * for both title and artist comparison so "Söng (Official Video) feat. X"
+ * and "song" align.
  */
 export function normalizeForMatch(value: string): string {
   return value
@@ -87,7 +88,7 @@ export function normalizeForMatch(value: string): string {
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/\s*[([{][^)\]}]*[)\]}]/g, ' ')
-    .replace(/\s\b(?:feat\.?|ft\.?|featuring|with)\s+.*$/i, ' ')
+    .replace(/\s\b(?:feat\.?|ft\.?|featuring)\s+.*$/i, ' ')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
@@ -144,19 +145,15 @@ export function isTopicChannel(uploader: string): boolean {
  * against the matching candidate.
  */
 function forbiddenHitCount(candidateTitle: string, track: SpotifyTrack): number {
-  const candidate = ` ${candidateTitle.toLowerCase()} `;
-  const ownText = ` ${track.title.toLowerCase()} ${(track.album ?? '').toLowerCase()} `;
+  const candidate = ` ${candidateTitle.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `;
+  const ownText = ` ${track.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} ${(track.album ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `;
 
   let hits = 0;
   for (const word of FORBIDDEN_WORDS) {
     const padded = ` ${word} `;
-    const inCandidate =
-      candidate.includes(padded) ||
-      candidate.includes(`(${word})`) ||
-      candidate.includes(`[${word}]`);
-    if (!inCandidate) continue;
+    if (!candidate.includes(padded)) continue;
     // Suppress the penalty if the Spotify metadata legitimately uses the word.
-    if (ownText.includes(word)) continue;
+    if (ownText.includes(padded)) continue;
     hits += 1;
   }
   return hits;
