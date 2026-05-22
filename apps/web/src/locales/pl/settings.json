@@ -109,9 +109,7 @@
     "rememberDesc": "Wznawiaj utwory od miejsca, w którym skończyłeś",
     "crossfade": "Crossfade",
     "crossfadeDesc": "Płynne przejście głośności między utworami",
-    "duration": "Czas trwania",
-    "discordRpc": "Discord Rich Presence",
-    "discordDesc": "Pokazuj aktualnie odtwarzany utwór w Discordzie"
+    "duration": "Czas trwania"
   },
   "vis": {
     "title": "Wizualizator",

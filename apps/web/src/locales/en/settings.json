@@ -109,9 +109,7 @@
     "rememberDesc": "Resume tracks from where you left off",
     "crossfade": "Crossfade",
     "crossfadeDesc": "Smooth volume transition between tracks",
-    "duration": "Duration",
-    "discordRpc": "Discord Rich Presence",
-    "discordDesc": "Show currently playing track in Discord"
+    "duration": "Duration"
   },
   "vis": {
     "title": "Visualizer",
