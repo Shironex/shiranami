@@ -44,6 +44,7 @@
 
   --animate-fade-in: fadeIn 0.3s ease-out;
   --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-slide-down: slideDown 0.3s ease-out;
   --animate-pulse-subtle: pulseSubtle 3s ease-in-out infinite;
 
   /* Side-to-side scroll for overflow text. Translates the inner span between
@@ -78,6 +79,16 @@
     0% {
       opacity: 0;
       transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slideDown {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
     }
     100% {
       opacity: 1;

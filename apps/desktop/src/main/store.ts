@@ -35,6 +35,8 @@ export interface StoreSchema {
   theme: 'light' | 'dark' | 'system';
   'app.language': string;
   'app.onboardingCompleted': boolean;
+  // Support launch banner — shown once ever, after onboarding.
+  'app.supportBannerSeen': boolean;
   'metadata-enrich.skippedIds': string[];
 
   // Main-only (downloader.ts).

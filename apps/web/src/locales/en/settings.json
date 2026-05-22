@@ -16,7 +16,8 @@
     "compact": "Mini-player window settings",
     "appearance": "Interface look and feel",
     "updates": "Application update channel",
-    "about": "About this application"
+    "about": "About this application",
+    "support": "Support the project"
   },
   "musicFolders": "Music Folders",
   "library": "Library",
@@ -29,6 +30,7 @@
   "appearance": "Appearance",
   "updates": "Updates",
   "about": "About",
+  "support": "Support",
   "language": "Language",
   "folders": {
     "title": "Music Folders",
@@ -328,20 +330,27 @@
     "changelog": "Changelog",
     "storyTitle": "The story",
     "storySubtitle": "From the author. I just wanted this app to exist.",
-    "storyP1Pre": "Shiranami started with a simple thought. I didn't want to pay Spotify every month just to keep ",
-    "storyP1Bold": "music looping while I work",
-    "storyP1Post": ". So I made my own.",
-    "storyP2Pre": "It's part of the Shiro Suite, a small set of tools I'm building. Three are public so far: ",
-    "storyP2Bold": "Shiranami · ShiroAni · KireiManga",
-    "storyP2Post": ". Each one does one thing the way I wanted it to work.",
-    "storyP3Pre": "I like building tools that work for me, and they end up working for someone else too. If that's you, ",
-    "storyP3Bold": "thanks for being here",
-    "storyP3Post": ".",
+    "storyP1": "Shiranami started with a simple thought. I didn't want to pay Spotify every month just to keep <1>music looping while I work</1>. So I made my own.",
+    "storyP2": "It's part of the Shiro Suite, a small set of tools I'm building. Three are public so far: <1>Shiranami · ShiroAni · KireiManga</1>. Each one does one thing the way I wanted it to work.",
+    "storyP3": "I like building tools that work for me, and they end up working for someone else too. If that's you, <1>thanks for being here</1>.",
     "logsTitle": "Application logs",
     "logsSubtitle": "Open the log folder in your file explorer",
     "openLogs": "Open logs folder",
     "replayTitle": "Replay onboarding",
     "replaySubtitle": "Step through the first-run setup again",
     "replayButton": "Replay setup"
+  },
+  "sup": {
+    "title": "Support",
+    "subtitle": "From the author. If Shiranami earns a spot in your day.",
+    "p1": "Shiranami is free, has no ads, and never will. I build it in my spare time because I wanted <1>a player that just plays</1>: no account, no subscription, no noise.",
+    "p2": "If it's become part of your routine and you'd like to give a little back, you can <1>buy me a coffee</1>. It's completely optional and means more than you'd think.",
+    "p3": "Either way, whether you chip in or just keep listening, <1>thanks for being here</1>.",
+    "action": "Buy me a coffee"
+  },
+  "supportBanner": {
+    "message": "Enjoying Shiranami? It's free and ad-free, built by one person.",
+    "action": "Buy me a coffee",
+    "dismiss": "Dismiss"
   }
 }

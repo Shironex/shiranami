@@ -16,7 +16,8 @@
     "compact": "Ustawienia mini-odtwarzacza",
     "appearance": "Wygląd i styl interfejsu",
     "updates": "Kanał aktualizacji aplikacji",
-    "about": "Informacje o aplikacji"
+    "about": "Informacje o aplikacji",
+    "support": "Wesprzyj projekt"
   },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
@@ -29,6 +30,7 @@
   "appearance": "Wygląd",
   "updates": "Aktualizacje",
   "about": "O aplikacji",
+  "support": "Wsparcie",
   "language": "Język",
   "folders": {
     "title": "Foldery muzyki",
@@ -328,20 +330,27 @@
     "changelog": "Historia zmian",
     "storyTitle": "Historia",
     "storySubtitle": "Od autora. Po prostu chcia\u0142em, \u017ceby taka aplikacja istnia\u0142a.",
-    "storyP1Pre": "Shiranami zacz\u0119\u0142o si\u0119 od prostej my\u015bli. Nie chcia\u0142em p\u0142aci\u0107 co miesi\u0105c za Spotify tylko po to, \u017ceby mie\u0107 ",
-    "storyP1Bold": "muzykę grającą w tle podczas pracy",
-    "storyP1Post": ". Wi\u0119c zrobi\u0142em w\u0142asny.",
-    "storyP2Pre": "To cz\u0119\u015b\u0107 Shiro Suite, niewielkiego zestawu narz\u0119dzi, kt\u00f3ry buduj\u0119. Na razie s\u0105 trzy: ",
-    "storyP2Bold": "Shiranami \u00b7 ShiroAni \u00b7 KireiManga",
-    "storyP2Post": ". Ka\u017cda aplikacja robi jedn\u0105 rzecz tak, jak chcia\u0142em, \u017ceby dzia\u0142a\u0142a.",
-    "storyP3Pre": "Lubi\u0119 tworzy\u0107 narz\u0119dzia, kt\u00f3re dzia\u0142aj\u0105 dla mnie, a okazuj\u0105 si\u0119 dzia\u0142a\u0107 te\u017c dla kogo\u015b innego. Je\u015bli to o Tobie, ",
-    "storyP3Bold": "ciesz\u0119 si\u0119, \u017ce tu jeste\u015b",
-    "storyP3Post": ".",
+    "storyP1": "Shiranami zaczęło się od prostej myśli. Nie chciałem płacić co miesiąc za Spotify tylko po to, żeby mieć <1>muzykę grającą w tle podczas pracy</1>. Więc zrobiłem własny.",
+    "storyP2": "To część Shiro Suite, niewielkiego zestawu narzędzi, który buduję. Na razie są trzy: <1>Shiranami · ShiroAni · KireiManga</1>. Każda aplikacja robi jedną rzecz tak, jak chciałem, żeby działała.",
+    "storyP3": "Lubię tworzyć narzędzia, które działają dla mnie, a okazują się działać też dla kogoś innego. Jeśli to o Tobie, <1>cieszę się, że tu jesteś</1>.",
     "logsTitle": "Logi aplikacji",
     "logsSubtitle": "Otw\u00f3rz folder z logami w eksploratorze plik\u00f3w",
     "openLogs": "Otw\u00f3rz folder log\u00f3w",
     "replayTitle": "Powt\u00f3rz wprowadzenie",
     "replaySubtitle": "Przejd\u017a ponownie przez konfiguracj\u0119 pierwszego uruchomienia",
     "replayButton": "Powt\u00f3rz konfiguracj\u0119"
+  },
+  "sup": {
+    "title": "Wsparcie",
+    "subtitle": "Od autora. Je\u015bli Shiranami znalaz\u0142o miejsce w Twoim dniu.",
+    "p1": "Shiranami jest darmowe, bez reklam i takie pozostanie. Tworz\u0119 je po godzinach, bo chcia\u0142em <1>odtwarzacz, kt\u00f3ry po prostu gra</1>: bez konta, bez subskrypcji, bez szumu.",
+    "p2": "Je\u015bli wesz\u0142o Ci w nawyk i chcesz si\u0119 odwdzi\u0119czy\u0107, mo\u017cesz <1>postawi\u0107 mi kaw\u0119</1>. To ca\u0142kowicie opcjonalne i znaczy wi\u0119cej, ni\u017c my\u015blisz.",
+    "p3": "Tak czy inaczej, czy dorzucisz si\u0119, czy po prostu s\u0142uchasz dalej, <1>dzi\u0119kuj\u0119, \u017ce tu jeste\u015b</1>.",
+    "action": "Postaw mi kaw\u0119"
+  },
+  "supportBanner": {
+    "message": "Podoba Ci si\u0119 Shiranami? Jest darmowe i bez reklam, tworzone przez jedn\u0105 osob\u0119.",
+    "action": "Postaw mi kaw\u0119",
+    "dismiss": "Zamknij"
   }
 }
