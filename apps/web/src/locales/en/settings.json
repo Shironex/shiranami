@@ -261,6 +261,16 @@
         "sunset": "Sunset",
         "wisteria": "Wisteria"
       }
+    },
+    "bgAdjust": {
+      "title": "Background adjustments",
+      "opacity": "Image opacity",
+      "opacityDesc": "How visible the background image is",
+      "blur": "Blur",
+      "blurDesc": "Soften the background image edges",
+      "dim": "Dim overlay",
+      "dimDesc": "Dark layer over the image to keep text readable",
+      "reset": "Reset"
     }
   },
   "dl": {
