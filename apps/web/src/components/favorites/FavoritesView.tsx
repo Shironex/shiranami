@@ -57,7 +57,7 @@ export function FavoritesView() {
         <ViewEmptyState title={t('emptyTitle')} subtitle={t('emptySubtitle')} icon={Heart} />
       ) : (
         <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
-          <div className="h-full px-2">
+          <div className="h-full px-2 py-1.5">
             <List
               rowCount={favorites.length}
               rowHeight={52}

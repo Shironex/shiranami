@@ -1,4 +1,5 @@
 {
+  "pageTitle": "Import playlist",
   "urlPlaceholder": "Paste a YouTube or Spotify playlist URL...",
   "extract": "Extract",
   "resolvingTrack": "Resolving track {{current}}/{{total}}: {{name}}",

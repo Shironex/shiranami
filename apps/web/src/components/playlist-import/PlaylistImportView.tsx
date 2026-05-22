@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react';
 import { Link, Loader2, AlertCircle, X, Download, ListMusic } from 'lucide-react';
 import { ViewEmptyState } from '../shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { List } from 'react-window';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -74,10 +75,11 @@ export function PlaylistImportView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
+      <PageHeader title={t('pageTitle')} />
+      {/* URL input + controls */}
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
-          <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55 pointer-events-none" />
           <Input
             ref={inputRef}
             type="text"
@@ -87,7 +89,7 @@ export function PlaylistImportView() {
             placeholder={t('urlPlaceholder')}
             disabled={isExtracting || isImporting}
             className={cn(
-              'h-auto w-full pl-10 pr-24 py-2.5 rounded-xl text-sm bg-card border-border/50',
+              'h-auto w-full pl-10 pr-24 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               'text-foreground placeholder:text-muted-foreground/50',
               'focus-visible:ring-primary/40 focus-visible:border-primary/40',
               'shadow-none'
@@ -201,7 +203,7 @@ export function PlaylistImportView() {
         </div>
       ) : (
         <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
-          <div className="h-full px-2">
+          <div className="h-full px-2 py-1.5">
             <List
               rowCount={tracks.length}
               rowHeight={52}

@@ -142,7 +142,7 @@ export function SearchView() {
       <PageHeader title={t('pageTitle')} />
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55 pointer-events-none" />
           <Input
             ref={inputRef}
             type="text"

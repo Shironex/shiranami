@@ -1,4 +1,5 @@
 {
+  "pageTitle": "Importuj playlistę",
   "urlPlaceholder": "Wklej link do playlisty YouTube lub Spotify...",
   "extract": "Wczytaj listę",
   "resolvingTrack": "Dopasowywanie utworu {{current}}/{{total}}: {{name}}",
