@@ -17,11 +17,6 @@ export function SupportBanner() {
 
   if (seen) return null;
 
-  const openCoffeeLink = () => {
-    window.open(BUY_ME_A_COFFEE_URL, '_blank', 'noopener,noreferrer');
-    setSeen();
-  };
-
   return (
     <div
       role="status"
@@ -30,13 +25,15 @@ export function SupportBanner() {
     >
       <Coffee className="size-3.5 text-primary" aria-hidden="true" />
       <span>{t('supportBanner.message')}</span>
-      <button
-        type="button"
-        onClick={openCoffeeLink}
+      <a
+        href={BUY_ME_A_COFFEE_URL}
+        target="_blank"
+        rel="noreferrer"
+        onClick={setSeen}
         className="ml-1 rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {t('supportBanner.action')}
-      </button>
+      </a>
       <button
         type="button"
         onClick={setSeen}

@@ -349,15 +349,9 @@
   "sup": {
     "title": "Support",
     "subtitle": "From the author. If Shiranami earns a spot in your day.",
-    "p1Pre": "Shiranami is free, has no ads, and never will. I build it in my spare time because I wanted ",
-    "p1Bold": "a player that just plays",
-    "p1Post": ": no account, no subscription, no noise.",
-    "p2Pre": "If it's become part of your routine and you'd like to give a little back, you can ",
-    "p2Bold": "buy me a coffee",
-    "p2Post": ". It's completely optional and means more than you'd think.",
-    "p3Pre": "Either way, whether you chip in or just keep listening, ",
-    "p3Bold": "thanks for being here",
-    "p3Post": ".",
+    "p1": "Shiranami is free, has no ads, and never will. I build it in my spare time because I wanted <1>a player that just plays</1>: no account, no subscription, no noise.",
+    "p2": "If it's become part of your routine and you'd like to give a little back, you can <1>buy me a coffee</1>. It's completely optional and means more than you'd think.",
+    "p3": "Either way, whether you chip in or just keep listening, <1>thanks for being here</1>.",
     "action": "Buy me a coffee"
   },
   "supportBanner": {
