@@ -1,6 +1,7 @@
 import { useRef, useCallback } from 'react';
 import { Link, Loader2, AlertCircle, X, Download, ListMusic } from 'lucide-react';
 import { ViewEmptyState } from '../shared/ViewEmptyState';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { List } from 'react-window';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -74,7 +75,8 @@ export function PlaylistImportView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
+      <PageHeader title={t('pageTitle')} />
+      {/* URL input + controls */}
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
           <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
