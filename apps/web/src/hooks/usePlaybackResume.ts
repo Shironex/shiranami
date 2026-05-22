@@ -17,6 +17,7 @@ interface PersistedPlayerState {
 }
 
 const PLAYER_STATE_KEY = 'player-state';
+const PERSIST_INTERVAL_MS = 1000;
 
 function buildPersistedState(): PersistedPlayerState | null {
   const { currentTrack, queue, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
@@ -203,7 +204,7 @@ export function usePlaybackResume(enabled = true) {
   useEffect(() => {
     if (!IS_ELECTRON || !enabled || !isReady || !isRestoreResolved) return;
 
-    const intervalId = window.setInterval(() => persistState(), 1000);
+    const intervalId = window.setInterval(() => persistState(), PERSIST_INTERVAL_MS);
     // Always flush on unload and on teardown so the final position is never lost.
     const flush = () => persistState(true);
     window.addEventListener('beforeunload', flush);

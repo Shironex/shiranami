@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 
 export type LyricsFontSize = 'sm' | 'base' | 'lg' | 'xl';
 
@@ -145,66 +144,56 @@ interface LyricsAppearanceActions {
   resetLyricsAppearance: () => void;
 }
 
-export const useLyricsAppearanceStore = create<LyricsAppearanceState & LyricsAppearanceActions>()(
-  persist(
-    set => ({
-      lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
-      lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-      lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
-      lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+export const useLyricsAppearanceStore = createPersistedStore<
+  LyricsAppearanceState & LyricsAppearanceActions
+>(
+  set => ({
+    lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+    lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+    lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
+    lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
 
-      setLyricsPlainOpacity: value => {
-        set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
-      },
-      setLyricsPlainFontSize: size => {
-        set({ lyricsPlainFontSize: coerceLyricsPlainFontSize(size) });
-      },
-      resetLyricsPlainAppearance: () => {
-        set({
-          lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
-          lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-        });
-      },
-      setLyricsSyncedDimOpacity: value => {
-        set({ lyricsSyncedDimOpacity: coerceLyricsSyncedDimOpacity(value) });
-      },
-      setLyricsSyncedFontSize: size => {
-        set({ lyricsSyncedFontSize: coerceLyricsSyncedFontSize(size) });
-      },
-      resetLyricsAppearance: () => {
-        set({
-          lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
-          lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-          lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
-          lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
-        });
-      },
+    setLyricsPlainOpacity: value => {
+      set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
+    },
+    setLyricsPlainFontSize: size => {
+      set({ lyricsPlainFontSize: coerceLyricsPlainFontSize(size) });
+    },
+    resetLyricsPlainAppearance: () => {
+      set({
+        lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+        lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+      });
+    },
+    setLyricsSyncedDimOpacity: value => {
+      set({ lyricsSyncedDimOpacity: coerceLyricsSyncedDimOpacity(value) });
+    },
+    setLyricsSyncedFontSize: size => {
+      set({ lyricsSyncedFontSize: coerceLyricsSyncedFontSize(size) });
+    },
+    resetLyricsAppearance: () => {
+      set({
+        lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
+        lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
+        lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
+        lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+      });
+    },
+  }),
+  {
+    name: STORE_KEY,
+    version: 1,
+    partialize: (s): PersistedLyricsAppearanceState => ({
+      lyricsPlainOpacity: s.lyricsPlainOpacity,
+      lyricsPlainFontSize: s.lyricsPlainFontSize,
+      lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
+      lyricsSyncedFontSize: s.lyricsSyncedFontSize,
     }),
-    {
-      name: STORE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s): PersistedLyricsAppearanceState => ({
-        lyricsPlainOpacity: s.lyricsPlainOpacity,
-        lyricsPlainFontSize: s.lyricsPlainFontSize,
-        lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
-        lyricsSyncedFontSize: s.lyricsSyncedFontSize,
-      }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...sanitize(persisted as Partial<PersistedLyricsAppearanceState>),
-      }),
-    }
-  )
+    sanitize: (persisted, current) => ({
+      ...current,
+      ...sanitize(persisted as Partial<PersistedLyricsAppearanceState>),
+    }),
+  }
 );
 
-if (import.meta.hot) {
-  type HmrData = { store?: typeof useLyricsAppearanceStore };
-  const hot = import.meta.hot;
-  const data = (hot.data ?? {}) as HmrData;
-  if (data.store) {
-    useLyricsAppearanceStore.setState(data.store.getState());
-  }
-  data.store = useLyricsAppearanceStore;
-  hot.accept();
-}
+acceptStoreHmr(useLyricsAppearanceStore, import.meta.hot);

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useViewStore } from '@/stores/useViewStore';
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { withToast } from '@/hooks/useToastMutation';
 import {
   useUpdatePlaylistMutation,
   useDeletePlaylistMutation,
@@ -30,51 +30,56 @@ export function usePlaylistMutations({ playlistId, playlist }: UsePlaylistMutati
       const trimmed = name.trim();
       if (!trimmed || !playlistId || !playlist) return false;
       if (trimmed === playlist.name) return false;
-      try {
-        await updateMutation.mutateAsync({ id: playlistId, data: { name: trimmed } });
-        toast.success(tToast('playlistRenamed'));
-        return true;
-      } catch {
-        toast.error(tToast('failedRename'));
-        return false;
-      }
+      const result = await withToast({
+        mutate: async () => {
+          await updateMutation.mutateAsync({ id: playlistId, data: { name: trimmed } });
+          return true;
+        },
+        successMessage: 'playlistRenamed',
+        errorMessage: 'failedRename',
+        logLabel: 'Failed to rename playlist',
+      });
+      return result ?? false;
     },
-    [playlistId, playlist, updateMutation, tToast]
+    [playlistId, playlist, updateMutation]
   );
 
   const handleDelete = useCallback(async () => {
     if (!playlistId) return;
-    try {
-      await deleteMutation.mutateAsync(playlistId);
-      toast.success(tToast('playlistDeleted'));
-      selectPlaylist(null);
-    } catch {
-      toast.error(tToast('failedDeletePlaylist'));
-    }
-  }, [playlistId, deleteMutation, selectPlaylist, tToast]);
+    const result = await withToast({
+      mutate: async () => {
+        await deleteMutation.mutateAsync(playlistId);
+        return true;
+      },
+      successMessage: 'playlistDeleted',
+      errorMessage: 'failedDeletePlaylist',
+      logLabel: 'Failed to delete playlist',
+    });
+    if (result) selectPlaylist(null);
+  }, [playlistId, deleteMutation, selectPlaylist]);
 
   const handleRemoveTrack = useCallback(
     async (trackId: string) => {
       if (!playlistId) return;
-      try {
-        await removeTrackMutation.mutateAsync({ playlistId, trackIds: [trackId] });
-        toast.success(tToast('removedFromPlaylist', { name: playlist?.name ?? '' }));
-      } catch {
-        toast.error(tToast('failedRemoveTrack'));
-      }
+      await withToast({
+        mutate: () => removeTrackMutation.mutateAsync({ playlistId, trackIds: [trackId] }),
+        successMessage: () => tToast('removedFromPlaylist', { name: playlist?.name ?? '' }),
+        errorMessage: 'failedRemoveTrack',
+        logLabel: 'Failed to remove track from playlist',
+      });
     },
-    [playlistId, removeTrackMutation, tToast]
+    [playlistId, removeTrackMutation, playlist, tToast]
   );
 
   const handleBulkRemoveFromPlaylist = useCallback(
     async (trackIds: string[]) => {
       if (!playlistId) return;
-      try {
-        await removeTrackMutation.mutateAsync({ playlistId, trackIds });
-        toast.success(tToast('removedTracksFromPlaylist', { count: trackIds.length }));
-      } catch {
-        toast.error(tToast('failedRemoveTrack'));
-      }
+      await withToast({
+        mutate: () => removeTrackMutation.mutateAsync({ playlistId, trackIds }),
+        successMessage: () => tToast('removedTracksFromPlaylist', { count: trackIds.length }),
+        errorMessage: 'failedRemoveTrack',
+        logLabel: 'Failed to remove tracks from playlist',
+      });
     },
     [playlistId, removeTrackMutation, tToast]
   );

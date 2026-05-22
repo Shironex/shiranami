@@ -31,9 +31,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
     setPopoverStyle({
       position: 'fixed',
       right: window.innerWidth - rect.right,
-      ...(openAbove
-        ? { bottom: window.innerHeight - rect.top + 4 }
-        : { top: rect.bottom + 4 }),
+      ...(openAbove ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
       width: 192,
       zIndex: 50,
     });
@@ -71,7 +69,7 @@ export function AddToPlaylistButton({ trackId, className }: AddToPlaylistButtonP
         className={cn(
           'shrink-0 p-1 rounded-md transition-colors duration-150',
           'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60',
-          className,
+          className
         )}
         aria-label={t('addToPlaylistAria')}
       >

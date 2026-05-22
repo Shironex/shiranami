@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import i18n from '@/lib/i18n';
+import { withToast } from '@/hooks/useToastMutation';
 import { IS_ELECTRON } from '@/lib/platform';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
@@ -87,7 +89,7 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
         releaseScanLock();
       }
     } catch (err) {
-      console.error('Failed to add folder:', err);
+      logger.error('Failed to add folder:', err);
       toast.error(i18n.t('failedAddFolder', { ns: 'toast' }));
       resetScanProgress();
       releaseScanLock();
@@ -97,13 +99,12 @@ export function useLibraryFolders(): UseLibraryFoldersResult {
   const removeFolder = useCallback(
     async (id: string) => {
       if (!IS_ELECTRON) return;
-      try {
-        await removeFolderMutation.mutateAsync(id);
-        toast.success(i18n.t('folderRemoved', { ns: 'toast' }));
-      } catch (err) {
-        console.error('Failed to remove folder:', err);
-        toast.error(i18n.t('failedRemoveFolder', { ns: 'toast' }));
-      }
+      await withToast({
+        mutate: () => removeFolderMutation.mutateAsync(id),
+        successMessage: 'folderRemoved',
+        errorMessage: 'failedRemoveFolder',
+        logLabel: 'Failed to remove folder',
+      });
     },
     [removeFolderMutation]
   );

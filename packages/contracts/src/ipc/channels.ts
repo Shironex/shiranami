@@ -7,9 +7,8 @@
 // apps/desktop/src/main/.
 //
 // Adding a channel here does not register it; that still lives in the
-// per-domain handler modules. The shape is designed so a future PR can derive
-// the preload `ALLOWED_IPC_CHANNELS` allowlist from this manifest instead of
-// hand-maintaining it.
+// per-domain handler modules. The preload `ALLOWED_IPC_CHANNELS` allowlist is
+// derived from `ALL_IPC_CHANNELS`, so a new channel only needs to be added here.
 
 export const IPC_CHANNELS = {
   window: {
@@ -184,9 +183,9 @@ function collectChannels(node: unknown, out: string[]): void {
 }
 
 /**
- * Flat list of every channel in the manifest. Used (in a future PR) to derive
- * the preload `ALLOWED_IPC_CHANNELS` allowlist directly from this manifest
- * instead of hand-maintaining a parallel list.
+ * Flat list of every channel in the manifest. The preload
+ * `ALLOWED_IPC_CHANNELS` allowlist is derived from this rather than
+ * hand-maintained as a parallel list.
  */
 export const ALL_IPC_CHANNELS: readonly IpcChannelName[] = (() => {
   const channels: string[] = [];

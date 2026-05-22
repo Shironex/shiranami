@@ -1,24 +1,18 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
-import {
-  useLyricsAppearanceStore,
-  LYRICS_SYNCED_PAST_RATIO,
-  type LyricsFontSize,
-} from '@/stores/useLyricsAppearanceStore';
+import { useLyricsAppearanceStore, type LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
-import { useLyricsQuery } from '@/hooks/queries/useLyrics';
-import { useActiveLineIndex } from '@/lib/lyrics';
-import { LyricsList } from '@/components/lyrics/LyricsList';
+import { useLyricsView } from '@/hooks/useLyricsView';
+import { LyricsBody } from '@/components/lyrics/LyricsBody';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
-import { Music, ArrowLeft, Loader2, Music2, Mic2, MicOff } from 'lucide-react';
+import { Music, ArrowLeft, Mic2, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
@@ -52,10 +46,8 @@ const NP_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
 
 export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
-  const { t: tToast } = useTranslation('toast');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const duration = usePlaybackStore(s => s.duration);
-  const seek = usePlaybackStore(s => s.seek);
   const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
   const lyricsVisible = useUIStore(s => s.nowPlayingLyricsVisible);
   const toggleLyrics = useUIStore(s => s.toggleNowPlayingLyrics);
@@ -70,29 +62,7 @@ export function NowPlayingView() {
     NP_SYNCED_ACTIVE_SIZE_CLASS[lyricsSyncedFontSize]
   );
 
-  const {
-    data,
-    isLoading: lyricsLoading,
-    isError: lyricsError,
-  } = useLyricsQuery(
-    currentTrack?.id ?? null,
-    currentTrack?.title ?? '',
-    currentTrack?.artist ?? '',
-    currentTrack?.album,
-    currentTrack?.duration
-  );
-
-  useEffect(() => {
-    if (lyricsError) {
-      toast.error(tToast('failedFetchLyrics'), { id: 'lyrics-fetch-error' });
-    }
-  }, [lyricsError, tToast]);
-
-  const synced = data?.synced ?? null;
-  const plain = data?.plain ?? null;
-  const activeLine = useActiveLineIndex(synced);
-
-  const handleLineClick = useCallback((time: number) => seek(time), [seek]);
+  const { synced, plain, activeLine, isLoading: lyricsLoading, handleLineClick } = useLyricsView();
 
   // Exit if no track is playing
   useEffect(() => {
@@ -242,57 +212,31 @@ export function NowPlayingView() {
               </h2>
             </div>
 
-            {lyricsLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="flex items-center gap-2.5 text-muted-foreground/50">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-xs font-medium">{t('findingLyrics')}</span>
-                </div>
-              </div>
-            ) : synced && synced.length > 0 ? (
-              <div
-                className="contents"
-                style={
-                  {
-                    '--lyrics-idle-opacity': String(lyricsSyncedDimOpacity),
-                    '--lyrics-past-opacity': String(
-                      lyricsSyncedDimOpacity * LYRICS_SYNCED_PAST_RATIO
-                    ),
-                  } as React.CSSProperties
-                }
-              >
-                <LyricsList
-                  lines={synced}
-                  activeIndex={activeLine}
-                  onLineClick={handleLineClick}
-                  containerClassName="pr-2 @3xl:pr-4"
-                  spacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
-                  bottomSpacerClassName="h-[40vh]"
-                  baseClassName={npBase}
-                  activeClassName={npActive}
-                  pastClassName={NP_PAST}
-                  idleClassName={NP_IDLE}
-                />
-              </div>
-            ) : plain ? (
-              <div className="flex-1 overflow-y-auto scrollbar-hide pr-2 @3xl:pr-4">
-                <pre
-                  className={cn(
-                    'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em] leading-relaxed',
-                    NP_PLAIN_SIZE_CLASS[lyricsPlainFontSize]
-                  )}
-                  style={{ opacity: lyricsPlainOpacity }}
-                >
-                  {plain}
-                </pre>
-              </div>
-            ) : (
-              /* Empty state — preserves column width so layout doesn't collapse */
-              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground/25">
-                <Music2 className="w-8 h-8" />
-                <span className="text-xs font-medium">{t('noLyrics')}</span>
-              </div>
-            )}
+            <LyricsBody
+              synced={synced}
+              plain={plain}
+              activeLine={activeLine}
+              isLoading={lyricsLoading}
+              onLineClick={handleLineClick}
+              loadingLabel={t('findingLyrics')}
+              emptyLabel={t('noLyrics')}
+              syncedDimOpacity={lyricsSyncedDimOpacity}
+              plainOpacity={lyricsPlainOpacity}
+              syncedWrapperClassName="contents"
+              syncedContainerClassName="pr-2 @3xl:pr-4"
+              syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
+              syncedBottomSpacerClassName="h-[40vh]"
+              syncedBaseClassName={npBase}
+              syncedActiveClassName={npActive}
+              syncedPastClassName={NP_PAST}
+              syncedIdleClassName={NP_IDLE}
+              plainContainerClassName="pr-2 @3xl:pr-4"
+              plainTextClassName={cn(
+                'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em] leading-relaxed',
+                NP_PLAIN_SIZE_CLASS[lyricsPlainFontSize]
+              )}
+              emptyClassName="text-muted-foreground/25"
+            />
           </div>
         )}
       </div>

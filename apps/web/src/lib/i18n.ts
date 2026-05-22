@@ -67,12 +67,16 @@ export const SUPPORTED_LANGUAGES = [
 
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]['code'];
 
+export function isSupportedLanguage(value: unknown): value is SupportedLanguage {
+  return SUPPORTED_LANGUAGES.some(lang => lang.code === value);
+}
+
 const LANGUAGE_STORAGE_KEY = 'shiranami.language';
 
 function getInitialLanguage(): SupportedLanguage {
   if (typeof window === 'undefined') return 'en';
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (stored === 'en' || stored === 'pl') return stored;
+  if (isSupportedLanguage(stored)) return stored;
   return 'en';
 }
 
@@ -192,7 +196,7 @@ export async function hydrateLanguageFromStore() {
   if (!IS_ELECTRON) return;
   try {
     const stored = await window.electronAPI.store.get<string>('app.language');
-    if (stored === 'en' || stored === 'pl') {
+    if (isSupportedLanguage(stored)) {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, stored);
       if (i18n.language !== stored) {
         await i18n.changeLanguage(stored);

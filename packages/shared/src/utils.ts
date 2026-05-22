@@ -1,14 +1,4 @@
 /**
- * Extract a human-readable error message from an unknown error value.
- */
-export function extractErrorMessage(error: unknown, fallback?: string): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback ?? String(error);
-}
-
-/**
  * Truncate a string to a maximum length, appending an ellipsis if truncated.
  */
 export function truncate(text: string, max: number, ellipsis = '...'): string {

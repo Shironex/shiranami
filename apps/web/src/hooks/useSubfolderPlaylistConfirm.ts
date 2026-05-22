@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useCreatePlaylistsFromSubfoldersMutation } from '@/hooks/queries/usePlaylists';
@@ -40,7 +41,7 @@ export function useSubfolderPlaylistConfirm() {
           toast.info(tToast('noNewSubfolders'));
         }
       } catch (err) {
-        console.error('Failed to create playlists from subfolders:', err);
+        logger.error('Failed to create playlists from subfolders:', err);
         toast.error(tToast('playlistsCreationFailed'));
       }
     },

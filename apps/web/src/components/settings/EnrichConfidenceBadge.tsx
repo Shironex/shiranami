@@ -37,7 +37,7 @@ export function EnrichConfidenceBadge({ confidence, className }: EnrichConfidenc
         'inline-flex items-center shrink-0 px-1.5 py-0.5 rounded-full border',
         'text-[10px] font-semibold uppercase tracking-[0.08em] leading-none',
         LEVEL_CLASSES[level],
-        className,
+        className
       )}
     >
       {t(LEVEL_I18N_KEY[level])}

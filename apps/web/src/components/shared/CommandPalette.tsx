@@ -14,6 +14,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { formatDuration } from '@shiranami/shared';
 
 export function CommandPalette() {
@@ -67,19 +68,12 @@ export function CommandPalette() {
               onSelect={() => handlePlayTrack(track)}
               className="flex items-center gap-3 py-2"
             >
-              <div className="w-8 h-8 rounded-md overflow-hidden shrink-0 bg-muted flex items-center justify-center">
-                {track.albumArt ? (
-                  <img
-                    src={track.albumArt}
-                    alt={track.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Music className="w-3.5 h-3.5 text-muted-foreground/40" />
-                )}
-              </div>
+              <TrackThumbnail
+                albumArt={track.albumArt}
+                alt={track.title}
+                className="w-8 h-8 rounded-md bg-muted"
+                fallback={<Music className="w-3.5 h-3.5 text-muted-foreground/40" />}
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate">
                   {track.title}

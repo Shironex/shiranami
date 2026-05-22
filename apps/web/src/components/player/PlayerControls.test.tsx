@@ -8,10 +8,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, string>) => {
       if (opts) {
-        return Object.entries(opts).reduce(
-          (s, [k, v]) => s.replace(`{{${k}}}`, v),
-          key,
-        );
+        return Object.entries(opts).reduce((s, [k, v]) => s.replace(`{{${k}}}`, v), key);
       }
       return key;
     },
@@ -39,7 +36,7 @@ function renderControls() {
   return render(
     <TooltipProvider>
       <PlayerControls />
-    </TooltipProvider>,
+    </TooltipProvider>
   );
 }
 

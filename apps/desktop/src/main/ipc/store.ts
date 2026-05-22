@@ -1,8 +1,11 @@
 import { ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { store, type StoreSchema } from '../store';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { storeGetArgs, storeSetArgs, storeDeleteArgs } from './schemas/store';
+
+const C = IPC_CHANNELS.store;
 
 /**
  * Renderer access gate for electron-store — now enforced at the IPC boundary
@@ -33,34 +36,34 @@ import { storeGetArgs, storeSetArgs, storeDeleteArgs } from './schemas/store';
  */
 export function registerStoreHandlers(): void {
   handle(
-    'store:get',
+    C.get,
     (_event, key: keyof StoreSchema) => {
       return store.get(key);
     },
-    { schema: storeGetArgs },
+    { schema: storeGetArgs }
   );
 
   handle(
-    'store:set',
+    C.set,
     (_event, key: keyof StoreSchema, value: unknown) => {
       logger.debug(`[store] set "${key}"`);
       store.set(key, value as StoreSchema[typeof key]);
     },
-    { schema: storeSetArgs },
+    { schema: storeSetArgs }
   );
 
   handle(
-    'store:delete',
+    C.delete,
     (_event, key: keyof StoreSchema) => {
       logger.debug(`[store] delete "${key}"`);
       store.delete(key);
     },
-    { schema: storeDeleteArgs },
+    { schema: storeDeleteArgs }
   );
 }
 
 export function cleanupStoreHandlers(): void {
-  ipcMain.removeHandler('store:get');
-  ipcMain.removeHandler('store:set');
-  ipcMain.removeHandler('store:delete');
+  ipcMain.removeHandler(C.get);
+  ipcMain.removeHandler(C.set);
+  ipcMain.removeHandler(C.delete);
 }

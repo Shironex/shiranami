@@ -1,10 +1,8 @@
 import { ipcMain, app } from 'electron';
-import { getMainWindow } from '../utils/window';
-import { spawn } from 'child_process';
+import { IPC_CHANNELS } from '@shiranami/contracts';
+import { sendToRenderer } from '../utils/window';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
-import { randomUUID } from 'crypto';
 import { logger } from '../logger';
 import { requestJson } from '../http';
 import {
@@ -15,7 +13,6 @@ import {
   downloadYtDlp,
 } from '../ytdlp-manager';
 import {
-  getFFmpegDir,
   isFFmpegInstalled,
   getFFmpegVersion,
   getLatestFFmpegVersion,
@@ -25,7 +22,22 @@ import { store } from '../store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
-import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
+import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
+import {
+  spawnYtDlp,
+  ytSearch,
+  classifyYtDlpFailure,
+  tailOutput,
+  hasUpdate,
+  extractVersionSegments,
+  YT_DLP_ERROR_CODES,
+  type SearchResult,
+} from '../utils/ytdlp-spawn';
+
+// Re-exported so existing `./downloader` consumers (and the co-located test)
+// keep importing the canonical yt-dlp helpers from one place after they moved
+// into utils/ytdlp-spawn.ts.
+export { classifyYtDlpFailure, tailOutput, hasUpdate, extractVersionSegments, YT_DLP_ERROR_CODES };
 import {
   downloaderCheckArgs,
   downloaderGetDownloadLocationArgs,
@@ -46,12 +58,9 @@ import {
 
 export type { SearchResult };
 
-export interface DownloadProgress {
-  url: string;
-  progress: number;
-  status: 'downloading' | 'converting' | 'done' | 'error';
-  error?: string;
-}
+const C = IPC_CHANNELS.downloader;
+
+export type { DownloadProgress };
 
 interface BinaryStatus {
   installed: boolean;
@@ -190,100 +199,6 @@ function getDownloadLocationState(): DownloadLocationState {
   };
 }
 
-/**
- * Extract the last N non-empty lines from mixed yt-dlp/ffmpeg output, capped
- * to ~2KB. Used to build concise error messages — some yt-dlp failures (e.g.
- * format enumeration) can emit hundreds of lines we don't want in the log.
- */
-export function tailOutput(output: string, maxLines = 20, maxBytes = 2048): string {
-  const lines = output
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-  const tail = lines.slice(-maxLines).join('\n');
-  return tail.length > maxBytes ? tail.slice(-maxBytes) : tail;
-}
-
-/**
- * Stable error codes returned by classifyYtDlpFailure for known failure
- * modes. The renderer maps these to i18n strings (EN + PL) — see
- * apps/web/src/lib/ytdlpErrors.ts. Unknown failures return the raw tail
- * of yt-dlp/ffmpeg output, which is technical English from the tool itself.
- *
- * When adding a new code here, add a matching translation entry in
- * toast.json (both locales) and map it in translateYtDlpError().
- */
-export const YT_DLP_ERROR_CODES = {
-  AGE_RESTRICTED: 'yt_dlp_age_restricted',
-  VIDEO_UNAVAILABLE: 'yt_dlp_video_unavailable',
-  NO_AUDIO_FORMAT: 'yt_dlp_no_audio_format',
-} as const;
-
-/**
- * Classify a yt-dlp failure from its captured stdout+stderr and return a
- * stable error code (translated in the renderer) or a raw output tail for
- * unknown cases. Age-restriction is the #1 cause of per-video failures in
- * 2026 — YouTube will not hand out stream URLs or formats without sign-in
- * cookies for videos flagged by the content classifier. The proper fix
- * (browser cookie import) is tracked as a follow-up issue; here we only
- * surface a clear, translated message.
- */
-export function classifyYtDlpFailure(output: string): string {
-  const text = output.toLowerCase();
-
-  if (
-    text.includes('sign in to confirm your age') ||
-    text.includes('login_required') ||
-    text.includes('age-restricted')
-  ) {
-    return YT_DLP_ERROR_CODES.AGE_RESTRICTED;
-  }
-
-  if (text.includes('video unavailable') || text.includes('unplayable')) {
-    return YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE;
-  }
-
-  if (text.includes('requested format is not available')) {
-    return YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT;
-  }
-
-  const tail = tailOutput(output);
-  return tail || 'yt-dlp failed without producing any output';
-}
-
-export function extractVersionSegments(version: string | null | undefined): number[] {
-  if (!version) return [];
-
-  const match = version.match(/\d+(?:\.\d+)*/);
-  if (!match) return [];
-
-  return match[0]
-    .split('.')
-    .map(part => Number.parseInt(part, 10))
-    .filter(part => Number.isFinite(part));
-}
-
-export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
-  const currentSegments = extractVersionSegments(currentVersion);
-  const latestSegments = extractVersionSegments(latestVersion);
-
-  if (currentSegments.length === 0 || latestSegments.length === 0) {
-    return false;
-  }
-
-  const maxLength = Math.max(currentSegments.length, latestSegments.length);
-
-  for (let index = 0; index < maxLength; index += 1) {
-    const current = currentSegments[index] ?? 0;
-    const latest = latestSegments[index] ?? 0;
-
-    if (latest > current) return true;
-    if (latest < current) return false;
-  }
-
-  return false;
-}
-
 async function getYtDlpStatus(): Promise<BinaryStatus> {
   const installed = isYtDlpInstalled();
 
@@ -318,7 +233,7 @@ async function getFFmpegStatus(): Promise<BinaryStatus> {
 
 export function registerDownloaderHandlers(): void {
   handle(
-    'downloader:get-download-location',
+    C.getDownloadLocation,
     async () => {
       return getDownloadLocationState();
     },
@@ -326,7 +241,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:set-download-location',
+    C.setDownloadLocation,
     async (_event, downloadDir: string | null) => {
       const defaultPath = getDefaultDownloadDir();
 
@@ -350,7 +265,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:check-dependencies',
+    C.checkDependencies,
     async () => {
       return {
         ytdlpInstalled: isYtDlpInstalled(),
@@ -361,7 +276,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:get-cached-tool-status',
+    C.getCachedToolStatus,
     async () => {
       return loadCachedToolStatus();
     },
@@ -369,36 +284,24 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:refresh-tool-status',
+    C.refreshToolStatus,
     () => fetchAndCacheToolStatus(),
     () => loadCachedToolStatus(),
     { schema: downloaderRefreshToolStatusArgs }
   );
 
   handleWithFallback(
-    'downloader:check',
+    C.check,
     () => getYtDlpStatus(),
     () => ({ installed: isYtDlpInstalled() }) as BinaryStatus,
     { schema: downloaderCheckArgs }
   );
 
   handle(
-    'downloader:search',
+    C.search,
     async (_event, query: string) => {
       logger.info(`[downloader] Searching: ${query}`);
-      const { stdout, code } = await spawnYtDlp([
-        '--flat-playlist',
-        '--dump-json',
-        '--no-warnings',
-        `ytsearch10:${query}`,
-      ]);
-
-      if (code !== 0) {
-        throw new Error('yt-dlp search failed');
-      }
-
-      const results = parseYtDlpJsonLines(stdout);
-
+      const results = await ytSearch(query, { limit: 10 });
       logger.info(`[downloader] Found ${results.length} results`);
       return results;
     },
@@ -406,7 +309,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:suggest',
+    C.suggest,
     async (_event, query: string) => {
       const url = `https://clients1.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
       const data = await requestJson<[string, string[]]>(url);
@@ -417,7 +320,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:download',
+    C.download,
     async (_event, opts: { url: string; outputDir?: string }) => {
       const { url, outputDir } = opts;
       const downloadDir = outputDir ?? getDownloadDir();
@@ -425,151 +328,15 @@ export function registerDownloaderHandlers(): void {
 
       logger.info(`[downloader] Downloading: ${url} -> ${downloadDir}`);
 
-      const mainWindow = getMainWindow();
-
-      const sendProgress = (progress: DownloadProgress) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('downloader:progress', progress);
-        }
-      };
-
-      return new Promise<string>((resolve, reject) => {
-        const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
-
-        let hasFFmpeg = false;
-        let ffmpegLocation: string | null = null;
-
-        if (isFFmpegInstalled()) {
-          hasFFmpeg = true;
-          ffmpegLocation = getFFmpegDir();
-          logger.info(`[downloader] Using managed ffmpeg from ${ffmpegLocation}`);
-        } else {
-          try {
-            const { execFileSync: efs } = require('child_process');
-            efs('ffmpeg', ['-version'], { timeout: 5000, stdio: 'ignore' });
-            hasFFmpeg = true;
-            logger.info('[downloader] Using system ffmpeg');
-          } catch {
-            logger.info('[downloader] ffmpeg not found, downloading best audio without conversion');
-          }
-        }
-
-        const args: string[] = [];
-        if (ffmpegLocation) {
-          args.push('--ffmpeg-location', ffmpegLocation);
-        }
-        if (hasFFmpeg) {
-          args.push(
-            '-x',
-            '--audio-format',
-            'mp3',
-            '--audio-quality',
-            '0',
-            '--embed-thumbnail',
-            '--add-metadata'
-          );
-        } else {
-          args.push('-f', 'bestaudio', '--add-metadata');
-        }
-        const tmpFile = path.join(os.tmpdir(), `shiranami-ytdlp-${randomUUID()}.txt`);
-
-        args.push(
-          '--no-warnings',
-          '--newline',
-          '--print-to-file',
-          'after_move:filepath',
-          tmpFile,
-          '-o',
-          outputTemplate,
-          url
-        );
-
-        const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
-
-        let allOutput = '';
-        let downloadedFilePath = '';
-
-        proc.stdout.on('data', (data: Buffer) => {
-          const text = data.toString();
-          allOutput += text;
-
-          const progressMatch = text.match(/\[download\]\s+([\d.]+)%/);
-          if (progressMatch) {
-            const pct = parseFloat(progressMatch[1]);
-            sendProgress({ url, progress: pct, status: 'downloading' });
-          }
-
-          if (text.includes('[ExtractAudio]') || text.includes('[Merger]')) {
-            sendProgress({ url, progress: 100, status: 'converting' });
-          }
-        });
-
-        proc.stderr.on('data', (data: Buffer) => {
-          allOutput += data.toString();
-        });
-
-        proc.on('error', err => {
-          fs.promises.unlink(tmpFile).catch(() => {});
-          sendProgress({ url, progress: 0, status: 'error', error: err.message });
-          reject(err);
-        });
-
-        proc.on('close', code => {
-          void (async () => {
-            try {
-              if (code !== 0) {
-                const reason = classifyYtDlpFailure(allOutput);
-                logger.error(
-                  `[downloader] yt-dlp download failed for ${url} (exit ${code}): ${reason}`,
-                  { outputTail: tailOutput(allOutput) }
-                );
-                sendProgress({ url, progress: 0, status: 'error', error: reason });
-                reject(new Error(reason));
-                return;
-              }
-
-              try {
-                const raw = await fs.promises.readFile(tmpFile, 'utf8');
-                // --print-to-file appends a line per emitted filepath; take the last non-empty one.
-                const lines = raw
-                  .split('\n')
-                  .map(line => line.trim())
-                  .filter(Boolean);
-                downloadedFilePath = lines[lines.length - 1] ?? '';
-                if (downloadedFilePath) {
-                  await fs.promises.access(downloadedFilePath);
-                }
-              } catch {
-                const errMsg = 'Could not determine downloaded file path';
-                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-                reject(new Error(errMsg));
-                return;
-              }
-
-              if (!downloadedFilePath) {
-                const errMsg = 'Could not determine downloaded file path';
-                sendProgress({ url, progress: 0, status: 'error', error: errMsg });
-                reject(new Error(errMsg));
-                return;
-              }
-
-              logger.info(`[downloader] Downloaded: ${downloadedFilePath}`);
-              sendProgress({ url, progress: 100, status: 'done' });
-              resolve(downloadedFilePath);
-            } catch (unexpected) {
-              reject(unexpected instanceof Error ? unexpected : new Error(String(unexpected)));
-            } finally {
-              fs.promises.unlink(tmpFile).catch(() => {});
-            }
-          })();
-        });
+      return runYtDlpDownload({ url, downloadDir }, progress => {
+        sendToRenderer(C.progress, progress);
       });
     },
     { schema: downloaderDownloadArgs }
   );
 
   handle(
-    'downloader:get-stream-url',
+    C.getStreamUrl,
     async (_event, url: string) => {
       logger.info(`[downloader] Getting stream URL for: ${url}`);
       const { stdout, stderr, code } = await spawnYtDlp([
@@ -586,7 +353,7 @@ export function registerDownloaderHandlers(): void {
           `[downloader] yt-dlp failed to extract stream URL for ${url} (exit ${code}): ${reason}`,
           { stderrTail: tailOutput(stderr) }
         );
-        throw new IpcError(reason, reason);
+        throw new IpcError('downloader.stream_url_failed', reason);
       }
 
       const streamUrl = stdout.trim().split('\n')[0];
@@ -601,14 +368,11 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:install-ytdlp',
+    C.installYtdlp,
     async () => {
       try {
-        const mainWindow = getMainWindow();
         await downloadYtDlp(percent => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('downloader:install-progress', { percent });
-          }
+          sendToRenderer(C.installProgress, { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -623,7 +387,7 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:get-ytdlp-path',
+    C.getYtdlpPath,
     async () => {
       return getYtDlpPath();
     },
@@ -631,21 +395,18 @@ export function registerDownloaderHandlers(): void {
   );
 
   handleWithFallback(
-    'downloader:check-ffmpeg',
+    C.checkFfmpeg,
     () => getFFmpegStatus(),
     () => ({ installed: isFFmpegInstalled() }) as BinaryStatus,
     { schema: downloaderCheckFfmpegArgs }
   );
 
   handle(
-    'downloader:install-ffmpeg',
+    C.installFfmpeg,
     async () => {
       try {
-        const mainWindow = getMainWindow();
         await downloadFFmpeg(percent => {
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('downloader:ffmpeg-install-progress', { percent });
-          }
+          sendToRenderer(C.ffmpegInstallProgress, { percent });
         });
         invalidateToolStatusCache();
       } catch (err) {
@@ -660,9 +421,8 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
-    'downloader:install-dependencies',
+    C.installDependencies,
     async (): Promise<InstallDependenciesResult> => {
-      const mainWindow = getMainWindow();
       const targets: Array<'ytdlp' | 'ffmpeg'> = [];
 
       if (!isYtDlpInstalled()) {
@@ -678,9 +438,7 @@ export function registerDownloaderHandlers(): void {
 
       const stepWeight = 100 / targets.length;
       const sendProgress = (progress: DependencyInstallProgress) => {
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('downloader:dependency-install-progress', progress);
-        }
+        sendToRenderer(C.dependencyInstallProgress, progress);
       };
 
       const results: ToolInstallResult[] = [];
@@ -739,18 +497,18 @@ export function registerDownloaderHandlers(): void {
 }
 
 export function cleanupDownloaderHandlers(): void {
-  ipcMain.removeHandler('downloader:get-download-location');
-  ipcMain.removeHandler('downloader:set-download-location');
-  ipcMain.removeHandler('downloader:check-dependencies');
-  ipcMain.removeHandler('downloader:get-cached-tool-status');
-  ipcMain.removeHandler('downloader:refresh-tool-status');
-  ipcMain.removeHandler('downloader:check');
-  ipcMain.removeHandler('downloader:search');
-  ipcMain.removeHandler('downloader:download');
-  ipcMain.removeHandler('downloader:get-stream-url');
-  ipcMain.removeHandler('downloader:install-ytdlp');
-  ipcMain.removeHandler('downloader:get-ytdlp-path');
-  ipcMain.removeHandler('downloader:check-ffmpeg');
-  ipcMain.removeHandler('downloader:install-ffmpeg');
-  ipcMain.removeHandler('downloader:install-dependencies');
+  ipcMain.removeHandler(C.getDownloadLocation);
+  ipcMain.removeHandler(C.setDownloadLocation);
+  ipcMain.removeHandler(C.checkDependencies);
+  ipcMain.removeHandler(C.getCachedToolStatus);
+  ipcMain.removeHandler(C.refreshToolStatus);
+  ipcMain.removeHandler(C.check);
+  ipcMain.removeHandler(C.search);
+  ipcMain.removeHandler(C.download);
+  ipcMain.removeHandler(C.getStreamUrl);
+  ipcMain.removeHandler(C.installYtdlp);
+  ipcMain.removeHandler(C.getYtdlpPath);
+  ipcMain.removeHandler(C.checkFfmpeg);
+  ipcMain.removeHandler(C.installFfmpeg);
+  ipcMain.removeHandler(C.installDependencies);
 }

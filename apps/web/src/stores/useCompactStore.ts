@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { IS_ELECTRON } from '@/lib/platform';
 
 export type CompactSize = 'sm' | 'md' | 'lg';
@@ -166,178 +165,165 @@ interface CompactActions {
   resetCompactAppearance: () => void;
 }
 
-export const useCompactStore = create<CompactState & CompactActions>()(
-  persist(
-    (set, get) => ({
-      compactMode: false,
-      compactAlwaysOnTop: false,
-      compactSize: COMPACT_SIZE_DEFAULT,
-      compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
-      compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
-      compactShowAlbumArt: true,
-      compactShowAlbum: true,
-      compactShowSeek: true,
-      compactShowVolume: true,
-      compactShowFavorite: false,
-      compactDefaultAlwaysOnTop: false,
+export const useCompactStore = createPersistedStore<CompactState & CompactActions>(
+  (set, get) => ({
+    compactMode: false,
+    compactAlwaysOnTop: false,
+    compactSize: COMPACT_SIZE_DEFAULT,
+    compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
+    compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
+    compactShowAlbumArt: true,
+    compactShowAlbum: true,
+    compactShowSeek: true,
+    compactShowVolume: true,
+    compactShowFavorite: false,
+    compactDefaultAlwaysOnTop: false,
 
-      setCompactMode: async compactMode => {
-        const previous = get().compactMode;
-        if (previous === compactMode) return;
+    setCompactMode: async compactMode => {
+      const previous = get().compactMode;
+      if (previous === compactMode) return;
 
-        // When the user has opted into "default to always-on-top in compact",
-        // seed the runtime flag on entry. We seed before persisting because
-        // setCompactAlwaysOnTop short-circuits when not yet in compact mode,
-        // so we just write the value directly here.
-        const previousAlwaysOnTop = get().compactAlwaysOnTop;
-        if (compactMode && get().compactDefaultAlwaysOnTop && !previousAlwaysOnTop) {
-          set({ compactAlwaysOnTop: true });
-        }
+      // When the user has opted into "default to always-on-top in compact",
+      // seed the runtime flag on entry. We seed before persisting because
+      // setCompactAlwaysOnTop short-circuits when not yet in compact mode,
+      // so we just write the value directly here.
+      const previousAlwaysOnTop = get().compactAlwaysOnTop;
+      if (compactMode && get().compactDefaultAlwaysOnTop && !previousAlwaysOnTop) {
+        set({ compactAlwaysOnTop: true });
+      }
 
-        set({ compactMode });
+      set({ compactMode });
 
-        if (!IS_ELECTRON) return;
+      if (!IS_ELECTRON) return;
 
+      try {
+        const dims = COMPACT_DIMENSIONS[get().compactSize];
+        await window.electronAPI.window.setCompactMode(compactMode, dims);
+      } catch {
+        // Compact-mode IPC failed: undo the store flips and bail before
+        // touching always-on-top so we don't pin a window the user thinks
+        // is still in normal mode.
+        set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
+        return;
+      }
+
+      if (get().compactAlwaysOnTop) {
         try {
-          const dims = COMPACT_DIMENSIONS[get().compactSize];
-          await window.electronAPI.window.setCompactMode(compactMode, dims);
+          await window.electronAPI.window.setAlwaysOnTop(compactMode);
         } catch {
-          // Compact-mode IPC failed: undo the store flips and bail before
-          // touching always-on-top so we don't pin a window the user thinks
-          // is still in normal mode.
-          set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
-          return;
+          // Compact succeeded but pin failed: only roll back the pin —
+          // the OS window is correctly in/out of compact mode now.
+          set({ compactAlwaysOnTop: previousAlwaysOnTop });
         }
+      }
+    },
+    setCompactAlwaysOnTop: async compactAlwaysOnTop => {
+      const previous = get().compactAlwaysOnTop;
+      if (previous === compactAlwaysOnTop) return;
 
-        if (get().compactAlwaysOnTop) {
-          try {
-            await window.electronAPI.window.setAlwaysOnTop(compactMode);
-          } catch {
-            // Compact succeeded but pin failed: only roll back the pin —
-            // the OS window is correctly in/out of compact mode now.
-            set({ compactAlwaysOnTop: previousAlwaysOnTop });
-          }
-        }
-      },
-      setCompactAlwaysOnTop: async compactAlwaysOnTop => {
-        const previous = get().compactAlwaysOnTop;
-        if (previous === compactAlwaysOnTop) return;
+      set({ compactAlwaysOnTop });
 
-        set({ compactAlwaysOnTop });
+      if (!IS_ELECTRON || !get().compactMode) return;
 
-        if (!IS_ELECTRON || !get().compactMode) return;
-
-        try {
-          await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
-        } catch {
-          set({ compactAlwaysOnTop: previous });
-        }
-      },
-      toggleCompactMode: async () => {
-        await get().setCompactMode(!get().compactMode);
-      },
-      toggleCompactAlwaysOnTop: async () => {
-        await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
-      },
-      setCompactSize: size => {
-        const next = coerceCompactSize(size);
-        set({ compactSize: next });
-        // If the window is currently in compact mode, push the new dimensions
-        // immediately so the preset switch is reflected without a re-toggle.
-        if (IS_ELECTRON && get().compactMode) {
-          const dims = COMPACT_DIMENSIONS[next];
-          window.electronAPI.window.setCompactMode(true, dims).catch(() => {
-            // Failure to resize is non-fatal; the next enter-compact will retry.
-          });
-        }
-      },
-      setCompactFontSize: size => {
-        set({ compactFontSize: coerceCompactFontSize(size) });
-      },
-      setCompactAmbientIntensity: value => {
-        set({ compactAmbientIntensity: coerceCompactAmbientIntensity(value) });
-      },
-      setCompactShowAlbumArt: visible => set({ compactShowAlbumArt: visible }),
-      setCompactShowAlbum: visible => set({ compactShowAlbum: visible }),
-      setCompactShowSeek: visible => set({ compactShowSeek: visible }),
-      setCompactShowVolume: visible => set({ compactShowVolume: visible }),
-      setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
-      setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
-      resetCompactAppearance: () => {
-        set({
-          compactSize: COMPACT_SIZE_DEFAULT,
-          compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
-          compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
-          compactShowAlbumArt: true,
-          compactShowAlbum: true,
-          compactShowSeek: true,
-          compactShowVolume: true,
-          compactShowFavorite: false,
-          compactDefaultAlwaysOnTop: false,
+      try {
+        await window.electronAPI.window.setAlwaysOnTop(compactAlwaysOnTop);
+      } catch {
+        set({ compactAlwaysOnTop: previous });
+      }
+    },
+    toggleCompactMode: async () => {
+      await get().setCompactMode(!get().compactMode);
+    },
+    toggleCompactAlwaysOnTop: async () => {
+      await get().setCompactAlwaysOnTop(!get().compactAlwaysOnTop);
+    },
+    setCompactSize: size => {
+      const next = coerceCompactSize(size);
+      set({ compactSize: next });
+      // If the window is currently in compact mode, push the new dimensions
+      // immediately so the preset switch is reflected without a re-toggle.
+      if (IS_ELECTRON && get().compactMode) {
+        const dims = COMPACT_DIMENSIONS[next];
+        window.electronAPI.window.setCompactMode(true, dims).catch(() => {
+          // Failure to resize is non-fatal; the next enter-compact will retry.
         });
-      },
+      }
+    },
+    setCompactFontSize: size => {
+      set({ compactFontSize: coerceCompactFontSize(size) });
+    },
+    setCompactAmbientIntensity: value => {
+      set({ compactAmbientIntensity: coerceCompactAmbientIntensity(value) });
+    },
+    setCompactShowAlbumArt: visible => set({ compactShowAlbumArt: visible }),
+    setCompactShowAlbum: visible => set({ compactShowAlbum: visible }),
+    setCompactShowSeek: visible => set({ compactShowSeek: visible }),
+    setCompactShowVolume: visible => set({ compactShowVolume: visible }),
+    setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
+    setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
+    resetCompactAppearance: () => {
+      set({
+        compactSize: COMPACT_SIZE_DEFAULT,
+        compactFontSize: COMPACT_FONT_SIZE_DEFAULT,
+        compactAmbientIntensity: COMPACT_AMBIENT_INTENSITY_DEFAULT,
+        compactShowAlbumArt: true,
+        compactShowAlbum: true,
+        compactShowSeek: true,
+        compactShowVolume: true,
+        compactShowFavorite: false,
+        compactDefaultAlwaysOnTop: false,
+      });
+    },
+  }),
+  {
+    name: STORE_KEY,
+    version: 1,
+    partialize: (s): PersistedCompactState => ({
+      compactMode: s.compactMode,
+      compactAlwaysOnTop: s.compactAlwaysOnTop,
+      compactSize: s.compactSize,
+      compactFontSize: s.compactFontSize,
+      compactAmbientIntensity: s.compactAmbientIntensity,
+      compactShowAlbumArt: s.compactShowAlbumArt,
+      compactShowAlbum: s.compactShowAlbum,
+      compactShowSeek: s.compactShowSeek,
+      compactShowVolume: s.compactShowVolume,
+      compactShowFavorite: s.compactShowFavorite,
+      compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
     }),
-    {
-      name: STORE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (s): PersistedCompactState => ({
-        compactMode: s.compactMode,
-        compactAlwaysOnTop: s.compactAlwaysOnTop,
-        compactSize: s.compactSize,
-        compactFontSize: s.compactFontSize,
-        compactAmbientIntensity: s.compactAmbientIntensity,
-        compactShowAlbumArt: s.compactShowAlbumArt,
-        compactShowAlbum: s.compactShowAlbum,
-        compactShowSeek: s.compactShowSeek,
-        compactShowVolume: s.compactShowVolume,
-        compactShowFavorite: s.compactShowFavorite,
-        compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
-      }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...sanitize(persisted as Partial<PersistedCompactState>),
-      }),
-      onRehydrateStorage: () => state => {
-        if (!state) return;
-        // Re-apply compact mode at the OS-window level after rehydrate so
-        // users who quit while in compact mode come back into compact mode.
-        // The renderer flag is restored by zustand-persist; here we just
-        // forward to Electron so the window itself resizes/locks again.
-        if (IS_ELECTRON && state.compactMode) {
-          // Sequence the IPCs: pin only after compact takes hold, otherwise
-          // we could end up pinning a window that didn't make it into
-          // compact mode. Mutating `state` here is ineffective (rehydration
-          // has already merged), so any rollback has to go through setState.
-          void (async () => {
-            const dims = COMPACT_DIMENSIONS[state.compactSize];
+    sanitize: (persisted, current) => ({
+      ...current,
+      ...sanitize(persisted as Partial<PersistedCompactState>),
+    }),
+    onRehydrate: state => {
+      // Re-apply compact mode at the OS-window level after rehydrate so
+      // users who quit while in compact mode come back into compact mode.
+      // The renderer flag is restored by zustand-persist; here we just
+      // forward to Electron so the window itself resizes/locks again.
+      if (IS_ELECTRON && state.compactMode) {
+        // Sequence the IPCs: pin only after compact takes hold, otherwise
+        // we could end up pinning a window that didn't make it into
+        // compact mode. Mutating `state` here is ineffective (rehydration
+        // has already merged), so any rollback has to go through setState.
+        void (async () => {
+          const dims = COMPACT_DIMENSIONS[state.compactSize];
+          try {
+            await window.electronAPI.window.setCompactMode(true, dims);
+          } catch {
+            useCompactStore.setState({ compactMode: false, compactAlwaysOnTop: false });
+            return;
+          }
+          if (state.compactAlwaysOnTop) {
             try {
-              await window.electronAPI.window.setCompactMode(true, dims);
+              await window.electronAPI.window.setAlwaysOnTop(true);
             } catch {
-              useCompactStore.setState({ compactMode: false, compactAlwaysOnTop: false });
-              return;
+              useCompactStore.setState({ compactAlwaysOnTop: false });
             }
-            if (state.compactAlwaysOnTop) {
-              try {
-                await window.electronAPI.window.setAlwaysOnTop(true);
-              } catch {
-                useCompactStore.setState({ compactAlwaysOnTop: false });
-              }
-            }
-          })();
-        }
-      },
-    }
-  )
+          }
+        })();
+      }
+    },
+  }
 );
 
-if (import.meta.hot) {
-  type HmrData = { store?: typeof useCompactStore };
-  const hot = import.meta.hot;
-  const data = (hot.data ?? {}) as HmrData;
-  if (data.store) {
-    useCompactStore.setState(data.store.getState());
-  }
-  data.store = useCompactStore;
-  hot.accept();
-}
+acceptStoreHmr(useCompactStore, import.meta.hot);

@@ -1,24 +1,13 @@
 /**
  * Preload-side shape of the values flowing across the contextBridge.
  *
- * These mirror the renderer-facing `apps/web/src/types/electron.d.ts` and the
- * domain types in `@shiranami/contracts`. They live here (and not in contracts)
- * because the preload `ElectronAPI` is currently the source of truth for the
- * renderer surface; migrating individual interfaces into contracts is staged
- * follow-up work.
+ * These mirror the renderer-facing `apps/web/src/types/electron.d.ts`. Shared
+ * cross-process shapes (e.g. `TrackMetadata`) are re-exported from
+ * `@shiranami/contracts` so the wire type is defined once; the remaining
+ * interfaces below are preload-local surface descriptions.
  */
 
-export interface TrackMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
-}
+export type { TrackMetadata } from '@shiranami/contracts';
 
 export interface ListeningHistoryEntry {
   id: string;

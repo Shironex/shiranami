@@ -61,5 +61,3 @@ export const MediaSessionSync = memo(function MediaSessionSync() {
 
   return null;
 });
-
-export default MediaSessionSync;

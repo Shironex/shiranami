@@ -1,19 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorMessage, formatDuration, truncate } from './utils';
-
-describe('extractErrorMessage', () => {
-  it('returns message for Error instances', () => {
-    expect(extractErrorMessage(new Error('boom'))).toBe('boom');
-  });
-
-  it('uses fallback when provided for non-errors', () => {
-    expect(extractErrorMessage(404, 'not found')).toBe('not found');
-  });
-
-  it('stringifies unknown values without fallback', () => {
-    expect(extractErrorMessage(null)).toBe('null');
-  });
-});
+import { formatDuration, truncate } from './utils';
 
 describe('truncate', () => {
   it('returns empty string when max <= 0', () => {

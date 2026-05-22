@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * Mountain visualizer — three layered, low-pass-smoothed silhouettes drifting
@@ -41,8 +37,6 @@ interface GradientCache {
 }
 
 export function MountainVisualizer({ source, active }: MountainVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const layersRef = useRef<Layer[] | null>(null);
   const starsRef = useRef<Star[] | null>(null);
   const gradientCacheRef = useRef<GradientCache>({
@@ -51,36 +45,8 @@ export function MountainVisualizer({ source, active }: MountainVisualizerProps =
     layers: [],
     moon: null,
   });
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef, versionRef } = usePrimaryRGB();
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
+  const draw = useCallback(({ ctx, w, h, raw, binCount, rgb }: VisualizerFrame) => {
     if (!layersRef.current) {
       layersRef.current = [
         { sm: new Float32Array(48), count: 48, depth: 0.18, alpha: 0.28, shift: 0 },
@@ -96,28 +62,10 @@ export function MountainVisualizer({ source, active }: MountainVisualizerProps =
       }));
     }
 
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
     const layers = layersRef.current;
     const t = performance.now() / 1000;
     const baseY = h * 0.92;
-    const [pr, pg, pb] = rgbRef.current;
+    const [pr, pg, pb] = rgb;
 
     const moonX = w * 0.82;
     const moonY = h * 0.22;
@@ -125,7 +73,7 @@ export function MountainVisualizer({ source, active }: MountainVisualizerProps =
 
     // Rebuild cached gradients on resize / theme change.
     const cache = gradientCacheRef.current;
-    const key = `${Math.round(w)}x${Math.round(h)}|${versionRef.current}`;
+    const key = `${Math.round(w)}x${Math.round(h)}|${pr},${pg},${pb}`;
     if (cache.key !== key || cache.ctx !== ctx) {
       cache.layers = layers.map(layer => {
         const grad = ctx.createLinearGradient(0, baseY - h * 0.4, 0, baseY);
@@ -198,10 +146,9 @@ export function MountainVisualizer({ source, active }: MountainVisualizerProps =
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonR * 0.6, 0, Math.PI * 2);
     ctx.fill();
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas

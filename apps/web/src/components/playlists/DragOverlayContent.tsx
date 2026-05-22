@@ -13,7 +13,11 @@ export function DragOverlayContent({ track }: { track: Track }) {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-surface">
             {track.albumArt ? (
-              <img src={track.albumArt} alt={track.title} className="w-full h-full object-cover rounded-lg" />
+              <img
+                src={track.albumArt}
+                alt={track.title}
+                className="w-full h-full object-cover rounded-lg"
+              />
             ) : (
               <Play className="w-3.5 h-3.5 text-muted-foreground/40" />
             )}

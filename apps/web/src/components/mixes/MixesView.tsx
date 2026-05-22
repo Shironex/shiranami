@@ -13,6 +13,7 @@ import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { MIX_DEFINITIONS, type MixId } from './mixDefinitions';
 import { useMixTracks } from '@/hooks/queries/useMixTracks';
+import { shuffle } from '@/lib/shuffle';
 import { useMixPreviews, getMixPreviewCount } from './mixUtils';
 import { ArtCollage } from './ArtCollage';
 import { MixesViewSkeleton } from './MixesViewSkeleton';
@@ -49,8 +50,7 @@ export function MixesView() {
 
   const handleShuffle = useCallback(() => {
     if (mixTracks.length === 0) return;
-    const shuffled = [...mixTracks].sort(() => Math.random() - 0.5);
-    setQueue(shuffled, 0);
+    setQueue(shuffle(mixTracks), 0);
   }, [mixTracks, setQueue]);
 
   const handleBack = useCallback(() => setSelectedMix(null), []);

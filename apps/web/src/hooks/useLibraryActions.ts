@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 import { queryClient } from '@/lib/queryClient';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { folderKeys } from '@/hooks/queries/useFolders';
@@ -28,7 +29,7 @@ export function useLibraryActions() {
 
       toast.success(i18n.t('added1Track', { ns: 'toast' }));
     } catch (err) {
-      console.error('Failed to add file:', err);
+      logger.error('Failed to add file:', err);
       toast.error(i18n.t('failedAddTrack', { ns: 'toast' }));
     }
   }, [importTrack]);
@@ -79,7 +80,7 @@ export function useLibraryActions() {
           discNumber: r.metadata.discNumber ?? null,
           albumArt: r.metadata.albumArt ?? null,
         }))
-      )) as Record<string, unknown>[];
+      )) as DbTrackRecord[];
 
       const newTracks = mapDbTracksToTracks(dbTracks);
 
@@ -99,7 +100,7 @@ export function useLibraryActions() {
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
       toast.success(i18n.t('addedTracks', { ns: 'toast', count: newTracks.length }));
     } catch (err) {
-      console.error('Failed to add folder:', err);
+      logger.error('Failed to add folder:', err);
       toast.error(i18n.t('failedScanFolder', { ns: 'toast' }));
     } finally {
       setIsScanning(false);

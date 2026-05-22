@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import i18n from '@/lib/i18n';
@@ -128,7 +129,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
         }
       }
     } catch (err) {
-      console.error('Rescan failed:', err);
+      logger.error('Rescan failed:', err);
       toast.error(i18n.t('failedRescan', { ns: 'toast' }));
     } finally {
       resetScanProgress();
@@ -153,7 +154,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       setConfirmClear(false);
       toast.success(i18n.t('libraryCleared', { ns: 'toast' }));
     } catch (err) {
-      console.error('Failed to clear library:', err);
+      logger.error('Failed to clear library:', err);
       toast.error(i18n.t('failedClearLibrary', { ns: 'toast' }));
     } finally {
       setIsClearing(false);

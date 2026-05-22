@@ -199,15 +199,12 @@ export function LibraryView() {
       ) : libraryViewMode === 'albums' ? (
         <AlbumGrid library={library} searchQuery={searchQuery} />
       ) : filteredLibrary.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
-          <div>
-            <p className="font-display text-base font-medium text-muted-foreground">
-              {t('noMatchesTitle')}
-            </p>
-            <p className="text-sm text-muted-foreground/50 mt-1">{t('noMatchesSubtitle')}</p>
-          </div>
-        </div>
+        <ViewEmptyState
+          compact
+          icon={Search}
+          title={t('noMatchesTitle')}
+          subtitle={t('noMatchesSubtitle')}
+        />
       ) : (
         <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
           <div className="h-full px-2">

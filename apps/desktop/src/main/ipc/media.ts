@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { updateTrayWithPlaybackState } from '../tray';
 import { updateDiscordPresence } from '../discord-rpc';
 import { getMainWindow } from '../utils/window';
@@ -6,10 +7,12 @@ import type { PlaybackState } from '../media-controls';
 import { handle } from './with-ipc-handler';
 import { mediaPlaybackStateArgs, mediaClearStateArgs } from './schemas/media';
 
+const C = IPC_CHANNELS.media;
+
 export function registerMediaHandlers(): void {
   // Renderer sends playback state updates
   handle(
-    'media:playback-state',
+    C.playbackState,
     (_event, state: PlaybackState) => {
       // Update tray tooltip with now-playing info
       updateTrayWithPlaybackState(state);
@@ -31,12 +34,12 @@ export function registerMediaHandlers(): void {
         }
       }
     },
-    { schema: mediaPlaybackStateArgs },
+    { schema: mediaPlaybackStateArgs }
   );
 
   // Renderer requests to clear taskbar progress
   handle(
-    'media:clear-state',
+    C.clearState,
     () => {
       const mainWindow = getMainWindow();
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -45,11 +48,11 @@ export function registerMediaHandlers(): void {
       updateTrayWithPlaybackState(null);
       updateDiscordPresence(null);
     },
-    { schema: mediaClearStateArgs },
+    { schema: mediaClearStateArgs }
   );
 }
 
 export function cleanupMediaHandlers(): void {
-  ipcMain.removeHandler('media:playback-state');
-  ipcMain.removeHandler('media:clear-state');
+  ipcMain.removeHandler(C.playbackState);
+  ipcMain.removeHandler(C.clearState);
 }

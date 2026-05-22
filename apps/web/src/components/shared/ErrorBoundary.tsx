@@ -59,9 +59,7 @@ function ErrorBoundaryFallback({
   };
 
   const title = root ? t('rootTitle') : t('title');
-  const message = root
-    ? t('rootMessage')
-    : error.message || t('messageFallback');
+  const message = root ? t('rootMessage') : error.message || t('messageFallback');
   const primaryLabel = root ? t('reloadApp') : t('reloadView');
 
   return (
@@ -97,10 +95,7 @@ function ErrorBoundaryFallback({
   );
 }
 
-export default class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = { error: null, errorInfo: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

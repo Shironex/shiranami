@@ -37,6 +37,6 @@ export function stationToTrack(station: Station, liveRadioLabel: string): Track 
 }
 
 export function getCountryFlag(countryCode: string): string {
-  const country = COUNTRIES.find((c) => c.code === countryCode);
+  const country = COUNTRIES.find(c => c.code === countryCode);
   return country?.flag ?? '';
 }

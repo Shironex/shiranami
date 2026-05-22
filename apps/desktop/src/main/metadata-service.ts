@@ -1,18 +1,10 @@
 import * as path from 'path';
+import type { TrackMetadata } from '@shiranami/contracts';
 import { logger } from './logger';
 import { saveAlbumArt } from './art-protocol';
+import { isAudioExtension } from './shared/media-types';
 
-export interface TrackMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number; // seconds
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null; // shiranami-art:// protocol URL
-}
+export type { TrackMetadata };
 
 // Cache the dynamic import
 let mmModule: typeof import('music-metadata') | null = null;
@@ -74,12 +66,10 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
   }
 }
 
-/** Audio extensions we support */
-export const AUDIO_EXTENSIONS = new Set([
-  '.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a', '.opus', '.wma', '.weba', '.webm',
-]);
+/** Audio extensions we support. Re-exported from the shared media-types map. */
+export { AUDIO_EXTENSIONS } from './shared/media-types';
 
 /** Check if a file path has a supported audio extension */
 export function isAudioFile(filePath: string): boolean {
-  return AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+  return isAudioExtension(filePath);
 }

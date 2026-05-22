@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useViewStore } from '@/stores/useViewStore';
@@ -47,7 +48,7 @@ export function useUpdateNotifications() {
             label: i18n.t('updateRestart', { ns: 'toast' }),
             onClick: () => {
               window.electronAPI.updater.installNow().catch(err => {
-                console.warn('Failed to install update', err);
+                logger.warn('Failed to install update', err);
               });
             },
           },

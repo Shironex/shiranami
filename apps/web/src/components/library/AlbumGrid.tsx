@@ -12,8 +12,8 @@ import {
   type GridImperativeAPI,
 } from 'react-window';
 import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
-
-export type { AlbumData };
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 
 interface AlbumGridProps {
   library: Track[];
@@ -114,17 +114,14 @@ function AlbumCell({
           className="w-full rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden"
           style={{ height: imgPx, flexShrink: 0 }}
         >
-          {album.albumArt ? (
-            <img
-              src={album.albumArt}
-              alt={album.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
-          )}
+          <TrackThumbnail
+            fill
+            albumArt={album.albumArt}
+            alt={album.name}
+            fallback={
+              <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
+            }
+          />
         </div>
         <div
           style={{ height: ROW_HEIGHT_TEXT_BLOCK }}
@@ -255,15 +252,12 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
 
   if (filteredAlbums.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-        <Search className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
-        <div>
-          <p className="font-display text-base font-medium text-muted-foreground">
-            {t('noMatchesTitle')}
-          </p>
-          <p className="text-sm text-muted-foreground/50 mt-1">{t('noMatchesSubtitle')}</p>
-        </div>
-      </div>
+      <ViewEmptyState
+        compact
+        icon={Search}
+        title={t('noMatchesTitle')}
+        subtitle={t('noMatchesSubtitle')}
+      />
     );
   }
 

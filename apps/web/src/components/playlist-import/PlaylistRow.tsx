@@ -1,22 +1,10 @@
-import {
-  Loader2,
-  Check,
-  AlertCircle,
-  Music,
-  X,
-  Download,
-  Play,
-  Pause,
-} from 'lucide-react';
+import { Loader2, Check, AlertCircle, Music, X, Download, Play, Pause } from 'lucide-react';
 import { type RowComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
-import {
-  type PlaylistTrack,
-  type PlaylistTrackStatus,
-} from '@/stores/usePlaylistImportStore';
+import { type PlaylistTrack, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 
 export interface PlaylistRowProps {
   tracks: PlaylistTrack[];
@@ -77,21 +65,20 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
     handlePreview,
     handleRemoveTrack,
     handleDownloadTrack,
-  } = props as RowComponentProps<PlaylistRowProps> & PlaylistRowProps;
+  } = props;
 
   const playlistTrack = tracks[index];
 
-  const isSelected = useSelectionStore((s) => s.selectedTrackIds.has(playlistTrack?.id ?? ''));
-  const hasSelection = useSelectionStore((s) => s.selectedTrackIds.size > 0);
-  const toggleTrack = useSelectionStore((s) => s.toggleTrack);
-  const selectRange = useSelectionStore((s) => s.selectRange);
-  const clearSelection = useSelectionStore((s) => s.clearSelection);
+  const isSelected = useSelectionStore(s => s.selectedTrackIds.has(playlistTrack?.id ?? ''));
+  const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
+  const toggleTrack = useSelectionStore(s => s.toggleTrack);
+  const selectRange = useSelectionStore(s => s.selectRange);
+  const clearSelection = useSelectionStore(s => s.clearSelection);
 
   if (!playlistTrack) return null;
 
   const result = playlistTrack.searchResult;
-  const isActive =
-    playlistTrack.status === 'downloading' || playlistTrack.status === 'converting';
+  const isActive = playlistTrack.status === 'downloading' || playlistTrack.status === 'converting';
 
   const handleClick = (e: React.MouseEvent) => {
     const isMod = e.metaKey || e.ctrlKey;
@@ -123,9 +110,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
         onClick={handleClick}
         className={cn(
           'group flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors relative overflow-hidden h-full cursor-pointer',
-          isSelected
-            ? 'bg-primary/[0.12] ring-1 ring-primary/20'
-            : 'hover:bg-accent/50'
+          isSelected ? 'bg-primary/[0.12] ring-1 ring-primary/20' : 'hover:bg-accent/50'
         )}
       >
         {isActive && (
@@ -140,7 +125,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
         </span>
 
         <div
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
             if (hasSelection) {
               toggleTrack(playlistTrack.id, index);
@@ -158,7 +143,12 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           ) : (
             <>
               {result.thumbnail ? (
-                <img src={result.thumbnail} alt={result.title} className="w-full h-full object-cover" loading="lazy" />
+                <img
+                  src={result.thumbnail}
+                  alt={result.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <Music className="w-4 h-4 text-muted-foreground/40" />
@@ -167,7 +157,9 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
               <div
                 className={cn(
                   'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity',
-                  isPreviewPlaying(result) ? 'opacity-100' : 'opacity-0 group-hover/thumb:opacity-100'
+                  isPreviewPlaying(result)
+                    ? 'opacity-100'
+                    : 'opacity-0 group-hover/thumb:opacity-100'
                 )}
               >
                 {previewLoadingId === result.id ? (
@@ -193,12 +185,15 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
                   playlistTrack.status === 'done' && 'text-green-400',
                   playlistTrack.status === 'error' && 'text-destructive',
                   playlistTrack.status === 'skipped' && 'text-muted-foreground/50',
-                  (playlistTrack.status === 'downloading' || playlistTrack.status === 'converting') &&
+                  (playlistTrack.status === 'downloading' ||
+                    playlistTrack.status === 'converting') &&
                     'text-primary'
                 )}
               >
                 {statusLabel(playlistTrack.status)}
-                {playlistTrack.status === 'error' && playlistTrack.error ? `: ${playlistTrack.error}` : ''}
+                {playlistTrack.status === 'error' && playlistTrack.error
+                  ? `: ${playlistTrack.error}`
+                  : ''}
               </span>
             )}
           </div>
@@ -210,7 +205,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
 
         {playlistTrack.status === 'pending' && !isImporting ? (
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               handleDownloadTrack(playlistTrack.id);
             }}
@@ -227,7 +222,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
 
         {playlistTrack.status === 'pending' && !isImporting && (
           <button
-            onClick={(e) => {
+            onClick={e => {
               e.stopPropagation();
               handleRemoveTrack(playlistTrack.id);
             }}

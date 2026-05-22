@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
+import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 
 const isMac = navigator.platform.toUpperCase().includes('MAC');
 const MOD = isMac ? '\u2318' : 'Ctrl';
@@ -166,8 +167,8 @@ function KeyboardShortcutsHelp() {
 
   useEffect(() => {
     const handler = () => setOpen(true);
-    window.addEventListener('open-shortcut-help', handler);
-    return () => window.removeEventListener('open-shortcut-help', handler);
+    window.addEventListener(DIALOG_EVENTS.openShortcutHelp, handler);
+    return () => window.removeEventListener(DIALOG_EVENTS.openShortcutHelp, handler);
   }, []);
 
   return (

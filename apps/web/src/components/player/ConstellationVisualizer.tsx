@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * Constellation visualizer — drifting particles connected by lines that
@@ -37,60 +33,11 @@ interface ConstellationState {
 const PARTICLE_COUNT = 28;
 
 export function ConstellationVisualizer({ source, active }: ConstellationVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const stateRef = useRef<ConstellationState | null>(null);
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef } = usePrimaryRGB();
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
-
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
+  const draw = useCallback(({ ctx, w, h, raw, rgb }: VisualizerFrame) => {
     const t = performance.now() / 1000;
-    const [pr, pg, pb] = rgbRef.current;
+    const [pr, pg, pb] = rgb;
 
     // Allocate particles once; rescale to the new size on resize.
     let state = stateRef.current;
@@ -170,10 +117,9 @@ export function ConstellationVisualizer({ source, active }: ConstellationVisuali
       ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [widthRef, heightRef, dprRef, rgbRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas

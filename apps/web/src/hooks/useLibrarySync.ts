@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import type { Track } from '@/stores/types';
-import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { queryClient } from '@/lib/queryClient';
 
@@ -26,7 +26,7 @@ export function useLibrarySync() {
       if (!IS_ELECTRON) return [];
       const dbTracks = await window.electronAPI.db.tracks.getAll();
       if (!dbTracks || dbTracks.length === 0) return [];
-      return mapDbTracksToTracks(dbTracks as Record<string, unknown>[]);
+      return mapDbTracksToTracks(dbTracks as DbTrackRecord[]);
     },
     enabled: IS_ELECTRON,
     staleTime: Infinity,

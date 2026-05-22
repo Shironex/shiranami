@@ -2,6 +2,7 @@ import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logger';
+import { sendToRenderer } from './utils/window';
 import type { PlaybackState } from './media-controls';
 
 let tray: Tray | null = null;
@@ -49,9 +50,7 @@ function showWindow(win: BrowserWindow): void {
 }
 
 function sendMediaCommand(command: string): void {
-  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-    mainWindowRef.webContents.send('media:command', command);
-  }
+  sendToRenderer('media:command', command);
 }
 
 function rebuildContextMenu(): void {
@@ -82,7 +81,7 @@ function rebuildContextMenu(): void {
         label: 'Next',
         click: () => sendMediaCommand('next'),
       },
-      { type: 'separator' },
+      { type: 'separator' }
     );
   }
 
@@ -95,7 +94,7 @@ function rebuildContextMenu(): void {
     {
       label: 'Quit',
       click: () => app.quit(),
-    },
+    }
   );
 
   tray.setContextMenu(Menu.buildFromTemplate(template));

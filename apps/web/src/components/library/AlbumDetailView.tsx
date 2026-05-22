@@ -10,6 +10,7 @@ import { formatDuration } from '@shiranami/shared';
 import { motion } from 'motion/react';
 import { TrackRowContent } from '@/components/shared/TrackRowContent';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { sortAlbumTracks } from '@/lib/albumSort';
 
 function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
@@ -151,19 +152,12 @@ export function AlbumDetailView() {
 
         {/* Album info */}
         <div className="flex items-center gap-4">
-          <div className="shrink-0 w-20 h-20 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden">
-            {albumArt ? (
-              <img
-                src={albumArt}
-                alt={selectedAlbumName}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Disc3 className="w-8 h-8 text-muted-foreground/20" />
-            )}
-          </div>
+          <TrackThumbnail
+            albumArt={albumArt}
+            alt={selectedAlbumName}
+            className="w-20 h-20 rounded-xl bg-surface border border-border/30"
+            fallback={<Disc3 className="w-8 h-8 text-muted-foreground/20" />}
+          />
           <div className="min-w-0 flex-1">
             <p className="font-serif italic text-2xl text-foreground truncate">
               {selectedAlbumName}

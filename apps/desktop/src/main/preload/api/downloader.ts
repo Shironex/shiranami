@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import { IPC_CHANNELS, type SearchResult } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 import type { InstallDependenciesResult } from '../types';
 
@@ -24,16 +24,6 @@ interface CachedToolStatus {
   ytdlpPath: string;
   downloadLocation: DownloadLocation;
   timestamp: number;
-}
-
-interface SearchResult {
-  id: string;
-  title: string;
-  uploader: string;
-  duration: number;
-  thumbnail: string;
-  url: string;
-  webpage_url: string;
 }
 
 export interface DownloaderApi {

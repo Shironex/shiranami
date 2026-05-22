@@ -264,5 +264,3 @@ function SyncedPreview({ dimOpacity, fontSize }: SyncedPreviewProps) {
     </div>
   );
 }
-
-export default LyricsSection;

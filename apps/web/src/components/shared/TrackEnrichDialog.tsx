@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore, type EnrichUpdatedFields } from '@/stores/useMetadataEnrichStore';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 
 interface TrackEnrichDialogProps {
   open: boolean;
@@ -187,18 +188,13 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
           <div className="space-y-3">
             {/* Track header lives inside the found state — it earns its space here. */}
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
-              {track.albumArt ? (
-                <img
-                  src={track.albumArt}
-                  alt=""
-                  className="w-10 h-10 rounded-md object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
-                  <Disc3 className="w-4 h-4 text-muted-foreground/60" />
-                </div>
-              )}
+              <TrackThumbnail
+                albumArt={track.albumArt}
+                alt=""
+                className="w-10 h-10 rounded-md bg-muted"
+                imgClassName="rounded-md"
+                fallback={<Disc3 className="w-4 h-4 text-muted-foreground/60" />}
+              />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{track.artist}</p>

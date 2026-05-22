@@ -1,14 +1,14 @@
 import { ipcMain, net } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
-import {
-  spawnYtDlp,
-  parseYtDlpJsonLines,
-  type SearchResult,
-} from '../utils/ytdlp-spawn';
-import { getMainWindow } from '../utils/window';
+import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
+import { sendToRenderer } from '../utils/window';
+import { BROWSER_USER_AGENT } from '../shared/user-agent';
+
+const C = IPC_CHANNELS.playlist;
 
 export { parseYtDlpJsonLines };
 
@@ -79,15 +79,14 @@ async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack
   const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
   const response = await net.fetch(embedUrl, {
     headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': BROWSER_USER_AGENT,
     },
   });
 
   if (!response.ok) {
     throw new IpcError(
       PLAYLIST_ERROR_CODES.PRIVATE_PLAYLIST,
-      `Failed to fetch Spotify embed page: ${response.status}`,
+      `Failed to fetch Spotify embed page: ${response.status}`
     );
   }
 
@@ -200,11 +199,10 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
   if (spotifyTracks.length === 0) {
     throw new IpcError(
       PLAYLIST_ERROR_CODES.NO_TRACKS,
-      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.',
+      'Could not extract tracks from Spotify playlist. The playlist may be private or empty.'
     );
   }
 
-  const mainWindow = getMainWindow();
   const results: SearchResult[] = [];
   const total = spotifyTracks.length;
 
@@ -212,13 +210,11 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
     if (cancelledFlag) break;
 
     // Send extraction progress
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('playlist:extract-progress', {
-        current: i + 1,
-        total,
-        trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
-      });
-    }
+    sendToRenderer(C.extractProgress, {
+      current: i + 1,
+      total,
+      trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
+    });
 
     const result = await resolveSpotifyTrackOnYouTube(spotifyTracks[i]);
     if (result) {
@@ -232,7 +228,7 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
 
 export function registerPlaylistHandlers(): void {
   handle(
-    'playlist:extract',
+    C.extract,
     async (_event, url: string) => {
       cancelledFlag = false;
 
@@ -241,7 +237,7 @@ export function registerPlaylistHandlers(): void {
       if (playlistType === 'unknown') {
         throw new IpcError(
           PLAYLIST_ERROR_CODES.UNSUPPORTED_URL,
-          'Unsupported URL. Please provide a YouTube or Spotify playlist URL.',
+          'Unsupported URL. Please provide a YouTube or Spotify playlist URL.'
         );
       }
 
@@ -250,20 +246,20 @@ export function registerPlaylistHandlers(): void {
       }
       return await extractSpotifyPlaylist(url);
     },
-    { schema: playlistExtractArgs },
+    { schema: playlistExtractArgs }
   );
 
   handle(
-    'playlist:cancel',
+    C.cancel,
     async () => {
       cancelledFlag = true;
       logger.info('[playlist] Extraction cancelled');
     },
-    { schema: playlistCancelArgs },
+    { schema: playlistCancelArgs }
   );
 }
 
 export function cleanupPlaylistHandlers(): void {
-  ipcMain.removeHandler('playlist:extract');
-  ipcMain.removeHandler('playlist:cancel');
+  ipcMain.removeHandler(C.extract);
+  ipcMain.removeHandler(C.cancel);
 }

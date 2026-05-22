@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mapDbTrackToTrack, mapDbTracksToTracks } from './trackMapper';
+import { mapDbTrackToTrack, mapDbTracksToTracks, type DbTrackRecord } from './trackMapper';
 
 vi.mock('@/lib/i18n', () => ({
   default: {
@@ -13,7 +13,7 @@ vi.mock('@/lib/i18n', () => ({
   },
 }));
 
-const fullRecord: Record<string, unknown> = {
+const fullRecord: DbTrackRecord = {
   id: 'track-1',
   title: 'My Song',
   artist: 'Some Artist',
@@ -111,7 +111,7 @@ describe('mapDbTrackToTrack', () => {
 
 describe('mapDbTracksToTracks', () => {
   it('maps an array of DB records to Track objects', () => {
-    const second: Record<string, unknown> = {
+    const second: DbTrackRecord = {
       ...fullRecord,
       id: 'track-2',
       title: 'Another Song',

@@ -36,7 +36,7 @@ const LyricLineButton = memo(function LyricLineButton({
         baseClassName,
         isActive && activeClassName,
         isPast && pastClassName,
-        !isActive && !isPast && idleClassName,
+        !isActive && !isPast && idleClassName
       )}
     >
       {text}

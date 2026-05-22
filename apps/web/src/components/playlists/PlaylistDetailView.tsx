@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
 import { useViewStore } from '@/stores/useViewStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -10,9 +9,6 @@ import { usePlaylistCover } from '@/hooks/usePlaylistCover';
 import { usePlaylistDetailQuery, useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -20,30 +16,12 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
-import {
-  ArrowLeft,
-  Play,
-  Share2,
-  Trash2,
-  ListMusic,
-  Loader2,
-  ImagePlus,
-  Sparkles,
-  XCircle,
-  AlertCircle,
-} from 'lucide-react';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
-import { formatDuration } from '@shiranami/shared';
-import { motion, AnimatePresence } from 'motion/react';
-import { SortableTrackRow } from '@/components/shared/SortableTrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
-import { DragOverlayContent } from './DragOverlayContent';
+import { PlaylistDetailHeader } from './PlaylistDetailHeader';
+import { PlaylistTrackList } from './PlaylistTrackList';
 
 export function PlaylistDetailView() {
   const { t } = useTranslation('playlists');
@@ -110,17 +88,8 @@ export function PlaylistDetailView() {
 
   // Cover art
   const suggestedCoverArt = tracks.find(track => track.albumArt)?.albumArt;
-  const {
-    showCoverMenu,
-    setShowCoverMenu,
-    isUpdatingCover,
-    coverMenuRef,
-    coverInputRef,
-    handleCoverFileSelected,
-    handlePickCustomCover,
-    handleUseSuggestedCover,
-    handleClearCover,
-  } = usePlaylistCover({ playlistId: selectedPlaylistId, suggestedCoverArt });
+  const cover = usePlaylistCover({ playlistId: selectedPlaylistId, suggestedCoverArt });
+  const { showCoverMenu, setShowCoverMenu, coverMenuRef } = cover;
 
   useClickOutside(coverMenuRef, () => setShowCoverMenu(false), showCoverMenu);
 
@@ -203,234 +172,42 @@ export function PlaylistDetailView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="px-6 pt-2 pb-4 shrink-0 space-y-3">
-        {/* Back + actions row */}
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleBack}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            aria-label={t('back')}
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </motion.button>
+      <PlaylistDetailHeader
+        playlist={playlist}
+        selectedPlaylistId={selectedPlaylistId}
+        trackCount={tracks.length}
+        totalDuration={totalDuration}
+        hasTracks={tracks.length > 0}
+        suggestedCoverArt={suggestedCoverArt}
+        cover={cover}
+        isEditing={isEditing}
+        editName={editName}
+        setEditName={setEditName}
+        nameInputRef={nameInputRef}
+        showDeleteConfirm={showDeleteConfirm}
+        setShowDeleteConfirm={setShowDeleteConfirm}
+        onBack={handleBack}
+        onPlayAll={handlePlayAll}
+        onDelete={handleDelete}
+        onStartEdit={handleStartEdit}
+        onSaveName={handleSaveNameSubmit}
+        onNameKeyDown={handleNameKeyDown}
+      />
 
-          <div className="flex-1" />
-
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handlePlayAll}
-            disabled={tracks.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            {t('playAll')}
-          </motion.button>
-
-          {IS_ELECTRON && selectedPlaylistId && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent('open-share-dialog', {
-                    detail: { type: 'playlist', id: selectedPlaylistId },
-                  })
-                );
-              }}
-              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors"
-              aria-label={t('share', { ns: 'share' })}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </motion.button>
-          )}
-
-          <div className="relative">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              aria-label={t('deletePlaylist')}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </motion.button>
-
-            <AnimatePresence>
-              {showDeleteConfirm && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-1 w-52 p-3 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
-                >
-                  <p className="text-xs text-foreground/80 mb-2">{t('deleteConfirm')}</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleDelete}
-                      className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
-                    >
-                      {t('delete', { ns: 'common' })}
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      {t('cancel', { ns: 'common' })}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        {/* Playlist info */}
-        <div className="flex items-center gap-4">
-          <div ref={coverMenuRef} className="relative shrink-0">
-            <button
-              onClick={() => setShowCoverMenu(open => !open)}
-              className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
-              disabled={isUpdatingCover}
-              title={t('editCover')}
-            >
-              {playlist.coverArt ? (
-                <img
-                  src={playlist.coverArt}
-                  alt={playlist.name}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <ListMusic className="w-7 h-7 text-muted-foreground/20" />
-              )}
-
-              <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/30 transition-colors flex items-center justify-center">
-                {isUpdatingCover ? (
-                  <Loader2 className="w-4 h-4 text-white animate-spin" />
-                ) : (
-                  <ImagePlus className="w-4 h-4 text-white opacity-0 group-hover/cover:opacity-100 transition-opacity" />
-                )}
-              </div>
-            </button>
-
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={handleCoverFileSelected}
-            />
-
-            <AnimatePresence>
-              {showCoverMenu && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full mt-2 w-52 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
-                >
-                  <button
-                    onClick={handlePickCustomCover}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
-                  >
-                    <ImagePlus className="w-4 h-4 text-muted-foreground/60" />
-                    {t('uploadCustomImage')}
-                  </button>
-
-                  {suggestedCoverArt && (
-                    <button
-                      onClick={handleUseSuggestedCover}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
-                    >
-                      <Sparkles className="w-4 h-4 text-muted-foreground/60" />
-                      {t('useTrackArtwork')}
-                    </button>
-                  )}
-
-                  {playlist.coverArt && (
-                    <button
-                      onClick={handleClearCover}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      {t('removeCover')}
-                    </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-          <div className="min-w-0 flex-1">
-            {isEditing ? (
-              <input
-                ref={nameInputRef}
-                value={editName}
-                onChange={e => setEditName(e.target.value)}
-                onBlur={handleSaveNameSubmit}
-                onKeyDown={handleNameKeyDown}
-                className="font-display text-lg font-semibold text-foreground bg-transparent outline-none border-b border-primary/40 w-full pb-0.5"
-              />
-            ) : (
-              <button
-                onClick={handleStartEdit}
-                className="font-display text-lg font-semibold text-foreground truncate block text-left hover:text-primary transition-colors"
-                title={t('clickToRename')}
-              >
-                {playlist.name}
-              </button>
-            )}
-            <p className="text-xs text-muted-foreground/50 mt-0.5">
-              {t('trackCount', { count: tracks.length })}
-              {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Track list */}
-      {tracks.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-          <ListMusic className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
-          <div>
-            <p className="font-display text-base font-medium text-muted-foreground">
-              {t('detailEmptyTitle')}
-            </p>
-            <p className="text-sm text-muted-foreground/50 mt-1">{t('detailEmptySubtitle')}</p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 scrollbar-thin">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
-            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              {displayTracks.map((track, index) => (
-                <SortableTrackRow
-                  key={track.id}
-                  track={track}
-                  index={index}
-                  queue={displayTracks}
-                  currentTrack={currentTrack}
-                  isPlaying={isPlaying}
-                  handlePlayTrack={handlePlayTrack}
-                  onToggleFavorite={toggleFavorite}
-                  onRemoveFromPlaylist={handleRemoveTrack}
-                />
-              ))}
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>
-              {activeTrack ? <DragOverlayContent track={activeTrack} /> : null}
-            </DragOverlay>
-          </DndContext>
-        </div>
-      )}
+      <PlaylistTrackList
+        displayTracks={displayTracks}
+        sortableIds={sortableIds}
+        activeTrack={activeTrack}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+        onPlayTrack={handlePlayTrack}
+        onToggleFavorite={toggleFavorite}
+        onRemoveTrack={handleRemoveTrack}
+      />
 
       {hasSelection && (
         <BulkActionBar

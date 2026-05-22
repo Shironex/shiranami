@@ -69,7 +69,7 @@ describe('buildActivitySeries', () => {
     ];
     const series = buildActivitySeries('7d', activity);
     expect(series).toHaveLength(7);
-    const withPlays = series.filter((p) => p.playCount > 0);
+    const withPlays = series.filter(p => p.playCount > 0);
     expect(withPlays).toHaveLength(1);
     expect(withPlays[0]!.playCount).toBe(1);
   });

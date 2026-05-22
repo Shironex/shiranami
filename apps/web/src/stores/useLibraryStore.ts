@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -169,7 +170,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
 
     if (IS_ELECTRON) {
       window.electronAPI.db.tracks.toggleFavorite(trackId).catch(err => {
-        console.warn('[player] Failed to toggle favorite:', err);
+        logger.warn('[player] Failed to toggle favorite:', err);
         // Revert optimistic update so UI stays in sync with DB.
         useTrackOverlayStore.getState().setOverlay(trackId, { isFavorite: currentValue });
         syncPlaybackTrack(trackId, t => ({ ...t, isFavorite: currentValue }));
@@ -211,7 +212,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
 
     if (IS_ELECTRON) {
       window.electronAPI.db.tracks.incrementPlayCount(trackId).catch(err => {
-        console.warn('[player] Failed to persist play count:', err);
+        logger.warn('[player] Failed to persist play count:', err);
       });
     }
   },
@@ -243,7 +244,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     try {
       await window.electronAPI.library.cancelScan();
     } catch (err) {
-      console.warn('Failed to cancel scan', err);
+      logger.warn('Failed to cancel scan', err);
     }
   },
 }));

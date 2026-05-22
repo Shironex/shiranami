@@ -14,6 +14,11 @@ interface ViewEmptyStateProps {
   hints?: { icon: LucideIcon; label: string }[];
   variant?: 'empty' | 'error';
   action?: ViewEmptyStateAction;
+  /**
+   * Lighter inline layout (single muted icon + title + subtitle, no mascot
+   * frame or glass panel) for in-view "no matches" / "empty mix" states.
+   */
+  compact?: boolean;
 }
 
 export function ViewEmptyState({
@@ -23,8 +28,29 @@ export function ViewEmptyState({
   hints,
   variant = 'empty',
   action,
+  compact = false,
 }: ViewEmptyStateProps) {
   const isError = variant === 'error';
+
+  if (compact) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
+        <Icon className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
+        <div>
+          <p className="font-display text-base font-medium text-foreground/85">{title}</p>
+          <p className="text-sm text-muted-foreground/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
+            {subtitle}
+          </p>
+        </div>
+        {action && (
+          <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
+            {action.label}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 min-h-full flex items-center justify-center">
       <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center glass-subtle rounded-[28px] border border-border/30">

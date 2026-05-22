@@ -21,6 +21,7 @@ import { useWindowControls } from '@/hooks/useWindowControls';
 import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
+import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { TimeDisplay } from './TimeDisplay';
 import { Heart, Maximize2, Minimize2, Music, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -149,16 +150,15 @@ export function CompactPlayer() {
               className="group/art flex size-[72px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-lg shadow-black/20 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label={t('expandFromCompact')}
             >
-              {currentTrack?.albumArt ? (
-                <img
-                  src={currentTrack.albumArt}
-                  alt={currentTrack.album}
-                  className="h-full w-full object-cover transition-opacity group-hover/art:opacity-90"
-                  decoding="async"
-                />
-              ) : (
-                <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />
-              )}
+              <TrackThumbnail
+                fill
+                albumArt={currentTrack?.albumArt}
+                alt={currentTrack?.album ?? ''}
+                imgClassName="transition-opacity group-hover/art:opacity-90"
+                fallback={
+                  <Music className="size-7 text-muted-foreground/45 transition-colors group-hover/art:text-muted-foreground/70" />
+                }
+              />
             </button>
           )}
 

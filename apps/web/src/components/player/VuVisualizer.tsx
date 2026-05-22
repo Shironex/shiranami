@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * VU Meter visualizer — twin analog needles (L/R) sweeping over a ticked arc.
@@ -120,61 +116,11 @@ function drawVuFace(
 }
 
 export function VuVisualizer({ source, active }: VuVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const stateRef = useRef<VuState>({ smoothedL: 0, smoothedR: 0 });
   const gradientCacheRef = useRef<GradientCache>({ key: '', ctx: null, bezel: null });
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef, versionRef } = usePrimaryRGB();
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
-
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
+  const draw = useCallback(({ ctx, w, h, raw, binCount, rgb }: VisualizerFrame) => {
     const state = stateRef.current;
-    const rgb = rgbRef.current;
 
     let l = 0;
     let r = 0;
@@ -192,7 +138,7 @@ export function VuVisualizer({ source, active }: VuVisualizerProps = {}) {
 
     // Cache the shared bezel gradient on resize / theme change.
     const cache = gradientCacheRef.current;
-    const key = `${Math.round(meterH)}|${versionRef.current}`;
+    const key = `${Math.round(meterH)}|${rgb[0]},${rgb[1]},${rgb[2]}`;
     if (cache.key !== key || cache.ctx !== ctx) {
       const bezel = ctx.createLinearGradient(0, 0, 0, meterH);
       bezel.addColorStop(0, 'rgba(255,255,255,0.04)');
@@ -214,10 +160,9 @@ export function VuVisualizer({ source, active }: VuVisualizerProps = {}) {
       'L'
     );
     drawVuFace(ctx, w / 2 + gap / 2, y0, meterW, meterH, state.smoothedR, rgb, cache.bezel!, 'R');
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas

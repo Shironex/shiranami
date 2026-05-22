@@ -1,4 +1,5 @@
 import { app, ipcMain } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
@@ -9,7 +10,7 @@ import {
   type ScanUtilityClient,
   type ScanProgressEvent,
 } from '../scan-utility-host';
-import { getMainWindow } from '../utils/window';
+import { sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {
   parseMetadataArgs,
@@ -18,6 +19,8 @@ import {
   scanFolderGroupedArgs,
   validateFilesArgs,
 } from './schemas/library';
+
+const C = IPC_CHANNELS.library;
 
 export interface ScannedTrack {
   filePath: string;
@@ -151,9 +154,7 @@ async function parseAudioFilesViaUtility(
  * (background scans during teardown).
  */
 function forwardProgressToRenderer(evt: ScanProgressEvent): void {
-  const mainWindow = getMainWindow();
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.webContents.send('library:scan-progress', evt);
+  sendToRenderer(C.scanProgress, evt);
 }
 
 /**
@@ -300,7 +301,7 @@ export function registerLibraryHandlers(): void {
   // one file is overkill, and single-file parses don't accumulate the heap
   // pressure that drove the migration.
   handle(
-    'library:parse-metadata',
+    C.parseMetadata,
     async (_event, filePath: string) => {
       const metadata = await parseAudioMetadata(filePath);
       return { filePath, metadata };
@@ -312,7 +313,7 @@ export function registerLibraryHandlers(): void {
   // utility process. Process exits at the end of the scan → V8 heap returns
   // to OS, freeing 200-400 MB main RSS at idle after large scans.
   handle(
-    'library:scan-folder',
+    C.scanFolder,
     async (_event, dirPath: string) => {
       const start = Date.now();
       logger.info(`[library] Scanning folder: ${dirPath}`);
@@ -362,7 +363,7 @@ export function registerLibraryHandlers(): void {
   // immediately and the actual scan promise rejects via ScanCancelledError,
   // which the scan IPC absorbs into an empty result.
   handle(
-    'library:scan-cancel',
+    C.scanCancel,
     async () => {
       if (activeScanAbort) {
         logger.info('[library] Scan cancellation requested');
@@ -376,7 +377,7 @@ export function registerLibraryHandlers(): void {
 
   // Validate which file paths still exist on disk (returns paths that are missing)
   handle(
-    'library:validate-files',
+    C.validateFiles,
     async (_event, filePaths: string[]) => {
       const start = Date.now();
       logger.info(`[library] Validating ${filePaths.length} file paths`);
@@ -418,7 +419,7 @@ export function registerLibraryHandlers(): void {
   // Uses the same per-scan utility process as `scan-folder` — root files +
   // every subfolder go through one utility client, which then exits.
   handle(
-    'library:scan-folder-grouped',
+    C.scanFolderGrouped,
     async (_event, dirPath: string) => {
       const start = Date.now();
       logger.info(`[library] Scanning folder (grouped): ${dirPath}`);
@@ -490,9 +491,9 @@ export function registerLibraryHandlers(): void {
 }
 
 export function cleanupLibraryHandlers(): void {
-  ipcMain.removeHandler('library:parse-metadata');
-  ipcMain.removeHandler('library:scan-folder');
-  ipcMain.removeHandler('library:validate-files');
-  ipcMain.removeHandler('library:scan-folder-grouped');
-  ipcMain.removeHandler('library:scan-cancel');
+  ipcMain.removeHandler(C.parseMetadata);
+  ipcMain.removeHandler(C.scanFolder);
+  ipcMain.removeHandler(C.validateFiles);
+  ipcMain.removeHandler(C.scanFolderGrouped);
+  ipcMain.removeHandler(C.scanCancel);
 }

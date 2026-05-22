@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import type {
   EnrichProgress,
+  EnrichTrackInput,
   EnrichTrackResult,
   EnrichUpdatedFields,
   EnrichResultSource,
@@ -8,12 +10,33 @@ import type {
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import type { Track } from '@/stores/types';
+import type { DbTrackRecord } from '@/lib/trackMapper';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 
 const SKIPPED_IDS_STORE_KEY = 'metadata-enrich.skippedIds';
 
-export type { EnrichUpdatedFields, EnrichTrackResult, EnrichResultSource } from '@shiranami/contracts';
+/**
+ * Map a library `Track` to the `EnrichTrackInput` shape the enrich IPC expects,
+ * collapsing optional fields to the null/empty defaults the main process reads.
+ * Used by the bulk run, single-track preview, and single-track apply paths.
+ */
+function toEnrichInput(track: Track): EnrichTrackInput {
+  return {
+    id: track.id,
+    filePath: track.filePath,
+    title: track.title,
+    artist: track.artist,
+    album: track.album,
+    albumArt: track.albumArt ?? null,
+    genre: track.genre ?? '',
+    year: track.year ?? null,
+    trackNumber: track.trackNumber ?? null,
+  };
+}
+
+export type { EnrichUpdatedFields } from '@shiranami/contracts';
 
 /** Field-level old→new change for one track in the last-run report. */
 export interface EnrichFieldDiff {
@@ -116,7 +139,7 @@ async function applyEnrichResults(results: EnrichTrackResult[]): Promise<void> {
   // Refresh library from DB so memoized selectors see the new fields.
   const allDbTracks = await window.electronAPI.db.tracks.getAll();
   const { mapDbTracksToTracks } = await import('@/lib/trackMapper');
-  const refreshedTracks = mapDbTracksToTracks(allDbTracks as Record<string, unknown>[]);
+  const refreshedTracks = mapDbTracksToTracks(allDbTracks as DbTrackRecord[]);
   useLibraryStore.getState().setLibrary(refreshedTracks);
 
   // Patch playback store if the affected track is currently playing or queued —
@@ -181,7 +204,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       try {
         await window.electronAPI.metadata.cancelEnrichment();
       } catch (err) {
-        console.warn('Failed to cancel metadata enrichment', err);
+        logger.warn('Failed to cancel metadata enrichment', err);
       }
     },
 
@@ -230,17 +253,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       set({ isEnriching: true, progress: null, lastRunResults: [] });
 
       try {
-        const input = candidates.map(track => ({
-          id: track.id,
-          filePath: track.filePath,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          albumArt: track.albumArt ?? null,
-          genre: track.genre ?? '',
-          year: track.year ?? null,
-          trackNumber: track.trackNumber ?? null,
-        }));
+        const input = candidates.map(toEnrichInput);
 
         const results: EnrichTrackResult[] = await window.electronAPI.metadata.enrichTracks(input, {
           writeToFile,
@@ -309,7 +322,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
           toast.info(tToast('enrichNoneFound'));
         }
       } catch (err) {
-        console.error('Metadata enrichment failed:', err);
+        logger.error('Metadata enrichment failed:', err);
         toast.error(i18n.t('enrichFailed', { ns: 'toast' }));
       } finally {
         set({ isEnriching: false, isCancelling: false, progress: null });
@@ -330,17 +343,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
 
       set({ isSingleTrackEnriching: true });
       try {
-        const input = {
-          id: track.id,
-          filePath: track.filePath,
-          title: track.title,
-          artist: track.artist,
-          album: track.album,
-          albumArt: track.albumArt ?? null,
-          genre: track.genre ?? '',
-          year: track.year ?? null,
-          trackNumber: track.trackNumber ?? null,
-        };
+        const input = toEnrichInput(track);
         // v1 hardcodes onlyMissing: true to match bulk behavior — overwrite-all
         // would risk clobbering hand-curated fields without a confirm step.
         const result = await window.electronAPI.metadata.previewEnrich(input, {
@@ -364,19 +367,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       // we skip the IPC and apply the precomputed result directly — the cover art
       // is already cached by the preview call, so DB-only update is sufficient.
       if (writeToFile) {
-        const input = [
-          {
-            id: track.id,
-            filePath: track.filePath,
-            title: track.title,
-            artist: track.artist,
-            album: track.album,
-            albumArt: track.albumArt ?? null,
-            genre: track.genre ?? '',
-            year: track.year ?? null,
-            trackNumber: track.trackNumber ?? null,
-          },
-        ];
+        const input = [toEnrichInput(track)];
         const results = await window.electronAPI.metadata.enrichTracks(input, {
           writeToFile: true,
           onlyMissing: true,
@@ -398,7 +389,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       try {
         await window.electronAPI.metadata.cancelEnrichment();
       } catch (err) {
-        console.warn('Failed to cancel single-track enrichment', err);
+        logger.warn('Failed to cancel single-track enrichment', err);
       }
     },
   })

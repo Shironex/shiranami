@@ -18,7 +18,8 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { downscaleAndHash } from './lib/album-art-image';
+import type { TrackMetadata } from '@shiranami/contracts';
+import { artUrlFor, downscaleAndHash } from './lib/album-art-image';
 
 interface ParentPortMessageEvent {
   data: unknown;
@@ -71,17 +72,7 @@ interface InitAckMessage {
   type: 'init-ack';
 }
 
-interface ParseSuccessMetadata {
-  title: string;
-  artist: string;
-  album: string;
-  duration: number;
-  genre: string;
-  year: number | null;
-  trackNumber: number | null;
-  discNumber: number | null;
-  albumArt: string | null;
-}
+type ParseSuccessMetadata = TrackMetadata;
 interface ParseSuccessMessage {
   type: 'parse-result';
   requestId: number;
@@ -191,10 +182,6 @@ function ensureArtDir(s: UtilityState): void {
   s.artDirEnsured = true;
 }
 
-function toArtUrl(fileName: string): string {
-  return `shiranami-art://art/${fileName}`;
-}
-
 // ---------------------------------------------------------------------------
 // Cover write — content-addressed JPEG cache. Mirrors saveAlbumArt() in
 // art-protocol.ts but uses sharp (via downscaleAndHash) and does no logging.
@@ -222,7 +209,7 @@ async function saveAlbumArtToDisk(
     }
   }
 
-  return toArtUrl(downscaled.fileName);
+  return artUrlFor(downscaled.fileName);
 }
 
 // ---------------------------------------------------------------------------

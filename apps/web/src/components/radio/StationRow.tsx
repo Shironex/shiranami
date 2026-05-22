@@ -18,16 +18,8 @@ export interface StationRowProps {
 
 export function StationRow(props: RowComponentProps<StationRowProps>) {
   const { t } = useTranslation('radio');
-  const {
-    index,
-    style,
-    stations,
-    currentTrackId,
-    isPlaying,
-    favorites,
-    onPlay,
-    onToggleFavorite,
-  } = props as RowComponentProps<StationRowProps> & StationRowProps;
+  const { index, style, stations, currentTrackId, isPlaying, favorites, onPlay, onToggleFavorite } =
+    props as RowComponentProps<StationRowProps> & StationRowProps;
   const station = stations[index];
 
   if (!station) return null;
@@ -49,10 +41,7 @@ export function StationRow(props: RowComponentProps<StationRowProps>) {
         )}
       >
         {/* Station info + play */}
-        <button
-          onClick={() => onPlay(index)}
-          className="flex items-center gap-3 min-w-0 flex-1"
-        >
+        <button onClick={() => onPlay(index)} className="flex items-center gap-3 min-w-0 flex-1">
           <div
             className={cn(
               'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
@@ -65,7 +54,7 @@ export function StationRow(props: RowComponentProps<StationRowProps>) {
                 alt={station.name}
                 className="w-full h-full object-cover rounded-lg"
                 loading="lazy"
-                onError={(e) => {
+                onError={e => {
                   (e.target as HTMLImageElement).style.display = 'none';
                   (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                 }}
@@ -118,7 +107,9 @@ export function StationRow(props: RowComponentProps<StationRowProps>) {
           )}
           aria-label={isFav ? t('removeFavorite') : t('addFavorite')}
         >
-          <Heart className={cn('w-3.5 h-3.5 transition-all duration-150', isFav && 'fill-current')} />
+          <Heart
+            className={cn('w-3.5 h-3.5 transition-all duration-150', isFav && 'fill-current')}
+          />
         </motion.button>
 
         {/* Play/Pause indicator */}

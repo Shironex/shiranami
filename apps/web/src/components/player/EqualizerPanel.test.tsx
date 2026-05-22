@@ -31,9 +31,7 @@ const mockState = vi.hoisted(() => ({
 }));
 
 vi.mock('@/stores/useEqStore', async () => {
-  const actual = await vi.importActual<typeof import('@/stores/useEqStore')>(
-    '@/stores/useEqStore',
-  );
+  const actual = await vi.importActual<typeof import('@/stores/useEqStore')>('@/stores/useEqStore');
   return {
     ...actual,
     useEqStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
@@ -55,7 +53,7 @@ function renderPanel() {
   return render(
     <TooltipProvider>
       <EqualizerPanel />
-    </TooltipProvider>,
+    </TooltipProvider>
   );
 }
 
@@ -75,9 +73,7 @@ describe('EqualizerPanel', () => {
 
   it('renders the trigger button with the equalizer aria label', () => {
     renderPanel();
-    expect(
-      screen.getByRole('button', { name: 'player:eqTooltip' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'player:eqTooltip' })).toBeInTheDocument();
   });
 
   it('does not show the active indicator when disabled or on flat preset', () => {

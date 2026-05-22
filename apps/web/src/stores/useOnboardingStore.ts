@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { IS_ELECTRON } from '@/lib/platform';
 
 /** localStorage key — matches the shiranami.* store convention. */
@@ -23,58 +22,48 @@ interface OnboardingState {
   hydrateOnboarding: () => Promise<void>;
 }
 
-export const useOnboardingStore = create<OnboardingState>()(
-  persist(
-    set => ({
-      hasCompletedOnboarding: false,
-      completeOnboarding: () => {
-        set({ hasCompletedOnboarding: true });
-        if (IS_ELECTRON) {
-          window.electronAPI.store.set(ELECTRON_KEY, true).catch(() => {});
+export const useOnboardingStore = createPersistedStore<OnboardingState>(
+  set => ({
+    hasCompletedOnboarding: false,
+    completeOnboarding: () => {
+      set({ hasCompletedOnboarding: true });
+      if (IS_ELECTRON) {
+        window.electronAPI.store.set(ELECTRON_KEY, true).catch(() => {});
+      }
+    },
+    resetOnboarding: () => {
+      set({ hasCompletedOnboarding: false });
+      if (IS_ELECTRON) {
+        window.electronAPI.store.delete(ELECTRON_KEY).catch(() => {});
+      }
+    },
+    hydrateOnboarding: async () => {
+      if (!IS_ELECTRON) return;
+      try {
+        const stored = await window.electronAPI.store.get(ELECTRON_KEY);
+        if (stored === true) {
+          set({ hasCompletedOnboarding: true });
         }
-      },
-      resetOnboarding: () => {
-        set({ hasCompletedOnboarding: false });
-        if (IS_ELECTRON) {
-          window.electronAPI.store.delete(ELECTRON_KEY).catch(() => {});
-        }
-      },
-      hydrateOnboarding: async () => {
-        if (!IS_ELECTRON) return;
-        try {
-          const stored = await window.electronAPI.store.get(ELECTRON_KEY);
-          if (stored === true) {
-            set({ hasCompletedOnboarding: true });
-          }
-        } catch {
-          // Ignore store read failures — localStorage stays the fallback.
-        }
-      },
+      } catch {
+        // Ignore store read failures — localStorage stays the fallback.
+      }
+    },
+  }),
+  {
+    name: STORE_KEY,
+    version: 1,
+    partialize: s => ({ hasCompletedOnboarding: s.hasCompletedOnboarding }),
+    sanitize: (persisted, current) => ({
+      ...current,
+      hasCompletedOnboarding: coerceCompleted(
+        (persisted as Partial<OnboardingState> | undefined)?.hasCompletedOnboarding
+      ),
     }),
-    {
-      name: STORE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: s => ({ hasCompletedOnboarding: s.hasCompletedOnboarding }),
-      merge: (persisted, current) => ({
-        ...current,
-        hasCompletedOnboarding: coerceCompleted(
-          (persisted as Partial<OnboardingState> | undefined)?.hasCompletedOnboarding
-        ),
-      }),
-    }
-  )
+  }
 );
 
-if (import.meta.hot) {
-  type HmrData = { store?: typeof useOnboardingStore };
-  const hot = import.meta.hot;
-  const data = (hot.data ?? {}) as HmrData;
-  if (data.store) {
-    useOnboardingStore.setState({
-      hasCompletedOnboarding: coerceCompleted(data.store.getState().hasCompletedOnboarding),
-    });
-  }
-  data.store = useOnboardingStore;
-  hot.accept();
-}
+acceptStoreHmr(useOnboardingStore, import.meta.hot, state => {
+  useOnboardingStore.setState({
+    hasCompletedOnboarding: coerceCompleted(state.hasCompletedOnboarding),
+  });
+});

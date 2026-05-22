@@ -1,10 +1,6 @@
 import { useRef, useCallback } from 'react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { getAnalyser } from '@/lib/audioAnalyser';
-import { useRafLoop } from '@/hooks/useRafLoop';
-import { useCanvasSize } from '@/hooks/useCanvasSize';
-import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
-import { VISUALIZER_FPS, type FrequencySource } from './visualizer-source';
+import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
+import { type FrequencySource } from './visualizer-source';
 
 /**
  * Vinyl visualizer — a spinning record with audio-reactive grooves, a tinted
@@ -33,8 +29,6 @@ interface GradientCache {
 }
 
 export function VinylVisualizer({ source, active }: VinylVisualizerProps = {}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const stateRef = useRef<VinylState>({ angle: 0 });
   const gradientCacheRef = useRef<GradientCache>({
     key: '',
@@ -42,61 +36,14 @@ export function VinylVisualizer({ source, active }: VinylVisualizerProps = {}) {
     base: null,
     label: null,
   });
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
-  const { rgbRef, versionRef } = usePrimaryRGB();
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let binCount: number;
-    let readData: (buf: Uint8Array) => boolean;
-
-    if (source) {
-      binCount = source.binCount;
-      readData = source.read;
-    } else {
-      const analyser = getAnalyser();
-      if (!analyser) return;
-      binCount = analyser.frequencyBinCount;
-      readData = buf => {
-        analyser.getByteFrequencyData(buf as Uint8Array<ArrayBuffer>);
-        return true;
-      };
-    }
-
-    if (!Number.isFinite(binCount) || binCount < 1) return;
-
-    if (!bufferRef.current || bufferRef.current.length !== binCount) {
-      bufferRef.current = new Uint8Array(binCount);
-    }
-
-    if (!readData(bufferRef.current)) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = dprRef.current;
-    const w = widthRef.current;
-    const h = heightRef.current;
-
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-    }
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-
-    const raw = bufferRef.current;
+  const draw = useCallback(({ ctx, w, h, raw, binCount, rgb }: VisualizerFrame) => {
     const state = stateRef.current;
     const cx = w / 2;
     const cy = h / 2;
     const R = Math.min(w, h) * 0.42;
     const labelR = R * 0.28;
-    const [pr, pg, pb] = rgbRef.current;
+    const [pr, pg, pb] = rgb;
 
     let bass = 0;
     for (let i = 0; i < 6; i++) bass += raw[i];
@@ -109,7 +56,7 @@ export function VinylVisualizer({ source, active }: VinylVisualizerProps = {}) {
 
     // Rebuild cached gradients on resize / theme change.
     const cache = gradientCacheRef.current;
-    const key = `${Math.round(R)}|${versionRef.current}`;
+    const key = `${Math.round(R)}|${pr},${pg},${pb}`;
     if (cache.key !== key || cache.ctx !== ctx) {
       const base = ctx.createRadialGradient(0, 0, R * 0.2, 0, 0, R);
       base.addColorStop(0, '#1a1626');
@@ -186,10 +133,9 @@ export function VinylVisualizer({ source, active }: VinylVisualizerProps = {}) {
     ctx.beginPath();
     ctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
     ctx.stroke();
-  }, [widthRef, heightRef, dprRef, rgbRef, versionRef, source]);
+  }, []);
 
-  const shouldRun = active ?? (isPlaying && !!currentTrack);
-  useRafLoop(draw, canvasRef, shouldRun, VISUALIZER_FPS);
+  const canvasRef = useVisualizerFrame({ draw, source, active });
 
   return (
     <canvas

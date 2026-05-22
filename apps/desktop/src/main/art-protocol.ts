@@ -5,6 +5,8 @@ import * as crypto from 'crypto';
 import { logger } from './logger';
 import { tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
+import { artUrlFor } from './lib/album-art-image';
+import { IMAGE_EXTENSIONS, imageMime } from './shared/media-types';
 
 /** Directory where extracted album art images are stored */
 let artDir: string;
@@ -25,20 +27,12 @@ export function ensureArtDir(): void {
   }
 }
 
-/** Map file extension to MIME type */
+/** Map a file extension to its image MIME type, defaulting to JPEG. */
 export function extToMime(ext: string): string {
-  const map: Record<string, string> = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.webp': 'image/webp',
-    '.gif': 'image/gif',
-    '.bmp': 'image/bmp',
-  };
-  return map[ext] || 'image/jpeg';
+  return imageMime(ext);
 }
 
-const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp']);
+const ALLOWED_EXTENSIONS = IMAGE_EXTENSIONS;
 
 const MAX_DIMENSION = 512;
 
@@ -247,10 +241,11 @@ export async function pruneOrphanedAlbumArt(): Promise<{
 }
 
 /**
- * Convert a filename to a shiranami-art:// URL
+ * Convert a filename to a shiranami-art:// URL. Thin re-export of the shared
+ * `artUrlFor` helper; kept named here for the existing test + call sites.
  */
 export function toArtUrl(fileName: string): string {
-  return `shiranami-art://art/${fileName}`;
+  return artUrlFor(fileName);
 }
 
 /**

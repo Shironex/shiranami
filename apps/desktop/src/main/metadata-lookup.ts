@@ -1,7 +1,7 @@
-import { spawn } from 'child_process';
 import type { MetadataLookupResult } from '@shiranami/contracts';
 import { requestBuffer, requestJson } from './http';
-import { getYtDlpPath, isYtDlpInstalled } from './ytdlp-manager';
+import { isYtDlpInstalled } from './ytdlp-manager';
+import { spawnYtDlp } from './utils/ytdlp-spawn';
 import { logger } from './logger';
 
 export type { MetadataLookupResult } from '@shiranami/contracts';
@@ -200,44 +200,6 @@ async function searchYouTube(
     logger.warn('[metadata-lookup] YouTube search failed:', error);
     return null;
   }
-}
-
-function spawnYtDlp(
-  args: string[],
-  signal?: AbortSignal
-): Promise<{ stdout: string; stderr: string; code: number }> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException('The operation was aborted', 'AbortError'));
-      return;
-    }
-
-    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
-    let stdout = '';
-    let stderr = '';
-
-    const onAbort = () => {
-      proc.kill();
-      reject(new DOMException('The operation was aborted', 'AbortError'));
-    };
-
-    signal?.addEventListener('abort', onAbort, { once: true });
-
-    proc.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-    proc.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-    proc.on('error', err => {
-      signal?.removeEventListener('abort', onAbort);
-      reject(err);
-    });
-    proc.on('close', code => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve({ stdout, stderr, code: code ?? 1 });
-    });
-  });
 }
 
 const IMAGE_TIMEOUT_MS = 30_000;

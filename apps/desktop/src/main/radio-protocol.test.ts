@@ -11,6 +11,9 @@ const loggerMock = {
 };
 
 vi.mock('electron', () => ({
+  app: {
+    getVersion: () => '0.0.0-test',
+  },
   protocol: {
     handle(_scheme: string, handler: (req: Request) => Promise<Response>) {
       capturedHandler = handler;
@@ -92,7 +95,7 @@ describe('radio-protocol', () => {
         status: 200,
         body: upstreamBody,
         headers: { 'content-type': 'audio/aac' },
-      }),
+      })
     );
 
     const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
@@ -106,7 +109,7 @@ describe('radio-protocol', () => {
       expect.objectContaining({
         headers: expect.objectContaining({ 'Icy-MetaData': '0' }),
         redirect: 'manual',
-      }),
+      })
     );
   });
 
@@ -114,8 +117,12 @@ describe('radio-protocol', () => {
     mockFetch.mockResolvedValue(
       makeResponse({
         status: 200,
-        body: new ReadableStream({ start(c) { c.close(); } }),
-      }),
+        body: new ReadableStream({
+          start(c) {
+            c.close();
+          },
+        }),
+      })
     );
 
     const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
@@ -195,7 +202,14 @@ describe('radio-protocol', () => {
       });
       mockFetch.mockImplementationOnce(async () => {
         order.push('fetch');
-        return makeResponse({ status: 200, body: new ReadableStream({ start(c) { c.close(); } }) });
+        return makeResponse({
+          status: 200,
+          body: new ReadableStream({
+            start(c) {
+              c.close();
+            },
+          }),
+        });
       });
 
       await capturedHandler!(new Request(STREAM_REQUEST_URL));
@@ -226,14 +240,14 @@ describe('radio-protocol', () => {
           makeResponse({
             status: 302,
             headers: { location: redirectTarget },
-          }),
+          })
         )
         .mockResolvedValueOnce(
           makeResponse({
             status: 200,
             body: finalBody,
             headers: { 'content-type': 'audio/aac' },
-          }),
+          })
         );
 
       const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
@@ -244,12 +258,12 @@ describe('radio-protocol', () => {
       expect(mockFetch).toHaveBeenNthCalledWith(
         1,
         STREAM_URL,
-        expect.objectContaining({ redirect: 'manual' }),
+        expect.objectContaining({ redirect: 'manual' })
       );
       expect(mockFetch).toHaveBeenNthCalledWith(
         2,
         redirectTarget,
-        expect.objectContaining({ redirect: 'manual' }),
+        expect.objectContaining({ redirect: 'manual' })
       );
     });
 
@@ -263,7 +277,7 @@ describe('radio-protocol', () => {
         makeResponse({
           status: 302,
           headers: { location: evilTarget },
-        }),
+        })
       );
 
       const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
@@ -273,8 +287,10 @@ describe('radio-protocol', () => {
       // Only the initial fetch should have happened — the redirected hop is
       // refused before the second net.fetch call.
       expect(mockFetch).toHaveBeenCalledTimes(1);
-      const warns = loggerMock.warn.mock.calls.map((c) => String(c[0]));
-      expect(warns.some((m) => m.includes('blocked redirect') && m.includes('private-ip'))).toBe(true);
+      const warns = loggerMock.warn.mock.calls.map(c => String(c[0]));
+      expect(warns.some(m => m.includes('blocked redirect') && m.includes('private-ip'))).toBe(
+        true
+      );
     });
 
     it('rejects with 403 after MAX_REDIRECTS hops', async () => {
@@ -304,8 +320,8 @@ describe('radio-protocol', () => {
       expect(res.status).toBe(403);
       // Initial call + MAX_REDIRECTS (5) follows = 6 fetches, no infinite loop.
       expect(mockFetch).toHaveBeenCalledTimes(6);
-      const warns = loggerMock.warn.mock.calls.map((c) => String(c[0]));
-      expect(warns.some((m) => m.includes('redirect chain exceeded'))).toBe(true);
+      const warns = loggerMock.warn.mock.calls.map(c => String(c[0]));
+      expect(warns.some(m => m.includes('redirect chain exceeded'))).toBe(true);
     });
   });
 });

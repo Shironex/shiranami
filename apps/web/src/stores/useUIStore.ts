@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 
 export type VisualizerStyle =
@@ -333,140 +332,127 @@ interface UIActions {
   setAlbumSortOrder: (order: AlbumSortOrder) => void;
 }
 
-export const useUIStore = create<UIState & UIActions>()(
-  persist(
-    (set, get) => ({
-      sidebarCollapsed: false,
-      sidebarHiddenItems: [],
-      sidebarPlaylistsVisible: true,
-      showVisualizer: true,
-      visualizerStyle: 'bars',
-      uiScale: UI_SCALE_DEFAULT,
-      libraryViewMode: 'tracks',
-      albumGridSize: 'medium',
-      playlistGridSize: 'medium',
-      albumSortMode: 'name',
-      albumSortOrder: 'asc',
-      nowPlayingViewEnabled: false,
-      nowPlayingLyricsVisible: true,
-      libraryHeroCardEnabled: true,
-      lowPerformanceMode: false,
-      noiseOverlayEnabled: false,
+export const useUIStore = createPersistedStore<UIState & UIActions>(
+  (set, get) => ({
+    sidebarCollapsed: false,
+    sidebarHiddenItems: [],
+    sidebarPlaylistsVisible: true,
+    showVisualizer: true,
+    visualizerStyle: 'bars',
+    uiScale: UI_SCALE_DEFAULT,
+    libraryViewMode: 'tracks',
+    albumGridSize: 'medium',
+    playlistGridSize: 'medium',
+    albumSortMode: 'name',
+    albumSortOrder: 'asc',
+    nowPlayingViewEnabled: false,
+    nowPlayingLyricsVisible: true,
+    libraryHeroCardEnabled: true,
+    lowPerformanceMode: false,
+    noiseOverlayEnabled: false,
 
-      setNowPlayingViewEnabled: enabled => {
-        set({ nowPlayingViewEnabled: enabled });
-        const view = useViewStore.getState();
-        if (!enabled && view.activeView === 'now-playing') {
-          view.exitNowPlaying();
-        }
-      },
-      toggleNowPlayingLyrics: () => {
-        set({ nowPlayingLyricsVisible: !get().nowPlayingLyricsVisible });
-      },
-      setLibraryHeroCardEnabled: enabled => {
-        set({ libraryHeroCardEnabled: enabled });
-      },
-      setLowPerformanceMode: enabled => {
-        applyLowPerformanceMode(enabled);
-        set({ lowPerformanceMode: enabled });
-      },
-      setNoiseOverlayEnabled: enabled => {
-        set({ noiseOverlayEnabled: enabled });
-      },
-      setSidebarCollapsed: sidebarCollapsed => {
-        set({ sidebarCollapsed });
-      },
-      toggleSidebarCollapsed: () => {
-        set({ sidebarCollapsed: !get().sidebarCollapsed });
-      },
-      toggleSidebarItem: view => {
-        const current = get().sidebarHiddenItems;
-        const next = current.includes(view) ? current.filter(v => v !== view) : [...current, view];
-        set({ sidebarHiddenItems: next });
-      },
-      setSidebarPlaylistsVisible: visible => {
-        set({ sidebarPlaylistsVisible: visible });
-      },
-      toggleVisualizer: () => {
-        set({ showVisualizer: !get().showVisualizer });
-      },
-      setVisualizerStyle: style => {
-        set({ visualizerStyle: style });
-      },
-      setUiScale: scale => {
-        const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
-        applyUiScale(clamped);
-        set({ uiScale: clamped });
-      },
-      resetUiScale: () => {
-        applyUiScale(UI_SCALE_DEFAULT);
-        set({ uiScale: UI_SCALE_DEFAULT });
-      },
-      setLibraryViewMode: mode => {
-        set({ libraryViewMode: mode });
-        useViewStore.setState({ selectedAlbumName: null, albumGridScrollTop: 0 });
-      },
-      setAlbumGridSize: size => {
-        set({ albumGridSize: size });
-      },
-      setPlaylistGridSize: size => {
-        set({ playlistGridSize: size });
-      },
-      setAlbumSortMode: mode => {
-        set({ albumSortMode: mode });
-        // Scroll position is meaningless once album order changes.
-        useViewStore.setState({ albumGridScrollTop: 0 });
-      },
-      setAlbumSortOrder: order => {
-        set({ albumSortOrder: order });
-        // Scroll position is meaningless once album order changes.
-        useViewStore.setState({ albumGridScrollTop: 0 });
-      },
+    setNowPlayingViewEnabled: enabled => {
+      set({ nowPlayingViewEnabled: enabled });
+      const view = useViewStore.getState();
+      if (!enabled && view.activeView === 'now-playing') {
+        view.exitNowPlaying();
+      }
+    },
+    toggleNowPlayingLyrics: () => {
+      set({ nowPlayingLyricsVisible: !get().nowPlayingLyricsVisible });
+    },
+    setLibraryHeroCardEnabled: enabled => {
+      set({ libraryHeroCardEnabled: enabled });
+    },
+    setLowPerformanceMode: enabled => {
+      applyLowPerformanceMode(enabled);
+      set({ lowPerformanceMode: enabled });
+    },
+    setNoiseOverlayEnabled: enabled => {
+      set({ noiseOverlayEnabled: enabled });
+    },
+    setSidebarCollapsed: sidebarCollapsed => {
+      set({ sidebarCollapsed });
+    },
+    toggleSidebarCollapsed: () => {
+      set({ sidebarCollapsed: !get().sidebarCollapsed });
+    },
+    toggleSidebarItem: view => {
+      const current = get().sidebarHiddenItems;
+      const next = current.includes(view) ? current.filter(v => v !== view) : [...current, view];
+      set({ sidebarHiddenItems: next });
+    },
+    setSidebarPlaylistsVisible: visible => {
+      set({ sidebarPlaylistsVisible: visible });
+    },
+    toggleVisualizer: () => {
+      set({ showVisualizer: !get().showVisualizer });
+    },
+    setVisualizerStyle: style => {
+      set({ visualizerStyle: style });
+    },
+    setUiScale: scale => {
+      const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
+      applyUiScale(clamped);
+      set({ uiScale: clamped });
+    },
+    resetUiScale: () => {
+      applyUiScale(UI_SCALE_DEFAULT);
+      set({ uiScale: UI_SCALE_DEFAULT });
+    },
+    setLibraryViewMode: mode => {
+      set({ libraryViewMode: mode });
+      useViewStore.setState({ selectedAlbumName: null, albumGridScrollTop: 0 });
+    },
+    setAlbumGridSize: size => {
+      set({ albumGridSize: size });
+    },
+    setPlaylistGridSize: size => {
+      set({ playlistGridSize: size });
+    },
+    setAlbumSortMode: mode => {
+      set({ albumSortMode: mode });
+      // Scroll position is meaningless once album order changes.
+      useViewStore.setState({ albumGridScrollTop: 0 });
+    },
+    setAlbumSortOrder: order => {
+      set({ albumSortOrder: order });
+      // Scroll position is meaningless once album order changes.
+      useViewStore.setState({ albumGridScrollTop: 0 });
+    },
+  }),
+  {
+    name: STORE_KEY,
+    version: 1,
+    partialize: s =>
+      ({
+        ...readPassthroughLegacyFields(),
+        sidebarCollapsed: s.sidebarCollapsed,
+        sidebarHiddenItems: s.sidebarHiddenItems,
+        sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
+        showVisualizer: s.showVisualizer,
+        visualizerStyle: s.visualizerStyle,
+        uiScale: s.uiScale,
+        libraryViewMode: s.libraryViewMode,
+        albumGridSize: s.albumGridSize,
+        playlistGridSize: s.playlistGridSize,
+        albumSortMode: s.albumSortMode,
+        albumSortOrder: s.albumSortOrder,
+        nowPlayingViewEnabled: s.nowPlayingViewEnabled,
+        nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
+        libraryHeroCardEnabled: s.libraryHeroCardEnabled,
+        lowPerformanceMode: s.lowPerformanceMode,
+        noiseOverlayEnabled: s.noiseOverlayEnabled,
+      }) as PersistedUIState,
+    sanitize: (persisted, current) => ({
+      ...current,
+      ...sanitize(persisted as Partial<PersistedUIState>),
     }),
-    {
-      name: STORE_KEY,
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      partialize: s =>
-        ({
-          ...readPassthroughLegacyFields(),
-          sidebarCollapsed: s.sidebarCollapsed,
-          sidebarHiddenItems: s.sidebarHiddenItems,
-          sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
-          showVisualizer: s.showVisualizer,
-          visualizerStyle: s.visualizerStyle,
-          uiScale: s.uiScale,
-          libraryViewMode: s.libraryViewMode,
-          albumGridSize: s.albumGridSize,
-          playlistGridSize: s.playlistGridSize,
-          albumSortMode: s.albumSortMode,
-          albumSortOrder: s.albumSortOrder,
-          nowPlayingViewEnabled: s.nowPlayingViewEnabled,
-          nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
-          libraryHeroCardEnabled: s.libraryHeroCardEnabled,
-          lowPerformanceMode: s.lowPerformanceMode,
-          noiseOverlayEnabled: s.noiseOverlayEnabled,
-        }) as PersistedUIState,
-      merge: (persisted, current) => ({
-        ...current,
-        ...sanitize(persisted as Partial<PersistedUIState>),
-      }),
-      onRehydrateStorage: () => state => {
-        if (!state) return;
-        applyUiScale(state.uiScale);
-        applyLowPerformanceMode(state.lowPerformanceMode);
-      },
-    }
-  )
+    onRehydrate: state => {
+      applyUiScale(state.uiScale);
+      applyLowPerformanceMode(state.lowPerformanceMode);
+    },
+  }
 );
 
-if (import.meta.hot) {
-  type HmrData = { store?: typeof useUIStore };
-  const hot = import.meta.hot;
-  const data = (hot.data ?? {}) as HmrData;
-  if (data.store) {
-    useUIStore.setState(data.store.getState());
-  }
-  data.store = useUIStore;
-  hot.accept();
-}
+acceptStoreHmr(useUIStore, import.meta.hot);

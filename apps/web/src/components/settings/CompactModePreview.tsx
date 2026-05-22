@@ -121,5 +121,3 @@ export function CompactModePreview() {
     </SettingsPreview>
   );
 }
-
-export default CompactModePreview;

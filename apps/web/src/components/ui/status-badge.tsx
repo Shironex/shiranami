@@ -51,7 +51,7 @@ export function StatusBadge({ variant, children, className }: StatusBadgeProps) 
         'text-[10px] font-semibold uppercase tracking-[0.08em] leading-none',
         'backdrop-blur-sm',
         classes,
-        className,
+        className
       )}
     >
       <Icon className="w-2.5 h-2.5" strokeWidth={2.5} />

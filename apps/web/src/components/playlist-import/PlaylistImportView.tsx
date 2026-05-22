@@ -10,6 +10,7 @@ import { usePlaylistImport } from '@/hooks/usePlaylistImport';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { PlaylistRow } from './PlaylistRow';
 import { ImportBulkActionBar } from './ImportBulkActionBar';
+import { ProgressBar } from '@/components/ui/progress-bar';
 
 export function PlaylistImportView() {
   const { t } = useTranslation('import');
@@ -120,14 +121,10 @@ export function PlaylistImportView() {
                 })}
               </span>
             </div>
-            <div className="mt-2 w-full h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{
-                  width: `${Math.round((extractProgress.current / extractProgress.total) * 100)}%`,
-                }}
-              />
-            </div>
+            <ProgressBar
+              value={Math.round((extractProgress.current / extractProgress.total) * 100)}
+              className="mt-2 h-1.5"
+            />
           </div>
         )}
 
@@ -173,12 +170,7 @@ export function PlaylistImportView() {
                   <span>{t('processed', { done: processedCount, total: totalCount })}</span>
                   {isImporting && <Loader2 className="w-3 h-3 animate-spin" />}
                 </div>
-                <div className="mt-1.5 w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-300"
-                    style={{ width: `${overallProgress}%` }}
-                  />
-                </div>
+                <ProgressBar value={overallProgress} className="mt-1.5 h-1.5" />
               </div>
             )}
             <Button

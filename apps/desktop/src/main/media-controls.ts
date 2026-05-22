@@ -1,7 +1,6 @@
 import { globalShortcut, BrowserWindow } from 'electron';
 import { logger } from './logger';
-
-let mainWindowRef: BrowserWindow | null = null;
+import { sendToRenderer } from './utils/window';
 
 export interface PlaybackState {
   isPlaying: boolean;
@@ -14,20 +13,16 @@ export interface PlaybackState {
 }
 
 function sendMediaCommand(command: string): void {
-  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-    mainWindowRef.webContents.send('media:command', command);
-  }
+  sendToRenderer('media:command', command);
 }
 
-export function initializeMediaControls(mainWindow: BrowserWindow): void {
-  mainWindowRef = mainWindow;
-
+export function initializeMediaControls(_mainWindow: BrowserWindow): void {
   // Register global media key shortcuts
   const shortcuts: Record<string, string> = {
-    'MediaPlayPause': 'toggle-play',
-    'MediaNextTrack': 'next',
-    'MediaPreviousTrack': 'previous',
-    'MediaStop': 'stop',
+    MediaPlayPause: 'toggle-play',
+    MediaNextTrack: 'next',
+    MediaPreviousTrack: 'previous',
+    MediaStop: 'stop',
   };
 
   // Skip global shortcut registration on macOS — media keys are handled
@@ -54,5 +49,4 @@ export function initializeMediaControls(mainWindow: BrowserWindow): void {
 
 export function cleanupMediaControls(): void {
   globalShortcut.unregisterAll();
-  mainWindowRef = null;
 }
