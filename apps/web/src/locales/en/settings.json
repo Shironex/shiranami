@@ -15,6 +15,7 @@
     "lyrics": "Lyrics display options",
     "compact": "Mini-player window settings",
     "appearance": "Interface look and feel",
+    "discord": "Discord integration settings",
     "updates": "Application update channel",
     "about": "About this application",
     "support": "Support the project"
@@ -28,6 +29,7 @@
   "lyrics": "Lyrics",
   "compact": "Compact mode",
   "appearance": "Appearance",
+  "discord": "Discord",
   "updates": "Updates",
   "about": "About",
   "support": "Support",
@@ -110,6 +112,66 @@
     "crossfade": "Crossfade",
     "crossfadeDesc": "Smooth volume transition between tracks",
     "duration": "Duration"
+  },
+  "discord": {
+    "main": {
+      "title": "Discord Rich Presence",
+      "subtitle": "Connect to Discord and show what you are listening to.",
+      "enableAria": "Enable Discord Rich Presence",
+      "showDetailsTitle": "Show track details",
+      "showDetailsDescription": "Display the track title and artist on Discord.",
+      "showTimeTitle": "Show elapsed time",
+      "showTimeDescription": "Show how long you have been listening.",
+      "useTemplatesTitle": "Custom templates",
+      "useTemplatesDescription": "Customize the status text for each activity.",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "preview": {
+      "title": "Preview",
+      "subtitle": "How your status will look on Discord.",
+      "playingHeader": "Listening to music",
+      "elapsed": "03:42 left",
+      "landingButton": "Get Shiranami"
+    },
+    "editor": {
+      "title": "Status templates",
+      "subtitle": "Edit the text for each activity type.",
+      "activityType": "Activity type",
+      "line1": "Line 1 (description)",
+      "line2": "Line 2 (state)",
+      "line1Placeholder": "e.g. Listening to music",
+      "line2Placeholder": "e.g. {title} by {artist}",
+      "toggles": {
+        "duration": "Track timer",
+        "cover": "App logo",
+        "landingButton": "Shiranami button"
+      },
+      "variablesLabel": "Available variables:",
+      "resetDefaults": "Restore defaults"
+    },
+    "template": {
+      "playing": {
+        "details": "Listening to music"
+      },
+      "paused": {
+        "details": "Music paused"
+      },
+      "idle": {
+        "details": "Idle"
+      }
+    },
+    "activityLabel": {
+      "playing": "Playing",
+      "paused": "Paused",
+      "idle": "Idle"
+    },
+    "templateVariable": {
+      "title": "Track title",
+      "artist": "Artist",
+      "album": "Album"
+    },
+    "info": "Discord status only works while the Discord client is running on your computer. Friends will see what you are listening to in Shiranami on your Discord profile."
   },
   "vis": {
     "title": "Visualizer",
