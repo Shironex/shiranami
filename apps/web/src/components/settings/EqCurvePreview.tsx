@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
+import { formatEqFrequencyTick } from '@/lib/eqLabels';
 import { useEqResponseCurve } from '@/hooks/useEqResponseCurve';
 
 const VIEW_W = 320;
@@ -78,7 +79,7 @@ export function EqCurvePreview({ gains, preampDb, disabled }: EqCurvePreviewProp
       {/* Frequency axis ticks — bass → treble, matching the band strip order. */}
       <div className="flex justify-between px-2 pb-1.5 text-[9px] tabular-nums text-muted-foreground/60">
         {EQ_BANDS.map(freq => (
-          <span key={freq}>{freq >= 1000 ? `${freq / 1000}k` : freq}</span>
+          <span key={freq}>{formatEqFrequencyTick(freq)}</span>
         ))}
       </div>
     </div>

@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
+import { formatEqFrequencyTick } from '@/lib/eqLabels';
 import { useEqStore, EQ_MIN_DB, EQ_MAX_DB, type NamedEqPresetId } from '@/stores/useEqStore';
 
 const PREAMP_MIN_DB = -12;
@@ -100,7 +101,7 @@ function VerticalBandSlider({
         </TooltipContent>
       </Tooltip>
       <span className="text-[10px] text-muted-foreground tabular-nums">
-        {freq >= 1000 ? `${freq / 1000}k` : freq}
+        {formatEqFrequencyTick(freq)}
       </span>
     </div>
   );
