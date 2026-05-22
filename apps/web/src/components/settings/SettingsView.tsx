@@ -11,6 +11,8 @@ import {
   Captions,
   PictureInPicture2,
   Monitor,
+  Sparkles,
+  PanelLeft,
   RefreshCcw,
   Info,
   Heart,
@@ -27,6 +29,8 @@ import { EqualizerSection } from '@/components/settings/EqualizerSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
+import { SidebarSection } from '@/components/settings/SidebarSection';
+import { VisualEffectsSection } from '@/components/settings/VisualEffectsSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
@@ -44,6 +48,8 @@ type SettingsSection =
   | 'lyrics'
   | 'compact'
   | 'appearance'
+  | 'effects'
+  | 'sidebar'
   | 'discord'
   | 'updates'
   | 'about'
@@ -138,6 +144,20 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'effects',
+    labelKey: 'effects',
+    subtitleKey: 'subtitles.effects',
+    Icon: Sparkles,
+    group: 'appearance',
+  },
+  {
+    id: 'sidebar',
+    labelKey: 'sidebar',
+    subtitleKey: 'subtitles.sidebar',
+    Icon: PanelLeft,
+    group: 'appearance',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -172,6 +192,8 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   lyrics: LyricsSection,
   compact: CompactSection,
   appearance: AppearanceSection,
+  effects: VisualEffectsSection,
+  sidebar: SidebarSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   about: AboutSection,

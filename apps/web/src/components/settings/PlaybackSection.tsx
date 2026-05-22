@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { CrossfadePreview, ResumePreview } from '@/components/settings/PlaybackPreferencePreview';
 import { Slider } from '@/components/ui/slider';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
@@ -30,6 +31,7 @@ export function PlaybackSection() {
           checked={rememberPlaybackPosition}
           onCheckedChange={v => updateSetting('rememberPlaybackPosition', v)}
         />
+        <ResumePreview enabled={rememberPlaybackPosition} />
 
         <SettingsToggleRow
           divider
@@ -38,6 +40,7 @@ export function PlaybackSection() {
           checked={crossfadeEnabled}
           onCheckedChange={setCrossfadeEnabled}
         />
+        <CrossfadePreview enabled={crossfadeEnabled} duration={crossfadeDuration} />
 
         {crossfadeEnabled && (
           <div className="px-3 pt-3 pb-1">

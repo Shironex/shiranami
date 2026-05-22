@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Languages, Sparkles, LayoutGrid, Palette, RotateCcw } from 'lucide-react';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { Languages, Palette, RotateCcw } from 'lucide-react';
+import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
   useUIStore,
@@ -26,43 +26,18 @@ import {
   THEME_BG_DIM_STEP,
   THEME_BG_DIM_DEFAULT,
 } from '@/stores/useThemeBgStore';
-import type { AppView } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
-const TOGGLEABLE_SIDEBAR_ITEMS: Array<{ id: AppView; key: string }> = [
-  { id: 'library', key: 'library' },
-  { id: 'playlists', key: 'playlists' },
-  { id: 'favorites', key: 'favorites' },
-  { id: 'history', key: 'history' },
-  { id: 'mixes', key: 'mixes' },
-  { id: 'search', key: 'search' },
-  { id: 'import-playlist', key: 'importPlaylist' },
-  { id: 'radio', key: 'radio' },
-];
-
 export function AppearanceSection() {
   const { t, i18n } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
-  const { t: ts } = useTranslation('sidebar');
   const uiScale = useUIStore(s => s.uiScale);
   const setUiScale = useUIStore(s => s.setUiScale);
   const resetUiScale = useUIStore(s => s.resetUiScale);
-  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
-  const setNowPlayingViewEnabled = useUIStore(s => s.setNowPlayingViewEnabled);
-  const libraryHeroCardEnabled = useUIStore(s => s.libraryHeroCardEnabled);
-  const setLibraryHeroCardEnabled = useUIStore(s => s.setLibraryHeroCardEnabled);
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-  const setLowPerformanceMode = useUIStore(s => s.setLowPerformanceMode);
-  const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
-  const setNoiseOverlayEnabled = useUIStore(s => s.setNoiseOverlayEnabled);
-  const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
-  const toggleSidebarItem = useUIStore(s => s.toggleSidebarItem);
-  const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
-  const setSidebarPlaylistsVisible = useUIStore(s => s.setSidebarPlaylistsVisible);
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme);
   const bgOpacity = useThemeBgStore(s => s.bgOpacity);
@@ -157,38 +132,7 @@ export function AppearanceSection() {
         </div>
       </SettingsCard>
 
-      {/* Card 2 — Visual effects */}
-      <SettingsCard icon={Sparkles} title={t('app.effects')}>
-        <SettingsToggleRow
-          label={t('app.nowPlayingView')}
-          description={t('app.nowPlayingViewDesc')}
-          checked={nowPlayingViewEnabled}
-          onCheckedChange={setNowPlayingViewEnabled}
-        />
-        <SettingsToggleRow
-          label={t('app.libraryHeroCard')}
-          description={t('app.libraryHeroCardDesc')}
-          checked={libraryHeroCardEnabled}
-          onCheckedChange={setLibraryHeroCardEnabled}
-          divider
-        />
-        <SettingsToggleRow
-          label={t('app.lowPerfMode')}
-          description={t('app.lowPerfModeDesc')}
-          checked={lowPerformanceMode}
-          onCheckedChange={setLowPerformanceMode}
-          divider
-        />
-        <SettingsToggleRow
-          label={t('app.noiseOverlay')}
-          description={t('app.noiseOverlayDesc')}
-          checked={noiseOverlayEnabled}
-          onCheckedChange={setNoiseOverlayEnabled}
-          divider
-        />
-      </SettingsCard>
-
-      {/* Card 3 — Theme */}
+      {/* Card 2 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
         <ThemeTileGrid value={theme} onSelect={setTheme} />
 
@@ -270,26 +214,6 @@ export function AppearanceSection() {
             </SettingsCard>
           </div>
         )}
-      </SettingsCard>
-
-      {/* Card 4 — Sidebar */}
-      <SettingsCard icon={LayoutGrid} title={t('app.sidebarTitle')}>
-        {TOGGLEABLE_SIDEBAR_ITEMS.map((item, index) => (
-          <SettingsToggleRow
-            key={item.id}
-            label={ts(item.key)}
-            checked={!sidebarHiddenItems.includes(item.id)}
-            onCheckedChange={() => toggleSidebarItem(item.id)}
-            divider={index > 0}
-          />
-        ))}
-        <SettingsToggleRow
-          label={t('app.sidebarPlaylists')}
-          description={t('app.sidebarPlaylistsDesc')}
-          checked={sidebarPlaylistsVisible}
-          onCheckedChange={setSidebarPlaylistsVisible}
-          divider
-        />
       </SettingsCard>
     </div>
   );
