@@ -351,17 +351,17 @@
     "subtitle": "Od autora. Je\u015bli Shiranami znalaz\u0142o miejsce w Twoim dniu.",
     "p1Pre": "Shiranami jest darmowe, bez reklam i takie pozostanie. Tworz\u0119 je po godzinach, bo chcia\u0142em ",
     "p1Bold": "odtwarzacz, kt\u00f3ry po prostu gra",
-    "p1Post": " \u2014 bez konta, bez subskrypcji, bez szumu.",
+    "p1Post": ": bez konta, bez subskrypcji, bez szumu.",
     "p2Pre": "Je\u015bli wesz\u0142o Ci w nawyk i chcesz si\u0119 odwdzi\u0119czy\u0107, mo\u017cesz ",
     "p2Bold": "postawi\u0107 mi kaw\u0119",
     "p2Post": ". To ca\u0142kowicie opcjonalne i znaczy wi\u0119cej, ni\u017c my\u015blisz.",
-    "p3Pre": "Tak czy inaczej \u2014 czy dorzucisz si\u0119, czy po prostu s\u0142uchasz dalej \u2014 ",
+    "p3Pre": "Tak czy inaczej, czy dorzucisz si\u0119, czy po prostu s\u0142uchasz dalej, ",
     "p3Bold": "dzi\u0119kuj\u0119, \u017ce tu jeste\u015b",
     "p3Post": ".",
     "action": "Postaw mi kaw\u0119"
   },
   "supportBanner": {
-    "message": "Podoba Ci si\u0119 Shiranami? Jest darmowe i bez reklam \u2014 tworzone przez jedn\u0105 osob\u0119.",
+    "message": "Podoba Ci si\u0119 Shiranami? Jest darmowe i bez reklam, tworzone przez jedn\u0105 osob\u0119.",
     "action": "Postaw mi kaw\u0119",
     "dismiss": "Zamknij"
   }
