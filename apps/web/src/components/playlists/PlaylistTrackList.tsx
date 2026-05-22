@@ -60,33 +60,35 @@ export function PlaylistTrackList({
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-4 scrollbar-thin">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragCancel={onDragCancel}
-      >
-        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          {displayTracks.map((track, index) => (
-            <SortableTrackRow
-              key={track.id}
-              track={track}
-              index={index}
-              queue={displayTracks}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              handlePlayTrack={onPlayTrack}
-              onToggleFavorite={onToggleFavorite}
-              onRemoveFromPlaylist={onRemoveTrack}
-            />
-          ))}
-        </SortableContext>
-        <DragOverlay dropAnimation={null}>
-          {activeTrack ? <DragOverlayContent track={activeTrack} /> : null}
-        </DragOverlay>
-      </DndContext>
+    <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
+      <div className="h-full overflow-y-auto px-2 scrollbar-thin">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragCancel={onDragCancel}
+        >
+          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+            {displayTracks.map((track, index) => (
+              <SortableTrackRow
+                key={track.id}
+                track={track}
+                index={index}
+                queue={displayTracks}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                handlePlayTrack={onPlayTrack}
+                onToggleFavorite={onToggleFavorite}
+                onRemoveFromPlaylist={onRemoveTrack}
+              />
+            ))}
+          </SortableContext>
+          <DragOverlay dropAnimation={null}>
+            {activeTrack ? <DragOverlayContent track={activeTrack} /> : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   );
 }
