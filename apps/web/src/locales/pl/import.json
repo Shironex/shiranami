@@ -28,5 +28,7 @@
   "statusFailed": "Błąd",
   "statusAlreadyInLibrary": "Już w bibliotece",
   "statusWaiting": "Oczekiwanie",
+  "lowConfidence": "Niepewne dopasowanie",
+  "lowConfidenceHint": "Ten wynik z YouTube może nie być właściwym nagraniem. Sprawdź go po imporcie i w razie potrzeby zmień.",
   "previewAlbum": "Import playlisty"
 }

@@ -29,6 +29,11 @@ export interface TrackMetadata {
  * A single yt-dlp search/extract result surfaced through the downloader IPC
  * surface. `view_count` is only present on full search results (absent from
  * flat-playlist extraction).
+ *
+ * `matchConfidence` / `matchFlag` are only populated on the Spotify playlist
+ * path, where a YouTube candidate is scored against the Spotify track's
+ * metadata. Plain search and single-match callers leave them undefined, so the
+ * download/import pipeline that consumes `SearchResult[]` is unaffected.
  */
 export interface SearchResult {
   id: string;
@@ -39,4 +44,8 @@ export interface SearchResult {
   url: string;
   webpage_url: string;
   view_count?: number;
+  /** 0..1 match score from the Spotify scorer; absent outside playlist import. */
+  matchConfidence?: number;
+  /** 'low' when the best candidate scored below the confidence threshold. */
+  matchFlag?: 'low' | 'ok';
 }

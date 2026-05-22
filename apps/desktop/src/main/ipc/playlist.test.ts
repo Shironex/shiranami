@@ -1,9 +1,19 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   detectPlaylistType,
   extractSpotifyPlaylistId,
+  parseSpotifyEmbedHtml,
   parseYtDlpJsonLines,
 } from './playlist';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const embedFixture = readFileSync(
+  resolve(here, '__fixtures__/spotify-embed-playlist.html'),
+  'utf8'
+);
 
 describe('detectPlaylistType', () => {
   it('detects youtube.com URLs', () => {
@@ -19,9 +29,9 @@ describe('detectPlaylistType', () => {
   });
 
   it('detects Spotify playlist URLs', () => {
-    expect(
-      detectPlaylistType('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')
-    ).toBe('spotify');
+    expect(detectPlaylistType('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')).toBe(
+      'spotify'
+    );
   });
 
   it('returns unknown for non-playlist Spotify URLs', () => {
@@ -46,9 +56,7 @@ describe('extractSpotifyPlaylistId', () => {
 
   it('extracts playlist ID with query params', () => {
     expect(
-      extractSpotifyPlaylistId(
-        'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc123'
-      )
+      extractSpotifyPlaylistId('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc123')
     ).toBe('37i9dQZF1DXcBWIGoYBM5M');
   });
 
@@ -96,5 +104,59 @@ describe('parseYtDlpJsonLines', () => {
     expect(results[0].title).toBe('Unknown');
     expect(results[0].uploader).toBe('Unknown');
     expect(results[0].duration).toBe(0);
+  });
+});
+
+describe('parseSpotifyEmbedHtml', () => {
+  it('extracts every track from a real embed __NEXT_DATA__ fixture', () => {
+    const tracks = parseSpotifyEmbedHtml(embedFixture);
+    expect(tracks).toHaveLength(3);
+    expect(tracks.map(t => t.title)).toEqual(['Janice STFU', 'Babydoll', 'DAISIES']);
+  });
+
+  // V4 regression: the old non-greedy regex stopped at the first `]` in any
+  // nested array (e.g. `"contentRatings":{"labels":["EXPLICIT"]}`), so fallbackA
+  // always yielded zero tracks on a real-shaped embed. The bracket-depth scanner
+  // must correctly extract the full trackList even when nested arrays are present.
+  it('extracts tracks via fallbackA bracket scanner when __NEXT_DATA__ is absent (V4 regression)', () => {
+    // Minimal HTML: no __NEXT_DATA__ script tag; a bare trackList key with nested arrays.
+    const fallbackHtml = `<html><body><script>
+var data = {"trackList":[
+  {"title":"Song One","subtitle":"Artist A","duration":180000,"contentRatings":{"labels":["EXPLICIT"]}},
+  {"title":"Song Two","subtitle":"Artist B","duration":240000,"contentRatings":{"labels":[]}}
+]}</script></body></html>`;
+    const tracks = parseSpotifyEmbedHtml(fallbackHtml);
+    expect(tracks).toHaveLength(2);
+    expect(tracks.map(t => t.title)).toEqual(['Song One', 'Song Two']);
+    expect(tracks.map(t => t.artist)).toEqual(['Artist A', 'Artist B']);
+  });
+
+  // Regression guard for the original bug: the parser read artists[].name and
+  // never `subtitle`, so every artist came back "Unknown". The artist MUST come
+  // from `subtitle`.
+  it('maps the artist from `subtitle`, never "Unknown"', () => {
+    const tracks = parseSpotifyEmbedHtml(embedFixture);
+    expect(tracks.map(t => t.artist)).toEqual(['Drake', 'Dominic Fike', 'Justin Bieber']);
+    for (const track of tracks) {
+      expect(track.artist).not.toBe('Unknown');
+    }
+  });
+
+  // Regression guard: `duration` is milliseconds and must be converted to the
+  // scorer's `durationSec` via /1000 rounded.
+  it('converts `duration` (ms) to durationSec via /1000 rounded', () => {
+    const tracks = parseSpotifyEmbedHtml(embedFixture);
+    // 237344ms -> 237, 97960ms -> 98, 176453ms -> 176.
+    expect(tracks.map(t => t.durationSec)).toEqual([237, 98, 176]);
+  });
+
+  it('omits album and isrc (not present in the embed)', () => {
+    const [first] = parseSpotifyEmbedHtml(embedFixture);
+    expect(first.album).toBeUndefined();
+    expect(first.isrc).toBeUndefined();
+  });
+
+  it('returns an empty array when no track data is present', () => {
+    expect(parseSpotifyEmbedHtml('<html><body>nothing here</body></html>')).toEqual([]);
   });
 });
