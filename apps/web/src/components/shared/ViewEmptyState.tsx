@@ -34,19 +34,21 @@ export function ViewEmptyState({
 
   if (compact) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-        <Icon className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
-        <div>
-          <p className="font-display text-base font-medium text-foreground/85">{title}</p>
-          <p className="text-sm text-muted-foreground/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
-            {subtitle}
-          </p>
+      <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="flex flex-col items-center gap-4 text-center glass-subtle rounded-2xl border border-border/30 px-8 py-7">
+          <Icon className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
+          <div>
+            <p className="font-display text-base font-medium text-foreground/85">{title}</p>
+            <p className="text-sm text-muted-foreground/60 mt-1.5 max-w-xs mx-auto leading-relaxed">
+              {subtitle}
+            </p>
+          </div>
+          {action && (
+            <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
+              {action.label}
+            </Button>
+          )}
         </div>
-        {action && (
-          <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
-            {action.label}
-          </Button>
-        )}
       </div>
     );
   }
