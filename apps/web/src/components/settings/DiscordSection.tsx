@@ -176,6 +176,7 @@ export function DiscordSection() {
                 key={type}
                 type="button"
                 onClick={() => setSelectedActivity(type)}
+                aria-pressed={selectedActivity === type}
                 className={cn(
                   'rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
                   selectedActivity === type
