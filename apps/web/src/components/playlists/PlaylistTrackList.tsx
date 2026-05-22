@@ -61,7 +61,7 @@ export function PlaylistTrackList({
 
   return (
     <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
-      <div className="h-full overflow-y-auto px-2 scrollbar-thin">
+      <div className="h-full overflow-y-auto px-2 py-1.5 scrollbar-thin">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
