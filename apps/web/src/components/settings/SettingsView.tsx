@@ -4,12 +4,15 @@ import {
   FolderOpen,
   HardDrive,
   ArrowDownToLine,
+  Disc3,
   Settings2,
   SlidersHorizontal,
   AudioLines,
   Captions,
   PictureInPicture2,
   Monitor,
+  Sparkles,
+  PanelLeft,
   RefreshCcw,
   Info,
   Heart,
@@ -19,12 +22,15 @@ import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
+import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 import { DownloadsSection } from '@/components/settings/downloads/DownloadsSection';
 import { PlaybackSection } from '@/components/settings/PlaybackSection';
 import { EqualizerSection } from '@/components/settings/EqualizerSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
+import { SidebarSection } from '@/components/settings/SidebarSection';
+import { VisualEffectsSection } from '@/components/settings/VisualEffectsSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
@@ -34,6 +40,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 type SettingsSection =
   | 'folders'
   | 'library'
+  | 'enrich'
   | 'downloads'
   | 'playback'
   | 'equalizer'
@@ -41,6 +48,8 @@ type SettingsSection =
   | 'lyrics'
   | 'compact'
   | 'appearance'
+  | 'effects'
+  | 'sidebar'
   | 'discord'
   | 'updates'
   | 'about'
@@ -76,6 +85,13 @@ const SECTIONS: {
     labelKey: 'library',
     subtitleKey: 'subtitles.library',
     Icon: HardDrive,
+    group: 'library',
+  },
+  {
+    id: 'enrich',
+    labelKey: 'enrich',
+    subtitleKey: 'subtitles.enrich',
+    Icon: Disc3,
     group: 'library',
   },
   {
@@ -128,6 +144,20 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'effects',
+    labelKey: 'effects',
+    subtitleKey: 'subtitles.effects',
+    Icon: Sparkles,
+    group: 'appearance',
+  },
+  {
+    id: 'sidebar',
+    labelKey: 'sidebar',
+    subtitleKey: 'subtitles.sidebar',
+    Icon: PanelLeft,
+    group: 'appearance',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -154,6 +184,7 @@ const SECTIONS: {
 const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   folders: MusicFoldersSection,
   library: LibrarySection,
+  enrich: MetadataEnrichSection,
   downloads: DownloadsSection,
   playback: PlaybackSection,
   equalizer: EqualizerSection,
@@ -161,6 +192,8 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   lyrics: LyricsSection,
   compact: CompactSection,
   appearance: AppearanceSection,
+  effects: VisualEffectsSection,
+  sidebar: SidebarSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   about: AboutSection,

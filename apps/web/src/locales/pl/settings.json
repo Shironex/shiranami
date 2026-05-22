@@ -8,6 +8,7 @@
   "subtitles": {
     "folders": "Zarządzanie folderami muzyki",
     "library": "Dane biblioteki i skanowanie",
+    "enrich": "Znajdź brakujące metadane i okładki",
     "downloads": "Pobieranie zewnętrznych narzędzi",
     "playback": "Preferencje odtwarzania audio",
     "equalizer": "Sterowanie pasmami częstotliwości",
@@ -15,6 +16,8 @@
     "lyrics": "Opcje wyświetlania tekstu",
     "compact": "Ustawienia mini-odtwarzacza",
     "appearance": "Wygląd i styl interfejsu",
+    "effects": "Efekty immersyjnego UI",
+    "sidebar": "Widoczność głównej nawigacji",
     "discord": "Ustawienia integracji Discord",
     "updates": "Kanał aktualizacji aplikacji",
     "about": "Informacje o aplikacji",
@@ -22,6 +25,7 @@
   },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
+  "enrich": "Metadane",
   "downloads": "Pobieranie",
   "playback": "Odtwarzanie",
   "equalizer": "Korektor",
@@ -29,6 +33,8 @@
   "lyrics": "Tekst piosenki",
   "compact": "Tryb kompaktowy",
   "appearance": "Wygląd",
+  "effects": "Efekty wizualne",
+  "sidebar": "Panel boczny",
   "discord": "Discord",
   "updates": "Aktualizacje",
   "about": "O aplikacji",
@@ -104,6 +110,16 @@
     "scanCancel": "Anuluj",
     "scanCancelling": "Anulowanie..."
   },
+  "enr": {
+    "previewTitle": "Przed / po",
+    "beforeLabel": "Z nazwy pliku",
+    "afterLabel": "Wzbogacone",
+    "sampleTitle": "08 - track.mp3",
+    "sampleUnknownArtist": "Nieznany wykonawca",
+    "sampleUnknownAlbum": "Nieznany album",
+    "sampleArtist": "Nujabes",
+    "sampleAlbum": "Modal Soul"
+  },
   "play": {
     "title": "Odtwarzanie",
     "subtitle": "Preferencje odtwarzania audio",
@@ -111,9 +127,19 @@
     "rememberDesc": "Wznawiaj utwory od miejsca, w którym skończyłeś",
     "crossfade": "Crossfade",
     "crossfadeDesc": "Płynne przejście głośności między utworami",
-    "duration": "Czas trwania"
+    "duration": "Czas trwania",
+    "resumePreview": "Podgląd pozycji",
+    "resumePreviewOn": "Po ponownym uruchomieniu odtwarzanie wraca do zapisanego momentu.",
+    "resumePreviewOff": "Po ponownym uruchomieniu utwór zaczyna się od początku.",
+    "crossfadePreview": "Podgląd przejścia",
+    "crossfadePreviewBlend": "Utwory płynnie nakładają się na siebie",
+    "crossfadePreviewCut": "Następny utwór zaczyna się po wyraźnym cięciu",
+    "crossfadePreviewDuration": "{{seconds}} s nakładania",
+    "previewTrack": "Midnight Rain",
+    "previewOutgoing": "Bieżący utwór",
+    "previewIncoming": "Następny utwór"
   },
-  "discord": {
+  "dsc": {
     "main": {
       "title": "Discord Rich Presence",
       "subtitle": "Połącz z Discordem i pokazuj, czego słuchasz.",
@@ -297,6 +323,7 @@
     "languageDesc": "Wybierz język wyświetlania aplikacji",
     "sidebarTitle": "Panel boczny",
     "sidebarDesc": "Wybierz, które elementy mają być widoczne w panelu bocznym",
+    "sidebarPreview": "Podgląd",
     "nowPlayingView": "Widok Teraz odtwarzane",
     "nowPlayingViewDesc": "Kliknij dwukrotnie okładkę na pasku odtwarzacza lub karcie 'Teraz odtwarzane', albo naciśnij Ctrl+Shift+P, aby otworzyć widok pełnoekranowy",
     "libraryHeroCard": "Baner odtwarzanego utworu",
@@ -308,6 +335,19 @@
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",
+    "effectsDesc": "Immersyjne widoki i dodatki renderowania",
+    "effectPreview": {
+      "nowPlayingView": "Podgląd widoku Teraz odtwarzane",
+      "libraryBanner": "Podgląd banera",
+      "performance": "Podgląd wydajności",
+      "performanceOn": "Ograniczone renderowanie",
+      "performanceOff": "Pełny wizualizator",
+      "reduced": "Ograniczone",
+      "full": "Pełne",
+      "noise": "Podgląd szumu",
+      "noiseOn": "Tekstura włączona",
+      "noiseOff": "Tekstura wyłączona"
+    },
     "sectionsAriaLabel": "Sekcje ustawień",
     "theme": {
       "title": "Motyw",
@@ -330,7 +370,10 @@
       "blurDesc": "Zmiękczenie krawędzi obrazu tła",
       "dim": "Przyciemnienie",
       "dimDesc": "Ciemna warstwa nad obrazem poprawiająca czytelność tekstu",
-      "reset": "Przywróć domyślne"
+      "reset": "Przywróć domyślne",
+      "previewTitle": "Podgląd",
+      "previewTrack": "Przykładowy utwór",
+      "previewArtist": "Odtwarzanie na Twoim tle"
     }
   },
   "dl": {

@@ -8,6 +8,7 @@
   "subtitles": {
     "folders": "Music folder management",
     "library": "Library data and scanning",
+    "enrich": "Find missing metadata and cover art",
     "downloads": "External tool downloads",
     "playback": "Audio playback preferences",
     "equalizer": "Frequency band control",
@@ -15,6 +16,8 @@
     "lyrics": "Lyrics display options",
     "compact": "Mini-player window settings",
     "appearance": "Interface look and feel",
+    "effects": "Immersive UI effects",
+    "sidebar": "Main navigation visibility",
     "discord": "Discord integration settings",
     "updates": "Application update channel",
     "about": "About this application",
@@ -22,6 +25,7 @@
   },
   "musicFolders": "Music Folders",
   "library": "Library",
+  "enrich": "Metadata",
   "downloads": "Downloads",
   "playback": "Playback",
   "equalizer": "Equalizer",
@@ -29,6 +33,8 @@
   "lyrics": "Lyrics",
   "compact": "Compact mode",
   "appearance": "Appearance",
+  "effects": "Visual effects",
+  "sidebar": "Sidebar",
   "discord": "Discord",
   "updates": "Updates",
   "about": "About",
@@ -104,6 +110,16 @@
     "scanCancel": "Cancel",
     "scanCancelling": "Cancelling..."
   },
+  "enr": {
+    "previewTitle": "Before / after",
+    "beforeLabel": "From filename",
+    "afterLabel": "Enriched",
+    "sampleTitle": "08 - track.mp3",
+    "sampleUnknownArtist": "Unknown Artist",
+    "sampleUnknownAlbum": "Unknown Album",
+    "sampleArtist": "Nujabes",
+    "sampleAlbum": "Modal Soul"
+  },
   "play": {
     "title": "Playback",
     "subtitle": "Audio playback preferences",
@@ -111,9 +127,19 @@
     "rememberDesc": "Resume tracks from where you left off",
     "crossfade": "Crossfade",
     "crossfadeDesc": "Smooth volume transition between tracks",
-    "duration": "Duration"
+    "duration": "Duration",
+    "resumePreview": "Position preview",
+    "resumePreviewOn": "Relaunch resumes from the saved moment.",
+    "resumePreviewOff": "Relaunch starts the track from the beginning.",
+    "crossfadePreview": "Transition preview",
+    "crossfadePreviewBlend": "Tracks overlap smoothly",
+    "crossfadePreviewCut": "Next track starts after a clean cut",
+    "crossfadePreviewDuration": "{{seconds}}s overlap",
+    "previewTrack": "Midnight Rain",
+    "previewOutgoing": "Current track",
+    "previewIncoming": "Next track"
   },
-  "discord": {
+  "dsc": {
     "main": {
       "title": "Discord Rich Presence",
       "subtitle": "Connect to Discord and show what you are listening to.",
@@ -297,6 +323,7 @@
     "languageDesc": "Choose the display language for the app",
     "sidebarTitle": "Sidebar",
     "sidebarDesc": "Choose which items appear in the sidebar",
+    "sidebarPreview": "Preview",
     "nowPlayingView": "Now Playing view",
     "nowPlayingViewDesc": "Double-click album art in the player bar or now-playing card, or press Ctrl+Shift+P, to open an immersive full view",
     "libraryHeroCard": "Now playing banner",
@@ -308,6 +335,19 @@
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects",
+    "effectsDesc": "Immersive surfaces and rendering extras",
+    "effectPreview": {
+      "nowPlayingView": "Now Playing preview",
+      "libraryBanner": "Banner preview",
+      "performance": "Performance preview",
+      "performanceOn": "Reduced rendering",
+      "performanceOff": "Full visualizer",
+      "reduced": "Reduced",
+      "full": "Full",
+      "noise": "Noise preview",
+      "noiseOn": "Texture enabled",
+      "noiseOff": "Texture disabled"
+    },
     "sectionsAriaLabel": "Settings sections",
     "theme": {
       "title": "Theme",
@@ -330,7 +370,10 @@
       "blurDesc": "Soften the background image edges",
       "dim": "Dim overlay",
       "dimDesc": "Dark layer over the image to keep text readable",
-      "reset": "Reset"
+      "reset": "Reset",
+      "previewTitle": "Preview",
+      "previewTrack": "Sample Track",
+      "previewArtist": "Now playing over your background"
     }
   },
   "dl": {

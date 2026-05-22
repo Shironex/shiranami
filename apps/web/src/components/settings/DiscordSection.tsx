@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { MessageCircle, Check, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { cn } from '@/lib/utils';
+import {
+  SettingsCard,
+  SettingsInfoCallout,
+  SettingsToggleRow,
+} from '@/components/settings/SettingsCard';
 import { DiscordPreview } from '@/components/settings/DiscordPreview';
 import { DiscordTemplateEditor } from '@/components/settings/DiscordTemplateEditor';
 import { substitutePreview } from '@/lib/discord-utils';
@@ -14,7 +19,7 @@ import type {
   DiscordMusicActivityType,
   DiscordPresenceTemplate,
 } from '@shiranami/shared';
-import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
+import { DEFAULT_DISCORD_TEMPLATES, DISCORD_ACTIVITY_TYPES } from '@shiranami/shared';
 
 export function DiscordSection() {
   const { t } = useTranslation('settings');
@@ -112,11 +117,11 @@ export function DiscordSection() {
     <div className="space-y-4">
       <SettingsCard
         icon={MessageCircle}
-        title={t('discord.main.title')}
-        subtitle={t('discord.main.subtitle')}
+        title={t('dsc.main.title')}
+        subtitle={t('dsc.main.subtitle')}
         headerRight={
           <Switch
-            aria-label={t('discord.main.enableAria')}
+            aria-label={t('dsc.main.enableAria')}
             checked={settings.enabled}
             onCheckedChange={v => updateField('enabled', v)}
           />
@@ -125,16 +130,16 @@ export function DiscordSection() {
         {!settings.useCustomTemplates && (
           <>
             <SettingsToggleRow
-              label={t('discord.main.showDetailsTitle')}
-              description={t('discord.main.showDetailsDescription')}
+              label={t('dsc.main.showDetailsTitle')}
+              description={t('dsc.main.showDetailsDescription')}
               checked={settings.showTrackDetails}
               onCheckedChange={v => updateField('showTrackDetails', v)}
               disabled={!settings.enabled}
             />
             <SettingsToggleRow
               divider
-              label={t('discord.main.showTimeTitle')}
-              description={t('discord.main.showTimeDescription')}
+              label={t('dsc.main.showTimeTitle')}
+              description={t('dsc.main.showTimeDescription')}
               checked={settings.showElapsedTime}
               onCheckedChange={v => updateField('showElapsedTime', v)}
               disabled={!settings.enabled}
@@ -144,8 +149,8 @@ export function DiscordSection() {
 
         <SettingsToggleRow
           divider={!settings.useCustomTemplates}
-          label={t('discord.main.useTemplatesTitle')}
-          description={t('discord.main.useTemplatesDescription')}
+          label={t('dsc.main.useTemplatesTitle')}
+          description={t('dsc.main.useTemplatesDescription')}
           checked={settings.useCustomTemplates}
           onCheckedChange={v => updateField('useCustomTemplates', v)}
           disabled={!settings.enabled}
@@ -153,39 +158,57 @@ export function DiscordSection() {
 
         <Button size="sm" onClick={handleSave}>
           {saved ? <Check className="h-4 w-4" /> : null}
-          {saved ? t('discord.main.saved') : t('discord.main.save')}
+          {saved ? t('dsc.main.saved') : t('dsc.main.save')}
         </Button>
       </SettingsCard>
 
-      {showCustomTemplateEditing && (
-        <>
-          <DiscordTemplateEditor
-            selectedActivity={selectedActivity}
-            onActivityChange={setSelectedActivity}
-            currentTemplate={currentTemplate}
-            onTemplateChange={updateTemplate}
-            onReset={handleResetTemplate}
+      {settings.enabled && (
+        <SettingsCard
+          icon={MessageCircle}
+          title={t('dsc.preview.title')}
+          subtitle={t('dsc.preview.subtitle')}
+          tone="info"
+        >
+          {/* Activity-type chip row so the preview reflects the selected state. */}
+          <div className="flex gap-1.5 flex-wrap">
+            {DISCORD_ACTIVITY_TYPES.map(type => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setSelectedActivity(type)}
+                aria-pressed={selectedActivity === type}
+                className={cn(
+                  'rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
+                  selectedActivity === type
+                    ? 'bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                )}
+              >
+                {t(`dsc.activityLabel.${type}`)}
+              </button>
+            ))}
+          </div>
+          <DiscordPreview
+            details={previewDetails}
+            state={previewState}
+            showTimestamp={currentTemplate.showTimestamp}
+            showLargeImage={currentTemplate.showLargeImage}
+            showButton={currentTemplate.showButton}
           />
-          <SettingsCard
-            icon={MessageCircle}
-            title={t('discord.preview.title')}
-            subtitle={t('discord.preview.subtitle')}
-          >
-            <DiscordPreview
-              details={previewDetails}
-              state={previewState}
-              showTimestamp={currentTemplate.showTimestamp}
-              showLargeImage={currentTemplate.showLargeImage}
-              showButton={currentTemplate.showButton}
-            />
-          </SettingsCard>
-        </>
+        </SettingsCard>
       )}
 
-      <div className="flex items-start gap-2.5 rounded-xl border border-border/30 bg-surface/50 p-4 text-xs text-muted-foreground">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/80" />
-        <p className="leading-relaxed">{t('discord.info')}</p>
-      </div>
+      {showCustomTemplateEditing && (
+        <DiscordTemplateEditor
+          selectedActivity={selectedActivity}
+          onActivityChange={setSelectedActivity}
+          currentTemplate={currentTemplate}
+          onTemplateChange={updateTemplate}
+          onReset={handleResetTemplate}
+        />
+      )}
+
+      <SettingsInfoCallout icon={Info}>{t('dsc.info')}</SettingsInfoCallout>
     </div>
   );
 }

@@ -25,6 +25,8 @@
   "preamp": "Preamp",
   "preampDesc": "Overall gain before the EQ bands",
   "reset": "Reset",
+  "curvePreview.title": "Response curve",
+  "curvePreview.ariaLabel": "Equalizer frequency response curve",
   "preset.flat": "Flat",
   "preset.rock": "Rock",
   "preset.pop": "Pop",

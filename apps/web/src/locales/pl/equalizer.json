@@ -25,6 +25,8 @@
   "preamp": "Wzmocnienie wstępne",
   "preampDesc": "Ogólne wzmocnienie przed pasmami korektora",
   "reset": "Resetuj",
+  "curvePreview.title": "Krzywa odpowiedzi",
+  "curvePreview.ariaLabel": "Krzywa odpowiedzi częstotliwościowej korektora",
   "preset.flat": "Płaski",
   "preset.rock": "Rock",
   "preset.pop": "Pop",

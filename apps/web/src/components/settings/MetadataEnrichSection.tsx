@@ -4,9 +4,15 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Search, Loader2, Disc3, Ban, Info, AlertTriangle, FileWarning } from 'lucide-react';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import {
+  SettingsCard,
+  SettingsInfoCallout,
+  SettingsToggleRow,
+} from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { EnrichBeforeAfterPreview } from '@/components/settings/EnrichBeforeAfterPreview';
 import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
 import { EnrichLastRunPanel } from '@/components/settings/EnrichLastRunPanel';
 
@@ -98,6 +104,15 @@ export function MetadataEnrichSection() {
 
   return (
     <>
+      {/* Value-preview first: a static before/after sample makes what enrichment
+          does legible before the user commits, especially for the irreversible
+          file-write path. tone="info" reads as a reflection, not a control. */}
+      <SettingsCard tone="info" className="!p-3">
+        <SettingsPreview title={t('enr.previewTitle')}>
+          <EnrichBeforeAfterPreview />
+        </SettingsPreview>
+      </SettingsCard>
+
       <SettingsCard
         icon={Disc3}
         title={
@@ -126,12 +141,7 @@ export function MetadataEnrichSection() {
           </div>
 
           {/* Manual-only reassurance: the issue #37 user feared background auto-modification. */}
-          <div className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-primary/5 border border-primary/15">
-            <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {t('lib.enrichManualNotice')}
-            </p>
-          </div>
+          <SettingsInfoCallout icon={Info}>{t('lib.enrichManualNotice')}</SettingsInfoCallout>
 
           {/* Options */}
           <div>

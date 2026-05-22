@@ -8,7 +8,6 @@ import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylist
 import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
-import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 import { ScanProgressCard } from '@/components/library/ScanProgressCard';
 
 export function LibrarySection() {
@@ -115,8 +114,6 @@ export function LibrarySection() {
           )}
         </SettingsCard>
       )}
-
-      <MetadataEnrichSection />
 
       <SubfolderPlaylistDialog
         open={subfolderDialogOpen}
