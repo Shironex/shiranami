@@ -8,37 +8,34 @@
  * prefixes from every place a path can appear before the event leaves the
  * machine.
  *
- * This module is intentionally dependency-free (no `@sentry/*` imports) so
- * both the main and renderer processes can import it. The Sentry shapes below
- * are structurally typed against the parts we touch — passing a real
- * `ErrorEvent`/`Breadcrumb` is accepted because the runtime payload matches.
+ * The functions are generic over the caller's exact type (Sentry's
+ * `ErrorEvent`/`Breadcrumb`) — they mutate in place and return the same object
+ * so `beforeSend`/`beforeBreadcrumb` get back a value of the type Sentry
+ * expects. Internally they read fields through loose views so the module stays
+ * dependency-free (no `@sentry/*` imports) and importable by both processes.
  */
 
-interface ScrubbableFrame {
-  filename?: string;
-  abs_path?: string;
-  module?: string;
-  [key: string]: unknown;
+interface FrameView {
+  filename?: unknown;
+  abs_path?: unknown;
+  module?: unknown;
 }
 
-interface ScrubbableException {
-  value?: string;
-  stacktrace?: { frames?: ScrubbableFrame[] };
-  [key: string]: unknown;
+interface ExceptionView {
+  value?: unknown;
+  stacktrace?: { frames?: FrameView[] } | null;
 }
 
-interface ScrubbableEvent {
-  message?: string;
-  exception?: { values?: ScrubbableException[] };
-  breadcrumbs?: ScrubbableBreadcrumb[];
-  [key: string]: unknown;
+interface EventView {
+  message?: unknown;
+  exception?: { values?: ExceptionView[] } | null;
+  breadcrumbs?: BreadcrumbView[] | null;
 }
 
-interface ScrubbableBreadcrumb {
-  message?: string;
-  category?: string;
-  data?: Record<string, unknown>;
-  [key: string]: unknown;
+interface BreadcrumbView {
+  message?: unknown;
+  category?: unknown;
+  data?: Record<string, unknown> | null;
 }
 
 /**
@@ -66,11 +63,10 @@ export function containsHomePath(input: string): boolean {
   return HOME_DIR_PATTERN.test(input);
 }
 
-function scrubFrame(frame: ScrubbableFrame): ScrubbableFrame {
+function scrubFrame(frame: FrameView): void {
   if (typeof frame.filename === 'string') frame.filename = scrubPath(frame.filename);
   if (typeof frame.abs_path === 'string') frame.abs_path = scrubPath(frame.abs_path);
   if (typeof frame.module === 'string') frame.module = scrubPath(frame.module);
-  return frame;
 }
 
 /**
@@ -79,12 +75,14 @@ function scrubFrame(frame: ScrubbableFrame): ScrubbableFrame {
  * breadcrumb messages. Mutates and returns the event (Sentry expects the
  * scrubbed event back, or `null` to drop it — we never drop).
  */
-export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
-  if (typeof event.message === 'string') {
-    event.message = scrubPath(event.message);
+export function scrubEvent<T>(event: T): T {
+  const view = event as EventView;
+
+  if (typeof view.message === 'string') {
+    view.message = scrubPath(view.message);
   }
 
-  const values = event.exception?.values;
+  const values = view.exception?.values;
   if (Array.isArray(values)) {
     for (const exception of values) {
       if (typeof exception.value === 'string') {
@@ -97,10 +95,8 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
     }
   }
 
-  if (Array.isArray(event.breadcrumbs)) {
-    event.breadcrumbs = event.breadcrumbs
-      .map(scrubBreadcrumb)
-      .filter((b): b is ScrubbableBreadcrumb => b !== null);
+  if (Array.isArray(view.breadcrumbs)) {
+    view.breadcrumbs = view.breadcrumbs.filter(crumb => scrubBreadcrumb(crumb) !== null);
   }
 
   return event;
@@ -111,23 +107,25 @@ export function scrubEvent<T extends ScrubbableEvent>(event: T): T {
  * home-dir path (they tend to echo our own file-path-laden log lines), and
  * scrub the path out of any breadcrumb that survives. Returns `null` to drop.
  */
-export function scrubBreadcrumb<T extends ScrubbableBreadcrumb>(crumb: T): T | null {
+export function scrubBreadcrumb<T>(crumb: T): T | null {
+  const view = crumb as BreadcrumbView;
+
   if (
-    crumb.category === 'console' &&
-    typeof crumb.message === 'string' &&
-    containsHomePath(crumb.message)
+    view.category === 'console' &&
+    typeof view.message === 'string' &&
+    containsHomePath(view.message)
   ) {
     return null;
   }
 
-  if (typeof crumb.message === 'string') {
-    crumb.message = scrubPath(crumb.message);
+  if (typeof view.message === 'string') {
+    view.message = scrubPath(view.message);
   }
 
-  if (crumb.data && typeof crumb.data === 'object') {
-    for (const [key, value] of Object.entries(crumb.data)) {
+  if (view.data && typeof view.data === 'object') {
+    for (const [key, value] of Object.entries(view.data)) {
       if (typeof value === 'string') {
-        crumb.data[key] = scrubPath(value);
+        view.data[key] = scrubPath(value);
       }
     }
   }
