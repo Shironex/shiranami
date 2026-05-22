@@ -147,7 +147,9 @@ async function sendPresenceUpdate(activity: DiscordMusicPresenceActivity | null)
 
 function throttledUpdate(activity: DiscordMusicPresenceActivity | null): void {
   const now = Date.now();
-  const elapsed = now - lastUpdateTime;
+  // Clamp to >= 0 so a backward clock jump (NTP correction, manual system clock
+  // change) can never make the window look negative and stall the next update.
+  const elapsed = Math.max(0, now - lastUpdateTime);
 
   if (elapsed >= MIN_UPDATE_INTERVAL_MS) {
     sendPresenceUpdate(activity).catch(() => {});
@@ -183,8 +185,9 @@ async function doConnect(): Promise<void> {
     isConnected = true;
     reconnectDelay = RECONNECT_BASE_MS;
     logger.info('[discord-rpc] Connected');
-    // Re-emit the last known activity (or an idle presence) on (re)connect.
-    sendPresenceUpdate(currentActivity).catch(() => {});
+    // Re-emit the last known activity (or an idle presence) on (re)connect,
+    // through the throttle so rapid reconnects cannot trip Discord's rate limit.
+    throttledUpdate(currentActivity);
   });
 
   client.on('disconnected', () => {
@@ -266,8 +269,9 @@ export function updateDiscordRpcSettings(updates: Partial<DiscordRpcSettings>): 
   } else if (!next.enabled) {
     disconnectClient();
   } else if (isConnected) {
-    // Settings changed while connected — re-send presence with new settings.
-    sendPresenceUpdate(currentActivity).catch(() => {});
+    // Settings changed while connected, so re-send presence through the
+    // throttle to reflect the new template without bypassing the rate limit.
+    throttledUpdate(currentActivity);
   }
 
   logger.info(
