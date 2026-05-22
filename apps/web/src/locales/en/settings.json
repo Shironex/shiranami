@@ -20,6 +20,7 @@
     "sidebar": "Main navigation visibility",
     "discord": "Discord integration settings",
     "updates": "Application update channel",
+    "privacy": "Crash reporting and data",
     "about": "About this application",
     "support": "Support the project"
   },
@@ -37,6 +38,7 @@
   "sidebar": "Sidebar",
   "discord": "Discord",
   "updates": "Updates",
+  "privacy": "Privacy",
   "about": "About",
   "support": "Support",
   "language": "Language",
@@ -430,6 +432,25 @@
     "somethingWrong": "Something went wrong",
     "checkFailed": "Failed to check for updates",
     "downloadFailed": "Download failed"
+  },
+  "priv": {
+    "title": "Crash reporting",
+    "subtitle": "Help fix what breaks. Off by default.",
+    "toggleLabel": "Send crash reports",
+    "toggleDesc": "Anonymous crash and error reports, plus a small sample of performance timings.",
+    "sentTitle": "What's sent",
+    "sent": [
+      "Crash and error reports",
+      "A small sample of performance timings",
+      "App version and operating system"
+    ],
+    "notSentTitle": "What's never sent",
+    "notSent": [
+      "No screen recording or replay",
+      "No personal info or account data",
+      "File paths scrubbed of your username"
+    ],
+    "note": "Reports are scrubbed of file paths and your username before they ever leave your machine. Nothing is sent while this is off."
   },
   "abt": {
     "title": "About",
