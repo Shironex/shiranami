@@ -57,6 +57,7 @@ import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
+import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -68,6 +69,7 @@ function App() {
   const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
   const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
   const hydrateSupportBanner = useSupportBannerStore(s => s.hydrateSupportBanner);
+  const hydrateTelemetry = useTelemetryStore(s => s.hydrate);
   // Under the e2e harness, treat onboarding as done so specs land on the app
   // shell instead of the first-run wizard (fresh userDataDir → never completed).
   const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted || IS_E2E);
@@ -119,6 +121,10 @@ function App() {
   useEffect(() => {
     void hydrateSupportBanner();
   }, [hydrateSupportBanner]);
+
+  useEffect(() => {
+    void hydrateTelemetry();
+  }, [hydrateTelemetry]);
 
   // Auto-collapse sidebar on narrow viewports
   const setSidebarCollapsed = useUIStore(s => s.setSidebarCollapsed);
