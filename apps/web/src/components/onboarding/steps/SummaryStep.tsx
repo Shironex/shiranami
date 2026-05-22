@@ -5,6 +5,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { useSettingsQuery } from '@/hooks/queries/useSettings';
+import { useDiscordRpcSettingsQuery } from '@/hooks/queries/useDiscordRpc';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useThemeStore } from '@/stores/useThemeStore';
@@ -27,6 +28,7 @@ export function SummaryStep() {
 
   const { data: folders = [] } = useFoldersQuery();
   const { data: settings } = useSettingsQuery();
+  const { data: discordSettings } = useDiscordRpcSettingsQuery();
   const tools = useDownloadsSettings();
 
   const crossfadeEnabled = usePlaybackStore(s => s.crossfadeEnabled);
@@ -56,11 +58,11 @@ export function SummaryStep() {
         ? t('summary.playback.crossfade', { seconds: crossfadeDuration })
         : t('summary.playback.noCrossfade'),
     ];
-    if (IS_ELECTRON && settings?.discordRpc) parts.push(t('summary.playback.discordOn'));
+    if (IS_ELECTRON && discordSettings?.enabled) parts.push(t('summary.playback.discordOn'));
     return parts.join(' · ');
   }, [
     settings?.rememberPlaybackPosition,
-    settings?.discordRpc,
+    discordSettings?.enabled,
     crossfadeEnabled,
     crossfadeDuration,
     t,

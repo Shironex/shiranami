@@ -2,6 +2,10 @@ import { useTranslation, Trans } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
+import {
+  useDiscordRpcSettingsQuery,
+  useUpdateDiscordRpcSettingsMutation,
+} from '@/hooks/queries/useDiscordRpc';
 import { SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { OnboardingStepLayout } from '../OnboardingStepLayout';
@@ -22,7 +26,10 @@ export function PlaybackStep() {
   const { data: settings } = useSettingsQuery();
   const updateSettings = useUpdateSettingsMutation();
   const rememberPlaybackPosition = settings?.rememberPlaybackPosition ?? false;
-  const discordRpc = settings?.discordRpc ?? false;
+
+  const { data: discordSettings } = useDiscordRpcSettingsQuery();
+  const updateDiscord = useUpdateDiscordRpcSettingsMutation();
+  const discordRpc = discordSettings?.enabled ?? false;
 
   const crossfadeEnabled = usePlaybackStore(s => s.crossfadeEnabled);
   const crossfadeDuration = usePlaybackStore(s => s.crossfadeDuration);
@@ -91,7 +98,7 @@ export function PlaybackStep() {
             label={t('playback.discord')}
             description={t('playback.discordDesc')}
             checked={discordRpc}
-            onCheckedChange={v => updateSettings.mutate({ discordRpc: v })}
+            onCheckedChange={v => updateDiscord.mutate({ enabled: v })}
           />
         )}
       </div>
