@@ -1,44 +1,106 @@
 import { Client } from '@xhayper/discord-rpc';
+import {
+  DEFAULT_DISCORD_TEMPLATES,
+  SHIRANAMI_DISCORD_CLIENT_ID,
+  type DiscordRpcSettings,
+  type DiscordMusicPresenceActivity,
+} from '@shiranami/shared';
 import { logger } from './logger';
 import { store } from './store';
 import type { PlaybackState } from './media-controls';
+import { buildPresence } from './discord-presence-builder';
 
-const DISCORD_CLIENT_ID = '1484544721060761610';
+const STORE_KEY = 'discord-rpc-settings';
 const MIN_UPDATE_INTERVAL_MS = 15_000; // Discord rate limit: 1 update per 15s
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
-const MAX_FIELD_LENGTH = 128;
+
+const DEFAULT_SETTINGS: DiscordRpcSettings = {
+  enabled: false,
+  showTrackDetails: true,
+  showElapsedTime: true,
+  useCustomTemplates: false,
+  templates: DEFAULT_DISCORD_TEMPLATES,
+};
 
 let client: Client | null = null;
 let isConnected = false;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectDelay = RECONNECT_BASE_MS;
 let lastUpdateTime = 0;
-let pendingState: PlaybackState | null | undefined = undefined;
+let pendingActivity: DiscordMusicPresenceActivity | null | undefined = undefined;
 let throttleTimer: ReturnType<typeof setTimeout> | null = null;
 let connectPromise: Promise<void> | null = null;
+let currentActivity: DiscordMusicPresenceActivity | null = null;
 
-function isEnabled(): boolean {
+/**
+ * Read persisted settings, filling any missing field from the defaults so an
+ * older or partial blob is always coerced to the full shape.
+ *
+ * Migration: if no `discord-rpc-settings` key exists yet, seed `enabled` from
+ * the legacy `settings.discordRpc` boolean so users who already had Rich
+ * Presence on keep it on. This runs once — the very next `saveSettings` writes
+ * the dedicated key, which then becomes the single source of truth and the
+ * legacy flag is never read again.
+ */
+function getSettings(): DiscordRpcSettings {
+  let stored: Partial<DiscordRpcSettings> | undefined;
   try {
-    const settings = store.get('settings');
-    return settings?.discordRpc === true;
+    stored = store.get(STORE_KEY) as Partial<DiscordRpcSettings> | undefined;
   } catch {
-    return false;
+    stored = undefined;
   }
+
+  if (!stored) {
+    let legacyEnabled = DEFAULT_SETTINGS.enabled;
+    try {
+      const legacy = store.get('settings') as { discordRpc?: boolean } | undefined;
+      if (legacy?.discordRpc === true) legacyEnabled = true;
+    } catch {
+      // ignore — legacy flag is best-effort
+    }
+    return {
+      ...DEFAULT_SETTINGS,
+      enabled: legacyEnabled,
+      templates: { ...DEFAULT_DISCORD_TEMPLATES },
+    };
+  }
+
+  return {
+    enabled: typeof stored.enabled === 'boolean' ? stored.enabled : DEFAULT_SETTINGS.enabled,
+    showTrackDetails:
+      typeof stored.showTrackDetails === 'boolean'
+        ? stored.showTrackDetails
+        : DEFAULT_SETTINGS.showTrackDetails,
+    showElapsedTime:
+      typeof stored.showElapsedTime === 'boolean'
+        ? stored.showElapsedTime
+        : DEFAULT_SETTINGS.showElapsedTime,
+    useCustomTemplates:
+      typeof stored.useCustomTemplates === 'boolean'
+        ? stored.useCustomTemplates
+        : DEFAULT_SETTINGS.useCustomTemplates,
+    templates: stored.templates
+      ? { ...DEFAULT_DISCORD_TEMPLATES, ...stored.templates }
+      : { ...DEFAULT_DISCORD_TEMPLATES },
+  };
 }
 
-const MIN_FIELD_LENGTH = 2; // Discord requires at least 2 characters
-
-export function truncate(text: string, max: number = MAX_FIELD_LENGTH): string {
-  if (text.length <= max) return text;
-  return text.slice(0, max - 1) + '\u2026';
+function saveSettings(settings: DiscordRpcSettings): void {
+  store.set(STORE_KEY, settings);
 }
 
-export function sanitizeField(text: string | undefined | null): string | undefined {
-  if (!text) return undefined;
-  const trimmed = text.trim();
-  if (trimmed.length < MIN_FIELD_LENGTH) return undefined;
-  return truncate(trimmed);
+/** Map the main-process PlaybackState into the builder's snapshot shape. */
+function toActivity(state: PlaybackState | null): DiscordMusicPresenceActivity | null {
+  if (!state) return null;
+  return {
+    isPlaying: state.isPlaying,
+    title: state.title,
+    artist: state.artist,
+    album: state.album,
+    duration: state.duration,
+    currentTime: state.currentTime,
+  };
 }
 
 function clearReconnectTimer(): void {
@@ -57,7 +119,7 @@ function clearThrottleTimer(): void {
 
 function scheduleReconnect(): void {
   clearReconnectTimer();
-  if (!isEnabled()) return;
+  if (!getSettings().enabled) return;
 
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null;
@@ -67,37 +129,14 @@ function scheduleReconnect(): void {
   reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_MS);
 }
 
-export function buildPresence(state: PlaybackState): Record<string, unknown> {
-  const presence: Record<string, unknown> = {
-    details: sanitizeField(state.title) ?? 'Unknown Track',
-    largeImageKey: 'shiranami',
-    largeImageText: sanitizeField(state.album) ?? 'Shiranami',
-  };
-
-  const artist = sanitizeField(state.artist);
-  if (artist) {
-    presence.state = artist;
-  }
-
-  // Show time remaining when playing
-  if (state.isPlaying && state.duration > 0) {
-    const remainingMs = (state.duration - state.currentTime) * 1000;
-    presence.endTimestamp = new Date(Date.now() + remainingMs);
-  }
-
-  presence.buttons = [{ label: 'Get Shiranami', url: 'https://shiranami.app' }];
-
-  return presence;
-}
-
-async function sendPresenceUpdate(state: PlaybackState | null): Promise<void> {
+async function sendPresenceUpdate(activity: DiscordMusicPresenceActivity | null): Promise<void> {
   if (!client || !isConnected) return;
 
   try {
-    if (!state || !state.isPlaying) {
+    if (!activity) {
       await client.user?.clearActivity();
     } else {
-      const presence = buildPresence(state);
+      const presence = buildPresence(activity, getSettings());
       await client.user?.setActivity(presence as never);
     }
     lastUpdateTime = Date.now();
@@ -106,21 +145,21 @@ async function sendPresenceUpdate(state: PlaybackState | null): Promise<void> {
   }
 }
 
-function throttledUpdate(state: PlaybackState | null): void {
+function throttledUpdate(activity: DiscordMusicPresenceActivity | null): void {
   const now = Date.now();
   const elapsed = now - lastUpdateTime;
 
   if (elapsed >= MIN_UPDATE_INTERVAL_MS) {
-    sendPresenceUpdate(state).catch(() => {});
-    pendingState = undefined;
+    sendPresenceUpdate(activity).catch(() => {});
+    pendingActivity = undefined;
   } else {
-    pendingState = state;
+    pendingActivity = activity;
     if (!throttleTimer) {
       throttleTimer = setTimeout(() => {
         throttleTimer = null;
-        if (pendingState !== undefined) {
-          sendPresenceUpdate(pendingState).catch(() => {});
-          pendingState = undefined;
+        if (pendingActivity !== undefined) {
+          sendPresenceUpdate(pendingActivity).catch(() => {});
+          pendingActivity = undefined;
         }
       }, MIN_UPDATE_INTERVAL_MS - elapsed);
     }
@@ -138,12 +177,14 @@ async function doConnect(): Promise<void> {
     isConnected = false;
   }
 
-  client = new Client({ clientId: DISCORD_CLIENT_ID });
+  client = new Client({ clientId: SHIRANAMI_DISCORD_CLIENT_ID });
 
   client.on('ready', () => {
     isConnected = true;
     reconnectDelay = RECONNECT_BASE_MS;
     logger.info('[discord-rpc] Connected');
+    // Re-emit the last known activity (or an idle presence) on (re)connect.
+    sendPresenceUpdate(currentActivity).catch(() => {});
   });
 
   client.on('disconnected', () => {
@@ -171,7 +212,7 @@ function connectClient(): void {
 async function disconnectClient(): Promise<void> {
   clearReconnectTimer();
   clearThrottleTimer();
-  pendingState = undefined;
+  pendingActivity = undefined;
 
   if (client) {
     try {
@@ -194,32 +235,81 @@ async function disconnectClient(): Promise<void> {
 // ========================================
 
 export function initializeDiscordRpc(): void {
-  const enabled = isEnabled();
-  logger.info(`[discord-rpc] Initialized (enabled: ${enabled})`);
+  const settings = getSettings();
+  logger.info(`[discord-rpc] Initialized (enabled: ${settings.enabled})`);
 
-  if (enabled) {
+  if (settings.enabled) {
     connectClient();
   }
 }
 
+export function getDiscordRpcSettings(): DiscordRpcSettings {
+  return getSettings();
+}
+
+export function updateDiscordRpcSettings(updates: Partial<DiscordRpcSettings>): DiscordRpcSettings {
+  const current = getSettings();
+  const next: DiscordRpcSettings = {
+    enabled: updates.enabled ?? current.enabled,
+    showTrackDetails: updates.showTrackDetails ?? current.showTrackDetails,
+    showElapsedTime: updates.showElapsedTime ?? current.showElapsedTime,
+    useCustomTemplates: updates.useCustomTemplates ?? current.useCustomTemplates,
+    templates: updates.templates
+      ? { ...current.templates, ...updates.templates }
+      : current.templates,
+  };
+  saveSettings(next);
+
+  if (next.enabled && !isConnected && !connectPromise) {
+    reconnectDelay = RECONNECT_BASE_MS;
+    connectClient();
+  } else if (!next.enabled) {
+    disconnectClient();
+  } else if (isConnected) {
+    // Settings changed while connected — re-send presence with new settings.
+    sendPresenceUpdate(currentActivity).catch(() => {});
+  }
+
+  logger.info(
+    `[discord-rpc] Settings updated: enabled=${next.enabled}, showTrackDetails=${next.showTrackDetails}, showElapsedTime=${next.showElapsedTime}, useCustomTemplates=${next.useCustomTemplates}`
+  );
+  return next;
+}
+
 export function updateDiscordPresence(state: PlaybackState | null): void {
-  if (!isEnabled()) {
-    // If disabled but still connected, disconnect
+  if (!getSettings().enabled) {
+    // Disabled but still connected — tear the connection down.
     if (isConnected) {
       disconnectClient();
     }
     return;
   }
 
-  // If enabled but not connected, initiate connection
+  // Enabled but not yet connected — kick off a connection.
   if (!isConnected && !connectPromise && !reconnectTimer) {
     connectClient();
   }
 
-  throttledUpdate(state);
+  currentActivity = toActivity(state);
+  throttledUpdate(currentActivity);
+}
+
+export function clearDiscordPresence(): void {
+  currentActivity = null;
+  clearThrottleTimer();
+  pendingActivity = undefined;
+
+  if (client && isConnected) {
+    try {
+      client.user?.clearActivity();
+    } catch (error) {
+      logger.error('[discord-rpc] Failed to clear presence:', error);
+    }
+  }
 }
 
 export function cleanupDiscordRpc(): void {
   disconnectClient();
+  currentActivity = null;
   logger.info('[discord-rpc] Cleaned up');
 }
