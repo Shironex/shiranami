@@ -33,9 +33,12 @@ const MAX_LOG = Math.log10(EQ_BANDS[EQ_BANDS.length - 1]);
 const LOG_SPAN = MAX_LOG - MIN_LOG;
 
 // dB range the y-axis covers. A band can reach EQ_MAX_DB and preamp adds up to
-// ±12, so the curve can exceed the band range; clamp to this padded window so an
-// extreme combination stays inside the tile instead of overshooting.
-const DB_RANGE = EQ_MAX_DB - EQ_MIN_DB;
+// the same magnitude, so the curve can exceed the band range; clamp to this
+// padded display window so preamp headroom remains visible without overshooting.
+const PREAMP_HEADROOM_DB = Math.max(Math.abs(EQ_MIN_DB), Math.abs(EQ_MAX_DB));
+const DISPLAY_MIN_DB = EQ_MIN_DB - PREAMP_HEADROOM_DB;
+const DISPLAY_MAX_DB = EQ_MAX_DB + PREAMP_HEADROOM_DB;
+const DB_RANGE = DISPLAY_MAX_DB - DISPLAY_MIN_DB;
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
@@ -58,13 +61,13 @@ export function useEqResponseCurve({
     const usableH = height - padY * 2;
     const dbToY = (db: number) => {
       // 0 dB sits at the vertical centre; +db rises (smaller y).
-      const norm = clamp((db - EQ_MIN_DB) / DB_RANGE, 0, 1);
+      const norm = clamp((db - DISPLAY_MIN_DB) / DB_RANGE, 0, 1);
       return padY + (1 - norm) * usableH;
     };
     const freqToX = (freq: number) => ((Math.log10(freq) - MIN_LOG) / LOG_SPAN) * width;
 
     const points = EQ_BANDS.map((freq, i) => {
-      const gain = clamp((gains[i] ?? 0) + preampDb, EQ_MIN_DB, EQ_MAX_DB);
+      const gain = clamp((gains[i] ?? 0) + preampDb, DISPLAY_MIN_DB, DISPLAY_MAX_DB);
       return { x: freqToX(freq), y: dbToY(gain), gain };
     });
 
