@@ -91,8 +91,28 @@
     "title": "Wybierz wizualizację",
     "hint": "Opcjonalne. Podgląd aktualizuje się na żywo."
   },
+  "privacy": {
+    "eyebrow": "06 · Raporty awarii",
+    "headline": "Pomóż naprawić to, co się <1>psuje</1>.",
+    "description": "Shiranami może automatycznie wysłać raport, gdy coś się zawiesi, dzięki czemu problemy zostaną naprawione bez szukania pliku z logami. Domyślnie jest to wyłączone, dopóki sam tego nie włączysz, a decyzję możesz zmienić w każdej chwili w Ustawieniach · Prywatność.",
+    "sentTitle": "Co jest wysyłane",
+    "sent": [
+      "Raporty awarii i błędów",
+      "Niewielka próbka pomiarów wydajności",
+      "Wersja aplikacji i system operacyjny"
+    ],
+    "notSentTitle": "Co nie jest wysyłane",
+    "notSent": [
+      "Brak nagrywania ekranu i powtórek",
+      "Brak danych osobowych i danych konta",
+      "Ścieżki plików są pozbawiane Twojej nazwy użytkownika"
+    ],
+    "toggleLabel": "Wysyłaj raporty awarii",
+    "toggleDesc": "Anonimowo. Domyślnie wyłączone. Zmień w każdej chwili.",
+    "footnote": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie."
+  },
   "summary": {
-    "eyebrow": "06 · Gotowe",
+    "eyebrow": "07 · Gotowe",
     "headline": "Twój pokój jest <1>gotowy</1>.",
     "description": "Oto, co wybrałeś. Wszystko możesz dostroić później w Ustawieniach.",
     "intro": "Szybkie podsumowanie, zanim otworzy się biblioteka.",
