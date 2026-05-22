@@ -33,7 +33,7 @@
     "ipaddr.js": "^2.4.0",
     "lrclib-api": "^2.0.4",
     "music-metadata": "^11.12.3",
-    "node-addon-api": "^8.7.0",
+    "node-addon-api": "^8.8.0",
     "node-id3": "^0.2.9",
     "sharp": "^0.34.5",
     "zod": "^4.4.3"
