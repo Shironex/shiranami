@@ -47,6 +47,12 @@ export const IPC_CHANNELS = {
     clearState: 'media:clear-state',
     command: 'media:command',
   },
+  discord: {
+    getSettings: 'discord-rpc:get-settings',
+    updateSettings: 'discord-rpc:update-settings',
+    updatePresence: 'discord-rpc:update-presence',
+    clearPresence: 'discord-rpc:clear-presence',
+  },
   library: {
     parseMetadata: 'library:parse-metadata',
     scanFolder: 'library:scan-folder',
