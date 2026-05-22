@@ -24,5 +24,7 @@
   "statusFailed": "Failed",
   "statusAlreadyInLibrary": "Already in library",
   "statusWaiting": "Waiting",
+  "lowConfidence": "Uncertain match",
+  "lowConfidenceHint": "This YouTube result may not be the right recording. Check it after importing and replace it if needed.",
   "previewAlbum": "Playlist Import"
 }

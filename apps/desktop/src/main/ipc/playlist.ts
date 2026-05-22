@@ -4,22 +4,35 @@ import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
-import { spawnYtDlp, parseYtDlpJsonLines, type SearchResult } from '../utils/ytdlp-spawn';
+import { spawnYtDlp, parseYtDlpJsonLines, ytSearch, type SearchResult } from '../utils/ytdlp-spawn';
 import { sendToRenderer } from '../utils/window';
 import { BROWSER_USER_AGENT } from '../shared/user-agent';
+import { pickBestMatch, type SpotifyTrack } from '../utils/spotify-match';
 
 const C = IPC_CHANNELS.playlist;
 
 export { parseYtDlpJsonLines };
 
-interface SpotifyTrack {
-  title: string;
-  artist: string;
-}
-
 type PlaylistType = 'youtube' | 'spotify' | 'unknown';
 
-let cancelledFlag = false;
+/**
+ * Concurrent YouTube searches during Spotify extraction. Mirrors
+ * ENRICH_CONCURRENCY (4) from the metadata-enrich pool — high enough for a
+ * ~4-6x speedup over the old serial loop, low enough to stay clear of
+ * YouTube search throttling and local CPU pressure from many yt-dlp processes.
+ */
+const MATCH_CONCURRENCY = 4;
+
+/** Candidates fetched per track for scoring; more than 1 is what enables a real match. */
+const SEARCH_LIMIT = 5;
+
+/**
+ * The current extraction's abort controller. Replaces the old module-level
+ * `cancelledFlag` boolean: a real AbortController threads into `spawnYtDlp`
+ * (which already honors AbortSignal) so `playlist.cancel()` actually kills
+ * in-flight searches instead of merely stopping the loop from advancing.
+ */
+let activeExtraction: AbortController | null = null;
 
 export function detectPlaylistType(url: string): PlaylistType {
   try {
@@ -73,6 +86,148 @@ async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
   return results;
 }
 
+interface SpotifyEmbedTrack {
+  title?: unknown;
+  name?: unknown;
+  subtitle?: unknown;
+  artist?: unknown;
+  artists?: unknown;
+  duration?: unknown;
+  track?: SpotifyEmbedTrack;
+}
+
+/** A track parse counts as "real" when it has a title and a non-Unknown artist. */
+function isRealTrack(track: SpotifyTrack): boolean {
+  return track.title.length > 0 && track.artist !== 'Unknown';
+}
+
+/**
+ * Coerce one embed track object into `SpotifyTrack`. The live embed exposes the
+ * artist on `subtitle` (NOT `artists[].name`) and the duration in MILLISECONDS
+ * on `duration`; convert to seconds for the scorer. Returns null for an empty
+ * title. Album/ISRC are not present in the embed, so they stay omitted.
+ */
+function mapEmbedTrack(raw: SpotifyEmbedTrack): SpotifyTrack | null {
+  const item = raw.track ?? raw;
+
+  const title =
+    typeof item.title === 'string'
+      ? item.title.trim()
+      : typeof item.name === 'string'
+        ? item.name.trim()
+        : '';
+  if (!title) return null;
+
+  let artist = '';
+  if (typeof item.subtitle === 'string' && item.subtitle.trim()) {
+    artist = item.subtitle.trim();
+  } else if (Array.isArray(item.artists)) {
+    artist = item.artists
+      .map(a =>
+        a && typeof a === 'object' && typeof (a as { name?: unknown }).name === 'string'
+          ? (a as { name: string }).name.trim()
+          : ''
+      )
+      .filter(Boolean)
+      .join(', ');
+  } else if (typeof item.artist === 'string' && item.artist.trim()) {
+    artist = item.artist.trim();
+  }
+
+  const durationSec =
+    typeof item.duration === 'number' && item.duration > 0
+      ? Math.round(item.duration / 1000)
+      : undefined;
+
+  return { title, artist: artist || 'Unknown', durationSec };
+}
+
+/**
+ * Parse the Spotify embed page HTML into `SpotifyTrack[]`. The embed page is
+ * the ONLY metadata source (the official Web API now requires the app owner to
+ * hold Premium, so it was dropped). Tracks carry `{ title, artist, durationSec }`
+ * — no album/ISRC, which the scorer treats as optional.
+ *
+ * Primary parse: the `__NEXT_DATA__` blob's
+ * `props.pageProps.state.data.entity.trackList`, where each track exposes the
+ * artist on `subtitle` and the duration in milliseconds on `duration`.
+ *
+ * The regex strategies are defensive secondary fallbacks that run ONLY when the
+ * primary parse yields no track with a real artist — the old bug was the
+ * primary parse "succeeding" with Unknown artists, which starved the better
+ * fallback. We accept the primary result only when it produced at least one
+ * real track; otherwise we let the fallbacks try.
+ */
+export function parseSpotifyEmbedHtml(html: string): SpotifyTrack[] {
+  // Primary: the __NEXT_DATA__ entity.trackList.
+  const scriptMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (scriptMatch) {
+    try {
+      const nextData = JSON.parse(scriptMatch[1]);
+      const entity = nextData?.props?.pageProps?.state?.data?.entity;
+      const items: unknown = entity?.trackList ?? entity?.tracks?.items ?? [];
+
+      if (Array.isArray(items)) {
+        const tracks: SpotifyTrack[] = [];
+        for (const item of items) {
+          if (!item || typeof item !== 'object') continue;
+          const mapped = mapEmbedTrack(item as SpotifyEmbedTrack);
+          if (mapped) tracks.push(mapped);
+        }
+        // Only trust the primary parse when it produced a real artist; an
+        // all-"Unknown" result means the shape shifted, so fall through.
+        if (tracks.some(isRealTrack)) {
+          return tracks;
+        }
+      }
+    } catch {
+      logger.warn('[playlist] Failed to parse __NEXT_DATA__ from Spotify embed');
+    }
+  }
+
+  // Fallback A: a bare "trackList": [...] array anywhere in the HTML.
+  const fallbackA: SpotifyTrack[] = [];
+  for (const match of html.matchAll(/"trackList"\s*:\s*(\[[\s\S]*?\])\s*[,}]/g)) {
+    try {
+      const trackList = JSON.parse(match[1]);
+      if (!Array.isArray(trackList)) continue;
+      for (const item of trackList) {
+        if (!item || typeof item !== 'object') continue;
+        const mapped = mapEmbedTrack(item as SpotifyEmbedTrack);
+        if (mapped) fallbackA.push(mapped);
+      }
+    } catch {
+      continue;
+    }
+  }
+  if (fallbackA.some(isRealTrack)) {
+    return fallbackA;
+  }
+
+  // Fallback B: scan script bodies for title + artists[].name pairs.
+  const fallbackB: SpotifyTrack[] = [];
+  for (const scriptBlock of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)) {
+    const content = scriptBlock[1];
+    const trackPattern = /"title"\s*:\s*"([^"]+)"[\s\S]*?"artists"\s*:\s*\[([\s\S]*?)\]/g;
+    let trackMatch: RegExpExecArray | null;
+    while ((trackMatch = trackPattern.exec(content)) !== null) {
+      const title = trackMatch[1].trim();
+      if (!title) continue;
+      const artistNameMatch = trackMatch[2].match(/"name"\s*:\s*"([^"]+)"/);
+      const artist = artistNameMatch?.[1]?.trim() || 'Unknown';
+      fallbackB.push({ title, artist });
+    }
+  }
+
+  // Return whichever fallback produced anything (A preferred), else empty.
+  return fallbackA.length > 0 ? fallbackA : fallbackB;
+}
+
+/**
+ * Fetch and parse the Spotify embed page — the ONLY Spotify metadata source.
+ * No auth, no app, no Premium. Yields `{ title, artist, durationSec }` and is
+ * capped at ~100 tracks by Spotify's embed render limit.
+ */
 async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack[]> {
   logger.info(`[playlist] Fetching Spotify embed page for playlist: ${playlistId}`);
 
@@ -91,105 +246,46 @@ async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack
   }
 
   const html = await response.text();
-
-  // The embed page includes a <script id="__NEXT_DATA__"> or similar JSON blob
-  // with track data. Try multiple extraction strategies.
-  const tracks: SpotifyTrack[] = [];
-
-  // Strategy 1: Look for the resource JSON in a <script> tag
-  const scriptMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (scriptMatch) {
-    try {
-      const nextData = JSON.parse(scriptMatch[1]);
-      const items =
-        nextData?.props?.pageProps?.state?.data?.entity?.trackList ??
-        nextData?.props?.pageProps?.state?.data?.entity?.tracks?.items ??
-        [];
-
-      for (const item of items) {
-        const track = item.track ?? item;
-        const title = track.name ?? track.title;
-        const artist =
-          track.artists?.map((a: { name: string }) => a.name).join(', ') ??
-          track.artist ??
-          'Unknown';
-        if (title) {
-          tracks.push({ title, artist });
-        }
-      }
-    } catch {
-      logger.warn('[playlist] Failed to parse __NEXT_DATA__ from Spotify embed');
-    }
-  }
-
-  // Strategy 2: Look for JSON data embedded in other script tags
-  if (tracks.length === 0) {
-    const jsonMatches = html.matchAll(/"trackList"\s*:\s*(\[[\s\S]*?\])\s*[,}]/g);
-    for (const match of jsonMatches) {
-      try {
-        const trackList = JSON.parse(match[1]);
-        for (const item of trackList) {
-          const title = item.title ?? item.name;
-          const artist =
-            item.subtitle ??
-            item.artists?.map((a: { name: string }) => a.name).join(', ') ??
-            'Unknown';
-          if (title) {
-            tracks.push({ title, artist });
-          }
-        }
-      } catch {
-        continue;
-      }
-    }
-  }
-
-  // Strategy 3: Look for any JSON with track-like structures
-  if (tracks.length === 0) {
-    const allScripts = html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g);
-    for (const scriptBlock of allScripts) {
-      const content = scriptBlock[1];
-      const trackPattern = /"title"\s*:\s*"([^"]+)"[\s\S]*?"artists"\s*:\s*\[([\s\S]*?)\]/g;
-      let trackMatch;
-      while ((trackMatch = trackPattern.exec(content)) !== null) {
-        const title = trackMatch[1];
-        const artistsStr = trackMatch[2];
-        const artistNameMatch = artistsStr.match(/"name"\s*:\s*"([^"]+)"/);
-        const artist = artistNameMatch?.[1] ?? 'Unknown';
-        if (title) {
-          tracks.push({ title, artist });
-        }
-      }
-    }
-  }
-
+  const tracks = parseSpotifyEmbedHtml(html);
   logger.info(`[playlist] Extracted ${tracks.length} tracks from Spotify embed`);
   return tracks;
 }
 
-async function resolveSpotifyTrackOnYouTube(track: SpotifyTrack): Promise<SearchResult | null> {
+/**
+ * Match one Spotify track to its best YouTube candidate: fetch SEARCH_LIMIT
+ * candidates and score them (duration window + title/artist similarity +
+ * forbidden-word penalty + Topic/view tiebreak) instead of taking results[0].
+ * The chosen candidate carries the match confidence + flag so the renderer can
+ * warn on shaky matches. Returns null only when the search yields nothing.
+ */
+async function matchSpotifyTrackOnYouTube(
+  track: SpotifyTrack,
+  signal: AbortSignal
+): Promise<SearchResult | null> {
   const query = `${track.artist} - ${track.title}`;
-  logger.info(`[playlist] Searching YouTube for: ${query}`);
 
   try {
-    const { stdout, code } = await spawnYtDlp([
-      '--flat-playlist',
-      '--dump-json',
-      '--no-warnings',
-      `ytsearch1:${query}`,
-    ]);
-
-    if (code !== 0) return null;
-
-    const results = parseYtDlpJsonLines(stdout);
-    return results[0] ?? null;
+    const candidates = await ytSearch(query, { limit: SEARCH_LIMIT, signal });
+    const { result, confidence, flag } = pickBestMatch(track, candidates);
+    if (!result) return null;
+    return { ...result, matchConfidence: Number(confidence.toFixed(3)), matchFlag: flag };
   } catch (err) {
-    logger.warn('[playlist] Failed to resolve Spotify track on YouTube:', err);
+    if (signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
+      throw err;
+    }
+    logger.warn(`[playlist] Failed to match Spotify track "${query}" on YouTube:`, err);
     return null;
   }
 }
 
-async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
+/**
+ * Extract a Spotify playlist into scored YouTube `SearchResult`s. Metadata is
+ * scraped from the public embed page (the only source), then each track is
+ * matched through a bounded concurrent pool (shared cursor + index slotting
+ * preserves order), mirroring the proven `runEnrichmentBatch` shape.
+ * Cancellation is a real AbortController threaded into the searches.
+ */
+async function extractSpotifyPlaylist(url: string, signal: AbortSignal): Promise<SearchResult[]> {
   const playlistId = extractSpotifyPlaylistId(url);
   if (!playlistId) {
     throw new IpcError(PLAYLIST_ERROR_CODES.UNSUPPORTED_URL, 'Invalid Spotify playlist URL');
@@ -203,26 +299,55 @@ async function extractSpotifyPlaylist(url: string): Promise<SearchResult[]> {
     );
   }
 
-  const results: SearchResult[] = [];
   const total = spotifyTracks.length;
+  // Slot by input index so the returned list preserves playlist order even
+  // though tasks finish out of order.
+  const slots: (SearchResult | null)[] = new Array(total).fill(null);
 
-  for (let i = 0; i < total; i++) {
-    if (cancelledFlag) break;
+  let completed = 0;
+  let nextIndex = 0;
 
-    // Send extraction progress
-    sendToRenderer(C.extractProgress, {
-      current: i + 1,
-      total,
-      trackName: `${spotifyTracks[i].artist} - ${spotifyTracks[i].title}`,
-    });
+  async function worker(): Promise<void> {
+    while (true) {
+      if (signal.aborted) return;
 
-    const result = await resolveSpotifyTrackOnYouTube(spotifyTracks[i]);
-    if (result) {
-      results.push(result);
+      const i = nextIndex++;
+      if (i >= total) return;
+      const track = spotifyTracks[i];
+
+      sendToRenderer(C.extractProgress, {
+        current: Math.min(completed + 1, total),
+        total,
+        trackName: `${track.artist} - ${track.title}`,
+      });
+
+      try {
+        slots[i] = await matchSpotifyTrackOnYouTube(track, signal);
+      } catch (err) {
+        if (signal.aborted || (err instanceof Error && err.name === 'AbortError')) return;
+        logger.warn(`[playlist] Match failed for "${track.title}":`, err);
+        slots[i] = null;
+      }
+
+      completed += 1;
+      sendToRenderer(C.extractProgress, {
+        current: Math.min(completed, total),
+        total,
+        trackName: `${track.artist} - ${track.title}`,
+      });
     }
   }
 
-  logger.info(`[playlist] Resolved ${results.length}/${total} Spotify tracks on YouTube`);
+  const poolSize = Math.max(1, Math.min(MATCH_CONCURRENCY, total));
+  await Promise.all(Array.from({ length: poolSize }, () => worker()));
+
+  const results = slots.filter((r): r is SearchResult => r !== null);
+  const lowConfidence = results.filter(r => r.matchFlag === 'low').length;
+  logger.info(
+    `[playlist] Resolved ${results.length}/${total} Spotify tracks on YouTube` +
+      `${lowConfidence > 0 ? ` (${lowConfidence} low-confidence)` : ''}` +
+      `${signal.aborted ? ' (cancelled)' : ''}`
+  );
   return results;
 }
 
@@ -230,8 +355,6 @@ export function registerPlaylistHandlers(): void {
   handle(
     C.extract,
     async (_event, url: string) => {
-      cancelledFlag = false;
-
       const playlistType = detectPlaylistType(url);
 
       if (playlistType === 'unknown') {
@@ -244,7 +367,18 @@ export function registerPlaylistHandlers(): void {
       if (playlistType === 'youtube') {
         return await extractYouTubePlaylist(url);
       }
-      return await extractSpotifyPlaylist(url);
+
+      // Abort any prior run still in flight, then start a fresh controller.
+      activeExtraction?.abort();
+      const controller = new AbortController();
+      activeExtraction = controller;
+      try {
+        return await extractSpotifyPlaylist(url, controller.signal);
+      } finally {
+        if (activeExtraction === controller) {
+          activeExtraction = null;
+        }
+      }
     },
     { schema: playlistExtractArgs }
   );
@@ -252,7 +386,7 @@ export function registerPlaylistHandlers(): void {
   handle(
     C.cancel,
     async () => {
-      cancelledFlag = true;
+      activeExtraction?.abort();
       logger.info('[playlist] Extraction cancelled');
     },
     { schema: playlistCancelArgs }

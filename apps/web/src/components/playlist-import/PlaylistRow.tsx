@@ -1,4 +1,14 @@
-import { Loader2, Check, AlertCircle, Music, X, Download, Play, Pause } from 'lucide-react';
+import {
+  Loader2,
+  Check,
+  AlertCircle,
+  AlertTriangle,
+  Music,
+  X,
+  Download,
+  Play,
+  Pause,
+} from 'lucide-react';
 import { type RowComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
 import { useSelectionStore } from '@/stores/useSelectionStore';
@@ -178,6 +188,15 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-xs text-muted-foreground truncate">{result.uploader}</p>
+            {result.matchFlag === 'low' && (
+              <span
+                className="flex items-center gap-1 text-[10px] font-medium text-amber-500 shrink-0"
+                title={t('lowConfidenceHint')}
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {t('lowConfidence')}
+              </span>
+            )}
             {playlistTrack.status !== 'pending' && (
               <span
                 className={cn(

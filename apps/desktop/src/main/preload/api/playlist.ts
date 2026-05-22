@@ -12,6 +12,10 @@ interface PlaylistTrack {
   thumbnail: string;
   url: string;
   webpage_url: string;
+  /** 0..1 Spotify-match score; only present on the Spotify playlist path. */
+  matchConfidence?: number;
+  /** 'low' when the best YouTube candidate scored below the threshold. */
+  matchFlag?: 'low' | 'ok';
 }
 
 export interface PlaylistApi {
