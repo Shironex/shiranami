@@ -64,13 +64,13 @@ export function EnrichBeforeAfterPreview() {
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
       <div className="space-y-1.5">
         <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
-          {t('enrich.beforeLabel')}
+          {t('enr.beforeLabel')}
         </p>
         <TrackTagCard
           variant="before"
-          title={t('enrich.sampleTitle')}
-          artist={t('enrich.sampleUnknownArtist')}
-          album={t('enrich.sampleUnknownAlbum')}
+          title={t('enr.sampleTitle')}
+          artist={t('enr.sampleUnknownArtist')}
+          album={t('enr.sampleUnknownAlbum')}
         />
       </div>
 
@@ -79,15 +79,15 @@ export function EnrichBeforeAfterPreview() {
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
           <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
-            {t('enrich.afterLabel')}
+            {t('enr.afterLabel')}
           </p>
           <EnrichConfidenceBadge confidence={SAMPLE_CONFIDENCE} />
         </div>
         <TrackTagCard
           variant="after"
-          title={t('enrich.sampleTitle')}
-          artist={t('enrich.sampleArtist')}
-          album={t('enrich.sampleAlbum')}
+          title={t('enr.sampleTitle')}
+          artist={t('enr.sampleArtist')}
+          album={t('enr.sampleAlbum')}
         />
       </div>
     </div>

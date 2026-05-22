@@ -106,7 +106,7 @@
     "scanCancel": "Anuluj",
     "scanCancelling": "Anulowanie..."
   },
-  "enrich": {
+  "enr": {
     "previewTitle": "Przed / po",
     "beforeLabel": "Z nazwy pliku",
     "afterLabel": "Wzbogacone",
@@ -125,7 +125,7 @@
     "crossfadeDesc": "Płynne przejście głośności między utworami",
     "duration": "Czas trwania"
   },
-  "discord": {
+  "dsc": {
     "main": {
       "title": "Discord Rich Presence",
       "subtitle": "Połącz z Discordem i pokazuj, czego słuchasz.",

@@ -61,13 +61,13 @@ export function DiscordTemplateEditor({
   return (
     <SettingsCard
       icon={MessageCircle}
-      title={t('discord.editor.title')}
-      subtitle={t('discord.editor.subtitle')}
+      title={t('dsc.editor.title')}
+      subtitle={t('dsc.editor.subtitle')}
     >
       {/* Activity type selector */}
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground">
-          {t('discord.editor.activityType')}
+          {t('dsc.editor.activityType')}
         </label>
         <Select
           value={selectedActivity}
@@ -79,7 +79,7 @@ export function DiscordTemplateEditor({
           <SelectContent>
             {DISCORD_ACTIVITY_TYPES.map(type => (
               <SelectItem key={type} value={type}>
-                {t(`discord.activityLabel.${type}`)}
+                {t(`dsc.activityLabel.${type}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -92,24 +92,24 @@ export function DiscordTemplateEditor({
       <div className="space-y-3">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">
-            {t('discord.editor.line1')}
+            {t('dsc.editor.line1')}
           </label>
           <Input
             className="h-8 text-sm"
             value={currentTemplate.details}
             onChange={e => onTemplateChange(selectedActivity, 'details', e.target.value)}
-            placeholder={t('discord.editor.line1Placeholder')}
+            placeholder={t('dsc.editor.line1Placeholder')}
           />
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">
-            {t('discord.editor.line2')}
+            {t('dsc.editor.line2')}
           </label>
           <Input
             className="h-8 text-sm"
             value={currentTemplate.state}
             onChange={e => onTemplateChange(selectedActivity, 'state', e.target.value)}
-            placeholder={t('discord.editor.line2Placeholder')}
+            placeholder={t('dsc.editor.line2Placeholder')}
           />
         </div>
       </div>
@@ -118,19 +118,19 @@ export function DiscordTemplateEditor({
       <div className="space-y-2">
         <TemplateToggle
           icon={Clock}
-          label={t('discord.editor.toggles.duration')}
+          label={t('dsc.editor.toggles.duration')}
           checked={currentTemplate.showTimestamp}
           onChange={v => onTemplateChange(selectedActivity, 'showTimestamp', v)}
         />
         <TemplateToggle
           icon={Image}
-          label={t('discord.editor.toggles.cover')}
+          label={t('dsc.editor.toggles.cover')}
           checked={currentTemplate.showLargeImage}
           onChange={v => onTemplateChange(selectedActivity, 'showLargeImage', v)}
         />
         <TemplateToggle
           icon={ExternalLink}
-          label={t('discord.editor.toggles.landingButton')}
+          label={t('dsc.editor.toggles.landingButton')}
           checked={currentTemplate.showButton}
           onChange={v => onTemplateChange(selectedActivity, 'showButton', v)}
         />
@@ -139,7 +139,7 @@ export function DiscordTemplateEditor({
       {/* Available variables */}
       <div className="space-y-1.5 rounded-lg bg-muted/30 p-3">
         <p className="text-xs font-medium text-muted-foreground">
-          {t('discord.editor.variablesLabel')}
+          {t('dsc.editor.variablesLabel')}
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {DISCORD_TEMPLATE_VARIABLES.map(v => (
@@ -154,7 +154,7 @@ export function DiscordTemplateEditor({
       {/* Reset button */}
       <div className="flex justify-end">
         <Button variant="ghost" size="sm" className="text-xs" onClick={onReset}>
-          {t('discord.editor.resetDefaults')}
+          {t('dsc.editor.resetDefaults')}
         </Button>
       </div>
     </SettingsCard>

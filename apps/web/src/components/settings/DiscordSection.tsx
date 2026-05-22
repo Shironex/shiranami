@@ -117,11 +117,11 @@ export function DiscordSection() {
     <div className="space-y-4">
       <SettingsCard
         icon={MessageCircle}
-        title={t('discord.main.title')}
-        subtitle={t('discord.main.subtitle')}
+        title={t('dsc.main.title')}
+        subtitle={t('dsc.main.subtitle')}
         headerRight={
           <Switch
-            aria-label={t('discord.main.enableAria')}
+            aria-label={t('dsc.main.enableAria')}
             checked={settings.enabled}
             onCheckedChange={v => updateField('enabled', v)}
           />
@@ -130,16 +130,16 @@ export function DiscordSection() {
         {!settings.useCustomTemplates && (
           <>
             <SettingsToggleRow
-              label={t('discord.main.showDetailsTitle')}
-              description={t('discord.main.showDetailsDescription')}
+              label={t('dsc.main.showDetailsTitle')}
+              description={t('dsc.main.showDetailsDescription')}
               checked={settings.showTrackDetails}
               onCheckedChange={v => updateField('showTrackDetails', v)}
               disabled={!settings.enabled}
             />
             <SettingsToggleRow
               divider
-              label={t('discord.main.showTimeTitle')}
-              description={t('discord.main.showTimeDescription')}
+              label={t('dsc.main.showTimeTitle')}
+              description={t('dsc.main.showTimeDescription')}
               checked={settings.showElapsedTime}
               onCheckedChange={v => updateField('showElapsedTime', v)}
               disabled={!settings.enabled}
@@ -149,8 +149,8 @@ export function DiscordSection() {
 
         <SettingsToggleRow
           divider={!settings.useCustomTemplates}
-          label={t('discord.main.useTemplatesTitle')}
-          description={t('discord.main.useTemplatesDescription')}
+          label={t('dsc.main.useTemplatesTitle')}
+          description={t('dsc.main.useTemplatesDescription')}
           checked={settings.useCustomTemplates}
           onCheckedChange={v => updateField('useCustomTemplates', v)}
           disabled={!settings.enabled}
@@ -158,15 +158,15 @@ export function DiscordSection() {
 
         <Button size="sm" onClick={handleSave}>
           {saved ? <Check className="h-4 w-4" /> : null}
-          {saved ? t('discord.main.saved') : t('discord.main.save')}
+          {saved ? t('dsc.main.saved') : t('dsc.main.save')}
         </Button>
       </SettingsCard>
 
       {settings.enabled && (
         <SettingsCard
           icon={MessageCircle}
-          title={t('discord.preview.title')}
-          subtitle={t('discord.preview.subtitle')}
+          title={t('dsc.preview.title')}
+          subtitle={t('dsc.preview.subtitle')}
           tone="info"
         >
           {/* Activity-type chip row so the preview reflects the selected state. */}
@@ -183,7 +183,7 @@ export function DiscordSection() {
                     : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
                 )}
               >
-                {t(`discord.activityLabel.${type}`)}
+                {t(`dsc.activityLabel.${type}`)}
               </button>
             ))}
           </div>
@@ -207,7 +207,7 @@ export function DiscordSection() {
         />
       )}
 
-      <SettingsInfoCallout icon={Info}>{t('discord.info')}</SettingsInfoCallout>
+      <SettingsInfoCallout icon={Info}>{t('dsc.info')}</SettingsInfoCallout>
     </div>
   );
 }

@@ -108,7 +108,7 @@ export function MetadataEnrichSection() {
           does legible before the user commits, especially for the irreversible
           file-write path. tone="info" reads as a reflection, not a control. */}
       <SettingsCard tone="info" className="!p-3">
-        <SettingsPreview title={t('enrich.previewTitle')}>
+        <SettingsPreview title={t('enr.previewTitle')}>
           <EnrichBeforeAfterPreview />
         </SettingsPreview>
       </SettingsCard>
