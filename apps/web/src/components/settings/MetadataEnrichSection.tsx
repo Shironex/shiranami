@@ -11,6 +11,8 @@ import {
 } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { EnrichBeforeAfterPreview } from '@/components/settings/EnrichBeforeAfterPreview';
 import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
 import { EnrichLastRunPanel } from '@/components/settings/EnrichLastRunPanel';
 
@@ -102,6 +104,15 @@ export function MetadataEnrichSection() {
 
   return (
     <>
+      {/* Value-preview first: a static before/after sample makes what enrichment
+          does legible before the user commits, especially for the irreversible
+          file-write path. tone="info" reads as a reflection, not a control. */}
+      <SettingsCard tone="info" className="!p-3">
+        <SettingsPreview title={t('enrich.previewTitle')}>
+          <EnrichBeforeAfterPreview />
+        </SettingsPreview>
+      </SettingsCard>
+
       <SettingsCard
         icon={Disc3}
         title={

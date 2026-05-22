@@ -8,6 +8,7 @@
   "subtitles": {
     "folders": "Zarządzanie folderami muzyki",
     "library": "Dane biblioteki i skanowanie",
+    "enrich": "Znajdź brakujące metadane i okładki",
     "downloads": "Pobieranie zewnętrznych narzędzi",
     "playback": "Preferencje odtwarzania audio",
     "equalizer": "Sterowanie pasmami częstotliwości",
@@ -22,6 +23,7 @@
   },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
+  "enrich": "Metadane",
   "downloads": "Pobieranie",
   "playback": "Odtwarzanie",
   "equalizer": "Korektor",
@@ -103,6 +105,16 @@
     "scanCurrentFile": "{{file}}",
     "scanCancel": "Anuluj",
     "scanCancelling": "Anulowanie..."
+  },
+  "enrich": {
+    "previewTitle": "Przed / po",
+    "beforeLabel": "Z nazwy pliku",
+    "afterLabel": "Wzbogacone",
+    "sampleTitle": "08 - track.mp3",
+    "sampleUnknownArtist": "Nieznany wykonawca",
+    "sampleUnknownAlbum": "Nieznany album",
+    "sampleArtist": "Nujabes",
+    "sampleAlbum": "Modal Soul"
   },
   "play": {
     "title": "Odtwarzanie",

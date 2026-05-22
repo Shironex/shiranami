@@ -4,6 +4,7 @@ import {
   FolderOpen,
   HardDrive,
   ArrowDownToLine,
+  Disc3,
   Settings2,
   SlidersHorizontal,
   AudioLines,
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
+import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSection';
 import { DownloadsSection } from '@/components/settings/downloads/DownloadsSection';
 import { PlaybackSection } from '@/components/settings/PlaybackSection';
 import { EqualizerSection } from '@/components/settings/EqualizerSection';
@@ -34,6 +36,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 type SettingsSection =
   | 'folders'
   | 'library'
+  | 'enrich'
   | 'downloads'
   | 'playback'
   | 'equalizer'
@@ -76,6 +79,13 @@ const SECTIONS: {
     labelKey: 'library',
     subtitleKey: 'subtitles.library',
     Icon: HardDrive,
+    group: 'library',
+  },
+  {
+    id: 'enrich',
+    labelKey: 'enrich',
+    subtitleKey: 'subtitles.enrich',
+    Icon: Disc3,
     group: 'library',
   },
   {
@@ -154,6 +164,7 @@ const SECTIONS: {
 const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   folders: MusicFoldersSection,
   library: LibrarySection,
+  enrich: MetadataEnrichSection,
   downloads: DownloadsSection,
   playback: PlaybackSection,
   equalizer: EqualizerSection,

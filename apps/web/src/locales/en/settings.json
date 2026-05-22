@@ -8,6 +8,7 @@
   "subtitles": {
     "folders": "Music folder management",
     "library": "Library data and scanning",
+    "enrich": "Find missing metadata and cover art",
     "downloads": "External tool downloads",
     "playback": "Audio playback preferences",
     "equalizer": "Frequency band control",
@@ -22,6 +23,7 @@
   },
   "musicFolders": "Music Folders",
   "library": "Library",
+  "enrich": "Metadata",
   "downloads": "Downloads",
   "playback": "Playback",
   "equalizer": "Equalizer",
@@ -103,6 +105,16 @@
     "scanCurrentFile": "{{file}}",
     "scanCancel": "Cancel",
     "scanCancelling": "Cancelling..."
+  },
+  "enrich": {
+    "previewTitle": "Before / after",
+    "beforeLabel": "From filename",
+    "afterLabel": "Enriched",
+    "sampleTitle": "08 - track.mp3",
+    "sampleUnknownArtist": "Unknown Artist",
+    "sampleUnknownAlbum": "Unknown Album",
+    "sampleArtist": "Nujabes",
+    "sampleAlbum": "Modal Soul"
   },
   "play": {
     "title": "Playback",
