@@ -1,10 +1,36 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'path';
 
+const version = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')).version;
+
+// Source-map upload runs from CI only, never from a local `pnpm build`. The
+// auth token lives exclusively as a GitHub Actions secret; its presence (plus
+// CI=true) is the gate. When absent, the plugin is omitted entirely.
+const shouldUploadSourcemaps = Boolean(process.env.CI && process.env.SENTRY_AUTH_TOKEN);
+
 export default defineConfig({
-  plugins: [tailwindcss(), react()],
+  plugins: [
+    tailwindcss(),
+    react(),
+    ...(shouldUploadSourcemaps
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            release: { name: `shiranami@${version}` },
+            sourcemaps: {
+              // Strip maps from the shipped renderer bundle after upload.
+              filesToDeleteAfterUpload: ['dist/**/*.map'],
+            },
+          }),
+        ]
+      : []),
+  ],
   base: './',
   resolve: {
     alias: {

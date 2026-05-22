@@ -5,6 +5,7 @@ import { AlertCircle, RefreshCw, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { captureException } from '@/lib/sentry';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -109,6 +110,11 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       error,
       errorInfo.componentStack
     );
+    // Remote capture (no-op unless telemetry initialized). The local logger
+    // above + the clipboard report below remain the offline-first fallback.
+    captureException(error, {
+      contexts: { react: { componentStack: errorInfo.componentStack } },
+    });
   }
 
   reset = (): void => {

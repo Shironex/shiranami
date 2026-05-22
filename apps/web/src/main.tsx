@@ -6,6 +6,7 @@ import App from './App';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { initSentryRenderer } from '@/lib/sentry';
 import './styles/globals.css';
 import '@/lib/i18n';
 
@@ -21,6 +22,10 @@ if (!rootElement) {
 if (window.electronAPI?.__e2e) {
   void import('./e2e-bridge');
 }
+
+// Initialize crash/error reporting. No-op unless the user opted in and this is
+// a packaged/production Electron build; events route to the main transport.
+void initSentryRenderer();
 
 createRoot(rootElement).render(
   <StrictMode>
