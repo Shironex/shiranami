@@ -24,9 +24,9 @@ const C = IPC_CHANNELS.store;
  *   - Main-only (NOT in the enum; accessed via direct import):
  *       'downloads.location'          — downloader.ts
  *       'downloads.toolStatusCache'   — downloader.ts
- *   - Dual-access (enum-listed AND read directly by main):
- *       'settings' — renderer owns the object; discord-rpc.ts reads
- *                    `settings.discordRpc` to decide whether to connect.
+ *       'discord-rpc-settings'        — discord-rpc.ts (RPC service owns it;
+ *                                       the renderer reaches it only through the
+ *                                       dedicated discord-rpc IPC channels).
  *
  * When adding a new key:
  *   1. Add it to the StoreSchema in `../store.ts` with an exact value type.
