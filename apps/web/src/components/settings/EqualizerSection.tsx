@@ -4,6 +4,8 @@ import { SlidersHorizontal } from 'lucide-react';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { EqCurvePreview } from '@/components/settings/EqCurvePreview';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -165,6 +167,17 @@ export function EqualizerSection() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Response curve — reflects the resulting frequency response live, so
+            presets read as distinct shapes, not just different slider heights.
+            tone="info" marks it as a reflection rather than a control. */}
+        <div className="px-3">
+          <SettingsCard tone="info" className="!p-3">
+            <SettingsPreview title={t('curvePreview.title')}>
+              <EqCurvePreview gains={gains} preampDb={preampDb} disabled={!enabled} />
+            </SettingsPreview>
+          </SettingsCard>
         </div>
 
         {/* Band strip with zone labels */}
