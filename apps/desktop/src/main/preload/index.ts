@@ -15,6 +15,7 @@ import { appApi, type AppApi } from './api/app';
 import { dbApi, type DbApi } from './api/db';
 import { debugApi, type DebugApi } from './api/debug';
 import { dialogApi, type DialogApi } from './api/dialog';
+import { discordApi, type DiscordApi } from './api/discord';
 import { downloaderApi, type DownloaderApi } from './api/downloader';
 import { libraryApi, type LibraryApi } from './api/library';
 import { lyricsApi, type LyricsApi } from './api/lyrics';
@@ -37,6 +38,7 @@ export interface ElectronAPI {
   db: DbApi;
   lyrics: LyricsApi;
   media: MediaApi;
+  discord: DiscordApi;
   downloader: DownloaderApi;
   updater: UpdaterApi;
   shell: ShellApi;
@@ -71,6 +73,7 @@ const electronAPI: ElectronAPI = {
   db: dbApi,
   lyrics: lyricsApi,
   media: mediaApi,
+  discord: discordApi,
   downloader: downloaderApi,
   updater: updaterApi,
   shell: shellApi,

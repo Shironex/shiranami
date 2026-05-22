@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
+import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
 import type { ElectronAPI } from '@/types/electron';
 
 // Test-accessible ResizeObserver mock. Captures the callback and target so
@@ -132,6 +133,18 @@ function createElectronAPIMock(): ElectronAPI {
       onCommand: vi.fn(() => noopUnsub()),
       sendPlaybackState: vi.fn(),
       clearState: vi.fn(),
+    },
+    discord: {
+      getSettings: asyncFn({
+        enabled: false,
+        showTrackDetails: true,
+        showElapsedTime: true,
+        useCustomTemplates: false,
+        templates: DEFAULT_DISCORD_TEMPLATES,
+      }),
+      updateSettings: vi.fn(),
+      updatePresence: vi.fn(),
+      clearPresence: vi.fn(),
     },
     lyrics: {
       fetch: asyncFn({ synced: null, plain: null, source: null }),
