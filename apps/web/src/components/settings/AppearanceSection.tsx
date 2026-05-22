@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Languages, Sparkles, LayoutGrid, Palette } from 'lucide-react';
+import { Languages, Sparkles, LayoutGrid, Palette, RotateCcw } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -11,6 +11,21 @@ import {
   UI_SCALE_PRESETS,
 } from '@/stores/useUIStore';
 import { useThemeStore } from '@/stores/useThemeStore';
+import {
+  useThemeBgStore,
+  THEME_BG_OPACITY_MIN,
+  THEME_BG_OPACITY_MAX,
+  THEME_BG_OPACITY_STEP,
+  THEME_BG_OPACITY_DEFAULT,
+  THEME_BG_BLUR_MIN,
+  THEME_BG_BLUR_MAX,
+  THEME_BG_BLUR_STEP,
+  THEME_BG_BLUR_DEFAULT,
+  THEME_BG_DIM_MIN,
+  THEME_BG_DIM_MAX,
+  THEME_BG_DIM_STEP,
+  THEME_BG_DIM_DEFAULT,
+} from '@/stores/useThemeBgStore';
 import type { AppView } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
@@ -48,6 +63,18 @@ export function AppearanceSection() {
   const setSidebarPlaylistsVisible = useUIStore(s => s.setSidebarPlaylistsVisible);
   const theme = useThemeStore(s => s.theme);
   const setTheme = useThemeStore(s => s.setTheme);
+  const bgOpacity = useThemeBgStore(s => s.bgOpacity);
+  const setBgOpacity = useThemeBgStore(s => s.setBgOpacity);
+  const bgBlur = useThemeBgStore(s => s.bgBlur);
+  const setBgBlur = useThemeBgStore(s => s.setBgBlur);
+  const bgDim = useThemeBgStore(s => s.bgDim);
+  const setBgDim = useThemeBgStore(s => s.setBgDim);
+  const resetBg = useThemeBgStore(s => s.resetBg);
+
+  const isBgModified =
+    bgOpacity !== THEME_BG_OPACITY_DEFAULT ||
+    bgBlur !== THEME_BG_BLUR_DEFAULT ||
+    bgDim !== THEME_BG_DIM_DEFAULT;
 
   function handleLanguageChange(lang: SupportedLanguage) {
     i18n.changeLanguage(lang);
@@ -162,6 +189,76 @@ export function AppearanceSection() {
       {/* Card 3 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
         <ThemeTileGrid value={theme} onSelect={setTheme} />
+
+        {theme !== 'none' && (
+          <div className="px-3 pt-4 border-t border-border/40 space-y-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.title')}</p>
+              {isBgModified && (
+                <button
+                  onClick={resetBg}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={t('app.bgAdjust.reset')}
+                >
+                  <RotateCcw className="size-3" />
+                  {t('app.bgAdjust.reset')}
+                </button>
+              )}
+            </div>
+
+            {/* Opacity */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.opacity')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {Math.round(bgOpacity * 100)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.opacityDesc')}</p>
+              <Slider
+                min={THEME_BG_OPACITY_MIN}
+                max={THEME_BG_OPACITY_MAX}
+                step={THEME_BG_OPACITY_STEP}
+                value={[bgOpacity]}
+                onValueChange={([v]) => setBgOpacity(v)}
+              />
+            </div>
+
+            {/* Blur */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.blur')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgBlur}px</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.blurDesc')}</p>
+              <Slider
+                min={THEME_BG_BLUR_MIN}
+                max={THEME_BG_BLUR_MAX}
+                step={THEME_BG_BLUR_STEP}
+                value={[bgBlur]}
+                onValueChange={([v]) => setBgBlur(v)}
+              />
+            </div>
+
+            {/* Dim */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.dim')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {Math.round(bgDim * 100)}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.dimDesc')}</p>
+              <Slider
+                min={THEME_BG_DIM_MIN}
+                max={THEME_BG_DIM_MAX}
+                step={THEME_BG_DIM_STEP}
+                value={[bgDim]}
+                onValueChange={([v]) => setBgDim(v)}
+              />
+            </div>
+          </div>
+        )}
       </SettingsCard>
 
       {/* Card 4 — Sidebar */}

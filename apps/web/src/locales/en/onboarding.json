@@ -64,7 +64,11 @@
     "uiScale": "Interface size",
     "uiScaleReset": "Reset to {{value}}%",
     "reduceEffects": "Reduce effects",
-    "reduceEffectsDesc": "Lighter animations and blur for slower machines."
+    "reduceEffectsDesc": "Lighter animations and blur for slower machines.",
+    "bgAdjustTitle": "Background adjustments",
+    "bgOpacity": "Image opacity",
+    "bgBlur": "Blur",
+    "bgDim": "Dim overlay"
   },
   "playback": {
     "eyebrow": "04 · How it plays",
