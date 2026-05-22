@@ -21,9 +21,11 @@ import { useThemeBgStore } from '@/stores/useThemeBgStore';
  */
 export function ThemeBackground() {
   const theme = useThemeStore(s => s.theme);
-  // Importing the store here triggers its onRehydrate, which applies
-  // --theme-bg-opacity / --theme-bg-blur / --theme-bg-dim to the DOM.
-  useThemeBgStore();
+  // No-op selector: keep the store import alive (so its onRehydrate applies
+  // --theme-bg-opacity / --theme-bg-blur / --theme-bg-dim to the DOM) WITHOUT
+  // subscribing this full-bleed layer to state. The values are consumed purely
+  // as CSS variables, so re-rendering on every slider tick would be wasted work.
+  useThemeBgStore(() => null);
   if (theme === 'none') return null;
 
   return (
