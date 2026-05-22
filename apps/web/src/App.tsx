@@ -16,6 +16,7 @@ import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { ThemeBackground } from '@/components/shared/ThemeBackground';
+import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
@@ -55,6 +56,7 @@ import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
+import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -65,6 +67,7 @@ function App() {
 
   const onboardingCompleted = useOnboardingStore(s => s.hasCompletedOnboarding);
   const hydrateOnboarding = useOnboardingStore(s => s.hydrateOnboarding);
+  const hydrateSupportBanner = useSupportBannerStore(s => s.hydrateSupportBanner);
   // Under the e2e harness, treat onboarding as done so specs land on the app
   // shell instead of the first-run wizard (fresh userDataDir → never completed).
   const [onboardingDone, setOnboardingDone] = useState(onboardingCompleted || IS_E2E);
@@ -112,6 +115,10 @@ function App() {
   useEffect(() => {
     void hydrateOnboarding();
   }, [hydrateOnboarding]);
+
+  useEffect(() => {
+    void hydrateSupportBanner();
+  }, [hydrateSupportBanner]);
 
   // Auto-collapse sidebar on narrow viewports
   const setSidebarCollapsed = useUIStore(s => s.setSidebarCollapsed);
@@ -230,6 +237,9 @@ function App() {
 
                 {/* Main content area */}
                 <div className="flex-1 flex flex-col min-w-0 relative">
+                  {/* Support launch banner — shown once ever, after onboarding */}
+                  <SupportBanner />
+
                   <TopBar
                     onAddFile={handleOpenFile}
                     onAddFolder={handleOpenFolder}

@@ -12,6 +12,7 @@ import {
   Monitor,
   RefreshCcw,
   Info,
+  Heart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -26,6 +27,7 @@ import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
+import { SupportSection } from '@/components/settings/SupportSection';
 
 type SettingsSection =
   | 'folders'
@@ -38,7 +40,8 @@ type SettingsSection =
   | 'compact'
   | 'appearance'
   | 'updates'
-  | 'about';
+  | 'about'
+  | 'support';
 
 type SectionGroup = 'library' | 'playback' | 'appearance' | 'system';
 
@@ -129,6 +132,13 @@ const SECTIONS: {
     group: 'system',
   },
   { id: 'about', labelKey: 'about', subtitleKey: 'subtitles.about', Icon: Info, group: 'system' },
+  {
+    id: 'support',
+    labelKey: 'support',
+    subtitleKey: 'subtitles.support',
+    Icon: Heart,
+    group: 'system',
+  },
 ];
 
 const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
@@ -143,6 +153,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   appearance: AppearanceSection,
   updates: UpdatesSection,
   about: AboutSection,
+  support: SupportSection,
 };
 
 export function SettingsView() {
