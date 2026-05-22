@@ -16,7 +16,8 @@
     "compact": "Mini-player window settings",
     "appearance": "Interface look and feel",
     "updates": "Application update channel",
-    "about": "About this application"
+    "about": "About this application",
+    "support": "Support the project"
   },
   "musicFolders": "Music Folders",
   "library": "Library",
@@ -29,6 +30,7 @@
   "appearance": "Appearance",
   "updates": "Updates",
   "about": "About",
+  "support": "Support",
   "language": "Language",
   "folders": {
     "title": "Music Folders",
@@ -343,5 +345,24 @@
     "replayTitle": "Replay onboarding",
     "replaySubtitle": "Step through the first-run setup again",
     "replayButton": "Replay setup"
+  },
+  "sup": {
+    "title": "Support",
+    "subtitle": "From the author. If Shiranami earns a spot in your day.",
+    "p1Pre": "Shiranami is free, has no ads, and never will. I build it in my spare time because I wanted ",
+    "p1Bold": "a player that just plays",
+    "p1Post": " — no account, no subscription, no noise.",
+    "p2Pre": "If it's become part of your routine and you'd like to give a little back, you can ",
+    "p2Bold": "buy me a coffee",
+    "p2Post": ". It's completely optional and means more than you'd think.",
+    "p3Pre": "Either way — whether you chip in or just keep listening — ",
+    "p3Bold": "thanks for being here",
+    "p3Post": ".",
+    "action": "Buy me a coffee"
+  },
+  "supportBanner": {
+    "message": "Enjoying Shiranami? It's free and ad-free — built by one person.",
+    "action": "Buy me a coffee",
+    "dismiss": "Dismiss"
   }
 }
