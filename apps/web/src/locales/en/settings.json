@@ -330,7 +330,10 @@
       "blurDesc": "Soften the background image edges",
       "dim": "Dim overlay",
       "dimDesc": "Dark layer over the image to keep text readable",
-      "reset": "Reset"
+      "reset": "Reset",
+      "previewTitle": "Preview",
+      "previewTrack": "Sample Track",
+      "previewArtist": "Now playing over your background"
     }
   },
   "dl": {

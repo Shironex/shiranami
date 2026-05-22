@@ -29,6 +29,8 @@ import {
 import type { AppView } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
 const TOGGLEABLE_SIDEBAR_ITEMS: Array<{ id: AppView; key: string }> = [
@@ -257,6 +259,15 @@ export function AppearanceSection() {
                 onValueChange={([v]) => setBgDim(v)}
               />
             </div>
+
+            {/* Contained preview — the settings glass panel covers most of the
+                live canvas, so a scaled sample is the only honest way to judge
+                blur/dim while dragging. tone="info" reads as a reflection. */}
+            <SettingsCard tone="info" className="!p-3">
+              <SettingsPreview title={t('app.bgAdjust.previewTitle')}>
+                <ThemeBackgroundPreview />
+              </SettingsPreview>
+            </SettingsCard>
           </div>
         )}
       </SettingsCard>

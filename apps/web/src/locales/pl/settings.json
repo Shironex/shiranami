@@ -330,7 +330,10 @@
       "blurDesc": "Zmiękczenie krawędzi obrazu tła",
       "dim": "Przyciemnienie",
       "dimDesc": "Ciemna warstwa nad obrazem poprawiająca czytelność tekstu",
-      "reset": "Przywróć domyślne"
+      "reset": "Przywróć domyślne",
+      "previewTitle": "Podgląd",
+      "previewTrack": "Przykładowy utwór",
+      "previewArtist": "Odtwarzanie na Twoim tle"
     }
   },
   "dl": {
