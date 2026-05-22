@@ -13,6 +13,7 @@ import {
   RefreshCcw,
   Info,
   Heart,
+  MessageCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -28,6 +29,7 @@ import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
 import { SupportSection } from '@/components/settings/SupportSection';
+import { DiscordSection } from '@/components/settings/DiscordSection';
 
 type SettingsSection =
   | 'folders'
@@ -39,6 +41,7 @@ type SettingsSection =
   | 'lyrics'
   | 'compact'
   | 'appearance'
+  | 'discord'
   | 'updates'
   | 'about'
   | 'support';
@@ -125,6 +128,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'discord',
+    labelKey: 'discord',
+    subtitleKey: 'subtitles.discord',
+    Icon: MessageCircle,
+    group: 'system',
+  },
+  {
     id: 'updates',
     labelKey: 'updates',
     subtitleKey: 'subtitles.updates',
@@ -151,6 +161,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   lyrics: LyricsSection,
   compact: CompactSection,
   appearance: AppearanceSection,
+  discord: DiscordSection,
   updates: UpdatesSection,
   about: AboutSection,
   support: SupportSection,

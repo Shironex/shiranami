@@ -3,7 +3,6 @@ import { IS_ELECTRON } from '@/lib/platform';
 
 export interface ElectronSettings {
   rememberPlaybackPosition?: boolean;
-  discordRpc?: boolean;
   [key: string]: unknown;
 }
 
@@ -30,8 +29,7 @@ export function useUpdateSettingsMutation() {
   return useMutation({
     mutationFn: async (patch: Partial<ElectronSettings>) => {
       if (!IS_ELECTRON) return;
-      const current =
-        queryClient.getQueryData<ElectronSettings | null>(settingsKeys.all) ?? {};
+      const current = queryClient.getQueryData<ElectronSettings | null>(settingsKeys.all) ?? {};
       const merged: ElectronSettings = { ...current, ...patch };
       await window.electronAPI.store.set('settings', merged);
       return merged;

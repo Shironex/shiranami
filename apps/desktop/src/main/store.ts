@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import type { DiscordRpcSettings } from '@shiranami/shared';
 import type { ToolStatusCache } from './ipc/downloader';
 
 /**
@@ -17,8 +18,13 @@ import type { ToolStatusCache } from './ipc/downloader';
  * there for the gate/dual-access rules.
  */
 export interface StoreSchema {
-  // Renderer-owned blob; read by discord-rpc.ts for `discordRpc` flag.
+  // Renderer-owned blob of misc app settings.
   settings: Record<string, unknown>;
+
+  // Main-only (discord-rpc.ts): the single source of truth for Discord Rich
+  // Presence settings. Owned by the RPC service; the renderer reads/writes it
+  // only through the dedicated discord-rpc IPC channels, never via store:get/set.
+  'discord-rpc-settings': DiscordRpcSettings;
 
   // Renderer-owned; shape lives in the web package.
   'music-folders': unknown;

@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
-import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
 
@@ -12,14 +11,13 @@ export function PlaybackSection() {
   const updateSettings = useUpdateSettingsMutation();
 
   const rememberPlaybackPosition = settings?.rememberPlaybackPosition ?? false;
-  const discordRpc = settings?.discordRpc ?? false;
 
   const crossfadeEnabled = usePlaybackStore(s => s.crossfadeEnabled);
   const crossfadeDuration = usePlaybackStore(s => s.crossfadeDuration);
   const setCrossfadeEnabled = usePlaybackStore(s => s.setCrossfadeEnabled);
   const setCrossfadeDuration = usePlaybackStore(s => s.setCrossfadeDuration);
 
-  const updateSetting = (key: 'rememberPlaybackPosition' | 'discordRpc', value: boolean) => {
+  const updateSetting = (key: 'rememberPlaybackPosition', value: boolean) => {
     updateSettings.mutate({ [key]: value });
   };
 
@@ -61,16 +59,6 @@ export function PlaybackSection() {
               <span className="text-[10px] text-muted-foreground/60">12s</span>
             </div>
           </div>
-        )}
-
-        {IS_ELECTRON && (
-          <SettingsToggleRow
-            divider
-            label={t('play.discordRpc')}
-            description={t('play.discordDesc')}
-            checked={discordRpc}
-            onCheckedChange={v => updateSetting('discordRpc', v)}
-          />
         )}
       </div>
     </SettingsCard>

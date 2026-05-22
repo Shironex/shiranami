@@ -15,6 +15,7 @@
     "lyrics": "Opcje wyświetlania tekstu",
     "compact": "Ustawienia mini-odtwarzacza",
     "appearance": "Wygląd i styl interfejsu",
+    "discord": "Ustawienia integracji Discord",
     "updates": "Kanał aktualizacji aplikacji",
     "about": "Informacje o aplikacji",
     "support": "Wesprzyj projekt"
@@ -28,6 +29,7 @@
   "lyrics": "Tekst piosenki",
   "compact": "Tryb kompaktowy",
   "appearance": "Wygląd",
+  "discord": "Discord",
   "updates": "Aktualizacje",
   "about": "O aplikacji",
   "support": "Wsparcie",
@@ -109,9 +111,67 @@
     "rememberDesc": "Wznawiaj utwory od miejsca, w którym skończyłeś",
     "crossfade": "Crossfade",
     "crossfadeDesc": "Płynne przejście głośności między utworami",
-    "duration": "Czas trwania",
-    "discordRpc": "Discord Rich Presence",
-    "discordDesc": "Pokazuj aktualnie odtwarzany utwór w Discordzie"
+    "duration": "Czas trwania"
+  },
+  "discord": {
+    "main": {
+      "title": "Discord Rich Presence",
+      "subtitle": "Połącz z Discordem i pokazuj, czego słuchasz.",
+      "enableAria": "Włącz Discord Rich Presence",
+      "showDetailsTitle": "Pokazuj szczegóły utworu",
+      "showDetailsDescription": "Wyświetlaj tytuł i artystę na Discordzie.",
+      "showTimeTitle": "Pokazuj czas",
+      "showTimeDescription": "Pokazuj, jak długo już słuchasz.",
+      "useTemplatesTitle": "Własne szablony",
+      "useTemplatesDescription": "Dostosuj tekst statusu dla każdej aktywności.",
+      "save": "Zapisz",
+      "saved": "Zapisano"
+    },
+    "preview": {
+      "title": "Podgląd",
+      "subtitle": "Tak będzie wyglądał Twój status na Discordzie.",
+      "playingHeader": "Słucha muzyki",
+      "elapsed": "Pozostało 03:42",
+      "landingButton": "Pobierz Shiranami"
+    },
+    "editor": {
+      "title": "Szablony statusów",
+      "subtitle": "Edytuj tekst dla każdego typu aktywności.",
+      "activityType": "Typ aktywności",
+      "line1": "Linia 1 (opis)",
+      "line2": "Linia 2 (stan)",
+      "line1Placeholder": "np. Słucha muzyki",
+      "line2Placeholder": "np. {title} od {artist}",
+      "toggles": {
+        "duration": "Czas utworu",
+        "cover": "Logo aplikacji",
+        "landingButton": "Przycisk Shiranami"
+      },
+      "variablesLabel": "Dostępne zmienne:",
+      "resetDefaults": "Przywróć domyślne"
+    },
+    "template": {
+      "playing": {
+        "details": "Słucha muzyki"
+      },
+      "paused": {
+        "details": "Muzyka wstrzymana"
+      },
+      "idle": {
+        "details": "Bez aktywności"
+      }
+    },
+    "activityLabel": {
+      "playing": "Odtwarzanie",
+      "paused": "Wstrzymanie",
+      "idle": "Bez aktywności"
+    },
+    "templateVariable": {
+      "title": "Tytuł utworu",
+      "artist": "Artysta",
+      "album": "Album"
+    },
+    "info": "Status na Discordzie działa tylko, gdy klient Discord jest uruchomiony na komputerze. Na Twoim profilu Discord znajomi zobaczą, czego słuchasz w Shiranami."
   },
   "vis": {
     "title": "Wizualizator",

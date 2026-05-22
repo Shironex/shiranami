@@ -9,6 +9,7 @@ export * from './db-history';
 export * from './db-playlists';
 export * from './db-tracks';
 export * from './dialog';
+export * from './discord-rpc';
 export * from './downloader';
 export * from './library';
 export * from './lyrics';

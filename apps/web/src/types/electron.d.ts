@@ -5,6 +5,7 @@ import type {
   MetadataLookupResult,
   MainMetricsSnapshot,
 } from '@shiranami/contracts';
+import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
 export type { TrackMetadata, SearchResult } from '@shiranami/contracts';
 
@@ -128,6 +129,12 @@ export interface ElectronAPI {
       albumArt: string | null;
     }) => Promise<void>;
     clearState: () => Promise<void>;
+  };
+  discord: {
+    getSettings: () => Promise<DiscordRpcSettings>;
+    updateSettings: (updates: Partial<DiscordRpcSettings>) => Promise<DiscordRpcSettings>;
+    updatePresence: (activity: DiscordMusicPresenceActivity) => Promise<void>;
+    clearPresence: () => Promise<void>;
   };
   lyrics: {
     fetch: (
