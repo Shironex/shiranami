@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import * as crypto from 'crypto';
 import { tracks, eq, desc, inArray, sql, type NewTrack } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';

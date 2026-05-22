@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import * as crypto from 'crypto';
 import {
   tracks,
   playlists,
