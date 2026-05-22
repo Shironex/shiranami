@@ -20,6 +20,7 @@ const RENDERER_STORE_KEYS = [
   'window-bounds',
   'app.language',
   'app.onboardingCompleted',
+  'app.supportBannerSeen',
   'metadata-enrich.skippedIds',
 ] as const;
 
