@@ -15,12 +15,12 @@
     "test:watch": "vitest --project server"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.21",
+    "@nestjs/common": "^11.1.23",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.21",
-    "@nestjs/platform-fastify": "^11.1.21",
+    "@nestjs/core": "^11.1.23",
+    "@nestjs/platform-fastify": "^11.1.23",
     "@nestjs/schedule": "^6.1.3",
-    "@nestjs/swagger": "^11.4.3",
+    "@nestjs/swagger": "^11.4.4",
     "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.19.3",
@@ -42,7 +42,7 @@
     "@nestjs/schematics": "^11.1.0",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.33",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.9.1",
     "prisma": "^6.19.3",
     "typescript": "^5.9.3"
   }
