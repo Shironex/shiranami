@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Globe, BookOpen, FolderOpen, Music2, Sparkles } from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { SettingsCard } from '@/components/settings/SettingsCard';
@@ -64,19 +64,25 @@ export function AboutSection() {
       <SettingsCard icon={Music2} title={t('abt.storyTitle')} subtitle={t('abt.storySubtitle')}>
         <div className="space-y-2.5 text-[13px] leading-[1.7] text-foreground/85">
           <p>
-            {t('abt.storyP1Pre')}
-            <span className="text-primary font-medium">{t('abt.storyP1Bold')}</span>
-            {t('abt.storyP1Post')}
+            <Trans
+              t={t}
+              i18nKey="abt.storyP1"
+              components={{ 1: <span className="text-primary font-medium" /> }}
+            />
           </p>
           <p>
-            {t('abt.storyP2Pre')}
-            <span className="text-primary font-medium">{t('abt.storyP2Bold')}</span>
-            {t('abt.storyP2Post')}
+            <Trans
+              t={t}
+              i18nKey="abt.storyP2"
+              components={{ 1: <span className="text-primary font-medium" /> }}
+            />
           </p>
           <p>
-            {t('abt.storyP3Pre')}
-            <span className="text-primary font-medium">{t('abt.storyP3Bold')}</span>
-            {t('abt.storyP3Post')}
+            <Trans
+              t={t}
+              i18nKey="abt.storyP3"
+              components={{ 1: <span className="text-primary font-medium" /> }}
+            />
           </p>
         </div>
       </SettingsCard>
