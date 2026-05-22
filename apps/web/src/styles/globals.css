@@ -619,6 +619,8 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  opacity: var(--theme-bg-opacity, 1);
+  filter: blur(var(--theme-bg-blur, 0px));
 }
 
 /* Contrast scrim — a light dark wash that lets the theme photo read as a real
