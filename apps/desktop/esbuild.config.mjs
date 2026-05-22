@@ -1,7 +1,30 @@
 import { build } from 'esbuild';
 import { readFileSync } from 'node:fs';
+import { sentryEsbuildPlugin } from '@sentry/esbuild-plugin';
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+
+// Source-map upload runs from CI only, never from a local `pnpm build`. The
+// auth token lives exclusively as a GitHub Actions secret; its presence (plus
+// CI=true) is the gate. When absent, no plugin is added and no maps leave the
+// machine.
+const shouldUploadSourcemaps = Boolean(process.env.CI && process.env.SENTRY_AUTH_TOKEN);
+
+const sentryPlugins = shouldUploadSourcemaps
+  ? [
+      sentryEsbuildPlugin({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        release: { name: `shiranami@${pkg.version}` },
+        sourcemaps: {
+          // Strip maps from the shipped artifact after upload so they aren't
+          // distributed to users.
+          filesToDeleteAfterUpload: ['dist/main/**/*.map'],
+        },
+      }),
+    ]
+  : [];
 
 // Main + worker: externalize all npm dependencies. They're shipped via
 // node_modules and electron-builder rebuilds native modules (better-sqlite3,
@@ -27,6 +50,11 @@ const sharedOptions = {
   outdir: 'dist/main',
   sourcemap: true,
   logLevel: 'info',
+  // Inject the (public-ish) Sentry DSN at build time. Empty string when the
+  // env var is absent → main-process Sentry init is skipped entirely.
+  define: {
+    __SENTRY_DSN__: JSON.stringify(process.env.SENTRY_DSN ?? ''),
+  },
 };
 
 await Promise.all([
@@ -38,6 +66,7 @@ await Promise.all([
       'src/main/scan-utility.ts',
     ],
     external: mainExternal,
+    plugins: sentryPlugins,
   }),
   build({
     ...sharedOptions,

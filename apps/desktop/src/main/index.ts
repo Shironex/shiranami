@@ -1,6 +1,8 @@
 import { join } from 'path';
 import * as os from 'os';
 import { app, BrowserWindow, protocol } from 'electron';
+import * as Sentry from '@sentry/electron/main';
+import { initSentryMain, watchTelemetryConsent } from './sentry';
 import { createMainWindow } from './window';
 import { cleanupIpcHandlers } from './ipc/register';
 import { initializeAutoUpdater } from './updater';
@@ -82,6 +84,11 @@ app.on('open-url', (event, url) => {
 });
 
 async function bootstrap(): Promise<void> {
+  // Initialize crash/error reporting first so even early-bootstrap failures are
+  // captured. No-op unless the user opted in AND the build is packaged.
+  initSentryMain();
+  watchTelemetryConsent();
+
   logger.info('════════════════════════════════════════════════════════════');
   logger.info(`  New session — Shiranami v${app.getVersion()}`);
   logger.info(`[system] OS: ${os.platform()} ${os.release()} (${os.arch()})`);
@@ -169,10 +176,12 @@ async function bootstrap(): Promise<void> {
 
 process.on('uncaughtException', error => {
   logger.error('Uncaught exception:', error);
+  Sentry.captureException(error);
 });
 
 process.on('unhandledRejection', reason => {
   logger.error('Unhandled rejection:', reason);
+  Sentry.captureException(reason);
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
