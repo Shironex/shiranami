@@ -79,7 +79,7 @@ export function PlaylistImportView() {
       {/* URL input + controls */}
       <div className="px-6 pt-4 pb-3 shrink-0">
         <div className="relative max-w-2xl">
-          <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Link className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55 pointer-events-none" />
           <Input
             ref={inputRef}
             type="text"
@@ -89,7 +89,7 @@ export function PlaylistImportView() {
             placeholder={t('urlPlaceholder')}
             disabled={isExtracting || isImporting}
             className={cn(
-              'h-auto w-full pl-10 pr-24 py-2.5 rounded-xl text-sm bg-card border-border/50',
+              'h-auto w-full pl-10 pr-24 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               'text-foreground placeholder:text-muted-foreground/50',
               'focus-visible:ring-primary/40 focus-visible:border-primary/40',
               'shadow-none'

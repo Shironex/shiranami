@@ -98,7 +98,7 @@ export function LibraryView() {
         <div className="px-6 pt-4 pb-3 shrink-0">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55 pointer-events-none" />
               <Input
                 ref={searchInputRef}
                 data-testid="library-search-input"
