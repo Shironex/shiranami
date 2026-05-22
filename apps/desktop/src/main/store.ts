@@ -43,6 +43,10 @@ export interface StoreSchema {
   'app.onboardingCompleted': boolean;
   // Support launch banner — shown once ever, after onboarding.
   'app.supportBannerSeen': boolean;
+  // Opt-in crash/error reporting (Sentry). Default is implicit `undefined` →
+  // treated as `false`; no `defaults` value is set so a fresh install never
+  // initializes Sentry until the user explicitly enables it.
+  'app.telemetryEnabled': boolean;
   'metadata-enrich.skippedIds': string[];
 
   // Main-only (downloader.ts).
