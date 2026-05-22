@@ -5,6 +5,7 @@ export { registerDebugHandlers, cleanupDebugHandlers } from './debug';
 export { registerDialogHandlers, cleanupDialogHandlers } from './dialog';
 export { registerLibraryHandlers, cleanupLibraryHandlers } from './library';
 export { registerMediaHandlers, cleanupMediaHandlers } from './media';
+export { registerDiscordRpcHandlers, cleanupDiscordRpcHandlers } from './discord-rpc';
 export { registerLyricsHandlers, cleanupLyricsHandlers } from './lyrics';
 export { registerDatabaseHandlers, cleanupDatabaseHandlers } from './database';
 export { registerShellHandlers, cleanupShellHandlers } from './shell';
