@@ -8,6 +8,18 @@ import {
   UI_SCALE_DEFAULT,
   UI_SCALE_PRESETS,
 } from '@/stores/useUIStore';
+import {
+  useThemeBgStore,
+  THEME_BG_OPACITY_MIN,
+  THEME_BG_OPACITY_MAX,
+  THEME_BG_OPACITY_STEP,
+  THEME_BG_BLUR_MIN,
+  THEME_BG_BLUR_MAX,
+  THEME_BG_BLUR_STEP,
+  THEME_BG_DIM_MIN,
+  THEME_BG_DIM_MAX,
+  THEME_BG_DIM_STEP,
+} from '@/stores/useThemeBgStore';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
@@ -26,6 +38,13 @@ export function AppearanceStep() {
   const resetUiScale = useUIStore(s => s.resetUiScale);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const setLowPerformanceMode = useUIStore(s => s.setLowPerformanceMode);
+
+  const bgOpacity = useThemeBgStore(s => s.bgOpacity);
+  const setBgOpacity = useThemeBgStore(s => s.setBgOpacity);
+  const bgBlur = useThemeBgStore(s => s.bgBlur);
+  const setBgBlur = useThemeBgStore(s => s.setBgBlur);
+  const bgDim = useThemeBgStore(s => s.bgDim);
+  const setBgDim = useThemeBgStore(s => s.setBgDim);
 
   return (
     <OnboardingStepLayout
@@ -109,6 +128,67 @@ export function AppearanceStep() {
             onCheckedChange={setLowPerformanceMode}
           />
         </div>
+
+        {theme !== 'none' && (
+          <div className="space-y-4 border-t border-border/30 pt-4">
+            <p className="text-xs font-medium text-foreground">{t('appearance.bgAdjustTitle')}</p>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p id="onboarding-bg-opacity-label" className="text-sm text-muted-foreground">
+                  {t('appearance.bgOpacity')}
+                </p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {Math.round(bgOpacity * 100)}%
+                </span>
+              </div>
+              <Slider
+                aria-labelledby="onboarding-bg-opacity-label"
+                min={THEME_BG_OPACITY_MIN}
+                max={THEME_BG_OPACITY_MAX}
+                step={THEME_BG_OPACITY_STEP}
+                value={[bgOpacity]}
+                onValueChange={([v]) => setBgOpacity(v)}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p id="onboarding-bg-blur-label" className="text-sm text-muted-foreground">
+                  {t('appearance.bgBlur')}
+                </p>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgBlur}px</span>
+              </div>
+              <Slider
+                aria-labelledby="onboarding-bg-blur-label"
+                min={THEME_BG_BLUR_MIN}
+                max={THEME_BG_BLUR_MAX}
+                step={THEME_BG_BLUR_STEP}
+                value={[bgBlur]}
+                onValueChange={([v]) => setBgBlur(v)}
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p id="onboarding-bg-dim-label" className="text-sm text-muted-foreground">
+                  {t('appearance.bgDim')}
+                </p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {Math.round(bgDim * 100)}%
+                </span>
+              </div>
+              <Slider
+                aria-labelledby="onboarding-bg-dim-label"
+                min={THEME_BG_DIM_MIN}
+                max={THEME_BG_DIM_MAX}
+                step={THEME_BG_DIM_STEP}
+                value={[bgDim]}
+                onValueChange={([v]) => setBgDim(v)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </OnboardingStepLayout>
   );
