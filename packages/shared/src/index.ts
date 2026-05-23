@@ -10,3 +10,6 @@ export * from './utils';
 
 // Logger
 export * from './logger';
+
+// Sentry PII scrubbing (shared by main + renderer)
+export * from './sentry-scrub';

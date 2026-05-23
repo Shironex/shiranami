@@ -89,8 +89,28 @@
     "title": "Choose a visualizer",
     "hint": "Optional. Preview updates live."
   },
+  "privacy": {
+    "eyebrow": "06 · Crash reports",
+    "headline": "Help fix what <1>breaks</1>.",
+    "description": "Shiranami can send an automatic report when something crashes, so problems get fixed without you having to track down a log file. It's off until you turn it on, and you can change your mind any time in Settings · Privacy.",
+    "sentTitle": "What's sent",
+    "sent": [
+      "Crash and error reports",
+      "A small sample of performance timings",
+      "App version and operating system"
+    ],
+    "notSentTitle": "What's never sent",
+    "notSent": [
+      "No screen recording or replay",
+      "No personal info or account data",
+      "File paths are scrubbed of your username"
+    ],
+    "toggleLabel": "Send crash reports",
+    "toggleDesc": "Anonymous. Default off. Change it any time.",
+    "footnote": "Reports are scrubbed of file paths and your username before they ever leave your machine."
+  },
   "summary": {
-    "eyebrow": "06 · All set",
+    "eyebrow": "07 · All set",
     "headline": "Your room is <1>ready</1>.",
     "description": "Here's what you chose. Tweak any of it later from Settings.",
     "intro": "A quick recap before the library opens.",

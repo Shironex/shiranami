@@ -26,6 +26,7 @@ import { ToolsStep } from './steps/ToolsStep';
 import { AppearanceStep } from './steps/AppearanceStep';
 import { PlaybackStep } from './steps/PlaybackStep';
 import { VisualizerStep } from './steps/VisualizerStep';
+import { PrivacyStep } from './steps/PrivacyStep';
 import { SummaryStep } from './steps/SummaryStep';
 
 interface OnboardingWizardProps {
@@ -39,6 +40,7 @@ type StepId =
   | 'appearance'
   | 'playback'
   | 'visualizer'
+  | 'privacy'
   | 'summary';
 
 interface StepDef {
@@ -54,6 +56,7 @@ const STEPS: readonly StepDef[] = [
   { id: 'appearance', kanji: '夜', Component: AppearanceStep },
   { id: 'playback', kanji: '音', Component: PlaybackStep },
   { id: 'visualizer', kanji: '波', Component: VisualizerStep },
+  { id: 'privacy', kanji: '守', Component: PrivacyStep },
   { id: 'summary', kanji: '締', Component: SummaryStep },
 ];
 

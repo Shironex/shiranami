@@ -20,6 +20,7 @@
     "sidebar": "Widoczność głównej nawigacji",
     "discord": "Ustawienia integracji Discord",
     "updates": "Kanał aktualizacji aplikacji",
+    "privacy": "Raporty awarii i dane",
     "about": "Informacje o aplikacji",
     "support": "Wesprzyj projekt"
   },
@@ -37,6 +38,7 @@
   "sidebar": "Panel boczny",
   "discord": "Discord",
   "updates": "Aktualizacje",
+  "privacy": "Prywatność",
   "about": "O aplikacji",
   "support": "Wsparcie",
   "language": "Język",
@@ -430,6 +432,34 @@
     "somethingWrong": "Coś poszło nie tak",
     "checkFailed": "Nie udało się sprawdzić aktualizacji",
     "downloadFailed": "Pobieranie nie powiodło się"
+  },
+  "priv": {
+    "title": "Raporty awarii",
+    "subtitle": "Pomóż naprawić to, co się psuje. Domyślnie wyłączone.",
+    "toggleLabel": "Wysyłaj raporty awarii",
+    "toggleDesc": "Anonimowe raporty awarii i błędów.",
+    "perfLabel": "Monitorowanie wydajności",
+    "perfDesc": "Próbkuj też wydajność aplikacji — ładowanie stron i czasy nawigacji — aby pomóc znaleźć wąskie gardła. Wysyła więcej danych niż same raporty awarii.",
+    "sentTitle": "Co jest wysyłane",
+    "sent": [
+      "Raporty awarii i błędów",
+      "Wersja aplikacji i system operacyjny",
+      "Pomiary wydajności (tylko przy włączonym monitorowaniu wydajności)"
+    ],
+    "notSentTitle": "Co nie jest wysyłane",
+    "notSent": [
+      "Brak nagrywania ekranu i powtórek",
+      "Brak danych osobowych i danych konta",
+      "Ścieżki plików pozbawione Twojej nazwy użytkownika"
+    ],
+    "note": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane.",
+    "restartNote": "Uruchom ponownie aplikację, aby zastosować zmiany — raportowanie awarii i monitorowanie wydajności inicjują się tylko przy starcie.",
+    "saveError": "Nie udało się zapisać preferencji prywatności. Spróbuj ponownie.",
+    "testTitle": "Zweryfikuj konfigurację",
+    "testDesc": "Wysyła przykładowy błąd, aby zweryfikować konfigurację Sentry — widoczne tylko w trybie deweloperskim.",
+    "testButton": "Wyślij zdarzenie testowe",
+    "testDevOnly": "Tylko dla deweloperów",
+    "testSent": "Wysłano zdarzenie testowe"
   },
   "abt": {
     "title": "O aplikacji",

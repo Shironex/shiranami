@@ -17,6 +17,7 @@ import {
   Info,
   Heart,
   MessageCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -36,6 +37,7 @@ import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
 import { SupportSection } from '@/components/settings/SupportSection';
 import { DiscordSection } from '@/components/settings/DiscordSection';
+import { PrivacySection } from '@/components/settings/PrivacySection';
 
 type SettingsSection =
   | 'folders'
@@ -52,6 +54,7 @@ type SettingsSection =
   | 'sidebar'
   | 'discord'
   | 'updates'
+  | 'privacy'
   | 'about'
   | 'support';
 
@@ -171,6 +174,13 @@ const SECTIONS: {
     Icon: RefreshCcw,
     group: 'system',
   },
+  {
+    id: 'privacy',
+    labelKey: 'privacy',
+    subtitleKey: 'subtitles.privacy',
+    Icon: ShieldCheck,
+    group: 'system',
+  },
   { id: 'about', labelKey: 'about', subtitleKey: 'subtitles.about', Icon: Info, group: 'system' },
   {
     id: 'support',
@@ -196,6 +206,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   sidebar: SidebarSection,
   discord: DiscordSection,
   updates: UpdatesSection,
+  privacy: PrivacySection,
   about: AboutSection,
   support: SupportSection,
 };
