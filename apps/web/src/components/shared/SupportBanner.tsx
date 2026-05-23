@@ -1,6 +1,6 @@
 import { Coffee, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { BUY_ME_A_COFFEE_URL } from '@/lib/constants';
+import { BUY_ME_A_COFFEE_URL, GITHUB_SPONSORS_URL } from '@/lib/constants';
 import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
 
 /**
@@ -33,6 +33,18 @@ export function SupportBanner() {
         className="ml-1 rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {t('supportBanner.action')}
+      </a>
+      <span aria-hidden="true" className="text-muted-foreground/60">
+        ·
+      </span>
+      <a
+        href={GITHUB_SPONSORS_URL}
+        target="_blank"
+        rel="noreferrer"
+        onClick={setSeen}
+        className="rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        {t('supportBanner.sponsor')}
       </a>
       <button
         type="button"

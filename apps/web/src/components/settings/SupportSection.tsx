@@ -1,8 +1,8 @@
 import { Trans, useTranslation } from 'react-i18next';
-import { Heart, Coffee } from 'lucide-react';
+import { Heart, Coffee, HeartHandshake } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
-import { BUY_ME_A_COFFEE_URL } from '@/lib/constants';
+import { BUY_ME_A_COFFEE_URL, GITHUB_SPONSORS_URL } from '@/lib/constants';
 import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
 
 export function SupportSection() {
@@ -41,6 +41,12 @@ export function SupportSection() {
             <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noreferrer">
               <Coffee className="w-3.5 h-3.5" />
               {t('sup.action')}
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" asChild onClick={setSeen}>
+            <a href={GITHUB_SPONSORS_URL} target="_blank" rel="noreferrer">
+              <HeartHandshake className="w-3.5 h-3.5" />
+              {t('sup.sponsor')}
             </a>
           </Button>
         </div>

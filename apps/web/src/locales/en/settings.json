@@ -495,11 +495,13 @@
     "p1": "Shiranami is free, has no ads, and never will. I build it in my spare time because I wanted <1>a player that just plays</1>: no account, no subscription, no noise.",
     "p2": "If it's become part of your routine and you'd like to give a little back, you can <1>buy me a coffee</1>. It's completely optional and means more than you'd think.",
     "p3": "Either way, whether you chip in or just keep listening, <1>thanks for being here</1>.",
-    "action": "Buy me a coffee"
+    "action": "Buy me a coffee",
+    "sponsor": "Sponsor on GitHub"
   },
   "supportBanner": {
     "message": "Enjoying Shiranami? It's free and ad-free, built by one person.",
     "action": "Buy me a coffee",
+    "sponsor": "Sponsor on GitHub",
     "dismiss": "Dismiss"
   }
 }
