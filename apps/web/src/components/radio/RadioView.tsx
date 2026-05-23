@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -62,6 +62,7 @@ export function RadioView() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hasLoadedRef = useRef(false);
+  const [searchDraft, setSearchDraft] = useState(filters.name ?? '');
 
   useEffect(() => {
     if (!hasLoadedRef.current) {
@@ -76,6 +77,10 @@ export function RadioView() {
     };
   }, []);
 
+  useEffect(() => {
+    setSearchDraft(filters.name ?? '');
+  }, [filters.name]);
+
   const handleSearchChange = useCallback(
     (value: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -84,6 +89,14 @@ export function RadioView() {
       }, 350);
     },
     [setFilter]
+  );
+
+  const handleSearchInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchDraft(e.target.value);
+      handleSearchChange(e.target.value);
+    },
+    [handleSearchChange]
   );
 
   const handleModeChange = useCallback(
@@ -188,8 +201,8 @@ export function RadioView() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/55 pointer-events-none" />
           <Input
             type="text"
-            defaultValue={filters.name ?? ''}
-            onChange={e => handleSearchChange(e.target.value)}
+            value={searchDraft}
+            onChange={handleSearchInputChange}
             placeholder={t('searchPlaceholder')}
             className={cn(
               'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm glass-subtle border-border/40',

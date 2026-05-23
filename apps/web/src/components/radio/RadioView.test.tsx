@@ -97,4 +97,21 @@ describe('RadioView', () => {
 
     expect(loadFavorites).toHaveBeenCalled();
   });
+
+  it('clears the search input when filters.name is reset externally', async () => {
+    const { rerender } = render(<RadioView />);
+
+    // Simulate a name filter being active
+    mockState = { ...defaultState(), isLoading: false, filters: { name: 'jazz' } };
+    rerender(<RadioView />);
+
+    const input = screen.getByPlaceholderText(/search/i) as HTMLInputElement;
+    expect(input.value).toBe('jazz');
+
+    // Simulate clearFilters resetting filters.name to undefined
+    mockState = { ...defaultState(), isLoading: false, filters: {} };
+    rerender(<RadioView />);
+
+    expect(input.value).toBe('');
+  });
 });
