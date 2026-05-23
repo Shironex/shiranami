@@ -221,6 +221,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
       // setCompactAlwaysOnTop short-circuits when not yet in compact mode,
       // so we just write the value directly here.
       const previousAlwaysOnTop = get().compactAlwaysOnTop;
+      const previousLyricsExpanded = get().compactLyricsExpanded;
       if (compactMode && get().compactDefaultAlwaysOnTop && !previousAlwaysOnTop) {
         set({ compactAlwaysOnTop: true });
       }
@@ -238,7 +239,11 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
         // Compact-mode IPC failed: undo the store flips and bail before
         // touching always-on-top so we don't pin a window the user thinks
         // is still in normal mode.
-        set({ compactMode: previous, compactAlwaysOnTop: previousAlwaysOnTop });
+        set({
+          compactMode: previous,
+          compactAlwaysOnTop: previousAlwaysOnTop,
+          compactLyricsExpanded: previousLyricsExpanded,
+        });
         return;
       }
 
@@ -298,6 +303,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
     setCompactShowLyrics: visible => set({ compactShowLyrics: visible }),
     setCompactLyricsExpanded: expanded => {
       if (get().compactLyricsExpanded === expanded) return;
+      const previous = get().compactLyricsExpanded;
       set({ compactLyricsExpanded: expanded });
       // Grow the OS window when opening lyrics (and shrink it back on close)
       // so the panel gets dedicated space below the player. No-op outside
@@ -306,7 +312,8 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
       if (IS_ELECTRON && get().compactMode) {
         const dims = compactDimensions(get().compactSize, expanded);
         window.electronAPI.window.setCompactMode(true, dims).catch(() => {
-          // Resize failure is non-fatal; the panel still renders in-window.
+          // Roll back so the renderer never paints a panel into clipped space.
+          set({ compactLyricsExpanded: previous });
         });
       }
     },
