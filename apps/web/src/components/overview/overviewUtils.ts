@@ -184,9 +184,9 @@ export function buildHeatmap(points: ListeningHourlyActivityPoint[]): HeatmapMod
   let totalPlays = 0;
 
   for (const point of points) {
-    if (point.hour < 0 || point.hour > 23) continue;
+    if (!Number.isInteger(point.hour) || point.hour < 0 || point.hour > 23) continue;
+    if (!Number.isInteger(point.dayOfWeek) || point.dayOfWeek < 0 || point.dayOfWeek > 6) continue;
     const row = sqliteDowToMonFirstRow(point.dayOfWeek);
-    if (row < 0 || row > 6) continue;
     counts[row]![point.hour] += point.playCount;
     totalPlays += point.playCount;
   }
