@@ -7,33 +7,49 @@ import { logger } from './logger';
 /**
  * Build-time-injected DSN. esbuild replaces `__SENTRY_DSN__` with
  * `JSON.stringify(process.env.SENTRY_DSN ?? '')` (see esbuild.config.mjs).
- * When the env var is absent (local dev, or CI without the secret) this is an
- * empty string and `Sentry.init` is skipped — no crash, no egress.
+ * When absent at build time it falls back to `process.env.SENTRY_DSN` at
+ * runtime, so the local-test command can inject the DSN through the shell
+ * without rebuilding. When both are absent this is an empty string and
+ * `Sentry.init` is skipped — no crash, no egress.
  */
 declare const __SENTRY_DSN__: string;
-const SENTRY_DSN: string = typeof __SENTRY_DSN__ === 'string' ? __SENTRY_DSN__ : '';
+const SENTRY_DSN: string =
+  (typeof __SENTRY_DSN__ === 'string' ? __SENTRY_DSN__ : '') || process.env.SENTRY_DSN || '';
+
+/**
+ * Local-test escape hatch. When `SENTRY_FORCE_ENABLE` is `true`/`1` in the
+ * shell env, an unpackaged dev build is allowed to init Sentry so the first
+ * event can be sent during onboarding. It overrides ONLY the packaged check —
+ * consent and a DSN are still required. Has no effect on packaged builds.
+ */
+const forceEnabled =
+  process.env.SENTRY_FORCE_ENABLE === 'true' || process.env.SENTRY_FORCE_ENABLE === '1';
 
 let initialized = false;
 
 /**
- * True only when the user has explicitly opted in AND the build is packaged.
- * Dev builds never report (keeps the project free of dev noise) and a fresh
- * install never reports (consent defaults to false / undefined).
+ * True only when the user has explicitly opted in AND the build is packaged
+ * (or the force-enable escape hatch is set for local testing). Dev builds
+ * never report unless force-enabled, and a fresh install never reports
+ * (consent defaults to false / undefined).
  */
 function shouldInit(): boolean {
-  return store.get('app.telemetryEnabled') === true && app.isPackaged;
+  return store.get('app.telemetryEnabled') === true && (app.isPackaged || forceEnabled);
 }
 
 /**
  * Initialize Sentry in the main process. Idempotent and gated: returns early
- * unless consent is on, the build is packaged, and a DSN was injected. Call at
- * the very top of bootstrap() so even early crashes are captured once enabled.
+ * unless consent is on, the build is packaged (or SENTRY_FORCE_ENABLE is set
+ * for local testing), and a DSN is available. Call at the very top of
+ * bootstrap() so even early crashes are captured once enabled.
  */
 export function initSentryMain(): void {
   if (initialized) return;
 
   if (!shouldInit()) {
-    logger.info('[telemetry] disabled — consent off or unpackaged build');
+    logger.info(
+      '[telemetry] disabled — consent off, or unpackaged build without SENTRY_FORCE_ENABLE'
+    );
     return;
   }
 
