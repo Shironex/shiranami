@@ -39,7 +39,7 @@
 
 ### Czym jest Shiranami?
 
-Shiranami to odtwarzacz muzyki dla ludzi, którzy trzymają muzykę lokalnie. Zamiast pchać Cię do streamingu, owija się wokół Twoich folderów i plików, a do tego dorzuca playlisty, zsynchronizowane teksty, internetowe radio, pobieranie z YouTube, import całych playlist, crossfade, kompaktowy mini-player, wizualizer, statystyki słuchania i Discord Rich Presence — wszystko w ciemno-lawendowym interfejsie, który nie wchodzi w drogę.
+Shiranami to odtwarzacz muzyki dla ludzi, którzy trzymają muzykę lokalnie. Zamiast pchać Cię do streamingu, owija się wokół Twoich folderów i plików, a do tego dorzuca silnik rekomendacji, ekran główny Overview, playlisty, zsynchronizowane teksty, internetowe radio, pobieranie z YouTube, import całych playlist, crossfade, equalizer, kompaktowy mini-player, wizualizery, statystyki słuchania i Discord Rich Presence — wszystko w spokojnym, konfigurowalnym interfejsie, który nie wchodzi w drogę.
 
 ### Zrzuty ekranu
 
@@ -80,44 +80,48 @@ Shiranami to odtwarzacz muzyki dla ludzi, którzy trzymają muzykę lokalnie. Za
 
 ### Co znajdziesz w środku
 
-|                                       |                                                                                        |
-| ------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Lokalna biblioteka**                | Skanuj foldery, przeglądaj utwory i graj z własnej kolekcji                            |
-| **Wzbogacanie metadanych**            | Automatycznie uzupełnia brakujące tagi i okładki z internetu                           |
-| **Albumy i tryby sortowania**         | Przeglądaj jako siatka albumów, sortuj po tytule, artyście, roku, dacie dodania        |
-| **Auto-playlisty z podfolderów**      | Każdy podfolder staje się osobną playlistą                                             |
-| **Playlisty**                         | Twórz playlisty z własnymi okładkami i szybkim dostępem z paska bocznego               |
-| **Ulubione**                          | Polub dowolny utwór i znajdź je wszystkie w osobnym widoku                             |
-| **Miksy**                             | Automatyczne kolekcje na podstawie Twoich nawyków słuchania                            |
-| **Historia słuchania**                | Liczniki odtworzeń, top utwory i artyści, dzienny wykres, filtry zakresu czasu         |
-| **Import playlist**                   | Wciągnij całą playlistę z YouTube lub Spotify do listy podglądu przed pobraniem        |
-| **Wyszukiwanie i pobieranie**         | Znajdź utwory w YouTube z autouzupełnianiem, posłuchaj i pobierz (yt-dlp+ffmpeg)       |
-| **Auto-instalacja yt-dlp + ffmpeg**   | Jednoklikowa konfiguracja narzędzi z aplikacji, z wbudowanym sprawdzaniem aktualizacji |
-| **Własna lokalizacja pobierania**     | Wybierz, gdzie lądują pobrane utwory                                                   |
-| **Internetowe radio**                 | Przeglądaj, słuchaj i ulub stacje z Radio Browser                                      |
-| **Zsynchronizowane teksty**           | Teksty przewijają się z muzyką; kliknij linijkę, by przeskoczyć w utworze              |
-| **Konfigurowalna typografia tekstów** | Osobno rozmiar fontu i przyciemnienie dla trybu zwykłego i zsynchronizowanego          |
-| **Crossfade**                         | Silnik z dwoma talerzami i równo-mocowym przejściem, od 1 do 12 sekund                 |
-| **Equalizer**                         | 10-pasmowy EQ z preampem i 13 wbudowanymi presetami                                    |
-| **Wizualizer audio**                  | Bars, Waveform, Circle i Wave nad paskiem odtwarzacza                                  |
-| **Widok Now Playing**                 | Immersyjny tryb pełnookienkowy z dużą okładką, tekstem i kolejką                       |
-| **Sleep timer**                       | Gotowe długości lub własne 1–600 min, z odliczaniem i auto-pauzą                       |
-| **Tryb kompaktowy**                   | Mini-player z trybem zawsze na wierzchu i pełnymi kontrolkami                          |
-| **Paleta poleceń**                    | Ctrl+K, aby przeszukać bibliotekę i błyskawicznie skoczyć do dowolnego widoku          |
-| **Skróty klawiszowe**                 | Pełna ściąga skrótów dostępna z poziomu aplikacji                                      |
-| **Zaznaczanie wielu utworów**         | Multi-select z menu kontekstowym do operacji zbiorczych                                |
-| **Linki do udostępniania**            | Generuj deep-linki do utworów, by inni mogli je zaimportować jednym kliknięciem        |
-| **Personalizacja paska bocznego**     | Zmień kolejność i ukryj sekcje w nawigacji                                             |
-| **Tryb low-perf**                     | Wyłącza ciężkie animacje i efekty na słabszych maszynach                               |
-| **Nakładka szumu**                    | Subtelna ziarnistość filmu nad UI dla cieplejszego klimatu                             |
-| **Skalowanie UI**                     | Reguluj interfejs od 80 % do 120 %, by pasował do ekranu                               |
-| **Interfejs EN + PL**                 | Pełna lokalizacja angielska i polska, przełączana w locie                              |
-| **Kolor ambient**                     | Wyciąga dominujący kolor z okładki i barwi cały interfejs                              |
-| **Wznowienie odtwarzania**            | Głośność, kolejka, utwór i pozycja przeżywają restart                                  |
-| **Discord Rich Presence**             | Pokazuje aktualnie odtwarzany utwór w statusie Discorda                                |
-| **Tray i klawisze multimedialne**     | Steruj odtwarzaniem z ikony w trayu lub klawiszami multimedialnymi                     |
-| **Auto-updater**                      | Aktualizacje w aplikacji na Windowsie, link do GitHub Releases na macOS                |
-| **Ciemno-lawendowy klimat**           | Jeden cichy motyw idealny na nocne słuchanie                                           |
+|                                        |                                                                                                                                                                       |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Lokalna biblioteka**                 | Skanuj foldery, przeglądaj utwory i graj z własnej kolekcji                                                                                                           |
+| **Ekran główny Overview**              | Otwiera się powitaniem, statystykami słuchania, top utworami i albumami tygodnia, ostatnio dodaną muzyką, godzinową mapą słuchania i opcjonalną pogodą                |
+| **Rekomendacje**                       | Propozycje z Twojej biblioteki na podstawie tego, czego słuchasz, oraz półka Odkrywaj z nowymi utworami z miksów YouTube do odsłuchania i zaimportowania              |
+| **Przewodnik pierwszego uruchomienia** | Kreator konfiguracji folderów, narzędzi, motywu, wizualizacji i odtwarzania — do powtórzenia z Ustawień                                                               |
+| **Wzbogacanie metadanych**             | Automatycznie uzupełnia brakujące tagi i okładki z internetu                                                                                                          |
+| **Albumy i tryby sortowania**          | Przeglądaj jako siatka albumów, sortuj po tytule, artyście, roku, dacie dodania                                                                                       |
+| **Auto-playlisty z podfolderów**       | Każdy podfolder staje się osobną playlistą                                                                                                                            |
+| **Playlisty**                          | Twórz playlisty z własnymi okładkami i szybkim dostępem z paska bocznego                                                                                              |
+| **Ulubione**                           | Polub dowolny utwór i znajdź je wszystkie w osobnym widoku                                                                                                            |
+| **Miksy**                              | Automatyczne kolekcje na podstawie Twoich nawyków słuchania                                                                                                           |
+| **Historia słuchania**                 | Liczniki odtworzeń, top utwory i artyści, dzienny wykres, filtry zakresu czasu                                                                                        |
+| **Import playlist**                    | Wciągnij całą playlistę z YouTube lub Spotify do listy podglądu przed pobraniem                                                                                       |
+| **Wyszukiwanie i pobieranie**          | Znajdź utwory w YouTube z autouzupełnianiem, posłuchaj i pobierz (yt-dlp+ffmpeg)                                                                                      |
+| **Auto-instalacja yt-dlp + ffmpeg**    | Jednoklikowa konfiguracja narzędzi z aplikacji, z wbudowanym sprawdzaniem aktualizacji                                                                                |
+| **Własna lokalizacja pobierania**      | Wybierz, gdzie lądują pobrane utwory                                                                                                                                  |
+| **Internetowe radio**                  | Przeglądaj, słuchaj i ulub stacje z Radio Browser, z filtrami kraju, języka i gatunku                                                                                 |
+| **Zsynchronizowane teksty**            | Teksty przewijają się z muzyką; kliknij linijkę, by przeskoczyć w utworze                                                                                             |
+| **Konfigurowalna typografia tekstów**  | Osobno rozmiar fontu i przyciemnienie dla trybu zwykłego i zsynchronizowanego                                                                                         |
+| **Crossfade**                          | Silnik z dwoma talerzami i równo-mocowym przejściem, od 1 do 12 sekund                                                                                                |
+| **Equalizer**                          | 10-pasmowy EQ z preampem i 13 wbudowanymi presetami                                                                                                                   |
+| **Wizualizery audio**                  | 12 stylów — Bars, Waveform, Circle, Wave, Mirror, Mountain, Pulse Rings, Vinyl, Liquid, Constellation, VU Meter i Kanji Rain                                          |
+| **Widok Now Playing**                  | Immersyjny tryb pełnookienkowy z dużą okładką oraz przełączanymi panelami tekstu, kolejki i equalizera                                                                |
+| **Sleep timer**                        | Gotowe długości lub własne 1–600 min, z odliczaniem i auto-pauzą                                                                                                      |
+| **Tryb kompaktowy**                    | Mini-player z trybem zawsze na wierzchu i pełnymi kontrolkami; może rozwinąć się, by pokazać tekst                                                                    |
+| **Paleta poleceń**                     | Ctrl+K, aby przeszukać bibliotekę i błyskawicznie skoczyć do dowolnego widoku                                                                                         |
+| **Skróty klawiszowe**                  | Pełna ściąga skrótów dostępna z poziomu aplikacji                                                                                                                     |
+| **Zaznaczanie wielu utworów**          | Multi-select z menu kontekstowym do operacji zbiorczych                                                                                                               |
+| **Linki do udostępniania**             | Generuj deep-linki do utworów, by inni mogli je zaimportować jednym kliknięciem                                                                                       |
+| **Personalizacja paska bocznego**      | Zmień kolejność i ukryj sekcje w nawigacji                                                                                                                            |
+| **Tryb low-perf**                      | Wyłącza ciężkie animacje i efekty na słabszych maszynach                                                                                                              |
+| **Nakładka szumu**                     | Subtelna ziarnistość filmu nad UI dla cieplejszego klimatu                                                                                                            |
+| **Skalowanie UI**                      | Reguluj interfejs od 80 % do 120 %, by pasował do ekranu                                                                                                              |
+| **Interfejs EN + PL**                  | Pełna lokalizacja angielska i polska, przełączana w locie                                                                                                             |
+| **Kolor ambient**                      | Wyciąga dominujący kolor z okładki i barwi cały interfejs                                                                                                             |
+| **Wznowienie odtwarzania**             | Głośność, kolejka, utwór i pozycja przeżywają restart                                                                                                                 |
+| **Discord Rich Presence**              | Pokazuje aktualnie odtwarzany utwór w statusie Discorda, z konfigurowalnymi szablonami i podglądem na żywo                                                            |
+| **Tray i klawisze multimedialne**      | Steruj odtwarzaniem z ikony w trayu lub klawiszami multimedialnymi                                                                                                    |
+| **Opcjonalne raportowanie awarii**     | Opcjonalne, dbające o prywatność raportowanie błędów i wydajności — domyślnie wyłączone, ze ścieżkami plików i nazwą użytkownika usuwanymi przed wysłaniem            |
+| **Auto-updater**                       | Aktualizacje w aplikacji na Windowsie, link do GitHub Releases na macOS                                                                                               |
+| **Motywy do wyboru**                   | Sześć sezonowych teł — Lofi Night, Śnieg, Lato, Zachód słońca, Wisteria oraz domyślne — każde barwi interfejs, z suwakami przezroczystości, rozmycia i przyciemnienia |
 
 ### Pierwsze kroki
 
@@ -143,8 +147,8 @@ Pobierz najnowszą wersję z [Releases](https://github.com/Shironex/shiranami/re
 
 |             |                                     |
 | ----------- | ----------------------------------- |
-| Desktop     | Electron 40                         |
-| Frontend    | React 18, Vite 7, Tailwind CSS 4    |
+| Desktop     | Electron 41                         |
+| Frontend    | React 19, Vite 8, Tailwind CSS 4    |
 | Baza danych | SQLite, better-sqlite3, Drizzle ORM |
 | Landing     | Astro 6, Tailwind CSS 4             |
 | UI          | Radix UI, Lucide Icons              |
