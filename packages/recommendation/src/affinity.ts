@@ -68,11 +68,11 @@ export function rankByAffinity(
       artist: track.artist,
       album: track.album,
       score: affinityScore(track, options),
-      lastPlayedAt: track.lastPlayedAt,
+      lastPlayedMs: Date.parse(track.lastPlayedAt),
     }))
     .filter(scored => scored.score > 0)
-    .sort((a, b) => b.score - a.score || Date.parse(b.lastPlayedAt) - Date.parse(a.lastPlayedAt))
-    .map(({ lastPlayedAt: _lastPlayedAt, ...scored }) => scored);
+    .sort((a, b) => b.score - a.score || b.lastPlayedMs - a.lastPlayedMs)
+    .map(({ lastPlayedMs: _lastPlayedMs, ...scored }) => scored);
 }
 
 /**

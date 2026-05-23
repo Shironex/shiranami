@@ -99,22 +99,22 @@ describe('rankByAffinity', () => {
   });
 
   it('breaks ties by most-recent play', () => {
-    // Same plays + completion, decayed to the same score by equal age would tie;
-    // give them identical age via same timestamp and differ only by recency.
+    // Freeze decay (infinite half-life) so both tracks score identically despite
+    // different ages — the recency tie-break on lastPlayedMs then decides order.
     const ranked = rankByAffinity(
       [
-        stats({ trackId: 'older', lastPlayedAt: daysAgo(5) }),
+        stats({ trackId: 'older', lastPlayedAt: daysAgo(6) }),
         stats({ trackId: 'newer', lastPlayedAt: daysAgo(5) }),
       ],
-      { now: NOW }
+      { now: NOW, halfLifeDays: Number.POSITIVE_INFINITY }
     );
-    // Equal scores: stable order preserved (older first as input order).
-    expect(ranked).toHaveLength(2);
+    expect(ranked.map(t => t.trackId)).toEqual(['newer', 'older']);
   });
 
   it('does not leak the internal lastPlayedAt field', () => {
     const ranked = rankByAffinity([stats()], { now: NOW });
     expect(ranked[0]).not.toHaveProperty('lastPlayedAt');
+    expect(ranked[0]).not.toHaveProperty('lastPlayedMs');
     expect(Object.keys(ranked[0]).sort()).toEqual(
       ['album', 'artist', 'score', 'title', 'trackId'].sort()
     );
