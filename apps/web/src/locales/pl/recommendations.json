@@ -18,5 +18,7 @@
   "stale": "Nieaktualne",
   "refreshAria": "Odśwież polecane",
   "moreCount": "+{{count}} więcej",
-  "discoverTag": "Nowe"
+  "discoverTag": "Nowe",
+  "previewAria": "Posłuchaj zapowiedzi {{title}}",
+  "pausePreviewAria": "Wstrzymaj zapowiedź {{title}}"
 }

@@ -7,6 +7,7 @@ import {
   Download,
   LibraryBig,
   Loader2,
+  Pause,
   Play,
   RefreshCw,
   Sparkles,
@@ -16,6 +17,26 @@ import { OverviewCover } from '@/components/overview/OverviewCover';
 import { formatRelativeTime } from '@/components/overview/overviewUtils';
 import { useRecommendations } from '@/hooks/queries/useRecommendations';
 import { useDiscoverDownload } from '@/hooks/useDiscoverDownload';
+import { useAudioPreview, type PreviewableItem } from '@/hooks/useAudioPreview';
+import { useSearchDependencies } from '@/hooks/useSearchDependencies';
+import { DependencyInstallCard } from '@/components/search/DependencyInstallCard';
+
+/**
+ * Maps a discover recommendation onto the shared preview shape. Discover items
+ * come from a `--flat-playlist` dump, so there's no duration — the player
+ * resolves the real length from the stream once it loads.
+ */
+function toPreviewable(item: DiscoverRecommendation): PreviewableItem {
+  return {
+    id: item.youtubeId,
+    title: item.title,
+    uploader: item.uploader,
+    duration: 0,
+    thumbnail: item.thumbnail,
+    url: item.url,
+    webpage_url: item.url,
+  };
+}
 
 interface RecommendationsShelfProps {
   /** Plays an existing library track by id (Overview's handler). */
@@ -221,11 +242,17 @@ function DiscoverRow({
   item,
   status,
   onDownload,
+  onPreview,
+  isPreviewLoading,
+  isPreviewing,
   liveRegionId,
 }: {
   item: DiscoverRecommendation;
   status: 'idle' | 'downloading' | 'done' | 'error';
   onDownload: (item: DiscoverRecommendation) => void;
+  onPreview: (item: DiscoverRecommendation) => void;
+  isPreviewLoading: boolean;
+  isPreviewing: boolean;
   liveRegionId: string;
 }) {
   const { t } = useTranslation('recommendations');
@@ -257,7 +284,16 @@ function DiscoverRow({
     cardExtra = 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200';
 
   const cover = (
-    <div className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-foreground/8 ring-1 ring-primary/20">
+    <button
+      type="button"
+      onClick={() => onPreview(item)}
+      aria-label={
+        isPreviewing
+          ? t('pausePreviewAria', { title: item.title })
+          : t('previewAria', { title: item.title })
+      }
+      className="relative size-10 shrink-0 overflow-hidden rounded-xl bg-foreground/8 ring-1 ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
       {item.thumbnail ? (
         <img
           src={item.thumbnail}
@@ -273,7 +309,20 @@ function DiscoverRow({
           className="size-10 motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:scale-[1.03]"
         />
       )}
-    </div>
+      <span
+        className={`pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-black/45 transition-opacity ${
+          isPreviewLoading || isPreviewing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
+      >
+        {isPreviewLoading ? (
+          <Loader2 className="size-4 animate-spin text-white" />
+        ) : isPreviewing ? (
+          <Pause className="size-4 fill-white text-white" />
+        ) : (
+          <Play className="size-4 fill-white text-white" />
+        )}
+      </span>
+    </button>
   );
 
   const subtitle = (
@@ -342,11 +391,28 @@ export function RecommendationsShelf({ onPlay, hasLibrary }: RecommendationsShel
   const { t, i18n } = useTranslation('recommendations');
   const { library, discover, isLoading, isRefreshing, refresh, hasAny } = useRecommendations();
   const { download, statuses } = useDiscoverDownload();
+  const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview();
+  const {
+    dependencyState,
+    dependenciesSnapshot,
+    dependencyInstallStatus,
+    dependencyInstallError,
+    isDependencyInstallInProgress,
+    dependencyInstallProgress,
+    dependencyInstallLabel,
+    handleInstallDependencies,
+  } = useSearchDependencies();
   const headingId = useId();
 
   // True first run (no library at all): stay hidden so Overview's welcome
   // empty state owns the surface. Also stay hidden while still loading.
   if (isLoading || !hasLibrary) return null;
+
+  // Discover needs yt-dlp (preview stream + download) and ffmpeg (transcode).
+  // When they're missing the backend can't fetch a mix, so we show the same
+  // install card search/import use instead of a generic empty state. The
+  // library section needs no tools (local files), so gating is discover-only.
+  const needsInstall = dependencyState === 'needs-install';
 
   const isStale = library.stale || discover.stale;
   const generatedAt = library.generatedAt ?? discover.generatedAt;
@@ -392,7 +458,9 @@ export function RecommendationsShelf({ onPlay, hasLibrary }: RecommendationsShel
       </div>
 
       {/* ── Both-empty inner state (library exists but no picks yet) ── */}
-      {!hasAny && (
+      {/* Suppressed when tools are missing — the discover install card below
+          is the actionable message in that case. */}
+      {!hasAny && !needsInstall && (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/20 bg-background/20 px-4 py-8 text-center">
           <Sparkles className="size-6 text-muted-foreground/40" aria-hidden="true" />
           <div className="max-w-sm">
@@ -420,13 +488,25 @@ export function RecommendationsShelf({ onPlay, hasLibrary }: RecommendationsShel
       )}
 
       {/* ── Discover section ── */}
-      {hasAny && (
+      {/* Render when there's something to show OR tools need installing, so the
+          install card always has a home even when the backend returned nothing. */}
+      {(hasAny || needsInstall) && (
         <RecommendationSection
           icon={<Compass className="size-3" />}
           label={t('discover')}
-          extraCount={discoverExtra}
+          extraCount={needsInstall ? 0 : discoverExtra}
         >
-          {discoverSlice.length === 0 ? (
+          {needsInstall ? (
+            <DependencyInstallCard
+              ffmpegInstalled={dependenciesSnapshot?.ffmpegInstalled}
+              installStatus={dependencyInstallStatus}
+              installError={dependencyInstallError}
+              isInstallInProgress={isDependencyInstallInProgress}
+              installProgress={dependencyInstallProgress}
+              installLabel={dependencyInstallLabel}
+              onInstall={handleInstallDependencies}
+            />
+          ) : discoverSlice.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/20 bg-background/20 px-4 py-6 text-center">
               <Compass className="size-5 text-muted-foreground/35" aria-hidden="true" />
               <p className="max-w-sm text-sm text-muted-foreground/60">{t('discoverEmpty')}</p>
@@ -441,6 +521,9 @@ export function RecommendationsShelf({ onPlay, hasLibrary }: RecommendationsShel
                   item={item}
                   status={statuses[item.youtubeId] ?? 'idle'}
                   onDownload={download}
+                  onPreview={it => handlePreview(toPreviewable(it))}
+                  isPreviewLoading={previewLoadingId === item.youtubeId}
+                  isPreviewing={isPreviewPlaying({ id: item.youtubeId })}
                   liveRegionId={`discover-status-${item.youtubeId}`}
                 />
               ))}

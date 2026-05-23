@@ -18,5 +18,7 @@
   "stale": "Out of date",
   "refreshAria": "Refresh recommendations",
   "moreCount": "+{{count}} more",
-  "discoverTag": "New"
+  "discoverTag": "New",
+  "previewAria": "Preview {{title}}",
+  "pausePreviewAria": "Pause preview of {{title}}"
 }
