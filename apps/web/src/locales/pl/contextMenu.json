@@ -17,6 +17,10 @@
   "removeFromPlaylist": "Usuń z playlisty",
   "addToPlaylistAria": "Dodaj do playlisty",
   "selectedCount": "{{count}} zaznaczonych",
+  "selectedCount_one": "{{count}} zaznaczony",
+  "selectedCount_few": "{{count}} zaznaczone",
+  "selectedCount_many": "{{count}} zaznaczonych",
+  "selectedCount_other": "{{count}} zaznaczonych",
   "dragToReorder": "Przeciągnij, aby zmienić kolejność",
   "findMissingMetadata": "Znajdź brakujące metadane",
   "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych."
