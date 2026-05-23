@@ -18,6 +18,7 @@ import {
   Heart,
   MessageCircle,
   ShieldCheck,
+  CloudSun,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -38,6 +39,7 @@ import { AboutSection } from '@/components/settings/AboutSection';
 import { SupportSection } from '@/components/settings/SupportSection';
 import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
+import { WeatherSection } from '@/components/settings/WeatherSection';
 
 type SettingsSection =
   | 'folders'
@@ -52,6 +54,7 @@ type SettingsSection =
   | 'appearance'
   | 'effects'
   | 'sidebar'
+  | 'weather'
   | 'discord'
   | 'updates'
   | 'privacy'
@@ -161,6 +164,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'weather',
+    labelKey: 'weather',
+    subtitleKey: 'subtitles.weather',
+    Icon: CloudSun,
+    group: 'appearance',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -204,6 +214,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   appearance: AppearanceSection,
   effects: VisualEffectsSection,
   sidebar: SidebarSection,
+  weather: WeatherSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   privacy: PrivacySection,

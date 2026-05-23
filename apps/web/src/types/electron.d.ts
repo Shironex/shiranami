@@ -4,6 +4,8 @@ import type {
   EnrichProgress,
   MetadataLookupResult,
   MainMetricsSnapshot,
+  GeocodeResult,
+  WeatherCurrent,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -169,6 +171,10 @@ export interface ElectronAPI {
       plain: string | null;
       source: 'lrclib' | 'cache' | null;
     }>;
+  };
+  weather: {
+    geocode: (query: string) => Promise<GeocodeResult | null>;
+    getCurrent: (coords: { lat: number; lon: number }) => Promise<WeatherCurrent>;
   };
   db: {
     tracks: {

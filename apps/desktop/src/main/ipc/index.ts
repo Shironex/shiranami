@@ -7,6 +7,7 @@ export { registerLibraryHandlers, cleanupLibraryHandlers } from './library';
 export { registerMediaHandlers, cleanupMediaHandlers } from './media';
 export { registerDiscordRpcHandlers, cleanupDiscordRpcHandlers } from './discord-rpc';
 export { registerLyricsHandlers, cleanupLyricsHandlers } from './lyrics';
+export { registerWeatherHandlers, cleanupWeatherHandlers } from './weather';
 export { registerDatabaseHandlers, cleanupDatabaseHandlers } from './database';
 export { registerShellHandlers, cleanupShellHandlers } from './shell';
 export { registerDownloaderHandlers, cleanupDownloaderHandlers } from './downloader';

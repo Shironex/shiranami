@@ -48,6 +48,8 @@ import {
   cleanupDiscordRpcHandlers,
   registerLyricsHandlers,
   cleanupLyricsHandlers,
+  registerWeatherHandlers,
+  cleanupWeatherHandlers,
   registerDatabaseHandlers,
   cleanupDatabaseHandlers,
   registerShellHandlers,
@@ -76,6 +78,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerMediaHandlers();
   registerDiscordRpcHandlers();
   registerLyricsHandlers();
+  registerWeatherHandlers();
   registerDatabaseHandlers();
   registerShellHandlers();
   registerDownloaderHandlers();
@@ -96,6 +99,7 @@ export function cleanupIpcHandlers(): void {
   cleanupMediaHandlers();
   cleanupDiscordRpcHandlers();
   cleanupLyricsHandlers();
+  cleanupWeatherHandlers();
   cleanupDatabaseHandlers();
   cleanupShellHandlers();
   cleanupDownloaderHandlers();

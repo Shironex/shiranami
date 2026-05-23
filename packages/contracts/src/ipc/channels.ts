@@ -64,6 +64,10 @@ export const IPC_CHANNELS = {
   lyrics: {
     fetch: 'lyrics:fetch',
   },
+  weather: {
+    geocode: 'weather:geocode',
+    getCurrent: 'weather:get-current',
+  },
   db: {
     tracks: {
       getAll: 'db:tracks:get-all',

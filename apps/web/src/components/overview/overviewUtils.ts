@@ -1,5 +1,18 @@
 import i18n from '@/lib/i18n';
+import type { WeatherCondition } from '@shiranami/contracts';
 import type { ListeningHourlyActivityPoint } from '@/types/electron';
+
+/** Kanji mood glyph per weather condition (the 雨-style glyph the mockup shows). */
+export const WEATHER_GLYPH: Record<WeatherCondition, string> = {
+  clear: '晴',
+  partly_cloudy: '曇',
+  cloudy: '曇',
+  rain: '雨',
+  snow: '雪',
+  thunderstorm: '雷',
+  fog: '霧',
+  unknown: '天',
+};
 
 /** Coarse time-of-day buckets that drive the greeting + mood glyph. */
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';

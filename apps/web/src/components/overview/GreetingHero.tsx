@@ -3,13 +3,17 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useWeatherStore } from '@/stores/useWeatherStore';
+import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import {
   getGreeting,
   getGreetingSubline,
   getTimeOfDay,
+  WEATHER_GLYPH,
   type TimeOfDay,
 } from '@/components/overview/overviewUtils';
 import { ClockCard } from '@/components/overview/ClockCard';
+import { WeatherRow } from '@/components/overview/WeatherRow';
 
 /** Large faint kanji behind the greeting — purely decorative. */
 const WATERMARK: Record<TimeOfDay, string> = {
@@ -57,6 +61,11 @@ function GreetingHeroImpl() {
   const timeOfDay = getTimeOfDay(new Date().getHours());
   const session = useSessionSummary();
 
+  const weatherEnabled = useWeatherStore(s => s.enabled);
+  const weatherCoords = useWeatherStore(s => s.coords);
+  const weatherActive = weatherEnabled && weatherCoords !== null;
+  const { data: weather, isError: weatherError } = useWeatherQuery(weatherEnabled, weatherCoords);
+
   const subtitle = session.active
     ? t('session.summary', {
         time:
@@ -98,7 +107,18 @@ function GreetingHeroImpl() {
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
         </div>
 
-        <ClockCard />
+        <ClockCard
+          glyph={weatherActive && weather ? WEATHER_GLYPH[weather.condition] : undefined}
+          weatherRow={
+            weatherActive ? (
+              <WeatherRow
+                weather={weather}
+                isError={weatherError}
+                cityLabel={weatherCoords?.label}
+              />
+            ) : undefined
+          }
+        />
       </div>
     </section>
   );
