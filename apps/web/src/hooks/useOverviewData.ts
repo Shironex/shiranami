@@ -26,12 +26,23 @@ export function useOverviewData() {
 
   const summary = data?.summary ?? EMPTY_SUMMARY;
 
-  const recentlyAdded = useMemo<Track[]>(() => {
+  const sortedByCreated = useMemo<Track[]>(() => {
     return [...library]
       .filter(track => Boolean(track.createdAt))
-      .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-      .slice(0, RECENTS_LIMIT);
+      .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }, [library]);
+
+  const recentlyAdded = useMemo(() => sortedByCreated.slice(0, RECENTS_LIMIT), [sortedByCreated]);
+
+  // "New in library" — tracks created in the last 7 days. Pure client-side
+  // off `createdAt`, populated the moment files are imported.
+  const newInLibraryCount = useMemo(() => {
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return sortedByCreated.filter(track => {
+      const created = track.createdAt ? new Date(track.createdAt).getTime() : NaN;
+      return !Number.isNaN(created) && created >= cutoff;
+    }).length;
+  }, [sortedByCreated]);
 
   const handlePlayTrack = useCallback(
     (trackId: string) => {
@@ -47,6 +58,7 @@ export function useOverviewData() {
   return {
     summary,
     recentlyAdded,
+    newInLibraryCount,
     library,
     hasLibrary,
     hasHistory,

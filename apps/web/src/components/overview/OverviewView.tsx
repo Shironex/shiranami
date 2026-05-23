@@ -1,16 +1,32 @@
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, LayoutDashboard } from 'lucide-react';
+import { AlertCircle, Disc3, LayoutDashboard } from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
+import { useViewStore } from '@/stores/useViewStore';
 import { useOverviewData } from '@/hooks/useOverviewData';
 import { GreetingHero } from '@/components/overview/GreetingHero';
+import { StatStrip } from '@/components/overview/StatStrip';
+import { TopThisWeek } from '@/components/overview/TopThisWeek';
+import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
 
 export default function OverviewView() {
   const { t } = useTranslation('overview');
   const { t: tCommon } = useTranslation('common');
-  const { hasLibrary, libraryLoaded, isLoading, isError, refetch } = useOverviewData();
+  const {
+    summary,
+    recentlyAdded,
+    newInLibraryCount,
+    hasLibrary,
+    hasHistory,
+    libraryLoaded,
+    isLoading,
+    isError,
+    refetch,
+    handlePlayTrack,
+  } = useOverviewData();
   const { handleOpenFolder } = useLibraryActions();
+  const navigateTo = useViewStore(s => s.navigateTo);
 
   if (isError) {
     return (
@@ -55,6 +71,31 @@ export default function OverviewView() {
     <div className="flex-1 overflow-y-auto scrollbar-thin">
       <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6">
         <GreetingHero />
+
+        {hasHistory ? (
+          <>
+            <StatStrip summary={summary} newInLibraryCount={newInLibraryCount} />
+
+            <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
+              <TopThisWeek
+                tracks={summary.topTracks}
+                onPlay={handlePlayTrack}
+                onOpenLibrary={() => navigateTo('library')}
+              />
+            </div>
+          </>
+        ) : (
+          <ViewEmptyState
+            compact
+            title={t('emptySectionTitle')}
+            subtitle={t('emptySectionCopy')}
+            icon={Disc3}
+          />
+        )}
+
+        {recentlyAdded.length > 0 && (
+          <RecentlyAdded tracks={recentlyAdded} onPlay={handlePlayTrack} />
+        )}
       </div>
     </div>
   );
