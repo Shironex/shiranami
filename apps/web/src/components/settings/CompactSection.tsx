@@ -31,6 +31,7 @@ export function CompactSection() {
   const compactShowSeek = useCompactStore(s => s.compactShowSeek);
   const compactShowVolume = useCompactStore(s => s.compactShowVolume);
   const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
+  const compactShowLyrics = useCompactStore(s => s.compactShowLyrics);
   const compactDefaultAlwaysOnTop = useCompactStore(s => s.compactDefaultAlwaysOnTop);
 
   const setCompactSize = useCompactStore(s => s.setCompactSize);
@@ -41,6 +42,7 @@ export function CompactSection() {
   const setCompactShowSeek = useCompactStore(s => s.setCompactShowSeek);
   const setCompactShowVolume = useCompactStore(s => s.setCompactShowVolume);
   const setCompactShowFavorite = useCompactStore(s => s.setCompactShowFavorite);
+  const setCompactShowLyrics = useCompactStore(s => s.setCompactShowLyrics);
   const setCompactDefaultAlwaysOnTop = useCompactStore(s => s.setCompactDefaultAlwaysOnTop);
   const resetCompactAppearance = useCompactStore(s => s.resetCompactAppearance);
 
@@ -53,6 +55,7 @@ export function CompactSection() {
     !compactShowSeek ||
     !compactShowVolume ||
     compactShowFavorite ||
+    compactShowLyrics ||
     compactDefaultAlwaysOnTop;
 
   return (
@@ -124,6 +127,13 @@ export function CompactSection() {
             description={t('cmp.elements.favoriteDesc')}
             checked={compactShowFavorite}
             onCheckedChange={setCompactShowFavorite}
+          />
+          <SettingsToggleRow
+            divider
+            label={t('cmp.elements.lyrics')}
+            description={t('cmp.elements.lyricsDesc')}
+            checked={compactShowLyrics}
+            onCheckedChange={setCompactShowLyrics}
           />
         </Subsection>
 

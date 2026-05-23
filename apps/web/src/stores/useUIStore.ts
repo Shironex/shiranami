@@ -39,6 +39,8 @@ export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
+/** Which panel the full-screen Now Playing view shows in its right column. */
+export type NowPlayingPanel = 'lyrics' | 'queue' | 'eq' | null;
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -103,6 +105,9 @@ function coerceAlbumSortMode(v: unknown): AlbumSortMode {
 function coerceAlbumSortOrder(v: unknown): AlbumSortOrder {
   return v === 'asc' || v === 'desc' ? v : 'asc';
 }
+function coerceNowPlayingPanel(v: unknown): NowPlayingPanel {
+  return v === 'lyrics' || v === 'queue' || v === 'eq' || v === null ? v : 'lyrics';
+}
 function coerceUiScale(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
@@ -124,13 +129,20 @@ interface PersistedUIState {
   albumSortMode: AlbumSortMode;
   albumSortOrder: AlbumSortOrder;
   nowPlayingViewEnabled: boolean;
-  nowPlayingLyricsVisible: boolean;
+  nowPlayingPanel: NowPlayingPanel;
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
 }
 
-function sanitize(persisted: Partial<PersistedUIState> | undefined): Partial<PersistedUIState> {
+// Legacy fields that may still live in the persisted bucket from older
+// versions but are no longer part of the current persisted shape. Read-only
+// during sanitize so we can migrate them forward, then drop them.
+type LegacyPersistedUIState = Partial<PersistedUIState> & {
+  nowPlayingLyricsVisible?: boolean;
+};
+
+function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<PersistedUIState> {
   if (!persisted || typeof persisted !== 'object') return {};
   const out: Partial<PersistedUIState> = {};
   if (typeof persisted.sidebarCollapsed === 'boolean')
@@ -155,8 +167,12 @@ function sanitize(persisted: Partial<PersistedUIState> | undefined): Partial<Per
     out.albumSortOrder = coerceAlbumSortOrder(persisted.albumSortOrder);
   if (typeof persisted.nowPlayingViewEnabled === 'boolean')
     out.nowPlayingViewEnabled = persisted.nowPlayingViewEnabled;
-  if (typeof persisted.nowPlayingLyricsVisible === 'boolean')
-    out.nowPlayingLyricsVisible = persisted.nowPlayingLyricsVisible;
+  if (persisted.nowPlayingPanel !== undefined) {
+    out.nowPlayingPanel = coerceNowPlayingPanel(persisted.nowPlayingPanel);
+  } else if (typeof persisted.nowPlayingLyricsVisible === 'boolean') {
+    // Migrate the legacy boolean toggle: lyrics-on => 'lyrics', off => null.
+    out.nowPlayingPanel = persisted.nowPlayingLyricsVisible ? 'lyrics' : null;
+  }
   if (typeof persisted.libraryHeroCardEnabled === 'boolean')
     out.libraryHeroCardEnabled = persisted.libraryHeroCardEnabled;
   if (typeof persisted.lowPerformanceMode === 'boolean')
@@ -168,7 +184,10 @@ function sanitize(persisted: Partial<PersistedUIState> | undefined): Partial<Per
 
 // --- Passthrough: fields in the shared bucket that belong to sibling stores ---
 
-const UI_KEYS: ReadonlySet<keyof PersistedUIState> = new Set([
+// Includes the legacy `nowPlayingLyricsVisible` so that, once migrated to
+// `nowPlayingPanel`, the stale boolean is treated as ours and dropped from
+// future writes rather than being re-injected by the passthrough below.
+const UI_KEYS: ReadonlySet<string> = new Set([
   'sidebarCollapsed',
   'sidebarHiddenItems',
   'sidebarPlaylistsVisible',
@@ -181,6 +200,7 @@ const UI_KEYS: ReadonlySet<keyof PersistedUIState> = new Set([
   'albumSortMode',
   'albumSortOrder',
   'nowPlayingViewEnabled',
+  'nowPlayingPanel',
   'nowPlayingLyricsVisible',
   'libraryHeroCardEnabled',
   'lowPerformanceMode',
@@ -196,7 +216,7 @@ function readPassthroughLegacyFields(): Record<string, unknown> {
     if (!parsed.state || typeof parsed.state !== 'object') return {};
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(parsed.state)) {
-      if (!UI_KEYS.has(k as keyof PersistedUIState)) out[k] = v;
+      if (!UI_KEYS.has(k)) out[k] = v;
     }
     return out;
   } catch {
@@ -274,7 +294,7 @@ function importLegacyUIStore() {
 
   const nowPlayingLyricsVisible = ls.getItem(LEGACY_KEYS.nowPlayingLyricsVisible);
   if (nowPlayingLyricsVisible !== null)
-    state.nowPlayingLyricsVisible = nowPlayingLyricsVisible !== 'false';
+    state.nowPlayingPanel = nowPlayingLyricsVisible !== 'false' ? 'lyrics' : null;
 
   const libraryHeroCardEnabled = ls.getItem(LEGACY_KEYS.libraryHeroCardEnabled);
   if (libraryHeroCardEnabled !== null)
@@ -305,7 +325,7 @@ interface UIState {
   albumSortMode: AlbumSortMode;
   albumSortOrder: AlbumSortOrder;
   nowPlayingViewEnabled: boolean;
-  nowPlayingLyricsVisible: boolean;
+  nowPlayingPanel: NowPlayingPanel;
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
@@ -313,7 +333,9 @@ interface UIState {
 
 interface UIActions {
   setNowPlayingViewEnabled: (enabled: boolean) => void;
-  toggleNowPlayingLyrics: () => void;
+  setNowPlayingPanel: (panel: NowPlayingPanel) => void;
+  /** Show the panel, or hide it (back to `null`) when it is already active. */
+  toggleNowPlayingPanel: (panel: Exclude<NowPlayingPanel, null>) => void;
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
@@ -346,7 +368,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     albumSortMode: 'name',
     albumSortOrder: 'asc',
     nowPlayingViewEnabled: false,
-    nowPlayingLyricsVisible: true,
+    nowPlayingPanel: 'lyrics',
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
@@ -358,8 +380,11 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         view.exitNowPlaying();
       }
     },
-    toggleNowPlayingLyrics: () => {
-      set({ nowPlayingLyricsVisible: !get().nowPlayingLyricsVisible });
+    setNowPlayingPanel: panel => {
+      set({ nowPlayingPanel: panel });
+    },
+    toggleNowPlayingPanel: panel => {
+      set({ nowPlayingPanel: get().nowPlayingPanel === panel ? null : panel });
     },
     setLibraryHeroCardEnabled: enabled => {
       set({ libraryHeroCardEnabled: enabled });
@@ -439,7 +464,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         albumSortMode: s.albumSortMode,
         albumSortOrder: s.albumSortOrder,
         nowPlayingViewEnabled: s.nowPlayingViewEnabled,
-        nowPlayingLyricsVisible: s.nowPlayingLyricsVisible,
+        nowPlayingPanel: s.nowPlayingPanel,
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,

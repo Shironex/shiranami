@@ -8,5 +8,8 @@
   "disableOnTop": "Wyłącz zawsze na wierzchu",
   "exitCompactMode": "Wyjdź z trybu kompaktowego",
   "minimize": "Minimalizuj",
-  "expandFromCompact": "Rozwiń do pełnego odtwarzacza"
+  "expandFromCompact": "Rozwiń do pełnego odtwarzacza",
+  "showLyrics": "Pokaż tekst",
+  "hideLyrics": "Ukryj tekst",
+  "lyricsTitle": "Tekst"
 }

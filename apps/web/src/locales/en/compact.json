@@ -8,5 +8,8 @@
   "disableOnTop": "Disable always on top",
   "exitCompactMode": "Exit compact mode",
   "minimize": "Minimize",
-  "expandFromCompact": "Expand to full player"
+  "expandFromCompact": "Expand to full player",
+  "showLyrics": "Show lyrics",
+  "hideLyrics": "Hide lyrics",
+  "lyricsTitle": "Lyrics"
 }

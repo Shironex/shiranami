@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Music2, Heart, Play, SkipBack, SkipForward } from 'lucide-react';
+import { Music2, Heart, Mic2, Play, SkipBack, SkipForward } from 'lucide-react';
 import {
   useCompactStore,
   CMP_TITLE_CLASS,
@@ -26,6 +26,7 @@ export function CompactModePreview() {
   const compactShowSeek = useCompactStore(s => s.compactShowSeek);
   const compactShowVolume = useCompactStore(s => s.compactShowVolume);
   const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
+  const compactShowLyrics = useCompactStore(s => s.compactShowLyrics);
 
   const cardWidth = SIZE_WIDTH[compactSize];
   const titleClass = CMP_TITLE_CLASS[compactFontSize];
@@ -76,8 +77,15 @@ export function CompactModePreview() {
               )}
             </div>
 
-            {compactShowFavorite && (
-              <Heart size={controlSize} className="shrink-0 text-muted-foreground/50" />
+            {(compactShowFavorite || compactShowLyrics) && (
+              <div className="flex shrink-0 items-center gap-1">
+                {compactShowFavorite && (
+                  <Heart size={controlSize} className="text-muted-foreground/50" />
+                )}
+                {compactShowLyrics && (
+                  <Mic2 size={controlSize} className="text-muted-foreground/50" />
+                )}
+              </div>
             )}
           </div>
 
