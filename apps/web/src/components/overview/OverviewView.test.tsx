@@ -65,6 +65,9 @@ vi.mock('./TopThisWeek', () => ({ TopThisWeek: () => <div data-testid="top" /> }
 vi.mock('./ListeningClock', () => ({ ListeningClock: () => <div data-testid="clock" /> }));
 vi.mock('./TopAlbums', () => ({ TopAlbums: () => <div data-testid="albums" /> }));
 vi.mock('./RecentlyAdded', () => ({ RecentlyAdded: () => <div data-testid="recents" /> }));
+vi.mock('./RecommendationsShelf', () => ({
+  RecommendationsShelf: () => <div data-testid="recommendations" />,
+}));
 
 describe('OverviewView', () => {
   beforeEach(() => {

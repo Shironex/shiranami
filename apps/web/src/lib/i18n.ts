@@ -31,6 +31,7 @@ import errorBoundaryEn from '@/locales/en/errorBoundary.json';
 import equalizerEn from '@/locales/en/equalizer.json';
 import enrichDialogEn from '@/locales/en/enrichDialog.json';
 import onboardingEn from '@/locales/en/onboarding.json';
+import recommendationsEn from '@/locales/en/recommendations.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -61,6 +62,7 @@ import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
 import equalizerPl from '@/locales/pl/equalizer.json';
 import enrichDialogPl from '@/locales/pl/enrichDialog.json';
 import onboardingPl from '@/locales/pl/onboarding.json';
+import recommendationsPl from '@/locales/pl/recommendations.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -121,6 +123,7 @@ const namespaces = [
   'equalizer',
   'enrichDialog',
   'onboarding',
+  'recommendations',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -155,6 +158,7 @@ i18n.use(initReactI18next).init({
       equalizer: equalizerEn,
       enrichDialog: enrichDialogEn,
       onboarding: onboardingEn,
+      recommendations: recommendationsEn,
     },
     pl: {
       common: commonPl,
@@ -186,6 +190,7 @@ i18n.use(initReactI18next).init({
       equalizer: equalizerPl,
       enrichDialog: enrichDialogPl,
       onboarding: onboardingPl,
+      recommendations: recommendationsPl,
     },
   },
   lng: getInitialLanguage(),

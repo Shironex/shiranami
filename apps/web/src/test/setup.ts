@@ -282,6 +282,16 @@ function createElectronAPIMock(): ElectronAPI {
       stop: asyncFn(undefined),
       onMetrics: vi.fn(() => noopUnsub()),
     },
+    recommendations: {
+      get: asyncFn({
+        library: { kind: 'library', items: [], generatedAt: null, stale: true },
+        discover: { kind: 'discover', items: [], generatedAt: null, stale: true },
+      }),
+      refresh: asyncFn({
+        library: { kind: 'library', items: [], generatedAt: null, stale: true },
+        discover: { kind: 'discover', items: [], generatedAt: null, stale: true },
+      }),
+    },
     platform: 'win32',
     __e2e: false,
   };

@@ -24,6 +24,7 @@ import { mediaApi, type MediaApi } from './api/media';
 import { metadataApi, type MetadataApi } from './api/metadata';
 import { playlistApi, type PlaylistApi } from './api/playlist';
 import { radioApi, type RadioApi } from './api/radio';
+import { recommendationsApi, type RecommendationsApi } from './api/recommendations';
 import { shareApi, type ShareApi } from './api/share';
 import { shellApi, type ShellApi } from './api/shell';
 import { storeApi, type StoreApi } from './api/store';
@@ -47,6 +48,7 @@ export interface ElectronAPI {
   radio: RadioApi;
   playlist: PlaylistApi;
   metadata: MetadataApi;
+  recommendations: RecommendationsApi;
   share: ShareApi;
   debug: DebugApi;
   errors: {
@@ -83,6 +85,7 @@ const electronAPI: ElectronAPI = {
   radio: radioApi,
   playlist: playlistApi,
   metadata: metadataApi,
+  recommendations: recommendationsApi,
   share: shareApi,
   debug: debugApi,
   errors: {

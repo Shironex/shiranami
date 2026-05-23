@@ -6,6 +6,7 @@ import type {
   MainMetricsSnapshot,
   GeocodeResult,
   WeatherCurrent,
+  RecommendationShelves,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -415,6 +416,10 @@ export interface ElectronAPI {
     start: () => Promise<void>;
     stop: () => Promise<void>;
     onMetrics: (callback: (snapshot: MainMetricsSnapshot) => void) => () => void;
+  };
+  recommendations: {
+    get: () => Promise<RecommendationShelves>;
+    refresh: () => Promise<RecommendationShelves>;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */

@@ -17,6 +17,7 @@ export * from './media';
 export * from './metadata';
 export * from './playlist';
 export * from './radio';
+export * from './recommendations';
 export * from './share';
 export * from './shell';
 export * from './store';
