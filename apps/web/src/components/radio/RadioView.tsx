@@ -385,26 +385,31 @@ export function RadioView() {
           </div>
         </div>
       ) : showEmptyState ? (
-        mode === 'favorites' ? (
-          <ViewEmptyState
-            title={t('noFavoriteStationsTitle')}
-            subtitle={t('noFavoriteStationsSubtitle')}
-            icon={Heart}
-          />
-        ) : hasFacetFilters ? (
-          <ViewEmptyState
-            title={t('noStationsFilteredTitle')}
-            subtitle={t('noStationsFilteredSubtitle')}
-            icon={Radio}
-            action={{ label: t('clearFiltersAction'), onClick: handleClearAll }}
-          />
-        ) : (
-          <ViewEmptyState
-            title={t('noStationsTitle')}
-            subtitle={t('noStationsSubtitle')}
-            icon={Radio}
-          />
-        )
+        // Wrap in a min-h-0 flex region so ViewEmptyState's `min-h-full` resolves
+        // against the space left below the filter header (not the full view), keeping
+        // the card centered in the content area instead of pushed toward the bottom.
+        <div className="flex-1 min-h-0 flex">
+          {mode === 'favorites' ? (
+            <ViewEmptyState
+              title={t('noFavoriteStationsTitle')}
+              subtitle={t('noFavoriteStationsSubtitle')}
+              icon={Heart}
+            />
+          ) : hasFacetFilters ? (
+            <ViewEmptyState
+              title={t('noStationsFilteredTitle')}
+              subtitle={t('noStationsFilteredSubtitle')}
+              icon={Radio}
+              action={{ label: t('clearFiltersAction'), onClick: handleClearAll }}
+            />
+          ) : (
+            <ViewEmptyState
+              title={t('noStationsTitle')}
+              subtitle={t('noStationsSubtitle')}
+              icon={Radio}
+            />
+          )}
+        </div>
       ) : (
         <div className="flex-1 min-h-0 mx-4 mb-4 flex flex-col gap-2">
           {isLowResults && (
