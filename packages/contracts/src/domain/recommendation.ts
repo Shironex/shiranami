@@ -39,16 +39,20 @@ export interface DiscoverRecommendation {
  * `stale` is computed at read time (older than the 24h TTL). An empty `items`
  * array is a valid result — for `discover` it means yt-dlp returned nothing or
  * degraded, which the shelf renders as a quiet empty state, never an error.
+ *
+ * The two-parameter generic ties `kind` to the item type so the TypeScript
+ * discriminant is enforced: a `LibraryShelf` cannot carry `kind: 'discover'`
+ * and vice-versa.
  */
-export interface RecommendationShelf<TItem> {
-  kind: RecommendationKind;
+export interface RecommendationShelf<TKind extends RecommendationKind, TItem> {
+  kind: TKind;
   items: TItem[];
   generatedAt: string | null;
   stale: boolean;
 }
 
-export type LibraryShelf = RecommendationShelf<LibraryRecommendation>;
-export type DiscoverShelf = RecommendationShelf<DiscoverRecommendation>;
+export type LibraryShelf = RecommendationShelf<'library', LibraryRecommendation>;
+export type DiscoverShelf = RecommendationShelf<'discover', DiscoverRecommendation>;
 
 /** Both shelves, as returned by the single read channel. */
 export interface RecommendationShelves {
