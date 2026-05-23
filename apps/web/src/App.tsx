@@ -19,6 +19,7 @@ import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
+const OverviewView = lazy(() => import('@/components/overview/OverviewView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView'));
 const HistoryView = lazy(() => import('@/components/history/HistoryView'));
@@ -254,7 +255,7 @@ function App() {
 
                   <main
                     id="main-content"
-                    aria-label={activeView}
+                    aria-label={t(activeView, { ns: 'sidebar', defaultValue: activeView })}
                     className="flex-1 flex overflow-hidden min-h-0"
                     style={{
                       paddingBottom:
@@ -269,6 +270,15 @@ function App() {
                   >
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
+                      {activeView === 'overview' && (
+                        <ErrorBoundary viewName="OverviewView">
+                          <Suspense fallback={null}>
+                            <DevProfiler id="overview">
+                              <OverviewView />
+                            </DevProfiler>
+                          </Suspense>
+                        </ErrorBoundary>
+                      )}
                       {activeView === 'library' && (
                         <ErrorBoundary viewName="LibraryView">
                           <DevProfiler id="library">

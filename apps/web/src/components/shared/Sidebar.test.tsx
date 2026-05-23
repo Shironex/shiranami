@@ -20,6 +20,7 @@ function setStoreState(overrides: Record<string, unknown>) {
     sidebarCollapsed: false,
     sidebarHiddenItems: [] as AppView[],
     sidebarPlaylistsVisible: true,
+    landingView: 'overview' as AppView,
     navigateTo,
     toggleSidebarCollapsed,
     ...overrides,
@@ -88,6 +89,7 @@ vi.mock('motion/react', () => ({
 // ── Helpers ──
 
 const ALL_NAV_KEYS = [
+  'overview',
   'library',
   'playlists',
   'favorites',
@@ -100,6 +102,7 @@ const ALL_NAV_KEYS = [
 ] as const;
 
 const NAV_VIEW_IDS: AppView[] = [
+  'overview',
   'library',
   'playlists',
   'favorites',
@@ -277,12 +280,22 @@ describe('Sidebar', () => {
     expect(navigateTo).toHaveBeenCalledWith('playlists', 'pl-42');
   });
 
-  // 11. Logo/mascot button navigates to library
-  it('navigates to library when the logo button is clicked', async () => {
+  // 11. Logo/mascot button navigates to the configured landing view
+  it('navigates to the landing view when the logo button is clicked', async () => {
     const user = userEvent.setup();
+    setStoreState({ landingView: 'overview' as AppView });
     render(<Sidebar />);
 
-    await user.click(screen.getByRole('button', { name: 'openLibrary' }));
+    await user.click(screen.getByRole('button', { name: 'openHome' }));
+    expect(navigateTo).toHaveBeenCalledWith('overview');
+  });
+
+  it('navigates to library from the logo when library is the landing view', async () => {
+    const user = userEvent.setup();
+    setStoreState({ landingView: 'library' as AppView });
+    render(<Sidebar />);
+
+    await user.click(screen.getByRole('button', { name: 'openHome' }));
     expect(navigateTo).toHaveBeenCalledWith('library');
   });
 

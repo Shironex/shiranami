@@ -1,4 +1,5 @@
 {
+  "overview": "Przegląd",
   "library": "Biblioteka",
   "playlists": "Playlisty",
   "favorites": "Ulubione",
@@ -9,6 +10,7 @@
   "radio": "Radio",
   "settings": "Ustawienia",
   "openLibrary": "Otwórz bibliotekę",
+  "openHome": "Otwórz stronę główną",
   "expandSidebar": "Rozwiń panel boczny",
   "collapseSidebar": "Zwiń panel boczny",
   "yourPlaylists": "Twoje playlisty",
