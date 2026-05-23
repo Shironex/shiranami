@@ -36,6 +36,17 @@ if (!gotTheLock) {
   app.quit();
 }
 
+// Crash/error reporting must initialize before BOTH the 'ready' event and our
+// own registerSchemesAsPrivileged call below: @sentry/electron registers a
+// privileged `sentry-ipc` scheme at init and then proxies
+// registerSchemesAsPrivileged so later registrations merge rather than
+// overwrite. Running it first means our schemes go through that proxy and both
+// survive. No-op unless the user opted in AND the build is packaged (or
+// SENTRY_FORCE_ENABLE). watchTelemetryConsent handles runtime disable and
+// defers enable to the next launch (the SDK can't init post-ready).
+initSentryMain();
+watchTelemetryConsent();
+
 // Must be called before app.ready.
 protocol.registerSchemesAsPrivileged(PRIVILEGED_SCHEMES);
 
@@ -84,11 +95,6 @@ app.on('open-url', (event, url) => {
 });
 
 async function bootstrap(): Promise<void> {
-  // Initialize crash/error reporting first so even early-bootstrap failures are
-  // captured. No-op unless the user opted in AND the build is packaged.
-  initSentryMain();
-  watchTelemetryConsent();
-
   logger.info('════════════════════════════════════════════════════════════');
   logger.info(`  New session — Shiranami v${app.getVersion()}`);
   logger.info(`[system] OS: ${os.platform()} ${os.release()} (${os.arch()})`);

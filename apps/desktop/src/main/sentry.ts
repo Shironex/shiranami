@@ -40,8 +40,9 @@ function shouldInit(): boolean {
 /**
  * Initialize Sentry in the main process. Idempotent and gated: returns early
  * unless consent is on, the build is packaged (or SENTRY_FORCE_ENABLE is set
- * for local testing), and a DSN is available. Call at the very top of
- * bootstrap() so even early crashes are captured once enabled.
+ * for local testing), and a DSN is available. Must be called BEFORE the app
+ * 'ready' event (see index.ts) — @sentry/electron registers protocol/IPC
+ * handlers at init that Electron only permits pre-ready.
  */
 export function initSentryMain(): void {
   if (initialized) return;
@@ -74,12 +75,20 @@ export function initSentryMain(): void {
 }
 
 /**
- * Runtime consent toggle. Turning ON in a packaged build initializes Sentry
- * immediately; turning OFF flushes and closes the client so no further events
- * are sent. A restart cleanly re-applies the gate either way.
+ * Runtime consent toggle. Turning OFF flushes and closes the client immediately
+ * so no further events are sent. Turning ON cannot init the SDK at runtime —
+ * @sentry/electron must initialize before the app 'ready' event — so enabling
+ * takes effect on the next launch, when the boot-time gate picks up the flag.
  */
 export async function setTelemetryEnabled(enabled: boolean): Promise<void> {
   if (enabled) {
+    if (initialized) return;
+    // Enabling while the app is already running can't init now (the SDK must
+    // init pre-ready). The persisted consent flag takes effect on next launch.
+    if (app.isReady()) {
+      logger.info('[telemetry] consent enabled — crash reporting starts on next launch');
+      return;
+    }
     initSentryMain();
     return;
   }
