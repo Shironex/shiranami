@@ -17,5 +17,7 @@
   "liveRadio": "Live Radio",
   "selectedTracks": "{{count}} selected",
   "selectAll": "Select All",
-  "clearSelection": "Clear Selection"
+  "clearSelection": "Clear Selection",
+  "more": "More",
+  "bulkActionsLabel": "Bulk actions"
 }

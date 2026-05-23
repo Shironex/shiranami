@@ -17,5 +17,7 @@
   "liveRadio": "Radio na żywo",
   "selectedTracks": "{{count}} zaznaczonych",
   "selectAll": "Zaznacz wszystko",
-  "clearSelection": "Wyczyść zaznaczenie"
+  "clearSelection": "Wyczyść zaznaczenie",
+  "more": "Więcej",
+  "bulkActionsLabel": "Akcje zbiorcze"
 }
