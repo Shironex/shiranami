@@ -31,6 +31,7 @@
   },
   "scripts": {
     "dev": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
+    "dev:inspect": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev:inspect\"",
     "dev:web": "pnpm --filter @shiranami/web dev",
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "dev:mobile": "pnpm --filter @shiranami/mobile dev",
