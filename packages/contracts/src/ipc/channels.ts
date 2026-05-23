@@ -153,6 +153,13 @@ export const IPC_CHANNELS = {
     enrichCancel: 'metadata:enrich:cancel',
     enrichProgress: 'metadata:enrich:progress',
   },
+  recommendations: {
+    // Renderer-facing reads. `get` returns both shelves from the cache;
+    // `refresh` runs the background job (affinity + yt-dlp RD-mix) and returns
+    // the freshly-cached shelves. The renderer never spawns yt-dlp itself.
+    get: 'recommendations:get',
+    refresh: 'recommendations:refresh',
+  },
   share: {
     track: 'share:track',
     playlist: 'share:playlist',
