@@ -102,6 +102,27 @@ export function formatHoursMinutes(totalMinutes: number): { hours: number; minut
 }
 
 /**
+ * Humanized listening duration for the session summary line. Rolls minutes into
+ * hours past 60 ("1 hour and 4 minutes" / "1 godzina i 4 minuty") rather than a
+ * flat "64 minutes", leaning on i18next plurals for both units so PL forms
+ * (godzina/godziny/godzin, minuta/minuty/minut) resolve correctly.
+ */
+export function formatListeningDuration(totalMinutes: number): string {
+  const { hours, minutes } = formatHoursMinutes(totalMinutes);
+  const minutesLabel = i18n.t('session.minutes', { ns: 'overview', count: minutes });
+  if (hours <= 0) return minutesLabel;
+
+  const hoursLabel = i18n.t('session.hours', { ns: 'overview', count: hours });
+  if (minutes === 0) return hoursLabel;
+
+  return i18n.t('session.hoursAndMinutes', {
+    ns: 'overview',
+    hours: hoursLabel,
+    minutes: minutesLabel,
+  });
+}
+
+/**
  * Signed delta label for the week-over-week trend ("+2h 18m", "-45m"). Returns
  * `null` when the delta rounds to zero so the trend line can be hidden.
  */

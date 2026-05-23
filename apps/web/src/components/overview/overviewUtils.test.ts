@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import i18n from '@/lib/i18n';
 import type { ListeningHourlyActivityPoint } from '@/types/electron';
 import {
   buildHeatmap,
+  formatListeningDuration,
   formatPeakWindow,
   formatTrendDelta,
   getISOWeek,
@@ -131,6 +133,38 @@ describe('buildHeatmap', () => {
     const model = buildHeatmap(points);
     expect(model.totalPlays).toBe(0);
     expect(model.hasData).toBe(false);
+  });
+});
+
+describe('formatListeningDuration', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('en');
+  });
+  afterAll(async () => {
+    await i18n.changeLanguage('en');
+  });
+
+  it('shows minutes only under an hour', () => {
+    expect(formatListeningDuration(14)).toBe('14 minutes');
+    expect(formatListeningDuration(1)).toBe('1 minute');
+  });
+
+  it('rolls minutes into hours past 60', () => {
+    expect(formatListeningDuration(64)).toBe('1 hour and 4 minutes');
+    expect(formatListeningDuration(125)).toBe('2 hours and 5 minutes');
+  });
+
+  it('omits the minutes part on an exact hour', () => {
+    expect(formatListeningDuration(60)).toBe('1 hour');
+    expect(formatListeningDuration(120)).toBe('2 hours');
+  });
+
+  it('formats Polish with the "i" connector and correct plural forms', async () => {
+    await i18n.changeLanguage('pl');
+    expect(formatListeningDuration(64)).toBe('1 godzina i 4 minuty');
+    expect(formatListeningDuration(14)).toBe('14 minut');
+    expect(formatListeningDuration(120)).toBe('2 godziny');
+    await i18n.changeLanguage('en');
   });
 });
 

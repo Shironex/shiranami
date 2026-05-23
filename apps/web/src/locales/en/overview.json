@@ -13,10 +13,13 @@
     "night": "The world's asleep."
   },
   "session": {
-    "summary": "You started listening at {{time}} — that's {{minutes}} of music so far.",
+    "summary": "You started listening at {{time}}, that's {{duration}} of music so far.",
     "summaryNoTracks": "Nothing playing yet. Press play and the evening begins.",
     "minutes_one": "{{count}} minute",
-    "minutes_other": "{{count}} minutes"
+    "minutes_other": "{{count}} minutes",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "hoursAndMinutes": "{{hours}} and {{minutes}}"
   },
   "clock": {
     "week": "WK {{week}}",
