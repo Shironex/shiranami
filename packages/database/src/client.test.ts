@@ -36,6 +36,9 @@ describe('database client', () => {
     const names = tables.map(t => t.name);
     expect(names).toContain('tracks');
     expect(names).toContain('play_history');
+    // The recommendation cache table is created by the runtime DDL, not only
+    // declared in the drizzle schema — assert it actually exists at runtime.
+    expect(names).toContain('recommendations');
 
     closeDatabase();
 

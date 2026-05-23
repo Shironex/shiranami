@@ -161,6 +161,17 @@ function createTables(database: Database.Database): void {
     )
   `);
 
+  // Recommendation cache table — one row per shelf kind, holding a JSON
+  // payload + the instant it was generated. The 24h TTL is enforced at read
+  // time against generated_at, not in SQL. See schema/recommendations.ts.
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS recommendations (
+      kind TEXT PRIMARY KEY,
+      payload TEXT NOT NULL,
+      generated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // Create indexes for common queries
   database.exec(`
     CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
