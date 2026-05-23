@@ -1,8 +1,15 @@
 {
   "back": "Wróć",
   "lyrics": "Tekst",
+  "queue": "Kolejka",
+  "eq": "Korektor",
   "findingLyrics": "Szukanie tekstu...",
   "noLyrics": "Tekst niedostępny",
   "showLyrics": "Pokaż tekst",
-  "hideLyrics": "Ukryj tekst"
+  "hideLyrics": "Ukryj tekst",
+  "showQueue": "Pokaż kolejkę",
+  "hideQueue": "Ukryj kolejkę",
+  "showEq": "Pokaż korektor",
+  "hideEq": "Ukryj korektor",
+  "panelGroup": "Panele odtwarzania"
 }

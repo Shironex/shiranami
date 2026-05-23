@@ -1,8 +1,15 @@
 {
   "back": "Back",
   "lyrics": "Lyrics",
+  "queue": "Queue",
+  "eq": "Equalizer",
   "findingLyrics": "Finding lyrics...",
   "noLyrics": "No lyrics available",
   "showLyrics": "Show lyrics",
-  "hideLyrics": "Hide lyrics"
+  "hideLyrics": "Hide lyrics",
+  "showQueue": "Show queue",
+  "hideQueue": "Hide queue",
+  "showEq": "Show equalizer",
+  "hideEq": "Hide equalizer",
+  "panelGroup": "Now playing panels"
 }
