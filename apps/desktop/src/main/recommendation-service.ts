@@ -281,14 +281,18 @@ function isStale(generatedAt: string | null): boolean {
   return Date.now() - ms > RECOMMENDATION_TTL_MS;
 }
 
-function parsePayload<T>(raw: string | null): T[] {
-  if (!raw) return [];
+function parsePayload<T>(raw: string | null): { items: T[]; valid: boolean } {
+  if (!raw) return { items: [], valid: false };
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
+    if (!Array.isArray(parsed)) {
+      logger.warn('[recommendations] cached payload is not an array; marking stale');
+      return { items: [], valid: false };
+    }
+    return { items: parsed as T[], valid: true };
   } catch (err) {
     logger.warn('[recommendations] failed to parse cached payload', err);
-    return [];
+    return { items: [], valid: false };
   }
 }
 
@@ -299,10 +303,11 @@ function readShelf<T>(kind: RecommendationKind): {
 } {
   const row = readCacheRow(kind);
   const generatedAt = row?.generatedAt ?? null;
+  const { items, valid } = parsePayload<T>(row?.payload ?? null);
   return {
-    items: parsePayload<T>(row?.payload ?? null),
+    items,
     generatedAt,
-    stale: isStale(generatedAt),
+    stale: isStale(generatedAt) || !valid,
   };
 }
 
@@ -343,29 +348,32 @@ export function getRecommendationShelves(): RecommendationShelves {
  * yt-dlp failure; the library computation is offline and always succeeds.
  */
 export async function refreshRecommendations(signal?: AbortSignal): Promise<RecommendationShelves> {
-  const now = new Date().toISOString();
+  const prevLibrary = readShelf<LibraryRecommendation>('library');
+  const prevDiscover = readShelf<DiscoverRecommendation>('discover');
 
-  let libraryItems: LibraryRecommendation[] = [];
+  let library: Omit<LibraryShelf, 'kind'> = prevLibrary;
   try {
-    libraryItems = computeLibraryItems();
-    writeCacheRow('library', libraryItems);
+    const items = computeLibraryItems();
+    writeCacheRow('library', items);
+    library = { items, generatedAt: new Date().toISOString(), stale: false };
   } catch (err) {
-    logger.warn('[recommendations] library refresh failed', err);
+    logger.warn('[recommendations] library refresh failed; serving previous shelf', err);
   }
 
-  let discoverItems: DiscoverRecommendation[] = [];
+  let discover: Omit<DiscoverShelf, 'kind'> = prevDiscover;
   try {
-    discoverItems = await computeDiscoverItems(signal);
-    writeCacheRow('discover', discoverItems);
-    logger.info(`[recommendations] discover refresh wrote ${discoverItems.length} items`);
+    const items = await computeDiscoverItems(signal);
+    writeCacheRow('discover', items);
+    logger.info(`[recommendations] discover refresh wrote ${items.length} items`);
+    discover = { items, generatedAt: new Date().toISOString(), stale: false };
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') throw err;
-    logger.warn('[recommendations] discover refresh failed; shelf left empty', err);
+    logger.warn('[recommendations] discover refresh failed; serving previous shelf', err);
   }
 
   return {
-    library: { kind: 'library', items: libraryItems, generatedAt: now, stale: false },
-    discover: { kind: 'discover', items: discoverItems, generatedAt: now, stale: false },
+    library: { kind: 'library', ...library } satisfies LibraryShelf,
+    discover: { kind: 'discover', ...discover } satisfies DiscoverShelf,
   };
 }
 
