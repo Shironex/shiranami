@@ -67,10 +67,12 @@ function resetStore() {
     stations: [],
     favorites: [],
     isLoading: false,
+    isLoadingMore: false,
     error: null,
-    searchQuery: '',
-    selectedCountry: 'US',
-    activeTab: 'top',
+    filters: {},
+    mode: 'browse',
+    page: 0,
+    hasMore: false,
   });
 }
 
@@ -80,13 +82,14 @@ describe('useRadioStore', () => {
     resetStore();
   });
 
-  // --- searchStations ---
-  describe('searchStations', () => {
+  // --- runSearch ---
+  describe('runSearch', () => {
     it('sets isLoading true then stations on success', async () => {
       const stations = [makeStation('s1'), makeStation('s2')];
       mockSearchStations.mockResolvedValueOnce(stations);
 
-      const promise = useRadioStore.getState().searchStations('rock');
+      useRadioStore.setState({ filters: { name: 'rock' } });
+      const promise = useRadioStore.getState().runSearch();
 
       // isLoading should be true immediately
       expect(useRadioStore.getState().isLoading).toBe(true);
@@ -98,12 +101,72 @@ describe('useRadioStore', () => {
       expect(state.stations).toEqual(stations);
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+      expect(state.mode).toBe('browse');
+    });
+
+    it('composes name, countryCode, language and tagList into one query', async () => {
+      mockSearchStations.mockResolvedValueOnce([]);
+
+      useRadioStore.setState({
+        filters: {
+          name: '  lofi  ',
+          countryCode: 'CY',
+          language: 'greek',
+          tagList: ['jazz', 'house'],
+        },
+      });
+      await useRadioStore.getState().runSearch();
+
+      expect(mockSearchStations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'lofi',
+          countryCode: 'CY',
+          language: 'greek',
+          tagList: ['jazz', 'house'],
+          limit: 100,
+          offset: 0,
+          order: 'clickCount',
+          reverse: true,
+          hideBroken: true,
+        })
+      );
+    });
+
+    it('omits empty filter dimensions from the query', async () => {
+      mockSearchStations.mockResolvedValueOnce([]);
+
+      useRadioStore.setState({ filters: { countryCode: 'PL' } });
+      await useRadioStore.getState().runSearch();
+
+      const query = mockSearchStations.mock.calls[0][0];
+      expect(query).not.toHaveProperty('name');
+      expect(query).not.toHaveProperty('language');
+      expect(query).not.toHaveProperty('tagList');
+      expect(query.countryCode).toBe('PL');
+    });
+
+    it('sets hasMore when a full page is returned', async () => {
+      const fullPage = Array.from({ length: 100 }, (_, i) => makeStation(`s${i}`));
+      mockSearchStations.mockResolvedValueOnce(fullPage);
+
+      await useRadioStore.getState().runSearch();
+
+      expect(useRadioStore.getState().hasMore).toBe(true);
+    });
+
+    it('clears hasMore when a partial page is returned', async () => {
+      mockSearchStations.mockResolvedValueOnce([makeStation('s1')]);
+
+      await useRadioStore.getState().runSearch();
+
+      expect(useRadioStore.getState().hasMore).toBe(false);
     });
 
     it('sets error and isLoading false on failure', async () => {
       mockSearchStations.mockRejectedValueOnce(new Error('Network failure'));
 
-      await useRadioStore.getState().searchStations('jazz');
+      useRadioStore.setState({ filters: { name: 'jazz' } });
+      await useRadioStore.getState().runSearch();
 
       const state = useRadioStore.getState();
       expect(state.isLoading).toBe(false);
@@ -114,9 +177,82 @@ describe('useRadioStore', () => {
     it('uses i18n fallback when error is not an Error instance', async () => {
       mockSearchStations.mockRejectedValueOnce('string error');
 
-      await useRadioStore.getState().searchStations('jazz');
+      useRadioStore.setState({ filters: { name: 'jazz' } });
+      await useRadioStore.getState().runSearch();
 
       expect(useRadioStore.getState().error).toBe('searchFailed');
+    });
+  });
+
+  // --- loadMore (pagination) ---
+  describe('loadMore', () => {
+    it('appends the next page and advances offset', async () => {
+      const firstPage = Array.from({ length: 100 }, (_, i) => makeStation(`a${i}`));
+      mockSearchStations.mockResolvedValueOnce(firstPage);
+      useRadioStore.setState({ filters: { countryCode: 'PL' } });
+      await useRadioStore.getState().runSearch();
+
+      const secondPage = [makeStation('b1'), makeStation('b2')];
+      mockSearchStations.mockResolvedValueOnce(secondPage);
+      await useRadioStore.getState().loadMore();
+
+      const state = useRadioStore.getState();
+      expect(state.stations).toHaveLength(102);
+      expect(state.page).toBe(1);
+      expect(state.hasMore).toBe(false);
+      expect(mockSearchStations).toHaveBeenLastCalledWith(
+        expect.objectContaining({ countryCode: 'PL', offset: 100, limit: 100 })
+      );
+    });
+
+    it('does nothing when there is no next page', async () => {
+      mockSearchStations.mockResolvedValueOnce([makeStation('only')]);
+      await useRadioStore.getState().runSearch();
+      mockSearchStations.mockClear();
+
+      await useRadioStore.getState().loadMore();
+
+      expect(mockSearchStations).not.toHaveBeenCalled();
+    });
+  });
+
+  // --- setFilter / clearFilters ---
+  describe('setFilter', () => {
+    it('merges a filter patch and re-runs the search', async () => {
+      mockSearchStations.mockResolvedValue([]);
+
+      useRadioStore.getState().setFilter({ countryCode: 'JP' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(useRadioStore.getState().filters.countryCode).toBe('JP');
+      expect(mockSearchStations).toHaveBeenCalledWith(
+        expect.objectContaining({ countryCode: 'JP' })
+      );
+    });
+  });
+
+  describe('clearFilters', () => {
+    it('empties filters and re-runs the search', async () => {
+      mockSearchStations.mockResolvedValue([]);
+      useRadioStore.setState({ filters: { countryCode: 'JP', language: 'japanese' } });
+
+      useRadioStore.getState().clearFilters();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(useRadioStore.getState().filters).toEqual({});
+      const query = mockSearchStations.mock.calls.at(-1)?.[0];
+      expect(query).not.toHaveProperty('countryCode');
+      expect(query).not.toHaveProperty('language');
+    });
+  });
+
+  describe('hasActiveFilters', () => {
+    it('is false with no filters and true once a facet is set', () => {
+      expect(useRadioStore.getState().hasActiveFilters()).toBe(false);
+      useRadioStore.setState({ filters: { tagList: ['rock'] } });
+      expect(useRadioStore.getState().hasActiveFilters()).toBe(true);
     });
   });
 
@@ -134,8 +270,10 @@ describe('useRadioStore', () => {
 
       mockSearchStations.mockReturnValueOnce(firstPromise).mockResolvedValueOnce(freshStations);
 
-      const p1 = useRadioStore.getState().searchStations('old query');
-      const p2 = useRadioStore.getState().searchStations('new query');
+      useRadioStore.setState({ filters: { name: 'old query' } });
+      const p1 = useRadioStore.getState().runSearch();
+      useRadioStore.setState({ filters: { name: 'new query' } });
+      const p2 = useRadioStore.getState().runSearch();
 
       // Let the second one finish first
       await p2;
@@ -161,14 +299,28 @@ describe('useRadioStore', () => {
       const state = useRadioStore.getState();
       expect(state.stations).toEqual(stations);
       expect(state.isLoading).toBe(false);
-      expect(mockSearchStations).toHaveBeenCalledWith(
+      expect(state.filters).toEqual({});
+      const query = mockSearchStations.mock.calls.at(-1)?.[0];
+      expect(query).toEqual(
         expect.objectContaining({
           limit: 100,
+          offset: 0,
           order: 'clickCount',
           reverse: true,
           hideBroken: true,
         })
       );
+      expect(query).not.toHaveProperty('name');
+      expect(query).not.toHaveProperty('countryCode');
+    });
+
+    it('resets stale filters before fetching', async () => {
+      mockSearchStations.mockResolvedValueOnce([]);
+      useRadioStore.setState({ filters: { countryCode: 'PL', name: 'old' } });
+
+      await useRadioStore.getState().loadTopStations();
+
+      expect(useRadioStore.getState().filters).toEqual({});
     });
 
     it('sets error on failure', async () => {
@@ -177,33 +329,6 @@ describe('useRadioStore', () => {
       await useRadioStore.getState().loadTopStations();
 
       expect(useRadioStore.getState().error).toBe('Server error');
-      expect(useRadioStore.getState().isLoading).toBe(false);
-    });
-  });
-
-  // --- loadByCountry ---
-  describe('loadByCountry', () => {
-    it('updates selectedCountry and fetches stations', async () => {
-      const stations = [makeStation('pl1')];
-      mockSearchStations.mockResolvedValueOnce(stations);
-
-      await useRadioStore.getState().loadByCountry('PL');
-
-      const state = useRadioStore.getState();
-      expect(state.selectedCountry).toBe('PL');
-      expect(state.stations).toEqual(stations);
-      expect(state.isLoading).toBe(false);
-      expect(mockSearchStations).toHaveBeenCalledWith(
-        expect.objectContaining({ countryCode: 'PL' })
-      );
-    });
-
-    it('sets error on failure', async () => {
-      mockSearchStations.mockRejectedValueOnce(new Error('Country error'));
-
-      await useRadioStore.getState().loadByCountry('XX');
-
-      expect(useRadioStore.getState().error).toBe('Country error');
       expect(useRadioStore.getState().isLoading).toBe(false);
     });
   });
@@ -317,17 +442,14 @@ describe('useRadioStore', () => {
     });
   });
 
-  // --- setActiveTab ---
-  describe('setActiveTab', () => {
-    it('updates activeTab state', () => {
-      useRadioStore.getState().setActiveTab('favorites');
-      expect(useRadioStore.getState().activeTab).toBe('favorites');
+  // --- setMode ---
+  describe('setMode', () => {
+    it('updates mode state', () => {
+      useRadioStore.getState().setMode('favorites');
+      expect(useRadioStore.getState().mode).toBe('favorites');
 
-      useRadioStore.getState().setActiveTab('country');
-      expect(useRadioStore.getState().activeTab).toBe('country');
-
-      useRadioStore.getState().setActiveTab('top');
-      expect(useRadioStore.getState().activeTab).toBe('top');
+      useRadioStore.getState().setMode('browse');
+      expect(useRadioStore.getState().mode).toBe('browse');
     });
   });
 });
