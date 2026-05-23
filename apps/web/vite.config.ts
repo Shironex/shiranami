@@ -22,6 +22,9 @@ export default defineConfig({
             org: process.env.SENTRY_ORG,
             project: process.env.SENTRY_PROJECT,
             authToken: process.env.SENTRY_AUTH_TOKEN,
+            // lunofi org is on Sentry's EU region; the plugin defaults to the US
+            // instance otherwise and 404s. Overridable via SENTRY_URL.
+            url: process.env.SENTRY_URL ?? 'https://de.sentry.io/',
             release: { name: `shiranami@${version}` },
             sourcemaps: {
               // Strip maps from the shipped renderer bundle after upload.

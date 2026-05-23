@@ -16,6 +16,10 @@ const sentryPlugins = shouldUploadSourcemaps
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
         authToken: process.env.SENTRY_AUTH_TOKEN,
+        // The lunofi org lives on Sentry's EU region; the plugin otherwise
+        // defaults uploads to the US instance (sentry.io) and 404s. Overridable
+        // via SENTRY_URL for forks on a different region.
+        url: process.env.SENTRY_URL ?? 'https://de.sentry.io/',
         release: { name: `shiranami@${pkg.version}` },
         sourcemaps: {
           // Strip maps from the shipped artifact after upload so they aren't
