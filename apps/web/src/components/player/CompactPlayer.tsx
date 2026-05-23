@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -22,8 +22,9 @@ import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { TimeDisplay } from './TimeDisplay';
-import { Heart, Maximize2, Minimize2, Music, Pin } from 'lucide-react';
+import { Heart, Maximize2, Mic2, Minimize2, Music, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
 export function CompactPlayer() {
@@ -42,6 +43,15 @@ export function CompactPlayer() {
   const compactShowSeek = useCompactStore(s => s.compactShowSeek);
   const compactShowVolume = useCompactStore(s => s.compactShowVolume);
   const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
+  const compactShowLyrics = useCompactStore(s => s.compactShowLyrics);
+
+  // Lyrics open-state lives in the store because opening it resizes the OS
+  // window (the store owns compact window dimensions). Toggling it grows the
+  // window and reveals the panel below the player; closing shrinks it back.
+  const lyricsOpen = useCompactStore(s => s.compactLyricsExpanded);
+  const setLyricsOpen = useCompactStore(s => s.setCompactLyricsExpanded);
+  const lyricsButtonRef = useRef<HTMLButtonElement>(null);
+  const lyricsPanelRef = useRef<HTMLDivElement>(null);
 
   const ambientColor = useAmbientColor();
   const { minimize: handleMinimize } = useWindowControls();
@@ -66,6 +76,34 @@ export function CompactPlayer() {
       enterNowPlaying();
     }
   }, [setCompactMode, nowPlayingViewEnabled, enterNowPlaying, currentTrack]);
+
+  // Close the lyrics overlay when there is nothing to show it for, or when
+  // the user disables the button setting while it happens to be open.
+  useEffect(() => {
+    if (lyricsOpen && (!currentTrack || !compactShowLyrics)) {
+      setLyricsOpen(false);
+    }
+  }, [lyricsOpen, currentTrack, compactShowLyrics]);
+
+  // Move focus into the lyrics panel on open and back to the trigger on close
+  // so keyboard users stay anchored to the region they invoked. The ref guard
+  // skips the close branch on the initial render (nothing was opened yet).
+  const lyricsWasOpen = useRef(false);
+  useEffect(() => {
+    if (lyricsOpen) {
+      lyricsWasOpen.current = true;
+      lyricsPanelRef.current?.focus();
+    } else if (lyricsWasOpen.current) {
+      lyricsButtonRef.current?.focus();
+    }
+  }, [lyricsOpen]);
+
+  const handleLyricsKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      setLyricsOpen(false);
+    }
+  }, []);
 
   const showSeekBar = compactShowSeek && !!currentTrack && !isRadioTrack(currentTrack.filePath);
 
@@ -102,6 +140,28 @@ export function CompactPlayer() {
           {compactShowFavorite && <FavoriteButton />}
 
           <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
+            {compactShowLyrics && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <IconButton
+                    ref={lyricsButtonRef}
+                    onClick={() => setLyricsOpen(!lyricsOpen)}
+                    className={cn(
+                      lyricsOpen &&
+                        'bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary'
+                    )}
+                    aria-label={lyricsOpen ? t('hideLyrics') : t('showLyrics')}
+                    aria-pressed={lyricsOpen}
+                  >
+                    <Mic2 />
+                  </IconButton>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {lyricsOpen ? t('hideLyrics') : t('showLyrics')}
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <IconButton
@@ -141,8 +201,22 @@ export function CompactPlayer() {
         </div>
       </div>
 
-      <div className="relative flex min-h-0 flex-1 items-center p-2.5">
-        <div className="glass-subtle relative flex h-full w-full items-stretch gap-2.5 overflow-hidden rounded-[20px] border border-border/25 p-2.5">
+      <div
+        className={cn(
+          'relative flex items-center p-2.5',
+          // When lyrics are open the window has grown: keep the player at its
+          // natural height up top so the lyrics panel takes the new space
+          // below. Otherwise the player fills (and vertically centers in) the
+          // short window as before.
+          lyricsOpen ? 'shrink-0' : 'min-h-0 flex-1'
+        )}
+      >
+        <div
+          className={cn(
+            'glass-subtle relative flex w-full items-stretch gap-2.5 overflow-hidden rounded-[20px] border border-border/25 p-2.5',
+            lyricsOpen ? 'h-auto' : 'h-full'
+          )}
+        >
           {compactShowAlbumArt && (
             <button
               type="button"
@@ -211,6 +285,28 @@ export function CompactPlayer() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {lyricsOpen && currentTrack && (
+          <motion.div
+            ref={lyricsPanelRef}
+            key="compact-lyrics"
+            role="region"
+            aria-label={t('lyricsTitle')}
+            tabIndex={-1}
+            onKeyDown={handleLyricsKeyDown}
+            initial={lowPerformanceMode ? { opacity: 0 } : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: lowPerformanceMode ? 0.1 : 0.2 }}
+            className="relative z-10 flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 focus:outline-none"
+          >
+            <div className="glass-panel h-full overflow-hidden rounded-2xl border border-border/25 shadow-lg shadow-black/20">
+              <LyricsPanel />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

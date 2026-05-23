@@ -16,6 +16,25 @@ export const COMPACT_DIMENSIONS: Record<CompactSize, { width: number; height: nu
   lg: { width: 600, height: 260 },
 };
 
+// Extra window height (px) added below the player when the in-window lyrics
+// panel is expanded. The player controls keep their normal height at the top
+// and the lyrics fill this new space, so toggling lyrics never hides the
+// transport like a full-body overlay would. Forwarded over IPC as part of the
+// compact dimensions, so it lives under the same min/max/size lock.
+export const COMPACT_LYRICS_EXTRA_HEIGHT = 200;
+
+/** Compact window dimensions for a preset, grown when lyrics are expanded. */
+function compactDimensions(
+  size: CompactSize,
+  lyricsExpanded: boolean
+): { width: number; height: number } {
+  const base = COMPACT_DIMENSIONS[size];
+  return {
+    width: base.width,
+    height: base.height + (lyricsExpanded ? COMPACT_LYRICS_EXTRA_HEIGHT : 0),
+  };
+}
+
 // --- Compact mode appearance prefs ---
 export const COMPACT_AMBIENT_INTENSITY_MIN = 0;
 export const COMPACT_AMBIENT_INTENSITY_MAX = 0.2;
@@ -149,6 +168,12 @@ interface CompactState {
   compactShowVolume: boolean;
   compactShowFavorite: boolean;
   compactShowLyrics: boolean;
+  /**
+   * Runtime-only: whether the in-window lyrics panel is currently open in
+   * compact mode. Not persisted — lyrics always start collapsed on entry so
+   * the mini-player keeps its small footprint until the user opts in.
+   */
+  compactLyricsExpanded: boolean;
   compactDefaultAlwaysOnTop: boolean;
 }
 
@@ -166,6 +191,7 @@ interface CompactActions {
   setCompactShowVolume: (visible: boolean) => void;
   setCompactShowFavorite: (visible: boolean) => void;
   setCompactShowLyrics: (visible: boolean) => void;
+  setCompactLyricsExpanded: (expanded: boolean) => void;
   setCompactDefaultAlwaysOnTop: (enabled: boolean) => void;
   resetCompactAppearance: () => void;
 }
@@ -183,6 +209,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
     compactShowVolume: true,
     compactShowFavorite: false,
     compactShowLyrics: false,
+    compactLyricsExpanded: false,
     compactDefaultAlwaysOnTop: false,
 
     setCompactMode: async compactMode => {
@@ -198,7 +225,9 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
         set({ compactAlwaysOnTop: true });
       }
 
-      set({ compactMode });
+      // Always enter/exit with lyrics collapsed so the window opens at its
+      // base footprint and the grown height never leaks across transitions.
+      set({ compactMode, compactLyricsExpanded: false });
 
       if (!IS_ELECTRON) return;
 
@@ -249,7 +278,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
       // If the window is currently in compact mode, push the new dimensions
       // immediately so the preset switch is reflected without a re-toggle.
       if (IS_ELECTRON && get().compactMode) {
-        const dims = COMPACT_DIMENSIONS[next];
+        const dims = compactDimensions(next, get().compactLyricsExpanded);
         window.electronAPI.window.setCompactMode(true, dims).catch(() => {
           // Failure to resize is non-fatal; the next enter-compact will retry.
         });
@@ -267,6 +296,20 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
     setCompactShowVolume: visible => set({ compactShowVolume: visible }),
     setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
     setCompactShowLyrics: visible => set({ compactShowLyrics: visible }),
+    setCompactLyricsExpanded: expanded => {
+      if (get().compactLyricsExpanded === expanded) return;
+      set({ compactLyricsExpanded: expanded });
+      // Grow the OS window when opening lyrics (and shrink it back on close)
+      // so the panel gets dedicated space below the player. No-op outside
+      // Electron or when not in compact mode — the renderer flag still drives
+      // the in-window panel either way.
+      if (IS_ELECTRON && get().compactMode) {
+        const dims = compactDimensions(get().compactSize, expanded);
+        window.electronAPI.window.setCompactMode(true, dims).catch(() => {
+          // Resize failure is non-fatal; the panel still renders in-window.
+        });
+      }
+    },
     setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
     resetCompactAppearance: () => {
       set({
