@@ -1,0 +1,9 @@
+{
+  "title": "Recommended for you",
+  "refresh": "Refresh",
+  "fromLibrary": "From your library",
+  "discover": "Discover new music",
+  "discoverEmpty": "Nothing to discover yet. Play a few tracks and refresh to pull fresh picks from YouTube.",
+  "playAria": "Play {{title}}",
+  "downloadAria": "Download {{title}}"
+}

@@ -10,6 +10,7 @@ import { TopThisWeek } from '@/components/overview/TopThisWeek';
 import { ListeningClock } from '@/components/overview/ListeningClock';
 import { TopAlbums } from '@/components/overview/TopAlbums';
 import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
+import { RecommendationsShelf } from '@/components/overview/RecommendationsShelf';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
 
 export default function OverviewView() {
@@ -107,6 +108,8 @@ export default function OverviewView() {
             icon={Disc3}
           />
         )}
+
+        <RecommendationsShelf onPlay={handlePlayTrack} />
 
         {recentlyAdded.length > 0 && (
           <RecentlyAdded tracks={recentlyAdded} onPlay={handlePlayTrack} />

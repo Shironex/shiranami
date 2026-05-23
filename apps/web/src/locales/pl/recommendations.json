@@ -1,0 +1,9 @@
+{
+  "title": "Polecane dla Ciebie",
+  "refresh": "Odśwież",
+  "fromLibrary": "Z Twojej biblioteki",
+  "discover": "Odkryj nową muzykę",
+  "discoverEmpty": "Nie ma jeszcze czego odkrywać. Posłuchaj kilku utworów i odśwież, aby pobrać nowe propozycje z YouTube.",
+  "playAria": "Odtwórz {{title}}",
+  "downloadAria": "Pobierz {{title}}"
+}
