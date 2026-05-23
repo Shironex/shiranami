@@ -4,50 +4,57 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Ensure i18n is initialised before RadioView imports (RadioView no longer
 // imports @/lib/i18n directly — it uses the useTranslation hook).
 import '@/lib/i18n';
+import type { RadioFilters } from './buildStationQuery';
+import type { RadioMode } from '@/stores/useRadioStore';
 import { RadioView } from './RadioView';
 
 const loadTopStations = vi.fn();
-const loadByCountry = vi.fn();
-const setActiveTab = vi.fn();
-const setSearchQuery = vi.fn();
+const loadFavorites = vi.fn();
+const runSearch = vi.fn();
+const loadMore = vi.fn();
+const setFilter = vi.fn();
+const clearFilters = vi.fn();
+
+let mockState: {
+  stations: unknown[];
+  favorites: string[];
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  error: string | null;
+  filters: RadioFilters;
+  mode: RadioMode;
+  hasMore: boolean;
+};
+
+function defaultState() {
+  return {
+    stations: [] as unknown[],
+    favorites: [] as string[],
+    isLoading: true,
+    isLoadingMore: false,
+    error: null as string | null,
+    filters: {} as RadioFilters,
+    mode: 'browse' as RadioMode,
+    hasMore: false,
+  };
+}
 
 vi.mock('@/stores/useRadioStore', () => ({
-  useRadioStore: <T,>(
-    selector: (s: {
-      stations: unknown[];
-      favorites: string[];
-      isLoading: boolean;
-      error: string | null;
-      searchQuery: string;
-      selectedCountry: string;
-      activeTab: string;
-      searchStations: ReturnType<typeof vi.fn>;
-      loadTopStations: typeof loadTopStations;
-      loadByCountry: typeof loadByCountry;
-      loadFavorites: ReturnType<typeof vi.fn>;
-      toggleFavorite: ReturnType<typeof vi.fn>;
-      setSearchQuery: typeof setSearchQuery;
-      setSelectedCountry: ReturnType<typeof vi.fn>;
-      setActiveTab: typeof setActiveTab;
-    }) => T
-  ) =>
+  useRadioStore: <T,>(selector: (s: Record<string, unknown>) => T) =>
     selector({
-      stations: [],
-      favorites: [],
-      isLoading: true,
-      error: null,
-      searchQuery: '',
-      selectedCountry: 'US',
-      activeTab: 'top',
-      searchStations: vi.fn(),
+      ...mockState,
+      runSearch,
+      loadMore,
       loadTopStations,
-      loadByCountry,
-      loadFavorites: vi.fn(),
+      loadFavorites,
       toggleFavorite: vi.fn(),
-      setSearchQuery,
-      setSelectedCountry: vi.fn(),
-      setActiveTab,
+      setFilter,
+      clearFilters,
     }),
+}));
+
+vi.mock('./useRadioCatalog', () => ({
+  useRadioCatalog: () => ({ countries: [], languages: [], tags: [] }),
 }));
 
 vi.mock('@/stores/usePlaybackStore', () => ({
@@ -68,6 +75,7 @@ vi.mock('@/stores/usePlaybackStore', () => ({
 describe('RadioView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState = defaultState();
   });
 
   it('shows loading skeleton rows while isLoading', () => {
@@ -76,14 +84,34 @@ describe('RadioView', () => {
     expect(skeletons.length).toBeGreaterThanOrEqual(10);
   });
 
-  it('switches to country tab and loads by country', async () => {
+  it('loads top stations on first mount', () => {
+    render(<RadioView />);
+    expect(loadTopStations).toHaveBeenCalled();
+  });
+
+  it('switches to the favorites mode', async () => {
     const user = userEvent.setup();
     render(<RadioView />);
 
-    await user.click(screen.getByRole('button', { name: /by country/i }));
+    await user.click(screen.getByRole('button', { name: /favorites/i }));
 
-    expect(setActiveTab).toHaveBeenCalledWith('country');
-    expect(setSearchQuery).toHaveBeenCalledWith('');
-    expect(loadByCountry).toHaveBeenCalledWith('US');
+    expect(loadFavorites).toHaveBeenCalled();
+  });
+
+  it('clears the search input when filters.name is reset externally', async () => {
+    const { rerender } = render(<RadioView />);
+
+    // Simulate a name filter being active
+    mockState = { ...defaultState(), isLoading: false, filters: { name: 'jazz' } };
+    rerender(<RadioView />);
+
+    const input = screen.getByPlaceholderText(/search/i) as HTMLInputElement;
+    expect(input.value).toBe('jazz');
+
+    // Simulate clearFilters resetting filters.name to undefined
+    mockState = { ...defaultState(), isLoading: false, filters: {} };
+    rerender(<RadioView />);
+
+    expect(input.value).toBe('');
   });
 });

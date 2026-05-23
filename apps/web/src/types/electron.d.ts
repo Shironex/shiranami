@@ -377,6 +377,7 @@ export interface ElectronAPI {
   app: {
     getVersion: () => Promise<string>;
     openLogsFolder: () => Promise<void>;
+    getLocaleCountry: () => Promise<string>;
   };
   playlist: {
     extract: (url: string) => Promise<SearchResult[]>;

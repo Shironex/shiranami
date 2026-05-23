@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import Constants from 'expo-constants';
 import { RadioBrowserApi, type Station } from 'radio-browser-api';
 
-const api = new RadioBrowserApi('Shiranami/0.12.1');
+const appVersion = Constants.expoConfig?.version ?? '0.1.0';
+const api = new RadioBrowserApi(`Shiranami/${appVersion}`);
 let latestRequestId = 0;
 
 function beginRequest(): number {
@@ -58,7 +60,10 @@ export const useRadioStore = create<RadioState & RadioActions>((set, get) => ({
       set({ stations, isLoading: false });
     } catch (err) {
       if (!isCurrent(reqId)) return;
-      set({ error: err instanceof Error ? err.message : 'Failed to load stations', isLoading: false });
+      set({
+        error: err instanceof Error ? err.message : 'Failed to load stations',
+        isLoading: false,
+      });
     }
   },
 
@@ -81,9 +86,9 @@ export const useRadioStore = create<RadioState & RadioActions>((set, get) => ({
     }
   },
 
-  setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setActiveTab: (activeTab) => set({ activeTab }),
-  setCurrentStation: (currentStation) => set({ currentStation }),
+  setSearchQuery: searchQuery => set({ searchQuery }),
+  setActiveTab: activeTab => set({ activeTab }),
+  setCurrentStation: currentStation => set({ currentStation }),
 
   toggleFavorite: (stationId: string) => {
     const { favoriteIds } = get();
@@ -97,5 +102,5 @@ export const useRadioStore = create<RadioState & RadioActions>((set, get) => ({
   },
 
   isFavorite: (stationId: string) => get().favoriteIds.has(stationId),
-  setFavoriteIds: (ids) => set({ favoriteIds: ids }),
+  setFavoriteIds: ids => set({ favoriteIds: ids }),
 }));

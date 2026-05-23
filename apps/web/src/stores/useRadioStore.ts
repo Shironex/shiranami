@@ -1,10 +1,16 @@
 import { create } from 'zustand';
 import { logger } from '@/lib/logger';
-import { RadioBrowserApi, type Station } from 'radio-browser-api';
+import { type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
+import { radioApi as api } from '@/components/radio/radioApi';
+import {
+  buildStationQuery,
+  hasActiveFilters,
+  RADIO_PAGE_SIZE,
+  type RadioFilters,
+} from '@/components/radio/buildStationQuery';
 
-const api = new RadioBrowserApi('Shiranami/0.2.1');
 let latestRadioRequestId = 0;
 
 function beginRadioRequest(): number {
@@ -16,29 +22,39 @@ function isLatestRadioRequest(requestId: number): boolean {
   return requestId === latestRadioRequestId;
 }
 
-export type RadioSearchTab = 'top' | 'country' | 'favorites';
+/** Live-search browse vs the saved favorites set. Country is now a filter. */
+export type RadioMode = 'browse' | 'favorites';
+
+const EMPTY_FILTERS: RadioFilters = {};
 
 interface RadioState {
   stations: Station[];
   favorites: string[]; // station ids
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: string | null;
-  searchQuery: string;
-  selectedCountry: string;
-  activeTab: RadioSearchTab;
+  filters: RadioFilters;
+  mode: RadioMode;
+  page: number;
+  hasMore: boolean;
 }
 
 interface RadioActions {
-  searchStations: (query: string) => Promise<void>;
+  /** Runs a fresh search (page 0) from the current filter set. */
+  runSearch: () => Promise<void>;
+  /** Fetches and appends the next page of the current filter set. */
+  loadMore: () => Promise<void>;
   loadTopStations: () => Promise<void>;
-  loadByCountry: (countryCode: string) => Promise<void>;
   loadFavorites: () => Promise<void>;
   toggleFavorite: (station: Station) => Promise<void>;
   isFavorite: (stationId: string) => boolean;
-  setSearchQuery: (query: string) => void;
-  setSelectedCountry: (country: string) => void;
-  setActiveTab: (tab: RadioSearchTab) => void;
+  /** Merges a partial filter patch and re-runs the search from page 0. */
+  setFilter: (patch: Partial<RadioFilters>) => void;
+  /** Clears every filter and re-runs the search (back to top stations). */
+  clearFilters: () => void;
+  setMode: (mode: RadioMode) => void;
   setError: (error: string | null) => void;
+  hasActiveFilters: () => boolean;
 }
 
 export type RadioStore = RadioState & RadioActions;
@@ -47,24 +63,21 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   stations: [],
   favorites: [],
   isLoading: false,
+  isLoadingMore: false,
   error: null,
-  searchQuery: '',
-  selectedCountry: 'US',
-  activeTab: 'top',
+  filters: EMPTY_FILTERS,
+  mode: 'browse',
+  page: 0,
+  hasMore: false,
 
-  searchStations: async (query: string) => {
+  runSearch: async () => {
     const requestId = beginRadioRequest();
-    set({ isLoading: true, error: null });
+    const { filters } = get();
+    set({ isLoading: true, isLoadingMore: false, error: null, mode: 'browse', page: 0 });
     try {
-      const stations = await api.searchStations({
-        name: query,
-        limit: 100,
-        order: 'clickCount',
-        reverse: true,
-        hideBroken: true,
-      });
+      const stations = await api.searchStations(buildStationQuery(filters, 0));
       if (!isLatestRadioRequest(requestId)) return;
-      set({ stations, isLoading: false });
+      set({ stations, isLoading: false, hasMore: stations.length === RADIO_PAGE_SIZE });
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
       set({
@@ -74,53 +87,46 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     }
   },
 
-  loadTopStations: async () => {
+  loadMore: async () => {
+    const { filters, page, hasMore, isLoading, isLoadingMore, mode } = get();
+    if (mode !== 'browse' || isLoading || isLoadingMore || !hasMore) return;
     const requestId = beginRadioRequest();
-    set({ isLoading: true, error: null });
+    const nextPage = page + 1;
+    set({ isLoadingMore: true });
     try {
-      const stations = await api.searchStations({
-        limit: 100,
-        order: 'clickCount',
-        reverse: true,
-        hideBroken: true,
-      });
+      const more = await api.searchStations(buildStationQuery(filters, nextPage));
       if (!isLatestRadioRequest(requestId)) return;
-      set({ stations, isLoading: false });
+      set(state => ({
+        stations: [...state.stations, ...more],
+        page: nextPage,
+        isLoadingMore: false,
+        hasMore: more.length === RADIO_PAGE_SIZE,
+      }));
     } catch (err) {
       if (!isLatestRadioRequest(requestId)) return;
       set({
         error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }),
-        isLoading: false,
+        isLoadingMore: false,
       });
     }
   },
 
-  loadByCountry: async (countryCode: string) => {
-    const requestId = beginRadioRequest();
-    set({ isLoading: true, error: null, selectedCountry: countryCode });
-    try {
-      const stations = await api.searchStations({
-        countryCode,
-        limit: 100,
-        order: 'clickCount',
-        reverse: true,
-        hideBroken: true,
-      });
-      if (!isLatestRadioRequest(requestId)) return;
-      set({ stations, isLoading: false });
-    } catch (err) {
-      if (!isLatestRadioRequest(requestId)) return;
-      set({
-        error: err instanceof Error ? err.message : i18n.t('failedLoadStations', { ns: 'toast' }),
-        isLoading: false,
-      });
-    }
+  loadTopStations: async () => {
+    set({ filters: EMPTY_FILTERS });
+    await get().runSearch();
   },
 
   loadFavorites: async () => {
     if (!IS_ELECTRON) return;
     const requestId = beginRadioRequest();
-    set({ isLoading: true, error: null });
+    set({
+      isLoading: true,
+      isLoadingMore: false,
+      error: null,
+      mode: 'favorites',
+      page: 0,
+      hasMore: false,
+    });
     try {
       const rows = (await window.electronAPI.radio.favorites.getAll()) as Array<{
         stationUuid: string;
@@ -211,10 +217,19 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
     return get().favorites.includes(stationId);
   },
 
-  setSearchQuery: query => set({ searchQuery: query }),
-  setSelectedCountry: country => set({ selectedCountry: country }),
-  setActiveTab: tab => set({ activeTab: tab }),
+  setFilter: patch => {
+    set(state => ({ filters: { ...state.filters, ...patch } }));
+    void get().runSearch();
+  },
+
+  clearFilters: () => {
+    set({ filters: EMPTY_FILTERS });
+    void get().runSearch();
+  },
+
+  setMode: mode => set({ mode }),
   setError: error => set({ error }),
+  hasActiveFilters: () => hasActiveFilters(get().filters),
 }));
 
 if (import.meta.hot) {

@@ -23,6 +23,7 @@ export const IPC_CHANNELS = {
   app: {
     getVersion: 'app:get-version',
     openLogsFolder: 'app:open-logs-folder',
+    getLocaleCountry: 'app:get-locale-country',
   },
   debug: {
     start: 'debug:start',

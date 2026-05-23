@@ -5,7 +5,7 @@ import { EqBars } from '@/components/shared/EqBars';
 import { motion } from 'motion/react';
 import { type RowComponentProps } from 'react-window';
 import type { Station } from 'radio-browser-api';
-import { getCountryFlag } from './radioUtils';
+import { isoCodeToFlag } from './radioUtils';
 
 export interface StationRowProps {
   stations: Station[];
@@ -28,7 +28,7 @@ export function StationRow(props: RowComponentProps<StationRowProps>) {
   const isActive = currentTrackId === radioTrackId;
   const isFav = favorites.includes(station.id);
   const tagsStr = Array.isArray(station.tags) ? station.tags.slice(0, 2).join(', ') : '';
-  const countryFlag = getCountryFlag(station.countryCode);
+  const countryFlag = isoCodeToFlag(station.countryCode);
 
   return (
     <div style={style} className="px-0.5">
