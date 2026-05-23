@@ -374,7 +374,8 @@
 [data-perf-mode='low'] .splash-led {
   animation: none !important;
 }
-[data-perf-mode='low'] .splash-sweep {
+[data-perf-mode='low'] .splash-sweep,
+[data-perf-mode='low'] .progress-sweep {
   animation: none !important;
   transform: none !important;
 }
