@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { logger } from '@/lib/logger';
-import { RadioBrowserApi, type Station } from 'radio-browser-api';
+import { type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
+import { radioApi as api } from '@/components/radio/radioApi';
 
-const api = new RadioBrowserApi('Shiranami/0.2.1');
 let latestRadioRequestId = 0;
 
 function beginRadioRequest(): number {
