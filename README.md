@@ -209,9 +209,16 @@ shiranami/
 ├── apps/
 │   ├── desktop/          # Electron main process and packaging
 │   ├── landing/          # Astro landing page
-│   └── web/              # React renderer
+│   ├── mobile/           # Expo mobile app
+│   ├── server/           # Backend API and Prisma schema
+│   └── web/              # React renderer used by the desktop app
+├── assets/
+│   └── screenshots/      # README screenshots in English and Polish
+├── docs/                 # Project notes, CI docs, audits, and release research
 ├── packages/
+│   ├── contracts/        # Shared API contracts
 │   ├── database/         # Drizzle schema and DB helpers
+│   ├── recommendation/   # Recommendation engine package
 │   └── shared/           # Shared types and constants
 └── scripts/              # Versioning and build helpers
 ```
