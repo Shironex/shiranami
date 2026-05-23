@@ -6,6 +6,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import {
+  formatListeningDuration,
   getGreeting,
   getGreetingSubline,
   getTimeOfDay,
@@ -75,7 +76,7 @@ function GreetingHeroImpl() {
                 minute: '2-digit',
               })
             : '',
-        minutes: t('session.minutes', { count: session.elapsedMin }),
+        duration: formatListeningDuration(session.elapsedMin),
       })
     : t('session.summaryNoTracks');
 

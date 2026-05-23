@@ -13,12 +13,17 @@
     "night": "Świat śpi."
   },
   "session": {
-    "summary": "Słuchasz od {{time}} — to już {{minutes}} muzyki.",
+    "summary": "Słuchasz od {{time}}, to już {{duration}} muzyki.",
     "summaryNoTracks": "Jeszcze nic nie gra. Naciśnij odtwarzanie i niech wieczór się zacznie.",
     "minutes_one": "{{count}} minuta",
     "minutes_few": "{{count}} minuty",
     "minutes_many": "{{count}} minut",
-    "minutes_other": "{{count}} minut"
+    "minutes_other": "{{count}} minut",
+    "hours_one": "{{count}} godzina",
+    "hours_few": "{{count}} godziny",
+    "hours_many": "{{count}} godzin",
+    "hours_other": "{{count}} godzin",
+    "hoursAndMinutes": "{{hours}} i {{minutes}}"
   },
   "clock": {
     "week": "TYDZ. {{week}}",
