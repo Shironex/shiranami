@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.20.0': '新', // "new / renew" — the big redesign, home screen, and recommendations
   '0.19.0': '灯', // "lamp / light" — cafe-window splash redesign
   '0.18.0': '整', // "tidy / arrange" — per-track metadata + topbar polish
   '0.17.1': '印', // "mark / insignia / logo" — about mascot fix
@@ -130,6 +131,129 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.20.0',
+    date: '2026-05-24',
+    title: l(
+      'A complete redesign, a new home screen, and recommendations — the biggest update yet',
+      'Kompletnie nowy wygląd, nowy ekran główny i rekomendacje — największa aktualizacja jak dotąd'
+    ),
+    description: l(
+      'The largest update so far and the last big step before 1.0. Shiranami gets a brand-new look you can personalize with seasonal backgrounds, opens to a real home screen with your listening stats, and can now recommend tracks from your own library and discover new ones. A guided first-run setup walks you through everything, and optional crash reporting — off by default — helps us fix problems faster.',
+      'Największa aktualizacja jak dotąd i ostatni duży krok przed 1.0. Shiranami zyskuje zupełnie nowy wygląd, który możesz personalizować sezonowymi tłami, otwiera się na prawdziwym ekranie głównym z Twoimi statystykami słuchania i potrafi teraz polecać utwory z Twojej biblioteki oraz odkrywać nowe. Przewodnik przy pierwszym uruchomieniu przeprowadzi Cię przez wszystko, a opcjonalne raportowanie awarii — domyślnie wyłączone — pomaga nam szybciej naprawiać problemy.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'A fresh new look across the whole app — glass panels, elegant serif headings, and an outlined play button; the None theme keeps the old solid background until you pick a seasonal scene',
+            'Świeży, nowy wygląd w całej aplikacji — szklane panele, eleganckie szeryfowe nagłówki i obrysowany przycisk odtwarzania; motyw Brak zachowuje stare jednolite tło, dopóki nie wybierzesz sezonowej scenerii'
+          ),
+          l(
+            'Six selectable theme backgrounds — None, Lofi Night, Snow, Summer, Sunset, and Wisteria — each retinting the app’s accent color, with opacity, blur, and dim sliders to get it just right',
+            'Sześć motywów tła do wyboru — Brak, Lofi Night, Śnieg, Lato, Zachód słońca i Wisteria — każdy zmienia kolor akcentu aplikacji, z suwakami przezroczystości, rozmycia i przyciemnienia, by dopasować go idealnie'
+          ),
+          l(
+            'A new Overview home screen that greets you with the time, your listening stats, top tracks and albums this week, recently added music, and an hourly heatmap of when you listen — plus an optional weather row',
+            'Nowy ekran główny Overview, który wita Cię godziną, statystykami słuchania, najczęściej odtwarzanymi utworami i albumami tygodnia, ostatnio dodaną muzyką i godzinową mapą tego, kiedy słuchasz — plus opcjonalny wiersz pogody'
+          ),
+          l(
+            'Recommendations — Shiranami now suggests tracks from your own library based on what you actually play, and a Discover shelf finds new music you can preview and add when the download tools are installed',
+            'Rekomendacje — Shiranami proponuje teraz utwory z Twojej biblioteki na podstawie tego, czego faktycznie słuchasz, a półka Odkrywaj znajduje nową muzykę, którą możesz odsłuchać i dodać, gdy narzędzia pobierania są zainstalowane'
+          ),
+          l(
+            'A guided first-run setup walks you through adding folders, installing tools, picking a theme and visualizer, and playback preferences — and you can replay it anytime from Settings',
+            'Przewodnik przy pierwszym uruchomieniu prowadzi Cię przez dodawanie folderów, instalację narzędzi, wybór motywu i wizualizacji oraz ustawienia odtwarzania — możesz go powtórzyć w dowolnej chwili z Ustawień'
+          ),
+          l(
+            'The Radio browser was rebuilt with composable Country, Language, and Genre filters, a full country list, and a "Near you" shortcut',
+            'Przeglądarka Radia została przebudowana z łączonymi filtrami Kraju, Języka i Gatunku, pełną listą krajów oraz skrótem „Blisko Ciebie”'
+          ),
+          l(
+            'Eight new audio visualizers — Mirror, Mountain, Pulse Rings, Vinyl, Liquid, Constellation, VU Meter, and Kanji Rain — bringing the total to twelve',
+            'Osiem nowych wizualizacji dźwięku — Lustro, Góra, Pierścienie, Winyl, Ciecz, Konstelacja, Wskaźnik VU i Deszcz Kanji — co daje łącznie dwanaście'
+          ),
+          l(
+            'The Now Playing view gained switchable Lyrics, Queue, and Equalizer panels, and compact mode can now expand to show lyrics',
+            'Widok Teraz odtwarzane zyskał przełączane panele Tekstu, Kolejki i Korektora, a tryb kompaktowy może teraz rozwinąć się, by pokazać tekst'
+          ),
+          l(
+            'Discord Rich Presence is now fully customizable, with editable templates for what shows while playing, paused, or idle, and a live preview',
+            'Status Discord Rich Presence jest teraz w pełni konfigurowalny, z edytowalnymi szablonami tego, co wyświetla się podczas odtwarzania, pauzy lub bezczynności, oraz podglądem na żywo'
+          ),
+          l(
+            'Spotify playlist import is far more accurate — it scores several matches per track and flags uncertain ones, so you get the right songs instead of "Unknown" artists',
+            'Import playlist ze Spotify jest znacznie dokładniejszy — ocenia kilka dopasowań na utwór i oznacza te niepewne, więc otrzymujesz właściwe piosenki zamiast wykonawców „Unknown"'
+          ),
+          l(
+            'Settings now show live previews — an equalizer response curve, a before/after metadata sample, and previews for visual effects and the sidebar',
+            'Ustawienia pokazują teraz podglądy na żywo — krzywą odpowiedzi korektora, próbkę metadanych przed/po oraz podglądy efektów wizualnych i paska bocznego'
+          ),
+          l(
+            'A new Support section and one-time launch banner make it easier to support the project, with Buy me a coffee and GitHub Sponsors links',
+            'Nowa sekcja Wsparcie i jednorazowy baner po uruchomieniu ułatwiają wsparcie projektu przez Buy me a coffee lub GitHub Sponsors'
+          ),
+        ],
+      },
+      {
+        label: l('Privacy', 'Prywatność'),
+        entries: [
+          l(
+            'Optional crash and performance reporting that helps us fix problems — completely off by default, with a separate opt-in for each, and your file paths and username are scrubbed before anything is sent',
+            'Opcjonalne raportowanie awarii i wydajności, które pomaga nam naprawiać problemy — domyślnie całkowicie wyłączone, z osobną zgodą na każde, a Twoje ścieżki plików i nazwa użytkownika są usuwane, zanim cokolwiek zostanie wysłane'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'Visualizers are capped at 30fps and no longer blur every frame, so they use far less CPU — especially on high-refresh-rate displays',
+            'Wizualizacje są ograniczone do 30 klatek na sekundę i nie rozmywają już każdej klatki, więc zużywają znacznie mniej procesora — zwłaszcza na ekranach o wysokiej częstotliwości odświeżania'
+          ),
+          l(
+            'The seek bar and playback updates were reworked to redraw far less while music plays, keeping the whole app smoother',
+            'Pasek przewijania i aktualizacje odtwarzania zostały przebudowane tak, by odświeżać się znacznie rzadziej podczas grania muzyki, dzięki czemu cała aplikacja jest płynniejsza'
+          ),
+          l(
+            'The app now respects your system "reduce motion" setting and has a low-performance mode that quiets animations on older machines',
+            'Aplikacja respektuje teraz systemowe ustawienie „ogranicz ruch" i ma tryb niskiej wydajności, który wycisza animacje na starszych maszynach'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Theme backgrounds now appear correctly in the installed app instead of showing a black background',
+            'Tła motywów pojawiają się teraz poprawnie w zainstalowanej aplikacji zamiast pokazywać czarne tło'
+          ),
+          l(
+            'The selection toolbar at the bottom of lists no longer clips its menus, and folds extra actions into an overflow menu on narrow windows',
+            'Pasek narzędzi zaznaczenia na dole list nie przycina już swoich menu i zwija dodatkowe akcje do menu rozwijanego w wąskich oknach'
+          ),
+          l(
+            'Spotify import handles song titles and unusual names more reliably, and can be cancelled mid-import',
+            'Import ze Spotify lepiej radzi sobie z tytułami piosenek i nietypowymi nazwami oraz można go anulować w trakcie'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'A large internal cleanup unified the app’s settings storage, data contracts, and shared components — fewer bugs and faster updates ahead',
+            'Duże wewnętrzne porządki ujednoliciły przechowywanie ustawień, kontrakty danych i współdzielone komponenty — mniej błędów i szybsze przyszłe aktualizacje'
+          ),
+          l(
+            'Updated the app engine (Electron 41.7) and dependencies, and closed several security advisories',
+            'Zaktualizowano silnik aplikacji (Electron 41.7) i zależności oraz zamknięto kilka zaleceń bezpieczeństwa'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.19.0',
     date: '2026-05-16',
