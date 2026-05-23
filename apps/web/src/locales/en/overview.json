@@ -1,0 +1,124 @@
+{
+  "eyebrow": "Your sanctuary",
+  "greeting": {
+    "morning": "Good morning.",
+    "afternoon": "Good afternoon.",
+    "evening": "Good evening.",
+    "night": "Still up."
+  },
+  "greetingSub": {
+    "morning": "A fresh start.",
+    "afternoon": "The day hums along.",
+    "evening": "It's quiet out there.",
+    "night": "The world's asleep."
+  },
+  "session": {
+    "summary": "You started listening at {{time}} — that's {{minutes}} of music so far.",
+    "summaryNoTracks": "Nothing playing yet. Press play and the evening begins.",
+    "minutes_one": "{{count}} minute",
+    "minutes_other": "{{count}} minutes"
+  },
+  "clock": {
+    "week": "WK {{week}}",
+    "ariaLabel": "Current time, {{time}}"
+  },
+  "mood": {
+    "timeOfDay": {
+      "morning": "Morning light.",
+      "afternoon": "Afternoon calm.",
+      "evening": "Winding down.",
+      "night": "Late and low."
+    },
+    "weatherLine": "{{condition}} · {{temp}}°C",
+    "flavor": {
+      "clear": "Clear skies — good for bright records.",
+      "partly_cloudy": "A few clouds, an easy mood.",
+      "cloudy": "Overcast — perfect for slow listening.",
+      "rain": "A good night for slow records.",
+      "snow": "Snow outside, warmth in the speakers.",
+      "thunderstorm": "Storms out there — turn it up.",
+      "fog": "Foggy and hushed.",
+      "unknown": "Whatever the weather, there's a song for it."
+    },
+    "unavailable": "Weather unavailable"
+  },
+  "stats": {
+    "listenedThisWeek": "Listened this week",
+    "tracksPlayed": "Tracks played",
+    "topArtist": "Top artist this week",
+    "newInLibrary": "New in library",
+    "trendVsLastWeek": "{{delta}} vs. last week",
+    "trendNoComparison": "No comparison yet",
+    "trendSame": "Same as last week",
+    "acrossSessions_one": "across {{count}} session",
+    "acrossSessions_other": "across {{count}} sessions",
+    "artistPlays_one": "{{plays}} play",
+    "artistPlays_other": "{{plays}} plays",
+    "newInLibraryHint_one": "{{count}} added in the last week",
+    "newInLibraryHint_other": "{{count}} added in the last week",
+    "noArtist": "No artist yet",
+    "noTrend": "Play a little to see your trend"
+  },
+  "hoursUnit": "h",
+  "minutesUnit": "m",
+  "topThisWeek": "Top this {{em}}",
+  "topThisWeekEm": "week",
+  "openLibrary": "Open library",
+  "topEmptyTitle": "Nothing tops the week yet",
+  "topEmptyCopy": "Play something tonight and your week will start to take shape.",
+  "listeningClock": "Listening {{em}}",
+  "listeningClockEm": "clock",
+  "last7Days": "Last 7 days",
+  "heatmap": {
+    "legendQuiet": "Quiet",
+    "legendLoud": "Loud",
+    "loudest": "Loudest at {{range}}",
+    "loudestNone": "No clear peak yet",
+    "ariaLabel": "Listening clock: when you play music across the week, {{total}} plays in the last 7 days",
+    "cellLabel": "{{day}} {{hour}} · {{level}} · {{count}} plays",
+    "level": {
+      "0": "silent",
+      "1": "quiet",
+      "2": "light",
+      "3": "active",
+      "4": "loud"
+    },
+    "empty": "Your listening clock fills in as you play through the week."
+  },
+  "topAlbums": "Top albums this {{em}}",
+  "topAlbumsEm": "week",
+  "albumPlays_one": "{{count}} play",
+  "albumPlays_other": "{{count}} plays",
+  "albumsEmptyTitle": "No albums yet this week",
+  "albumsEmptyCopy": "Play a few tracks and your most-spun albums will rise to the top.",
+  "recentlyAdded": "Recently {{em}}",
+  "recentlyAddedEm": "added",
+  "recentCount_one": "{{count}} new track",
+  "recentCount_other": "{{count}} new tracks",
+  "recentEmptyTitle": "Nothing new yet",
+  "recentEmptyCopy": "Tracks you import will appear here, newest first.",
+  "playAria": "Play {{title}}",
+  "emptySectionTitle": "Your week hasn't started",
+  "emptySectionCopy": "Play something tonight and your stats, top tracks, and listening clock will start to take shape.",
+  "firstRunTitle": "Your sanctuary starts here",
+  "firstRunSubtitle": "Add some music to begin. Your evening, your stats, and your listening rhythm will appear here.",
+  "firstRunAction": "Add a music folder",
+  "errorTitle": "Couldn't load your overview",
+  "errorSubtitle": "Something went wrong. Try again.",
+  "weatherSettings": {
+    "title": "Weather on Overview",
+    "subtitle": "Show the current weather in your Overview clock card",
+    "toggleLabel": "Show weather on Overview",
+    "toggleDesc": "When on, Shiranami fetches the current weather for the city you choose from Open-Meteo. Off by default — nothing leaves your machine until you enable it and pick a city.",
+    "cityLabel": "City",
+    "cityPlaceholder": "Search for a city…",
+    "cityHelp": "Type a city and press search. Only the city name and its rounded coordinates are sent to Open-Meteo.",
+    "searchButton": "Search",
+    "searching": "Searching…",
+    "noMatches": "No matches for that city. Try a different spelling.",
+    "lookupError": "Couldn't reach the weather service. Try again.",
+    "currentCity": "Showing weather for {{label}}",
+    "clearCity": "Clear city",
+    "note": "Powered by Open-Meteo. No account, no API key — only a city name and rounded coordinates leave your machine, and only after you opt in."
+  }
+}

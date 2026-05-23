@@ -1,4 +1,5 @@
 {
+  "overview": "Overview",
   "library": "Library",
   "playlists": "Playlists",
   "favorites": "Favorites",
@@ -9,6 +10,7 @@
   "radio": "Radio",
   "settings": "Settings",
   "openLibrary": "Open library",
+  "openHome": "Open home",
   "expandSidebar": "Expand sidebar",
   "collapseSidebar": "Collapse sidebar",
   "yourPlaylists": "Your Playlists",

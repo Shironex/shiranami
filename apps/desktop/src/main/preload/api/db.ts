@@ -2,8 +2,10 @@ import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import type {
   ListeningActivityPoint,
+  ListeningHourlyActivityPoint,
   ListeningHistoryEntry,
   ListeningStatsSummary,
+  WeeklyInsights,
 } from '../types';
 
 const C = IPC_CHANNELS.db;
@@ -34,8 +36,15 @@ export interface DbHistoryApi {
     limit?: number;
     since?: string | null;
   }) => Promise<ListeningHistoryEntry[]>;
-  getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
+  getSummary: (options?: {
+    since?: string | null;
+    until?: string | null;
+  }) => Promise<ListeningStatsSummary>;
   getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+  getHourlyActivity: (options?: {
+    since?: string | null;
+  }) => Promise<ListeningHourlyActivityPoint[]>;
+  getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
 }
 
 export interface DbFoldersApi {
@@ -93,6 +102,8 @@ const historyApi: DbHistoryApi = {
   getRecent: options => ipcRenderer.invoke(C.history.getRecent, options),
   getSummary: options => ipcRenderer.invoke(C.history.getSummary, options),
   getActivity: options => ipcRenderer.invoke(C.history.getActivity, options),
+  getHourlyActivity: options => ipcRenderer.invoke(C.history.getHourlyActivity, options),
+  getWeeklyInsights: options => ipcRenderer.invoke(C.history.getWeeklyInsights, options),
 };
 
 const foldersApi: DbFoldersApi = {

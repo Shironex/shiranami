@@ -149,6 +149,10 @@ function createElectronAPIMock(): ElectronAPI {
     lyrics: {
       fetch: asyncFn({ synced: null, plain: null, source: null }),
     },
+    weather: {
+      geocode: asyncFn(null),
+      getCurrent: asyncFn({ tempC: 0, condition: 'unknown', label: 'Weather' }),
+    },
     db: {
       tracks: {
         getAll: asyncFn([]),
@@ -169,6 +173,8 @@ function createElectronAPIMock(): ElectronAPI {
         getRecent: asyncFn([]),
         getSummary: vi.fn(),
         getActivity: asyncFn([]),
+        getHourlyActivity: asyncFn([]),
+        getWeeklyInsights: asyncFn({ sessionCount: 0, topAlbums: [] }),
       },
       playlists: {
         getAll: asyncFn([]),

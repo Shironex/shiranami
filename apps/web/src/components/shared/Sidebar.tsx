@@ -8,6 +8,7 @@ import { useViewStore, type AppView } from '@/stores/useViewStore';
 import type { Playlist } from '@/types/electron';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import {
+  LayoutDashboard,
   Library,
   Heart,
   History,
@@ -28,6 +29,7 @@ import { SidebarPlaylistButton } from './SidebarPlaylistButton';
 import type { ContextMenuPosition } from './TrackContextMenu';
 
 const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
+  { id: 'overview', key: 'overview', icon: LayoutDashboard },
   { id: 'library', key: 'library', icon: Library },
   { id: 'playlists', key: 'playlists', icon: ListMusic },
   { id: 'favorites', key: 'favorites', icon: Heart },
@@ -46,6 +48,7 @@ export function Sidebar() {
   const sidebarCollapsed = useUIStore(s => s.sidebarCollapsed);
   const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
   const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
+  const landingView = useUIStore(s => s.landingView);
   const navigateTo = useViewStore(s => s.navigateTo);
   const toggleSidebarCollapsed = useUIStore(s => s.toggleSidebarCollapsed);
   const version = useAppVersion();
@@ -82,13 +85,13 @@ export function Sidebar() {
         )}
       >
         <button
-          onClick={() => navigateTo('library')}
+          onClick={() => navigateTo(landingView)}
           className={cn(
             'no-drag flex items-center rounded-xl text-left transition-colors',
             sidebarCollapsed ? 'justify-center w-9 h-9' : 'gap-2.5 min-w-0 flex-1'
           )}
-          title={sidebarCollapsed ? t('library') : undefined}
-          aria-label={t('openLibrary')}
+          title={sidebarCollapsed ? t('shiranami', { ns: 'common' }) : undefined}
+          aria-label={t('openHome')}
         >
           <img
             src="./mascot.png"

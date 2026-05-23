@@ -4,6 +4,8 @@ import type {
   EnrichProgress,
   MetadataLookupResult,
   MainMetricsSnapshot,
+  GeocodeResult,
+  WeatherCurrent,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -71,6 +73,28 @@ export interface ListeningActivityPoint {
   date: string;
   playCount: number;
   listenedMinutes: number;
+}
+
+export interface ListeningHourlyActivityPoint {
+  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
+  dayOfWeek: number;
+  /** Hour of day in local time, 0–23. */
+  hour: number;
+  playCount: number;
+  listenedMinutes: number;
+}
+
+export interface ListeningAlbumStat {
+  album: string;
+  artist: string;
+  albumArt: string | null;
+  playCount: number;
+}
+
+export interface WeeklyInsights {
+  /** Gap-based session count for the window (>30 min idle starts a new session). */
+  sessionCount: number;
+  topAlbums: ListeningAlbumStat[];
 }
 
 export interface ElectronAPI {
@@ -148,6 +172,10 @@ export interface ElectronAPI {
       source: 'lrclib' | 'cache' | null;
     }>;
   };
+  weather: {
+    geocode: (query: string) => Promise<GeocodeResult | null>;
+    getCurrent: (coords: { lat: number; lon: number }) => Promise<WeatherCurrent>;
+  };
   db: {
     tracks: {
       getAll: () => Promise<unknown[]>;
@@ -174,8 +202,15 @@ export interface ElectronAPI {
         limit?: number;
         since?: string | null;
       }) => Promise<ListeningHistoryEntry[]>;
-      getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
+      getSummary: (options?: {
+        since?: string | null;
+        until?: string | null;
+      }) => Promise<ListeningStatsSummary>;
       getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+      getHourlyActivity: (options?: {
+        since?: string | null;
+      }) => Promise<ListeningHourlyActivityPoint[]>;
+      getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
     };
     playlists: {
       getAll: () => Promise<unknown[]>;

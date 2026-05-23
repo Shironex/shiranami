@@ -104,6 +104,17 @@
       opacity: 0.7;
     }
   }
+  /* Overview clock colon — soft blink between the hour and minute. */
+  @keyframes overview-blink {
+    0%,
+    45% {
+      opacity: 1;
+    }
+    55%,
+    100% {
+      opacity: 0.25;
+    }
+  }
   /* Shared mascot float — used by empty-state and search mascot images */
   @keyframes shiranami-float {
     0%,
@@ -336,7 +347,8 @@
   .eq-bar-3,
   .animate-pulse,
   .animate-pulse-subtle,
-  .float-mascot {
+  .float-mascot,
+  .overview-blink {
     animation: none !important;
   }
   .animate-marquee {
@@ -557,6 +569,13 @@
 
 @utility eq-bar-3 {
   animation: eq-bar-3 1.1s ease-in-out 0.4s infinite;
+}
+
+/* Overview clock colon blink. The component already gates this on the
+   useReducedMotion hook (so the class is only applied when motion is allowed);
+   the media query below is a CSS-level belt for OS-level changes mid-session. */
+@utility overview-blink {
+  animation: overview-blink 1.6s steps(1, end) infinite;
 }
 
 /* Base styles */

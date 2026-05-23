@@ -12,6 +12,7 @@ import playlistsEn from '@/locales/en/playlists.json';
 import searchEn from '@/locales/en/search.json';
 import radioEn from '@/locales/en/radio.json';
 import historyEn from '@/locales/en/history.json';
+import overviewEn from '@/locales/en/overview.json';
 import settingsEn from '@/locales/en/settings.json';
 import queueEn from '@/locales/en/queue.json';
 import lyricsEn from '@/locales/en/lyrics.json';
@@ -41,6 +42,7 @@ import playlistsPl from '@/locales/pl/playlists.json';
 import searchPl from '@/locales/pl/search.json';
 import radioPl from '@/locales/pl/radio.json';
 import historyPl from '@/locales/pl/history.json';
+import overviewPl from '@/locales/pl/overview.json';
 import settingsPl from '@/locales/pl/settings.json';
 import queuePl from '@/locales/pl/queue.json';
 import lyricsPl from '@/locales/pl/lyrics.json';
@@ -100,6 +102,7 @@ const namespaces = [
   'search',
   'radio',
   'history',
+  'overview',
   'settings',
   'queue',
   'lyrics',
@@ -133,6 +136,7 @@ i18n.use(initReactI18next).init({
       search: searchEn,
       radio: radioEn,
       history: historyEn,
+      overview: overviewEn,
       settings: settingsEn,
       queue: queueEn,
       lyrics: lyricsEn,
@@ -163,6 +167,7 @@ i18n.use(initReactI18next).init({
       search: searchPl,
       radio: radioPl,
       history: historyPl,
+      overview: overviewPl,
       settings: settingsPl,
       queue: queuePl,
       lyrics: lyricsPl,

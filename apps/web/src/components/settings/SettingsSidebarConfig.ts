@@ -1,6 +1,7 @@
 import {
   Heart,
   History,
+  LayoutDashboard,
   Library,
   ListMusic,
   ListPlus,
@@ -18,6 +19,7 @@ export interface ToggleableSidebarItem {
 }
 
 export const SETTINGS_SIDEBAR_ITEMS: ToggleableSidebarItem[] = [
+  { id: 'overview', key: 'overview', Icon: LayoutDashboard },
   { id: 'library', key: 'library', Icon: Library },
   { id: 'playlists', key: 'playlists', Icon: ListMusic },
   { id: 'favorites', key: 'favorites', Icon: Heart },

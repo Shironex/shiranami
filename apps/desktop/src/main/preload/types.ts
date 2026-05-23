@@ -57,6 +57,28 @@ export interface ListeningActivityPoint {
   listenedMinutes: number;
 }
 
+export interface ListeningHourlyActivityPoint {
+  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
+  dayOfWeek: number;
+  /** Hour of day in local time, 0–23. */
+  hour: number;
+  playCount: number;
+  listenedMinutes: number;
+}
+
+export interface ListeningAlbumStat {
+  album: string;
+  artist: string;
+  albumArt: string | null;
+  playCount: number;
+}
+
+export interface WeeklyInsights {
+  /** Gap-based session count for the window (>30 min idle starts a new session). */
+  sessionCount: number;
+  topAlbums: ListeningAlbumStat[];
+}
+
 export interface ToolInstallResult {
   tool: 'ytdlp' | 'ffmpeg';
   success: boolean;

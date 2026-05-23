@@ -9,6 +9,7 @@ import { isScanLocked } from '@/lib/scanLock';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 
 const VIEW_TITLE_KEYS: Record<string, string> = {
+  overview: 'overview',
   library: 'library',
   playlists: 'playlists',
   favorites: 'favorites',

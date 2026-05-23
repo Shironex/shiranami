@@ -19,6 +19,7 @@ import { discordApi, type DiscordApi } from './api/discord';
 import { downloaderApi, type DownloaderApi } from './api/downloader';
 import { libraryApi, type LibraryApi } from './api/library';
 import { lyricsApi, type LyricsApi } from './api/lyrics';
+import { weatherApi, type WeatherApi } from './api/weather';
 import { mediaApi, type MediaApi } from './api/media';
 import { metadataApi, type MetadataApi } from './api/metadata';
 import { playlistApi, type PlaylistApi } from './api/playlist';
@@ -37,6 +38,7 @@ export interface ElectronAPI {
   library: LibraryApi;
   db: DbApi;
   lyrics: LyricsApi;
+  weather: WeatherApi;
   media: MediaApi;
   discord: DiscordApi;
   downloader: DownloaderApi;
@@ -72,6 +74,7 @@ const electronAPI: ElectronAPI = {
   library: libraryApi,
   db: dbApi,
   lyrics: lyricsApi,
+  weather: weatherApi,
   media: mediaApi,
   discord: discordApi,
   downloader: downloaderApi,

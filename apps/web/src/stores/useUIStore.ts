@@ -41,6 +41,11 @@ export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
 /** Which panel the full-screen Now Playing view shows in its right column. */
 export type NowPlayingPanel = 'lyrics' | 'queue' | 'eq' | null;
+/** The view the app opens to on launch. */
+export type LandingView = 'overview' | 'library';
+
+/** Default landing view for a fresh install — Overview is the new home. */
+export const LANDING_VIEW_DEFAULT: LandingView = 'overview';
 
 export const UI_SCALE_MIN = 80;
 export const UI_SCALE_MAX = 120;
@@ -113,6 +118,9 @@ function coerceUiScale(v: unknown): number {
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
   return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
 }
+function coerceLandingView(v: unknown): LandingView {
+  return v === 'overview' || v === 'library' ? v : LANDING_VIEW_DEFAULT;
+}
 
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
@@ -133,6 +141,7 @@ interface PersistedUIState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  landingView: LandingView;
 }
 
 // Legacy fields that may still live in the persisted bucket from older
@@ -179,6 +188,8 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean')
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (persisted.landingView !== undefined)
+    out.landingView = coerceLandingView(persisted.landingView);
   return out;
 }
 
@@ -205,6 +216,7 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'libraryHeroCardEnabled',
   'lowPerformanceMode',
   'noiseOverlayEnabled',
+  'landingView',
 ]);
 
 function readPassthroughLegacyFields(): Record<string, unknown> {
@@ -329,6 +341,7 @@ interface UIState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  landingView: LandingView;
 }
 
 interface UIActions {
@@ -339,6 +352,7 @@ interface UIActions {
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
+  setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
   toggleSidebarItem: (view: AppView) => void;
@@ -372,6 +386,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
+    landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
       set({ nowPlayingViewEnabled: enabled });
@@ -395,6 +410,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setNoiseOverlayEnabled: enabled => {
       set({ noiseOverlayEnabled: enabled });
+    },
+    setLandingView: view => {
+      set({ landingView: view });
     },
     setSidebarCollapsed: sidebarCollapsed => {
       set({ sidebarCollapsed });
@@ -468,6 +486,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
+        landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({
       ...current,
@@ -476,6 +495,18 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     onRehydrate: state => {
       applyUiScale(state.uiScale);
       applyLowPerformanceMode(state.lowPerformanceMode);
+      // Land on the configured view. Rehydrate runs synchronously at module
+      // load (localStorage), before the App tree reads `activeView`, so this
+      // sets the home view without a visible flash. Only applied when the view
+      // store is still at its own untouched default — never clobbers a view the
+      // user has already navigated to in this session.
+      const view = useViewStore.getState();
+      if (view.activeView === 'library' && view.previousView === 'library') {
+        useViewStore.setState({
+          activeView: state.landingView,
+          previousView: state.landingView,
+        });
+      }
     },
   }
 );

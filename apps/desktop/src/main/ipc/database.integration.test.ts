@@ -1,6 +1,8 @@
 import { join } from 'node:path';
+import * as crypto from 'node:crypto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { closeDatabase, initializeDatabase } from '@shiranami/database/client';
+import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
+import { playHistory } from '@shiranami/database';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
 import { cleanupDatabaseHandlers, registerDatabaseHandlers } from './database';
 
@@ -56,7 +58,10 @@ describe('database ipc (integration)', () => {
     });
 
     const getRecent = ipcHandlers.get('db:history:get-recent')!;
-    const recent = (await getRecent(null as never, { limit: 10 })) as Array<{ trackId: string; title: string }>;
+    const recent = (await getRecent(null as never, { limit: 10 })) as Array<{
+      trackId: string;
+      title: string;
+    }>;
     expect(recent).toHaveLength(1);
     expect(recent[0]!.trackId).toBe(track.id);
     expect(recent[0]!.title).toBe('Integration Track');
@@ -69,12 +74,112 @@ describe('database ipc (integration)', () => {
     };
     expect(summary.totalPlays).toBe(1);
     expect(summary.uniqueTracks).toBe(1);
-    expect(summary.topTracks.some((r) => r.trackId === track.id)).toBe(true);
+    expect(summary.topTracks.some(r => r.trackId === track.id)).toBe(true);
 
     const getActivity = ipcHandlers.get('db:history:get-activity')!;
     const activity = (await getActivity(null as never, {})) as Array<{ playCount: number }>;
     expect(activity.length).toBeGreaterThanOrEqual(1);
-    expect(activity.some((a) => a.playCount >= 1)).toBe(true);
+    expect(activity.some(a => a.playCount >= 1)).toBe(true);
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  History aggregations: hourly activity + weekly insights            */
+  /* ------------------------------------------------------------------ */
+
+  // recordPlay stamps `new Date()`, so insert play_history rows directly to
+  // control the timestamps the bucketing/sessionization logic reads.
+  function insertPlayAt(trackId: string, playedAt: string, playedSeconds = 120) {
+    getDatabase()
+      .insert(playHistory)
+      .values({
+        id: crypto.randomUUID(),
+        trackId,
+        playedAt,
+        playedSeconds,
+        completionRatio: 1,
+        completed: true,
+        source: 'library',
+      })
+      .run();
+  }
+
+  it('get-hourly-activity returns local-time day-of-week × hour buckets', async () => {
+    const track = await insertTrack({ title: 'Hourly Track' });
+    // Two plays in the same local hour, one in a different hour.
+    insertPlayAt(track.id, '2026-05-18T22:10:00');
+    insertPlayAt(track.id, '2026-05-18T22:40:00');
+    insertPlayAt(track.id, '2026-05-19T09:00:00');
+
+    const getHourly = ipcHandlers.get('db:history:get-hourly-activity')!;
+    const rows = (await getHourly(null as never, {})) as Array<{
+      dayOfWeek: number;
+      hour: number;
+      playCount: number;
+    }>;
+
+    const total = rows.reduce((sum, r) => sum + r.playCount, 0);
+    expect(total).toBe(3);
+    // dayOfWeek is SQLite-indexed (0=Sun..6=Sat) and hour is 0–23.
+    for (const row of rows) {
+      expect(row.dayOfWeek).toBeGreaterThanOrEqual(0);
+      expect(row.dayOfWeek).toBeLessThanOrEqual(6);
+      expect(row.hour).toBeGreaterThanOrEqual(0);
+      expect(row.hour).toBeLessThanOrEqual(23);
+    }
+  });
+
+  it('get-weekly-insights counts gap-based sessions and top albums', async () => {
+    const trackA = await insertTrack({ title: 'A', album: 'Album One' });
+    const trackB = await insertTrack({ title: 'B', album: 'Album Two' });
+
+    // Session 1: two plays 10 min apart.
+    insertPlayAt(trackA.id, '2026-05-18T20:00:00');
+    insertPlayAt(trackA.id, '2026-05-18T20:10:00');
+    // > 30 min gap → session 2.
+    insertPlayAt(trackA.id, '2026-05-18T21:00:00');
+    insertPlayAt(trackB.id, '2026-05-18T21:05:00');
+    // > 30 min gap → session 3.
+    insertPlayAt(trackB.id, '2026-05-19T09:00:00');
+
+    const getInsights = ipcHandlers.get('db:history:get-weekly-insights')!;
+    const insights = (await getInsights(null as never, {})) as {
+      sessionCount: number;
+      topAlbums: Array<{ album: string; playCount: number }>;
+    };
+
+    expect(insights.sessionCount).toBe(3);
+    expect(insights.topAlbums.length).toBe(2);
+    // Album One has 3 plays, Album Two has 2 — Album One leads.
+    expect(insights.topAlbums[0]!.album).toBe('Album One');
+    expect(insights.topAlbums[0]!.playCount).toBe(3);
+  });
+
+  it('get-weekly-insights excludes empty-album rows from top albums', async () => {
+    const untagged = await insertTrack({ title: 'Untagged', album: '' });
+    insertPlayAt(untagged.id, '2026-05-18T20:00:00');
+
+    const getInsights = ipcHandlers.get('db:history:get-weekly-insights')!;
+    const insights = (await getInsights(null as never, {})) as {
+      sessionCount: number;
+      topAlbums: Array<{ album: string }>;
+    };
+
+    expect(insights.sessionCount).toBe(1);
+    expect(insights.topAlbums).toHaveLength(0);
+  });
+
+  it('get-summary honors the until upper bound for prior-window trends', async () => {
+    const track = await insertTrack({ title: 'Windowed' });
+    insertPlayAt(track.id, '2026-05-10T12:00:00', 600); // prior window
+    insertPlayAt(track.id, '2026-05-20T12:00:00', 600); // current window
+
+    const getSummary = ipcHandlers.get('db:history:get-summary')!;
+    const prior = (await getSummary(null as never, {
+      since: '2026-05-08T00:00:00.000Z',
+      until: '2026-05-15T00:00:00.000Z',
+    })) as { totalPlays: number };
+
+    expect(prior.totalPlays).toBe(1);
   });
 
   /* ------------------------------------------------------------------ */
@@ -180,7 +285,10 @@ describe('database ipc (integration)', () => {
     expect(added).toHaveLength(10);
 
     const removeMany = ipcHandlers.get('db:tracks:remove-many')!;
-    await removeMany(null as never, added.map(t => t.id));
+    await removeMany(
+      null as never,
+      added.map(t => t.id)
+    );
 
     const getAll = ipcHandlers.get('db:tracks:get-all')!;
     const all = (await getAll(null as never)) as unknown[];
@@ -210,7 +318,9 @@ describe('database ipc (integration)', () => {
     const track = await insertTrack({ title: 'Old Title' });
 
     const update = ipcHandlers.get('db:tracks:update')!;
-    const updated = (await update(null as never, track.id, { title: 'New Title' })) as { title: string };
+    const updated = (await update(null as never, track.id, { title: 'New Title' })) as {
+      title: string;
+    };
 
     expect(updated.title).toBe('New Title');
   });
@@ -292,7 +402,10 @@ describe('database ipc (integration)', () => {
     await addTrackToPlaylist(null as never, { playlistId: playlist.id, trackId: trackB.id });
 
     const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
-    const result = (await getTracks(null as never, playlist.id)) as Array<{ id: string; title: string }>;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{
+      id: string;
+      title: string;
+    }>;
 
     expect(result).toHaveLength(2);
     expect(result[0]!.title).toBe('Track A');
