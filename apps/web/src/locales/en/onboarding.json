@@ -103,11 +103,13 @@
     "notSent": [
       "No screen recording or replay",
       "No personal info or account data",
-      "File paths are scrubbed of your username"
+      "No username in file paths"
     ],
     "toggleLabel": "Send crash reports",
     "toggleDesc": "Anonymous. Default off. Change it any time.",
-    "footnote": "Reports are scrubbed of file paths and your username before they ever leave your machine."
+    "perfLabel": "Performance monitoring",
+    "perfDesc": "Also samples performance timings to find slow spots. Sends a bit more than crash reports alone.",
+    "footnote": "Your username is stripped from any file paths before a report ever leaves your machine."
   },
   "summary": {
     "eyebrow": "07 · All set",
@@ -121,7 +123,13 @@
       "tools": "Download helpers",
       "playback": "Playback",
       "theme": "Theme",
-      "visualizer": "Visualizer"
+      "visualizer": "Visualizer",
+      "privacy": "Crash reports"
+    },
+    "privacy": {
+      "off": "Off",
+      "on": "On",
+      "onPerf": "On · performance"
     },
     "folders_one": "{{count}} folder",
     "folders_other": "{{count}} folders",

@@ -10,6 +10,8 @@ export function PrivacyStep() {
   const { kanji, headingId, headingRef } = useOnboardingStepContext();
   const enabled = useTelemetryStore(s => s.enabled);
   const setEnabled = useTelemetryStore(s => s.setEnabled);
+  const performanceEnabled = useTelemetryStore(s => s.performanceEnabled);
+  const setPerformanceEnabled = useTelemetryStore(s => s.setPerformanceEnabled);
 
   const sent = t('privacy.sent', { returnObjects: true }) as string[];
   const notSent = t('privacy.notSent', { returnObjects: true }) as string[];
@@ -68,6 +70,19 @@ export function PrivacyStep() {
           checked={enabled}
           onCheckedChange={value => void setEnabled(value)}
         />
+
+        {/* Performance monitoring is a sub-option of crash reporting (it only
+            sends data when reporting is on), so it only appears once reporting
+            is enabled — matching the Settings · Privacy disclosure. */}
+        {enabled && (
+          <SettingsToggleRow
+            divider
+            label={t('privacy.perfLabel')}
+            description={t('privacy.perfDesc')}
+            checked={performanceEnabled}
+            onCheckedChange={value => void setPerformanceEnabled(value)}
+          />
+        )}
 
         <p className="text-[11px] leading-snug text-muted-foreground/70">{t('privacy.footnote')}</p>
       </div>

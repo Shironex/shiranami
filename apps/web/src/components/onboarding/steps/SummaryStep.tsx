@@ -1,6 +1,14 @@
 import { useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
-import { Languages, FolderOpen, ArrowDownToLine, Music2, Palette, Waves } from 'lucide-react';
+import {
+  Languages,
+  FolderOpen,
+  ArrowDownToLine,
+  Music2,
+  Palette,
+  Waves,
+  ShieldCheck,
+} from 'lucide-react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
@@ -9,6 +17,7 @@ import { useDiscordRpcSettingsQuery } from '@/hooks/queries/useDiscordRpc';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useThemeStore } from '@/stores/useThemeStore';
+import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
 import { THEME_TILES } from '@/components/shared/theme/ThemeTileGrid';
 import { VISUALIZER_STYLES } from '@/components/player/visualizerRegistry';
@@ -35,6 +44,8 @@ export function SummaryStep() {
   const crossfadeDuration = usePlaybackStore(s => s.crossfadeDuration);
   const theme = useThemeStore(s => s.theme);
   const visualizerStyle = useUIStore(s => s.visualizerStyle);
+  const telemetryEnabled = useTelemetryStore(s => s.enabled);
+  const performanceEnabled = useTelemetryStore(s => s.performanceEnabled);
 
   const languageValue = useMemo(() => {
     const match = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language);
@@ -80,6 +91,11 @@ export function SummaryStep() {
     return meta ? t(meta.labelKey, { ns: 'settings' }) : t('summary.value.none');
   }, [visualizerStyle, t]);
 
+  const privacyValue = useMemo(() => {
+    if (!telemetryEnabled) return t('summary.privacy.off');
+    return performanceEnabled ? t('summary.privacy.onPerf') : t('summary.privacy.on');
+  }, [telemetryEnabled, performanceEnabled, t]);
+
   return (
     <OnboardingStepLayout
       kanji={kanji}
@@ -122,6 +138,12 @@ export function SummaryStep() {
             icon={<Waves />}
             label={t('summary.row.visualizer')}
             value={visualizerValue}
+          />
+          <SummaryRow
+            icon={<ShieldCheck />}
+            label={t('summary.row.privacy')}
+            value={privacyValue}
+            highlight={telemetryEnabled}
           />
         </div>
       </div>

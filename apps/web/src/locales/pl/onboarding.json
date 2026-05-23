@@ -103,13 +103,15 @@
     ],
     "notSentTitle": "Co nie jest wysyłane",
     "notSent": [
-      "Brak nagrywania ekranu i powtórek",
-      "Brak danych osobowych i danych konta",
-      "Ścieżki plików są pozbawiane Twojej nazwy użytkownika"
+      "Brak nagrywania ekranu i sesji",
+      "Brak danych osobowych ani danych konta",
+      "Brak nazwy użytkownika w ścieżkach plików"
     ],
     "toggleLabel": "Wysyłaj raporty awarii",
     "toggleDesc": "Anonimowo. Domyślnie wyłączone. Zmień w każdej chwili.",
-    "footnote": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie."
+    "perfLabel": "Monitorowanie wydajności",
+    "perfDesc": "Zbiera też dane o wydajności, aby wykryć spowolnienia. Wysyła nieco więcej niż same raporty awarii.",
+    "footnote": "Twoja nazwa użytkownika jest usuwana ze ścieżek plików, zanim raporty opuszczą Twoje urządzenie."
   },
   "summary": {
     "eyebrow": "07 · Gotowe",
@@ -123,7 +125,13 @@
       "tools": "Pomocnicy do pobierania",
       "playback": "Odtwarzanie",
       "theme": "Motyw",
-      "visualizer": "Wizualizacja"
+      "visualizer": "Wizualizacja",
+      "privacy": "Raporty awarii"
+    },
+    "privacy": {
+      "off": "Wyłączone",
+      "on": "Włączone",
+      "onPerf": "Włączone · wydajność"
     },
     "folders_one": "{{count}} folder",
     "folders_few": "{{count}} foldery",
