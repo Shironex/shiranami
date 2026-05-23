@@ -16,3 +16,4 @@ export { registerRadioHandlers, cleanupRadioHandlers } from './radio';
 export { registerPlaylistHandlers, cleanupPlaylistHandlers } from './playlist';
 export { registerShareHandlers, cleanupShareHandlers } from './share';
 export { registerMetadataEnrichHandlers, cleanupMetadataEnrichHandlers } from './metadata-enrich';
+export { registerRecommendationsHandlers, cleanupRecommendationsHandlers } from './recommendations';
