@@ -23,16 +23,19 @@ export function PrivacySection() {
   const { t } = useTranslation('settings');
   const enabled = useTelemetryStore(s => s.enabled);
   const setEnabled = useTelemetryStore(s => s.setEnabled);
+  const performanceEnabled = useTelemetryStore(s => s.performanceEnabled);
+  const setPerformanceEnabled = useTelemetryStore(s => s.setPerformanceEnabled);
+  const bootEnabled = useTelemetryStore(s => s.bootEnabled);
+  const bootPerformanceEnabled = useTelemetryStore(s => s.bootPerformanceEnabled);
   const [sentRecently, setSentRecently] = useState(false);
-  // The main-process SDK can only init before the app 'ready' event, so turning
-  // crash reporting ON takes effect on the next launch. Surface that to the user.
-  const [pendingRestart, setPendingRestart] = useState(false);
 
-  function handleToggle(next: boolean) {
-    setEnabled(next);
-    // Enabling needs a restart to actually start reporting; disabling is immediate.
-    setPendingRestart(next);
-  }
+  // Sentry reads its config once, before the app 'ready' event, so config changes
+  // only take effect on the next launch. Derived from the boot snapshot (not local
+  // state) so the warning survives navigating away and back. Turning reporting OFF
+  // is immediate (main closes the client at runtime), so it never needs a restart.
+  const needsRestart =
+    (enabled && !bootEnabled) ||
+    (enabled && bootEnabled && performanceEnabled !== bootPerformanceEnabled);
 
   const sent = t('priv.sent', { returnObjects: true }) as string[];
   const notSent = t('priv.notSent', { returnObjects: true }) as string[];
@@ -54,8 +57,19 @@ export function PrivacySection() {
           label={t('priv.toggleLabel')}
           description={t('priv.toggleDesc')}
           checked={enabled}
-          onCheckedChange={handleToggle}
+          onCheckedChange={value => void setEnabled(value)}
         />
+
+        {enabled && (
+          <div className="border-t border-border/30 pt-4">
+            <SettingsToggleRow
+              label={t('priv.perfLabel')}
+              description={t('priv.perfDesc')}
+              checked={performanceEnabled}
+              onCheckedChange={value => void setPerformanceEnabled(value)}
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-4 border-t border-border/30 pt-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -77,13 +91,13 @@ export function PrivacySection() {
         </div>
       </SettingsCard>
 
-      {pendingRestart && (
+      {needsRestart && (
         <SettingsInfoCallout icon={RotateCcw}>{t('priv.restartNote')}</SettingsInfoCallout>
       )}
 
       <SettingsInfoCallout icon={Info}>{t('priv.note')}</SettingsInfoCallout>
 
-      {SHOW_TEST_BUTTON && enabled && !pendingRestart && (
+      {SHOW_TEST_BUTTON && enabled && !needsRestart && (
         <SettingsCard icon={Bug} title={t('priv.testTitle')} subtitle={t('priv.testDesc')}>
           <div className="flex flex-wrap items-center gap-2">
             <Button

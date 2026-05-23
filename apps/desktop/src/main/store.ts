@@ -47,6 +47,10 @@ export interface StoreSchema {
   // treated as `false`; no `defaults` value is set so a fresh install never
   // initializes Sentry until the user explicitly enables it.
   'app.telemetryEnabled': boolean;
+  // Opt-in performance tracing (Sentry). A sub-option of telemetry: only takes
+  // effect when crash reporting is also on. Default `undefined` → off, so no
+  // transactions are sampled until the user explicitly enables it.
+  'app.performanceMonitoringEnabled': boolean;
   'metadata-enrich.skippedIds': string[];
 
   // Main-only (downloader.ts).

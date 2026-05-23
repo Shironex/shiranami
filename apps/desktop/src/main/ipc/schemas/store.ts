@@ -22,6 +22,7 @@ const RENDERER_STORE_KEYS = [
   'app.onboardingCompleted',
   'app.supportBannerSeen',
   'app.telemetryEnabled',
+  'app.performanceMonitoringEnabled',
   'metadata-enrich.skippedIds',
 ] as const;
 

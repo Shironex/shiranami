@@ -59,19 +59,32 @@ export function initSentryMain(): void {
     return;
   }
 
+  // Performance tracing is a separate opt-in: only sample transactions when the
+  // user has also enabled performance monitoring. Sample everything on an
+  // unpackaged dev build (the developer hunting bottlenecks); keep a modest
+  // rate on shipped builds to bound transaction volume across many users.
+  const perfEnabled = store.get('app.performanceMonitoringEnabled') === true;
+  const tracesSampleRate = perfEnabled ? (app.isPackaged ? 0.2 : 1.0) : 0;
+
   Sentry.init({
     dsn: SENTRY_DSN,
     release: `shiranami@${app.getVersion()}`,
-    environment: 'production',
+    // Force-enabled local runs are unpackaged — tag them 'development' so they
+    // don't pollute the production environment's error rates and dashboards.
+    environment: app.isPackaged ? 'production' : 'development',
     dist: process.platform,
     sendDefaultPii: false,
-    tracesSampleRate: 0.1,
+    tracesSampleRate,
     beforeSend: event => scrubEvent(event),
     beforeBreadcrumb: breadcrumb => scrubBreadcrumb(breadcrumb),
   });
 
   initialized = true;
-  logger.info('[telemetry] enabled — Sentry initialized (main)');
+  logger.info(
+    `[telemetry] enabled — Sentry initialized (main), performance monitoring ${
+      perfEnabled ? 'on' : 'off'
+    }`
+  );
 }
 
 /**

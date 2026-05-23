@@ -66,7 +66,7 @@ export function PrivacyStep() {
           label={t('privacy.toggleLabel')}
           description={t('privacy.toggleDesc')}
           checked={enabled}
-          onCheckedChange={setEnabled}
+          onCheckedChange={value => void setEnabled(value)}
         />
 
         <p className="text-[11px] leading-snug text-muted-foreground/70">{t('privacy.footnote')}</p>

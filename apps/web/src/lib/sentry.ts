@@ -34,19 +34,27 @@ export async function initSentryRenderer(): Promise<void> {
   if (!IS_ELECTRON || !(import.meta.env.PROD || forceEnabled)) return;
 
   let consent: boolean;
+  let perfEnabled: boolean;
   try {
     consent = (await window.electronAPI.store.get('app.telemetryEnabled')) === true;
+    // Performance tracing is a separate opt-in (sub-option of telemetry).
+    perfEnabled = (await window.electronAPI.store.get('app.performanceMonitoringEnabled')) === true;
   } catch {
     // Store read failed — treat as no consent.
     return;
   }
   if (!consent) return;
 
+  // Mirror the main process: sample everything on an unpackaged dev build, a
+  // modest rate on shipped builds, and nothing when performance monitoring is
+  // off. browserTracing is only wired when tracing is actually enabled.
+  const tracesSampleRate = perfEnabled ? (import.meta.env.PROD ? 0.2 : 1.0) : 0;
+
   SentryElectron.init(
     {
       sendDefaultPii: false,
-      tracesSampleRate: 0.1,
-      integrations: [SentryElectron.browserTracingIntegration()],
+      tracesSampleRate,
+      integrations: perfEnabled ? [SentryElectron.browserTracingIntegration()] : [],
       beforeSend: event => scrubEvent(event),
     },
     reactInit
