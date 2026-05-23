@@ -75,6 +75,7 @@ interface PersistedCompactState {
   compactShowSeek: boolean;
   compactShowVolume: boolean;
   compactShowFavorite: boolean;
+  compactShowLyrics: boolean;
   compactDefaultAlwaysOnTop: boolean;
 }
 
@@ -102,6 +103,8 @@ function sanitize(
     out.compactShowVolume = persisted.compactShowVolume;
   if (typeof persisted.compactShowFavorite === 'boolean')
     out.compactShowFavorite = persisted.compactShowFavorite;
+  if (typeof persisted.compactShowLyrics === 'boolean')
+    out.compactShowLyrics = persisted.compactShowLyrics;
   if (typeof persisted.compactDefaultAlwaysOnTop === 'boolean')
     out.compactDefaultAlwaysOnTop = persisted.compactDefaultAlwaysOnTop;
   return out;
@@ -145,6 +148,7 @@ interface CompactState {
   compactShowSeek: boolean;
   compactShowVolume: boolean;
   compactShowFavorite: boolean;
+  compactShowLyrics: boolean;
   compactDefaultAlwaysOnTop: boolean;
 }
 
@@ -161,6 +165,7 @@ interface CompactActions {
   setCompactShowSeek: (visible: boolean) => void;
   setCompactShowVolume: (visible: boolean) => void;
   setCompactShowFavorite: (visible: boolean) => void;
+  setCompactShowLyrics: (visible: boolean) => void;
   setCompactDefaultAlwaysOnTop: (enabled: boolean) => void;
   resetCompactAppearance: () => void;
 }
@@ -177,6 +182,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
     compactShowSeek: true,
     compactShowVolume: true,
     compactShowFavorite: false,
+    compactShowLyrics: false,
     compactDefaultAlwaysOnTop: false,
 
     setCompactMode: async compactMode => {
@@ -260,6 +266,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
     setCompactShowSeek: visible => set({ compactShowSeek: visible }),
     setCompactShowVolume: visible => set({ compactShowVolume: visible }),
     setCompactShowFavorite: visible => set({ compactShowFavorite: visible }),
+    setCompactShowLyrics: visible => set({ compactShowLyrics: visible }),
     setCompactDefaultAlwaysOnTop: enabled => set({ compactDefaultAlwaysOnTop: enabled }),
     resetCompactAppearance: () => {
       set({
@@ -271,6 +278,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
         compactShowSeek: true,
         compactShowVolume: true,
         compactShowFavorite: false,
+        compactShowLyrics: false,
         compactDefaultAlwaysOnTop: false,
       });
     },
@@ -289,6 +297,7 @@ export const useCompactStore = createPersistedStore<CompactState & CompactAction
       compactShowSeek: s.compactShowSeek,
       compactShowVolume: s.compactShowVolume,
       compactShowFavorite: s.compactShowFavorite,
+      compactShowLyrics: s.compactShowLyrics,
       compactDefaultAlwaysOnTop: s.compactDefaultAlwaysOnTop,
     }),
     sanitize: (persisted, current) => ({

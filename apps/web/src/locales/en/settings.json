@@ -301,7 +301,9 @@
       "volume": "Volume slider",
       "volumeDesc": "Inline slider next to the playback controls",
       "favorite": "Favorite button",
-      "favoriteDesc": "Heart button in the title bar to favorite the current track"
+      "favoriteDesc": "Heart button in the title bar to favorite the current track",
+      "lyrics": "Lyrics button",
+      "lyricsDesc": "Button in the title bar that opens lyrics over the mini-player"
     },
     "behavior": {
       "title": "Behavior",

@@ -301,7 +301,9 @@
       "volume": "Suwak głośności",
       "volumeDesc": "Suwak obok kontrolek odtwarzania",
       "favorite": "Przycisk ulubionych",
-      "favoriteDesc": "Przycisk serca w pasku tytułu do dodawania bieżącego utworu do ulubionych"
+      "favoriteDesc": "Przycisk serca w pasku tytułu do dodawania bieżącego utworu do ulubionych",
+      "lyrics": "Przycisk tekstu",
+      "lyricsDesc": "Przycisk w pasku tytułu otwierający tekst nad mini-odtwarzaczem"
     },
     "behavior": {
       "title": "Zachowanie",
