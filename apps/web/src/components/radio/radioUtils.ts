@@ -64,6 +64,39 @@ export function titleCase(value: string): string {
 }
 
 /**
+ * Derives the user's country as an ISO 3166-1 alpha-2 code from the browser /
+ * Electron locale (e.g. "en-US" -> "US", "pl-PL" -> "PL"). This backs the
+ * "Near you" shortcut: it is a locale-country filter, not GPS proximity.
+ * Returns null when the locale carries no region subtag (e.g. bare "en").
+ */
+export function localeCountryCode(): string | null {
+  const candidates: string[] = [];
+  if (typeof navigator !== 'undefined') {
+    if (Array.isArray(navigator.languages)) candidates.push(...navigator.languages);
+    if (navigator.language) candidates.push(navigator.language);
+  }
+  try {
+    const resolved = new Intl.DateTimeFormat().resolvedOptions().locale;
+    if (resolved) candidates.push(resolved);
+  } catch {
+    // Intl unavailable; fall back to navigator candidates only.
+  }
+
+  for (const tag of candidates) {
+    let region: string | undefined;
+    try {
+      region = new Intl.Locale(tag).region ?? undefined;
+    } catch {
+      region = tag.split('-')[1];
+    }
+    if (region && region.length === 2 && /^[A-Za-z]{2}$/.test(region)) {
+      return region.toUpperCase();
+    }
+  }
+  return null;
+}
+
+/**
  * Curated genre shortcuts shown as one-tap pills, mirroring Receiver's preset
  * strip. These map to the real radio-browser `tag` value (the pill text), not a
  * free-text name search.

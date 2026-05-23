@@ -5,11 +5,28 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useRadioStore, type RadioMode } from '@/stores/useRadioStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Radio, Search, Heart, Globe, Languages, Tag, Loader2, Star, X } from 'lucide-react';
+import {
+  Radio,
+  Search,
+  Heart,
+  Globe,
+  Languages,
+  Tag,
+  Loader2,
+  Star,
+  X,
+  MapPin,
+} from 'lucide-react';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { List } from 'react-window';
-import { GENRE_PILLS, isoCodeToFlag, stationToTrack, titleCase } from './radioUtils';
+import {
+  GENRE_PILLS,
+  isoCodeToFlag,
+  localeCountryCode,
+  stationToTrack,
+  titleCase,
+} from './radioUtils';
 import { FilterPopover } from './FilterPopover';
 import { useRadioCatalog } from './useRadioCatalog';
 import { StationRow } from './StationRow';
@@ -91,6 +108,14 @@ export function RadioView() {
     },
     [filters.tagList, setFilter]
   );
+
+  // "Near you" is a locale-country shortcut, not GPS proximity.
+  const localeCode = useMemo(() => localeCountryCode(), []);
+  const isLocalActive = Boolean(localeCode && filters.countryCode === localeCode);
+  const toggleLocal = useCallback(() => {
+    if (!localeCode) return;
+    setFilter({ countryCode: isLocalActive ? undefined : localeCode });
+  }, [localeCode, isLocalActive, setFilter]);
 
   const radioTracks = useMemo(
     () => stations.map(s => stationToTrack(s, tCommon('liveRadio'))),
@@ -205,6 +230,24 @@ export function RadioView() {
           })}
 
           <span className="mx-1 h-5 w-px bg-border/40" aria-hidden="true" />
+
+          {localeCode && (
+            <button
+              onClick={toggleLocal}
+              aria-pressed={isLocalActive}
+              title={t('filterLocalTooltip')}
+              className={cn(
+                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                isLocalActive
+                  ? 'bg-primary/15 text-primary'
+                  : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0 opacity-70" />
+              {t('filterLocal')}
+            </button>
+          )}
 
           <FilterPopover
             label={t('filterCountry')}
