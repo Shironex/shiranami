@@ -33,12 +33,14 @@ function ActionButton({ icon, label, onClick, variant = 'default' }: ActionButto
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        'shrink-0 flex items-center justify-center md:justify-start gap-1.5 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+        'shrink-0 flex items-center justify-center md:justify-start gap-1.5 min-h-9 min-w-9 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card',
         variant === 'destructive'
           ? 'text-destructive/80 hover:text-destructive hover:bg-destructive/10'
           : 'text-foreground/70 hover:text-foreground hover:bg-accent'
       )}
       title={label}
+      aria-label={label}
     >
       {icon}
       <span className="hidden md:inline whitespace-nowrap">{label}</span>
@@ -62,6 +64,7 @@ function MenuAction({ icon, label, onClick, variant = 'default' }: MenuActionPro
       onClick={onClick}
       className={cn(
         'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left',
+        'focus-visible:outline-none focus-visible:bg-accent',
         variant === 'destructive'
           ? 'text-destructive hover:bg-destructive/10'
           : 'text-foreground/80 hover:text-foreground hover:bg-accent'
@@ -148,11 +151,15 @@ function MoreMenu({ actions }: { actions: OverflowAction[] }) {
         whileTap={{ scale: 0.92 }}
         onClick={() => setIsOpen(prev => !prev)}
         className={cn(
-          'shrink-0 flex items-center justify-center p-1.5 rounded-lg text-xs font-medium transition-colors',
+          'shrink-0 flex items-center justify-center min-h-9 min-w-9 p-1.5 rounded-lg text-xs font-medium transition-colors',
           'text-foreground/70 hover:text-foreground hover:bg-accent',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card',
           isOpen && 'text-foreground bg-accent'
         )}
         title={tCommon('more')}
+        aria-label={tCommon('more')}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
       >
         <MoreHorizontal className="w-3.5 h-3.5" />
       </motion.button>
@@ -162,6 +169,8 @@ function MoreMenu({ actions }: { actions: OverflowAction[] }) {
           {isOpen && (
             <motion.div
               ref={popoverRef}
+              role="menu"
+              aria-label={tCommon('more')}
               initial={{ opacity: 0, scale: 0.95, y: 6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 6 }}
@@ -174,14 +183,16 @@ function MoreMenu({ actions }: { actions: OverflowAction[] }) {
                 const showDivider =
                   prev && prev.variant !== 'destructive' && action.variant === 'destructive';
                 return (
-                  <div key={action.key}>
+                  <div key={action.key} role="none">
                     {showDivider && <Divider />}
-                    <MenuAction
-                      icon={action.icon}
-                      label={action.label}
-                      variant={action.variant}
-                      onClick={() => handleAction(action.onClick)}
-                    />
+                    <div role="menuitem">
+                      <MenuAction
+                        icon={action.icon}
+                        label={action.label}
+                        variant={action.variant}
+                        onClick={() => handleAction(action.onClick)}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -304,6 +315,8 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   return createPortal(
     <AnimatePresence>
       <motion.div
+        role="toolbar"
+        aria-label={tCommon('bulkActionsLabel')}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
@@ -322,8 +335,12 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => (allSelected ? clearSelection() : selectAll(trackList))}
-          className="shrink-0 flex items-center justify-center md:justify-start gap-1.5 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
+          className={cn(
+            'shrink-0 flex items-center justify-center md:justify-start gap-1.5 min-h-9 min-w-9 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card'
+          )}
           title={allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
+          aria-label={allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
         >
           <CheckCheck className="w-3.5 h-3.5" />
           <span className="hidden md:inline whitespace-nowrap">
@@ -392,8 +409,12 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
         <motion.button
           whileTap={{ scale: 0.85 }}
           onClick={clearSelection}
-          className="shrink-0 flex items-center justify-center p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+          className={cn(
+            'shrink-0 flex items-center justify-center min-h-9 min-w-9 p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-card'
+          )}
           title={tCommon('clearSelection')}
+          aria-label={tCommon('clearSelection')}
         >
           <X className="w-3.5 h-3.5" />
         </motion.button>
