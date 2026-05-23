@@ -49,7 +49,7 @@ export function TopAlbums({ albums }: TopAlbumsProps) {
                     style={{ width: `${width}%` }}
                   />
                 </span>
-                <span className="w-12 shrink-0 text-right text-xs text-muted-foreground/70">
+                <span className="shrink-0 whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground/70">
                   {t('albumPlays', { count: album.playCount })}
                 </span>
               </li>
