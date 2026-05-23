@@ -34,6 +34,7 @@
     "dev:web": "pnpm --filter @shiranami/web dev",
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "dev:mobile": "pnpm --filter @shiranami/mobile dev",
+    "dev:sentry": "node scripts/dev-sentry.mjs",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",
     "build:packages": "pnpm --filter @shiranami/contracts build && pnpm --filter @shiranami/shared build && pnpm --filter @shiranami/database build",
     "build:landing": "pnpm --filter @shiranami/landing build",
