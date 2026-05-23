@@ -24,9 +24,11 @@ interface ActionButtonProps {
   variant?: 'default' | 'destructive';
 }
 
-// Always-visible inline action. Icon-only below md; label appears at md+
-// (the secondary/destructive actions only render inline at md+ anyway, so
-// below md these never show without a label).
+// Inline dock action. Icon-only below md; label appears at md+. The
+// always-visible Play Next / Add to Queue follow this rule directly; the
+// secondary/destructive actions only mount inside the xl+ wrapper, so they
+// never appear without a label. min-h-9/min-w-9 keeps the icon-only hit area
+// near the 44px touch-target guideline.
 function ActionButton({ icon, label, onClick, variant = 'default' }: ActionButtonProps) {
   return (
     <motion.button
@@ -269,11 +271,11 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
 
   const allSelected = count === trackList.length;
 
-  // The secondary/destructive set. Rendered inline at md+ (where the worst-case
-  // PL/8-button row still fits) and collapsed into the More menu below md (the
-  // audit measured 768px overflowing with full labels). Below md these never
-  // appear inline, so destructive actions and the escape hatch never scroll off
-  // an invisible edge.
+  // The secondary/destructive set. Rendered inline at xl+ (where the worst-case
+  // PL/8-button row provably fits within max-w-[calc(100vw-2rem)]) and collapsed
+  // into the More menu below xl. The audit measured 768px overflowing with full
+  // labels; live measurement showed the full PL row needs ~1178px of content,
+  // which only fits from the xl breakpoint (1280px) up.
   const overflowActions: OverflowAction[] = [
     {
       key: 'toggleFavorites',
@@ -361,8 +363,13 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           onClick={handleAddToQueue}
         />
 
-        {/* Secondary/destructive set inline at md+ */}
-        <div className="hidden md:flex md:items-center md:gap-1">
+        {/* Secondary/destructive set inline only at xl+. The worst case
+            (PL labels + Electron + playlist view = 8 buttons) measures ~1178px
+            of content, so it is only guaranteed to fit within
+            max-w-[calc(100vw-2rem)] from the xl breakpoint (1280px) up. Below
+            that it lives in the More menu, so destructive actions never scroll
+            off an invisible edge. */}
+        <div className="hidden xl:flex xl:items-center xl:gap-1">
           <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
 
           <ActionButton
@@ -398,8 +405,8 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           )}
         </div>
 
-        {/* Same set collapsed into an overflow menu below md */}
-        <div className="flex items-center md:hidden">
+        {/* Same set collapsed into an overflow menu below xl */}
+        <div className="flex items-center xl:hidden">
           <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
           <MoreMenu actions={overflowActions} />
         </div>
