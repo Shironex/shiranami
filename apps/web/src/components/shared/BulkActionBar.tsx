@@ -63,6 +63,7 @@ interface MenuActionProps {
 function MenuAction({ icon, label, onClick, variant = 'default' }: MenuActionProps) {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       className={cn(
         'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left',
@@ -81,7 +82,7 @@ function MenuAction({ icon, label, onClick, variant = 'default' }: MenuActionPro
 }
 
 function Divider() {
-  return <div className="my-1 border-t border-border/50" />;
+  return <div role="separator" className="my-1 border-t border-border/50" />;
 }
 
 interface OverflowAction {
@@ -187,14 +188,12 @@ function MoreMenu({ actions }: { actions: OverflowAction[] }) {
                 return (
                   <div key={action.key} role="none">
                     {showDivider && <Divider />}
-                    <div role="menuitem">
-                      <MenuAction
-                        icon={action.icon}
-                        label={action.label}
-                        variant={action.variant}
-                        onClick={() => handleAction(action.onClick)}
-                      />
-                    </div>
+                    <MenuAction
+                      icon={action.icon}
+                      label={action.label}
+                      variant={action.variant}
+                      onClick={() => handleAction(action.onClick)}
+                    />
                   </div>
                 );
               })}
