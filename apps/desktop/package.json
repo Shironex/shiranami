@@ -54,6 +54,7 @@
     "@sentry/esbuild-plugin": "5.3.0",
     "@shiranami/contracts": "workspace:*",
     "@shiranami/database": "workspace:*",
+    "@shiranami/recommendation": "workspace:*",
     "@shiranami/shared": "workspace:*",
     "@types/adm-zip": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",

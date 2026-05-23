@@ -145,6 +145,9 @@ importers:
       '@shiranami/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@shiranami/recommendation':
+        specifier: workspace:*
+        version: link:../../packages/recommendation
       '@shiranami/shared':
         specifier: workspace:*
         version: link:../../packages/shared

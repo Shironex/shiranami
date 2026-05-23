@@ -16,6 +16,10 @@ import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
+import {
+  scheduleRecommendationRefresh,
+  cancelRecommendationRefresh,
+} from './recommendation-service';
 import { PRIVILEGED_SCHEMES } from './privileged-schemes';
 
 // E2E hatch: when running under @playwright/test we disable noisy bootstrap
@@ -125,6 +129,13 @@ async function bootstrap(): Promise<void> {
 
   initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
   logger.info('Database initialized');
+
+  // Warm the recommendation discover shelf in the background once after startup
+  // (only if its cache is stale). yt-dlp never runs on the render path; a
+  // failure here is swallowed and the shelves simply serve the cache.
+  if (!isE2E) {
+    scheduleRecommendationRefresh();
+  }
 
   registerAudioProtocol();
   registerRadioProtocol();
@@ -236,6 +247,11 @@ app.on('before-quit', event => {
   isShuttingDown = true;
 
   (async () => {
+    try {
+      cancelRecommendationRefresh();
+    } catch {
+      /* ignore */
+    }
     try {
       cleanupDiscordRpc();
     } catch {
