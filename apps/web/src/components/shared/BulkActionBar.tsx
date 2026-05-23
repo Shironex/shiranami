@@ -128,7 +128,7 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           title={allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
         >
           <CheckCheck className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">
+          <span className="hidden sm:inline whitespace-nowrap">
             {allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
           </span>
         </motion.button>
