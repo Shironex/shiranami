@@ -264,7 +264,11 @@ export function SettingsView() {
 
           {/* Section content */}
           <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20">
-            <div className="max-w-xl space-y-4">
+            {/* Center the reading-width column in its pane so wide windows show
+                a balanced composition instead of content hugging the left edge
+                with a large empty band on the right. mx-auto is a no-op at
+                narrow widths where max-w-xl already fills the pane. */}
+            <div className="max-w-xl mx-auto space-y-4">
               <Panel />
             </div>
           </div>
