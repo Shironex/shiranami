@@ -92,17 +92,23 @@ export function TopThisWeek({ tracks, onPlay, onOpenLibrary }: TopThisWeekProps)
         </button>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2">
-        {tracks.map((track, index) => (
-          <TopRow
-            key={track.trackId}
-            track={track}
-            rank={index + 1}
-            maxPlays={maxPlays}
-            onPlay={onPlay}
-          />
-        ))}
-      </div>
+      {tracks.length === 0 ? (
+        <p className="mt-4 rounded-2xl border border-border/20 bg-background/20 px-4 py-8 text-center text-sm text-muted-foreground/60">
+          {t('topEmptyCopy')}
+        </p>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2">
+          {tracks.map((track, index) => (
+            <TopRow
+              key={track.trackId}
+              track={track}
+              rank={index + 1}
+              maxPlays={maxPlays}
+              onPlay={onPlay}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
