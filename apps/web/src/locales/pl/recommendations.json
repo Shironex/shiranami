@@ -3,7 +3,20 @@
   "refresh": "Odśwież",
   "fromLibrary": "Z Twojej biblioteki",
   "discover": "Odkryj nową muzykę",
-  "discoverEmpty": "Nie ma jeszcze czego odkrywać. Posłuchaj kilku utworów i odśwież, aby pobrać nowe propozycje z YouTube.",
+  "discoverEmpty": "Nie ma jeszcze czego odkrywać. Posłuchaj kilku utworów i odśwież, aby pobrać nowe propozycje z sieci.",
   "playAria": "Odtwórz {{title}}",
-  "downloadAria": "Pobierz {{title}}"
+  "downloadAria": "Pobierz {{title}}",
+  "downloading": "Dodawanie…",
+  "addedToLibrary": "W Twojej bibliotece",
+  "downloadError": "Nie udało się dodać — dotknij, by spróbować ponownie",
+  "downloadingAria": "Dodawanie {{title}} do biblioteki",
+  "addedAria": "{{title}} dodano do biblioteki",
+  "retryDownloadAria": "Spróbuj ponownie dodać {{title}}",
+  "shelfEmptyTitle": "Brak propozycji",
+  "shelfEmptySubtitle": "Posłuchaj jeszcze kilku utworów, a potem odśwież, aby pobrać nowe propozycje.",
+  "updatedAgo": "Zaktualizowano {{time}}",
+  "stale": "Nieaktualne",
+  "refreshAria": "Odśwież polecane",
+  "moreCount": "+{{count}} więcej",
+  "discoverTag": "Nowe"
 }

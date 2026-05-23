@@ -3,7 +3,20 @@
   "refresh": "Refresh",
   "fromLibrary": "From your library",
   "discover": "Discover new music",
-  "discoverEmpty": "Nothing to discover yet. Play a few tracks and refresh to pull fresh picks from YouTube.",
+  "discoverEmpty": "Nothing to discover yet. Play a few tracks and refresh to pull fresh picks from the web.",
   "playAria": "Play {{title}}",
-  "downloadAria": "Download {{title}}"
+  "downloadAria": "Download {{title}}",
+  "downloading": "Adding…",
+  "addedToLibrary": "In your library",
+  "downloadError": "Couldn't add — tap to retry",
+  "downloadingAria": "Adding {{title}} to your library",
+  "addedAria": "{{title}} added to your library",
+  "retryDownloadAria": "Retry adding {{title}}",
+  "shelfEmptyTitle": "No picks just yet",
+  "shelfEmptySubtitle": "Listen to a few more tracks, then refresh to pull fresh recommendations.",
+  "updatedAgo": "Updated {{time}}",
+  "stale": "Out of date",
+  "refreshAria": "Refresh recommendations",
+  "moreCount": "+{{count}} more",
+  "discoverTag": "New"
 }
