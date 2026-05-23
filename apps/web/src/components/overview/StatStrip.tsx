@@ -48,7 +48,7 @@ export function StatStrip({
     trendDeltaMinutes === undefined
       ? { hint: t('stats.trendNoComparison'), dir: 'neutral' }
       : trend === null
-        ? { hint: t('stats.trendNoComparison'), dir: 'neutral' }
+        ? { hint: t('stats.trendSame'), dir: 'neutral' }
         : {
             hint: t('stats.trendVsLastWeek', { delta: trend.label }),
             dir: trend.sign > 0 ? 'up' : 'down',
@@ -78,14 +78,7 @@ export function StatStrip({
         kanji="人"
         value={topArtist?.artist || t('stats.noArtist')}
         label={t('stats.topArtist')}
-        hint={
-          topArtist
-            ? t('stats.artistTracks', {
-                plays: topArtist.playCount,
-                count: summary.uniqueTracks,
-              })
-            : undefined
-        }
+        hint={topArtist ? t('stats.artistPlays', { plays: topArtist.playCount }) : undefined}
       />
       <StatTile
         kanji="新"
