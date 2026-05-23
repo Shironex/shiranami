@@ -270,6 +270,7 @@ function createElectronAPIMock(): ElectronAPI {
     app: {
       getVersion: asyncFn('0.0.0'),
       openLogsFolder: asyncFn(undefined),
+      getLocaleCountry: asyncFn(''),
     },
     playlist: {
       extract: asyncFn([]),

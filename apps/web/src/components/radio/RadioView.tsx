@@ -20,15 +20,10 @@ import {
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { List } from 'react-window';
-import {
-  GENRE_PILLS,
-  isoCodeToFlag,
-  localeCountryCode,
-  stationToTrack,
-  titleCase,
-} from './radioUtils';
+import { GENRE_PILLS, isoCodeToFlag, stationToTrack, titleCase } from './radioUtils';
 import { FilterPopover } from './FilterPopover';
 import { useRadioCatalog } from './useRadioCatalog';
+import { useLocaleCountry } from './useLocaleCountry';
 import { StationRow } from './StationRow';
 import { StationRowSkeleton, RADIO_SKELETON_ROWS } from './StationRowSkeleton';
 
@@ -109,8 +104,9 @@ export function RadioView() {
     [filters.tagList, setFilter]
   );
 
-  // "Near you" is a locale-country shortcut, not GPS proximity.
-  const localeCode = useMemo(() => localeCountryCode(), []);
+  // "Near you" is a locale-country shortcut, not GPS proximity. Resolves from the
+  // renderer locale, falling back to the OS region (main process) when needed.
+  const localeCode = useLocaleCountry();
   const isLocalActive = Boolean(localeCode && filters.countryCode === localeCode);
   const toggleLocal = useCallback(() => {
     if (!localeCode) return;
