@@ -54,3 +54,43 @@ export function countryNameFromCode(code: string, language: string): string {
     return code.toUpperCase();
   }
 }
+
+/**
+ * Title-cases a radio-browser language or tag name for display. The API returns
+ * these lowercased (e.g. "drum and bass"), so each word is capitalized.
+ */
+export function titleCase(value: string): string {
+  return value.replace(/\b\w/g, char => char.toUpperCase());
+}
+
+/**
+ * Curated genre shortcuts shown as one-tap pills, mirroring Receiver's preset
+ * strip. These map to the real radio-browser `tag` value (the pill text), not a
+ * free-text name search.
+ */
+export const GENRE_PILLS = [
+  'pop',
+  'rock',
+  'jazz',
+  'classical',
+  'electronic',
+  'dance',
+  'house',
+  'hits',
+  'oldies',
+  'chillout',
+  'news',
+  'talk',
+  'alternative',
+  'indie',
+  'metal',
+  'hiphop',
+  'latin',
+  'soul',
+  'blues',
+  'folk',
+  'country',
+  'reggae',
+  'lounge',
+  'ambient',
+] as const;
