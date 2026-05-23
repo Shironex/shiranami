@@ -596,6 +596,21 @@
   background: oklch(0.1 0.02 280 / 0.9);
 }
 
+/* Low-perf drops the backdrop blur that "frosts" a theme image. With no blur a
+   bright photo (esp. summer) bleeds through the 0.92 glass and washes out the
+   sidebar/chrome — its top blends into the bright sky and nav-label contrast
+   drops. When BOTH low-perf AND an image theme are active, push the chrome
+   surfaces near-opaque so navigation stays legible. Gated on [data-theme] so
+   the "none" theme (solid --background, no bleed) keeps the lighter 0.92, and
+   higher specificity than the rules above so it wins regardless of order. */
+[data-perf-mode='low'][data-theme] .glass {
+  background: oklch(0.1 0.02 280 / 0.97);
+}
+
+[data-perf-mode='low'][data-theme] .glass-subtle {
+  background: oklch(0.08 0.02 280 / 0.95);
+}
+
 /* Full-viewport feTurbulence noise overlay — a live SVG filter the compositor
    keeps as a top-most always-present layer. AmbientBackground already unmounts
    it under low-perf, but drop it here too so the rule is self-documenting and
@@ -634,6 +649,18 @@
 .theme-bg-scrim {
   background:
     linear-gradient(180deg, oklch(0.05 0.018 280 / 0.36) 0%, oklch(0.04 0.012 280 / 0.5) 100%),
+    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
+}
+
+/* Summer is the only true daytime image — its bright lake + sky compete with
+   text on sparse views (mixes/search/headers) where no glass panel sits behind
+   the copy. Give it a heavier scrim than the shared default so it reads as
+   calmly as the dusk/night themes, WITHOUT changing the global slider defaults
+   (a global dim/blur would needlessly mute the four themes that are already
+   legible at 0/0/100). Per-theme = surgical: summer only. */
+[data-theme='summer'] .theme-bg-scrim {
+  background:
+    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.5) 0%, oklch(0.04 0.012 280 / 0.62) 100%),
     radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
 }
 
