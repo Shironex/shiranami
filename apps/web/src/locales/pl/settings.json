@@ -450,7 +450,12 @@
       "Brak danych osobowych i danych konta",
       "Ścieżki plików pozbawione Twojej nazwy użytkownika"
     ],
-    "note": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane."
+    "note": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane.",
+    "testTitle": "Zweryfikuj konfigurację",
+    "testDesc": "Wysyła przykładowy błąd, aby zweryfikować konfigurację Sentry — widoczne tylko w trybie deweloperskim.",
+    "testButton": "Wyślij zdarzenie testowe",
+    "testDevOnly": "Tylko dla deweloperów",
+    "testSent": "Wysłano zdarzenie testowe"
   },
   "abt": {
     "title": "O aplikacji",

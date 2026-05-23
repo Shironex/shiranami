@@ -450,7 +450,12 @@
       "No personal info or account data",
       "File paths scrubbed of your username"
     ],
-    "note": "Reports are scrubbed of file paths and your username before they ever leave your machine. Nothing is sent while this is off."
+    "note": "Reports are scrubbed of file paths and your username before they ever leave your machine. Nothing is sent while this is off.",
+    "testTitle": "Verify setup",
+    "testDesc": "Sends a sample error to verify your Sentry setup — only visible in development.",
+    "testButton": "Send test event",
+    "testDevOnly": "Development only",
+    "testSent": "Test event sent"
   },
   "abt": {
     "title": "About",
