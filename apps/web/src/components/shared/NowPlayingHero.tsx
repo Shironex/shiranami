@@ -35,11 +35,20 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
           className="px-6 pb-4 shrink-0 overflow-hidden"
         >
           <div
-            className="relative rounded-2xl overflow-hidden p-5 flex items-center gap-5"
+            className="now-playing-hero relative rounded-2xl overflow-hidden p-5 flex items-center gap-5"
             style={{
               background: `linear-gradient(135deg, rgba(${ambientColor.rgb}, 0.15) 0%, rgba(${ambientColor.rgb}, 0.05) 100%)`,
             }}
           >
+            {/* Frosted base — invisible on the solid default background, but a
+                legible glass surface under image themes so the hero text never
+                sits on a bare bright photo (e.g. summer). Gated on [data-theme]
+                in globals.css so the default 'none' theme keeps its airy look. */}
+            <div
+              aria-hidden="true"
+              className="now-playing-hero-surface absolute inset-0 pointer-events-none"
+            />
+
             {currentTrack.albumArt && !lowPerformanceMode && (
               // Render the blurred backdrop as a positioned <img> rather than
               // background-image: this lets Chromium share the decoded bitmap
