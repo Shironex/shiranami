@@ -170,6 +170,7 @@ function createElectronAPIMock(): ElectronAPI {
         getSummary: vi.fn(),
         getActivity: asyncFn([]),
         getHourlyActivity: asyncFn([]),
+        getWeeklyInsights: asyncFn({ sessionCount: 0, topAlbums: [] }),
       },
       playlists: {
         getAll: asyncFn([]),

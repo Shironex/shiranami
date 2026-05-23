@@ -82,6 +82,19 @@ export interface ListeningHourlyActivityPoint {
   listenedMinutes: number;
 }
 
+export interface ListeningAlbumStat {
+  album: string;
+  artist: string;
+  albumArt: string | null;
+  playCount: number;
+}
+
+export interface WeeklyInsights {
+  /** Gap-based session count for the window (>30 min idle starts a new session). */
+  sessionCount: number;
+  topAlbums: ListeningAlbumStat[];
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => Promise<void>;
@@ -183,11 +196,15 @@ export interface ElectronAPI {
         limit?: number;
         since?: string | null;
       }) => Promise<ListeningHistoryEntry[]>;
-      getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
+      getSummary: (options?: {
+        since?: string | null;
+        until?: string | null;
+      }) => Promise<ListeningStatsSummary>;
       getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
       getHourlyActivity: (options?: {
         since?: string | null;
       }) => Promise<ListeningHourlyActivityPoint[]>;
+      getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
     };
     playlists: {
       getAll: () => Promise<unknown[]>;

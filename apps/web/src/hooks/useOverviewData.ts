@@ -1,7 +1,12 @@
 import { useCallback, useMemo } from 'react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useHistoryQuery, useHourlyActivityQuery } from '@/hooks/queries/useHistory';
+import {
+  useHistoryQuery,
+  useHourlyActivityQuery,
+  usePriorWeekMinutesQuery,
+  useWeeklyInsightsQuery,
+} from '@/hooks/queries/useHistory';
 import { EMPTY_SUMMARY } from '@/components/history/historyUtils';
 import { buildHeatmap } from '@/components/overview/overviewUtils';
 import type { Track } from '@/stores/types';
@@ -25,10 +30,19 @@ export function useOverviewData() {
 
   const { data, isLoading, isError, refetch } = useHistoryQuery('7d');
   const { data: hourly } = useHourlyActivityQuery('7d');
+  const { data: insights } = useWeeklyInsightsQuery('7d');
+  const { data: priorMinutes } = usePriorWeekMinutesQuery();
 
   const summary = data?.summary ?? EMPTY_SUMMARY;
 
   const heatmap = useMemo(() => buildHeatmap(hourly ?? []), [hourly]);
+
+  const sessionCount = insights?.sessionCount ?? 0;
+  const topAlbums = insights?.topAlbums ?? [];
+  // Only expose a delta once a prior window has loaded — otherwise the stat
+  // tile shows "no comparison yet" rather than a misleading +14h on first run.
+  const trendDeltaMinutes =
+    priorMinutes === undefined ? undefined : summary.totalMinutes - priorMinutes;
 
   const sortedByCreated = useMemo<Track[]>(() => {
     return [...library]
@@ -62,6 +76,9 @@ export function useOverviewData() {
   return {
     summary,
     heatmap,
+    topAlbums,
+    sessionCount,
+    trendDeltaMinutes,
     recentlyAdded,
     newInLibraryCount,
     library,

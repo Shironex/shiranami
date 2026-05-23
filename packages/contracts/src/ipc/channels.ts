@@ -85,6 +85,7 @@ export const IPC_CHANNELS = {
       getSummary: 'db:history:get-summary',
       getActivity: 'db:history:get-activity',
       getHourlyActivity: 'db:history:get-hourly-activity',
+      getWeeklyInsights: 'db:history:get-weekly-insights',
     },
     folders: {
       getAll: 'db:folders:get-all',

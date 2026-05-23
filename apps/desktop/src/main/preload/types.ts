@@ -66,6 +66,19 @@ export interface ListeningHourlyActivityPoint {
   listenedMinutes: number;
 }
 
+export interface ListeningAlbumStat {
+  album: string;
+  artist: string;
+  albumArt: string | null;
+  playCount: number;
+}
+
+export interface WeeklyInsights {
+  /** Gap-based session count for the window (>30 min idle starts a new session). */
+  sessionCount: number;
+  topAlbums: ListeningAlbumStat[];
+}
+
 export interface ToolInstallResult {
   tool: 'ytdlp' | 'ffmpeg';
   success: boolean;

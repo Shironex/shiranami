@@ -8,6 +8,7 @@ import { GreetingHero } from '@/components/overview/GreetingHero';
 import { StatStrip } from '@/components/overview/StatStrip';
 import { TopThisWeek } from '@/components/overview/TopThisWeek';
 import { ListeningClock } from '@/components/overview/ListeningClock';
+import { TopAlbums } from '@/components/overview/TopAlbums';
 import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
 
@@ -17,6 +18,9 @@ export default function OverviewView() {
   const {
     summary,
     heatmap,
+    topAlbums,
+    sessionCount,
+    trendDeltaMinutes,
     recentlyAdded,
     newInLibraryCount,
     hasLibrary,
@@ -76,7 +80,12 @@ export default function OverviewView() {
 
         {hasHistory ? (
           <>
-            <StatStrip summary={summary} newInLibraryCount={newInLibraryCount} />
+            <StatStrip
+              summary={summary}
+              newInLibraryCount={newInLibraryCount}
+              trendDeltaMinutes={trendDeltaMinutes}
+              sessionCount={sessionCount}
+            />
 
             <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
               <TopThisWeek
@@ -86,6 +95,7 @@ export default function OverviewView() {
               />
               <div className="flex flex-col gap-6">
                 <ListeningClock heatmap={heatmap} />
+                <TopAlbums albums={topAlbums} />
               </div>
             </div>
           </>

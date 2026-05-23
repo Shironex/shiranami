@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import * as crypto from 'crypto';
-import { tracks, playHistory, eq, desc, sql, type NewPlayHistory } from '@shiranami/database';
+import { tracks, playHistory, eq, and, desc, sql, type NewPlayHistory } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { handle } from '../with-ipc-handler';
@@ -10,13 +10,29 @@ import {
   historyGetSummaryArgs,
   historyGetActivityArgs,
   historyGetHourlyActivityArgs,
+  historyGetWeeklyInsightsArgs,
 } from '../schemas/db-history';
+
+/** A new session starts after this much idle time between consecutive plays. */
+const SESSION_GAP_MS = 30 * 60 * 1000;
 
 const H = IPC_CHANNELS.db.history;
 
 function buildHistorySinceFilter(since?: string | null) {
   if (!since) return null;
   return sql`${playHistory.playedAt} >= ${since}`;
+}
+
+/**
+ * Window filter with an optional exclusive upper bound. Used by the summary
+ * handler so a "prior 7 days" window can be requested for the week-over-week
+ * trend without overlapping the current window.
+ */
+function buildHistoryWindowFilter(since?: string | null, until?: string | null) {
+  const sinceFilter = buildHistorySinceFilter(since);
+  const untilFilter = until ? sql`${playHistory.playedAt} < ${until}` : null;
+  if (sinceFilter && untilFilter) return and(sinceFilter, untilFilter);
+  return sinceFilter ?? untilFilter;
 }
 
 export function registerHistoryHandlers(): void {
@@ -92,9 +108,9 @@ export function registerHistoryHandlers(): void {
 
   handle(
     H.getSummary,
-    async (_event, options?: { since?: string | null }) => {
+    async (_event, options?: { since?: string | null; until?: string | null }) => {
       const db = getDatabase();
-      const sinceFilter = buildHistorySinceFilter(options?.since);
+      const sinceFilter = buildHistoryWindowFilter(options?.since, options?.until);
 
       const totalsQuery = db
         .select({
@@ -210,6 +226,56 @@ export function registerHistoryHandlers(): void {
     },
     { schema: historyGetHourlyActivityArgs }
   );
+
+  handle(
+    H.getWeeklyInsights,
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
+
+      // Top albums by play count — substitutes the mockup's genre "mood" card,
+      // which genre data is too sparse to drive (research §10.2). Empty/unknown
+      // album rows are filtered out so untagged libraries don't show a blank
+      // album dominating the chart.
+      const albumExpression = sql<string>`COALESCE(NULLIF(${tracks.album}, ''), '')`;
+      const albumsQuery = db
+        .select({
+          album: albumExpression,
+          artist: sql<string>`MAX(${tracks.artist})`,
+          albumArt: sql<string | null>`MAX(${tracks.albumArt})`,
+          playCount: sql<number>`COUNT(*)`,
+        })
+        .from(playHistory)
+        .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
+        .groupBy(albumExpression)
+        .having(sql`${albumExpression} <> ''`);
+      const topAlbums = (sinceFilter ? albumsQuery.where(sinceFilter) : albumsQuery)
+        .orderBy(desc(sql`COUNT(*)`))
+        .limit(5)
+        .all();
+
+      // Gap-based session count: walk the ordered timestamps and start a new
+      // session whenever the idle gap exceeds SESSION_GAP_MS. Lightweight — one
+      // ascending scan of the windowed play_history timestamps.
+      const playTimesQuery = db
+        .select({ playedAt: playHistory.playedAt })
+        .from(playHistory)
+        .orderBy(playHistory.playedAt);
+      const playTimes = (sinceFilter ? playTimesQuery.where(sinceFilter) : playTimesQuery).all();
+
+      let sessionCount = 0;
+      let lastMs = Number.NEGATIVE_INFINITY;
+      for (const { playedAt } of playTimes) {
+        const ms = new Date(playedAt).getTime();
+        if (Number.isNaN(ms)) continue;
+        if (ms - lastMs > SESSION_GAP_MS) sessionCount += 1;
+        lastMs = ms;
+      }
+
+      return { sessionCount, topAlbums };
+    },
+    { schema: historyGetWeeklyInsightsArgs }
+  );
 }
 
 export function cleanupHistoryHandlers(): void {
@@ -218,4 +284,5 @@ export function cleanupHistoryHandlers(): void {
   ipcMain.removeHandler(H.getSummary);
   ipcMain.removeHandler(H.getActivity);
   ipcMain.removeHandler(H.getHourlyActivity);
+  ipcMain.removeHandler(H.getWeeklyInsights);
 }
