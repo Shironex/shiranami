@@ -56,7 +56,6 @@ interface RecommendationCardProps {
   cover: React.ReactNode;
   subtitle: React.ReactNode;
   trailing: React.ReactNode;
-  variant: 'library' | 'discover';
   /** When provided the whole card is a button (library rows). */
   onActivate?: () => void;
   ariaLabel?: string;
@@ -70,7 +69,6 @@ function RecommendationCard({
   cover,
   subtitle,
   trailing,
-  variant: _variant,
   onActivate,
   ariaLabel,
   className = '',
@@ -78,7 +76,7 @@ function RecommendationCard({
 }: RecommendationCardProps) {
   const baseClasses =
     'group relative flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors';
-  const variantClasses =
+  const surfaceClasses =
     'border-border/15 bg-background/20 hover:border-border/35 hover:bg-accent/35';
 
   if (onActivate) {
@@ -87,7 +85,7 @@ function RecommendationCard({
         type="button"
         onClick={onActivate}
         aria-label={ariaLabel}
-        className={`text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${baseClasses} ${variantClasses} ${className}`}
+        className={`text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${baseClasses} ${surfaceClasses} ${className}`}
       >
         {cover}
         <div className="min-w-0 flex-1">{subtitle}</div>
@@ -98,7 +96,7 @@ function RecommendationCard({
   }
 
   return (
-    <div className={`${baseClasses} ${variantClasses} ${className}`}>
+    <div className={`${baseClasses} ${surfaceClasses} ${className}`}>
       {cover}
       <div className="min-w-0 flex-1">{subtitle}</div>
       {trailing}
@@ -229,7 +227,6 @@ function LibraryRow({
       cover={cover}
       subtitle={subtitle}
       trailing={null}
-      variant="library"
       onActivate={() => onPlay(item.trackId)}
       ariaLabel={t('playAria', { title: item.title })}
     />
@@ -372,7 +369,6 @@ function DiscoverRow({
             onDownload={() => onDownload(item)}
           />
         }
-        variant="discover"
         className={cardExtra}
         overlay={progressBar}
       />
