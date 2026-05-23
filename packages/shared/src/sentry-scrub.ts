@@ -30,6 +30,11 @@ interface EventView {
   message?: unknown;
   exception?: { values?: ExceptionView[] } | null;
   breadcrumbs?: BreadcrumbView[] | null;
+  // Free-form bags that can carry arbitrary nested values (and thus paths).
+  extra?: unknown;
+  contexts?: unknown;
+  request?: unknown;
+  tags?: unknown;
 }
 
 interface BreadcrumbView {
@@ -70,6 +75,34 @@ function scrubFrame(frame: FrameView): void {
 }
 
 /**
+ * Recursively scrub home-dir paths from every string nested in a value
+ * (objects and arrays). Mutates containers in place and returns the scrubbed
+ * value (strings are immutable, so callers must reassign the return). Guards
+ * against reference cycles and caps depth so a pathological payload can't hang
+ * the hook. Used for free-form bags (breadcrumb `data`, event `extra`,
+ * `contexts`, `request`) where paths can hide in nested objects/arrays.
+ */
+const MAX_SCRUB_DEPTH = 8;
+function scrubDeep(value: unknown, seen: WeakSet<object> = new WeakSet(), depth = 0): unknown {
+  if (typeof value === 'string') return scrubPath(value);
+  if (value === null || typeof value !== 'object' || depth >= MAX_SCRUB_DEPTH) return value;
+  if (seen.has(value)) return value;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      value[i] = scrubDeep(value[i], seen, depth + 1);
+    }
+  } else {
+    const record = value as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      record[key] = scrubDeep(record[key], seen, depth + 1);
+    }
+  }
+  return value;
+}
+
+/**
  * `beforeSend` hook — strip home-dir paths from the event message and every
  * exception stack frame (filename/abs_path/module) plus any embedded
  * breadcrumb messages. Mutates and returns the event (Sentry expects the
@@ -99,6 +132,12 @@ export function scrubEvent<T>(event: T): T {
     view.breadcrumbs = view.breadcrumbs.filter(crumb => scrubBreadcrumb(crumb) !== null);
   }
 
+  // Free-form bags can nest paths arbitrarily deep — walk them recursively.
+  if (view.extra) scrubDeep(view.extra);
+  if (view.contexts) scrubDeep(view.contexts);
+  if (view.request) scrubDeep(view.request);
+  if (view.tags) scrubDeep(view.tags);
+
   return event;
 }
 
@@ -122,12 +161,10 @@ export function scrubBreadcrumb<T>(crumb: T): T | null {
     view.message = scrubPath(view.message);
   }
 
+  // Breadcrumb data (HTTP payloads, debug context) can nest paths in objects
+  // and arrays, not just top-level strings — walk it recursively.
   if (view.data && typeof view.data === 'object') {
-    for (const [key, value] of Object.entries(view.data)) {
-      if (typeof value === 'string') {
-        view.data[key] = scrubPath(value);
-      }
-    }
+    scrubDeep(view.data);
   }
 
   return crumb;

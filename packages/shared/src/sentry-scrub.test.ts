@@ -111,6 +111,32 @@ describe('scrubEvent', () => {
     expect(scrubbed.message).toBe('plain error');
     expect(scrubbed.exception.values[0].value).toBe('oops');
   });
+
+  it('recursively scrubs paths nested in extra, contexts, tags and request', () => {
+    const event = {
+      extra: {
+        files: [`/Users/${USERNAME}/a.flac`, { nested: `/home/${USERNAME}/b.js` }],
+      },
+      contexts: { app: { app_cwd: `/Users/${USERNAME}/app` } },
+      tags: { config: `C:\\Users\\${USERNAME}\\cfg.json` },
+      request: { url: `file:///Users/${USERNAME}/index.html` },
+    };
+
+    const scrubbed = scrubEvent(event);
+    expect(JSON.stringify(scrubbed)).not.toContain(USERNAME);
+    expect(scrubbed.extra.files[0]).toBe('~/a.flac');
+    expect((scrubbed.extra.files[1] as { nested: string }).nested).toBe('~/b.js');
+    expect(scrubbed.contexts.app.app_cwd).toBe('~/app');
+    expect(scrubbed.tags.config).toBe('~\\cfg.json');
+    expect(scrubbed.request.url).toBe('file://~/index.html');
+  });
+
+  it('does not hang on a cyclic extra payload', () => {
+    const cyclic: Record<string, unknown> = { path: `/Users/${USERNAME}/x` };
+    cyclic.self = cyclic;
+    const scrubbed = scrubEvent({ extra: cyclic });
+    expect((scrubbed.extra as { path: string }).path).toBe('~/x');
+  });
 });
 
 describe('scrubBreadcrumb', () => {
@@ -143,5 +169,22 @@ describe('scrubBreadcrumb', () => {
     expect(out!.data!.url).toBe('file://~/x.json');
     expect(out!.data!.status).toBe(200);
     expect(JSON.stringify(out)).not.toContain(USERNAME);
+  });
+
+  it('recursively scrubs paths nested in breadcrumb data objects and arrays', () => {
+    const crumb = {
+      category: 'http',
+      message: 'request',
+      data: {
+        args: [`/Users/${USERNAME}/in.flac`, 2],
+        meta: { dest: `/home/${USERNAME}/out.flac`, ok: true },
+      },
+    };
+    const out = scrubBreadcrumb(crumb);
+    expect(out).not.toBeNull();
+    expect(JSON.stringify(out)).not.toContain(USERNAME);
+    expect(out!.data.args[0]).toBe('~/in.flac');
+    expect(out!.data.meta.dest).toBe('~/out.flac');
+    expect(out!.data.meta.ok).toBe(true);
   });
 });
