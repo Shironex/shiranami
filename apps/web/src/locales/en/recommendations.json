@@ -8,7 +8,7 @@
   "downloadAria": "Download {{title}}",
   "downloading": "Adding…",
   "addedToLibrary": "In your library",
-  "downloadError": "Couldn't add — tap to retry",
+  "downloadError": "Couldn't add · retry",
   "downloadingAria": "Adding {{title}} to your library",
   "addedAria": "{{title}} added to your library",
   "retryDownloadAria": "Retry adding {{title}}",

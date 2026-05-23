@@ -314,6 +314,13 @@
   }
 }
 
+/* Download progress bar — indeterminate sweep for the discover-row in-progress state.
+   Reuses the same translate sweep as splash-sweep. Decorative — gated under
+   reduced-motion so it falls back to a static partial fill. */
+.progress-sweep {
+  animation: splash-sweep 1.4s ease-in-out infinite;
+}
+
 /* Splash degradation — collapse every animated scene layer to a static still
    under reduced-motion OR low-performance mode. Steam + streaks have no
    meaningful static state → hidden; lights / LED / sweep go static; the loader
@@ -328,7 +335,8 @@
   .splash-led {
     animation: none !important;
   }
-  .splash-sweep {
+  .splash-sweep,
+  .progress-sweep {
     animation: none !important;
     transform: none !important;
   }
@@ -348,7 +356,8 @@
   .animate-pulse,
   .animate-pulse-subtle,
   .float-mascot,
-  .overview-blink {
+  .overview-blink,
+  .progress-sweep {
     animation: none !important;
   }
   .animate-marquee {

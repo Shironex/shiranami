@@ -8,7 +8,7 @@
   "downloadAria": "Pobierz {{title}}",
   "downloading": "Dodawanie…",
   "addedToLibrary": "W Twojej bibliotece",
-  "downloadError": "Nie udało się dodać — dotknij, by spróbować ponownie",
+  "downloadError": "Nie udało się dodać · spróbuj ponownie",
   "downloadingAria": "Dodawanie {{title}} do biblioteki",
   "addedAria": "{{title}} dodano do biblioteki",
   "retryDownloadAria": "Spróbuj ponownie dodać {{title}}",

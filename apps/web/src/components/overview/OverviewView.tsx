@@ -109,7 +109,7 @@ export default function OverviewView() {
           />
         )}
 
-        <RecommendationsShelf onPlay={handlePlayTrack} />
+        <RecommendationsShelf onPlay={handlePlayTrack} hasLibrary={hasLibrary} />
 
         {recentlyAdded.length > 0 && (
           <RecentlyAdded tracks={recentlyAdded} onPlay={handlePlayTrack} />
