@@ -1,6 +1,7 @@
+import { useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Play, ListPlus, Heart, Trash2, X, CheckCheck } from 'lucide-react';
+import { Play, ListPlus, Heart, Trash2, X, CheckCheck, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -23,13 +24,16 @@ interface ActionButtonProps {
   variant?: 'default' | 'destructive';
 }
 
+// Always-visible inline action. Icon-only below md; label appears at md+
+// (the secondary/destructive actions only render inline at md+ anyway, so
+// below md these never show without a label).
 function ActionButton({ icon, label, onClick, variant = 'default' }: ActionButtonProps) {
   return (
     <motion.button
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+        'shrink-0 flex items-center justify-center md:justify-start gap-1.5 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
         variant === 'destructive'
           ? 'text-destructive/80 hover:text-destructive hover:bg-destructive/10'
           : 'text-foreground/70 hover:text-foreground hover:bg-accent'
@@ -37,8 +41,156 @@ function ActionButton({ icon, label, onClick, variant = 'default' }: ActionButto
       title={label}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="hidden md:inline whitespace-nowrap">{label}</span>
     </motion.button>
+  );
+}
+
+interface MenuActionProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  variant?: 'default' | 'destructive';
+}
+
+// Row inside the overflow popover. Mirrors the TrackContextMenu MenuItem idiom
+// (~40px row, full label, destructive variant) so the two surfaces feel like
+// one family.
+function MenuAction({ icon, label, onClick, variant = 'default' }: MenuActionProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left',
+        variant === 'destructive'
+          ? 'text-destructive hover:bg-destructive/10'
+          : 'text-foreground/80 hover:text-foreground hover:bg-accent'
+      )}
+    >
+      <span className="shrink-0 w-4 h-4 flex items-center justify-center text-muted-foreground/60">
+        {icon}
+      </span>
+      <span className="whitespace-nowrap">{label}</span>
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="my-1 border-t border-border/50" />;
+}
+
+interface OverflowAction {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  variant?: 'default' | 'destructive';
+}
+
+// Overflow trigger + popover. The popover is portalled to document.body with
+// fixed positioning derived from the trigger's getBoundingClientRect so it
+// escapes the dock's overflow-x-auto clip (the previous clipped-popover bug in
+// this file). Pattern mirrors AddToPlaylistButton / PlaylistPickerContent.
+function MoreMenu({ actions }: { actions: OverflowAction[] }) {
+  const { t: tCommon } = useTranslation('common');
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
+
+  useLayoutEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPopoverStyle({
+      position: 'fixed',
+      // Pin the popover's right edge to the trigger's right edge, then clamp so
+      // it never bleeds off the left of a 360px viewport.
+      right: Math.max(window.innerWidth - rect.right, 8),
+      // Open above the dock — there is rarely space below the bottom-24 dock.
+      bottom: window.innerHeight - rect.top + 8,
+      minWidth: 200,
+      maxWidth: 'calc(100vw - 1rem)',
+      zIndex: 50,
+    });
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (buttonRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setIsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handler);
+      document.addEventListener('keydown', onKey);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isOpen]);
+
+  const handleAction = useCallback((onClick: () => void) => {
+    setIsOpen(false);
+    onClick();
+  }, []);
+
+  return (
+    <>
+      <motion.button
+        ref={buttonRef}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => setIsOpen(prev => !prev)}
+        className={cn(
+          'shrink-0 flex items-center justify-center p-1.5 rounded-lg text-xs font-medium transition-colors',
+          'text-foreground/70 hover:text-foreground hover:bg-accent',
+          isOpen && 'text-foreground bg-accent'
+        )}
+        title={tCommon('more')}
+      >
+        <MoreHorizontal className="w-3.5 h-3.5" />
+      </motion.button>
+
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={popoverRef}
+              initial={{ opacity: 0, scale: 0.95, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 6 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/30"
+              style={{ ...popoverStyle, transformOrigin: 'bottom right' }}
+            >
+              {actions.map((action, i) => {
+                const prev = actions[i - 1];
+                const showDivider =
+                  prev && prev.variant !== 'destructive' && action.variant === 'destructive';
+                return (
+                  <div key={action.key}>
+                    {showDivider && <Divider />}
+                    <MenuAction
+                      icon={action.icon}
+                      label={action.label}
+                      variant={action.variant}
+                      onClick={() => handleAction(action.onClick)}
+                    />
+                  </div>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -106,6 +258,49 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
 
   const allSelected = count === trackList.length;
 
+  // The secondary/destructive set. Rendered inline at md+ (where the worst-case
+  // PL/8-button row still fits) and collapsed into the More menu below md (the
+  // audit measured 768px overflowing with full labels). Below md these never
+  // appear inline, so destructive actions and the escape hatch never scroll off
+  // an invisible edge.
+  const overflowActions: OverflowAction[] = [
+    {
+      key: 'toggleFavorites',
+      icon: <Heart className="w-4 h-4" />,
+      label: t('toggleFavorites'),
+      onClick: handleToggleFavorite,
+    },
+    ...(onRemoveFromPlaylist
+      ? [
+          {
+            key: 'removeFromPlaylist',
+            icon: <X className="w-4 h-4" />,
+            label: t('removeFromPlaylist'),
+            onClick: handleRemoveFromPlaylistClick,
+            variant: 'destructive' as const,
+          },
+        ]
+      : []),
+    {
+      key: 'removeFromLibrary',
+      icon: <Trash2 className="w-4 h-4" />,
+      label: t('removeFromLibrary'),
+      onClick: onRemoveFromLibrary,
+      variant: 'destructive' as const,
+    },
+    ...(IS_ELECTRON
+      ? [
+          {
+            key: 'deleteFromDisk',
+            icon: <Trash2 className="w-4 h-4" />,
+            label: t('deleteFromDisk'),
+            onClick: onDeleteFromDisk,
+            variant: 'destructive' as const,
+          },
+        ]
+      : []),
+  ];
+
   return createPortal(
     <AnimatePresence>
       <motion.div
@@ -115,25 +310,28 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
         transition={{ duration: 0.2, ease: 'easeOut' }}
         className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 px-3 py-2 rounded-2xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-2xl shadow-black/30 max-w-[calc(100vw-2rem)] overflow-x-auto scrollbar-none"
       >
-        <span className="text-xs font-medium text-muted-foreground px-2 whitespace-nowrap">
-          {tCommon('selectedTracks', { count })}
+        <span className="shrink-0 text-xs font-medium text-muted-foreground px-2 whitespace-nowrap">
+          {/* Just the count below sm so the counter does not eat ~40% of a
+              360px viewport; full label from sm up. */}
+          <span className="sm:hidden">{count}</span>
+          <span className="hidden sm:inline">{tCommon('selectedTracks', { count })}</span>
         </span>
 
-        <div className="w-px h-5 bg-border/50 mx-1" />
+        <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
 
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => (allSelected ? clearSelection() : selectAll(trackList))}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
+          className="shrink-0 flex items-center justify-center md:justify-start gap-1.5 px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
           title={allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
         >
           <CheckCheck className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline whitespace-nowrap">
+          <span className="hidden md:inline whitespace-nowrap">
             {allSelected ? tCommon('clearSelection') : tCommon('selectAll')}
           </span>
         </motion.button>
 
-        <div className="w-px h-5 bg-border/50 mx-1" />
+        <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
 
         <ActionButton
           icon={<Play className="w-3.5 h-3.5" />}
@@ -146,44 +344,55 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           onClick={handleAddToQueue}
         />
 
-        <ActionButton
-          icon={<Heart className="w-3.5 h-3.5" />}
-          label={t('toggleFavorites')}
-          onClick={handleToggleFavorite}
-        />
+        {/* Secondary/destructive set inline at md+ */}
+        <div className="hidden md:flex md:items-center md:gap-1">
+          <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
 
-        {onRemoveFromPlaylist && (
           <ActionButton
-            icon={<X className="w-3.5 h-3.5" />}
-            label={t('removeFromPlaylist')}
-            onClick={handleRemoveFromPlaylistClick}
-            variant="destructive"
+            icon={<Heart className="w-3.5 h-3.5" />}
+            label={t('toggleFavorites')}
+            onClick={handleToggleFavorite}
           />
-        )}
 
-        <div className="w-px h-5 bg-border/50 mx-1" />
+          {onRemoveFromPlaylist && (
+            <ActionButton
+              icon={<X className="w-3.5 h-3.5" />}
+              label={t('removeFromPlaylist')}
+              onClick={handleRemoveFromPlaylistClick}
+              variant="destructive"
+            />
+          )}
 
-        <ActionButton
-          icon={<Trash2 className="w-3.5 h-3.5" />}
-          label={t('removeFromLibrary')}
-          onClick={onRemoveFromLibrary}
-          variant="destructive"
-        />
-        {IS_ELECTRON && (
+          <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
+
           <ActionButton
             icon={<Trash2 className="w-3.5 h-3.5" />}
-            label={t('deleteFromDisk')}
-            onClick={onDeleteFromDisk}
+            label={t('removeFromLibrary')}
+            onClick={onRemoveFromLibrary}
             variant="destructive"
           />
-        )}
+          {IS_ELECTRON && (
+            <ActionButton
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+              label={t('deleteFromDisk')}
+              onClick={onDeleteFromDisk}
+              variant="destructive"
+            />
+          )}
+        </div>
 
-        <div className="w-px h-5 bg-border/50 mx-1" />
+        {/* Same set collapsed into an overflow menu below md */}
+        <div className="flex items-center md:hidden">
+          <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
+          <MoreMenu actions={overflowActions} />
+        </div>
+
+        <div className="shrink-0 w-px h-5 bg-border/50 mx-1" />
 
         <motion.button
           whileTap={{ scale: 0.85 }}
           onClick={clearSelection}
-          className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+          className="shrink-0 flex items-center justify-center p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
           title={tCommon('clearSelection')}
         >
           <X className="w-3.5 h-3.5" />
