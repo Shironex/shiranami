@@ -491,6 +491,15 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/recommendation:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.8.0
+        version: 25.9.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/shared:
     devDependencies:
       '@types/node':

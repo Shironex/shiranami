@@ -1,0 +1,26 @@
+{
+  "name": "@shiranami/recommendation",
+  "version": "0.19.0",
+  "private": true,
+  "description": "Shiranami recommendation scoring core: pure, dependency-free affinity + content-similarity functions",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --build --clean && tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project recommendation"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "typescript": "^5.9.3"
+  }
+}
