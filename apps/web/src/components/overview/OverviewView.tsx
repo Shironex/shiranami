@@ -7,6 +7,7 @@ import { useOverviewData } from '@/hooks/useOverviewData';
 import { GreetingHero } from '@/components/overview/GreetingHero';
 import { StatStrip } from '@/components/overview/StatStrip';
 import { TopThisWeek } from '@/components/overview/TopThisWeek';
+import { ListeningClock } from '@/components/overview/ListeningClock';
 import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
 
@@ -15,6 +16,7 @@ export default function OverviewView() {
   const { t: tCommon } = useTranslation('common');
   const {
     summary,
+    heatmap,
     recentlyAdded,
     newInLibraryCount,
     hasLibrary,
@@ -82,6 +84,9 @@ export default function OverviewView() {
                 onPlay={handlePlayTrack}
                 onOpenLibrary={() => navigateTo('library')}
               />
+              <div className="flex flex-col gap-6">
+                <ListeningClock heatmap={heatmap} />
+              </div>
             </div>
           </>
         ) : (

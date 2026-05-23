@@ -9,6 +9,7 @@ import {
   historyGetRecentArgs,
   historyGetSummaryArgs,
   historyGetActivityArgs,
+  historyGetHourlyActivityArgs,
 } from '../schemas/db-history';
 
 const H = IPC_CHANNELS.db.history;
@@ -175,6 +176,40 @@ export function registerHistoryHandlers(): void {
     },
     { schema: historyGetActivityArgs }
   );
+
+  handle(
+    H.getHourlyActivity,
+    async (_event, options?: { since?: string | null }) => {
+      const db = getDatabase();
+      const sinceFilter = buildHistorySinceFilter(options?.since);
+
+      // Bucket by LOCAL day-of-week and hour so "loudest at 23:00" reflects the
+      // user's wall clock, not UTC. SQLite `%w` is Sunday-indexed (0=Sun..6=Sat);
+      // the renderer remaps to a Mon-first grid.
+      const dowExpression = sql<string>`strftime('%w', ${playHistory.playedAt}, 'localtime')`;
+      const hourExpression = sql<string>`strftime('%H', ${playHistory.playedAt}, 'localtime')`;
+
+      const hourlyQuery = db
+        .select({
+          dow: dowExpression,
+          hour: hourExpression,
+          playCount: sql<number>`COUNT(*)`,
+          listenedMinutes: sql<number>`COALESCE(SUM(${playHistory.playedSeconds}) / 60.0, 0)`,
+        })
+        .from(playHistory)
+        .groupBy(dowExpression, hourExpression);
+
+      const rows = (sinceFilter ? hourlyQuery.where(sinceFilter) : hourlyQuery).all();
+
+      return rows.map(row => ({
+        dayOfWeek: Number(row.dow),
+        hour: Number(row.hour),
+        playCount: row.playCount,
+        listenedMinutes: row.listenedMinutes,
+      }));
+    },
+    { schema: historyGetHourlyActivityArgs }
+  );
 }
 
 export function cleanupHistoryHandlers(): void {
@@ -182,4 +217,5 @@ export function cleanupHistoryHandlers(): void {
   ipcMain.removeHandler(H.getRecent);
   ipcMain.removeHandler(H.getSummary);
   ipcMain.removeHandler(H.getActivity);
+  ipcMain.removeHandler(H.getHourlyActivity);
 }

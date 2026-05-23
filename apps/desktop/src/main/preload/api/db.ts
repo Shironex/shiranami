@@ -2,6 +2,7 @@ import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import type {
   ListeningActivityPoint,
+  ListeningHourlyActivityPoint,
   ListeningHistoryEntry,
   ListeningStatsSummary,
 } from '../types';
@@ -36,6 +37,9 @@ export interface DbHistoryApi {
   }) => Promise<ListeningHistoryEntry[]>;
   getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
   getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+  getHourlyActivity: (options?: {
+    since?: string | null;
+  }) => Promise<ListeningHourlyActivityPoint[]>;
 }
 
 export interface DbFoldersApi {
@@ -93,6 +97,7 @@ const historyApi: DbHistoryApi = {
   getRecent: options => ipcRenderer.invoke(C.history.getRecent, options),
   getSummary: options => ipcRenderer.invoke(C.history.getSummary, options),
   getActivity: options => ipcRenderer.invoke(C.history.getActivity, options),
+  getHourlyActivity: options => ipcRenderer.invoke(C.history.getHourlyActivity, options),
 };
 
 const foldersApi: DbFoldersApi = {

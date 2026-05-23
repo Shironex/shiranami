@@ -57,6 +57,15 @@ export interface ListeningActivityPoint {
   listenedMinutes: number;
 }
 
+export interface ListeningHourlyActivityPoint {
+  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
+  dayOfWeek: number;
+  /** Hour of day in local time, 0–23. */
+  hour: number;
+  playCount: number;
+  listenedMinutes: number;
+}
+
 export interface ToolInstallResult {
   tool: 'ytdlp' | 'ffmpeg';
   success: boolean;

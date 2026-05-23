@@ -1,4 +1,5 @@
 import i18n from '@/lib/i18n';
+import type { ListeningHourlyActivityPoint } from '@/types/electron';
 
 /** Coarse time-of-day buckets that drive the greeting + mood glyph. */
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -100,4 +101,128 @@ export function formatTrendDelta(deltaMinutes: number): { sign: 1 | -1; label: s
   const minutes = abs % 60;
   const magnitude = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return { sign, label: `${sign > 0 ? '+' : '−'}${magnitude}` };
+}
+
+/** Intensity bucket for a heatmap cell: 0 (silent) … 4 (loud). */
+export type HeatLevel = 0 | 1 | 2 | 3 | 4;
+
+export interface HeatmapCell {
+  /** Mon-first row index, 0=Mon … 6=Sun. */
+  row: number;
+  /** Hour of day, 0–23. */
+  hour: number;
+  playCount: number;
+  level: HeatLevel;
+}
+
+export interface HeatmapModel {
+  /** 7 rows (Mon→Sun) × 24 hours. */
+  cells: HeatmapCell[][];
+  /** True when there is at least one play in the window. */
+  hasData: boolean;
+  /** Peak hour (0–23), or null when no data. */
+  peakHour: number | null;
+  /** Total plays across the grid. */
+  totalPlays: number;
+}
+
+/** SQLite day-of-week (0=Sun) → Mon-first row (0=Mon … 6=Sun). */
+function sqliteDowToMonFirstRow(dow: number): number {
+  return (dow + 6) % 7;
+}
+
+/**
+ * Quantize a play count into one of 5 intensity levels using the non-zero
+ * counts' quartiles. Quantile thresholds (rather than `count / max`) keep the
+ * grid readable when one cell is a huge outlier — most cells would otherwise
+ * collapse to level 0/1.
+ */
+function buildLevelThresholds(nonZeroCounts: number[]): number[] {
+  if (nonZeroCounts.length === 0) return [];
+  const sorted = [...nonZeroCounts].sort((a, b) => a - b);
+  const quantile = (q: number) => {
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    if (lo === hi) return sorted[lo]!;
+    return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo);
+  };
+  // Three cut points split the non-zero range into levels 1–4.
+  return [quantile(0.25), quantile(0.5), quantile(0.75)];
+}
+
+function levelFor(count: number, thresholds: number[]): HeatLevel {
+  if (count <= 0) return 0;
+  if (thresholds.length < 3) return 2;
+  if (count <= thresholds[0]!) return 1;
+  if (count <= thresholds[1]!) return 2;
+  if (count <= thresholds[2]!) return 3;
+  return 4;
+}
+
+/**
+ * Build the 7×24 listening-clock model from the IPC's hourly buckets. Remaps
+ * SQLite's Sunday-indexed day-of-week to a Mon-first grid and quantizes counts
+ * into 5 levels. Returns a fully-populated grid (zero-filled) so the renderer
+ * never has to guard individual cells.
+ */
+export function buildHeatmap(points: ListeningHourlyActivityPoint[]): HeatmapModel {
+  const counts: number[][] = Array.from({ length: 7 }, () => new Array<number>(24).fill(0));
+  let totalPlays = 0;
+
+  for (const point of points) {
+    if (point.hour < 0 || point.hour > 23) continue;
+    const row = sqliteDowToMonFirstRow(point.dayOfWeek);
+    if (row < 0 || row > 6) continue;
+    counts[row]![point.hour] += point.playCount;
+    totalPlays += point.playCount;
+  }
+
+  const nonZero: number[] = [];
+  for (const row of counts) for (const c of row) if (c > 0) nonZero.push(c);
+  const thresholds = buildLevelThresholds(nonZero);
+
+  const cells: HeatmapCell[][] = counts.map((row, rowIndex) =>
+    row.map((playCount, hour) => ({
+      row: rowIndex,
+      hour,
+      playCount,
+      level: levelFor(playCount, thresholds),
+    }))
+  );
+
+  // Peak hour = the hour-of-day column with the most plays summed across days.
+  let peakHour: number | null = null;
+  if (totalPlays > 0) {
+    let best = -1;
+    for (let hour = 0; hour < 24; hour += 1) {
+      let sum = 0;
+      for (let row = 0; row < 7; row += 1) sum += counts[row]![hour]!;
+      if (sum > best) {
+        best = sum;
+        peakHour = hour;
+      }
+    }
+  }
+
+  return { cells, hasData: totalPlays > 0, peakHour, totalPlays };
+}
+
+/** Mon-first weekday short names for the active locale (heatmap row labels). */
+export function getWeekdayShortNames(locale: string): string[] {
+  // 2024-01-01 is a Monday — walk 7 days to get Mon→Sun in the locale.
+  const base = new Date(Date.UTC(2024, 0, 1));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setUTCDate(base.getUTCDate() + i);
+    return d.toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' });
+  });
+}
+
+/** "23:00 – 02:00"-style peak window label around a peak hour. */
+export function formatPeakWindow(peakHour: number): string {
+  const start = peakHour;
+  const end = (peakHour + 3) % 24;
+  const pad = (h: number) => String(h).padStart(2, '0');
+  return `${pad(start)}:00 – ${pad(end)}:00`;
 }

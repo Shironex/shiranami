@@ -73,6 +73,15 @@ export interface ListeningActivityPoint {
   listenedMinutes: number;
 }
 
+export interface ListeningHourlyActivityPoint {
+  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
+  dayOfWeek: number;
+  /** Hour of day in local time, 0–23. */
+  hour: number;
+  playCount: number;
+  listenedMinutes: number;
+}
+
 export interface ElectronAPI {
   window: {
     minimize: () => Promise<void>;
@@ -176,6 +185,9 @@ export interface ElectronAPI {
       }) => Promise<ListeningHistoryEntry[]>;
       getSummary: (options?: { since?: string | null }) => Promise<ListeningStatsSummary>;
       getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+      getHourlyActivity: (options?: {
+        since?: string | null;
+      }) => Promise<ListeningHourlyActivityPoint[]>;
     };
     playlists: {
       getAll: () => Promise<unknown[]>;

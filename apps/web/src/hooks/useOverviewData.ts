@@ -1,8 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useHistoryQuery } from '@/hooks/queries/useHistory';
+import { useHistoryQuery, useHourlyActivityQuery } from '@/hooks/queries/useHistory';
 import { EMPTY_SUMMARY } from '@/components/history/historyUtils';
+import { buildHeatmap } from '@/components/overview/overviewUtils';
 import type { Track } from '@/stores/types';
 
 /** How many recently-added tracks the carousel shows. */
@@ -23,8 +24,11 @@ export function useOverviewData() {
   const setQueue = usePlaybackStore(s => s.setQueue);
 
   const { data, isLoading, isError, refetch } = useHistoryQuery('7d');
+  const { data: hourly } = useHourlyActivityQuery('7d');
 
   const summary = data?.summary ?? EMPTY_SUMMARY;
+
+  const heatmap = useMemo(() => buildHeatmap(hourly ?? []), [hourly]);
 
   const sortedByCreated = useMemo<Track[]>(() => {
     return [...library]
@@ -57,6 +61,7 @@ export function useOverviewData() {
 
   return {
     summary,
+    heatmap,
     recentlyAdded,
     newInLibraryCount,
     library,

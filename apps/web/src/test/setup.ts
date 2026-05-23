@@ -169,6 +169,7 @@ function createElectronAPIMock(): ElectronAPI {
         getRecent: asyncFn([]),
         getSummary: vi.fn(),
         getActivity: asyncFn([]),
+        getHourlyActivity: asyncFn([]),
       },
       playlists: {
         getAll: asyncFn([]),

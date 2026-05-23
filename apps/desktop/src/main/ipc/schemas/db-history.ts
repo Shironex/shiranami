@@ -31,3 +31,4 @@ export const historyRecordPlayArgs = z.tuple([recordPlayInput]);
 export const historyGetRecentArgs = z.tuple([getRecentInput.optional()]);
 export const historyGetSummaryArgs = z.tuple([sinceInput.optional()]);
 export const historyGetActivityArgs = z.tuple([sinceInput.optional()]);
+export const historyGetHourlyActivityArgs = z.tuple([sinceInput.optional()]);
