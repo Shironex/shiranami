@@ -1,4 +1,3 @@
-import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, ListPlus, Heart, Trash2, X, CheckCheck } from 'lucide-react';
@@ -9,33 +8,12 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
-import { useClickOutside } from '@/hooks/useClickOutside';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { PlaylistPickerContent } from './PlaylistPickerContent';
 
 interface BulkActionBarProps {
   trackList: Track[];
   onRemoveFromPlaylist?: (trackIds: string[]) => void;
-}
-
-function PlaylistPopover({ trackIds, onDone }: { trackIds: string[]; onDone: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useClickOutside(ref, onDone);
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, scale: 0.9, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, y: 4 }}
-      transition={{ duration: 0.15 }}
-      className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50"
-      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-    >
-      <PlaylistPickerContent trackIds={trackIds} onDone={onDone} toastMode="bulk" />
-    </motion.div>
-  );
 }
 
 interface ActionButtonProps {
@@ -80,7 +58,6 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   const library = useLibraryStore(s => s.library);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
-  const [showPlaylistPopover, setShowPlaylistPopover] = useState(false);
 
   if (count === 0) return null;
 
@@ -168,25 +145,6 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
           label={t('addToQueue')}
           onClick={handleAddToQueue}
         />
-
-        <div className="relative">
-          <ActionButton
-            icon={<ListPlus className="w-3.5 h-3.5" />}
-            label={t('addToPlaylist')}
-            onClick={() => setShowPlaylistPopover(v => !v)}
-          />
-          <AnimatePresence>
-            {showPlaylistPopover && (
-              <PlaylistPopover
-                trackIds={ids}
-                onDone={() => {
-                  setShowPlaylistPopover(false);
-                  clearSelection();
-                }}
-              />
-            )}
-          </AnimatePresence>
-        </div>
 
         <ActionButton
           icon={<Heart className="w-3.5 h-3.5" />}
