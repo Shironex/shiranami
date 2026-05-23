@@ -441,7 +441,7 @@
     "toggleLabel": "Wysyłaj raporty awarii",
     "toggleDesc": "Anonimowe raporty awarii i błędów.",
     "perfLabel": "Monitorowanie wydajności",
-    "perfDesc": "Próbkuj też wydajność aplikacji — ładowanie stron i czasy nawigacji — aby pomóc znaleźć wąskie gardła. Wysyła więcej danych niż same raporty awarii.",
+    "perfDesc": "Zbiera też dane o wydajności aplikacji, takie jak czasy ładowania stron i nawigacji, aby wykryć spowolnienia. Wysyła więcej danych niż same raporty awarii.",
     "sentTitle": "Co jest wysyłane",
     "sent": [
       "Raporty awarii i błędów",
@@ -450,15 +450,15 @@
     ],
     "notSentTitle": "Co nie jest wysyłane",
     "notSent": [
-      "Brak nagrywania ekranu i powtórek",
-      "Brak danych osobowych i danych konta",
-      "Ścieżki plików pozbawione Twojej nazwy użytkownika"
+      "Brak nagrywania ekranu i sesji",
+      "Brak danych osobowych ani danych konta",
+      "Brak nazwy użytkownika w ścieżkach plików"
     ],
-    "note": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane.",
-    "restartNote": "Uruchom ponownie aplikację, aby zastosować zmiany — raportowanie awarii i monitorowanie wydajności inicjują się tylko przy starcie.",
+    "note": "Twoja nazwa użytkownika jest usuwana ze ścieżek plików, zanim raporty opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane.",
+    "restartNote": "Uruchom ponownie aplikację, aby zastosować zmiany. Raportowanie awarii i monitorowanie wydajności inicjują się tylko przy starcie.",
     "saveError": "Nie udało się zapisać preferencji prywatności. Spróbuj ponownie.",
     "testTitle": "Zweryfikuj konfigurację",
-    "testDesc": "Wysyła przykładowy błąd, aby zweryfikować konfigurację Sentry — widoczne tylko w trybie deweloperskim.",
+    "testDesc": "Wysyła przykładowy błąd, aby zweryfikować konfigurację Sentry. Widoczne tylko w trybie deweloperskim.",
     "testButton": "Wyślij zdarzenie testowe",
     "testDevOnly": "Tylko dla deweloperów",
     "testSent": "Wysłano zdarzenie testowe"

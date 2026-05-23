@@ -441,7 +441,7 @@
     "toggleLabel": "Send crash reports",
     "toggleDesc": "Anonymous crash and error reports.",
     "perfLabel": "Performance monitoring",
-    "perfDesc": "Also sample app performance — page loads and navigation timings — to help find bottlenecks. Sends more data than crash reports alone.",
+    "perfDesc": "Also samples app performance, like page loads and navigation timings, to find bottlenecks. Sends more data than crash reports alone.",
     "sentTitle": "What's sent",
     "sent": [
       "Crash and error reports",
@@ -452,13 +452,13 @@
     "notSent": [
       "No screen recording or replay",
       "No personal info or account data",
-      "File paths scrubbed of your username"
+      "No username in file paths"
     ],
-    "note": "Reports are scrubbed of file paths and your username before they ever leave your machine. Nothing is sent while this is off.",
-    "restartNote": "Restart the app to apply — crash reporting and performance monitoring can only initialize at launch.",
+    "note": "Your username is stripped from any file paths before a report ever leaves your machine. Nothing is sent while this is off.",
+    "restartNote": "Restart the app to apply. Crash reporting and performance monitoring can only initialize at launch.",
     "saveError": "Couldn't save your privacy preference. Please try again.",
     "testTitle": "Verify setup",
-    "testDesc": "Sends a sample error to verify your Sentry setup — only visible in development.",
+    "testDesc": "Sends a sample error to verify your Sentry setup. Only visible in development.",
     "testButton": "Send test event",
     "testDevOnly": "Development only",
     "testSent": "Test event sent"
