@@ -32,9 +32,10 @@ function isFilterActive(filters: RadioFilters): boolean {
  * derived from the page so composed filters can page past the 100 cap.
  */
 export function buildStationQuery(filters: RadioFilters, page = 0): AdvancedStationQuery {
+  const safePage = Number.isFinite(page) ? Math.max(0, Math.floor(page)) : 0;
   const query: AdvancedStationQuery = {
     limit: RADIO_PAGE_SIZE,
-    offset: page * RADIO_PAGE_SIZE,
+    offset: safePage * RADIO_PAGE_SIZE,
     order: 'clickCount',
     reverse: true,
     hideBroken: true,

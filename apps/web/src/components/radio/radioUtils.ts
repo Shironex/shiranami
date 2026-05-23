@@ -60,7 +60,10 @@ export function countryNameFromCode(code: string, language: string): string {
  * these lowercased (e.g. "drum and bass"), so each word is capitalized.
  */
 export function titleCase(value: string): string {
-  return value.replace(/\b\w/g, char => char.toUpperCase());
+  return value.replace(
+    /(^|[^\p{L}\p{N}_])(\p{L})/gu,
+    (_, prefix, char) => `${prefix}${char.toUpperCase()}`
+  );
 }
 
 /**

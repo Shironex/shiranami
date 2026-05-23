@@ -34,6 +34,9 @@ function readCache(kind: CatalogKind): CachedCatalog | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedCatalog;
     if (parsed.version !== CACHE_VERSION || !Array.isArray(parsed.entries)) return null;
+    if (!Number.isFinite(parsed.fetchedAt)) return null;
+    if (!parsed.entries.every(e => e && typeof e.value === 'string' && Number.isFinite(e.count)))
+      return null;
     return parsed;
   } catch {
     return null;
