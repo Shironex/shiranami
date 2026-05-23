@@ -29,12 +29,24 @@ export function useRadioCatalog(): RadioCatalog {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadCatalog('countries'), loadCatalog('languages'), loadCatalog('tags')])
-      .then(([countries, languages, tags]) => {
-        if (cancelled) return;
-        setRaw({ countries, languages, tags });
-      })
-      .catch(err => logger.warn('[radio] failed to load catalog:', err));
+    void Promise.allSettled([
+      loadCatalog('countries'),
+      loadCatalog('languages'),
+      loadCatalog('tags'),
+    ]).then(([countriesResult, languagesResult, tagsResult]) => {
+      if (cancelled) return;
+      if (countriesResult.status === 'rejected')
+        logger.warn('[radio] failed to load countries catalog:', countriesResult.reason);
+      if (languagesResult.status === 'rejected')
+        logger.warn('[radio] failed to load languages catalog:', languagesResult.reason);
+      if (tagsResult.status === 'rejected')
+        logger.warn('[radio] failed to load tags catalog:', tagsResult.reason);
+      setRaw({
+        countries: countriesResult.status === 'fulfilled' ? countriesResult.value : [],
+        languages: languagesResult.status === 'fulfilled' ? languagesResult.value : [],
+        tags: tagsResult.status === 'fulfilled' ? tagsResult.value : [],
+      });
+    });
     return () => {
       cancelled = true;
     };

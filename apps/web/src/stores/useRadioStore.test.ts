@@ -258,6 +258,36 @@ describe('useRadioStore', () => {
 
   // --- race condition ---
   describe('race condition handling', () => {
+    it('clears isLoadingMore when runSearch supersedes a slow loadMore', async () => {
+      // Start with a full first page so loadMore is allowed
+      const firstPage = Array.from({ length: 100 }, (_, i) => makeStation(`a${i}`));
+      mockSearchStations.mockResolvedValueOnce(firstPage);
+      await useRadioStore.getState().runSearch();
+
+      // Kick off a slow loadMore
+      let resolveLoadMore!: (value: Station[]) => void;
+      const stalePromise = new Promise<Station[]>(r => {
+        resolveLoadMore = r;
+      });
+      mockSearchStations.mockReturnValueOnce(stalePromise);
+      const loadMoreP = useRadioStore.getState().loadMore();
+
+      expect(useRadioStore.getState().isLoadingMore).toBe(true);
+
+      // runSearch supersedes it before the loadMore resolves
+      mockSearchStations.mockResolvedValueOnce([makeStation('fresh')]);
+      await useRadioStore.getState().runSearch();
+
+      // runSearch should have cleared isLoadingMore
+      expect(useRadioStore.getState().isLoadingMore).toBe(false);
+
+      // Now resolve the stale loadMore — isLoadingMore must remain false
+      resolveLoadMore([makeStation('stale-more')]);
+      await loadMoreP;
+
+      expect(useRadioStore.getState().isLoadingMore).toBe(false);
+    });
+
     it('ignores stale search results when a newer request is in flight', async () => {
       const staleStations = [makeStation('stale')];
       const freshStations = [makeStation('fresh')];

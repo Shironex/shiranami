@@ -73,7 +73,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   runSearch: async () => {
     const requestId = beginRadioRequest();
     const { filters } = get();
-    set({ isLoading: true, error: null, mode: 'browse', page: 0 });
+    set({ isLoading: true, isLoadingMore: false, error: null, mode: 'browse', page: 0 });
     try {
       const stations = await api.searchStations(buildStationQuery(filters, 0));
       if (!isLatestRadioRequest(requestId)) return;
@@ -119,7 +119,14 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   loadFavorites: async () => {
     if (!IS_ELECTRON) return;
     const requestId = beginRadioRequest();
-    set({ isLoading: true, error: null, mode: 'favorites', page: 0, hasMore: false });
+    set({
+      isLoading: true,
+      isLoadingMore: false,
+      error: null,
+      mode: 'favorites',
+      page: 0,
+      hasMore: false,
+    });
     try {
       const rows = (await window.electronAPI.radio.favorites.getAll()) as Array<{
         stationUuid: string;
