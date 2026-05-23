@@ -451,6 +451,7 @@
       "Ścieżki plików pozbawione Twojej nazwy użytkownika"
     ],
     "note": "Raporty są pozbawiane ścieżek plików i Twojej nazwy użytkownika, zanim opuszczą Twoje urządzenie. Gdy ta opcja jest wyłączona, nic nie jest wysyłane.",
+    "restartNote": "Uruchom ponownie aplikację, aby rozpocząć raportowanie awarii — może się ono zainicjować tylko przy starcie.",
     "testTitle": "Zweryfikuj konfigurację",
     "testDesc": "Wysyła przykładowy błąd, aby zweryfikować konfigurację Sentry — widoczne tylko w trybie deweloperskim.",
     "testButton": "Wyślij zdarzenie testowe",

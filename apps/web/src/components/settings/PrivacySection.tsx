@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { ShieldCheck, Info, Bug, Check } from 'lucide-react';
+import { ShieldCheck, Info, Bug, Check, RotateCcw } from 'lucide-react';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { initSentryRenderer, captureException } from '@/lib/sentry';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,15 @@ export function PrivacySection() {
   const enabled = useTelemetryStore(s => s.enabled);
   const setEnabled = useTelemetryStore(s => s.setEnabled);
   const [sentRecently, setSentRecently] = useState(false);
+  // The main-process SDK can only init before the app 'ready' event, so turning
+  // crash reporting ON takes effect on the next launch. Surface that to the user.
+  const [pendingRestart, setPendingRestart] = useState(false);
+
+  function handleToggle(next: boolean) {
+    setEnabled(next);
+    // Enabling needs a restart to actually start reporting; disabling is immediate.
+    setPendingRestart(next);
+  }
 
   const sent = t('priv.sent', { returnObjects: true }) as string[];
   const notSent = t('priv.notSent', { returnObjects: true }) as string[];
@@ -45,7 +54,7 @@ export function PrivacySection() {
           label={t('priv.toggleLabel')}
           description={t('priv.toggleDesc')}
           checked={enabled}
-          onCheckedChange={setEnabled}
+          onCheckedChange={handleToggle}
         />
 
         <div className="grid grid-cols-1 gap-4 border-t border-border/30 pt-4 sm:grid-cols-2">
@@ -68,9 +77,13 @@ export function PrivacySection() {
         </div>
       </SettingsCard>
 
+      {pendingRestart && (
+        <SettingsInfoCallout icon={RotateCcw}>{t('priv.restartNote')}</SettingsInfoCallout>
+      )}
+
       <SettingsInfoCallout icon={Info}>{t('priv.note')}</SettingsInfoCallout>
 
-      {SHOW_TEST_BUTTON && enabled && (
+      {SHOW_TEST_BUTTON && enabled && !pendingRestart && (
         <SettingsCard icon={Bug} title={t('priv.testTitle')} subtitle={t('priv.testDesc')}>
           <div className="flex flex-wrap items-center gap-2">
             <Button

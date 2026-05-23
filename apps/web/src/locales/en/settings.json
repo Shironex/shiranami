@@ -451,6 +451,7 @@
       "File paths scrubbed of your username"
     ],
     "note": "Reports are scrubbed of file paths and your username before they ever leave your machine. Nothing is sent while this is off.",
+    "restartNote": "Restart the app to start crash reporting — it can only initialize at launch.",
     "testTitle": "Verify setup",
     "testDesc": "Sends a sample error to verify your Sentry setup — only visible in development.",
     "testButton": "Send test event",
