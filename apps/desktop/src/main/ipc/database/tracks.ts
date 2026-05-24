@@ -39,7 +39,17 @@ export function registerTrackHandlers(): void {
       const db = getDatabase();
       const id = crypto.randomUUID();
       const row: NewTrack = { ...track, id };
-      return db.insert(tracks).values(row).returning().get();
+      // file_path is UNIQUE. A concurrent import of the same file (the renderer
+      // does a non-atomic exists()->add() across two IPC calls) would otherwise
+      // throw a constraint error on the loser. Make add idempotent: no-op the
+      // insert on conflict and return the existing row instead of throwing.
+      const inserted = db
+        .insert(tracks)
+        .values(row)
+        .onConflictDoNothing({ target: tracks.filePath })
+        .returning()
+        .get();
+      return inserted ?? db.select().from(tracks).where(eq(tracks.filePath, row.filePath)).get();
     },
     { schema: tracksAddArgs }
   );

@@ -128,6 +128,49 @@ describe('database ipc (integration)', () => {
     expect(summary.topArtists.some(a => a.artist === 'Unknown Artist')).toBe(true);
   });
 
+  it('db:tracks:add is idempotent on file_path (concurrent-import safety)', async () => {
+    const addTrack = ipcHandlers.get('db:tracks:add')!;
+    const filePath = '/music/dupe-guard.mp3';
+    const first = (await addTrack(null as never, {
+      filePath,
+      title: 'First',
+      artist: 'A',
+      album: 'B',
+      duration: 100,
+    })) as { id: string };
+
+    // A racing import calls add() for the same file (exists()->add() is not
+    // atomic across two IPC calls). The UNIQUE(file_path) constraint must make
+    // this a no-op that returns the existing row, not a thrown constraint error.
+    const second = (await addTrack(null as never, {
+      filePath,
+      title: 'Second',
+      artist: 'C',
+      album: 'D',
+      duration: 200,
+    })) as { id: string };
+    expect(second.id).toBe(first.id);
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as Array<{ filePath: string }>;
+    expect(all.filter(t => t.filePath === filePath)).toHaveLength(1);
+  });
+
+  it('db:playlists:add-track is idempotent on (playlist, track)', async () => {
+    const track = await insertTrack();
+    const createPlaylist = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await createPlaylist(null as never, { name: 'Dedupe' })) as { id: string };
+
+    const addTrack = ipcHandlers.get('db:playlists:add-track')!;
+    await addTrack(null as never, { playlistId: playlist.id, trackId: track.id });
+    // Second add of the same track must not duplicate the row or throw.
+    await addTrack(null as never, { playlistId: playlist.id, trackId: track.id });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const inPlaylist = (await getTracks(null as never, playlist.id)) as unknown[];
+    expect(inPlaylist).toHaveLength(1);
+  });
+
   /* ------------------------------------------------------------------ */
   /*  History aggregations: hourly activity + weekly insights            */
   /* ------------------------------------------------------------------ */
