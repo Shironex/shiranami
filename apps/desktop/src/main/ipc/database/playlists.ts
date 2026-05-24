@@ -111,37 +111,44 @@ export function registerPlaylistHandlers(): void {
     async (_event, data: { playlistId: string; trackId: string }) => {
       const db = getDatabase();
 
-      const existing = db
-        .select({ id: playlistTracks.id })
-        .from(playlistTracks)
-        .where(
-          and(
-            eq(playlistTracks.playlistId, data.playlistId),
-            eq(playlistTracks.trackId, data.trackId)
+      // Wrap the existence check + MAX(position) read + insert in a single
+      // transaction so the read-modify-write is atomic. The body is synchronous
+      // today (no interleave), but this guarantees two adds can't compute the
+      // same next position if an await is ever introduced, and pairs with the
+      // UNIQUE(playlist_id, track_id) constraint to keep membership idempotent.
+      return db.transaction(tx => {
+        const existing = tx
+          .select({ id: playlistTracks.id })
+          .from(playlistTracks)
+          .where(
+            and(
+              eq(playlistTracks.playlistId, data.playlistId),
+              eq(playlistTracks.trackId, data.trackId)
+            )
           )
-        )
-        .get();
+          .get();
 
-      if (existing) return existing;
+        if (existing) return existing;
 
-      const maxRow = db
-        .select({ maxPos: sql<number>`COALESCE(MAX(${playlistTracks.position}), -1)` })
-        .from(playlistTracks)
-        .where(eq(playlistTracks.playlistId, data.playlistId))
-        .get();
+        const maxRow = tx
+          .select({ maxPos: sql<number>`COALESCE(MAX(${playlistTracks.position}), -1)` })
+          .from(playlistTracks)
+          .where(eq(playlistTracks.playlistId, data.playlistId))
+          .get();
 
-      const nextPosition = (maxRow?.maxPos ?? -1) + 1;
+        const nextPosition = (maxRow?.maxPos ?? -1) + 1;
 
-      return db
-        .insert(playlistTracks)
-        .values({
-          id: crypto.randomUUID(),
-          playlistId: data.playlistId,
-          trackId: data.trackId,
-          position: nextPosition,
-        })
-        .returning()
-        .get();
+        return tx
+          .insert(playlistTracks)
+          .values({
+            id: crypto.randomUUID(),
+            playlistId: data.playlistId,
+            trackId: data.trackId,
+            position: nextPosition,
+          })
+          .returning()
+          .get();
+      });
     },
     { schema: playlistsAddTrackArgs }
   );

@@ -44,6 +44,7 @@
   "failedRescan": "Nie udało się przeskanować biblioteki",
   "libraryCleared": "Biblioteka wyczyszczona",
   "failedClearLibrary": "Nie udało się wyczyścić biblioteki",
+  "failedSaveSettings": "Nie udało się zapisać ustawień",
   "previewFailed": "Nie udało się odtworzyć podglądu: {{error}}",
   "downloaded": "Pobrano: {{title}}",
   "trackAlreadyInLibrary": "Utwór jest już w bibliotece",

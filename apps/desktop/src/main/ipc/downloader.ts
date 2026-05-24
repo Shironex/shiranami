@@ -23,8 +23,10 @@ import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
+import { isHttpUrl } from '../shared/url-safety';
 import {
   spawnYtDlp,
+  appendUrlArg,
   ytSearch,
   classifyYtDlpFailure,
   tailOutput,
@@ -323,6 +325,11 @@ export function registerDownloaderHandlers(): void {
     C.download,
     async (_event, opts: { url: string; outputDir?: string }) => {
       const { url, outputDir } = opts;
+      // Reject non-http(s) URLs up front: stops argument injection into yt-dlp
+      // (e.g. a `--exec=<cmd>` value from a tampered playlist/share payload).
+      if (!isHttpUrl(url)) {
+        throw new IpcError('downloader.invalid_url', 'Refusing to download a non-http(s) URL');
+      }
       const downloadDir = outputDir ?? getDownloadDir();
       fs.mkdirSync(downloadDir, { recursive: true });
 
@@ -338,14 +345,13 @@ export function registerDownloaderHandlers(): void {
   handle(
     C.getStreamUrl,
     async (_event, url: string) => {
+      if (!isHttpUrl(url)) {
+        throw new IpcError('downloader.invalid_url', 'Refusing to resolve a non-http(s) URL');
+      }
       logger.info(`[downloader] Getting stream URL for: ${url}`);
-      const { stdout, stderr, code } = await spawnYtDlp([
-        '-f',
-        'bestaudio',
-        '--get-url',
-        '--no-warnings',
-        url,
-      ]);
+      const { stdout, stderr, code } = await spawnYtDlp(
+        appendUrlArg(['-f', 'bestaudio', '--get-url', '--no-warnings'], url)
+      );
 
       if (code !== 0) {
         const reason = classifyYtDlpFailure(`${stderr}\n${stdout}`);

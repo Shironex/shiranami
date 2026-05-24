@@ -40,6 +40,7 @@
   "failedRescan": "Failed to rescan library",
   "libraryCleared": "Library cleared",
   "failedClearLibrary": "Failed to clear library",
+  "failedSaveSettings": "Failed to save settings",
   "previewFailed": "Preview failed: {{error}}",
   "downloaded": "Downloaded: {{title}}",
   "trackAlreadyInLibrary": "Track already in library",

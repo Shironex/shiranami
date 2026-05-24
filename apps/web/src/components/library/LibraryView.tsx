@@ -110,6 +110,11 @@ export function LibraryView() {
                     ? t('filterAlbumsPlaceholder')
                     : t('filterPlaceholder')
                 }
+                aria-label={
+                  libraryViewMode === 'albums'
+                    ? t('filterAlbumsPlaceholder')
+                    : t('filterPlaceholder')
+                }
                 className="h-auto w-full pl-10 pr-9 py-2.5 rounded-xl text-sm glass-subtle border-border/40 text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
               />
               <AnimatePresence>

@@ -22,6 +22,8 @@ const mockState = vi.hoisted(() => ({
 vi.mock('@/stores/useSleepTimerStore', () => ({
   useSleepTimerStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
   SLEEP_TIMER_PRESETS: [15, 30, 45, 60, 90],
+  SLEEP_TIMER_MIN_MINUTES: 1,
+  SLEEP_TIMER_MAX_MINUTES: 600,
 }));
 
 vi.mock('react-i18next', () => ({

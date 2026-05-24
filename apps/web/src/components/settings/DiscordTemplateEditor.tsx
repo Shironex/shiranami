@@ -66,14 +66,17 @@ export function DiscordTemplateEditor({
     >
       {/* Activity type selector */}
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
+        <label
+          htmlFor="discord-activity-type"
+          className="text-xs font-medium text-muted-foreground"
+        >
           {t('dsc.editor.activityType')}
         </label>
         <Select
           value={selectedActivity}
           onValueChange={v => onActivityChange(v as DiscordMusicActivityType)}
         >
-          <SelectTrigger className="h-8 text-sm">
+          <SelectTrigger id="discord-activity-type" className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -91,10 +94,11 @@ export function DiscordTemplateEditor({
       {/* Template inputs */}
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label htmlFor="discord-line1" className="text-xs font-medium text-muted-foreground">
             {t('dsc.editor.line1')}
           </label>
           <Input
+            id="discord-line1"
             className="h-8 text-sm"
             value={currentTemplate.details}
             onChange={e => onTemplateChange(selectedActivity, 'details', e.target.value)}
@@ -102,10 +106,11 @@ export function DiscordTemplateEditor({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
+          <label htmlFor="discord-line2" className="text-xs font-medium text-muted-foreground">
             {t('dsc.editor.line2')}
           </label>
           <Input
+            id="discord-line2"
             className="h-8 text-sm"
             value={currentTemplate.state}
             onChange={e => onTemplateChange(selectedActivity, 'state', e.target.value)}

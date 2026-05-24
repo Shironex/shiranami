@@ -2,8 +2,26 @@ import { spawn } from 'child_process';
 import type { SearchResult } from '@shiranami/contracts';
 import { logger } from '../logger';
 import { getYtDlpPath } from '../ytdlp-manager';
+import { isHttpUrl } from '../shared/url-safety';
 
 export type { SearchResult };
+
+/**
+ * Append a user/extraction-derived URL to a yt-dlp argument array safely.
+ *
+ * Guards against ARGUMENT INJECTION: yt-dlp treats any argument starting with
+ * `-` as an option, so a value like `--exec=<cmd>` would run an arbitrary OS
+ * command. We (1) reject anything that is not an http(s) URL and (2) append the
+ * literal `--` end-of-options separator so yt-dlp always parses the value as a
+ * positional URL. Throws when `url` is not an http(s) URL — callers at IPC
+ * boundaries should validate with `isHttpUrl` first to return a typed error.
+ */
+export function appendUrlArg(args: string[], url: string): string[] {
+  if (!isHttpUrl(url)) {
+    throw new Error(`yt-dlp: refusing to pass a non-http(s) URL argument: ${url}`);
+  }
+  return [...args, '--', url];
+}
 
 /**
  * Spawn the bundled yt-dlp binary with the given args and buffer its full
@@ -24,7 +42,12 @@ export function spawnYtDlp(
       return;
     }
 
-    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
+    // `--ignore-config` stops yt-dlp from reading any ambient yt-dlp.conf on
+    // the config search path, which could otherwise inject dangerous options
+    // (e.g. `--exec`) outside this app's control.
+    const proc = spawn(getYtDlpPath(), ['--ignore-config', ...args], {
+      env: { ...process.env },
+    });
     let stdout = '';
     let stderr = '';
 

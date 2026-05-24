@@ -12,6 +12,9 @@ import { formatDuration } from '@shiranami/shared';
  *  centered on the progress point regardless of the thumb's own (hover-animated)
  *  width. The percentage `left` resolves against the live track width on every
  *  layout, so this is a one-time layout on value change (not per-frame). */
+/** Seconds the seek position moves per Arrow key press (PageUp/Down move 2x). */
+const SEEK_KEY_STEP_SECONDS = 5;
+
 function applyProgress(ratio: number, fill: HTMLDivElement | null, thumb: HTMLDivElement | null) {
   const clamped = Math.max(0, Math.min(1, ratio));
   if (fill) fill.style.transform = `scaleX(${clamped})`;
@@ -100,6 +103,48 @@ export function SeekBar() {
   const staticRatio = duration > 0 ? displayTime / duration : 0;
   const needsStaticStyle = !isPlaying || scrubTime !== null;
 
+  // Keyboard operability for the slider role: Arrow keys seek by a small step,
+  // PageUp/Down by a larger one, Home/End jump to the ends. Without this the
+  // primary transport control is unusable by keyboard and switch users.
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!duration) return;
+      // Read the freshest time from the stores at keypress time rather than
+      // closing over `displayTime` (which changes ~once/second during playback
+      // and would rebuild this callback on every tick).
+      const current =
+        usePlayerUIStore.getState().scrubTime ?? usePlaybackStore.getState().currentTime;
+      let next: number;
+      switch (e.key) {
+        case 'ArrowLeft':
+        case 'ArrowDown':
+          next = Math.max(0, current - SEEK_KEY_STEP_SECONDS);
+          break;
+        case 'ArrowRight':
+        case 'ArrowUp':
+          next = Math.min(duration, current + SEEK_KEY_STEP_SECONDS);
+          break;
+        case 'PageDown':
+          next = Math.max(0, current - SEEK_KEY_STEP_SECONDS * 2);
+          break;
+        case 'PageUp':
+          next = Math.min(duration, current + SEEK_KEY_STEP_SECONDS * 2);
+          break;
+        case 'Home':
+          next = 0;
+          break;
+        case 'End':
+          next = duration;
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+      seek(next);
+    },
+    [duration, seek]
+  );
+
   useLayoutEffect(() => {
     if (!needsStaticStyle) return;
     applyProgress(staticRatio, fillRef.current, thumbRef.current);
@@ -109,6 +154,7 @@ export function SeekBar() {
     <div
       ref={trackRef}
       onPointerDown={handlePointerDown}
+      onKeyDown={handleKeyDown}
       className="group relative flex min-w-0 flex-1 touch-none cursor-pointer select-none items-center py-1"
       role="slider"
       aria-label={t('seek')}

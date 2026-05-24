@@ -220,6 +220,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                           <img
                             src={current as string}
                             alt=""
+                            aria-hidden="true"
                             className="w-8 h-8 rounded-md object-cover opacity-60"
                           />
                         ) : (
@@ -237,6 +238,7 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
                           <img
                             src={proposed as string}
                             alt=""
+                            aria-hidden="true"
                             className="w-8 h-8 rounded-md object-cover"
                           />
                         ) : null}

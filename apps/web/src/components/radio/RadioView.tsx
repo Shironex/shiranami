@@ -204,6 +204,7 @@ export function RadioView() {
             value={searchDraft}
             onChange={handleSearchInputChange}
             placeholder={t('searchPlaceholder')}
+            aria-label={t('searchPlaceholder')}
             className={cn(
               'h-auto w-full pl-10 pr-4 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               'text-foreground placeholder:text-muted-foreground/50',

@@ -1,24 +1,18 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { TrackPayload } from '@shiranami/contracts';
+import type { ShareImportResponse } from '@shiranami/contracts';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { playlistKeys } from '@/hooks/queries/usePlaylists';
 
 export type ShareImportState = 'idle' | 'loading' | 'ready' | 'downloading' | 'done' | 'error';
 
-export interface ImportData {
-  type: 'TRACK' | 'PLAYLIST';
-  payload: {
-    title?: string;
-    artist?: string;
-    ytId?: string;
-    name?: string;
-    tracks?: TrackPayload[];
-  };
-  code: string;
-  expiresAt: string;
-}
+/**
+ * The validated import-share response. Aliased to the contract's discriminated
+ * union (shareImportResponseSchema), so the payload is narrowed by `type` — no
+ * more optional-everything fields and non-null assertions at the read sites.
+ */
+export type ImportData = ShareImportResponse;
 
 export interface UseShareImportResult {
   state: ShareImportState;
@@ -57,11 +51,10 @@ export function useShareImport(): UseShareImportResult {
 
     window.electronAPI.share
       .import(code)
-      .then(result => {
+      .then(importData => {
         if (cancelled) return;
-        const importData = result as ImportData;
         setData(importData);
-        setPlaylistName(importData.type === 'PLAYLIST' ? (importData.payload.name ?? '') : '');
+        setPlaylistName(importData.type === 'PLAYLIST' ? importData.payload.name : '');
         setState('ready');
       })
       .catch((err: Error) => {
@@ -80,12 +73,12 @@ export function useShareImport(): UseShareImportResult {
 
     const trackList =
       data.type === 'PLAYLIST'
-        ? (data.payload.tracks ?? [])
+        ? data.payload.tracks
         : [
             {
-              title: data.payload.title!,
-              artist: data.payload.artist!,
-              ytId: data.payload.ytId!,
+              title: data.payload.title,
+              artist: data.payload.artist,
+              ytId: data.payload.ytId,
             },
           ];
 

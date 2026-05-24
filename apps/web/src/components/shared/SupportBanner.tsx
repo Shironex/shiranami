@@ -28,7 +28,7 @@ export function SupportBanner() {
       <a
         href={BUY_ME_A_COFFEE_URL}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         onClick={setSeen}
         className="ml-1 rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
@@ -40,7 +40,7 @@ export function SupportBanner() {
       <a
         href={GITHUB_SPONSORS_URL}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
         onClick={setSeen}
         className="rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >

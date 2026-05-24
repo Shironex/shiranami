@@ -152,6 +152,7 @@ export function SearchView() {
             onFocus={() => suggestions.length > 0 && setSuggestionsOpen(true)}
             onBlur={() => closeSuggestions()}
             placeholder={t('placeholder')}
+            aria-label={t('placeholder')}
             className={cn(
               'h-auto w-full pl-10 py-2.5 rounded-xl text-sm glass-subtle border-border/40',
               query ? 'pr-10' : 'pr-4',

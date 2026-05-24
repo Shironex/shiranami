@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 import { logger } from './logger';
 import { getYtDlpPath } from './ytdlp-manager';
 import { getFFmpegDir, isFFmpegInstalled } from './ffmpeg-manager';
-import { classifyYtDlpFailure, tailOutput } from './utils/ytdlp-spawn';
+import { classifyYtDlpFailure, tailOutput, appendUrlArg } from './utils/ytdlp-spawn';
 
 export interface DownloadProgress {
   url: string;
@@ -51,7 +51,9 @@ export function runYtDlpDownload(
       }
     }
 
-    const args: string[] = [];
+    // `--ignore-config` prevents yt-dlp from reading an ambient yt-dlp.conf that
+    // could inject dangerous options (e.g. --exec). Keep it first.
+    const args: string[] = ['--ignore-config'];
     if (ffmpegLocation) {
       args.push('--ffmpeg-location', ffmpegLocation);
     }
@@ -77,11 +79,14 @@ export function runYtDlpDownload(
       'after_move:filepath',
       tmpFile,
       '-o',
-      outputTemplate,
-      url
+      outputTemplate
     );
 
-    const proc = spawn(getYtDlpPath(), args, { env: { ...process.env } });
+    // appendUrlArg validates the http(s) scheme and inserts the `--`
+    // end-of-options separator so `url` can never be parsed as a yt-dlp flag.
+    const proc = spawn(getYtDlpPath(), appendUrlArg(args, url), {
+      env: { ...process.env },
+    });
 
     let allOutput = '';
     let downloadedFilePath = '';

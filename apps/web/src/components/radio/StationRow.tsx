@@ -115,7 +115,10 @@ export function StationRow(props: RowComponentProps<StationRowProps>) {
         {/* Play/Pause indicator */}
         <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center">
           {isActive && isPlaying ? (
-            <EqBars />
+            <>
+              <EqBars />
+              <span className="sr-only">{t('nowPlaying', { ns: 'common' })}</span>
+            </>
           ) : (
             <Play className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
           )}

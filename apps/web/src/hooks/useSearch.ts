@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
@@ -22,6 +22,10 @@ export function useSearch() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
+  // Synchronous in-flight set keyed by URL. The `downloads` state can't guard
+  // against a fast double-invoke (it flushes a render later, and handleDownload
+  // doesn't close over it), so a ref is the reliable dedupe.
+  const downloadInFlightRef = useRef<Set<string>>(new Set());
 
   const { importTrack } = useTrackImport();
   const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview(
@@ -80,6 +84,10 @@ export function useSearch() {
     async (result: SearchResult) => {
       if (!IS_ELECTRON) return;
       const url = result.webpage_url || result.url;
+      // Guard against a duplicate download (and the duplicate library row it
+      // would produce) from a rapid double-trigger before state flushes.
+      if (downloadInFlightRef.current.has(url)) return;
+      downloadInFlightRef.current.add(url);
 
       setDownloads(prev => ({
         ...prev,
@@ -110,6 +118,8 @@ export function useSearch() {
           [url]: { progress: 0, status: 'error', error: msg },
         }));
         toast.error(i18n.t('downloadFailed', { ns: 'toast', error: msg }));
+      } finally {
+        downloadInFlightRef.current.delete(url);
       }
     },
     [importTrack]

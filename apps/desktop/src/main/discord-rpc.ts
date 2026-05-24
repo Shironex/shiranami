@@ -198,8 +198,12 @@ async function doConnect(): Promise<void> {
 
   try {
     await client.login();
-  } catch {
-    logger.debug('[discord-rpc] Discord not available, scheduling reconnect');
+  } catch (err) {
+    // Keep the error: "Discord not running" and a real auth/handshake failure
+    // (bad client id, protocol error) are otherwise indistinguishable, and at
+    // the default info level the failure was completely invisible. Exponential
+    // backoff in scheduleReconnect caps the frequency, so warn is not spammy.
+    logger.warn('[discord-rpc] login failed, scheduling reconnect:', err);
     isConnected = false;
     scheduleReconnect();
   }

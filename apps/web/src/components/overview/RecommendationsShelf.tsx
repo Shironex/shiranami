@@ -21,6 +21,9 @@ import { useAudioPreview, type PreviewableItem } from '@/hooks/useAudioPreview';
 import { useSearchDependencies } from '@/hooks/useSearchDependencies';
 import { DependencyInstallCard } from '@/components/search/DependencyInstallCard';
 
+/** Max items shown per shelf row before the "+N more" affordance. */
+const MAX_SHELF_ITEMS = 8;
+
 /**
  * Maps a discover recommendation onto the shared preview shape. Discover items
  * come from a `--flat-playlist` dump, so there's no duration — the player
@@ -414,10 +417,10 @@ export function RecommendationsShelf({ onPlay, hasLibrary }: RecommendationsShel
   const generatedAt = library.generatedAt ?? discover.generatedAt;
   const updatedAgo = isStale && generatedAt ? formatRelativeTime(generatedAt, i18n.language) : null;
 
-  const librarySlice = library.items.slice(0, 8);
-  const libraryExtra = Math.max(0, library.items.length - 8);
-  const discoverSlice = discover.items.slice(0, 8);
-  const discoverExtra = Math.max(0, discover.items.length - 8);
+  const librarySlice = library.items.slice(0, MAX_SHELF_ITEMS);
+  const libraryExtra = Math.max(0, library.items.length - MAX_SHELF_ITEMS);
+  const discoverSlice = discover.items.slice(0, MAX_SHELF_ITEMS);
+  const discoverExtra = Math.max(0, discover.items.length - MAX_SHELF_ITEMS);
 
   return (
     <section

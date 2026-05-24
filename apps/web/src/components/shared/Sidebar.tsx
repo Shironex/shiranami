@@ -125,6 +125,7 @@ export function Sidebar() {
                   onClick={() => navigateTo(item.id)}
                   title={sidebarCollapsed ? t(item.key) : undefined}
                   aria-label={t(item.key)}
+                  aria-current={isActive ? 'page' : undefined}
                   data-view={item.id}
                   className={cn(
                     'w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative',

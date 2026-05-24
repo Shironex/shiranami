@@ -46,6 +46,7 @@ export function SearchResultRow({
         onClick={() => onPreview(result)}
         className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
         title={isPreviewPlaying(result) ? t('pausePreview') : t('preview')}
+        aria-label={isPreviewPlaying(result) ? t('pausePreview') : t('preview')}
       >
         {result.thumbnail ? (
           <img

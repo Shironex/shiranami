@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import * as crypto from 'node:crypto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
-import { playHistory } from '@shiranami/database';
+import { playHistory, tracks } from '@shiranami/database';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
 import { cleanupDatabaseHandlers, registerDatabaseHandlers } from './database';
 
@@ -80,6 +80,95 @@ describe('database ipc (integration)', () => {
     const activity = (await getActivity(null as never, {})) as Array<{ playCount: number }>;
     expect(activity.length).toBeGreaterThanOrEqual(1);
     expect(activity.some(a => a.playCount >= 1)).toBe(true);
+  });
+
+  it('coalesces NULL artist/album to Unknown sentinels in get-recent and get-summary', async () => {
+    // Insert a track with NULL artist/album directly (simulating an untagged
+    // scan or a row predating backfill). The wire types declare these non-null,
+    // so the handler must collapse them or the UI renders the literal "null".
+    const db = getDatabase();
+    const trackId = crypto.randomUUID();
+    db.insert(tracks)
+      .values({
+        id: trackId,
+        filePath: `/music/${trackId}.mp3`,
+        title: 'Null Meta Track',
+        artist: null,
+        album: null,
+        duration: 120,
+      })
+      .run();
+
+    const recordPlay = ipcHandlers.get('db:history:record-play')!;
+    await recordPlay(null as never, {
+      trackId,
+      playedSeconds: 90,
+      duration: 120,
+      source: 'library',
+    });
+
+    const getRecent = ipcHandlers.get('db:history:get-recent')!;
+    const recent = (await getRecent(null as never, { limit: 10 })) as Array<{
+      trackId: string;
+      artist: string;
+      album: string;
+    }>;
+    const entry = recent.find(r => r.trackId === trackId)!;
+    expect(entry.artist).toBe('Unknown Artist');
+    expect(entry.album).toBe('Unknown Album');
+
+    const getSummary = ipcHandlers.get('db:history:get-summary')!;
+    const summary = (await getSummary(null as never, {})) as {
+      topTracks: Array<{ trackId: string; artist: string; album: string }>;
+      topArtists: Array<{ artist: string }>;
+    };
+    const topTrack = summary.topTracks.find(r => r.trackId === trackId)!;
+    expect(topTrack.artist).toBe('Unknown Artist');
+    expect(topTrack.album).toBe('Unknown Album');
+    expect(summary.topArtists.some(a => a.artist === 'Unknown Artist')).toBe(true);
+  });
+
+  it('db:tracks:add is idempotent on file_path (concurrent-import safety)', async () => {
+    const addTrack = ipcHandlers.get('db:tracks:add')!;
+    const filePath = '/music/dupe-guard.mp3';
+    const first = (await addTrack(null as never, {
+      filePath,
+      title: 'First',
+      artist: 'A',
+      album: 'B',
+      duration: 100,
+    })) as { id: string };
+
+    // A racing import calls add() for the same file (exists()->add() is not
+    // atomic across two IPC calls). The UNIQUE(file_path) constraint must make
+    // this a no-op that returns the existing row, not a thrown constraint error.
+    const second = (await addTrack(null as never, {
+      filePath,
+      title: 'Second',
+      artist: 'C',
+      album: 'D',
+      duration: 200,
+    })) as { id: string };
+    expect(second.id).toBe(first.id);
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as Array<{ filePath: string }>;
+    expect(all.filter(t => t.filePath === filePath)).toHaveLength(1);
+  });
+
+  it('db:playlists:add-track is idempotent on (playlist, track)', async () => {
+    const track = await insertTrack();
+    const createPlaylist = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await createPlaylist(null as never, { name: 'Dedupe' })) as { id: string };
+
+    const addTrack = ipcHandlers.get('db:playlists:add-track')!;
+    await addTrack(null as never, { playlistId: playlist.id, trackId: track.id });
+    // Second add of the same track must not duplicate the row or throw.
+    await addTrack(null as never, { playlistId: playlist.id, trackId: track.id });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const inPlaylist = (await getTracks(null as never, playlist.id)) as unknown[];
+    expect(inPlaylist).toHaveLength(1);
   });
 
   /* ------------------------------------------------------------------ */

@@ -6,7 +6,8 @@ import App from './App';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { initSentryRenderer } from '@/lib/sentry';
+import { initSentryRenderer, captureException } from '@/lib/sentry';
+import { logger } from '@/lib/logger';
 import './styles/globals.css';
 import '@/lib/i18n';
 
@@ -26,6 +27,20 @@ if (window.electronAPI?.__e2e) {
 // Initialize crash/error reporting. No-op unless the user opted in and this is
 // a packaged/production Electron build; events route to the main transport.
 void initSentryRenderer();
+
+// Global safety net for async failures that never reach React's render path —
+// rejected IPC promises, event-handler errors, useEffect rejections. Without
+// this they vanish (the ErrorBoundary only catches render-time errors): not
+// logged, not reported. captureException is a no-op until Sentry is initialized.
+window.addEventListener('unhandledrejection', event => {
+  logger.error('[unhandledrejection]', event.reason);
+  captureException(event.reason);
+});
+window.addEventListener('error', event => {
+  const err = event.error ?? new Error(event.message);
+  logger.error('[window.error]', err);
+  captureException(err);
+});
 
 createRoot(rootElement).render(
   <StrictMode>

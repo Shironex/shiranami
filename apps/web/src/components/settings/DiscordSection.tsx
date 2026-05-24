@@ -76,7 +76,12 @@ export function DiscordSection() {
 
   const handleSave = useCallback(async () => {
     if (!settings) return;
-    await updateDiscord.mutateAsync(settings);
+    try {
+      await updateDiscord.mutateAsync(settings);
+    } catch {
+      // The mutation's onError already surfaced a toast; just don't show "Saved".
+      return;
+    }
     if (!mountedRef.current) return;
     setSaved(true);
     setTimeout(() => {
@@ -156,7 +161,7 @@ export function DiscordSection() {
           disabled={!settings.enabled}
         />
 
-        <Button size="sm" onClick={handleSave}>
+        <Button size="sm" onClick={handleSave} disabled={updateDiscord.isPending}>
           {saved ? <Check className="h-4 w-4" /> : null}
           {saved ? t('dsc.main.saved') : t('dsc.main.save')}
         </Button>

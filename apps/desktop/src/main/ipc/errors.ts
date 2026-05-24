@@ -14,9 +14,7 @@ export class IpcError extends Error {
  * Structural check for IpcError on the renderer side.
  * Electron strips the prototype across IPC; instanceof won't work renderer-side.
  */
-export function isIpcError(
-  e: unknown,
-): e is { code: string; message: string; details?: unknown } {
+export function isIpcError(e: unknown): e is { code: string; message: string; details?: unknown } {
   return (
     typeof e === 'object' &&
     e !== null &&
@@ -31,6 +29,7 @@ export const SHARE_ERROR_CODES = {
   PLAYLIST_NOT_FOUND: 'share.playlist_not_found',
   PLAYLIST_EMPTY: 'share.playlist_empty',
   NO_MATCHES_FOR_ANY_TRACK: 'share.no_matches_for_any_track',
+  INVALID_RESPONSE: 'share.invalid_response',
 } as const;
 
 export const PLAYLIST_ERROR_CODES = {

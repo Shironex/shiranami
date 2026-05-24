@@ -144,6 +144,7 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
               }}
               onClick={e => e.stopPropagation()}
               placeholder={tCommon('namePlaceholder')}
+              aria-label={tCommon('namePlaceholder')}
               className="flex-1 bg-transparent text-xs text-foreground placeholder:text-muted-foreground/30 outline-none min-w-0"
             />
             <Button

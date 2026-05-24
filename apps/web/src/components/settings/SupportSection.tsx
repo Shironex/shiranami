@@ -38,13 +38,13 @@ export function SupportSection() {
 
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" asChild onClick={setSeen}>
-            <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noreferrer">
+            <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer">
               <Coffee className="w-3.5 h-3.5" />
               {t('sup.action')}
             </a>
           </Button>
           <Button size="sm" variant="outline" asChild onClick={setSeen}>
-            <a href={GITHUB_SPONSORS_URL} target="_blank" rel="noreferrer">
+            <a href={GITHUB_SPONSORS_URL} target="_blank" rel="noopener noreferrer">
               <HeartHandshake className="w-3.5 h-3.5" />
               {t('sup.sponsor')}
             </a>

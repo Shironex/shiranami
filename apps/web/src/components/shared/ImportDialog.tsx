@@ -33,9 +33,9 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
 
   const tracks =
     data?.type === 'PLAYLIST'
-      ? (data.payload.tracks ?? [])
+      ? data.payload.tracks
       : data
-        ? [{ title: data.payload.title!, artist: data.payload.artist!, ytId: data.payload.ytId! }]
+        ? [{ title: data.payload.title, artist: data.payload.artist, ytId: data.payload.ytId }]
         : [];
 
   return (

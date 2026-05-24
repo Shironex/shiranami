@@ -6,7 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
-import { useSleepTimerStore, SLEEP_TIMER_PRESETS } from '@/stores/useSleepTimerStore';
+import {
+  useSleepTimerStore,
+  SLEEP_TIMER_PRESETS,
+  SLEEP_TIMER_MIN_MINUTES,
+  SLEEP_TIMER_MAX_MINUTES,
+} from '@/stores/useSleepTimerStore';
 
 function formatRemaining(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -33,7 +38,9 @@ export function SleepTimer() {
       setCustomValue(prev => {
         const n = parseInt(prev, 10);
         const base = Number.isNaN(n) ? 0 : n;
-        return String(Math.min(600, Math.max(1, base + delta)));
+        return String(
+          Math.min(SLEEP_TIMER_MAX_MINUTES, Math.max(SLEEP_TIMER_MIN_MINUTES, base + delta))
+        );
       });
       setCustomError(false);
     };
@@ -68,8 +75,14 @@ export function SleepTimer() {
   };
 
   const handleCustomSubmit = () => {
-    const parsed = parseInt(customValue, 10);
-    if (isNaN(parsed) || parsed < 1 || parsed > 600) {
+    // Number() + isInteger rejects partial/decimal input ("12abc", "12.5", "")
+    // that parseInt would silently accept.
+    const parsed = Number(customValue);
+    if (
+      !Number.isInteger(parsed) ||
+      parsed < SLEEP_TIMER_MIN_MINUTES ||
+      parsed > SLEEP_TIMER_MAX_MINUTES
+    ) {
       setCustomError(true);
       return;
     }
@@ -153,8 +166,8 @@ export function SleepTimer() {
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                min={1}
-                max={600}
+                min={SLEEP_TIMER_MIN_MINUTES}
+                max={SLEEP_TIMER_MAX_MINUTES}
                 step={1}
                 value={customValue}
                 onChange={e => {

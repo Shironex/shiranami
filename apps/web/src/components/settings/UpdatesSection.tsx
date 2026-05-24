@@ -89,7 +89,7 @@ export function UpdatesSection() {
           <a
             href="https://github.com/Shironex/shiranami/releases/latest"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent hover:bg-accent/80 text-foreground transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ export function UpdatesSection() {
               <a
                 href="https://shiranami.app/changelog"
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('upd.viewChangelog')}

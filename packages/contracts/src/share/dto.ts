@@ -31,6 +31,20 @@ export const createShareSchema = z.discriminatedUnion('type', [
   createPlaylistShareSchema,
 ]);
 
+// The GET /api/share/:code response: a stored share (type + payload) plus the
+// server-assigned code and expiry. Used by the desktop main process to validate
+// the inbound response before handing it to the renderer, so a malformed or
+// hostile response cannot propagate as a lying type into the import UI. `code`
+// and `expiresAt` mirror the server's ShareData (expiresAt is a Date serialized
+// to an ISO string over JSON).
+const shareMeta = { code: z.string().min(1), expiresAt: z.iso.datetime({ offset: true }) };
+
+export const shareImportResponseSchema = z.discriminatedUnion('type', [
+  createTrackShareSchema.extend(shareMeta),
+  createPlaylistShareSchema.extend(shareMeta),
+]);
+
 export type CreateShareDto = z.infer<typeof createShareSchema>;
+export type ShareImportResponse = z.infer<typeof shareImportResponseSchema>;
 export type TrackPayload = z.infer<typeof trackPayloadSchema>;
 export type PlaylistPayload = z.infer<typeof playlistPayloadSchema>;
