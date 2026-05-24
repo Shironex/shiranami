@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
 
 export interface ElectronSettings {
   rememberPlaybackPosition?: boolean;
@@ -35,6 +37,12 @@ export function useUpdateSettingsMutation() {
       return merged;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKeys.all });
+    },
+    // Fire-and-forget callers (settings toggles, onboarding) have no local
+    // catch, so surface the failure here and resync the cache to truth.
+    onError: () => {
+      toast.error(i18n.t('failedSaveSettings', { ns: 'toast' }));
       queryClient.invalidateQueries({ queryKey: settingsKeys.all });
     },
   });

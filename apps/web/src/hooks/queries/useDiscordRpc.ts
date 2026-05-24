@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { DiscordRpcSettings } from '@shiranami/shared';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
 
 /**
  * React Query access to the dedicated Discord RPC settings (electron-store key
@@ -35,6 +37,11 @@ export function useUpdateDiscordRpcSettingsMutation() {
     },
     onSuccess: next => {
       if (next) queryClient.setQueryData(discordRpcKeys.all, next);
+    },
+    // Covers both the DiscordSection save and the fire-and-forget onboarding
+    // toggle, which otherwise fail silently.
+    onError: () => {
+      toast.error(i18n.t('failedSaveSettings', { ns: 'toast' }));
     },
   });
 }
