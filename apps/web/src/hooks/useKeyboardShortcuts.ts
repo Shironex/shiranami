@@ -11,10 +11,12 @@ import { useSelectionStore } from '@/stores/useSelectionStore';
 
 /**
  * Canonical navigation order for the number-key shortcuts and the
- * shortcuts help dialog. Mirrors the visual order in the Sidebar
- * (`NAV_ITEMS` in Sidebar.tsx). Each entry pairs the AppView with the
- * i18n label key used in `locales/<lang>/shortcuts.json` so the help
- * dialog can derive its Navigation list from this single source.
+ * shortcuts help dialog. Mirrors the default visual order in the Sidebar
+ * (`SIDEBAR_NAV_ITEMS` in `lib/sidebar-items.ts`); the number-key targets
+ * stay fixed and do not follow the user's custom sidebar order. Each entry
+ * pairs the AppView with the i18n label key used in
+ * `locales/<lang>/shortcuts.json` so the help dialog can derive its
+ * Navigation list from this single source.
  */
 export const NAV_VIEWS: Array<{ view: AppView; labelKey: string }> = [
   { view: 'library', labelKey: 'library' },
