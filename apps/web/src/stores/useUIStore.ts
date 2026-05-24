@@ -1,5 +1,11 @@
+import { arrayMove } from '@dnd-kit/sortable';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
+import {
+  ALWAYS_VISIBLE_SIDEBAR_ITEMS,
+  DEFAULT_SIDEBAR_ORDER,
+  sanitizeSidebarOrder,
+} from '@/lib/sidebar-items';
 
 export type VisualizerStyle =
   | 'bars'
@@ -127,6 +133,7 @@ function coerceLandingView(v: unknown): LandingView {
 interface PersistedUIState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
+  sidebarOrder: AppView[];
   sidebarPlaylistsVisible: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
@@ -157,7 +164,15 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
   if (typeof persisted.sidebarCollapsed === 'boolean')
     out.sidebarCollapsed = persisted.sidebarCollapsed;
   if (Array.isArray(persisted.sidebarHiddenItems))
-    out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
+    out.sidebarHiddenItems = (persisted.sidebarHiddenItems as AppView[]).filter(
+      id => !ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(id)
+    );
+  // Reconcile against the current nav items: unknown ids are dropped and views
+  // added in a newer version are appended, so a stale order never makes a
+  // sidebar item disappear. Only applied when an order was actually persisted;
+  // otherwise the current default (a complete list) stands.
+  if (persisted.sidebarOrder !== undefined)
+    out.sidebarOrder = sanitizeSidebarOrder(persisted.sidebarOrder);
   if (typeof persisted.sidebarPlaylistsVisible === 'boolean')
     out.sidebarPlaylistsVisible = persisted.sidebarPlaylistsVisible;
   if (typeof persisted.showVisualizer === 'boolean') out.showVisualizer = persisted.showVisualizer;
@@ -201,6 +216,7 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
 const UI_KEYS: ReadonlySet<string> = new Set([
   'sidebarCollapsed',
   'sidebarHiddenItems',
+  'sidebarOrder',
   'sidebarPlaylistsVisible',
   'showVisualizer',
   'visualizerStyle',
@@ -327,6 +343,7 @@ importLegacyUIStore();
 interface UIState {
   sidebarCollapsed: boolean;
   sidebarHiddenItems: AppView[];
+  sidebarOrder: AppView[];
   sidebarPlaylistsVisible: boolean;
   showVisualizer: boolean;
   visualizerStyle: VisualizerStyle;
@@ -356,6 +373,10 @@ interface UIActions {
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
   toggleSidebarItem: (view: AppView) => void;
+  /** Move `activeId` to the slot currently held by `overId` in the sidebar order. */
+  reorderSidebarItem: (activeId: AppView, overId: AppView) => void;
+  /** Restore the default sidebar order and clear all hidden items. */
+  resetSidebar: () => void;
   setSidebarPlaylistsVisible: (visible: boolean) => void;
   toggleVisualizer: () => void;
   setVisualizerStyle: (style: VisualizerStyle) => void;
@@ -372,6 +393,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
   (set, get) => ({
     sidebarCollapsed: false,
     sidebarHiddenItems: [],
+    sidebarOrder: DEFAULT_SIDEBAR_ORDER,
     sidebarPlaylistsVisible: true,
     showVisualizer: true,
     visualizerStyle: 'bars',
@@ -421,9 +443,22 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
       set({ sidebarCollapsed: !get().sidebarCollapsed });
     },
     toggleSidebarItem: view => {
+      // Always-visible items (settings) have no hide state — ignore the toggle
+      // so the user can never strand themselves out of the customization UI.
+      if (ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(view)) return;
       const current = get().sidebarHiddenItems;
       const next = current.includes(view) ? current.filter(v => v !== view) : [...current, view];
       set({ sidebarHiddenItems: next });
+    },
+    reorderSidebarItem: (activeId, overId) => {
+      const order = get().sidebarOrder;
+      const oldIndex = order.indexOf(activeId);
+      const newIndex = order.indexOf(overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+      set({ sidebarOrder: arrayMove(order, oldIndex, newIndex) });
+    },
+    resetSidebar: () => {
+      set({ sidebarOrder: DEFAULT_SIDEBAR_ORDER, sidebarHiddenItems: [] });
     },
     setSidebarPlaylistsVisible: visible => {
       set({ sidebarPlaylistsVisible: visible });
@@ -472,6 +507,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         ...readPassthroughLegacyFields(),
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarHiddenItems: s.sidebarHiddenItems,
+        sidebarOrder: s.sidebarOrder,
         sidebarPlaylistsVisible: s.sidebarPlaylistsVisible,
         showVisualizer: s.showVisualizer,
         visualizerStyle: s.visualizerStyle,

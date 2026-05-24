@@ -266,6 +266,15 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: 'library' })).toBeInTheDocument();
   });
 
+  // 9b. Always-visible items are never hidden even when in sidebarHiddenItems
+  it('always renders always-visible items even when they are in sidebarHiddenItems', () => {
+    setStoreState({ sidebarHiddenItems: ['settings', 'radio'] });
+    render(<Sidebar />);
+
+    expect(screen.getByRole('button', { name: 'settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'radio' })).not.toBeInTheDocument();
+  });
+
   // 10. Clicking a playlist navigates to playlists view with playlist ID
   it('navigates to playlists view with playlist ID when a playlist is clicked', async () => {
     const user = userEvent.setup();
