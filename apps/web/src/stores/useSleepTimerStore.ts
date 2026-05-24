@@ -44,8 +44,14 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
   remaining: 0,
 
   start: minutes => {
-    const endTime = Date.now() + minutes * 60 * 1000;
-    set({ endTime, duration: minutes, remaining: minutes * 60 });
+    // Enforce the bounds at the store boundary so every caller (presets, custom
+    // input, any future caller) obeys the same contract, not just the UI.
+    const normalized = Math.min(
+      SLEEP_TIMER_MAX_MINUTES,
+      Math.max(SLEEP_TIMER_MIN_MINUTES, Math.trunc(minutes))
+    );
+    const endTime = Date.now() + normalized * 60 * 1000;
+    set({ endTime, duration: normalized, remaining: normalized * 60 });
     startTick();
   },
 

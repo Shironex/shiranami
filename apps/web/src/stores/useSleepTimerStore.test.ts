@@ -45,6 +45,17 @@ describe('useSleepTimerStore', () => {
 
       expect(useSleepTimerStore.getState().remaining).toBeLessThan(initialRemaining);
     });
+
+    it('clamps and truncates out-of-range or fractional minutes', () => {
+      useSleepTimerStore.getState().start(0);
+      expect(useSleepTimerStore.getState().duration).toBe(1); // clamped to min
+
+      useSleepTimerStore.getState().start(9999);
+      expect(useSleepTimerStore.getState().duration).toBe(600); // clamped to max
+
+      useSleepTimerStore.getState().start(12.9);
+      expect(useSleepTimerStore.getState().duration).toBe(12); // truncated
+    });
   });
 
   describe('cancel', () => {
