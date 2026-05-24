@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/useUIStore';
@@ -22,14 +23,16 @@ export function SidebarPreview({ highlightedId = null }: SidebarPreviewProps) {
   const sidebarOrder = useUIStore(s => s.sidebarOrder);
   const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
 
-  const order = sidebarOrder?.length ? sidebarOrder : DEFAULT_SIDEBAR_ORDER;
-  const visibleItems = order
-    .map(id => SIDEBAR_ITEM_BY_ID.get(id))
-    .filter(
-      (item): item is SidebarNavItem =>
-        item != null &&
-        (ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(item.id) || !sidebarHiddenItems.includes(item.id))
-    );
+  const visibleItems = useMemo(() => {
+    const order = sidebarOrder?.length ? sidebarOrder : DEFAULT_SIDEBAR_ORDER;
+    return order
+      .map(id => SIDEBAR_ITEM_BY_ID.get(id))
+      .filter(
+        (item): item is SidebarNavItem =>
+          item != null &&
+          (ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(item.id) || !sidebarHiddenItems.includes(item.id))
+      );
+  }, [sidebarOrder, sidebarHiddenItems]);
 
   // Spotlight the hovered row when it's visible; otherwise fall back to the
   // first item so the mock always reads as a real, "landed" sidebar.
