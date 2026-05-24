@@ -5,7 +5,7 @@ vi.mock('node:dns', () => ({
   promises: { lookup: vi.fn() },
 }));
 
-import { isStreamUrlAllowed, parseStreamUrl } from './url-safety';
+import { isStreamUrlAllowed, parseStreamUrl, isHttpUrl } from './url-safety';
 
 const mockedLookup = vi.mocked(dns.promises.lookup);
 
@@ -30,6 +30,39 @@ describe('parseStreamUrl', () => {
     const u = parseStreamUrl('http://stream.example.com/live');
     expect(u).toBeInstanceOf(URL);
     expect(u?.hostname).toBe('stream.example.com');
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  isHttpUrl — synchronous scheme gate for spawn-arg injection        */
+/* ------------------------------------------------------------------ */
+
+describe('isHttpUrl', () => {
+  it('accepts http and https URLs', () => {
+    expect(isHttpUrl('http://example.com/')).toBe(true);
+    expect(isHttpUrl('https://www.youtube.com/watch?v=abc123')).toBe(true);
+    expect(isHttpUrl('https://youtube.com/playlist?list=PL123')).toBe(true);
+  });
+
+  it('rejects non-http(s) schemes', () => {
+    expect(isHttpUrl('file:///etc/passwd')).toBe(false);
+    expect(isHttpUrl('ftp://example.com/')).toBe(false);
+    expect(isHttpUrl('javascript:alert(1)')).toBe(false);
+    expect(isHttpUrl('data:text/plain,hi')).toBe(false);
+  });
+
+  it('rejects yt-dlp argument-injection vectors that are not URLs', () => {
+    // These would be parsed by yt-dlp as options if passed positionally.
+    expect(isHttpUrl('--exec=calc.exe')).toBe(false);
+    expect(isHttpUrl('--exec-before-download=rm -rf ~')).toBe(false);
+    expect(isHttpUrl('--downloader=/bin/sh')).toBe(false);
+    expect(isHttpUrl('-x')).toBe(false);
+    expect(isHttpUrl('--paths=/tmp')).toBe(false);
+  });
+
+  it('rejects empty / non-URL input', () => {
+    expect(isHttpUrl('')).toBe(false);
+    expect(isHttpUrl('not a url')).toBe(false);
   });
 });
 

@@ -2,6 +2,7 @@ import type { MetadataLookupResult } from '@shiranami/contracts';
 import { requestBuffer, requestJson } from './http';
 import { isYtDlpInstalled } from './ytdlp-manager';
 import { spawnYtDlp } from './utils/ytdlp-spawn';
+import { isStreamUrlAllowed } from './shared/url-safety';
 import { logger } from './logger';
 
 export type { MetadataLookupResult } from '@shiranami/contracts';
@@ -210,7 +211,16 @@ const IMAGE_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
  * Routed through `requestBuffer` so cover-art hosts (e.g. i.ytimg.com,
  * iTunes thumbnails) share the per-host spacing + 429 handling.
  */
-export function downloadImage(url: string, signal?: AbortSignal): Promise<Buffer> {
+export async function downloadImage(url: string, signal?: AbortSignal): Promise<Buffer> {
+  // SSRF guard: cover-art URLs come from external APIs (iTunes) and yt-dlp
+  // extraction output, so a tampered upstream response could point us at a
+  // private/internal address (127.0.0.1, 169.254.169.254 cloud metadata, ...).
+  // Resolve + reject denied ranges before the outbound request, mirroring the
+  // radio protocol. See shared/url-safety.ts.
+  const guard = await isStreamUrlAllowed(url);
+  if (!guard.ok) {
+    throw new Error(`Refusing to fetch image from a disallowed URL (${guard.reason})`);
+  }
   return requestBuffer(url, {
     timeoutMs: IMAGE_TIMEOUT_MS,
     maxBytes: IMAGE_MAX_SIZE,

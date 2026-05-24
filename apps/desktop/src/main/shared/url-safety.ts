@@ -34,18 +34,16 @@ import ipaddr from 'ipaddr.js';
  * the alternative (pre-resolving and rewriting the URL) breaks TLS/SNI and is
  * ignored by Chromium's network stack anyway.
  *
- * // TODO(security): Extend this guard to other `net.fetch` / `net.request`
- * // call sites that handle renderer-derived URLs (e.g. `metadata-lookup.ts`,
- * // `playlist.ts` if its scope grows). Today the radio protocol is the only
- * // hot path; widen as new entry points appear.
+ * Coverage: applied to the `shiranami-radio://` protocol (`radio-protocol.ts`)
+ * and to cover-art fetches (`metadata-lookup.ts` `downloadImage`). Extend to any
+ * future `net.fetch` / `net.request` call site that handles renderer- or
+ * upstream-derived URLs.
  */
 
 /** Why a URL was rejected. Renderer never sees this — main-side log only. */
 export type UrlGuardReason = 'parse' | 'scheme' | 'private-ip' | 'dns';
 
-export type UrlGuardResult =
-  | { ok: true; url: URL }
-  | { ok: false; reason: UrlGuardReason };
+export type UrlGuardResult = { ok: true; url: URL } | { ok: false; reason: UrlGuardReason };
 
 const ALLOWED_SCHEMES = new Set(['http:', 'https:']);
 
@@ -80,6 +78,26 @@ export function parseStreamUrl(input: string): URL | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Synchronous http(s) scheme check for a URL that will be passed as a
+ * POSITIONAL ARGUMENT to a child process (yt-dlp).
+ *
+ * This guards a DIFFERENT threat from `isStreamUrlAllowed`: argument injection.
+ * yt-dlp (like most CLIs) treats any argument beginning with `-` as an option,
+ * so a renderer/extraction-derived value such as `--exec=<cmd>` would execute
+ * an arbitrary OS command. Callers MUST also insert a literal `--`
+ * end-of-options separator before the URL (see `appendUrlArg` in
+ * `utils/ytdlp-spawn.ts`).
+ *
+ * Unlike `isStreamUrlAllowed`, this performs NO DNS / private-IP resolution —
+ * it is purely a cheap scheme gate for the spawn-argument path. SSRF on
+ * outbound `net.request` is a separate concern handled by `isStreamUrlAllowed`.
+ */
+export function isHttpUrl(input: string): boolean {
+  const url = parseStreamUrl(input);
+  return url !== null && ALLOWED_SCHEMES.has(url.protocol);
 }
 
 /**

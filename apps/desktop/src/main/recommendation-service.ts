@@ -37,7 +37,7 @@ import {
   type RecommendationShelves,
 } from '@shiranami/contracts';
 import { logger } from './logger';
-import { spawnYtDlp, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
+import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
 import { isYtDlpInstalled } from './ytdlp-manager';
 
 /** How many top-affinity tracks seed the discover shelf. One RD mix already
@@ -165,7 +165,7 @@ async function fetchRdMix(
   const url = `https://www.youtube.com/watch?v=${seedYoutubeId}&list=RD${seedYoutubeId}`;
   try {
     const { stdout, code } = await spawnYtDlp(
-      ['--flat-playlist', '--dump-json', '--no-warnings', url],
+      appendUrlArg(['--flat-playlist', '--dump-json', '--no-warnings'], url),
       signal
     );
     if (code !== 0) {

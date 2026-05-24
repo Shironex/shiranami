@@ -4,7 +4,13 @@ import { logger } from '../logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';
-import { spawnYtDlp, parseYtDlpJsonLines, ytSearch, type SearchResult } from '../utils/ytdlp-spawn';
+import {
+  spawnYtDlp,
+  appendUrlArg,
+  parseYtDlpJsonLines,
+  ytSearch,
+  type SearchResult,
+} from '../utils/ytdlp-spawn';
 import { sendToRenderer } from '../utils/window';
 import { BROWSER_USER_AGENT } from '../shared/user-agent';
 import { pickBestMatch, type SpotifyTrack } from '../utils/spotify-match';
@@ -70,12 +76,9 @@ export function extractSpotifyPlaylistId(url: string): string | null {
 async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
   logger.info(`[playlist] Extracting YouTube playlist: ${url}`);
 
-  const { stdout, code } = await spawnYtDlp([
-    '--flat-playlist',
-    '--dump-json',
-    '--no-warnings',
-    url,
-  ]);
+  const { stdout, code } = await spawnYtDlp(
+    appendUrlArg(['--flat-playlist', '--dump-json', '--no-warnings'], url)
+  );
 
   if (code !== 0) {
     throw new IpcError(PLAYLIST_ERROR_CODES.NO_TRACKS, 'yt-dlp failed to extract playlist');
