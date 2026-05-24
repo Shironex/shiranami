@@ -75,8 +75,14 @@ export function SleepTimer() {
   };
 
   const handleCustomSubmit = () => {
-    const parsed = parseInt(customValue, 10);
-    if (isNaN(parsed) || parsed < SLEEP_TIMER_MIN_MINUTES || parsed > SLEEP_TIMER_MAX_MINUTES) {
+    // Number() + isInteger rejects partial/decimal input ("12abc", "12.5", "")
+    // that parseInt would silently accept.
+    const parsed = Number(customValue);
+    if (
+      !Number.isInteger(parsed) ||
+      parsed < SLEEP_TIMER_MIN_MINUTES ||
+      parsed > SLEEP_TIMER_MAX_MINUTES
+    ) {
       setCustomError(true);
       return;
     }
