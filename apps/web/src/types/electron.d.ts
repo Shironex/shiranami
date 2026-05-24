@@ -7,6 +7,7 @@ import type {
   GeocodeResult,
   WeatherCurrent,
   RecommendationShelves,
+  ShareImportResponse,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -403,12 +404,7 @@ export interface ElectronAPI {
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
     playlist: (playlistId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
-    import: (code: string) => Promise<{
-      type: 'TRACK' | 'PLAYLIST';
-      payload: unknown;
-      code: string;
-      expiresAt: string;
-    }>;
+    import: (code: string) => Promise<ShareImportResponse>;
     cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
     onDeepLink: (callback: (code: string) => void) => () => void;
   };

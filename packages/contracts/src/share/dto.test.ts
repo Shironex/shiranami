@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createShareSchema, createTrackShareSchema, createPlaylistShareSchema } from './dto';
+import {
+  createShareSchema,
+  createTrackShareSchema,
+  createPlaylistShareSchema,
+  shareImportResponseSchema,
+} from './dto';
 
 const validTrack = { title: 'Song', artist: 'Artist', ytId: 'dQw4w9WgXcQ' };
 
@@ -152,6 +157,59 @@ describe('createShareSchema (discriminated union)', () => {
   it('rejects missing payload field', () => {
     const result = createShareSchema.safeParse({
       type: 'TRACK',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('shareImportResponseSchema (GET /api/share/:code)', () => {
+  const meta = { code: 'abc123', expiresAt: '2026-06-01T00:00:00.000Z' };
+
+  it('accepts a valid TRACK import response', () => {
+    const result = shareImportResponseSchema.safeParse({
+      type: 'TRACK',
+      payload: validTrack,
+      ...meta,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a valid PLAYLIST import response', () => {
+    const result = shareImportResponseSchema.safeParse({
+      type: 'PLAYLIST',
+      payload: { name: 'Playlist', tracks: [validTrack] },
+      ...meta,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a response missing code / expiresAt', () => {
+    expect(
+      shareImportResponseSchema.safeParse({ type: 'TRACK', payload: validTrack }).success
+    ).toBe(false);
+    expect(
+      shareImportResponseSchema.safeParse({
+        type: 'TRACK',
+        payload: validTrack,
+        code: 'abc123',
+      }).success
+    ).toBe(false);
+  });
+
+  it('rejects a malformed/hostile payload (the bug this guards)', () => {
+    const result = shareImportResponseSchema.safeParse({
+      type: 'TRACK',
+      payload: { title: 123, artist: null },
+      ...meta,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an unknown discriminator', () => {
+    const result = shareImportResponseSchema.safeParse({
+      type: 'ALBUM',
+      payload: validTrack,
+      ...meta,
     });
     expect(result.success).toBe(false);
   });

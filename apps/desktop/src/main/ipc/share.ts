@@ -2,7 +2,12 @@ import { ipcMain } from 'electron';
 import { randomUUID } from 'crypto';
 import { eq, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { createShareSchema, IPC_CHANNELS, type CreateShareDto } from '@shiranami/contracts';
+import {
+  createShareSchema,
+  shareImportResponseSchema,
+  IPC_CHANNELS,
+  type CreateShareDto,
+} from '@shiranami/contracts';
 import { logger } from '../logger';
 import { HttpError, requestJson } from '../http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
@@ -236,7 +241,17 @@ export function registerShareHandlers(): void {
     async (_event, code: string) => {
       logger.info(`[share] Importing share code: ${code}`);
       const result = await fetchApi(`/api/share/${code}`, { method: 'GET' });
-      return result;
+      // Validate the remote response before handing it to the renderer: this is
+      // untrusted network input, and the renderer reads payload fields directly.
+      const parsed = shareImportResponseSchema.safeParse(result);
+      if (!parsed.success) {
+        logger.warn('[share] Import response failed schema validation', parsed.error.format());
+        throw new IpcError(
+          SHARE_ERROR_CODES.INVALID_RESPONSE,
+          'Received invalid share data from the server'
+        );
+      }
+      return parsed.data;
     },
     { schema: shareImportArgs }
   );

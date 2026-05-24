@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import { IPC_CHANNELS, type ShareImportResponse } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
 const C = IPC_CHANNELS.share;
@@ -10,17 +10,12 @@ interface ShareCode {
   expiresAt: string;
 }
 
-interface ImportResult {
-  type: 'TRACK' | 'PLAYLIST';
-  payload: unknown;
-  code: string;
-  expiresAt: string;
-}
-
 export interface ShareApi {
   track: (trackId: string) => Promise<ShareCode>;
   playlist: (playlistId: string) => Promise<ShareCode>;
-  import: (code: string) => Promise<ImportResult>;
+  // The main-process handler validates this against shareImportResponseSchema,
+  // so the renderer receives a fully-typed discriminated union, not raw unknown.
+  import: (code: string) => Promise<ShareImportResponse>;
   cacheYoutubeId: (trackId: string, youtubeId: string) => Promise<void>;
   onDeepLink: (callback: (code: string) => void) => () => void;
 }
