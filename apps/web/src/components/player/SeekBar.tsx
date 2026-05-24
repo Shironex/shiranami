@@ -109,21 +109,26 @@ export function SeekBar() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (!duration) return;
+      // Read the freshest time from the stores at keypress time rather than
+      // closing over `displayTime` (which changes ~once/second during playback
+      // and would rebuild this callback on every tick).
+      const current =
+        usePlayerUIStore.getState().scrubTime ?? usePlaybackStore.getState().currentTime;
       let next: number;
       switch (e.key) {
         case 'ArrowLeft':
         case 'ArrowDown':
-          next = Math.max(0, displayTime - SEEK_KEY_STEP_SECONDS);
+          next = Math.max(0, current - SEEK_KEY_STEP_SECONDS);
           break;
         case 'ArrowRight':
         case 'ArrowUp':
-          next = Math.min(duration, displayTime + SEEK_KEY_STEP_SECONDS);
+          next = Math.min(duration, current + SEEK_KEY_STEP_SECONDS);
           break;
         case 'PageDown':
-          next = Math.max(0, displayTime - SEEK_KEY_STEP_SECONDS * 2);
+          next = Math.max(0, current - SEEK_KEY_STEP_SECONDS * 2);
           break;
         case 'PageUp':
-          next = Math.min(duration, displayTime + SEEK_KEY_STEP_SECONDS * 2);
+          next = Math.min(duration, current + SEEK_KEY_STEP_SECONDS * 2);
           break;
         case 'Home':
           next = 0;
@@ -137,7 +142,7 @@ export function SeekBar() {
       e.preventDefault();
       seek(next);
     },
-    [duration, displayTime, seek]
+    [duration, seek]
   );
 
   useLayoutEffect(() => {

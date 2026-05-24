@@ -15,14 +15,18 @@ const uiState = vi.hoisted(() => ({
   setScrubTime: vi.fn(),
 }));
 
-vi.mock('@/stores/usePlaybackStore', () => ({
-  usePlaybackStore: <T,>(selector: (s: typeof playbackState) => T) => selector(playbackState),
-  currentTimeRef: { current: 0 },
-}));
+vi.mock('@/stores/usePlaybackStore', () => {
+  const hook = <T,>(selector: (s: typeof playbackState) => T) => selector(playbackState);
+  return {
+    usePlaybackStore: Object.assign(hook, { getState: () => playbackState }),
+    currentTimeRef: { current: 0 },
+  };
+});
 
-vi.mock('@/stores/usePlayerUIStore', () => ({
-  usePlayerUIStore: <T,>(selector: (s: typeof uiState) => T) => selector(uiState),
-}));
+vi.mock('@/stores/usePlayerUIStore', () => {
+  const hook = <T,>(selector: (s: typeof uiState) => T) => selector(uiState);
+  return { usePlayerUIStore: Object.assign(hook, { getState: () => uiState }) };
+});
 
 describe('SeekBar', () => {
   beforeEach(() => {
