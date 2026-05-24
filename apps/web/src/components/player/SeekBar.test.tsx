@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SeekBar } from './SeekBar';
@@ -71,5 +71,53 @@ describe('SeekBar', () => {
     // SeekBar now clears scrubTime explicitly on commit (used to live in the
     // store's seek() action in the pre-split monolith).
     expect(uiState.setScrubTime).toHaveBeenCalledWith(null);
+  });
+
+  // Regression: the slider role used to be keyboard-dead (only onPointerDown),
+  // so keyboard / switch users could not seek the playing track at all.
+  describe('keyboard operability', () => {
+    beforeEach(() => {
+      playbackState.currentTime = 50;
+    });
+
+    it('Arrow keys seek by the small step', () => {
+      render(<SeekBar />);
+      const slider = screen.getByRole('slider');
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(55);
+      fireEvent.keyDown(slider, { key: 'ArrowUp' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(55);
+      fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(45);
+    });
+
+    it('PageUp / PageDown seek by the larger step', () => {
+      render(<SeekBar />);
+      const slider = screen.getByRole('slider');
+      fireEvent.keyDown(slider, { key: 'PageUp' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(60);
+      fireEvent.keyDown(slider, { key: 'PageDown' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(40);
+    });
+
+    it('Home and End jump to the bounds', () => {
+      render(<SeekBar />);
+      const slider = screen.getByRole('slider');
+      fireEvent.keyDown(slider, { key: 'Home' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(0);
+      fireEvent.keyDown(slider, { key: 'End' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(100);
+    });
+
+    it('clamps to [0, duration] and ignores unrelated keys', () => {
+      playbackState.currentTime = 3;
+      render(<SeekBar />);
+      const slider = screen.getByRole('slider');
+      fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+      expect(playbackState.seek).toHaveBeenLastCalledWith(0);
+      playbackState.seek.mockClear();
+      fireEvent.keyDown(slider, { key: 'Enter' });
+      expect(playbackState.seek).not.toHaveBeenCalled();
+    });
   });
 });
