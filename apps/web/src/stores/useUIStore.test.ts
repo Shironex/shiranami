@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUIStore } from './useUIStore';
 import { useViewStore } from './useViewStore';
+import { DEFAULT_SIDEBAR_ORDER } from '@/lib/sidebar-items';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -23,6 +24,7 @@ describe('useUIStore', () => {
     useUIStore.setState({
       sidebarCollapsed: false,
       sidebarHiddenItems: [],
+      sidebarOrder: DEFAULT_SIDEBAR_ORDER,
       sidebarPlaylistsVisible: true,
       showVisualizer: true,
       visualizerStyle: 'bars',
@@ -41,6 +43,43 @@ describe('useUIStore', () => {
 
     toggleSidebarItem('favorites');
     expect(useUIStore.getState().sidebarHiddenItems).toEqual(['history']);
+  });
+
+  it('toggleSidebarItem ignores always-visible items (settings)', () => {
+    useUIStore.getState().toggleSidebarItem('settings');
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual([]);
+    expect(readPersisted().sidebarHiddenItems ?? []).toEqual([]);
+  });
+
+  it('reorderSidebarItem moves an item to a new slot and persists the order', () => {
+    // Default order index 1 = library, index 3 = favorites.
+    useUIStore.getState().reorderSidebarItem('library', 'favorites');
+
+    const order = useUIStore.getState().sidebarOrder;
+    expect(order.slice(0, 5)).toEqual(['overview', 'playlists', 'favorites', 'library', 'history']);
+    // No items lost, no duplicates introduced.
+    expect(order).toHaveLength(DEFAULT_SIDEBAR_ORDER.length);
+    expect(new Set(order).size).toBe(DEFAULT_SIDEBAR_ORDER.length);
+    expect(readPersisted().sidebarOrder).toEqual(order);
+  });
+
+  it('reorderSidebarItem is a no-op for unknown ids or a self-move', () => {
+    useUIStore.getState().reorderSidebarItem('library', 'library');
+    expect(useUIStore.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
+
+    useUIStore.getState().reorderSidebarItem('not-a-view' as never, 'library');
+    expect(useUIStore.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
+  });
+
+  it('resetSidebar restores the default order and clears hidden items', () => {
+    useUIStore.getState().reorderSidebarItem('radio', 'overview');
+    useUIStore.getState().toggleSidebarItem('mixes');
+    expect(useUIStore.getState().sidebarOrder).not.toEqual(DEFAULT_SIDEBAR_ORDER);
+
+    useUIStore.getState().resetSidebar();
+    expect(useUIStore.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual([]);
+    expect(readPersisted().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
   });
 
   it('persists sidebar playlists visibility to localStorage', () => {
@@ -167,6 +206,42 @@ describe('coerceVisualizerStyle (persist merge path)', () => {
       const { useUIStore: store } = await import('./useUIStore');
       expect(store.getState().visualizerStyle).toBe('bars');
     }
+  });
+});
+
+describe('sidebarOrder reconciliation (persist merge path)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('drops unknown ids, appends missing ones, and dedupes a stale saved order', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { sidebarOrder: ['radio', 'bogus-view', 'library', 'library'] },
+        version: 1,
+      })
+    );
+
+    const { useUIStore: store } = await import('./useUIStore');
+    const order = store.getState().sidebarOrder;
+
+    // Known saved ids kept in saved order, deduped.
+    expect(order[0]).toBe('radio');
+    expect(order[1]).toBe('library');
+    // Unknown id removed.
+    expect(order).not.toContain('bogus-view');
+    // Every current nav id is present exactly once.
+    expect(new Set(order).size).toBe(DEFAULT_SIDEBAR_ORDER.length);
+    for (const id of DEFAULT_SIDEBAR_ORDER) {
+      expect(order).toContain(id);
+    }
+  });
+
+  it('falls back to the full default order when nothing is persisted', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
   });
 });
 
