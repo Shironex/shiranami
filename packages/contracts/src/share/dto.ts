@@ -37,7 +37,7 @@ export const createShareSchema = z.discriminatedUnion('type', [
 // hostile response cannot propagate as a lying type into the import UI. `code`
 // and `expiresAt` mirror the server's ShareData (expiresAt is a Date serialized
 // to an ISO string over JSON).
-const shareMeta = { code: z.string().min(1), expiresAt: z.string().min(1) };
+const shareMeta = { code: z.string().min(1), expiresAt: z.iso.datetime({ offset: true }) };
 
 export const shareImportResponseSchema = z.discriminatedUnion('type', [
   createTrackShareSchema.extend(shareMeta),
