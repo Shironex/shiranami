@@ -42,7 +42,11 @@ export function AboutSection() {
       <SettingsCard iconSlot={heroIcon} title="Shiranami" subtitle={heroSubtitle}>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" className="border-border/40" asChild>
-            <a href="https://github.com/Shironex/shiranami" target="_blank" rel="noreferrer">
+            <a
+              href="https://github.com/Shironex/shiranami"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <Globe className="w-3.5 h-3.5" />
               {t('abt.github')}
             </a>
@@ -51,7 +55,7 @@ export function AboutSection() {
             <a
               href="https://github.com/Shironex/shiranami/releases"
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               <BookOpen className="w-3.5 h-3.5" />
               {t('abt.changelog')}
