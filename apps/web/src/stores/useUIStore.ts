@@ -164,7 +164,9 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
   if (typeof persisted.sidebarCollapsed === 'boolean')
     out.sidebarCollapsed = persisted.sidebarCollapsed;
   if (Array.isArray(persisted.sidebarHiddenItems))
-    out.sidebarHiddenItems = persisted.sidebarHiddenItems as AppView[];
+    out.sidebarHiddenItems = (persisted.sidebarHiddenItems as AppView[]).filter(
+      id => !ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(id)
+    );
   // Reconcile against the current nav items: unknown ids are dropped and views
   // added in a newer version are appended, so a stale order never makes a
   // sidebar item disappear. Only applied when an order was actually persisted;

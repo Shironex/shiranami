@@ -243,6 +243,19 @@ describe('sidebarOrder reconciliation (persist merge path)', () => {
     const { useUIStore: store } = await import('./useUIStore');
     expect(store.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
   });
+
+  it('strips always-visible ids from sidebarHiddenItems on load', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { sidebarHiddenItems: ['settings', 'favorites'] },
+        version: 1,
+      })
+    );
+
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().sidebarHiddenItems).toEqual(['favorites']);
+  });
 });
 
 describe('useUIStore legacy localStorage migration', () => {

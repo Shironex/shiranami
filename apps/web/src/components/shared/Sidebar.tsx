@@ -11,6 +11,7 @@ import { Loader2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import { IconButton } from '@/components/ui/icon-button';
 import {
+  ALWAYS_VISIBLE_SIDEBAR_ITEMS,
   DEFAULT_SIDEBAR_ORDER,
   SIDEBAR_ITEM_BY_ID,
   type SidebarNavItem,
@@ -55,7 +56,9 @@ export function Sidebar() {
     return order
       .map(id => SIDEBAR_ITEM_BY_ID.get(id))
       .filter(
-        (item): item is SidebarNavItem => item != null && !sidebarHiddenItems.includes(item.id)
+        (item): item is SidebarNavItem =>
+          item != null &&
+          (ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(item.id) || !sidebarHiddenItems.includes(item.id))
       );
   }, [sidebarOrder, sidebarHiddenItems]);
 
