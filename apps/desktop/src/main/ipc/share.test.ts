@@ -1,13 +1,7 @@
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
-import {
-  tracks,
-  playlists,
-  playlistTracks,
-  youtubeMappings,
-  eq,
-} from '@shiranami/database';
+import { tracks, playlists, playlistTracks, youtubeMappings, eq } from '@shiranami/database';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
 
 vi.mock('../logger', () => ({
@@ -57,8 +51,12 @@ vi.mock('electron', async () => {
       },
     },
     BrowserWindow: class {
-      static getFocusedWindow() { return null; }
-      static getAllWindows() { return []; }
+      static getFocusedWindow() {
+        return null;
+      }
+      static getAllWindows() {
+        return [];
+      }
     },
     app: {
       isPackaged: false,
@@ -127,9 +125,7 @@ function insertTrack(overrides: Record<string, unknown> = {}): string {
 
 function insertYoutubeMapping(trackId: string, youtubeId: string): void {
   const db = getDatabase();
-  db.insert(youtubeMappings)
-    .values({ id: crypto.randomUUID(), trackId, youtubeId })
-    .run();
+  db.insert(youtubeMappings).values({ id: crypto.randomUUID(), trackId, youtubeId }).run();
 }
 
 function insertPlaylist(name: string): string {
@@ -227,7 +223,7 @@ describe('share ipc handlers', () => {
       // Valid-shape UUID that simply isn't in the DB — otherwise we'd trip
       // the zod validator and get BAD_REQUEST instead of TRACK_NOT_FOUND.
       await expect(
-        handler(null as never, '00000000-0000-4000-8000-000000000000'),
+        handler(null as never, '00000000-0000-4000-8000-000000000000')
       ).rejects.toMatchObject({
         code: 'share.track_not_found',
       });
@@ -263,7 +259,7 @@ describe('share ipc handlers', () => {
     it('throws PLAYLIST_NOT_FOUND for missing playlist', async () => {
       const handler = ipcHandlers.get('share:playlist')!;
       await expect(
-        handler(null as never, '00000000-0000-4000-8000-000000000000'),
+        handler(null as never, '00000000-0000-4000-8000-000000000000')
       ).rejects.toMatchObject({
         code: 'share.playlist_not_found',
       });
@@ -291,15 +287,32 @@ describe('share ipc handlers', () => {
   });
 
   describe('share:import', () => {
-    it('fetches shared payload by code and returns parsed JSON', async () => {
-      apiResponse = { statusCode: 200, body: { type: 'TRACK', payload: { title: 'Shared' } } };
+    it('fetches shared payload by code and returns the validated response', async () => {
+      const shared = {
+        type: 'TRACK',
+        payload: { title: 'Shared', artist: 'Artist', ytId: 'abc123' },
+        code: 'abc123',
+        expiresAt: '2026-06-01T00:00:00.000Z',
+      };
+      apiResponse = { statusCode: 200, body: shared };
 
       const handler = ipcHandlers.get('share:import')!;
       const result = await handler(null as never, 'abc123');
 
-      expect(result).toEqual({ type: 'TRACK', payload: { title: 'Shared' } });
+      expect(result).toEqual(shared);
       expect(apiCalls[0].url).toMatch(/\/api\/share\/abc123$/);
       expect(apiCalls[0].method).toBe('GET');
+    });
+
+    it('rejects a malformed share response with share.invalid_response', async () => {
+      // Missing artist/ytId/code/expiresAt — the handler must validate the
+      // untrusted remote response and not pass a lying shape to the renderer.
+      apiResponse = { statusCode: 200, body: { type: 'TRACK', payload: { title: 'Shared' } } };
+
+      const handler = ipcHandlers.get('share:import')!;
+      await expect(handler(null as never, 'abc123')).rejects.toMatchObject({
+        code: 'share.invalid_response',
+      });
     });
 
     it('rejects when API returns an error status', async () => {
