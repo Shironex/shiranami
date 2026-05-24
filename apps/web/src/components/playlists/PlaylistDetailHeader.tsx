@@ -243,6 +243,7 @@ export function PlaylistDetailHeader({
               onChange={e => setEditName(e.target.value)}
               onBlur={onSaveName}
               onKeyDown={onNameKeyDown}
+              aria-label={t('namePlaceholder')}
               className="font-display text-lg font-semibold text-foreground bg-transparent outline-none border-b border-primary/40 w-full pb-0.5"
             />
           ) : (

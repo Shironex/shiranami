@@ -175,9 +175,11 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
 
       {/* Preset select */}
       <div className="flex items-center justify-between gap-3">
-        <label className="text-xs text-muted-foreground">{t('preset')}</label>
+        <label htmlFor="eq-preset" className="text-xs text-muted-foreground">
+          {t('preset')}
+        </label>
         <Select value={preset} onValueChange={handlePresetChange}>
-          <SelectTrigger className="min-w-[140px]">
+          <SelectTrigger id="eq-preset" className="min-w-[140px]">
             <SelectValue placeholder={t('presetPlaceholder')}>
               {preset === 'custom' ? t('customPreset') : t(`preset.${preset}`)}
             </SelectValue>

@@ -230,6 +230,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
             }}
             className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
             title={t('downloadTrack')}
+            aria-label={t('downloadTrack')}
           >
             <Download className="w-4 h-4 text-muted-foreground/50 hover:text-primary transition-colors" />
           </button>
@@ -247,6 +248,7 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
             }}
             className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
             title={t('removeFromList')}
+            aria-label={t('removeFromList')}
           >
             <X className="w-3.5 h-3.5" />
           </button>

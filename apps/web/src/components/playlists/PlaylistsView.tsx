@@ -130,6 +130,7 @@ export function PlaylistsView() {
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={t('namePlaceholder')}
+                aria-label={t('namePlaceholder')}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none"
                 disabled={createPlaylist.isPending}
               />
