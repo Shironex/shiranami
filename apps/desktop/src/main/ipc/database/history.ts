@@ -16,6 +16,14 @@ import {
 /** A new session starts after this much idle time between consecutive plays. */
 const SESSION_GAP_MS = 30 * 60 * 1000;
 
+// The `tracks` table stores nullable artist/album, but the history wire types
+// (ListeningHistoryEntry / ListeningStatsTrack / ListeningStatsArtist) declare
+// them non-null and the renderer renders them directly. Collapse nulls to these
+// sentinels at the IPC boundary so the type is honest and the UI never shows a
+// literal "null". (The simplify pass folds these into a shared constant.)
+const UNKNOWN_ARTIST = 'Unknown Artist';
+const UNKNOWN_ALBUM = 'Unknown Album';
+
 const H = IPC_CHANNELS.db.history;
 
 function buildHistorySinceFilter(since?: string | null) {
@@ -101,7 +109,14 @@ export function registerHistoryHandlers(): void {
         .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
         .orderBy(desc(playHistory.playedAt));
 
-      return (sinceFilter ? recentQuery.where(sinceFilter) : recentQuery).limit(safeLimit).all();
+      const rows = (sinceFilter ? recentQuery.where(sinceFilter) : recentQuery)
+        .limit(safeLimit)
+        .all();
+      return rows.map(row => ({
+        ...row,
+        artist: row.artist ?? UNKNOWN_ARTIST,
+        album: row.album ?? UNKNOWN_ALBUM,
+      }));
     },
     { schema: historyGetRecentArgs }
   );
@@ -141,7 +156,12 @@ export function registerHistoryHandlers(): void {
       const topTracks = (sinceFilter ? topTracksQuery.where(sinceFilter) : topTracksQuery)
         .orderBy(desc(sql`COUNT(*)`), desc(sql`MAX(${playHistory.playedAt})`))
         .limit(5)
-        .all();
+        .all()
+        .map(row => ({
+          ...row,
+          artist: row.artist ?? UNKNOWN_ARTIST,
+          album: row.album ?? UNKNOWN_ALBUM,
+        }));
 
       const topArtistsQuery = db
         .select({
@@ -155,7 +175,8 @@ export function registerHistoryHandlers(): void {
       const topArtists = (sinceFilter ? topArtistsQuery.where(sinceFilter) : topArtistsQuery)
         .orderBy(desc(sql`COUNT(*)`), desc(sql`COALESCE(SUM(${playHistory.playedSeconds}), 0)`))
         .limit(5)
-        .all();
+        .all()
+        .map(row => ({ ...row, artist: row.artist ?? UNKNOWN_ARTIST }));
 
       return {
         totalPlays: totals?.totalPlays ?? 0,

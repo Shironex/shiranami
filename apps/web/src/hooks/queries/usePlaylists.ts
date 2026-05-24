@@ -5,6 +5,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
 import type { Playlist } from '@/types/electron';
 import type { Track } from '@/stores/types';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 
 // ── Query Keys ──
 
@@ -41,7 +42,14 @@ export function usePlaylistTracksQuery(playlistId: string | null) {
   return useQuery({
     queryKey: playlistKeys.tracks(playlistId!),
     queryFn: async () => {
-      return (await window.electronAPI.db.playlists.getTracks(playlistId!)) as Track[];
+      // Collapse nullable DB columns (artist/album/duration) to display
+      // defaults via the shared mapper, exactly like the library load path
+      // (useLibrarySync). The raw rows are nullable; without this they would
+      // render as the literal string "null". Drops the prior lying `as Track[]`.
+      const rows = (await window.electronAPI.db.playlists.getTracks(
+        playlistId!
+      )) as DbTrackRecord[];
+      return mapDbTracksToTracks(rows);
     },
     enabled: !!playlistId && IS_ELECTRON,
   });
