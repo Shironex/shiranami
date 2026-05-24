@@ -1,45 +1,23 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useUIStore } from '@/stores/useUIStore';
-import { useViewStore, type AppView } from '@/stores/useViewStore';
+import { useViewStore } from '@/stores/useViewStore';
 import type { Playlist } from '@/types/electron';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
-import {
-  LayoutDashboard,
-  Library,
-  Heart,
-  History,
-  ListMusic,
-  Search,
-  Radio,
-  Settings,
-  Loader2,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ListPlus,
-  Sparkles,
-} from 'lucide-react';
+import { Loader2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import { IconButton } from '@/components/ui/icon-button';
+import {
+  DEFAULT_SIDEBAR_ORDER,
+  SIDEBAR_ITEM_BY_ID,
+  type SidebarNavItem,
+} from '@/lib/sidebar-items';
 import { PlaylistContextMenu } from './PlaylistContextMenu';
 import { SidebarPlaylistButton } from './SidebarPlaylistButton';
 import type { ContextMenuPosition } from './TrackContextMenu';
-
-const NAV_ITEMS: Array<{ id: AppView; key: string; icon: typeof Library }> = [
-  { id: 'overview', key: 'overview', icon: LayoutDashboard },
-  { id: 'library', key: 'library', icon: Library },
-  { id: 'playlists', key: 'playlists', icon: ListMusic },
-  { id: 'favorites', key: 'favorites', icon: Heart },
-  { id: 'history', key: 'history', icon: History },
-  { id: 'mixes', key: 'mixes', icon: Sparkles },
-  { id: 'search', key: 'search', icon: Search },
-  { id: 'import-playlist', key: 'importPlaylist', icon: ListPlus },
-  { id: 'radio', key: 'radio', icon: Radio },
-  { id: 'settings', key: 'settings', icon: Settings },
-];
 
 export function Sidebar() {
   const { t } = useTranslation('sidebar');
@@ -47,6 +25,7 @@ export function Sidebar() {
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const sidebarCollapsed = useUIStore(s => s.sidebarCollapsed);
   const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
+  const sidebarOrder = useUIStore(s => s.sidebarOrder);
   const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
   const landingView = useUIStore(s => s.landingView);
   const navigateTo = useViewStore(s => s.navigateTo);
@@ -67,6 +46,18 @@ export function Sidebar() {
   const sidebarVersionLabel = sidebarCollapsed
     ? versionLabel
     : `${t('shiranami', { ns: 'common' })} ${versionLabel}`;
+
+  // Resolve the user-chosen order to nav items, dropping any hidden ones. Falls
+  // back to the default order when `sidebarOrder` is empty (fresh install or a
+  // test that doesn't seed it) so the nav is never blank.
+  const visibleNavItems = useMemo<SidebarNavItem[]>(() => {
+    const order = sidebarOrder?.length ? sidebarOrder : DEFAULT_SIDEBAR_ORDER;
+    return order
+      .map(id => SIDEBAR_ITEM_BY_ID.get(id))
+      .filter(
+        (item): item is SidebarNavItem => item != null && !sidebarHiddenItems.includes(item.id)
+      );
+  }, [sidebarOrder, sidebarHiddenItems]);
 
   return (
     <div
@@ -121,9 +112,9 @@ export function Sidebar() {
       <div className="flex-1 min-h-0 flex flex-col">
         <nav className={cn('py-2 shrink-0', sidebarCollapsed ? 'px-2' : 'px-3')}>
           <div className="space-y-0.5">
-            {NAV_ITEMS.filter(item => !sidebarHiddenItems.includes(item.id)).map(item => {
+            {visibleNavItems.map(item => {
               const isActive = activeView === item.id;
-              const Icon = item.icon;
+              const Icon = item.Icon;
 
               return (
                 <button
