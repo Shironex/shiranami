@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.21.0': '堅', // "sturdy / solid" — stability + security hardening, reorderable sidebar
   '0.20.0': '新', // "new / renew" — the big redesign, home screen, and recommendations
   '0.19.0': '灯', // "lamp / light" — cafe-window splash redesign
   '0.18.0': '整', // "tidy / arrange" — per-track metadata + topbar polish
@@ -131,6 +132,77 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.21.0',
+    date: '2026-05-27',
+    title: l(
+      'Your own sidebar order, plus a broad stability and security pass',
+      'Własna kolejność paska bocznego oraz szeroki przegląd stabilności i bezpieczeństwa'
+    ),
+    description: l(
+      'You can now drag the sidebar into the order that suits you, with a live preview and a one-click reset. The rest of this update is a broad reliability pass: a more keyboard-friendly player, safer downloads, a steadier Now Playing at every window size, and clearer image themes in low-performance mode.',
+      'Możesz teraz przeciągnąć pozycje paska bocznego w wygodnej dla Ciebie kolejności, z podglądem na żywo i resetem jednym kliknięciem. Reszta tej aktualizacji to szeroki przegląd niezawodności: bardziej przyjazny dla klawiatury odtwarzacz, bezpieczniejsze pobieranie, stabilniejszy widok Teraz odtwarzane przy każdym rozmiarze okna i czytelniejsze motywy graficzne w trybie niskiej wydajności.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Reorder the sidebar by dragging its items, with a live preview as you arrange them and a reset to bring back the default order',
+            'Zmień kolejność paska bocznego, przeciągając jego pozycje, z podglądem na żywo podczas układania i resetem przywracającym kolejność domyślną'
+          ),
+        ],
+      },
+      {
+        label: l('Radio', 'Radio'),
+        entries: [
+          l(
+            '"Near you" now picks stations from your system region instead of the app language, so it matches where you actually are',
+            'Funkcja „Blisko Ciebie” dobiera teraz stacje na podstawie regionu systemu zamiast języka aplikacji, więc pasuje do miejsca, w którym faktycznie jesteś'
+          ),
+          l(
+            "The radio tag filter is now clearly labelled, so it's easier to tell what you're filtering by",
+            'Filtr tagów w radiu jest teraz wyraźnie opisany, więc łatwiej rozpoznać, według czego filtrujesz'
+          ),
+        ],
+      },
+      {
+        label: l('Accessibility', 'Dostępność'),
+        entries: [
+          l(
+            'The seek bar can now be controlled with the keyboard, and more controls have proper labels for screen readers',
+            'Pasek przewijania można teraz obsługiwać klawiaturą, a więcej elementów ma poprawne etykiety dla czytników ekranu'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Now Playing keeps the album art inside the window, so the playback controls stay visible no matter the window size',
+            'Widok Teraz odtwarzane utrzymuje okładkę w obrębie okna, więc przyciski sterowania pozostają widoczne niezależnie od rozmiaru okna'
+          ),
+          l(
+            'Image themes stay readable in low-performance mode: the top bar and sidebar get a soft frosted backing so text never gets lost against the background',
+            'Motywy graficzne pozostają czytelne w trybie niskiej wydajności: górny pasek i pasek boczny zyskują delikatne matowe tło, dzięki czemu tekst nigdy nie ginie na tle obrazu'
+          ),
+          l(
+            'Tidied up scrollbars in a couple of places so they match the rest of the app instead of the system default',
+            'Uporządkowano paski przewijania w kilku miejscach, by pasowały do reszty aplikacji zamiast domyślnego systemowego'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            "A broad reliability pass: safer music downloads, steadier behaviour when an action fires twice, stricter checks on imported data, and clearer messages when something can't be saved",
+            'Szeroki przegląd niezawodności: bezpieczniejsze pobieranie muzyki, stabilniejsze działanie przy podwójnym wywołaniu akcji, dokładniejsza weryfikacja importowanych danych i czytelniejsze komunikaty, gdy czegoś nie da się zapisać'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.20.0',
     date: '2026-05-24',
