@@ -4,7 +4,7 @@ import { localeCountryCode } from './radioUtils';
 
 /**
  * Resolves the user's country as an ISO 3166-1 alpha-2 code for the radio
- * "Near you" shortcut. In Electron the OS region (`app.getLocaleCountryCode`)
+ * "Near you" shortcut. In Electron the OS region (`app.getLocaleCountry`)
  * wins: it reflects the system Region setting and is independent of the UI
  * language, so someone in Europe running the app in English still resolves to
  * their actual country instead of "US". The renderer locale
