@@ -101,7 +101,10 @@ export function NowPlayingView() {
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={exitNowPlaying}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          // glass-subtle backing matches the panel-toggle group on the right and
+          // keeps the icon legible: this button sits over the bare theme image,
+          // so a transparent background washes out on bright themes (summer).
+          className="glass-subtle rounded-lg border border-border/20 p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
           aria-label={t('back')}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -175,9 +178,17 @@ export function NowPlayingView() {
               className={cn(
                 'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
                 'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
+                // The art is sized by max-width, and the box is aspect-square, so
+                // capping max-width also caps its height. The `calc(100vh - …)`
+                // term is a height budget that reserves room for the header, track
+                // info, seek bar and controls: on tall viewports the width clamp
+                // wins (art stays large), but on short ones (e.g. a 1080p screen at
+                // 150% display scaling → ~720px tall) the height budget wins and
+                // shrinks the art so the controls always clear the window bottom
+                // instead of sliding under the OS taskbar.
                 panelVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(48vh,clamp(280px,22vw,480px))]'
-                  : 'w-full max-w-[min(52vh,clamp(300px,24vw,440px))]'
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh-28rem),clamp(280px,22vw,480px))]'
+                  : 'w-full max-w-[min(calc(100vh-30rem),clamp(300px,24vw,440px))]'
               )}
             >
               {currentTrack.albumArt ? (
