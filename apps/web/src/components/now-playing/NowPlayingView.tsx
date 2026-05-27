@@ -187,8 +187,8 @@ export function NowPlayingView() {
                 // shrinks the art so the controls always clear the window bottom
                 // instead of sliding under the OS taskbar.
                 panelVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh-28rem),clamp(280px,22vw,480px))]'
-                  : 'w-full max-w-[min(calc(100vh-30rem),clamp(300px,24vw,440px))]'
+                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh_-_28rem),clamp(280px,22vw,480px))]'
+                  : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
               )}
             >
               {currentTrack.albumArt ? (
