@@ -13,19 +13,21 @@ import { localeCountryCode } from './radioUtils';
  * Returns null when neither resolves, which keeps the "Near you" button hidden.
  */
 export function useLocaleCountry(): string | null {
-  // On the web there is no OS-region bridge, so the renderer locale is all we
-  // have and resolves synchronously. In Electron we start empty and let the
-  // async OS-region lookup below fill it, falling back to the locale on miss.
-  const [code, setCode] = useState<string | null>(() => (IS_ELECTRON ? null : localeCountryCode()));
+  // Seed synchronously whenever there is no OS-region bridge to consult (web,
+  // or any environment without the Electron preload such as tests): the
+  // renderer locale is all we have, so use it directly and skip the needless
+  // null -> value re-render on mount. In Electron with the bridge present we
+  // start empty and let the effect below fill in the OS region.
+  const [code, setCode] = useState<string | null>(() => {
+    if (!IS_ELECTRON || !window.electronAPI?.app?.getLocaleCountry) {
+      return localeCountryCode();
+    }
+    return null;
+  });
 
   useEffect(() => {
-    if (!IS_ELECTRON) return;
     const request = window.electronAPI?.app?.getLocaleCountry?.();
-    if (!request) {
-      // No IPC bridge exposed — fall back to the UI-locale region.
-      setCode(localeCountryCode());
-      return;
-    }
+    if (!request) return;
     let cancelled = false;
     request
       .then(value => {
