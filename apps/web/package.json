@@ -1,6 +1,6 @@
 {
   "name": "@shiranami/web",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Shiranami web frontend",
   "private": true,
   "sideEffects": [
