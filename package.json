@@ -90,7 +90,7 @@
     "sharp": "^0.34.5",
     "sql.js": "^1.14.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.4",
+    "typescript-eslint": "^8.60.0",
     "vitest": "^4.1.7",
     "wait-on": "^9.0.10"
   }
