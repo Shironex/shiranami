@@ -711,6 +711,44 @@
   backdrop-filter: none;
 }
 
+/* The TopBar is intentionally transparent over the solid 'none' theme. Under an
+   image theme it sits directly over the photo (the fixed z-0 ThemeBackground),
+   so the page title, language toggle and window controls wash out on bright
+   themes (summer). Add a frosted backing ONLY when an image theme is active,
+   matching the .glass / now-playing-hero pattern; the 'none' theme keeps its
+   backing-free bar. */
+[data-theme] .app-topbar {
+  background: oklch(0.08 0.02 280 / 0.38);
+  backdrop-filter: blur(8px) saturate(1.2);
+}
+
+/* Low-perf drops the blur (compositor cost); compensate with a little more
+   opacity so the chrome stays legible over a bright photo — same intent as the
+   .glass low-perf override, but kept as light as legibility allows. */
+[data-perf-mode='low'][data-theme] .app-topbar {
+  background: oklch(0.08 0.02 280 / 0.62);
+  backdrop-filter: none;
+}
+
+/* Sidebar frosted backing on image themes — lighter than the shared .glass so
+   the theme photo reads softly through it (matching the airy glass aesthetic of
+   the rest of the chrome) while keeping the nav legible. Placed AFTER the
+   [data-perf-mode='low'] .glass overrides so the equal-specificity low-perf rule
+   below wins by source order (the sidebar carries both `glass` and
+   `app-sidebar`). The left strip behind the sidebar is the dark room interior of
+   every theme, so it tolerates more transparency than the bright top strip. */
+[data-theme] .app-sidebar {
+  background: oklch(0.1 0.02 280 / 0.55);
+  backdrop-filter: blur(12px) saturate(1.3);
+}
+
+/* Low-perf has no blur to soften the bright window/lantern highlights in the
+   photo, so keep more opacity here than in normal mode to protect nav contrast. */
+[data-perf-mode='low'][data-theme] .app-sidebar {
+  background: oklch(0.1 0.02 280 / 0.82);
+  backdrop-filter: none;
+}
+
 /* prefers-reduced-transparency: drop backdrop blur on glass, stay legible via
    higher opacity. Mirrors the low-perf .glass override intent. Kept outside
    @layer (same region as the low-perf rules) so it reliably beats the
