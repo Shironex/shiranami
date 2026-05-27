@@ -67,7 +67,7 @@ export function DebugOverlay() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
         <Section title="Processes (main)">
           {main ? (
             <table className="w-full font-mono tabular-nums">
