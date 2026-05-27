@@ -65,7 +65,13 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        'shrink-0 flex flex-col h-full glass border-r border-border/50 transition-[width] duration-200',
+        // `relative z-10` gives the sidebar its own stacking context so its
+        // opaque glass background always paints ABOVE the fixed `z-0`
+        // ThemeBackground image. Without it the sidebar is position:static and,
+        // in low-performance mode (where the override drops `backdrop-filter`
+        // and with it the stacking context blur used to create), the theme
+        // image paints over the sidebar and washes the nav chrome out.
+        'app-sidebar relative z-10 shrink-0 flex flex-col h-full glass border-r border-border/50 transition-[width] duration-200',
         sidebarCollapsed ? 'w-[5.25rem]' : 'w-[12.5rem]'
       )}
     >

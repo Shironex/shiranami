@@ -54,13 +54,17 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   }, [dropdownOpen]);
 
   return (
-    <div className="drag h-11 flex items-center shrink-0 border-b border-border/20 relative z-10">
-      {/* Page title */}
-      <div className="no-drag flex items-center px-5">
-        <h1 className="font-display text-sm font-semibold text-foreground">
-          {t(VIEW_TITLE_KEYS[activeView] || 'library', { ns: 'sidebar' })}
-        </h1>
-      </div>
+    <div className="app-topbar drag h-11 flex items-center shrink-0 border-b border-border/20 relative z-10">
+      {/* Page title — skipped on the now-playing view, which carries its own
+          header chrome (back button + panel toggles), so a duplicate page
+          title would just be redundant noise. */}
+      {activeView !== 'now-playing' && (
+        <div className="no-drag flex items-center px-5">
+          <h1 className="font-display text-sm font-semibold text-foreground">
+            {t(VIEW_TITLE_KEYS[activeView] || 'library', { ns: 'sidebar' })}
+          </h1>
+        </div>
+      )}
 
       <div className="flex-1" />
 

@@ -38,4 +38,10 @@ describe('TopBar page title', () => {
     render(<TopBar />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(expectedKey);
   });
+
+  it('hides the page title on the now-playing view (it carries its own header)', () => {
+    activeView = 'now-playing';
+    render(<TopBar />);
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+  });
 });
