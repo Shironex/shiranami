@@ -47,6 +47,7 @@ import { useLibrarySync } from '@/hooks/useLibrarySync';
 import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
+import { useSystemNotices } from '@/hooks/useSystemNotices';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
@@ -109,6 +110,7 @@ function App() {
     });
   }, [libraryError, refetchLibrary, t]);
   useUpdateNotifications();
+  useSystemNotices();
   useKeyboardShortcuts();
   const debugOpen = useDebugPanel();
 

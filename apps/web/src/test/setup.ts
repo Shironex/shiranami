@@ -287,6 +287,9 @@ function createElectronAPIMock(): ElectronAPI {
       stop: asyncFn(undefined),
       onMetrics: vi.fn(() => noopUnsub()),
     },
+    system: {
+      onNotice: vi.fn(() => noopUnsub()),
+    },
     recommendations: {
       get: asyncFn({
         library: { kind: 'library', items: [], generatedAt: null, stale: true },
