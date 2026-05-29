@@ -14,6 +14,8 @@
 export interface TrackMetadata {
   title: string;
   artist: string;
+  /** Album artist tag, used for album grouping. Null when the tag is absent. */
+  albumArtist: string | null;
   album: string;
   /** Duration in seconds. */
   duration: number;

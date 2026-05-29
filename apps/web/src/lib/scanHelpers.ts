@@ -58,11 +58,13 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
       filePath: r.filePath,
       title: r.metadata.title,
       artist: r.metadata.artist,
+      albumArtist: r.metadata.albumArtist ?? r.metadata.artist ?? null,
       album: r.metadata.album,
       duration: r.metadata.duration,
       genre: r.metadata.genre ?? null,
       year: r.metadata.year ?? null,
       trackNumber: r.metadata.trackNumber ?? null,
+      discNumber: r.metadata.discNumber ?? null,
       albumArt: r.metadata.albumArt ?? null,
     }))
   )) as DbTrackRecord[];

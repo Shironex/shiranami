@@ -241,6 +241,7 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
     return {
       title: common.title || fallbackTitle,
       artist: common.artist || 'Unknown Artist',
+      albumArtist: common.albumartist || common.artist || null,
       album: common.album || 'Unknown Album',
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',
@@ -254,6 +255,7 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
     return {
       title: fallbackTitle,
       artist: 'Unknown Artist',
+      albumArtist: null,
       album: 'Unknown Album',
       duration: 0,
       genre: '',

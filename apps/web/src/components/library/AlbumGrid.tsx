@@ -73,7 +73,7 @@ interface CellProps {
   albums: AlbumData[];
   columnCount: number;
   gap: number;
-  onAlbumClick: (name: string) => void;
+  onAlbumClick: (key: string) => void;
   cardPaddingClass: string;
   imgPx: number;
   trackCountLabel: (count: number) => string;
@@ -107,7 +107,7 @@ function AlbumCell({
   return (
     <div style={insetStyle}>
       <button
-        onClick={() => onAlbumClick(album.name)}
+        onClick={() => onAlbumClick(album.key)}
         className={`text-left ${cardPaddingClass} rounded-2xl bg-card/70 border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col`}
       >
         <div
@@ -171,10 +171,10 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
   }, []);
 
   const handleAlbumClick = useCallback(
-    (albumName: string) => {
+    (albumKey: string) => {
       const offset = gridRef.current?.element?.scrollTop ?? 0;
       setAlbumGridScrollTop(offset);
-      selectAlbum(albumName);
+      selectAlbum(albumKey);
     },
     [selectAlbum, setAlbumGridScrollTop, gridRef]
   );

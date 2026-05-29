@@ -33,7 +33,7 @@ export function LibraryView() {
 
   const libraryViewMode = useUIStore(s => s.libraryViewMode);
   const setLibraryViewMode = useUIStore(s => s.setLibraryViewMode);
-  const selectedAlbumName = useViewStore(s => s.selectedAlbumName);
+  const selectedAlbumKey = useViewStore(s => s.selectedAlbumKey);
   const libraryHeroCardEnabled = useUIStore(s => s.libraryHeroCardEnabled);
   const albumGridSize = useUIStore(s => s.albumGridSize);
   const setAlbumGridSize = useUIStore(s => s.setAlbumGridSize);
@@ -77,7 +77,7 @@ export function LibraryView() {
   const isFiltered = searchQuery.trim().length > 0;
 
   // If an album is selected in albums mode, show the detail view
-  if (libraryViewMode === 'albums' && selectedAlbumName) {
+  if (libraryViewMode === 'albums' && selectedAlbumKey) {
     return <AlbumDetailView />;
   }
 

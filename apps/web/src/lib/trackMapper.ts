@@ -21,6 +21,7 @@ export function mapDbTrackToTrack(t: DbTrackRecord): Track {
     id: t.id,
     title: t.title,
     artist: t.artist ?? i18n.t('unknownArtist', { ns: 'common' }),
+    albumArtist: t.albumArtist ?? null,
     album: t.album ?? i18n.t('unknownAlbum', { ns: 'common' }),
     duration: t.duration ?? 0,
     filePath: t.filePath,

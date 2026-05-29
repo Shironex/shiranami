@@ -9,6 +9,7 @@ export interface Track {
   filePath: string;
   title: string;
   artist: string | null;
+  albumArtist: string | null;
   album: string | null;
   duration: number | null;
   genre: string | null;
@@ -32,6 +33,7 @@ export interface NewTrack {
   filePath: string;
   title: string;
   artist?: string | null;
+  albumArtist?: string | null;
   album?: string | null;
   duration?: number | null;
   genre?: string | null;
@@ -57,6 +59,12 @@ export interface DisplayTrack {
   id: string;
   title: string;
   artist: string;
+  /**
+   * Album artist — used to group albums so identically-named albums by
+   * different artists don't merge, and a compilation's varied track artists
+   * don't fragment one album. Falls back to `artist` when absent.
+   */
+  albumArtist?: string | null;
   album: string;
   duration: number;
   filePath: string;
