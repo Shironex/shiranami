@@ -6,6 +6,7 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
 import { pruneOrphanedAlbumArt } from '../../art-protocol';
+import { emitSystemNotice } from '../../system-notice';
 import {
   tracksGetAllArgs,
   tracksAddArgs,
@@ -117,6 +118,9 @@ export function registerTrackHandlers(): void {
       // pruneOrphanedAlbumArt and never propagate to the caller.
       pruneOrphanedAlbumArt().catch(err => {
         logger.warn('[database] post-remove-many prune failed:', err);
+        // Surface to the renderer so a failing prune (e.g. locked cover cache)
+        // isn't silent during a live session. Deduped/throttled by code.
+        emitSystemNotice({ source: 'album-art', level: 'warn', code: 'albumArtPruneFailed' });
       });
     },
     { schema: tracksRemoveManyArgs }

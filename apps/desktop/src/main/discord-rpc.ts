@@ -7,6 +7,7 @@ import {
 } from '@shiranami/shared';
 import { logger } from './logger';
 import { store } from './store';
+import { emitSystemNotice, resetSystemNotice } from './system-notice';
 import type { PlaybackState } from './media-controls';
 import { buildPresence } from './discord-presence-builder';
 
@@ -32,6 +33,12 @@ let pendingActivity: DiscordMusicPresenceActivity | null | undefined = undefined
 let throttleTimer: ReturnType<typeof setTimeout> | null = null;
 let connectPromise: Promise<void> | null = null;
 let currentActivity: DiscordMusicPresenceActivity | null = null;
+// True once we've surfaced a login failure to the user; suppresses repeat
+// toasts across the 5–60s reconnect-backoff loop. Reset when a connection
+// succeeds (the `ready` handler), so a later failure surfaces again.
+let loginFailureNotified = false;
+
+const DISCORD_LOGIN_FAILED_CODE = 'discordLoginFailed';
 
 /**
  * Read persisted settings, filling any missing field from the defaults so an
@@ -184,6 +191,9 @@ async function doConnect(): Promise<void> {
   client.on('ready', () => {
     isConnected = true;
     reconnectDelay = RECONNECT_BASE_MS;
+    // Recovered — let a future failure surface again.
+    loginFailureNotified = false;
+    resetSystemNotice('discord', DISCORD_LOGIN_FAILED_CODE);
     logger.info('[discord-rpc] Connected');
     // Re-emit the last known activity (or an idle presence) on (re)connect,
     // through the throttle so rapid reconnects cannot trip Discord's rate limit.
@@ -205,6 +215,17 @@ async function doConnect(): Promise<void> {
     // backoff in scheduleReconnect caps the frequency, so warn is not spammy.
     logger.warn('[discord-rpc] login failed, scheduling reconnect:', err);
     isConnected = false;
+    // Surface once per failed state, and only when the user actually enabled
+    // RPC — "Discord not running" for someone who turned it on is worth a calm
+    // notice; the reconnect-backoff loop must not turn it into a toast storm.
+    if (!loginFailureNotified && getSettings().enabled) {
+      loginFailureNotified = true;
+      emitSystemNotice({
+        source: 'discord',
+        level: 'warn',
+        code: DISCORD_LOGIN_FAILED_CODE,
+      });
+    }
     scheduleReconnect();
   }
 }
@@ -220,6 +241,10 @@ async function disconnectClient(): Promise<void> {
   clearReconnectTimer();
   clearThrottleTimer();
   pendingActivity = undefined;
+  // A deliberate disconnect (settings off / cleanup) ends the failed state, so
+  // a fresh enable can surface a new login failure.
+  loginFailureNotified = false;
+  resetSystemNotice('discord', DISCORD_LOGIN_FAILED_CODE);
 
   if (client) {
     try {

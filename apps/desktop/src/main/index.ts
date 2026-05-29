@@ -14,6 +14,7 @@ import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
+import { emitSystemNotice } from './system-notice';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
 import { backupDatabaseOnLaunch } from './db-backup';
@@ -165,6 +166,10 @@ async function bootstrap(): Promise<void> {
   // never blocks bootstrap; pruneOrphanedAlbumArt swallows its own errors.
   pruneOrphanedAlbumArt().catch(err => {
     logger.warn('Album art prune failed:', err);
+    // Not awaited — this almost always settles after the window is up, so the
+    // renderer can receive it. sendToRenderer no-ops safely if it's still early.
+    // Shares the album-art notice code with the post-remove path (deduped).
+    emitSystemNotice({ source: 'album-art', level: 'warn', code: 'albumArtPruneFailed' });
   });
 
   mainWindow = await createMainWindow();
