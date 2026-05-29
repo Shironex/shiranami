@@ -23,5 +23,6 @@
   "selectedCount_other": "{{count}} zaznaczonych",
   "dragToReorder": "Przeciągnij, aby zmienić kolejność",
   "findMissingMetadata": "Znajdź brakujące metadane",
-  "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych."
+  "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych.",
+  "editTags": "Edytuj tagi"
 }

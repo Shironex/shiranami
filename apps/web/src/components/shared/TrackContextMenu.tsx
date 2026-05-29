@@ -11,6 +11,7 @@ import {
   Trash2,
   ChevronRight,
   Disc3,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
@@ -325,6 +326,21 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
               if (isBulkEnriching) return;
               window.dispatchEvent(
                 new CustomEvent(DIALOG_EVENTS.openTrackEnrich, {
+                  detail: { trackId: track.id },
+                })
+              );
+              onClose();
+            }}
+          />
+        )}
+
+        {IS_ELECTRON && !isBulk && (
+          <MenuItem
+            icon={<Pencil className="w-4 h-4" />}
+            label={t('editTags')}
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent(DIALOG_EVENTS.openEditTags, {
                   detail: { trackId: track.id },
                 })
               );

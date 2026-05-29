@@ -247,6 +247,7 @@ function createElectronAPIMock(): ElectronAPI {
       }),
       cancelEnrichment: asyncFn(undefined),
       onEnrichProgress: vi.fn(() => noopUnsub()),
+      writeTags: asyncFn({ success: true }),
     },
     share: {
       track: asyncFn({

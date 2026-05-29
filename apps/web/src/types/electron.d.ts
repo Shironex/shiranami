@@ -3,6 +3,8 @@ import type {
   EnrichTrackResult,
   EnrichProgress,
   MetadataLookupResult,
+  WriteTagsInput,
+  WriteTagsResult,
   MainMetricsSnapshot,
   GeocodeResult,
   WeatherCurrent,
@@ -400,6 +402,7 @@ export interface ElectronAPI {
     ) => Promise<EnrichTrackResult>;
     cancelEnrichment: () => Promise<void>;
     onEnrichProgress: (callback: (data: EnrichProgress) => void) => () => void;
+    writeTags: (input: WriteTagsInput) => Promise<WriteTagsResult>;
   };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;

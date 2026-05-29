@@ -5,6 +5,8 @@ import {
   type EnrichTrackResult,
   type EnrichProgress,
   type MetadataLookupResult,
+  type WriteTagsInput,
+  type WriteTagsResult,
 } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -28,6 +30,11 @@ export interface MetadataApi {
   ) => Promise<EnrichTrackResult>;
   cancelEnrichment: () => Promise<void>;
   onEnrichProgress: (callback: (data: EnrichProgress) => void) => () => void;
+  /**
+   * Write user-edited tags back to the audio file and update the DB row. Used
+   * by the manual tag editor (distinct from the automatic enrichment flow).
+   */
+  writeTags: (input: WriteTagsInput) => Promise<WriteTagsResult>;
 }
 
 export const metadataApi: MetadataApi = {
@@ -36,4 +43,5 @@ export const metadataApi: MetadataApi = {
   previewEnrich: (track, options) => ipcRenderer.invoke(C.enrichPreview, track, options),
   cancelEnrichment: () => ipcRenderer.invoke(C.enrichCancel),
   onEnrichProgress: createIpcListener<EnrichProgress>(C.enrichProgress),
+  writeTags: input => ipcRenderer.invoke(C.writeTags, input),
 };

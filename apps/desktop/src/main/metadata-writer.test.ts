@@ -116,6 +116,31 @@ describe('metadata-writer', () => {
     });
   });
 
+  describe('albumArtist / discNumber mapping', () => {
+    const extended = { ...baseOptions, albumArtist: 'Various Artists', discNumber: 2 };
+
+    it('maps albumArtist to TPE2 (performerInfo) and discNumber to TPOS (partOfSet) for mp3', async () => {
+      await writeMetadataToFile('/music/song.mp3', extended);
+      const tags = mockNodeID3Update.mock.calls[0][0] as Record<string, unknown>;
+      expect(tags.performerInfo).toBe('Various Artists');
+      expect(tags.partOfSet).toBe('2');
+    });
+
+    it('maps albumArtist/discNumber to vorbis comments for flac', async () => {
+      await writeMetadataToFile('/music/song.flac', extended);
+      const arg = mockWriteFlacTags.mock.calls[0][0] as { tagMap: Record<string, string> };
+      expect(arg.tagMap.albumartist).toBe('Various Artists');
+      expect(arg.tagMap.discnumber).toBe('2');
+    });
+
+    it('passes album_artist and disc metadata to ffmpeg', async () => {
+      await writeMetadataToFile('/music/song.m4a', extended);
+      const args = mockExecFile.mock.calls[0][1] as string[];
+      expect(args).toContain('album_artist=Various Artists');
+      expect(args).toContain('disc=2');
+    });
+  });
+
   describe('cover art / albumArtUrl', () => {
     it('returns albumArtUrl when coverImageBuffer is provided', async () => {
       const result = await writeMetadataToFile('/music/song.mp3', coverOptions);

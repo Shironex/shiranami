@@ -152,6 +152,9 @@ export const IPC_CHANNELS = {
     enrichPreview: 'metadata:enrich:preview',
     enrichCancel: 'metadata:enrich:cancel',
     enrichProgress: 'metadata:enrich:progress',
+    // Manual tag editor: write user-edited tags back to the file and update the
+    // DB row. Distinct from the automatic enrichment flow above.
+    writeTags: 'metadata:write-tags',
   },
   recommendations: {
     // Renderer-facing reads. `get` returns both shelves from the cache;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { EnrichTrackInput } from '@shiranami/contracts';
+import type { EnrichTrackInput, WriteTagsInput } from '@shiranami/contracts';
 
 const uuid = z.string().uuid();
 const nonEmpty = z.string().min(1);
@@ -50,3 +50,27 @@ export const metadataEnrichPreviewArgs = z.tuple([
 ]);
 
 export const metadataEnrichCancelArgs = z.tuple([]);
+
+/**
+ * Mirrors `WriteTagsInput`. Every editable field is optional; empty strings are
+ * permitted (clears a tag). The compile-time assert below fails the build if
+ * the interface and this schema drift apart.
+ */
+export const writeTagsInputSchema = z.object({
+  id: uuid,
+  filePath: nonEmpty,
+  title: z.string().optional(),
+  artist: z.string().optional(),
+  albumArtist: z.string().optional(),
+  album: z.string().optional(),
+  genre: z.string().optional(),
+  year: z.number().int().nullable().optional(),
+  trackNumber: z.number().int().nullable().optional(),
+  discNumber: z.number().int().nullable().optional(),
+});
+
+type _WriteTagsFromSchema = z.infer<typeof writeTagsInputSchema>;
+const _assertWriteTags = (x: _WriteTagsFromSchema): WriteTagsInput => x;
+void _assertWriteTags;
+
+export const metadataWriteTagsArgs = z.tuple([writeTagsInputSchema]);

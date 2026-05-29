@@ -38,6 +38,7 @@ const DebugOverlay = import.meta.env.DEV
 const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
+const EditTagsDialogManager = lazy(() => import('@/components/shared/EditTagsDialogManager'));
 const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
@@ -224,6 +225,11 @@ function App() {
             <ErrorBoundary viewName="TrackEnrichDialogManager">
               <Suspense fallback={null}>
                 <TrackEnrichDialogManager />
+              </Suspense>
+            </ErrorBoundary>
+            <ErrorBoundary viewName="EditTagsDialogManager">
+              <Suspense fallback={null}>
+                <EditTagsDialogManager />
               </Suspense>
             </ErrorBoundary>
 

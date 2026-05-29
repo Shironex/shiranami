@@ -11,6 +11,8 @@ export const DIALOG_EVENTS = {
   openTrackEnrich: 'open-track-enrich-dialog',
   /** Open the keyboard-shortcuts help overlay. No detail. */
   openShortcutHelp: 'open-shortcut-help',
+  /** Open the manual tag editor dialog. Detail: `{ trackId: string }`. */
+  openEditTags: 'open-edit-tags-dialog',
 } as const;
 
 export type DialogEventName = (typeof DIALOG_EVENTS)[keyof typeof DIALOG_EVENTS];

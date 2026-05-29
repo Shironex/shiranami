@@ -67,6 +67,32 @@ export interface EnrichProgress {
   source?: MetadataLookupSource;
 }
 
+/**
+ * User-edited tags submitted by the manual tag editor. The track is addressed
+ * by `id` (DB row) + `filePath` (file to write). Every editable field is
+ * optional; only provided fields are written. Empty strings are allowed
+ * (clears a tag); `undefined` means "leave unchanged".
+ */
+export interface WriteTagsInput {
+  id: string;
+  filePath: string;
+  title?: string;
+  artist?: string;
+  albumArtist?: string;
+  album?: string;
+  genre?: string;
+  year?: number | null;
+  trackNumber?: number | null;
+  discNumber?: number | null;
+}
+
+/** Result of a manual `metadata:write-tags` call. */
+export interface WriteTagsResult {
+  success: boolean;
+  /** Error message when `success` is false (e.g. file not writable). */
+  error?: string;
+}
+
 /** Result of the standalone `metadata:lookup` IPC call. */
 export interface MetadataLookupResult {
   title?: string;
