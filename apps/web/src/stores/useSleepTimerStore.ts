@@ -23,11 +23,27 @@ interface SleepTimerActions {
 }
 
 let tickInterval: ReturnType<typeof setInterval> | null = null;
+let fadeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function clearTick() {
   if (tickInterval) {
     clearInterval(tickInterval);
     tickInterval = null;
+  }
+}
+
+/**
+ * Abort an in-progress fade-out: clear the pending deferred-pause and tell the
+ * audio engine to stop (and restore) the gain ramp. Safe to call when no fade
+ * is active.
+ */
+function clearFade() {
+  if (fadeTimeout) {
+    clearTimeout(fadeTimeout);
+    fadeTimeout = null;
+  }
+  if (usePlaybackStore.getState()._sleepFading) {
+    usePlaybackStore.getState()._setSleepFading(false);
   }
 }
 
@@ -57,6 +73,7 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
 
   cancel: () => {
     clearTick();
+    clearFade();
     set({ endTime: null, duration: null, remaining: 0 });
   },
 
@@ -69,7 +86,29 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
     if (remaining <= 0) {
       clearTick();
       set({ endTime: null, duration: null, remaining: 0 });
-      usePlaybackStore.getState().pause();
+
+      const playback = usePlaybackStore.getState();
+      // If nothing is playing there's nothing to fade — pause immediately.
+      if (!playback.isPlaying) {
+        playback.pause();
+        return;
+      }
+
+      // Gentle equal-power fade-out to silence, then pause. The audio engine
+      // performs the audible gain ramp while `_sleepFading` is true and
+      // restores the prior volume once playback stops, so the next play isn't
+      // silent.
+      const fadeMs = playback.sleepFadeDuration * 1000;
+      playback._setSleepFading(true);
+      fadeTimeout = setTimeout(() => {
+        fadeTimeout = null;
+        const state = usePlaybackStore.getState();
+        // The fade may have been abandoned by a manual pause/resume; if so the
+        // engine already cleared the signal — don't pause a resumed user.
+        if (!state._sleepFading) return;
+        state._setSleepFading(false);
+        state.pause();
+      }, fadeMs);
     } else {
       set({ remaining });
     }

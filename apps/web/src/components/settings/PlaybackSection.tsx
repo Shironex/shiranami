@@ -3,7 +3,11 @@ import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { CrossfadePreview, ResumePreview } from '@/components/settings/PlaybackPreferencePreview';
 import { Slider } from '@/components/ui/slider';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import {
+  usePlaybackStore,
+  SLEEP_FADE_MIN_SECONDS,
+  SLEEP_FADE_MAX_SECONDS,
+} from '@/stores/usePlaybackStore';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
 
 export function PlaybackSection() {
@@ -17,6 +21,9 @@ export function PlaybackSection() {
   const crossfadeDuration = usePlaybackStore(s => s.crossfadeDuration);
   const setCrossfadeEnabled = usePlaybackStore(s => s.setCrossfadeEnabled);
   const setCrossfadeDuration = usePlaybackStore(s => s.setCrossfadeDuration);
+
+  const sleepFadeDuration = usePlaybackStore(s => s.sleepFadeDuration);
+  const setSleepFadeDuration = usePlaybackStore(s => s.setSleepFadeDuration);
 
   const updateSetting = (key: 'rememberPlaybackPosition', value: boolean) => {
     updateSettings.mutate({ [key]: value });
@@ -63,6 +70,30 @@ export function PlaybackSection() {
             </div>
           </div>
         )}
+
+        <div className="px-3 pt-3 pb-1 border-t border-border/40 mt-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-foreground">{t('play.sleepFade')}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{t('play.sleepFadeDesc')}</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-3 mb-2">
+            <p className="text-sm text-muted-foreground">{t('play.sleepFadeDuration')}</p>
+            <span className="text-xs tabular-nums text-muted-foreground">{sleepFadeDuration}s</span>
+          </div>
+          <Slider
+            min={SLEEP_FADE_MIN_SECONDS}
+            max={SLEEP_FADE_MAX_SECONDS}
+            step={1}
+            value={[sleepFadeDuration]}
+            onValueChange={([v]) => setSleepFadeDuration(v)}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-muted-foreground/60">{SLEEP_FADE_MIN_SECONDS}s</span>
+            <span className="text-[10px] text-muted-foreground/60">{SLEEP_FADE_MAX_SECONDS}s</span>
+          </div>
+        </div>
       </div>
     </SettingsCard>
   );

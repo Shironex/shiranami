@@ -14,6 +14,11 @@ function resetStore() {
     duration: null,
     remaining: 0,
   });
+  usePlaybackStore.setState({
+    isPlaying: false,
+    sleepFadeDuration: 8,
+    _sleepFading: false,
+  });
 }
 
 describe('useSleepTimerStore', () => {
@@ -79,15 +84,63 @@ describe('useSleepTimerStore', () => {
       expect(s.remaining).toBe(55);
     });
 
-    it('pauses player when timer reaches 0', () => {
-      usePlaybackStore.setState({ isPlaying: true });
+    it('fades out then pauses player when timer reaches 0', () => {
+      usePlaybackStore.setState({ isPlaying: true, sleepFadeDuration: 8 });
       useSleepTimerStore.getState().start(1);
 
       vi.advanceTimersByTime(60 * 1000);
 
+      // Timer expired and started the fade — but playback has NOT paused yet.
       expect(useSleepTimerStore.getState().remaining).toBe(0);
       expect(useSleepTimerStore.getState().endTime).toBeNull();
+      expect(usePlaybackStore.getState()._sleepFading).toBe(true);
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
+
+      // After the fade window, playback pauses and the fade signal clears.
+      vi.advanceTimersByTime(8 * 1000);
       expect(usePlaybackStore.getState().isPlaying).toBe(false);
+      expect(usePlaybackStore.getState()._sleepFading).toBe(false);
+    });
+
+    it('pauses immediately without fading when nothing is playing', () => {
+      usePlaybackStore.setState({ isPlaying: false });
+      useSleepTimerStore.getState().start(1);
+
+      vi.advanceTimersByTime(60 * 1000);
+
+      expect(usePlaybackStore.getState()._sleepFading).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
+    });
+
+    it('cancelling during the fade aborts the deferred pause', () => {
+      usePlaybackStore.setState({ isPlaying: true, sleepFadeDuration: 8 });
+      useSleepTimerStore.getState().start(1);
+
+      vi.advanceTimersByTime(60 * 1000);
+      expect(usePlaybackStore.getState()._sleepFading).toBe(true);
+
+      useSleepTimerStore.getState().cancel();
+      expect(usePlaybackStore.getState()._sleepFading).toBe(false);
+
+      // The deferred pause must not fire after cancellation.
+      vi.advanceTimersByTime(8 * 1000);
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
+    });
+
+    it('does not pause a resumed user when the fade was abandoned', () => {
+      usePlaybackStore.setState({ isPlaying: true, sleepFadeDuration: 8 });
+      useSleepTimerStore.getState().start(1);
+
+      vi.advanceTimersByTime(60 * 1000);
+      expect(usePlaybackStore.getState()._sleepFading).toBe(true);
+
+      // Simulate a manual pause + resume mid-fade: the audio engine clears the
+      // fade signal on the manual pause, and the user resumes playback.
+      usePlaybackStore.setState({ _sleepFading: false, isPlaying: true });
+
+      // The dangling deferred-pause timer must not stop the resumed user.
+      vi.advanceTimersByTime(8 * 1000);
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
     });
 
     it('does nothing if endTime is null', () => {

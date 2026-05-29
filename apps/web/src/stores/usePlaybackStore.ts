@@ -7,6 +7,10 @@ import type { Track, RepeatMode } from '@/stores/types';
 
 export const DEFAULT_CROSSFADE_DURATION = 5;
 
+export const DEFAULT_SLEEP_FADE_DURATION = 8;
+export const SLEEP_FADE_MIN_SECONDS = 2;
+export const SLEEP_FADE_MAX_SECONDS = 30;
+
 const STORE_KEY = 'shiranami.player-store';
 
 const LEGACY_KEYS = {
@@ -17,12 +21,19 @@ const LEGACY_KEYS = {
 type PersistedPlaybackState = {
   crossfadeEnabled: boolean;
   crossfadeDuration: number;
+  sleepFadeDuration: number;
 };
 
 function sanitizeCrossfadeDuration(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return DEFAULT_CROSSFADE_DURATION;
   return Math.round(Math.min(12, Math.max(1, parsed)));
+}
+
+function sanitizeSleepFadeDuration(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return DEFAULT_SLEEP_FADE_DURATION;
+  return Math.round(Math.min(SLEEP_FADE_MAX_SECONDS, Math.max(SLEEP_FADE_MIN_SECONDS, parsed)));
 }
 
 function sanitize(
@@ -34,6 +45,8 @@ function sanitize(
     out.crossfadeEnabled = persisted.crossfadeEnabled;
   if (persisted.crossfadeDuration !== undefined)
     out.crossfadeDuration = sanitizeCrossfadeDuration(persisted.crossfadeDuration);
+  if (persisted.sleepFadeDuration !== undefined)
+    out.sleepFadeDuration = sanitizeSleepFadeDuration(persisted.sleepFadeDuration);
   return out;
 }
 
@@ -74,6 +87,16 @@ interface PlaybackState {
   crossfadeEnabled: boolean;
   crossfadeDuration: number; // seconds
 
+  // Sleep timer
+  sleepFadeDuration: number; // seconds — fade-out window before the sleep timer pauses
+
+  // Engine-internal signal: true while the sleep timer is performing its
+  // gentle fade-out to silence. The audio engine watches this and ramps the
+  // active deck's gain down over `sleepFadeDuration` seconds before the store
+  // pauses playback. Lives here (not the sleep-timer store) because the engine
+  // already reads this store every RAF tick and owns the deck GainNodes.
+  _sleepFading: boolean;
+
   // Engine-internal signal: target time for a pending seek that
   // `useAudioEngine` applies on its next RAF tick. Lives here (not in the
   // UI store) because it's part of the playback pipeline.
@@ -110,6 +133,10 @@ interface PlaybackActions {
   // Crossfade
   setCrossfadeEnabled: (enabled: boolean) => void;
   setCrossfadeDuration: (duration: number) => void;
+
+  // Sleep timer
+  setSleepFadeDuration: (duration: number) => void;
+  _setSleepFading: (fading: boolean) => void;
 
   // Internal (called by audio hook)
   _clearSeekTarget: () => void;
@@ -157,6 +184,8 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     error: null,
     crossfadeEnabled: false,
     crossfadeDuration: DEFAULT_CROSSFADE_DURATION,
+    sleepFadeDuration: DEFAULT_SLEEP_FADE_DURATION,
+    _sleepFading: false,
     _seekTarget: null,
 
     // Playback controls
@@ -223,6 +252,11 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
       const clamped = Math.round(Math.max(1, Math.min(12, duration)));
       set({ crossfadeDuration: clamped });
     },
+
+    setSleepFadeDuration: duration => {
+      set({ sleepFadeDuration: sanitizeSleepFadeDuration(duration) });
+    },
+    _setSleepFading: fading => set({ _sleepFading: fading }),
 
     // Volume
     setVolume: (volume: number) => {
@@ -377,6 +411,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     partialize: s => ({
       crossfadeEnabled: s.crossfadeEnabled,
       crossfadeDuration: s.crossfadeDuration,
+      sleepFadeDuration: s.sleepFadeDuration,
     }),
     sanitize: (persisted, current) => ({
       ...current,

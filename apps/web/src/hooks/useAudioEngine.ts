@@ -33,11 +33,14 @@ function getTrackSrc(track: Track): string {
   return `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
 }
 
-/** Equal-power crossfade curves for smooth transitions. */
-function fadeOut(progress: number): number {
+/**
+ * Equal-power crossfade curves for smooth transitions. Also reused by the
+ * sleep-timer fade-out (active deck only). Exported for unit testing.
+ */
+export function fadeOut(progress: number): number {
   return Math.cos(progress * Math.PI * 0.5);
 }
-function fadeIn(progress: number): number {
+export function fadeIn(progress: number): number {
   return Math.sin(progress * Math.PI * 0.5);
 }
 
@@ -54,6 +57,16 @@ export function useAudioEngine() {
 
   const animationFrameRef = useRef<number>(0);
   const seekingRef = useRef(false);
+
+  // Sleep-timer fade-out state. While `active`, the RAF loop ramps the active
+  // deck's gain down to silence over `duration` seconds using the equal-power
+  // fadeOut curve (reusing the crossfade ramp), mirroring the crossfade branch.
+  const sleepFadeRef = useRef<{ active: boolean; startTime: number; duration: number }>({
+    active: false,
+    startTime: 0,
+    duration: 0,
+  });
+
   const analyserInitRef = useRef(false);
   const lastStoreUpdateRef = useRef(0);
 
@@ -385,6 +398,31 @@ export function useAudioEngine() {
         }
       }
 
+      // ── Sleep-timer fade-out ──
+      // Reuse the equal-power crossfade curve to ramp the active deck down to
+      // silence before the timer pauses. A crossfade owns deck volumes while
+      // active, so we don't fight it — let the deferred pause handle that case.
+      const sf = sleepFadeRef.current;
+      const sleepFading = usePlaybackStore.getState()._sleepFading;
+      if (sleepFading && !crossfadeRef.current.active) {
+        const s = usePlaybackStore.getState();
+        const userVol = s.isMuted ? 0 : s.volume;
+        if (!sf.active) {
+          sf.active = true;
+          sf.startTime = performance.now();
+          sf.duration = Math.max(0.1, s.sleepFadeDuration);
+        }
+        const progress = Math.min(1, (performance.now() - sf.startTime) / (sf.duration * 1000));
+        setVolume(activeDeckRef.current, userVol * fadeOut(progress));
+      } else if (sf.active) {
+        // Fade ended — either it completed (store paused us) or it was
+        // cancelled (timer cancelled while still playing). Restore the prior
+        // volume so the next play / continued playback isn't silent.
+        sf.active = false;
+        const s = usePlaybackStore.getState();
+        setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
+      }
+
       // ── Crossfade monitoring ──
       const cf = crossfadeRef.current;
       const state = usePlaybackStore.getState();
@@ -566,6 +604,21 @@ export function useAudioEngine() {
       if (crossfadeRef.current.active) {
         const incoming = getDeck(crossfadeRef.current.incomingDeck);
         incoming?.pause();
+      }
+      // If a sleep-timer fade just brought the deck to silence, restore the
+      // prior volume now that we're paused — neither the volume-sync effect
+      // (deps don't include isPlaying) nor the play effect (only sets gain on
+      // first init) would otherwise un-silence the deck on the next play.
+      if (sleepFadeRef.current.active && !crossfadeRef.current.active) {
+        sleepFadeRef.current.active = false;
+        setVolume(activeDeckRef.current, isMuted ? 0 : volume);
+        // A manual pause mid-fade abandons the fade entirely — clear the
+        // store signal so resuming doesn't re-trigger the ramp. (When the
+        // fade completes naturally the sleep-timer store has already cleared
+        // this, so this only matters for the manual-pause path.)
+        if (usePlaybackStore.getState()._sleepFading) {
+          usePlaybackStore.getState()._setSleepFading(false);
+        }
       }
       cancelAnimationFrame(animationFrameRef.current);
     }

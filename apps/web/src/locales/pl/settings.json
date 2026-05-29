@@ -163,6 +163,9 @@
     "crossfadePreviewBlend": "Utwory płynnie nakładają się na siebie",
     "crossfadePreviewCut": "Następny utwór zaczyna się po wyraźnym cięciu",
     "crossfadePreviewDuration": "{{seconds}} s nakładania",
+    "sleepFade": "Wyciszanie wyłącznika czasowego",
+    "sleepFadeDesc": "Delikatnie wycisz dźwięk, zanim wyłącznik czasowy wstrzyma odtwarzanie",
+    "sleepFadeDuration": "Czas wyciszania",
     "previewTrack": "Midnight Rain",
     "previewOutgoing": "Bieżący utwór",
     "previewIncoming": "Następny utwór"
