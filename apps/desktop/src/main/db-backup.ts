@@ -144,8 +144,27 @@ export async function importDatabase(dbPath: string, sourcePath: string): Promis
     await backupDatabaseOnLaunch(dbPath);
   }
 
-  // Atomically replace the main file. Remove stale WAL/SHM sidecars so the
-  // imported file isn't reinterpreted through a leftover write-ahead log.
+  // Atomically replace the main file. Copy to a temp file first, then rename
+  // into place — fs.copyFileSync is not atomic, so a mid-copy failure (disk
+  // full, interruption) would otherwise leave a corrupted file at dbPath. On
+  // failure, unlink the temp and rethrow so the original DB + sidecars survive.
+  const tmpPath = `${dbPath}.tmp`;
+  try {
+    fs.copyFileSync(sourcePath, tmpPath);
+    fs.renameSync(tmpPath, dbPath);
+  } catch (err) {
+    if (fs.existsSync(tmpPath)) {
+      try {
+        fs.unlinkSync(tmpPath);
+      } catch {
+        /* ignore */
+      }
+    }
+    throw err;
+  }
+
+  // Only after the new file is safely in place, remove stale WAL/SHM sidecars
+  // so the imported file isn't reinterpreted through a leftover write-ahead log.
   for (const suffix of ['-wal', '-shm']) {
     const sidecar = `${dbPath}${suffix}`;
     if (fs.existsSync(sidecar)) {
@@ -156,5 +175,4 @@ export async function importDatabase(dbPath: string, sourcePath: string): Promis
       }
     }
   }
-  fs.copyFileSync(sourcePath, dbPath);
 }
