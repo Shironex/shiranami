@@ -62,3 +62,17 @@ export interface RecommendationShelves {
 
 /** Time-to-live for a cached shelf before it is considered stale (24 hours). */
 export const RECOMMENDATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * One result of a "More like this" / song-radio request: an existing library
+ * track ranked by content similarity to a seed track. `trackId` is the local
+ * `tracks.id` so the renderer plays it through the normal library queue.
+ * `similarity` is the raw score from the similarity core (higher = closer).
+ */
+export interface SimilarTrackResult {
+  trackId: string;
+  similarity: number;
+}
+
+/** Maximum number of similar tracks returned for a "More like this" request. */
+export const SIMILAR_TRACKS_MAX = 50;

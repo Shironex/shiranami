@@ -169,6 +169,9 @@ export const IPC_CHANNELS = {
     // the freshly-cached shelves. The renderer never spawns yt-dlp itself.
     get: 'recommendations:get',
     refresh: 'recommendations:refresh',
+    // "More like this" / song-radio: rank existing library tracks by content
+    // similarity to a seed track id (offline; @shiranami/recommendation core).
+    similar: 'recommendations:similar',
   },
   share: {
     track: 'share:track',

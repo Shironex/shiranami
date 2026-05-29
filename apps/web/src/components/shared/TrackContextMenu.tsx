@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Disc3,
   Pencil,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
@@ -160,6 +161,7 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
 
   const playNext = usePlaybackStore(s => s.playNext);
   const addToQueue = usePlaybackStore(s => s.addToQueue);
+  const setQueue = usePlaybackStore(s => s.setQueue);
   const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const queue = usePlaybackStore(s => s.queue);
   const library = useLibraryStore(s => s.library);
@@ -222,6 +224,34 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
     onClose();
   }, [targetTrackIds, toggleFavorite, onClose, clearSelection]);
 
+  // "More like this" / song radio: rank library tracks by content similarity to
+  // this seed (main process), then build a queue of the seed followed by the
+  // ranked matches resolved against the in-memory library.
+  const moreLikeThisMutation = useMutation({
+    mutationFn: async (seedId: string) => {
+      if (!IS_ELECTRON) return;
+      const results = await window.electronAPI.recommendations.similar(seedId);
+      const byId = new Map(library.map(t => [t.id, t]));
+      const similar = results.map(r => byId.get(r.trackId)).filter((t): t is Track => Boolean(t));
+      if (similar.length === 0) {
+        toast.info(tToast('noSimilarTracks'));
+        return;
+      }
+      const seed = byId.get(seedId) ?? track;
+      setQueue([seed, ...similar], 0);
+      toast.success(tToast('startedSongRadio', { title: seed.title }));
+    },
+    onError: () => {
+      toast.error(tToast('failedSongRadio'));
+    },
+  });
+
+  const handleMoreLikeThis = useCallback(() => {
+    if (!IS_ELECTRON) return;
+    moreLikeThisMutation.mutate(track.id);
+    onClose();
+  }, [track.id, onClose, moreLikeThisMutation]);
+
   const handleShowInFolder = useCallback(() => {
     if (!IS_ELECTRON) return;
     showInFolderMutation.mutate(track.filePath);
@@ -280,6 +310,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
           label={t('addToQueue')}
           onClick={handleAddToQueue}
         />
+
+        {IS_ELECTRON && !isBulk && (
+          <MenuItem
+            icon={<Radio className="w-4 h-4" />}
+            label={t('moreLikeThis')}
+            onClick={handleMoreLikeThis}
+          />
+        )}
 
         <Divider />
 

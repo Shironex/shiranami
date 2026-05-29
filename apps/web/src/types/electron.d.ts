@@ -11,6 +11,7 @@ import type {
   GeocodeResult,
   WeatherCurrent,
   RecommendationShelves,
+  SimilarTrackResult,
   ShareImportResponse,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
@@ -425,6 +426,7 @@ export interface ElectronAPI {
   recommendations: {
     get: () => Promise<RecommendationShelves>;
     refresh: () => Promise<RecommendationShelves>;
+    similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */

@@ -296,6 +296,7 @@ function createElectronAPIMock(): ElectronAPI {
         library: { kind: 'library', items: [], generatedAt: null, stale: true },
         discover: { kind: 'discover', items: [], generatedAt: null, stale: true },
       }),
+      similar: asyncFn([]),
     },
     platform: 'win32',
     __e2e: false,

@@ -1,8 +1,20 @@
 import { ipcMain } from 'electron';
-import { IPC_CHANNELS, type RecommendationShelves } from '@shiranami/contracts';
-import { getRecommendationShelves, triggerRefresh } from '../recommendation-service';
-import { handleWithFallback } from './with-ipc-handler';
-import { recommendationsGetArgs, recommendationsRefreshArgs } from './schemas/recommendations';
+import {
+  IPC_CHANNELS,
+  type RecommendationShelves,
+  type SimilarTrackResult,
+} from '@shiranami/contracts';
+import {
+  computeSimilarTracks,
+  getRecommendationShelves,
+  triggerRefresh,
+} from '../recommendation-service';
+import { handle, handleWithFallback } from './with-ipc-handler';
+import {
+  recommendationsGetArgs,
+  recommendationsRefreshArgs,
+  recommendationsSimilarArgs,
+} from './schemas/recommendations';
 
 const C = IPC_CHANNELS.recommendations;
 
@@ -32,9 +44,20 @@ export function registerRecommendationsHandlers(): void {
     () => getRecommendationShelves(),
     { schema: recommendationsRefreshArgs }
   );
+
+  // "More like this" / song-radio: offline content-similarity ranking of
+  // existing library tracks against a seed track id. Throws on validation
+  // failure; returns an ordered (possibly empty) list otherwise.
+  handle(
+    C.similar,
+    async (_event, seedTrackId: string): Promise<SimilarTrackResult[]> =>
+      computeSimilarTracks(seedTrackId),
+    { schema: recommendationsSimilarArgs }
+  );
 }
 
 export function cleanupRecommendationsHandlers(): void {
   ipcMain.removeHandler(C.get);
   ipcMain.removeHandler(C.refresh);
+  ipcMain.removeHandler(C.similar);
 }

@@ -26,15 +26,25 @@ import {
   inArray,
   type NewRecommendation,
 } from '@shiranami/database';
-import { rankByAffinity, selectSeedTracks, type TrackStats } from '@shiranami/recommendation';
+import {
+  rankByAffinity,
+  rankBySimilarity,
+  selectSeedTracks,
+  type SharedPlaylistCounts,
+  type SimilarityTrack,
+  type TrackStats,
+} from '@shiranami/recommendation';
+import { playlistTracks } from '@shiranami/database';
 import {
   RECOMMENDATION_TTL_MS,
+  SIMILAR_TRACKS_MAX,
   type DiscoverRecommendation,
   type DiscoverShelf,
   type LibraryRecommendation,
   type LibraryShelf,
   type RecommendationKind,
   type RecommendationShelves,
+  type SimilarTrackResult,
 } from '@shiranami/contracts';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
@@ -119,6 +129,72 @@ function computeLibraryItems(): LibraryRecommendation[] {
     album: track.album,
     albumArt: art.get(track.trackId) ?? null,
   }));
+}
+
+// ─────────────────────────── content similarity ─────────────────────────────
+
+/** Project every library track into the minimal content shape the similarity
+ *  core consumes (id + the two reliable axes, artist/album). */
+function getSimilarityTracks(): SimilarityTrack[] {
+  const db = getDatabase();
+  const rows = db
+    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
+    .from(tracks)
+    .all();
+  return rows.map(row => ({
+    trackId: row.trackId,
+    artist: row.artist ?? '',
+    album: row.album ?? '',
+  }));
+}
+
+/**
+ * For a seed track, count how many playlists each OTHER track shares with it.
+ * Mirrors data-lens query 5b: find the seed's playlists, then group the tracks
+ * in those playlists by track id. The seed itself is excluded.
+ */
+function getSharedPlaylistCounts(seedTrackId: string): SharedPlaylistCounts {
+  const db = getDatabase();
+  const seedPlaylists = db
+    .select({ playlistId: playlistTracks.playlistId })
+    .from(playlistTracks)
+    .where(eq(playlistTracks.trackId, seedTrackId))
+    .all()
+    .map(row => row.playlistId);
+  if (seedPlaylists.length === 0) return {};
+
+  const rows = db
+    .select({ trackId: playlistTracks.trackId })
+    .from(playlistTracks)
+    .where(inArray(playlistTracks.playlistId, seedPlaylists))
+    .all();
+
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.trackId === seedTrackId) continue;
+    counts[row.trackId] = (counts[row.trackId] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * "More like this" / song-radio: rank existing library tracks by content
+ * similarity to the seed (shared artist/album + playlist co-membership), via
+ * the pure @shiranami/recommendation core. Offline; returns [] when the seed is
+ * unknown so the renderer renders a quiet empty state.
+ */
+export function computeSimilarTracks(seedTrackId: string): SimilarTrackResult[] {
+  const candidates = getSimilarityTracks();
+  const seed = candidates.find(track => track.trackId === seedTrackId);
+  if (!seed) {
+    logger.info(`[recommendations] similar: seed ${seedTrackId} not in library`);
+    return [];
+  }
+
+  const sharedPlaylists = getSharedPlaylistCounts(seedTrackId);
+  return rankBySimilarity(seed, candidates, sharedPlaylists)
+    .slice(0, SIMILAR_TRACKS_MAX)
+    .map(track => ({ trackId: track.trackId, similarity: track.similarity }));
 }
 
 // ──────────────────────────── yt-dlp discovery ─────────────────────────────
