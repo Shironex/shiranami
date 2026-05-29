@@ -81,7 +81,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerDiscordRpcHandlers();
   registerLyricsHandlers();
   registerWeatherHandlers();
-  registerDatabaseHandlers();
+  registerDatabaseHandlers(mainWindow);
   registerShellHandlers();
   registerDownloaderHandlers();
   registerUpdaterHandlers();

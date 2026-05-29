@@ -5,6 +5,8 @@ import type {
   MetadataLookupResult,
   WriteTagsInput,
   WriteTagsResult,
+  DbExportResult,
+  DbImportResult,
   MainMetricsSnapshot,
   GeocodeResult,
   WeatherCurrent,
@@ -241,6 +243,10 @@ export interface ElectronAPI {
       add: (path: string) => Promise<unknown>;
       remove: (id: string) => Promise<void>;
       updateScanned: (id: string) => Promise<unknown>;
+    };
+    backup: {
+      export: () => Promise<DbExportResult>;
+      import: () => Promise<DbImportResult>;
     };
   };
   downloader: {

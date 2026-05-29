@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import type { DbExportResult, DbImportResult } from '@shiranami/contracts';
 import type {
   ListeningActivityPoint,
   ListeningHourlyActivityPoint,
@@ -75,11 +76,17 @@ export interface DbPlaylistsApi {
   reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
 }
 
+export interface DbBackupApi {
+  export: () => Promise<DbExportResult>;
+  import: () => Promise<DbImportResult>;
+}
+
 export interface DbApi {
   tracks: DbTracksApi;
   history: DbHistoryApi;
   folders: DbFoldersApi;
   playlists: DbPlaylistsApi;
+  backup: DbBackupApi;
 }
 
 const tracksApi: DbTracksApi = {
@@ -131,9 +138,15 @@ const playlistsApi: DbPlaylistsApi = {
     ipcRenderer.invoke(C.playlists.reorder, { playlistId, trackIds }),
 };
 
+const backupApi: DbBackupApi = {
+  export: () => ipcRenderer.invoke(C.backup.export),
+  import: () => ipcRenderer.invoke(C.backup.import),
+};
+
 export const dbApi: DbApi = {
   tracks: tracksApi,
   history: historyApi,
   folders: foldersApi,
   playlists: playlistsApi,
+  backup: backupApi,
 };

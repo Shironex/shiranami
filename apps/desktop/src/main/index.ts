@@ -16,6 +16,7 @@ import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
+import { backupDatabaseOnLaunch } from './db-backup';
 import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
@@ -127,7 +128,11 @@ async function bootstrap(): Promise<void> {
   }
   logger.info('════════════════════════════════════════════════════════════');
 
-  initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
+  const dbPath = join(app.getPath('userData'), 'shiranami.db');
+  // Snapshot the DB BEFORE migrations run so a bad upgrade leaves a
+  // pre-migration copy. Best-effort — never blocks launch.
+  await backupDatabaseOnLaunch(dbPath);
+  initializeDatabase({ path: dbPath });
   logger.info('Database initialized');
 
   // Warm the recommendation discover shelf in the background once after startup

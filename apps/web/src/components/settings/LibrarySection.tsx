@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { HardDrive, Music, RefreshCw, Trash2, Loader2 } from 'lucide-react';
+import { HardDrive, Music, RefreshCw, Trash2, Loader2, Download, Upload, DatabaseBackup } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
+import { IS_ELECTRON } from '@/lib/platform';
 import { ScanProgressCard } from '@/components/library/ScanProgressCard';
+import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 
 export function LibrarySection() {
   const { t } = useTranslation('settings');
@@ -29,6 +32,47 @@ export function LibrarySection() {
 
   const handleSubfolderConfirm = useSubfolderPlaylistConfirm();
   const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!IS_ELECTRON) return;
+    setExporting(true);
+    try {
+      const result = await window.electronAPI.db.backup.export();
+      if (result.success) {
+        toast.success(t('lib.backupExported'));
+      } else if (result.error) {
+        toast.error(t('lib.backupExportFailed', { error: result.error }));
+      }
+      // No toast on a plain user-cancel (no success, no error).
+    } catch {
+      toast.error(t('lib.backupExportFailed', { error: '' }));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!IS_ELECTRON) return;
+    setImporting(true);
+    try {
+      const result = await window.electronAPI.db.backup.import();
+      if (result.success) {
+        // The live DB was replaced + re-migrated in the main process; reload
+        // the in-memory library so the UI reflects the imported data.
+        const allDbTracks = await window.electronAPI.db.tracks.getAll();
+        useLibraryStore.getState().setLibrary(mapDbTracksToTracks(allDbTracks as DbTrackRecord[]));
+        toast.success(t('lib.backupImported'));
+      } else if (result.error) {
+        toast.error(t('lib.backupImportFailed', { error: result.error }));
+      }
+    } catch {
+      toast.error(t('lib.backupImportFailed', { error: '' }));
+    } finally {
+      setImporting(false);
+    }
+  };
 
   useEffect(() => {
     if (detectedSubfolders.length > 0) {
@@ -68,6 +112,35 @@ export function LibrarySection() {
           <ScanProgressCard />
         </div>
       </SettingsCard>
+
+      {IS_ELECTRON && (
+        <SettingsCard
+          icon={DatabaseBackup}
+          title={t('lib.backupTitle')}
+          subtitle={t('lib.backupSubtitle')}
+        >
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="secondary"
+              onClick={handleExport}
+              disabled={exporting || importing}
+              className="rounded-xl [&_svg]:size-3.5"
+            >
+              {exporting ? <Loader2 className="animate-spin" /> : <Download />}
+              {t('lib.backupExport')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleImport}
+              disabled={exporting || importing}
+              className="rounded-xl [&_svg]:size-3.5"
+            >
+              {importing ? <Loader2 className="animate-spin" /> : <Upload />}
+              {t('lib.backupImport')}
+            </Button>
+          </div>
+        </SettingsCard>
+      )}
 
       {library.length > 0 && (
         <SettingsCard

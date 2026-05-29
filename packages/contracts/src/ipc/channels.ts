@@ -111,6 +111,13 @@ export const IPC_CHANNELS = {
       getPlaylistsForTracks: 'db:playlists:get-playlists-for-tracks',
       reorder: 'db:playlists:reorder',
     },
+    backup: {
+      // Export a consistent copy of the library DB to a user-chosen file, and
+      // restore the library from a user-chosen backup. Both run a native file
+      // dialog in the main process and return a status.
+      export: 'db:backup:export',
+      import: 'db:backup:import',
+    },
   },
   downloader: {
     check: 'downloader:check',

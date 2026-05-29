@@ -195,6 +195,10 @@ function createElectronAPIMock(): ElectronAPI {
         remove: asyncFn(undefined),
         updateScanned: vi.fn(),
       },
+      backup: {
+        export: asyncFn({ success: false }),
+        import: asyncFn({ success: false }),
+      },
     },
     downloader: {
       getStreamUrl: asyncFn(''),
