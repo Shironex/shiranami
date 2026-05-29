@@ -30,6 +30,7 @@ import { shellApi, type ShellApi } from './api/shell';
 import { storeApi, type StoreApi } from './api/store';
 import { updaterApi, type UpdaterApi } from './api/updater';
 import { windowApi, type WindowApi } from './api/window';
+import { systemApi, type SystemApi } from './api/system';
 
 export interface ElectronAPI {
   window: WindowApi;
@@ -51,6 +52,7 @@ export interface ElectronAPI {
   recommendations: RecommendationsApi;
   share: ShareApi;
   debug: DebugApi;
+  system: SystemApi;
   errors: {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
     SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
@@ -88,6 +90,7 @@ const electronAPI: ElectronAPI = {
   recommendations: recommendationsApi,
   share: shareApi,
   debug: debugApi,
+  system: systemApi,
   errors: {
     isIpcError,
     SHARE_ERROR_CODES,

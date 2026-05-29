@@ -191,6 +191,12 @@ export const IPC_CHANNELS = {
     updateDownloaded: 'updater:update-downloaded',
     error: 'updater:error',
   },
+  system: {
+    // Main→renderer: structured notice for silent subsystem failures (Discord
+    // RPC login, album-art prune, etc.) so they surface as a calm toast instead
+    // of being swallowed in the logs.
+    notice: 'system:notice',
+  },
 } as const;
 
 /** Recursively extract every string-leaf value from a nested const object. */
