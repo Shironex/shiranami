@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { LoudnessAnalyzeInput } from '@shiranami/contracts';
 
-const uuid = z.string().uuid();
+const uuid = z.uuid();
 const nonEmpty = z.string().min(1);
 
 /**
