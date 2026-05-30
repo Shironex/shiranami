@@ -163,6 +163,10 @@ function sanitize(persisted: Partial<PersistedEqState> | undefined): Partial<Per
     out.customPresets = sanitizeCustomPresets(persisted.customPresets);
   }
 
+  if (typeof persisted.activeCustomId === 'string' || persisted.activeCustomId === null) {
+    out.activeCustomId = persisted.activeCustomId;
+  }
+
   if (persisted.preampDb !== undefined) {
     out.preampDb = clampDb(Number(persisted.preampDb));
   }
