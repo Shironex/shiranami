@@ -19,6 +19,7 @@ import { computeLoudnessGainDb } from '@/lib/loudness';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
@@ -43,6 +44,22 @@ export function fadeOut(progress: number): number {
 }
 export function fadeIn(progress: number): number {
   return Math.sin(progress * Math.PI * 0.5);
+}
+
+/**
+ * Linear (amplitude) gain factor for loudness leveling on a single track.
+ * Returns 1 (no-op) when leveling is disabled or the track's loudness is
+ * unmeasured/non-finite, otherwise 10^(dB/20) for the computed ReplayGain-style
+ * adjustment. Exported for unit testing.
+ */
+export function loudnessLinearGain(
+  measuredLufs: number | null | undefined,
+  enabled: boolean,
+  targetLufs: number
+): number {
+  if (!enabled) return 1;
+  const db = computeLoudnessGainDb(measuredLufs, targetLufs);
+  return 10 ** (db / 20);
 }
 
 /**
@@ -76,6 +93,45 @@ export function useAudioEngine() {
     A: null,
     B: null,
   });
+
+  // Per-deck loudness state. `deckLufsRef` holds each deck's loaded track's
+  // measured integrated loudness (the source of truth — the incoming/idle deck's
+  // track is not `currentTrack`, so we can't re-derive it from the store on a
+  // mid-crossfade toggle). `deckLoudnessRef` caches the linear gain factor
+  // applied on top of the user volume in `setVolume`. Both are set at every
+  // deck-load point so each deck's track is normalized independently.
+  const deckLufsRef = useRef<{ A: number | null | undefined; B: number | null | undefined }>({
+    A: null,
+    B: null,
+  });
+  const deckLoudnessRef = useRef<{ A: number; B: number }>({ A: 1, B: 1 });
+
+  /** Recompute and cache a deck's linear loudness factor from its stored LUFS
+   * and the current loudness settings. Returns the factor. */
+  function updateDeckLoudness(deck: Deck): number {
+    const pb = usePlaybackStore.getState();
+    const factor = loudnessLinearGain(
+      deckLufsRef.current[deck],
+      pb.loudnessEnabled,
+      pb.loudnessTargetLufs
+    );
+    deckLoudnessRef.current[deck] = factor;
+    return factor;
+  }
+
+  /** Store a deck's track LUFS and refresh its cached loudness factor, logging
+   * the applied adjustment when leveling is on and a measurement exists. */
+  function setDeckTrackLoudness(deck: Deck, track: Track | null) {
+    deckLufsRef.current[deck] = track?.loudnessLufs;
+    const factor = updateDeckLoudness(deck);
+    const pb = usePlaybackStore.getState();
+    if (pb.loudnessEnabled && track && track.loudnessLufs != null) {
+      const db = computeLoudnessGainDb(track.loudnessLufs, pb.loudnessTargetLufs);
+      logger.info(
+        `[loudness] Deck ${deck} "${track.title}" ${track.loudnessLufs.toFixed(1)} LUFS → ${db >= 0 ? '+' : ''}${db.toFixed(1)} dB (×${factor.toFixed(3)})`
+      );
+    }
+  }
 
   // Crossfade state
   const crossfadeRef = useRef<{
@@ -137,8 +193,12 @@ export function useAudioEngine() {
   /** Set volume on a deck, using GainNode if Web Audio is ready, else audio.volume. */
   function setVolume(deck: Deck, value: number) {
     const audio = getDeck(deck);
+    // Apply this deck's per-track loudness factor so each deck's track is
+    // normalized independently — crucial during a crossfade where both decks
+    // are audible at once.
+    const gain = value * deckLoudnessRef.current[deck];
     if (isAnalyserReady()) {
-      setDeckGain(deck, value);
+      setDeckGain(deck, gain);
       // Once captured by MediaElementAudioSourceNode, volume is controlled
       // exclusively via GainNodes. However, Chromium still attenuates the
       // signal feeding into the MESN by audio.volume — if it was set to 0
@@ -146,25 +206,22 @@ export function useAudioEngine() {
       // MESN permanently receives silence. Keep it at 1 to avoid this.
       if (audio && audio.volume !== 1) audio.volume = 1;
     } else {
-      if (audio) audio.volume = value;
+      // Pre-analyser fallback: audio.volume is clamped to [0, 1], so loudness
+      // boosts above unity can't be honoured here (they take effect once the
+      // GainNode chain is live on first play).
+      if (audio) audio.volume = Math.max(0, Math.min(1, gain));
     }
   }
 
-  // ── Preamp gain (shared by EQ preamp + loudness leveling) ─────
+  // ── Preamp gain (EQ preamp only) ──────────────────────────────
   //
-  // There is a single preamp GainNode. Both the EQ preamp slider and loudness
-  // leveling feed it, so they MUST be summed and written together — writing one
-  // directly would clobber the other. This is the single funnel: call it on EQ
-  // preamp change, current-track change, and any loudness setting change.
+  // The preamp GainNode now carries only the EQ preamp slider. Loudness leveling
+  // rides each deck's own gain (see setVolume / deckLoudnessRef) so it survives a
+  // crossfade — both decks can be normalized independently. Call this on EQ
+  // preamp change.
   const recomputePreamp = useCallback(() => {
     if (!analyserInitRef.current) return;
-    const eq = useEqStore.getState();
-    const pb = usePlaybackStore.getState();
-    let db = eq.preampDb;
-    if (pb.loudnessEnabled) {
-      db += computeLoudnessGainDb(pb.currentTrack?.loudnessLufs, pb.loudnessTargetLufs);
-    }
-    setPreampDb(db);
+    setPreampDb(useEqStore.getState().preampDb);
   }, []);
 
   // ── Playback session (listening history) ──────────────────────
@@ -276,6 +333,9 @@ export function useAudioEngine() {
     idleAudio.src = getTrackSrc(next);
     idleAudio.load();
     deckTrackIdRef.current[idleDeckId] = next.id;
+    // Pre-normalize the pre-buffered deck so its gain is already correct when it
+    // becomes active at the (gap-free) track boundary.
+    setDeckTrackLoudness(idleDeckId, next);
     preBufferRef.current = { trackId: next.id, deck: idleDeckId };
   }, [discardPreBuffer]);
 
@@ -327,6 +387,9 @@ export function useAudioEngine() {
     incomingAudio.src = getTrackSrc(nextTrack);
     incomingAudio.load();
     deckTrackIdRef.current[incomingDeckId] = nextTrack.id;
+    // Normalize the incoming deck to its own track before the RAF ramp starts
+    // applying volumes to it.
+    setDeckTrackLoudness(incomingDeckId, nextTrack);
 
     // Set crossfade state BEFORE registering canplay listener so the
     // onCanPlay guard always sees active === true (fixes race where
@@ -708,10 +771,11 @@ export function useAudioEngine() {
           initAnalyser(deckARef.current, deckBRef.current);
           initEq();
           analyserInitRef.current = true;
-          // Set initial gains
+          // Set initial gains via setVolume so the active deck's cached
+          // loudness factor is applied from the very first play.
           const userVol = isMuted ? 0 : volume;
-          setDeckGain(activeDeckRef.current, userVol);
-          setDeckGain(getIdleDeckId(), 0);
+          setVolume(activeDeckRef.current, userVol);
+          setVolume(getIdleDeckId(), 0);
 
           // Replay the persisted EQ state into the newly-built chain.
           const eq = useEqStore.getState();
@@ -820,15 +884,32 @@ export function useAudioEngine() {
     return unsub;
   }, [recomputePreamp]);
 
-  // ── Loudness leveling: recompute preamp when the current track changes ──
+  // ── Loudness leveling: refresh the active deck's factor when the current
+  // track changes. This single effect covers a normal track load, the
+  // pre-buffer swap, and the crossfade-complete swap, because by the time it
+  // runs `activeDeckRef` already points at the deck holding `currentTrack`
+  // (the load effect above reassigns it first). The incoming/idle deck's factor
+  // is set inline at startCrossfade / maybePreBuffer.
   useEffect(() => {
-    recomputePreamp();
-  }, [currentTrack, recomputePreamp]);
+    setDeckTrackLoudness(activeDeckRef.current, currentTrack ?? null);
+    // Re-apply the active deck's volume so the new factor actually reaches the
+    // gain node. The volume-sync effect runs BEFORE this one (it also depends on
+    // currentTrack) using the previous track's still-cached factor, and nothing
+    // else calls setVolume during steady playback — so without this a manual
+    // skip / normal load would keep the old track's loudness. Guarded off during
+    // an active crossfade, where the RAF loop owns deck volumes.
+    if (!crossfadeRef.current.active) {
+      const s = usePlaybackStore.getState();
+      setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
+    }
+  }, [currentTrack]);
 
   // React to loudness toggle / target changes only (the store fires on every
-  // currentTime tick, so guard on the loudness fields to avoid re-writing the
-  // preamp node every frame). The gain feeds the shared preamp node alongside
-  // the EQ preamp via recomputePreamp.
+  // currentTime tick, so guard on the loudness fields to avoid recomputing every
+  // frame). Loudness now rides each deck's gain, so recompute BOTH deck factors
+  // and re-apply the active deck's volume immediately (respecting mute) so the
+  // change is audible without waiting for a track change. The RAF crossfade loop
+  // re-calls setVolume per frame, so mid-crossfade changes self-correct.
   useEffect(() => {
     let prevEnabled = usePlaybackStore.getState().loudnessEnabled;
     let prevTarget = usePlaybackStore.getState().loudnessTargetLufs;
@@ -838,10 +919,15 @@ export function useAudioEngine() {
       }
       prevEnabled = state.loudnessEnabled;
       prevTarget = state.loudnessTargetLufs;
-      recomputePreamp();
+      updateDeckLoudness('A');
+      updateDeckLoudness('B');
+      if (!crossfadeRef.current.active) {
+        const s = usePlaybackStore.getState();
+        setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
+      }
     });
     return unsub;
-  }, [recomputePreamp]);
+  }, []);
 
   // ── Handle seeks while paused ─────────────────────────────────
 
