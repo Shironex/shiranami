@@ -7,6 +7,7 @@ export * from './domain/recommendation';
 export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';
+export * from './ipc/loudness';
 export * from './ipc/database';
 export * from './ipc/system';
 export * from './share/dto';

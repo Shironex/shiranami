@@ -17,6 +17,8 @@ export interface Track {
   trackNumber: number | null;
   discNumber: number | null;
   albumArt: string | null;
+  /** Integrated loudness (LUFS) measured by ffmpeg loudnorm; null = unanalysed. */
+  loudnessLufs: number | null;
   isFavorite: boolean | null;
   playCount: number | null;
   createdAt: string;
@@ -41,6 +43,7 @@ export interface NewTrack {
   trackNumber?: number | null;
   discNumber?: number | null;
   albumArt?: string | null;
+  loudnessLufs?: number | null;
   isFavorite?: boolean | null;
   playCount?: number | null;
   createdAt?: string;
@@ -80,6 +83,8 @@ export interface DisplayTrack {
    */
   isFavorite?: boolean;
   playCount?: number;
+  /** Integrated loudness (LUFS) for loudness leveling; absent = unanalysed. */
+  loudnessLufs?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
