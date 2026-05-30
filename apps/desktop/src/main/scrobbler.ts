@@ -57,6 +57,14 @@ const FLUSH_INTERVAL_MS = 60_000;
 const SUBMIT_TIMEOUT_MS = 10_000;
 
 /**
+ * Per-request timeout for the IPC-facing auth/validation fetches. Without it a
+ * stalled connection would leave the settings flow pending indefinitely and pin
+ * the renderer in a loading state; the timeout makes it fail fast into the
+ * existing error path.
+ */
+const AUTH_TIMEOUT_MS = 10_000;
+
+/**
  * Last.fm api_key + shared secret. Last.fm requires a registered application
  * key/secret to sign every authenticated call; they are read from the env at
  * build/run time. When unset, the Last.fm features stay disabled (the UI shows
@@ -137,7 +145,9 @@ export async function beginLastfmAuth(): Promise<{ ok: boolean; token?: string; 
   if (!isLastfmConfigured()) return { ok: false, error: 'not_configured' };
   try {
     const params = { method: 'auth.getToken', api_key: LASTFM_API_KEY };
-    const res = await fetch(`${LASTFM_ENDPOINT}?${signLastfm(params).toString()}`);
+    const res = await fetch(`${LASTFM_ENDPOINT}?${signLastfm(params).toString()}`, {
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
+    });
     const json = (await res.json()) as { token?: string };
     if (!json.token) return { ok: false, error: 'no_token' };
     await shell.openExternal(
@@ -158,7 +168,9 @@ export async function completeLastfmAuth(token: string): Promise<LastfmConnectRe
   if (!isLastfmConfigured()) return { ok: false, username: null, error: 'not_configured' };
   try {
     const body = signLastfm(lastfmGetSessionParams(LASTFM_API_KEY, token));
-    const res = await fetch(`${LASTFM_ENDPOINT}?${body.toString()}`);
+    const res = await fetch(`${LASTFM_ENDPOINT}?${body.toString()}`, {
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
+    });
     const json = (await res.json()) as {
       session?: { key?: string; name?: string };
       error?: number;
@@ -212,6 +224,7 @@ export async function connectListenBrainz(token: string): Promise<ListenBrainzCo
   try {
     const res = await fetch(LISTENBRAINZ_VALIDATE, {
       headers: { Authorization: `Token ${token}` },
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     });
     const json = (await res.json()) as { valid?: boolean; user_name?: string };
     if (!json.valid) return { ok: false, username: null, error: 'invalid_token' };
