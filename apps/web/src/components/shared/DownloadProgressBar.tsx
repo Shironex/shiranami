@@ -1,19 +1,35 @@
 import { cn } from '@/lib/utils';
 
-interface DownloadProgressBarProps {
-  /**
-   * When a 0–100 value is provided the bar renders DETERMINATE (fills to the
-   * percentage, exposes `role="progressbar"` + aria values). When omitted it
-   * renders the INDETERMINATE sweep used where no real percentage exists
-   * (recommendations/discover). The `.progress-sweep` animation is gated for
-   * reduced-motion / low-perf in globals.css.
-   */
-  progress?: number;
-  /** Bottom-corner radius to match the host card (e.g. `rounded-b-2xl`). */
-  className?: string;
-  /** Accessible name for the determinate progressbar. */
-  ariaLabel?: string;
-}
+/** Bottom-corner radius to match the host card (e.g. `rounded-b-2xl`). */
+type DownloadProgressBarBase = { className?: string };
+
+/**
+ * Determinate vs indeterminate is a discriminated union so the determinate
+ * progressbar (which sets `role="progressbar"`) is type-forced to carry an
+ * accessible name, while the indeterminate sweep (aria-hidden) takes neither.
+ */
+type DownloadProgressBarProps = DownloadProgressBarBase &
+  (
+    | {
+        /**
+         * 0–100 → DETERMINATE bar (fills to the percentage, exposes
+         * `role="progressbar"` + aria values). Requires `ariaLabel`.
+         */
+        progress: number;
+        /** Accessible name for the determinate progressbar (required). */
+        ariaLabel: string;
+      }
+    | {
+        /**
+         * Omitted → INDETERMINATE sweep used where no real percentage exists
+         * (recommendations/discover). The `.progress-sweep` animation is gated
+         * for reduced-motion / low-perf in globals.css. It's aria-hidden, so no
+         * accessible name is needed.
+         */
+        progress?: undefined;
+        ariaLabel?: undefined;
+      }
+  );
 
 /**
  * The bottom-edge download progress bar extracted from the recommendations
