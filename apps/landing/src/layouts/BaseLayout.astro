@@ -4,15 +4,22 @@ import BaseHead from '../components/BaseHead.astro';
 interface Props {
   title: string;
   description?: string;
+  structuredData?: boolean;
+  noindex?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, structuredData, noindex } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <BaseHead title={title} description={description} />
+    <BaseHead
+      title={title}
+      description={description}
+      structuredData={structuredData}
+      noindex={noindex}
+    />
   </head>
   <body>
     <a href="#main" class="skip-link" data-i18n="layout.skipToContent">Skip to content</a>

@@ -1,0 +1,48 @@
+---
+import Footer from '../components/Footer.astro';
+import Navbar from '../components/Navbar.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Not found · Shiranami"
+  description="The page you were looking for could not be found on Shiranami."
+  noindex
+>
+  <Navbar />
+  <main id="main" class="bay page">
+    <div class="page-shell not-found">
+      <div class="section-heading">
+        <span class="pill" data-i18n="notFound.pill">Error 404</span>
+        <h1 data-i18n="notFound.heading">This track skipped.</h1>
+        <p data-i18n="notFound.body">
+          The page you were looking for has drifted off the shelf. Let’s get you
+          back to a quieter room.
+        </p>
+      </div>
+      <div class="not-found-actions">
+        <a class="button-primary" href="/" data-i18n="notFound.home">Back home</a>
+        <a class="button-secondary" href="/download/" data-i18n="notFound.download">
+          Download the app
+        </a>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .not-found {
+    min-height: 52vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .not-found-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.4rem;
+  }
+</style>

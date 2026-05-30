@@ -1,12 +1,5 @@
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LandingLanguage } from '@/lib/i18n';
 import { GITHUB_RELEASES_API_URL, GITHUB_RELEASES_LATEST_URL } from '@/lib/site';
 
@@ -77,9 +70,7 @@ function detectPlatform(): Platform {
 
 function formatBytes(bytes: number, locale: string): string {
   if (bytes < 1024 * 1024) {
-    return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
-      bytes / 1024
-    )} KB`;
+    return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(bytes / 1024)} KB`;
   }
   return `${new Intl.NumberFormat(locale, {
     minimumFractionDigits: 1,
@@ -147,7 +138,7 @@ function useConfetti() {
 
   const layer = (
     <AnimatePresence>
-      {particles.map((p) => {
+      {particles.map(p => {
         const rad = (p.angle * Math.PI) / 180;
         return (
           <motion.div
@@ -190,8 +181,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
 
   useEffect(() => {
     const sync = () => {
-      const next: LandingLanguage =
-        document.documentElement.lang === 'pl' ? 'pl' : 'en';
+      const next: LandingLanguage = document.documentElement.lang === 'pl' ? 'pl' : 'en';
       setLang(next);
     };
     sync();
@@ -218,7 +208,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
   useEffect(() => {
     const ctrl = new AbortController();
     fetch(GITHUB_RELEASES_API_URL, { signal: ctrl.signal })
-      .then((res) => {
+      .then(res => {
         if (!res.ok) throw new Error('Failed to fetch latest release');
         return res.json() as Promise<ReleaseData>;
       })
@@ -243,7 +233,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
     const map = new Map<Platform, ReleaseAsset>();
     if (!release) return map;
     for (const platform of PLATFORMS) {
-      const asset = release.assets.find((a) => platform.pattern.test(a.name));
+      const asset = release.assets.find(a => platform.pattern.test(a.name));
       if (asset) map.set(platform.key, asset);
     }
     return map;
@@ -273,7 +263,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
               <span aria-hidden="true">●</span>{' '}
               <span>Section · DL &nbsp;·&nbsp; {t('download.eyebrow')}</span>
             </div>
-            <h2>
+            <h1>
               {downloaded ? (
                 <>
                   <span>{t('download.headingAfterLead')}</span>{' '}
@@ -281,11 +271,10 @@ export function DownloadPage({ translations }: DownloadPageProps) {
                 </>
               ) : (
                 <>
-                  <span>{t('download.headingLead')}</span>{' '}
-                  <em>{t('download.headingAccent')}</em>.
+                  <span>{t('download.headingLead')}</span> <em>{t('download.headingAccent')}</em>.
                 </>
               )}
-            </h2>
+            </h1>
 
             <p className="dl-body" key={downloaded ? 'after' : 'before'}>
               {downloaded ? t('download.bodyAfter') : t('download.body')}
@@ -317,9 +306,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
                   <span className="rv">
                     <span className="rv-dot" aria-hidden="true" />v{version}
                   </span>
-                  <span className="rd">
-                    {formatPublishedDate(release.published_at, locale)}
-                  </span>
+                  <span className="rd">{formatPublishedDate(release.published_at, locale)}</span>
                 </div>
               ) : (
                 <div className="dl-release-chip dl-release-chip-loading">
@@ -343,12 +330,14 @@ export function DownloadPage({ translations }: DownloadPageProps) {
                   className="btn-ghost"
                 >
                   <span>{t('download.getFromGithub')}</span>
-                  <span className="arr" aria-hidden="true">→</span>
+                  <span className="arr" aria-hidden="true">
+                    →
+                  </span>
                 </a>
               </div>
             ) : !release ? (
               <div className="platforms">
-                {PLATFORMS.map((p) => (
+                {PLATFORMS.map(p => (
                   <div key={p.key} className="platform platform-skeleton">
                     <div className="l">
                       <span className="platform-icon">
@@ -365,7 +354,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
               </div>
             ) : (
               <div className="platforms">
-                {PLATFORMS.map((p) => {
+                {PLATFORMS.map(p => {
                   const asset = assetMap.get(p.key);
                   const isPrimary = p.key === detectedPlatform;
                   const label = t(p.labelKey);
@@ -401,9 +390,7 @@ export function DownloadPage({ translations }: DownloadPageProps) {
                           <div className="pn">
                             {label}
                             {isPrimary && (
-                              <span className="pn-badge">
-                                {t('download.yourSystem')}
-                              </span>
+                              <span className="pn-badge">{t('download.yourSystem')}</span>
                             )}
                           </div>
                           <div className="ps">

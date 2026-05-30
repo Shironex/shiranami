@@ -5,14 +5,64 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  /** Emit the homepage structured-data block (Organization + WebSite + SoftwareApplication). */
+  structuredData?: boolean;
+  /** Allow opting a page out of indexing (e.g. the 404 page). */
+  noindex?: boolean;
 }
 
 const {
   title,
   description = 'Shiranami is a desktop music sanctuary for local libraries, playlists, synced lyrics, internet radio, crossfade, and one-step YouTube downloads.',
+  structuredData = false,
+  noindex = false,
 } = Astro.props;
 
-const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
+const siteOrigin = Astro.site ?? new URL(Astro.url.origin);
+
+// Self-referencing canonical. Keep the trailing slash so it matches the
+// sitemap output (e.g. /download/, /changelog/).
+const canonicalURL = new URL(Astro.url.pathname, siteOrigin);
+
+const ogImage = new URL('/og-default.png', siteOrigin);
+const ogImageAlt = 'Shiranami — a calm dark-lavender desktop music player';
+
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${siteOrigin.href}#organization`,
+      name: 'Shiranami',
+      url: siteOrigin.href,
+      logo: new URL('/favicon.png', siteOrigin).href,
+      image: ogImage.href,
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteOrigin.href}#website`,
+      name: 'Shiranami',
+      url: siteOrigin.href,
+      publisher: { '@id': `${siteOrigin.href}#organization` },
+      inLanguage: 'en',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Shiranami',
+      url: siteOrigin.href,
+      applicationCategory: 'MultimediaApplication',
+      operatingSystem: 'Windows, macOS',
+      description:
+        'A local-first desktop music sanctuary for local libraries, playlists, synced lyrics, internet radio, crossfade, and one-step YouTube downloads.',
+      image: ogImage.href,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+  ],
+};
 ---
 
 <meta charset="UTF-8" />
@@ -21,6 +71,7 @@ const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
 <script is:inline>document.documentElement.classList.add('js');</script>
 <ClientRouter />
 <link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="canonical" href={canonicalURL} />
 <link rel="sitemap" href="/sitemap-index.xml" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -32,20 +83,33 @@ const ogImage = new URL('/og-default.png', Astro.site ?? Astro.url);
 
 <title>{title}</title>
 <meta name="description" content={description} />
+{
+  noindex ? (
+    <meta name="robots" content="noindex,nofollow" />
+  ) : (
+    <meta name="robots" content="index,follow" />
+  )
+}
 
 <meta property="og:type" content="website" />
-<meta property="og:url" content={Astro.url} />
-<meta property="og:title" content="Shiranami · white waves — a quiet place for your music" />
-<meta
-  property="og:description"
-  content="A local-first desktop sanctuary for your music library, internet radio, synced lyrics, crossfade, and one-step downloads — wrapped in a calm dark lavender theme."
-/>
+<meta property="og:site_name" content="Shiranami" />
+<meta property="og:locale" content="en" />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
 <meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={ogImageAlt} />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Shiranami · white waves — a quiet place for your music" />
-<meta
-  name="twitter:description"
-  content="A desktop player built for local libraries, playlists, internet radio, crossfade, downloads, and a softer late-night listening flow."
-/>
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={ogImageAlt} />
+
+{
+  structuredData && (
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(orgJsonLd)} />
+  )
+}
