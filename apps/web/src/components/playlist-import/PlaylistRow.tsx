@@ -205,9 +205,10 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
             status={toDownloadStatus(playlistTrack.status)}
             ariaLabel={
               playlistTrack.status === 'error'
-                ? (playlistTrack.error ?? t('retryDownloadTrack'))
+                ? t('retryDownloadTrack')
                 : statusLabel(playlistTrack.status)
             }
+            title={playlistTrack.status === 'error' ? playlistTrack.error : undefined}
             disabled={isImporting}
             onDownload={() => handleDownloadTrack(playlistTrack.id)}
           />
