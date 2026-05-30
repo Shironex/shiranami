@@ -22,7 +22,7 @@ interface DownloadProgressBarProps {
  * known; determinate fill when one is.
  */
 export function DownloadProgressBar({ progress, className, ariaLabel }: DownloadProgressBarProps) {
-  const isDeterminate = typeof progress === 'number';
+  const isDeterminate = typeof progress === 'number' && !Number.isNaN(progress);
 
   if (!isDeterminate) {
     return (
