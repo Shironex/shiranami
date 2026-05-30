@@ -102,7 +102,7 @@ describe('metadata-writer', () => {
 
     it.each(['.m4a', '.ogg', '.opus', '.aac', '.wma', '.weba', '.webm'])(
       'dispatches %s to FFmpeg',
-      async (ext) => {
+      async ext => {
         await writeMetadataToFile(`/music/song${ext}`, baseOptions);
         expect(mockExecFile).toHaveBeenCalledTimes(1);
         expect(mockNodeID3Update).not.toHaveBeenCalled();
@@ -145,10 +145,7 @@ describe('metadata-writer', () => {
     it('returns albumArtUrl when coverImageBuffer is provided', async () => {
       const result = await writeMetadataToFile('/music/song.mp3', coverOptions);
       expect(result).toBe('shiranami-art://art/testhash.jpg');
-      expect(mockSaveAlbumArt).toHaveBeenCalledWith(
-        coverOptions.coverImageBuffer,
-        'image/jpeg'
-      );
+      expect(mockSaveAlbumArt).toHaveBeenCalledWith(coverOptions.coverImageBuffer, 'image/jpeg');
     });
 
     it('returns null when no cover image is provided', async () => {
@@ -176,9 +173,7 @@ describe('metadata-writer', () => {
 
     it('logs a warning for unsupported extensions', async () => {
       await writeMetadataToFile('/music/song.xyz', baseOptions);
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Unsupported format')
-      );
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Unsupported format'));
     });
 
     it('still returns albumArtUrl for unsupported format when cover is provided', async () => {
@@ -322,6 +317,52 @@ describe('metadata-writer', () => {
     it('skips writeFlac when no tags or picture provided', async () => {
       await writeMetadataToFile('/music/song.flac', {});
       expect(mockWriteFlacTags).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('clearing numeric tags (null)', () => {
+    it('mp3: writes empty strings so node-id3 drops the frames', async () => {
+      await writeMetadataToFile('/music/song.mp3', {
+        year: null,
+        trackNumber: null,
+        discNumber: null,
+      });
+      const tags = mockNodeID3Update.mock.calls[0][0] as Record<string, unknown>;
+      expect(tags.year).toBe('');
+      expect(tags.trackNumber).toBe('');
+      expect(tags.partOfSet).toBe('');
+    });
+
+    it('flac: omits the keys so the rebuilt vorbis block drops them', async () => {
+      await writeMetadataToFile('/music/song.flac', {
+        title: 'Keep Me',
+        year: null,
+        trackNumber: null,
+        discNumber: null,
+      });
+      const arg = mockWriteFlacTags.mock.calls[0][0] as { tagMap: Record<string, string> };
+      expect(arg.tagMap.title).toBe('Keep Me');
+      expect(arg.tagMap).not.toHaveProperty('date');
+      expect(arg.tagMap).not.toHaveProperty('tracknumber');
+      expect(arg.tagMap).not.toHaveProperty('discnumber');
+    });
+
+    it('ffmpeg: emits empty metadata values so the tags are deleted', async () => {
+      await writeMetadataToFile('/music/song.m4a', {
+        year: null,
+        trackNumber: null,
+        discNumber: null,
+      });
+      const args = mockExecFile.mock.calls[0][1] as string[];
+      expect(args).toContain('date=');
+      expect(args).toContain('track=');
+      expect(args).toContain('disc=');
+    });
+
+    it('does not write the literal string "null" for any format', async () => {
+      await writeMetadataToFile('/music/song.mp3', { trackNumber: null });
+      const tags = mockNodeID3Update.mock.calls[0][0] as Record<string, unknown>;
+      expect(tags.trackNumber).not.toBe('null');
     });
   });
 });

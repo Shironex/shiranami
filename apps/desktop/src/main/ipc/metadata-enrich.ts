@@ -168,21 +168,24 @@ export function registerMetadataEnrichHandlers(): void {
   handle(
     C.writeTags,
     async (_event, input: WriteTagsInput): Promise<WriteTagsResult> => {
-      logger.info(`[metadata:write-tags] Writing user-edited tags for "${input.title ?? input.id}"`);
+      logger.info(
+        `[metadata:write-tags] Writing user-edited tags for "${input.title ?? input.id}"`
+      );
 
       // Map the wire input to the writer options. `undefined` fields are left
-      // unchanged; the writer skips any option that is undefined. null
-      // numeric fields (cleared in the UI) are normalized to undefined so they
-      // are not written as "null".
+      // unchanged; the writer skips any option that is undefined. `null` numeric
+      // fields (cleared in the UI) are passed through so the writer CLEARS the
+      // corresponding tag in the file — otherwise the DB row (nulled below) and
+      // the file drift, and a rescan would restore the stale tag.
       const writeOptions: WriteMetadataOptions = {
         title: input.title,
         artist: input.artist,
         albumArtist: input.albumArtist,
         album: input.album,
         genre: input.genre,
-        year: input.year ?? undefined,
-        trackNumber: input.trackNumber ?? undefined,
-        discNumber: input.discNumber ?? undefined,
+        year: input.year,
+        trackNumber: input.trackNumber,
+        discNumber: input.discNumber,
       };
 
       try {
