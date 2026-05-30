@@ -235,6 +235,12 @@ export function buildSmartMixes(tracks: readonly MixTrack[], signals: MixSignals
     mixes.push(mix);
   }
 
-  mixes.push(...buildDecadeMixes(all));
+  for (const mix of buildDecadeMixes(all)) {
+    const trackKey = mix.trackIds.join(',');
+    if (seenTrackSets.has(trackKey)) continue;
+    seenTrackSets.add(trackKey);
+    mixes.push(mix);
+  }
+
   return mixes;
 }
