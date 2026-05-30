@@ -219,6 +219,14 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'changelog.jump.title': '● All releases · jump to an entry',
     'changelog.stamp': '● End of archive · 白波 · 2026',
     'changelog.quietNote': 'The first quiet note. More pages, soon.',
+
+    // 404 page
+    'notFound.pill': 'Error 404',
+    'notFound.heading': 'This track skipped.',
+    'notFound.body':
+      'The page you were looking for has drifted off the shelf. Let’s get you back to a quieter room.',
+    'notFound.home': 'Back home',
+    'notFound.download': 'Download the app',
   },
   pl: {
     // Shared
@@ -437,5 +445,13 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'changelog.jump.title': '● Wszystkie wydania · przejdź do wpisu',
     'changelog.stamp': '● Koniec archiwum · 白波 · 2026',
     'changelog.quietNote': 'Pierwsza cicha nuta. Więcej stron wkrótce.',
+
+    // 404 page
+    'notFound.pill': 'Błąd 404',
+    'notFound.heading': 'Ten utwór przeskoczył.',
+    'notFound.body':
+      'Strona, której szukasz, zsunęła się z półki. Wróćmy do spokojniejszego pokoju.',
+    'notFound.home': 'Powrót do strony głównej',
+    'notFound.download': 'Pobierz aplikację',
   },
 };
