@@ -606,6 +606,10 @@ export function useAudioEngine() {
         const s = usePlaybackStore.getState();
         setVolume(idleDeckId, s.isMuted ? 0 : s.volume);
         setVolume(getIdleDeckId(), 0);
+        // Stop the previously-active deck so a manual skip to the pre-buffered
+        // track doesn't leave the old track playing silently in the background
+        // (and decoding) until the next maybePreBuffer overwrites its src.
+        getDeck(getIdleDeckId())?.pause();
         const incoming = getDeck(idleDeckId);
         if (incoming && incoming.currentTime > 0.5) incoming.currentTime = 0;
         void flushPlaybackSession();
