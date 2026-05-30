@@ -69,6 +69,7 @@ function ruleToCondition(rule: SmartPlaylistRule): SQL | undefined | null {
     case 'year':
     case 'playCount': {
       const column = tracks[field];
+      if (!value.trim()) return null;
       const num = Number(value);
       if (!Number.isFinite(num)) return null;
       switch (operator) {
@@ -81,6 +82,7 @@ function ruleToCondition(rule: SmartPlaylistRule): SQL | undefined | null {
         case 'lessThan':
           return lt(column, num);
         case 'between': {
+          if (!valueTo || !valueTo.trim()) return null;
           const upper = Number(valueTo);
           if (!Number.isFinite(upper)) return null;
           return and(gte(column, num), lte(column, upper));
