@@ -51,6 +51,7 @@
   "customPresets.cancel": "Cancel",
   "customPresets.rename": "Rename",
   "customPresets.renameTitle": "Rename preset",
+  "customPresets.renameDesc": "Give this preset a new name.",
   "customPresets.delete": "Delete",
   "customPresets.deleteTitle": "Delete preset",
   "customPresets.deleteDesc": "Delete \"{{name}}\"? This cannot be undone.",

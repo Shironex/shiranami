@@ -51,6 +51,7 @@
   "customPresets.cancel": "Anuluj",
   "customPresets.rename": "Zmień nazwę",
   "customPresets.renameTitle": "Zmień nazwę ustawienia",
+  "customPresets.renameDesc": "Nadaj temu ustawieniu nową nazwę.",
   "customPresets.delete": "Usuń",
   "customPresets.deleteTitle": "Usuń ustawienie",
   "customPresets.deleteDesc": "Usunąć „{{name}}”? Tej operacji nie można cofnąć.",

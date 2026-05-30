@@ -381,9 +381,11 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
                 ? t('customPresets.renameTitle')
                 : t('customPresets.saveTitle')}
             </DialogTitle>
-            {nameDialog?.mode === 'save' && (
-              <DialogDescription>{t('customPresets.saveDesc')}</DialogDescription>
-            )}
+            <DialogDescription>
+              {nameDialog?.mode === 'rename'
+                ? t('customPresets.renameDesc')
+                : t('customPresets.saveDesc')}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
             <label htmlFor="eq-preset-name" className="text-xs text-muted-foreground">
