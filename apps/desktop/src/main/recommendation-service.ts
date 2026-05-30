@@ -166,10 +166,15 @@ export function markNotInterested(trackId: string, source = 'context-menu'): voi
     .where(eq(tracks.id, trackId))
     .get();
 
+  if (!track) {
+    logger.warn(`[recommendations] not-interested ignored; missing track ${trackId}`);
+    return;
+  }
+
   const row: NewNegativeSignal = {
     id: crypto.randomUUID(),
     trackId,
-    artist: track?.artist ?? null,
+    artist: track.artist ?? null,
     source,
   };
   db.insert(negativeSignals)
