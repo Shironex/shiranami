@@ -32,5 +32,7 @@
   "lowConfidence": "Niepewne dopasowanie",
   "lowConfidenceHint": "Ten wynik z YouTube może nie być właściwym nagraniem. Sprawdź go po imporcie i w razie potrzeby zmień.",
   "previewAlbum": "Import playlisty",
-  "createPlaylistOption": "Zapisz jako playlistę „{{name}}” (zachowuje oryginalną kolejność)"
+  "createPlaylistOption": "Zapisz jako playlistę „{{name}}” (zachowuje oryginalną kolejność)",
+  "downloadProgressAria": "Postęp pobierania",
+  "retryDownloadTrack": "Ponów pobieranie"
 }

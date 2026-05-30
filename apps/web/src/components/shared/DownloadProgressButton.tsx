@@ -16,6 +16,11 @@ interface DownloadProgressButtonProps {
   ariaLabel: string;
   /** Fired on click for the idle/error (retry) states. */
   onDownload: () => void;
+  /**
+   * Force-disable the button beyond what `status` implies (e.g. an idle
+   * playlist row while a batch import is already running).
+   */
+  disabled?: boolean;
   /** Extra classes for the button slot (e.g. width to match a row layout). */
   className?: string;
 }
@@ -31,10 +36,11 @@ export function DownloadProgressButton({
   status,
   ariaLabel,
   onDownload,
+  disabled = false,
   className,
 }: DownloadProgressButtonProps) {
   const isBusy = status === 'downloading' || status === 'converting';
-  const isDisabled = isBusy || status === 'done' || status === 'skipped';
+  const isDisabled = disabled || isBusy || status === 'done' || status === 'skipped';
 
   let icon: React.ReactNode;
   let colorClass: string;
