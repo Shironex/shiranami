@@ -22,6 +22,7 @@ import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
 } from './recommendation-service';
+import { startScrobbler, stopScrobbler } from './scrobbler';
 import { PRIVILEGED_SCHEMES } from './privileged-schemes';
 
 // E2E hatch: when running under @playwright/test we disable noisy bootstrap
@@ -141,6 +142,9 @@ async function bootstrap(): Promise<void> {
   // failure here is swallowed and the shelves simply serve the cache.
   if (!isE2E) {
     scheduleRecommendationRefresh();
+    // Start the scrobble retry-queue flush loop. No network fires unless the
+    // user has connected an account and enabled scrobbling.
+    startScrobbler();
   }
 
   registerAudioProtocol();
@@ -259,6 +263,7 @@ app.on('before-quit', event => {
   (async () => {
     try {
       cancelRecommendationRefresh();
+      stopScrobbler();
     } catch {
       /* ignore */
     }

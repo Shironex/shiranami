@@ -59,6 +59,22 @@ export interface StoreSchema {
 
   // Main-only migration flags.
   'migrations.albumArtV1': boolean;
+
+  // Main-only (scrobbler.ts): opt-in scrobbling settings + secrets. The raw
+  // Last.fm session key / ListenBrainz token NEVER round-trip to the renderer
+  // (it reads only a {connected} status via the scrobble IPC), mirroring how
+  // discord-rpc-settings stays main-owned. Default undefined → scrobbling off,
+  // so no network fires until the user connects an account.
+  'scrobble.settings': {
+    /** Master switch — when false, no scrobbles or now-playing pings fire. */
+    enabled: boolean;
+    /** Last.fm session key (infinite lifetime), or null when not connected. */
+    lastfmSessionKey: string | null;
+    /** Last.fm account name, kept for display only. */
+    lastfmUsername: string | null;
+    /** ListenBrainz user token, or null when not connected. */
+    listenBrainzToken: string | null;
+  };
 }
 
 export const store = new Store<StoreSchema>();

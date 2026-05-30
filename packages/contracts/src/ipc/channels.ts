@@ -54,6 +54,20 @@ export const IPC_CHANNELS = {
     updatePresence: 'discord-rpc:update-presence',
     clearPresence: 'discord-rpc:clear-presence',
   },
+  scrobble: {
+    // Read the connection status (booleans + display name only; never secrets).
+    getStatus: 'scrobble:get-status',
+    // Toggle the master opt-in switch.
+    setEnabled: 'scrobble:set-enabled',
+    // Last.fm: start desktop auth (open the browser) and finish it (exchange
+    // the token for a session key), then disconnect.
+    lastfmBeginAuth: 'scrobble:lastfm-begin-auth',
+    lastfmCompleteAuth: 'scrobble:lastfm-complete-auth',
+    lastfmDisconnect: 'scrobble:lastfm-disconnect',
+    // ListenBrainz: validate + store a user token, then disconnect.
+    listenBrainzConnect: 'scrobble:listenbrainz-connect',
+    listenBrainzDisconnect: 'scrobble:listenbrainz-disconnect',
+  },
   library: {
     parseMetadata: 'library:parse-metadata',
     scanFolder: 'library:scan-folder',

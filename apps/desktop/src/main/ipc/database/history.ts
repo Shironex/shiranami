@@ -4,6 +4,7 @@ import { tracks, playHistory, eq, and, desc, sql, type NewPlayHistory } from '@s
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { handle } from '../with-ipc-handler';
+import { submitPlay } from '../../scrobbler';
 import {
   historyRecordPlayArgs,
   historyGetRecentArgs,
@@ -55,8 +56,9 @@ export function registerHistoryHandlers(): void {
       const completionRatio =
         data.duration && data.duration > 0 ? Math.min(1, playedSeconds / data.duration) : 0;
       const completed = data.duration ? completionRatio >= 0.95 : false;
+      const source = data.source ?? 'library';
 
-      return db.transaction(tx => {
+      const historyEntry = db.transaction(tx => {
         const row: NewPlayHistory = {
           id: crypto.randomUUID(),
           trackId: data.trackId,
@@ -64,10 +66,10 @@ export function registerHistoryHandlers(): void {
           playedSeconds,
           completionRatio,
           completed,
-          source: data.source ?? 'library',
+          source,
         };
 
-        const historyEntry = tx.insert(playHistory).values(row).returning().get();
+        const entry = tx.insert(playHistory).values(row).returning().get();
 
         tx.update(tracks)
           .set({
@@ -77,8 +79,40 @@ export function registerHistoryHandlers(): void {
           .where(eq(tracks.id, data.trackId))
           .run();
 
-        return historyEntry;
+        return entry;
       });
+
+      // Scrobble this local play event (opt-in; main-only). Fire-and-forget so
+      // it never blocks the record-play response or playback. Only 'library'
+      // plays carry reliable artist/track tags worth scrobbling — radio entries
+      // are skipped. The scrobbler itself no-ops when scrobbling is disabled.
+      if (source === 'library') {
+        try {
+          const meta = db
+            .select({
+              title: tracks.title,
+              artist: tracks.artist,
+              album: tracks.album,
+              duration: tracks.duration,
+            })
+            .from(tracks)
+            .where(eq(tracks.id, data.trackId))
+            .get();
+          if (meta) {
+            submitPlay({
+              artist: meta.artist ?? '',
+              track: meta.title,
+              album: meta.album,
+              durationSeconds: meta.duration ?? data.duration,
+              playedSeconds,
+            });
+          }
+        } catch {
+          // Scrobbling is best-effort; never let it affect record-play.
+        }
+      }
+
+      return historyEntry;
     },
     { schema: historyRecordPlayArgs }
   );
