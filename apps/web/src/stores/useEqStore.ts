@@ -91,6 +91,7 @@ interface PersistedEqState {
   preampDb: number;
   gains: number[];
   customPresets: CustomEqPreset[];
+  activeCustomId: string | null;
 }
 
 function clampDb(db: number): number {
@@ -124,6 +125,7 @@ const DEFAULT_STATE: PersistedEqState = {
   preampDb: 0,
   gains: [...EQ_PRESETS.flat],
   customPresets: [],
+  activeCustomId: null,
 };
 
 /** Validate + normalise a band-gain array from persisted/untrusted input. */
