@@ -7,7 +7,6 @@ import {
   ne,
   and,
   or,
-  like,
   gt,
   lt,
   gte,
@@ -41,6 +40,15 @@ import {
 const S = IPC_CHANNELS.db.smartPlaylists;
 
 /**
+ * Escape SQL LIKE wildcards (`%`, `_`) and the escape char itself in a
+ * user-supplied value so a `contains` rule matches the literal text instead of
+ * letting the user inject pattern metacharacters. Paired with `ESCAPE '\\'`.
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, char => `\\${char}`);
+}
+
+/**
  * Translate a single rule into a drizzle SQL condition over the `tracks` table.
  * Returns null when the rule cannot produce a meaningful condition (e.g. an
  * empty value), so the caller can skip it rather than match everything.
@@ -61,7 +69,8 @@ function ruleToCondition(rule: SmartPlaylistRule): SQL | undefined | null {
         case 'isNot':
           return ne(column, value);
         case 'contains':
-          return like(column, `%${value}%`);
+          // Escape LIKE wildcards in user input so they match literally.
+          return sql`${column} LIKE ${`%${escapeLikePattern(value)}%`} ESCAPE '\\'`;
         default:
           return null;
       }
@@ -94,9 +103,7 @@ function ruleToCondition(rule: SmartPlaylistRule): SQL | undefined | null {
     case 'isFavorite': {
       // Stored as 0/1 integer; value is 'true'/'false'.
       const wanted = value === 'true' || value === '1';
-      return operator === 'isNot'
-        ? ne(tracks.isFavorite, wanted)
-        : eq(tracks.isFavorite, wanted);
+      return operator === 'isNot' ? ne(tracks.isFavorite, wanted) : eq(tracks.isFavorite, wanted);
     }
     case 'dateAdded': {
       // Only `inLastDays` is supported: created within the last N days.

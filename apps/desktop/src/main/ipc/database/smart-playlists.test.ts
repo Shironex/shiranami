@@ -100,6 +100,16 @@ describe('smart playlists ipc (integration)', () => {
     expect(either).toHaveLength(2);
   });
 
+  it('treats LIKE wildcards in a contains value as literal characters', async () => {
+    await insertTrack({ title: '100% Lofi' });
+    await insertTrack({ title: 'Pure Jazz' });
+
+    // Without escaping, `%` would match any sequence and return both rows.
+    const rows = await preview('all', [{ field: 'title', operator: 'contains', value: '100%' }]);
+    expect(rows).toHaveLength(1);
+    expect(rows.map(r => (r as { title: string }).title)).toEqual(['100% Lofi']);
+  });
+
   it('empty rule set matches the whole library', async () => {
     await insertTrack();
     await insertTrack();
