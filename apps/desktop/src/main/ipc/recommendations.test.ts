@@ -173,6 +173,9 @@ describe('recommendations:smart-mixes ipc (integration)', () => {
 
   it('generates a focus mix from instrumental-tagged tracks', async () => {
     for (let i = 0; i < 6; i += 1) insertTrack(`f${i}`, 'lofi', 2015, i);
+    // Non-focus 2010s tracks so the decade-2010 mix has a distinct track set
+    // from the focus mix — otherwise content-dedup (rightly) collapses the two.
+    for (let i = 0; i < 5; i += 1) insertTrack(`p${i}`, 'pop', 2012, i);
     const mixes = await invoke({ hour: 14 });
     expect(mixes.some(m => m.kind === 'focus')).toBe(true);
     expect(mixes.some(m => m.kind === 'decade' && m.decade === 2010)).toBe(true);
