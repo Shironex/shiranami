@@ -105,7 +105,10 @@ describe('usePlaylistImport', () => {
 
     it('calls playlist.extract with trimmed URL and populates tracks', async () => {
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -126,7 +129,10 @@ describe('usePlaylistImport', () => {
     });
 
     it('sets extractError when no tracks are found', async () => {
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue([] as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: [],
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -179,9 +185,12 @@ describe('usePlaylistImport', () => {
     });
 
     it('sets isExtracting true during extraction', async () => {
-      let resolveExtract!: (value: SearchResult[]) => void;
+      let resolveExtract!: (value: { title: string | null; tracks: SearchResult[] }) => void;
       vi.mocked(window.electronAPI.playlist.extract).mockImplementation(
-        () => new Promise((resolve) => { resolveExtract = resolve; })
+        () =>
+          new Promise(resolve => {
+            resolveExtract = resolve;
+          })
       );
 
       const { result } = renderHook(() => usePlaylistImport());
@@ -198,7 +207,7 @@ describe('usePlaylistImport', () => {
       expect(result.current.isExtracting).toBe(true);
 
       await act(async () => {
-        resolveExtract([makeSearchResult('v1')]);
+        resolveExtract({ title: null, tracks: [makeSearchResult('v1')] });
         await extractPromise!;
       });
 
@@ -208,7 +217,7 @@ describe('usePlaylistImport', () => {
     it('clears previous extractError on new extraction', async () => {
       vi.mocked(window.electronAPI.playlist.extract)
         .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValueOnce([makeSearchResult('v1')] as never);
+        .mockResolvedValueOnce({ title: null, tracks: [makeSearchResult('v1')] } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -232,7 +241,10 @@ describe('usePlaylistImport', () => {
   describe('handleKeyDown', () => {
     it('triggers extraction on Enter key', async () => {
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -293,7 +305,9 @@ describe('usePlaylistImport', () => {
     };
 
     function setupImportMocks() {
-      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue('/music/song.mp3' as never);
+      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue(
+        '/music/song.mp3' as never
+      );
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
       vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
         metadata: fakeMetadata,
@@ -304,7 +318,10 @@ describe('usePlaylistImport', () => {
     it('imports all pending tracks successfully', async () => {
       setupImportMocks();
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -329,7 +346,10 @@ describe('usePlaylistImport', () => {
     it('shows success toast with summary after import', async () => {
       setupImportMocks();
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -352,7 +372,10 @@ describe('usePlaylistImport', () => {
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(true as never);
 
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -379,7 +402,10 @@ describe('usePlaylistImport', () => {
         makeSearchResult('v1', { webpage_url: duplicateUrl }),
         makeSearchResult('v2', { webpage_url: duplicateUrl }),
       ];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -408,7 +434,10 @@ describe('usePlaylistImport', () => {
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
 
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -433,7 +462,10 @@ describe('usePlaylistImport', () => {
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
 
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -463,7 +495,10 @@ describe('usePlaylistImport', () => {
       vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue(fakeDbTrack as never);
 
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -515,7 +550,9 @@ describe('usePlaylistImport', () => {
     };
 
     function setupImportMocks() {
-      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue('/music/song.mp3' as never);
+      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue(
+        '/music/song.mp3' as never
+      );
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
       vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
         metadata: fakeMetadata,
@@ -526,7 +563,10 @@ describe('usePlaylistImport', () => {
     it('only imports selected tracks', async () => {
       setupImportMocks();
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -538,10 +578,7 @@ describe('usePlaylistImport', () => {
       });
 
       // Select only the first and third tracks
-      const selectedIds = new Set([
-        result.current.tracks[0].id,
-        result.current.tracks[2].id,
-      ]);
+      const selectedIds = new Set([result.current.tracks[0].id, result.current.tracks[2].id]);
 
       await act(async () => {
         await result.current.handleStartImportSelected(selectedIds);
@@ -558,7 +595,10 @@ describe('usePlaylistImport', () => {
     it('does nothing when selectedIds is empty', async () => {
       setupImportMocks();
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -604,16 +644,35 @@ describe('usePlaylistImport', () => {
       });
       vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
       vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
-        metadata: { title: 'Test', artist: 'Artist', album: 'Album', duration: 100, genre: null, year: null, trackNumber: null, albumArt: null },
+        metadata: {
+          title: 'Test',
+          artist: 'Artist',
+          album: 'Album',
+          duration: 100,
+          genre: null,
+          year: null,
+          trackNumber: null,
+          albumArt: null,
+        },
       } as never);
       vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue({
-        id: 'track-1', title: 'Test', artist: 'Artist', album: 'Album', duration: 100,
-        filePath: '/music/song.mp3', isFavorite: false, playCount: 0,
-        createdAt: '2024-01-01', updatedAt: '2024-01-01',
+        id: 'track-1',
+        title: 'Test',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 100,
+        filePath: '/music/song.mp3',
+        isFavorite: false,
+        playCount: 0,
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-01',
       } as never);
 
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -638,7 +697,10 @@ describe('usePlaylistImport', () => {
   describe('handleReset', () => {
     it('resets all state to initial values', async () => {
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -668,7 +730,10 @@ describe('usePlaylistImport', () => {
   describe('track removal', () => {
     it('handleRemoveTrack removes a single track', async () => {
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -691,7 +756,10 @@ describe('usePlaylistImport', () => {
 
     it('handleRemoveTracks removes multiple tracks', async () => {
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -702,10 +770,7 @@ describe('usePlaylistImport', () => {
         await result.current.handleExtract();
       });
 
-      const idsToRemove = new Set([
-        result.current.tracks[0].id,
-        result.current.tracks[2].id,
-      ]);
+      const idsToRemove = new Set([result.current.tracks[0].id, result.current.tracks[2].id]);
 
       act(() => {
         result.current.handleRemoveTracks(idsToRemove);
@@ -720,7 +785,10 @@ describe('usePlaylistImport', () => {
   describe('computed values', () => {
     it('calculates processedCount, totalCount, overallProgress correctly', async () => {
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 
@@ -749,7 +817,10 @@ describe('usePlaylistImport', () => {
 
     it('isFinished is true when all tracks are processed and not importing', async () => {
       const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue(fakeResults as never);
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
 
       const { result } = renderHook(() => usePlaylistImport());
 

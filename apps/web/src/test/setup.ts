@@ -172,6 +172,7 @@ function createElectronAPIMock(): ElectronAPI {
         exists: asyncFn(false),
         existsMany: asyncFn([]),
         updateMany: asyncFn([]),
+        getIdByPath: asyncFn(null),
       },
       history: {
         recordPlay: vi.fn(),
@@ -193,6 +194,15 @@ function createElectronAPIMock(): ElectronAPI {
         removeTrack: asyncFn(undefined),
         getPlaylistsForTracks: asyncFn([]),
         reorder: asyncFn(undefined),
+      },
+      smartPlaylists: {
+        getAll: asyncFn([]),
+        get: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        delete: asyncFn(undefined),
+        getTracks: asyncFn([]),
+        preview: asyncFn([]),
       },
       folders: {
         getAll: asyncFn([]),

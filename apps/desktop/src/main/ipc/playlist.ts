@@ -11,6 +11,7 @@ import {
   ytSearch,
   type SearchResult,
 } from '../utils/ytdlp-spawn';
+import type { PlaylistExtractResult } from '@shiranami/contracts';
 import { sendToRenderer } from '../utils/window';
 import { BROWSER_USER_AGENT } from '../shared/user-agent';
 import { pickBestMatch, type SpotifyTrack } from '../utils/spotify-match';
@@ -73,7 +74,38 @@ export function extractSpotifyPlaylistId(url: string): string | null {
   }
 }
 
-async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
+/**
+ * Pull the source playlist title from yt-dlp's `--dump-json` output. Flat
+ * playlist entries carry `playlist_title` (and `playlist`) on every line; read
+ * it off the first parseable line so we can recreate a real playlist with the
+ * source name. Returns null when absent (e.g. a single video URL).
+ */
+function extractYouTubePlaylistTitle(stdout: string): string | null {
+  // Iterate line-by-line via indexOf rather than split('\n') to avoid
+  // allocating a large array for playlists with thousands of entries — we
+  // only need the first line that carries a playlist title.
+  let pos = 0;
+  while (pos < stdout.length) {
+    const nextNewline = stdout.indexOf('\n', pos);
+    const end = nextNewline === -1 ? stdout.length : nextNewline;
+    const line = stdout.slice(pos, end).trim();
+    pos = end + 1;
+
+    if (!line) continue;
+    try {
+      const data = JSON.parse(line);
+      const title = data.playlist_title ?? data.playlist;
+      if (typeof title === 'string' && title.trim()) {
+        return title.trim();
+      }
+    } catch {
+      // skip malformed line
+    }
+  }
+  return null;
+}
+
+async function extractYouTubePlaylist(url: string): Promise<PlaylistExtractResult> {
   logger.info(`[playlist] Extracting YouTube playlist: ${url}`);
 
   const { stdout, code } = await spawnYtDlp(
@@ -84,9 +116,12 @@ async function extractYouTubePlaylist(url: string): Promise<SearchResult[]> {
     throw new IpcError(PLAYLIST_ERROR_CODES.NO_TRACKS, 'yt-dlp failed to extract playlist');
   }
 
-  const results = parseYtDlpJsonLines(stdout);
-  logger.info(`[playlist] Extracted ${results.length} tracks from YouTube playlist`);
-  return results;
+  const tracks = parseYtDlpJsonLines(stdout);
+  const title = extractYouTubePlaylistTitle(stdout);
+  logger.info(
+    `[playlist] Extracted ${tracks.length} tracks from YouTube playlist${title ? ` "${title}"` : ''}`
+  );
+  return { title, tracks };
 }
 
 interface SpotifyEmbedTrack {
@@ -283,7 +318,26 @@ export function parseSpotifyEmbedHtml(html: string): SpotifyTrack[] {
  * No auth, no app, no Premium. Yields `{ title, artist, durationSec }` and is
  * capped at ~100 tracks by Spotify's embed render limit.
  */
-async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack[]> {
+/**
+ * Pull the Spotify playlist name from the embed page's `__NEXT_DATA__` blob
+ * (`entity.name` / `entity.title`). Returns null when absent.
+ */
+export function parseSpotifyPlaylistName(html: string): string | null {
+  const scriptMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!scriptMatch) return null;
+  try {
+    const nextData = JSON.parse(scriptMatch[1]);
+    const entity = nextData?.props?.pageProps?.state?.data?.entity;
+    const name = entity?.name ?? entity?.title;
+    return typeof name === 'string' && name.trim() ? name.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSpotifyEmbedTracks(
+  playlistId: string
+): Promise<{ name: string | null; tracks: SpotifyTrack[] }> {
   logger.info(`[playlist] Fetching Spotify embed page for playlist: ${playlistId}`);
 
   const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
@@ -302,8 +356,9 @@ async function fetchSpotifyEmbedTracks(playlistId: string): Promise<SpotifyTrack
 
   const html = await response.text();
   const tracks = parseSpotifyEmbedHtml(html);
+  const name = parseSpotifyPlaylistName(html);
   logger.info(`[playlist] Extracted ${tracks.length} tracks from Spotify embed`);
-  return tracks;
+  return { name, tracks };
 }
 
 /**
@@ -340,13 +395,16 @@ async function matchSpotifyTrackOnYouTube(
  * preserves order), mirroring the proven `runEnrichmentBatch` shape.
  * Cancellation is a real AbortController threaded into the searches.
  */
-async function extractSpotifyPlaylist(url: string, signal: AbortSignal): Promise<SearchResult[]> {
+async function extractSpotifyPlaylist(
+  url: string,
+  signal: AbortSignal
+): Promise<PlaylistExtractResult> {
   const playlistId = extractSpotifyPlaylistId(url);
   if (!playlistId) {
     throw new IpcError(PLAYLIST_ERROR_CODES.UNSUPPORTED_URL, 'Invalid Spotify playlist URL');
   }
 
-  const spotifyTracks = await fetchSpotifyEmbedTracks(playlistId);
+  const { name: playlistName, tracks: spotifyTracks } = await fetchSpotifyEmbedTracks(playlistId);
   if (spotifyTracks.length === 0) {
     throw new IpcError(
       PLAYLIST_ERROR_CODES.NO_TRACKS,
@@ -403,7 +461,7 @@ async function extractSpotifyPlaylist(url: string, signal: AbortSignal): Promise
       `${lowConfidence > 0 ? ` (${lowConfidence} low-confidence)` : ''}` +
       `${signal.aborted ? ' (cancelled)' : ''}`
   );
-  return results;
+  return { title: playlistName, tracks: results };
 }
 
 export function registerPlaylistHandlers(): void {

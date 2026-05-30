@@ -52,11 +52,17 @@ describe('useUIStore', () => {
   });
 
   it('reorderSidebarItem moves an item to a new slot and persists the order', () => {
-    // Default order index 1 = library, index 3 = favorites.
+    // Move library to where favorites sits; library lands just before favorites.
     useUIStore.getState().reorderSidebarItem('library', 'favorites');
 
     const order = useUIStore.getState().sidebarOrder;
-    expect(order.slice(0, 5)).toEqual(['overview', 'playlists', 'favorites', 'library', 'history']);
+    expect(order.slice(0, 5)).toEqual([
+      'overview',
+      'playlists',
+      'smart-playlists',
+      'favorites',
+      'library',
+    ]);
     // No items lost, no duplicates introduced.
     expect(order).toHaveLength(DEFAULT_SIDEBAR_ORDER.length);
     expect(new Set(order).size).toBe(DEFAULT_SIDEBAR_ORDER.length);

@@ -3,6 +3,8 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaylistImportStore, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
+import { queryClient } from '@/lib/queryClient';
+import { playlistKeys } from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import type { DownloadProgress } from '@/types/electron';
@@ -21,6 +23,9 @@ export function usePlaylistImport() {
   const extractProgress = usePlaylistImportStore(s => s.extractProgress);
   const isImporting = usePlaylistImportStore(s => s.isImporting);
   const setTracks = usePlaylistImportStore(s => s.setTracks);
+  const sourceTitle = usePlaylistImportStore(s => s.sourceTitle);
+  const createPlaylist = usePlaylistImportStore(s => s.createPlaylist);
+  const setCreatePlaylist = usePlaylistImportStore(s => s.setCreatePlaylist);
   const removeTrack = usePlaylistImportStore(s => s.removeTrack);
   const removeTracks = usePlaylistImportStore(s => s.removeTracks);
   const updateTrackStatus = usePlaylistImportStore(s => s.updateTrackStatus);
@@ -75,13 +80,13 @@ export function usePlaylistImport() {
     startExtracting();
 
     try {
-      const results = await window.electronAPI.playlist.extract(trimmed);
+      const { title, tracks: results } = await window.electronAPI.playlist.extract(trimmed);
       if (results.length === 0) {
         setExtractError(i18n.t('noTracksFound', { ns: 'import' }));
         stopExtracting();
         return;
       }
-      setTracks(results);
+      setTracks(results, title);
     } catch (err) {
       const msg = err instanceof Error ? err.message : i18n.t('noTracksFound', { ns: 'import' });
       setExtractError(msg);
@@ -105,145 +110,140 @@ export function usePlaylistImport() {
     [removeTrack]
   );
 
-  const handleStartImport = useCallback(async () => {
-    if (!IS_ELECTRON) return;
-    startImporting();
+  /**
+   * Shared import loop for both "import all" and "import selected". Downloads +
+   * imports each pending track in playlist order, recording each resolved DB
+   * track id (newly imported or already-present duplicate) so the source
+   * playlist's order can be recreated afterwards. When `createPlaylist` is on
+   * and a `sourceTitle` exists, a real Shiranami playlist is created from the
+   * imported tracks via the existing `createWithTracks` IPC.
+   */
+  const runImport = useCallback(
+    async (selectedIds: Set<string> | null) => {
+      if (!IS_ELECTRON) return;
+      startImporting(selectedIds ?? undefined);
 
-    const currentTracks = usePlaylistImportStore.getState().tracks;
-    const completedUrls = new Set<string>();
+      const currentTracks = usePlaylistImportStore.getState().tracks;
+      const completedUrls = new Set<string>();
+      // Resolved DB track ids in playlist order (for source-playlist recreation).
+      const orderedTrackIds: string[] = [];
+      const seenTrackIds = new Set<string>();
+      const recordId = (id: string | null | undefined) => {
+        if (id && !seenTrackIds.has(id)) {
+          seenTrackIds.add(id);
+          orderedTrackIds.push(id);
+        }
+      };
 
-    for (const playlistTrack of currentTracks) {
-      if (usePlaylistImportStore.getState().isCancelled) break;
-      if (playlistTrack.status !== 'pending') continue;
+      for (const playlistTrack of currentTracks) {
+        if (usePlaylistImportStore.getState().isCancelled) break;
+        if (playlistTrack.status !== 'pending') continue;
+        if (selectedIds && !selectedIds.has(playlistTrack.id)) continue;
 
-      const trackId = playlistTrack.id;
-      const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
-      if (completedUrls.has(trackUrl)) {
-        updateTrackStatus(trackId, 'skipped');
-        continue;
-      }
-
-      activeImportTrackIdRef.current = trackId;
-      activeImportTrackUrlRef.current = trackUrl;
-      updateTrackStatus(trackId, 'downloading', 0);
-
-      try {
-        const filePath = await window.electronAPI.downloader.download(trackUrl);
-
-        const exists = await window.electronAPI.db.tracks.exists(filePath);
-        if (exists) {
-          completedUrls.add(trackUrl);
+        const trackId = playlistTrack.id;
+        const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
+        if (completedUrls.has(trackUrl)) {
           updateTrackStatus(trackId, 'skipped');
           continue;
         }
 
-        await importTrack(filePath);
-        completedUrls.add(trackUrl);
-        updateTrackStatus(trackId, 'done', 100);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
-        updateTrackStatus(trackId, 'error', 0, msg);
-      } finally {
-        if (activeImportTrackIdRef.current === trackId) {
-          activeImportTrackIdRef.current = null;
-          activeImportTrackUrlRef.current = null;
-        }
-      }
-    }
+        activeImportTrackIdRef.current = trackId;
+        activeImportTrackUrlRef.current = trackUrl;
+        updateTrackStatus(trackId, 'downloading', 0);
 
-    activeImportTrackIdRef.current = null;
-    activeImportTrackUrlRef.current = null;
-    usePlaylistImportStore.setState({ isImporting: false });
+        try {
+          const filePath = await window.electronAPI.downloader.download(trackUrl);
 
-    if (!usePlaylistImportStore.getState().isCancelled) {
-      const finalTracks = usePlaylistImportStore.getState().tracks;
-      const doneCount = finalTracks.filter(t => t.status === 'done').length;
-      const skippedCount = finalTracks.filter(t => t.status === 'skipped').length;
-      const errorCount = finalTracks.filter(t => t.status === 'error').length;
+          const exists = await window.electronAPI.db.tracks.exists(filePath);
+          if (exists) {
+            // Duplicate: resolve the existing DB id directly from the database
+            // (authoritative) rather than the renderer-side library store,
+            // which may not be synced yet — relying on it could silently drop
+            // the track from the recreated playlist.
+            recordId(await window.electronAPI.db.tracks.getIdByPath(filePath));
+            completedUrls.add(trackUrl);
+            updateTrackStatus(trackId, 'skipped');
+            continue;
+          }
 
-      toast.success(
-        i18n.t('importSummary', {
-          ns: 'toast',
-          done: doneCount,
-          skipped: skippedCount,
-          errors: errorCount,
-        })
-      );
-    } else {
-      toast.info(i18n.t('importCancelled', { ns: 'toast' }));
-    }
-  }, [startImporting, updateTrackStatus, importTrack]);
-
-  const handleStartImportSelected = useCallback(async (selectedIds: Set<string>) => {
-    if (!IS_ELECTRON || selectedIds.size === 0) return;
-    startImporting(selectedIds);
-
-    const currentTracks = usePlaylistImportStore.getState().tracks;
-    const completedUrls = new Set<string>();
-
-    for (const playlistTrack of currentTracks) {
-      if (usePlaylistImportStore.getState().isCancelled) break;
-      if (playlistTrack.status !== 'pending') continue;
-      if (!selectedIds.has(playlistTrack.id)) continue;
-
-      const trackId = playlistTrack.id;
-      const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
-      if (completedUrls.has(trackUrl)) {
-        updateTrackStatus(trackId, 'skipped');
-        continue;
-      }
-
-      activeImportTrackIdRef.current = trackId;
-      activeImportTrackUrlRef.current = trackUrl;
-      updateTrackStatus(trackId, 'downloading', 0);
-
-      try {
-        const filePath = await window.electronAPI.downloader.download(trackUrl);
-
-        const exists = await window.electronAPI.db.tracks.exists(filePath);
-        if (exists) {
+          const imported = await importTrack(filePath);
+          // importTrack returns null when the row already existed (e.g. a
+          // concurrent import won the race). Fall back to the authoritative DB
+          // id so the track still joins the recreated playlist in order.
+          recordId(imported?.id ?? (await window.electronAPI.db.tracks.getIdByPath(filePath)));
           completedUrls.add(trackUrl);
-          updateTrackStatus(trackId, 'skipped');
-          continue;
-        }
-
-        await importTrack(filePath);
-        completedUrls.add(trackUrl);
-        updateTrackStatus(trackId, 'done', 100);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
-        updateTrackStatus(trackId, 'error', 0, msg);
-      } finally {
-        if (activeImportTrackIdRef.current === trackId) {
-          activeImportTrackIdRef.current = null;
-          activeImportTrackUrlRef.current = null;
+          updateTrackStatus(trackId, 'done', 100);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+          updateTrackStatus(trackId, 'error', 0, msg);
+        } finally {
+          if (activeImportTrackIdRef.current === trackId) {
+            activeImportTrackIdRef.current = null;
+            activeImportTrackUrlRef.current = null;
+          }
         }
       }
-    }
 
-    activeImportTrackIdRef.current = null;
-    activeImportTrackUrlRef.current = null;
-    usePlaylistImportStore.setState({ isImporting: false });
+      activeImportTrackIdRef.current = null;
+      activeImportTrackUrlRef.current = null;
+      usePlaylistImportStore.setState({ isImporting: false });
 
-    if (!usePlaylistImportStore.getState().isCancelled) {
-      const finalTracks = usePlaylistImportStore.getState().tracks;
-      const selectedFinal = finalTracks.filter(t => selectedIds.has(t.id));
-      const doneCount = selectedFinal.filter(t => t.status === 'done').length;
-      const skippedCount = selectedFinal.filter(t => t.status === 'skipped').length;
-      const errorCount = selectedFinal.filter(t => t.status === 'error').length;
+      const cancelled = usePlaylistImportStore.getState().isCancelled;
 
-      toast.success(
-        i18n.t('importSummary', {
-          ns: 'toast',
-          done: doneCount,
-          skipped: skippedCount,
-          errors: errorCount,
-        })
-      );
-    } else {
-      toast.info(i18n.t('importCancelled', { ns: 'toast' }));
-    }
-  }, [startImporting, updateTrackStatus, importTrack]);
+      if (!cancelled) {
+        const finalTracks = usePlaylistImportStore.getState().tracks;
+        const scoped = selectedIds ? finalTracks.filter(t => selectedIds.has(t.id)) : finalTracks;
+        const doneCount = scoped.filter(t => t.status === 'done').length;
+        const skippedCount = scoped.filter(t => t.status === 'skipped').length;
+        const errorCount = scoped.filter(t => t.status === 'error').length;
+
+        toast.success(
+          i18n.t('importSummary', {
+            ns: 'toast',
+            done: doneCount,
+            skipped: skippedCount,
+            errors: errorCount,
+          })
+        );
+      } else {
+        toast.info(i18n.t('importCancelled', { ns: 'toast' }));
+      }
+
+      // Recreate the source playlist (name + order). Runs even on cancel for
+      // the tracks that did import, so a partial import still yields a playlist.
+      const { createPlaylist, sourceTitle } = usePlaylistImportStore.getState();
+      if (createPlaylist && sourceTitle && orderedTrackIds.length > 0) {
+        try {
+          await window.electronAPI.db.playlists.createWithTracks({
+            name: sourceTitle,
+            trackIds: orderedTrackIds,
+          });
+          queryClient.invalidateQueries({ queryKey: playlistKeys.all });
+          toast.success(
+            i18n.t('playlistCreated', {
+              ns: 'toast',
+              name: sourceTitle,
+              count: orderedTrackIds.length,
+            })
+          );
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
+          toast.error(i18n.t('playlistCreateFailed', { ns: 'toast', error: msg }));
+        }
+      }
+    },
+    [startImporting, updateTrackStatus, importTrack]
+  );
+
+  const handleStartImport = useCallback(() => runImport(null), [runImport]);
+
+  const handleStartImportSelected = useCallback(
+    (selectedIds: Set<string>) => {
+      if (selectedIds.size === 0) return Promise.resolve();
+      return runImport(selectedIds);
+    },
+    [runImport]
+  );
 
   const handleRemoveTracks = useCallback(
     (ids: Set<string>) => {
@@ -267,9 +267,7 @@ export function usePlaylistImport() {
   }, [reset]);
 
   // Computed values — scoped to importingTrackIds when doing a selective import
-  const scopedTracks = importingTrackIds
-    ? tracks.filter(t => importingTrackIds.has(t.id))
-    : tracks;
+  const scopedTracks = importingTrackIds ? tracks.filter(t => importingTrackIds.has(t.id)) : tracks;
   const processedCount = scopedTracks.filter(
     t => t.status === 'done' || t.status === 'skipped' || t.status === 'error'
   ).length;
@@ -288,6 +286,9 @@ export function usePlaylistImport() {
     isImporting,
     extractError,
     previewLoadingId,
+    sourceTitle,
+    createPlaylist,
+    setCreatePlaylist,
 
     // Computed
     processedCount,

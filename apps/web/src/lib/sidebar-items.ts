@@ -9,6 +9,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react';
 import type { AppView } from '@/stores/useViewStore';
@@ -29,6 +30,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'overview', key: 'overview', Icon: LayoutDashboard },
   { id: 'library', key: 'library', Icon: Library },
   { id: 'playlists', key: 'playlists', Icon: ListMusic },
+  { id: 'smart-playlists', key: 'smartPlaylists', Icon: Wand2 },
   { id: 'favorites', key: 'favorites', Icon: Heart },
   { id: 'history', key: 'history', Icon: History },
   { id: 'mixes', key: 'mixes', Icon: Sparkles },

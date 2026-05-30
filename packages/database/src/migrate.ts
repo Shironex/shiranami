@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -166,6 +166,20 @@ const MIGRATIONS: EmbeddedMigration[] = [
 )`,
       'CREATE INDEX IF NOT EXISTS `idx_negative_signals_track_id` ON `negative_signals`(`track_id`)',
       'CREATE INDEX IF NOT EXISTS `idx_negative_signals_artist` ON `negative_signals`(`artist`)',
+    ],
+  },
+  {
+    name: '20260101000004_smart_playlists',
+    statements: [
+      `CREATE TABLE \`smart_playlists\` (
+\t\`id\` text PRIMARY KEY,
+\t\`name\` text NOT NULL,
+\t\`description\` text,
+\t\`match_type\` text DEFAULT 'all' NOT NULL,
+\t\`rules\` text DEFAULT '[]' NOT NULL,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+\t\`updated_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
     ],
   },
 ];

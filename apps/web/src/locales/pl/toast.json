@@ -91,6 +91,8 @@
   "installationFailed": "Instalacja nie powiodła się",
   "importSummary": "Import zakończony. Dodano: {{done}}, pominięto: {{skipped}}, błędy: {{errors}}",
   "importCancelled": "Import playlisty anulowany",
+  "playlistCreated": "Utworzono playlistę „{{name}}” z {{count}} utworami",
+  "playlistCreateFailed": "Nie udało się utworzyć playlisty: {{error}}",
   "searchFailed": "Wyszukiwanie nie powiodło się",
   "failedLoadStations": "Nie udało się załadować stacji",
   "failedLoadFavorites": "Nie udało się załadować ulubionych",

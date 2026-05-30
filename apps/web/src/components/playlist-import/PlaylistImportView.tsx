@@ -12,6 +12,7 @@ import { useSelectionStore } from '@/stores/useSelectionStore';
 import { PlaylistRow } from './PlaylistRow';
 import { ImportBulkActionBar } from './ImportBulkActionBar';
 import { ProgressBar } from '@/components/ui/progress-bar';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function PlaylistImportView() {
   const { t } = useTranslation('import');
@@ -25,6 +26,9 @@ export function PlaylistImportView() {
     isImporting,
     extractError,
     previewLoadingId,
+    sourceTitle,
+    createPlaylist,
+    setCreatePlaylist,
     processedCount,
     totalCount,
     pendingCount,
@@ -185,6 +189,19 @@ export function PlaylistImportView() {
               {t('newImport')}
             </Button>
           </div>
+        )}
+
+        {/* Preserve the source playlist: recreate a real Shiranami playlist
+            (name + order) from the imported tracks. Only offered when the
+            provider exposed a playlist name and the import hasn't started. */}
+        {hasResults && sourceTitle && !isImporting && !isFinished && (
+          <label className="mt-3 max-w-2xl flex items-center gap-2.5 text-xs text-muted-foreground cursor-pointer select-none">
+            <Checkbox
+              checked={createPlaylist}
+              onCheckedChange={value => setCreatePlaylist(value === true)}
+            />
+            <span>{t('createPlaylistOption', { name: sourceTitle })}</span>
+          </label>
         )}
       </div>
 

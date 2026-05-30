@@ -27,5 +27,6 @@
   "statusWaiting": "Waiting",
   "lowConfidence": "Uncertain match",
   "lowConfidenceHint": "This YouTube result may not be the right recording. Check it after importing and replace it if needed.",
-  "previewAlbum": "Playlist Import"
+  "previewAlbum": "Playlist Import",
+  "createPlaylistOption": "Save as playlist \"{{name}}\" (keeps the original order)"
 }

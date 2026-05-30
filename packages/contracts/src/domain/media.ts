@@ -51,3 +51,14 @@ export interface SearchResult {
   /** 'low' when the best candidate scored below the confidence threshold. */
   matchFlag?: 'low' | 'ok';
 }
+
+/**
+ * Result of `playlist:extract`. Carries the resolved tracks plus the source
+ * playlist's title (when the provider exposed one) so the renderer can offer to
+ * recreate a real Shiranami playlist preserving the source name and order.
+ * `title` is null when the provider did not surface a playlist name.
+ */
+export interface PlaylistExtractResult {
+  title: string | null;
+  tracks: SearchResult[];
+}
