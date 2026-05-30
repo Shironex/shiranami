@@ -18,6 +18,19 @@ const C = IPC_CHANNELS.loudness;
 
 export const LOUDNESS_BUSY_ERROR_CODE = 'loudness.busy';
 
+/** Default playback target (LUFS) used only for an informative gain estimate in
+ * the analysis logs. Mirrors the renderer's DEFAULT_LOUDNESS_TARGET_LUFS — the
+ * actual playback gain is derived in the renderer against the user's target. */
+const DEFAULT_TARGET_LUFS = -14;
+/** Clamp matching LOUDNESS_MAX_GAIN_DB in the renderer's loudness store. */
+const MAX_GAIN_DB = 12;
+/** Log a progress line every N analysed/skipped tracks for longer runs. */
+const PROGRESS_LOG_EVERY = 10;
+
+function estimateGainDb(lufs: number): number {
+  return Math.max(-MAX_GAIN_DB, Math.min(MAX_GAIN_DB, DEFAULT_TARGET_LUFS - lufs));
+}
+
 /**
  * Active analysis AbortController. Only one batch may run at a time — the
  * renderer disables the trigger while a run is in flight; the handler also
@@ -124,6 +137,13 @@ export function registerLoudnessHandlers(): void {
 
             db.update(tracks).set({ loudnessLufs: lufs }).where(eq(tracks.id, track.id)).run();
             analyzed++;
+            const gainDb = estimateGainDb(lufs);
+            logger.info(
+              `[loudness] Analysed "${track.title}": ${lufs.toFixed(1)} LUFS → ${gainDb >= 0 ? '+' : ''}${gainDb.toFixed(1)} dB (vs default ${DEFAULT_TARGET_LUFS} LUFS target)`
+            );
+            if ((i + 1) % PROGRESS_LOG_EVERY === 0) {
+              logger.info(`[loudness] Progress: ${i + 1}/${total} processed`);
+            }
             sendToRenderer(C.progress, {
               current: i + 1,
               total,
