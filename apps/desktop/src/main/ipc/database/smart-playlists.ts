@@ -94,7 +94,9 @@ function ruleToCondition(rule: SmartPlaylistRule): SQL | undefined | null {
     case 'isFavorite': {
       // Stored as 0/1 integer; value is 'true'/'false'.
       const wanted = value === 'true' || value === '1';
-      return eq(tracks.isFavorite, wanted);
+      return operator === 'isNot'
+        ? ne(tracks.isFavorite, wanted)
+        : eq(tracks.isFavorite, wanted);
     }
     case 'dateAdded': {
       // Only `inLastDays` is supported: created within the last N days.
