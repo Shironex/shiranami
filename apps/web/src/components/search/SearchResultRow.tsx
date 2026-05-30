@@ -114,6 +114,9 @@ export function SearchResultRow({
           ariaLabel={downloadAriaLabel}
           title={isError ? (dlState.error ?? t('retryDownload')) : undefined}
           onDownload={() => onDownload(result)}
+          // Idle button only shows on row hover (as before the refactor);
+          // active/done/error states stay visible so progress is never hidden.
+          className={dlState.status === 'idle' ? 'opacity-0 group-hover:opacity-100' : undefined}
         />
       </div>
 
