@@ -557,6 +557,8 @@
     "lastfm": "Last.fm",
     "listenBrainz": "ListenBrainz",
     "connect": "Połącz",
+    "finishConnect": "Zakończ łączenie",
+    "cancel": "Anuluj",
     "disconnect": "Rozłącz",
     "connected": "Połączono",
     "notConnected": "Nie połączono",

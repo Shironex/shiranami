@@ -541,6 +541,8 @@
     "lastfm": "Last.fm",
     "listenBrainz": "ListenBrainz",
     "connect": "Connect",
+    "finishConnect": "Finish connecting",
+    "cancel": "Cancel",
     "disconnect": "Disconnect",
     "connected": "Connected",
     "notConnected": "Not connected",

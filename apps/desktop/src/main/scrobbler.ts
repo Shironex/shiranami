@@ -188,6 +188,11 @@ async function sendLastfm(play: ScrobblePlay, sessionKey: string): Promise<void>
     body: signLastfm(lastfmScrobbleParams(play, LASTFM_API_KEY, sessionKey)),
   });
   if (!res.ok) throw new Error(`lastfm scrobble http ${res.status}`);
+  // Last.fm returns HTTP 200 with an `error` code in the body for API-level
+  // failures (bad session, rate limit, …), so the body must be inspected too —
+  // an HTTP-200 error should still requeue for retry.
+  const json = (await res.json().catch(() => ({}))) as { error?: number };
+  if (json.error) throw new Error(`lastfm scrobble api error ${json.error}`);
 }
 
 // ─────────────────────────────── ListenBrainz ───────────────────────────────

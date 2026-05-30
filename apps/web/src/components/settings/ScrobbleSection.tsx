@@ -31,6 +31,12 @@ export function ScrobbleSection() {
   const [status, setStatus] = useState<ScrobbleStatus>(EMPTY_STATUS);
   const [lbToken, setLbToken] = useState('');
   const [busy, setBusy] = useState<null | 'lastfm' | 'listenbrainz'>(null);
+  // Last.fm desktop auth is a two-step handshake: step 1 opens the browser and
+  // mints a token; the user approves there; step 2 exchanges the (now
+  // authorized) token for a session key. We hold the pending token between the
+  // two clicks — exchanging immediately would always fail (token not yet
+  // authorized).
+  const [lastfmPendingToken, setLastfmPendingToken] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -46,7 +52,9 @@ export function ScrobbleSection() {
     setStatus(await window.electronAPI.scrobble.setEnabled(enabled));
   }, []);
 
-  const handleConnectLastfm = useCallback(async () => {
+  // Step 1: open the Last.fm auth page and remember the request token. The user
+  // approves access in their browser, then comes back and clicks "Finish".
+  const handleBeginLastfm = useCallback(async () => {
     if (!IS_ELECTRON) return;
     setBusy('lastfm');
     try {
@@ -55,14 +63,22 @@ export function ScrobbleSection() {
         toast.error(t('scrobbleSettings.lastfmAuthFailed'));
         return;
       }
-      // The user approves in the browser; once they return, exchange the token.
+      setLastfmPendingToken(begun.token);
       toast.info(t('scrobbleSettings.lastfmApprovePrompt'));
-      // Give the user a beat to approve before exchanging. The token is valid
-      // for 60 minutes, so a short wait is safe; the result is awaited on click
-      // of the confirm toast action.
-      const result = await window.electronAPI.scrobble.lastfmCompleteAuth(begun.token);
+    } finally {
+      setBusy(null);
+    }
+  }, [t]);
+
+  // Step 2: exchange the (now-approved) token for a session key.
+  const handleFinishLastfm = useCallback(async () => {
+    if (!IS_ELECTRON || !lastfmPendingToken) return;
+    setBusy('lastfm');
+    try {
+      const result = await window.electronAPI.scrobble.lastfmCompleteAuth(lastfmPendingToken);
       if (result.ok) {
         toast.success(t('scrobbleSettings.lastfmConnected', { name: result.username ?? '' }));
+        setLastfmPendingToken(null);
         await refresh();
       } else {
         toast.error(t('scrobbleSettings.lastfmAuthFailed'));
@@ -70,7 +86,9 @@ export function ScrobbleSection() {
     } finally {
       setBusy(null);
     }
-  }, [refresh, t]);
+  }, [lastfmPendingToken, refresh, t]);
+
+  const handleCancelLastfm = useCallback(() => setLastfmPendingToken(null), []);
 
   const handleDisconnectLastfm = useCallback(async () => {
     if (!IS_ELECTRON) return;
@@ -136,10 +154,28 @@ export function ScrobbleSection() {
                 <X className="size-4" />
                 {t('scrobbleSettings.disconnect')}
               </Button>
+            ) : lastfmPendingToken ? (
+              <div className="flex shrink-0 items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={handleCancelLastfm}>
+                  {t('scrobbleSettings.cancel')}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void handleFinishLastfm()}
+                  disabled={busy === 'lastfm'}
+                >
+                  {busy === 'lastfm' ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Check className="size-4" />
+                  )}
+                  {t('scrobbleSettings.finishConnect')}
+                </Button>
+              </div>
             ) : (
               <Button
                 size="sm"
-                onClick={() => void handleConnectLastfm()}
+                onClick={() => void handleBeginLastfm()}
                 disabled={busy === 'lastfm'}
                 className="shrink-0"
               >
@@ -152,6 +188,11 @@ export function ScrobbleSection() {
               </Button>
             )}
           </div>
+          {lastfmPendingToken && !status.lastfmConnected && (
+            <p className="text-xs text-muted-foreground/70">
+              {t('scrobbleSettings.lastfmApprovePrompt')}
+            </p>
+          )}
         </div>
 
         {/* ListenBrainz */}
