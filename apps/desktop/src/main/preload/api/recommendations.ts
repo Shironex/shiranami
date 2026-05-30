@@ -3,6 +3,8 @@ import {
   IPC_CHANNELS,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixResult,
+  type SmartMixSignals,
 } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.recommendations;
@@ -14,10 +16,19 @@ export interface RecommendationsApi {
   refresh: () => Promise<RecommendationShelves>;
   /** "More like this": rank library tracks by content similarity to a seed. */
   similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
+  /** Mark a track "Not interested" so the affinity engine stops surfacing it. */
+  notInterested: (trackId: string) => Promise<void>;
+  /** Undo a previous "Not interested" mark for a track. */
+  undoNotInterested: (trackId: string) => Promise<void>;
+  /** Generate mood/activity/decade mixes from contextual signals + metadata. */
+  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
 }
 
 export const recommendationsApi: RecommendationsApi = {
   get: () => ipcRenderer.invoke(C.get),
   refresh: () => ipcRenderer.invoke(C.refresh),
   similar: (seedTrackId: string) => ipcRenderer.invoke(C.similar, seedTrackId),
+  notInterested: (trackId: string) => ipcRenderer.invoke(C.notInterested, trackId),
+  undoNotInterested: (trackId: string) => ipcRenderer.invoke(C.undoNotInterested, trackId),
+  smartMixes: (signals: SmartMixSignals) => ipcRenderer.invoke(C.smartMixes, signals),
 };

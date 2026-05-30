@@ -19,5 +19,22 @@
   "neverPlayedDesc": "Nieodkryte utwory w bibliotece",
   "emptyMix": "Brak utworów pasujących do tego miksu",
   "emptyMostPlayed": "Odtwarzaj utwory, aby zobaczyć tutaj najczęściej odtwarzane",
-  "emptyRecentlyPlayed": "Ostatnio odtwarzane utwory pojawią się tutaj"
+  "emptyRecentlyPlayed": "Ostatnio odtwarzane utwory pojawią się tutaj",
+  "smart": {
+    "sectionTitle": "Dla Ciebie teraz",
+    "focus": "Skupienie",
+    "focusDesc": "Spokojne, instrumentalne utwory do koncentracji",
+    "lateNight": "Późna noc",
+    "lateNightDesc": "Łagodne brzmienia na nocne godziny",
+    "morning": "Poranek",
+    "morningDesc": "Energetyczny początek dnia",
+    "rainyDay": "Deszczowy dzień",
+    "rainyDayDesc": "Miękkie dźwięki na szare niebo",
+    "sunnyDay": "Słoneczny dzień",
+    "sunnyDayDesc": "Jasne, energetyczne utwory na pogodne niebo",
+    "snowyDay": "Śnieżny dzień",
+    "snowyDayDesc": "Przytulne brzmienia, gdy pada śnieg",
+    "decade": "Najlepsze z lat {{decade}}.",
+    "decadeDesc": "Utwory z lat {{decade}}. w Twojej bibliotece"
+  }
 }

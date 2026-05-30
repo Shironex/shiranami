@@ -17,6 +17,7 @@ import {
   Info,
   Heart,
   MessageCircle,
+  Radio,
   ShieldCheck,
   CloudSun,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ import { SupportSection } from '@/components/settings/SupportSection';
 import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
 import { WeatherSection } from '@/components/settings/WeatherSection';
+import { ScrobbleSection } from '@/components/settings/ScrobbleSection';
 
 type SettingsSection =
   | 'folders'
@@ -55,6 +57,7 @@ type SettingsSection =
   | 'effects'
   | 'sidebar'
   | 'weather'
+  | 'scrobble'
   | 'discord'
   | 'updates'
   | 'privacy'
@@ -171,6 +174,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'scrobble',
+    labelKey: 'scrobble',
+    subtitleKey: 'subtitles.scrobble',
+    Icon: Radio,
+    group: 'system',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -215,6 +225,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   effects: VisualEffectsSection,
   sidebar: SidebarSection,
   weather: WeatherSection,
+  scrobble: ScrobbleSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   privacy: PrivacySection,

@@ -18,3 +18,4 @@ export { registerShareHandlers, cleanupShareHandlers } from './share';
 export { registerMetadataEnrichHandlers, cleanupMetadataEnrichHandlers } from './metadata-enrich';
 export { registerLoudnessHandlers, cleanupLoudnessHandlers } from './loudness';
 export { registerRecommendationsHandlers, cleanupRecommendationsHandlers } from './recommendations';
+export { registerScrobbleHandlers, cleanupScrobbleHandlers } from './scrobble';

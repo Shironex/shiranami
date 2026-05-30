@@ -17,5 +17,22 @@
   "neverPlayedDesc": "Undiscovered tracks in your library",
   "emptyMix": "No tracks match this mix yet",
   "emptyMostPlayed": "Play some tracks to see your most played here",
-  "emptyRecentlyPlayed": "Your recently played tracks will appear here"
+  "emptyRecentlyPlayed": "Your recently played tracks will appear here",
+  "smart": {
+    "sectionTitle": "For you right now",
+    "focus": "Focus",
+    "focusDesc": "Calm, instrumental tracks to concentrate to",
+    "lateNight": "Late-night",
+    "lateNightDesc": "Mellow listening for the small hours",
+    "morning": "Morning",
+    "morningDesc": "An upbeat start to your day",
+    "rainyDay": "Rainy-day",
+    "rainyDayDesc": "Soft sounds for grey skies",
+    "sunnyDay": "Sunny-day",
+    "sunnyDayDesc": "Bright, upbeat tracks for clear skies",
+    "snowyDay": "Snowy-day",
+    "snowyDayDesc": "Cozy listening while it snows",
+    "decade": "Best of the {{decade}}s",
+    "decadeDesc": "Tracks from the {{decade}}s in your library"
+  }
 }

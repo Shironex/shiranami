@@ -68,6 +68,9 @@ vi.mock('./RecentlyAdded', () => ({ RecentlyAdded: () => <div data-testid="recen
 vi.mock('./RecommendationsShelf', () => ({
   RecommendationsShelf: () => <div data-testid="recommendations" />,
 }));
+vi.mock('./SmartMixesShelf', () => ({
+  SmartMixesShelf: () => <div data-testid="smart-mixes" />,
+}));
 
 describe('OverviewView', () => {
   beforeEach(() => {

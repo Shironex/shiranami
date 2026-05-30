@@ -11,6 +11,7 @@ import { ListeningClock } from '@/components/overview/ListeningClock';
 import { TopAlbums } from '@/components/overview/TopAlbums';
 import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
 import { RecommendationsShelf } from '@/components/overview/RecommendationsShelf';
+import { SmartMixesShelf } from '@/components/overview/SmartMixesShelf';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
 
 export default function OverviewView() {
@@ -108,6 +109,8 @@ export default function OverviewView() {
             icon={Disc3}
           />
         )}
+
+        <SmartMixesShelf />
 
         <RecommendationsShelf onPlay={handlePlayTrack} hasLibrary={hasLibrary} />
 

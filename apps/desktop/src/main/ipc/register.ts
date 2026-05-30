@@ -70,6 +70,8 @@ import {
   cleanupLoudnessHandlers,
   registerRecommendationsHandlers,
   cleanupRecommendationsHandlers,
+  registerScrobbleHandlers,
+  cleanupScrobbleHandlers,
 } from './';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
@@ -93,6 +95,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerMetadataEnrichHandlers();
   registerLoudnessHandlers();
   registerRecommendationsHandlers();
+  registerScrobbleHandlers();
 }
 
 export function cleanupIpcHandlers(): void {
@@ -116,4 +119,5 @@ export function cleanupIpcHandlers(): void {
   cleanupMetadataEnrichHandlers();
   cleanupLoudnessHandlers();
   cleanupRecommendationsHandlers();
+  cleanupScrobbleHandlers();
 }

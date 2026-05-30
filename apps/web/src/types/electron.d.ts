@@ -15,6 +15,11 @@ import type {
   WeatherCurrent,
   RecommendationShelves,
   SimilarTrackResult,
+  SmartMixResult,
+  SmartMixSignals,
+  ScrobbleStatus,
+  LastfmConnectResult,
+  ListenBrainzConnectResult,
   ShareImportResponse,
   SystemNotice,
 } from '@shiranami/contracts';
@@ -436,6 +441,18 @@ export interface ElectronAPI {
     get: () => Promise<RecommendationShelves>;
     refresh: () => Promise<RecommendationShelves>;
     similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
+    notInterested: (trackId: string) => Promise<void>;
+    undoNotInterested: (trackId: string) => Promise<void>;
+    smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
+  };
+  scrobble: {
+    getStatus: () => Promise<ScrobbleStatus>;
+    setEnabled: (enabled: boolean) => Promise<ScrobbleStatus>;
+    lastfmBeginAuth: () => Promise<{ ok: boolean; token?: string; error?: string }>;
+    lastfmCompleteAuth: (token: string) => Promise<LastfmConnectResult>;
+    lastfmDisconnect: () => Promise<ScrobbleStatus>;
+    listenBrainzConnect: (token: string) => Promise<ListenBrainzConnectResult>;
+    listenBrainzDisconnect: () => Promise<ScrobbleStatus>;
   };
   system: {
     onNotice: (callback: (notice: SystemNotice) => void) => () => void;

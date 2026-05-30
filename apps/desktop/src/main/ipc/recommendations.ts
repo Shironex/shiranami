@@ -3,17 +3,24 @@ import {
   IPC_CHANNELS,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixResult,
+  type SmartMixSignals,
 } from '@shiranami/contracts';
 import {
   computeSimilarTracks,
+  computeSmartMixes,
   getRecommendationShelves,
   triggerRefresh,
+  markNotInterested,
+  undoNotInterested,
 } from '../recommendation-service';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import {
   recommendationsGetArgs,
   recommendationsRefreshArgs,
   recommendationsSimilarArgs,
+  recommendationsNotInterestedArgs,
+  recommendationsSmartMixesArgs,
 } from './schemas/recommendations';
 
 const C = IPC_CHANNELS.recommendations;
@@ -54,10 +61,39 @@ export function registerRecommendationsHandlers(): void {
       computeSimilarTracks(seedTrackId),
     { schema: recommendationsSimilarArgs }
   );
+
+  // Negative signal: persist a "Not interested" mark so affinity stops
+  // surfacing the track (and softly downranks its artist). Idempotent.
+  handle(
+    C.notInterested,
+    async (_event, trackId: string): Promise<void> => markNotInterested(trackId),
+    { schema: recommendationsNotInterestedArgs }
+  );
+
+  // Undo a "Not interested" mark.
+  handle(
+    C.undoNotInterested,
+    async (_event, trackId: string): Promise<void> => undoNotInterested(trackId),
+    { schema: recommendationsNotInterestedArgs }
+  );
+
+  // Smart mixes: offline generation of mood/activity/decade mixes from the
+  // renderer's contextual signals + library metadata. Returns a (possibly
+  // empty) ordered list.
+  handleWithFallback(
+    C.smartMixes,
+    async (_event, signals: SmartMixSignals): Promise<SmartMixResult[]> =>
+      computeSmartMixes(signals),
+    () => [],
+    { schema: recommendationsSmartMixesArgs }
+  );
 }
 
 export function cleanupRecommendationsHandlers(): void {
   ipcMain.removeHandler(C.get);
   ipcMain.removeHandler(C.refresh);
   ipcMain.removeHandler(C.similar);
+  ipcMain.removeHandler(C.notInterested);
+  ipcMain.removeHandler(C.undoNotInterested);
+  ipcMain.removeHandler(C.smartMixes);
 }

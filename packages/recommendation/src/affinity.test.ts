@@ -75,6 +75,36 @@ describe('affinityScore', () => {
     const withDefault = affinityScore(stats({ lastPlayedAt: daysAgo(14) }), { now: NOW });
     expect(withZero).toBeCloseTo(withDefault, 5);
   });
+
+  it('returns 0 for an explicitly disliked track regardless of plays', () => {
+    expect(
+      affinityScore(stats({ plays: 100, avgCompletion: 1, isDisliked: true }), { now: NOW })
+    ).toBe(0);
+  });
+
+  it('softly downranks a track whose artist has dislikes (default penalty halves per dislike)', () => {
+    const plain = affinityScore(stats({ artistDislikes: 0 }), { now: NOW });
+    const one = affinityScore(stats({ artistDislikes: 1 }), { now: NOW });
+    const two = affinityScore(stats({ artistDislikes: 2 }), { now: NOW });
+    // 1 / (1 + 1×1) = 0.5 ; 1 / (1 + 1×2) = 1/3
+    expect(one).toBeCloseTo(plain * 0.5, 5);
+    expect(two).toBeCloseTo(plain / 3, 5);
+  });
+
+  it('respects a custom artistDislikePenalty', () => {
+    const plain = affinityScore(stats({ artistDislikes: 0 }), { now: NOW });
+    const damped = affinityScore(stats({ artistDislikes: 2 }), {
+      now: NOW,
+      artistDislikePenalty: 0.5,
+    });
+    // 1 / (1 + 0.5×2) = 0.5
+    expect(damped).toBeCloseTo(plain * 0.5, 5);
+  });
+
+  it('treats a missing/negative artistDislikes as no penalty', () => {
+    const plain = affinityScore(stats(), { now: NOW });
+    expect(affinityScore(stats({ artistDislikes: -5 }), { now: NOW })).toBeCloseTo(plain, 5);
+  });
 });
 
 describe('rankByAffinity', () => {
@@ -122,6 +152,19 @@ describe('rankByAffinity', () => {
 
   it('returns an empty array for empty input', () => {
     expect(rankByAffinity([], { now: NOW })).toEqual([]);
+  });
+
+  it('drops disliked tracks and downranks artist-disliked ones', () => {
+    const ranked = rankByAffinity(
+      [
+        stats({ trackId: 'disliked', plays: 100, isDisliked: true }),
+        stats({ trackId: 'artist-hit', plays: 20, artistDislikes: 3 }),
+        stats({ trackId: 'clean', plays: 12 }),
+      ],
+      { now: NOW }
+    );
+    // disliked dropped; clean (12) outranks artist-hit (20 / (1+3) = 5).
+    expect(ranked.map(t => t.trackId)).toEqual(['clean', 'artist-hit']);
   });
 });
 

@@ -11,8 +11,10 @@ import { motion } from 'motion/react';
 import { List } from 'react-window';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
-import { MIX_DEFINITIONS, type MixId } from './mixDefinitions';
+import { MIX_DEFINITIONS, SMART_MIX_ICONS, type MixId } from './mixDefinitions';
 import { useMixTracks } from '@/hooks/queries/useMixTracks';
+import { useSmartMixes } from '@/hooks/queries/useSmartMixes';
+import type { Track } from '@/stores/types';
 import { shuffle } from '@/lib/shuffle';
 import { useMixPreviews, getMixPreviewCount } from './mixUtils';
 import { ArtCollage } from './ArtCollage';
@@ -35,6 +37,23 @@ export function MixesView() {
   const mixTracksRef = useRef(mixTracks);
   mixTracksRef.current = mixTracks;
   const previews = useMixPreviews(library);
+
+  // Mood/activity/decade mixes from the main process (time-of-day + weather +
+  // library metadata). Clicking one resolves its track ids against the
+  // in-memory library and plays them immediately.
+  const { data: smartMixes = [] } = useSmartMixes();
+
+  const handlePlaySmartMix = useCallback(
+    (trackIds: string[]) => {
+      const byId = new Map(library.map(track => [track.id, track]));
+      const resolved = trackIds
+        .map(id => byId.get(id))
+        .filter((track): track is Track => Boolean(track));
+      if (resolved.length === 0) return;
+      setQueue(resolved, 0);
+    },
+    [library, setQueue]
+  );
 
   const handlePlayTrack = useCallback(
     (index: number) => {
@@ -161,6 +180,51 @@ export function MixesView() {
       <PageHeader title={t('pageTitle')} />
 
       <div className="flex-1 overflow-y-auto px-6 pt-3 pb-6 scrollbar-thin">
+        {smartMixes.length > 0 && (
+          <div className="mb-5">
+            <h3 className="px-1 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground/50">
+              {t('smart.sectionTitle')}
+            </h3>
+            <div className="rounded-2xl glass-panel border border-border/30 p-2 space-y-1.5">
+              {smartMixes.map(mix => {
+                const Icon = SMART_MIX_ICONS[mix.kind];
+                const title =
+                  mix.kind === 'decade'
+                    ? t('smart.decade', { decade: mix.decade })
+                    : t(mix.titleKey);
+                const desc =
+                  mix.kind === 'decade'
+                    ? t('smart.decadeDesc', { decade: mix.decade })
+                    : t(mix.descKey);
+                return (
+                  <motion.button
+                    key={mix.id}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => handlePlaySmartMix(mix.trackIds)}
+                    className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-accent/40 transition-colors group text-left"
+                  >
+                    <div className="w-12 h-12 rounded-lg shrink-0 bg-accent/30 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-muted-foreground/50" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{title}</p>
+                      <p className="text-xs text-muted-foreground/40 truncate mt-0.5">{desc}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[11px] text-muted-foreground/30 tabular-nums">
+                        {t('trackCount', { count: mix.trackIds.length })}
+                      </span>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-primary/10">
+                        <Play className="w-3.5 h-3.5 text-primary fill-current" />
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl glass-panel border border-border/30 p-2 space-y-1.5">
           {MIX_DEFINITIONS.map(mix => {
             const Icon = mix.icon;

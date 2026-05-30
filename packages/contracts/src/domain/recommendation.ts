@@ -76,3 +76,40 @@ export interface SimilarTrackResult {
 
 /** Maximum number of similar tracks returned for a "More like this" request. */
 export const SIMILAR_TRACKS_MAX = 50;
+
+/** Weather buckets the renderer passes to the smart-mix generator. Mirrors the
+ *  Open-Meteo `WeatherCondition` union (kept structurally compatible). */
+export type SmartMixWeather =
+  | 'clear'
+  | 'partly_cloudy'
+  | 'cloudy'
+  | 'rain'
+  | 'snow'
+  | 'thunderstorm'
+  | 'fog'
+  | 'unknown';
+
+/**
+ * Contextual signals the renderer collects (current local hour + optional
+ * weather) and passes to the smart-mix IPC. Weather is omitted when the user
+ * has not opted into it — the generator degrades to time/decade mixes.
+ */
+export interface SmartMixSignals {
+  hour: number;
+  weather?: SmartMixWeather;
+}
+
+/**
+ * One generated mood/activity/decade mix. `trackIds` are local `tracks.id`s
+ * (ranked most-played first) the renderer resolves against the in-memory
+ * library and plays through the normal queue. `titleKey`/`descKey` resolve in
+ * the `mixes` i18n namespace; `decade` is set only for decade mixes.
+ */
+export interface SmartMixResult {
+  id: string;
+  kind: 'focus' | 'late-night' | 'morning' | 'rainy-day' | 'sunny-day' | 'snowy-day' | 'decade';
+  titleKey: string;
+  descKey: string;
+  decade?: number;
+  trackIds: string[];
+}

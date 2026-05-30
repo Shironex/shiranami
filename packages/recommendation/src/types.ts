@@ -28,6 +28,23 @@ export interface TrackStats {
   lastPlayedAt: string;
   /** Explicit positive signal — boosts affinity when set. */
   isFavorite: boolean;
+  /**
+   * Explicit negative signal — the user marked this exact track "not
+   * interested". When set, the track is dropped from affinity ranking entirely
+   * (it scores 0) so it is never re-surfaced. Optional so callers / fixtures
+   * that predate the negative-signal feature keep working (treated as not
+   * disliked). See {@link AffinityOptions.artistDislikePenalty} for the softer
+   * artist-level signal.
+   */
+  isDisliked?: boolean;
+  /**
+   * Number of distinct "not interested" marks against OTHER tracks by this
+   * track's artist. A positive value softly downranks the track — the user
+   * disliked the artist's other work, so they probably want less of it, but a
+   * single dislike should not bury an artist they otherwise play heavily.
+   * Optional; defaults to 0 (no artist signal).
+   */
+  artistDislikes?: number;
 }
 
 /** A track scored and ranked by listening affinity. */
@@ -50,6 +67,16 @@ export interface AffinityOptions {
   halfLifeDays?: number;
   /** Multiplicative boost applied to favorited tracks (e.g. 0.5 → +50%). */
   favoriteBoost?: number;
+  /**
+   * Per-dislike penalty applied to a track whose ARTIST has "not interested"
+   * marks on other tracks. The track's score is multiplied by
+   * `1 / (1 + artistDislikePenalty × artistDislikes)`, so each artist-level
+   * dislike shrinks the score asymptotically toward 0 without ever turning it
+   * negative or fully erasing a heavily-played artist. An explicitly disliked
+   * track (`isDisliked`) is dropped outright and never reaches this penalty.
+   * Defaults to {@link DEFAULT_ARTIST_DISLIKE_PENALTY}.
+   */
+  artistDislikePenalty?: number;
   /**
    * Reference instant for the recency decay. Defaults to `Date.now()`.
    * Injectable so tests are deterministic and the caller can score against a

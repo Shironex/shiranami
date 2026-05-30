@@ -15,24 +15,29 @@
  * the renderer.
  */
 
+import * as crypto from 'crypto';
 import { getDatabase } from '@shiranami/database/client';
 import {
   tracks,
   playHistory,
   youtubeMappings,
   recommendations,
+  negativeSignals,
   eq,
   sql,
   inArray,
   type NewRecommendation,
+  type NewNegativeSignal,
 } from '@shiranami/database';
 import {
   rankByAffinity,
   rankBySimilarity,
   selectSeedTracks,
+  buildSmartMixes,
   type SharedPlaylistCounts,
   type SimilarityTrack,
   type TrackStats,
+  type MixTrack,
 } from '@shiranami/recommendation';
 import { playlistTracks } from '@shiranami/database';
 import {
@@ -45,6 +50,8 @@ import {
   type RecommendationKind,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixSignals,
+  type SmartMixResult,
 } from '@shiranami/contracts';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
@@ -92,16 +99,112 @@ function getLibraryStats(): TrackStats[] {
     .groupBy(tracks.id)
     .all();
 
-  return rows.map(row => ({
-    trackId: row.trackId,
-    title: row.title,
-    artist: row.artist ?? '',
-    album: row.album ?? '',
-    plays: Number(row.plays),
-    avgCompletion: Number(row.avgCompletion),
-    lastPlayedAt: row.lastPlayedAt,
-    isFavorite: Boolean(row.isFavorite),
-  }));
+  // Negative signal: the exact track ids the user disliked, and the count of
+  // dislikes per artist (so the pure core can drop the track and softly
+  // downrank its artist). Read once and folded into each stats row below.
+  const dislikedTrackIds = getDislikedTrackIds();
+  const artistDislikeCounts = getArtistDislikeCounts();
+
+  return rows.map(row => {
+    const artist = row.artist ?? '';
+    return {
+      trackId: row.trackId,
+      title: row.title,
+      artist,
+      album: row.album ?? '',
+      plays: Number(row.plays),
+      avgCompletion: Number(row.avgCompletion),
+      lastPlayedAt: row.lastPlayedAt,
+      isFavorite: Boolean(row.isFavorite),
+      isDisliked: dislikedTrackIds.has(row.trackId),
+      // Don't penalize a track for its OWN dislike via the artist count — the
+      // exact-track drop already handles that. Subtract one when this track is
+      // itself the disliked one for the artist.
+      artistDislikes: Math.max(
+        0,
+        (artist ? (artistDislikeCounts.get(artist) ?? 0) : 0) -
+          (dislikedTrackIds.has(row.trackId) ? 1 : 0)
+      ),
+    };
+  });
+}
+
+// ───────────────────────────── negative signal ──────────────────────────────
+
+/** Set of track ids the user explicitly marked "Not interested". */
+function getDislikedTrackIds(): Set<string> {
+  const db = getDatabase();
+  const rows = db.select({ trackId: negativeSignals.trackId }).from(negativeSignals).all();
+  return new Set(rows.map(row => row.trackId));
+}
+
+/** Count of "Not interested" marks per artist (denormalized at write time). */
+function getArtistDislikeCounts(): Map<string, number> {
+  const db = getDatabase();
+  const rows = db
+    .select({ artist: negativeSignals.artist, count: sql<number>`COUNT(*)` })
+    .from(negativeSignals)
+    .where(sql`${negativeSignals.artist} IS NOT NULL`)
+    .groupBy(negativeSignals.artist)
+    .all();
+  return new Map(rows.map(row => [row.artist ?? '', Number(row.count)]));
+}
+
+/**
+ * Record a "Not interested" signal for a track. Idempotent — re-marking the
+ * same track is a no-op (track_id is unique). The artist is denormalized from
+ * the track row so the artist-level penalty survives independent of joins.
+ * Invalidates the cached library shelf so the next read re-scores without the
+ * disliked track. Returns nothing; never throws up to the renderer past the
+ * IPC validator.
+ */
+export function markNotInterested(trackId: string, source = 'context-menu'): void {
+  const db = getDatabase();
+  const track = db
+    .select({ artist: tracks.artist })
+    .from(tracks)
+    .where(eq(tracks.id, trackId))
+    .get();
+
+  if (!track) {
+    logger.warn(`[recommendations] not-interested ignored; missing track ${trackId}`);
+    return;
+  }
+
+  const row: NewNegativeSignal = {
+    id: crypto.randomUUID(),
+    trackId,
+    artist: track.artist ?? null,
+    source,
+  };
+  db.insert(negativeSignals)
+    .values(row)
+    .onConflictDoUpdate({
+      target: negativeSignals.trackId,
+      set: { artist: row.artist, source: row.source },
+    })
+    .run();
+
+  invalidateLibraryCache();
+  logger.info(`[recommendations] marked track ${trackId} not interested`);
+}
+
+/** Undo a "Not interested" mark, so the track can be surfaced again. */
+export function undoNotInterested(trackId: string): void {
+  const db = getDatabase();
+  db.delete(negativeSignals).where(eq(negativeSignals.trackId, trackId)).run();
+  invalidateLibraryCache();
+  logger.info(`[recommendations] undo not-interested for track ${trackId}`);
+}
+
+/**
+ * Drop the cached library shelf so the next `getRecommendationShelves()` read
+ * recomputes affinity (now accounting for the negative signal). The discover
+ * cache is left intact — it is refreshed only by the background job.
+ */
+function invalidateLibraryCache(): void {
+  const db = getDatabase();
+  db.delete(recommendations).where(eq(recommendations.kind, 'library')).run();
 }
 
 /** Album art lookup for a set of track ids, so library recommendations can
@@ -195,6 +298,52 @@ export function computeSimilarTracks(seedTrackId: string): SimilarTrackResult[] 
   return rankBySimilarity(seed, candidates, sharedPlaylists)
     .slice(0, SIMILAR_TRACKS_MAX)
     .map(track => ({ trackId: track.trackId, similarity: track.similarity }));
+}
+
+// ──────────────────────────────── smart mixes ───────────────────────────────
+
+/** Project the `tracks` table into the minimal metadata shape the pure
+ *  smart-mix generator consumes (id + genre/year/playCount). */
+function getMixTracks(): MixTrack[] {
+  const db = getDatabase();
+  const rows = db
+    .select({
+      trackId: tracks.id,
+      genre: tracks.genre,
+      year: tracks.year,
+      playCount: tracks.playCount,
+    })
+    .from(tracks)
+    .all();
+  return rows.map(row => ({
+    trackId: row.trackId,
+    genre: row.genre ?? null,
+    year: row.year ?? null,
+    playCount: Number(row.playCount ?? 0),
+  }));
+}
+
+/**
+ * Generate mood/activity/decade mixes for the renderer's contextual signals
+ * (current hour + optional weather) and the library's metadata. Offline and
+ * cheap — safe on the render path — so it is computed on demand rather than
+ * cached. Returns [] when no mix reaches the minimum size (e.g. a thin or
+ * untagged library), which the renderer renders as a quiet empty state.
+ */
+export function computeSmartMixes(signals: SmartMixSignals): SmartMixResult[] {
+  const mixes = buildSmartMixes(getMixTracks(), {
+    hour: signals.hour,
+    weather: signals.weather,
+  });
+  // The pure SmartMix shape is structurally identical to the contract type.
+  return mixes.map(mix => ({
+    id: mix.id,
+    kind: mix.kind,
+    titleKey: mix.titleKey,
+    descKey: mix.descKey,
+    decade: mix.decade,
+    trackIds: mix.trackIds,
+  }));
 }
 
 // ──────────────────────────── yt-dlp discovery ─────────────────────────────

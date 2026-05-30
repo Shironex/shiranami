@@ -70,6 +70,11 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          # Last.fm app credential — baked into the bundle at build time so
+          # packaged builds can use Last.fm. Absent on forks → Last.fm UI shows
+          # as unavailable; ListenBrainz (user-token) is unaffected.
+          SHIRANAMI_LASTFM_API_KEY: ${{ secrets.SHIRANAMI_LASTFM_API_KEY }}
+          SHIRANAMI_LASTFM_SECRET: ${{ secrets.SHIRANAMI_LASTFM_SECRET }}
 
       - name: Package macOS
         if: matrix.platform == 'mac'
