@@ -23,6 +23,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -238,6 +239,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
+                <SelectLabel>{t('customPresets.group')}</SelectLabel>
                 {presetOptions.map(opt => (
                   <SelectItem key={opt.id} value={opt.id}>
                     {opt.label}
@@ -246,6 +248,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
               </SelectGroup>
               {customPresets.length > 0 && (
                 <SelectGroup>
+                  <SelectLabel>{t('customPresets.userGroup')}</SelectLabel>
                   {customPresets.map(p => (
                     <SelectItem key={p.id} value={`custom:${p.id}`}>
                       {p.name}

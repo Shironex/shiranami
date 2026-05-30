@@ -112,6 +112,25 @@ function SelectContent({
   );
 }
 
+function SelectLabel({
+  className,
+  ref,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label> & {
+  ref?: React.Ref<React.ComponentRef<typeof SelectPrimitive.Label>>;
+}) {
+  return (
+    <SelectPrimitive.Label
+      ref={ref}
+      className={cn(
+        'px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
 function SelectItem({
   className,
   children,
@@ -140,4 +159,12 @@ function SelectItem({
   );
 }
 
-export { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue };
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+};
