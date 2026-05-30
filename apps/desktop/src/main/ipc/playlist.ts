@@ -81,7 +81,16 @@ export function extractSpotifyPlaylistId(url: string): string | null {
  * source name. Returns null when absent (e.g. a single video URL).
  */
 function extractYouTubePlaylistTitle(stdout: string): string | null {
-  for (const line of stdout.trim().split('\n')) {
+  // Iterate line-by-line via indexOf rather than split('\n') to avoid
+  // allocating a large array for playlists with thousands of entries — we
+  // only need the first line that carries a playlist title.
+  let pos = 0;
+  while (pos < stdout.length) {
+    const nextNewline = stdout.indexOf('\n', pos);
+    const end = nextNewline === -1 ? stdout.length : nextNewline;
+    const line = stdout.slice(pos, end).trim();
+    pos = end + 1;
+
     if (!line) continue;
     try {
       const data = JSON.parse(line);
