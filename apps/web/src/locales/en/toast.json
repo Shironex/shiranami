@@ -85,6 +85,8 @@
   "installationFailed": "Installation failed",
   "importSummary": "Import complete. Added: {{done}}, skipped: {{skipped}}, failed: {{errors}}",
   "importCancelled": "Playlist import cancelled",
+  "playlistCreated": "Created playlist \"{{name}}\" with {{count}} tracks",
+  "playlistCreateFailed": "Could not create playlist: {{error}}",
   "searchFailed": "Search failed",
   "failedLoadStations": "Failed to load stations",
   "failedLoadFavorites": "Failed to load favorites",

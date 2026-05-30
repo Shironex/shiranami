@@ -18,8 +18,14 @@ interface PlaylistTrack {
   matchFlag?: 'low' | 'ok';
 }
 
+export interface PlaylistExtractResult {
+  /** Source playlist title, when the provider exposed one. */
+  title: string | null;
+  tracks: PlaylistTrack[];
+}
+
 export interface PlaylistApi {
-  extract: (url: string) => Promise<PlaylistTrack[]>;
+  extract: (url: string) => Promise<PlaylistExtractResult>;
   cancel: () => Promise<void>;
   onExtractProgress: (
     callback: (data: { current: number; total: number; trackName: string }) => void

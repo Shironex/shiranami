@@ -22,6 +22,10 @@ import type {
   ListenBrainzConnectResult,
   ShareImportResponse,
   SystemNotice,
+  SmartPlaylist,
+  SmartPlaylistDefinition,
+  SmartPlaylistRule,
+  SmartPlaylistMatchType,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -253,6 +257,28 @@ export interface ElectronAPI {
       getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
       reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
     };
+    smartPlaylists: {
+      getAll: () => Promise<SmartPlaylist[]>;
+      get: (id: string) => Promise<SmartPlaylist | null>;
+      create: (data: {
+        name: string;
+        description?: string;
+        matchType: SmartPlaylistMatchType;
+        rules: SmartPlaylistRule[];
+      }) => Promise<SmartPlaylist>;
+      update: (
+        id: string,
+        data: {
+          name?: string;
+          description?: string;
+          matchType?: SmartPlaylistMatchType;
+          rules?: SmartPlaylistRule[];
+        }
+      ) => Promise<SmartPlaylist | null>;
+      delete: (id: string) => Promise<void>;
+      getTracks: (id: string) => Promise<unknown[]>;
+      preview: (definition: SmartPlaylistDefinition) => Promise<unknown[]>;
+    };
     folders: {
       getAll: () => Promise<unknown[]>;
       add: (path: string) => Promise<unknown>;
@@ -405,7 +431,7 @@ export interface ElectronAPI {
     getLocaleCountry: () => Promise<string>;
   };
   playlist: {
-    extract: (url: string) => Promise<SearchResult[]>;
+    extract: (url: string) => Promise<{ title: string | null; tracks: SearchResult[] }>;
     cancel: () => Promise<void>;
     onExtractProgress: (
       callback: (data: { current: number; total: number; trackName: string }) => void
