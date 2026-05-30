@@ -11,6 +11,7 @@ export type AppView =
   | 'radio'
   | 'settings'
   | 'import-playlist'
+  | 'smart-playlists'
   | 'now-playing';
 export type RightPanel = 'lyrics' | 'queue' | null;
 
@@ -19,6 +20,8 @@ interface ViewState {
   previousView: AppView;
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
+  /** Currently open smart playlist (its dynamic track view), or null for the list. */
+  selectedSmartPlaylistId: string | null;
   /**
    * Composite album identity (`albumArtist   album`, see `albumKeyOf`), NOT a
    * bare album title — so identically-named albums by different artists are
@@ -33,6 +36,7 @@ interface ViewActions {
   enterNowPlaying: () => void;
   exitNowPlaying: () => void;
   selectPlaylist: (id: string | null) => void;
+  selectSmartPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
   selectAlbum: (key: string | null) => void;
@@ -44,6 +48,7 @@ export const useViewStore = create<ViewState & ViewActions>()((set, get) => ({
   previousView: 'library',
   rightPanel: null,
   selectedPlaylistId: null,
+  selectedSmartPlaylistId: null,
   selectedAlbumKey: null,
   albumGridScrollTop: 0,
 
@@ -51,6 +56,8 @@ export const useViewStore = create<ViewState & ViewActions>()((set, get) => ({
     set({
       activeView: view,
       selectedPlaylistId: view === 'playlists' ? (playlistId ?? null) : null,
+      // Leaving the smart-playlists section resets its open detail.
+      selectedSmartPlaylistId: view === 'smart-playlists' ? get().selectedSmartPlaylistId : null,
     }),
   enterNowPlaying: () => {
     const current = get().activeView;
@@ -62,6 +69,7 @@ export const useViewStore = create<ViewState & ViewActions>()((set, get) => ({
     set({ activeView: prev });
   },
   selectPlaylist: id => set({ selectedPlaylistId: id }),
+  selectSmartPlaylist: id => set({ selectedSmartPlaylistId: id }),
   setRightPanel: panel => set({ rightPanel: panel }),
   toggleRightPanel: panel => {
     const current = get().rightPanel;

@@ -33,6 +33,7 @@ import enrichDialogEn from '@/locales/en/enrichDialog.json';
 import editTagsEn from '@/locales/en/editTags.json';
 import onboardingEn from '@/locales/en/onboarding.json';
 import recommendationsEn from '@/locales/en/recommendations.json';
+import smartPlaylistsEn from '@/locales/en/smartPlaylists.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -65,6 +66,7 @@ import enrichDialogPl from '@/locales/pl/enrichDialog.json';
 import editTagsPl from '@/locales/pl/editTags.json';
 import onboardingPl from '@/locales/pl/onboarding.json';
 import recommendationsPl from '@/locales/pl/recommendations.json';
+import smartPlaylistsPl from '@/locales/pl/smartPlaylists.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -127,6 +129,7 @@ const namespaces = [
   'editTags',
   'onboarding',
   'recommendations',
+  'smartPlaylists',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -163,6 +166,7 @@ i18n.use(initReactI18next).init({
       editTags: editTagsEn,
       onboarding: onboardingEn,
       recommendations: recommendationsEn,
+      smartPlaylists: smartPlaylistsEn,
     },
     pl: {
       common: commonPl,
@@ -196,6 +200,7 @@ i18n.use(initReactI18next).init({
       editTags: editTagsPl,
       onboarding: onboardingPl,
       recommendations: recommendationsPl,
+      smartPlaylists: smartPlaylistsPl,
     },
   },
   lng: getInitialLanguage(),
