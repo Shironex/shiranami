@@ -165,7 +165,7 @@ export async function beginLastfmAuth(): Promise<{ ok: boolean; token?: string; 
  * session key and store it. The token is single-use.
  */
 export async function completeLastfmAuth(token: string): Promise<LastfmConnectResult> {
-  if (!isLastfmConfigured()) return { ok: false, username: null, error: 'not_configured' };
+  if (!isLastfmConfigured()) return { ok: false, error: 'not_configured' };
   try {
     const body = signLastfm(lastfmGetSessionParams(LASTFM_API_KEY, token));
     const res = await fetch(`${LASTFM_ENDPOINT}?${body.toString()}`, {
@@ -175,7 +175,7 @@ export async function completeLastfmAuth(token: string): Promise<LastfmConnectRe
       session?: { key?: string; name?: string };
       error?: number;
     };
-    if (!json.session?.key) return { ok: false, username: null, error: 'no_session' };
+    if (!json.session?.key) return { ok: false, error: 'no_session' };
     setSettings({
       enabled: true,
       lastfmSessionKey: json.session.key,
@@ -184,7 +184,7 @@ export async function completeLastfmAuth(token: string): Promise<LastfmConnectRe
     return { ok: true, username: json.session.name ?? null };
   } catch (err) {
     logger.warn('[scrobble] last.fm complete-auth failed', err);
-    return { ok: false, username: null, error: 'network' };
+    return { ok: false, error: 'network' };
   }
 }
 
@@ -227,12 +227,12 @@ export async function connectListenBrainz(token: string): Promise<ListenBrainzCo
       signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     });
     const json = (await res.json()) as { valid?: boolean; user_name?: string };
-    if (!json.valid) return { ok: false, username: null, error: 'invalid_token' };
+    if (!json.valid) return { ok: false, error: 'invalid_token' };
     setSettings({ enabled: true, listenBrainzToken: token });
     return { ok: true, username: json.user_name ?? null };
   } catch (err) {
     logger.warn('[scrobble] listenbrainz connect failed', err);
-    return { ok: false, username: null, error: 'network' };
+    return { ok: false, error: 'network' };
   }
 }
 

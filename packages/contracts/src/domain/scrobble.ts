@@ -23,16 +23,12 @@ export interface ScrobbleStatus {
 }
 
 /** Result of connecting Last.fm via the desktop-auth token exchange. */
-export interface LastfmConnectResult {
-  ok: boolean;
-  username: string | null;
-  /** Present when `ok` is false — a short reason key for the UI toast. */
-  error?: string;
-}
+export type LastfmConnectResult =
+  | { ok: true; username: string | null }
+  /** `error` is a short reason key for the UI toast. */
+  | { ok: false; error: string };
 
 /** Result of connecting ListenBrainz by validating a user token. */
-export interface ListenBrainzConnectResult {
-  ok: boolean;
-  username: string | null;
-  error?: string;
-}
+export type ListenBrainzConnectResult =
+  | { ok: true; username: string | null }
+  | { ok: false; error: string };
