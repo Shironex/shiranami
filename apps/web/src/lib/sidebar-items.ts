@@ -5,6 +5,7 @@ import {
   Library,
   ListMusic,
   ListPlus,
+  DownloadCloud,
   Radio,
   Search,
   Settings,
@@ -36,6 +37,7 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'mixes', key: 'mixes', Icon: Sparkles },
   { id: 'search', key: 'search', Icon: Search },
   { id: 'import-playlist', key: 'importPlaylist', Icon: ListPlus },
+  { id: 'downloads', key: 'downloads', Icon: DownloadCloud },
   { id: 'radio', key: 'radio', Icon: Radio },
   { id: 'settings', key: 'settings', Icon: Settings },
 ];

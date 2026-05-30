@@ -12,6 +12,7 @@ export type AppView =
   | 'settings'
   | 'import-playlist'
   | 'smart-playlists'
+  | 'downloads'
   | 'now-playing';
 export type RightPanel = 'lyrics' | 'queue' | null;
 
