@@ -31,13 +31,12 @@ export function SearchResultRow({
   const isDone = dlState.status === 'done';
   const isError = dlState.status === 'error';
 
-  const downloadAriaLabel = isDownloading
-    ? t('downloadingAria', { title: result.title })
-    : isDone
-      ? t('addedAria', { title: result.title })
-      : isError
-        ? t('retryDownloadAria', { title: result.title })
-        : t('downloadAria', { title: result.title });
+  const downloadAriaLabel = (() => {
+    if (isDownloading) return t('downloadingAria', { title: result.title });
+    if (isDone) return t('addedAria', { title: result.title });
+    if (isError) return t('retryDownloadAria', { title: result.title });
+    return t('downloadAria', { title: result.title });
+  })();
 
   return (
     <div
