@@ -1,18 +1,37 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaylistImportStore, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
-import { useTrackImport } from '@/hooks/useTrackImport';
+import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
+import { useDownloadBatchStore } from '@/stores/useDownloadBatchStore';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
-import { queryClient } from '@/lib/queryClient';
-import { playlistKeys } from '@/hooks/queries/usePlaylists';
-import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
-import type { DownloadProgress } from '@/types/electron';
+import type { DownloadQueueStatus } from '@shiranami/contracts';
+
+/** Stable url key for a playlist track (matches the queue enqueue key). */
+function trackUrl(searchResult: { webpage_url?: string; url?: string }): string {
+  return searchResult.webpage_url || searchResult.url || '';
+}
+
+/** Map the main-queue lifecycle status onto the playlist row's display status. */
+function mapQueueStatus(status: DownloadQueueStatus): PlaylistTrackStatus {
+  switch (status) {
+    case 'queued':
+    case 'active':
+      return 'downloading';
+    case 'converting':
+      return 'converting';
+    case 'done':
+      return 'done';
+    case 'error':
+    case 'canceled':
+      return 'error';
+  }
+}
 
 export function usePlaylistImport() {
   const [extractError, setExtractError] = useState<string | null>(null);
-  const activeImportTrackIdRef = useRef<string | null>(null);
-  const activeImportTrackUrlRef = useRef<string | null>(null);
+  /** The batch currently owned by this import session (for per-item cancel). */
+  const activeBatchIdRef = useRef<string | null>(null);
 
   // Store selectors
   const url = usePlaylistImportStore(s => s.url);
@@ -36,34 +55,43 @@ export function usePlaylistImport() {
   const cancelImport = usePlaylistImportStore(s => s.cancelImport);
   const reset = usePlaylistImportStore(s => s.reset);
 
-  // Shared hooks
-  const { importTrack } = useTrackImport();
+  // Live queue mirror — drives per-row display status (the actual import is
+  // owned by the App-level batch coordinator so it survives navigating away).
+  const byUrl = useDownloadQueueStore(s => s.byUrl);
+
   const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview(
     i18n.t('previewAlbum', { ns: 'import' })
   );
 
-  // Listen to download progress events
+  // Project queue status onto the display store while the view is mounted, and
+  // flip `isImporting` off once every track in the active batch is terminal.
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    const cleanup = window.electronAPI.downloader.onProgress((data: DownloadProgress) => {
-      const statusMap: Record<string, PlaylistTrackStatus> = {
-        downloading: 'downloading',
-        converting: 'converting',
-        done: 'done',
-        error: 'error',
-      };
-      const mapped = statusMap[data.status] ?? 'downloading';
-      if (!activeImportTrackIdRef.current || data.url !== activeImportTrackUrlRef.current) {
-        return;
-      }
-      if (mapped === 'downloading' || mapped === 'converting') {
-        updateTrackStatus(activeImportTrackIdRef.current, mapped, data.progress);
-      }
-    });
-    return cleanup;
-  }, [updateTrackStatus]);
+    const batchId = activeBatchIdRef.current;
+    if (!batchId) return;
 
-  // Listen to Spotify extraction progress
+    const state = usePlaylistImportStore.getState();
+    if (!state.isImporting) return;
+
+    let anyActive = false;
+    for (const track of state.tracks) {
+      const item = byUrl.get(trackUrl(track.searchResult));
+      if (!item || item.batchId !== batchId) continue;
+      const mapped = mapQueueStatus(item.status);
+      const isTerminal =
+        item.status === 'done' || item.status === 'error' || item.status === 'canceled';
+      if (!isTerminal) anyActive = true;
+      if (track.status !== mapped) {
+        updateTrackStatus(track.id, mapped, mapped === 'done' ? 100 : item.progress);
+      }
+    }
+
+    if (!anyActive) {
+      usePlaylistImportStore.setState({ isImporting: false });
+    }
+  }, [byUrl, updateTrackStatus]);
+
+  // Spotify extraction progress (unchanged — pre-download phase).
   useEffect(() => {
     if (!IS_ELECTRON) return;
     const cleanup = window.electronAPI.playlist.onExtractProgress(data => {
@@ -111,136 +139,67 @@ export function usePlaylistImport() {
   );
 
   /**
-   * Shared import loop for both "import all" and "import selected". Downloads +
-   * imports each pending track in playlist order, recording each resolved DB
-   * track id (newly imported or already-present duplicate) so the source
-   * playlist's order can be recreated afterwards. When `createPlaylist` is on
-   * and a `sourceTitle` exists, a real Shiranami playlist is created from the
-   * imported tracks via the existing `createWithTracks` IPC.
+   * Batch-enqueue every pending (and selected, if scoped) track into the
+   * download queue, carrying a shared `batchId` + per-track `batchIndex` (source
+   * playlist position). The batch metadata is registered in the app-level batch
+   * store so the App-level coordinator imports the downloaded tracks in source
+   * order and recreates the playlist once the batch drains — even if the user
+   * navigates away from this view while downloads run.
    */
   const runImport = useCallback(
-    async (selectedIds: Set<string> | null) => {
+    (selectedIds: Set<string> | null) => {
       if (!IS_ELECTRON) return;
-      startImporting(selectedIds ?? undefined);
 
       const currentTracks = usePlaylistImportStore.getState().tracks;
-      const completedUrls = new Set<string>();
-      // Resolved DB track ids in playlist order (for source-playlist recreation).
-      const orderedTrackIds: string[] = [];
-      const seenTrackIds = new Set<string>();
-      const recordId = (id: string | null | undefined) => {
-        if (id && !seenTrackIds.has(id)) {
-          seenTrackIds.add(id);
-          orderedTrackIds.push(id);
-        }
-      };
+      const pending = currentTracks.filter(
+        t => t.status === 'pending' && (!selectedIds || selectedIds.has(t.id))
+      );
+      if (pending.length === 0) return;
 
-      for (const playlistTrack of currentTracks) {
-        if (usePlaylistImportStore.getState().isCancelled) break;
-        if (playlistTrack.status !== 'pending') continue;
-        if (selectedIds && !selectedIds.has(playlistTrack.id)) continue;
+      const batchId = crypto.randomUUID();
+      activeBatchIdRef.current = batchId;
+      startImporting(selectedIds ?? undefined);
 
-        const trackId = playlistTrack.id;
-        const trackUrl = playlistTrack.searchResult.webpage_url || playlistTrack.searchResult.url;
-        if (completedUrls.has(trackUrl)) {
-          updateTrackStatus(trackId, 'skipped');
-          continue;
-        }
+      const { createPlaylist: create, sourceTitle: title } = usePlaylistImportStore.getState();
 
-        activeImportTrackIdRef.current = trackId;
-        activeImportTrackUrlRef.current = trackUrl;
-        updateTrackStatus(trackId, 'downloading', 0);
+      const batchStore = useDownloadBatchStore.getState();
+      batchStore.registerBatch({ batchId, sourceTitle: title, createPlaylist: create });
 
-        try {
-          const filePath = await window.electronAPI.downloader.download(trackUrl);
-
-          const exists = await window.electronAPI.db.tracks.exists(filePath);
-          if (exists) {
-            // Duplicate: resolve the existing DB id directly from the database
-            // (authoritative) rather than the renderer-side library store,
-            // which may not be synced yet — relying on it could silently drop
-            // the track from the recreated playlist.
-            recordId(await window.electronAPI.db.tracks.getIdByPath(filePath));
-            completedUrls.add(trackUrl);
-            updateTrackStatus(trackId, 'skipped');
-            continue;
-          }
-
-          const imported = await importTrack(filePath);
-          // importTrack returns null when the row already existed (e.g. a
-          // concurrent import won the race). Fall back to the authoritative DB
-          // id so the track still joins the recreated playlist in order.
-          recordId(imported?.id ?? (await window.electronAPI.db.tracks.getIdByPath(filePath)));
-          completedUrls.add(trackUrl);
-          updateTrackStatus(trackId, 'done', 100);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
-          updateTrackStatus(trackId, 'error', 0, msg);
-        } finally {
-          if (activeImportTrackIdRef.current === trackId) {
-            activeImportTrackIdRef.current = null;
-            activeImportTrackUrlRef.current = null;
-          }
-        }
-      }
-
-      activeImportTrackIdRef.current = null;
-      activeImportTrackUrlRef.current = null;
-      usePlaylistImportStore.setState({ isImporting: false });
-
-      const cancelled = usePlaylistImportStore.getState().isCancelled;
-
-      if (!cancelled) {
-        const finalTracks = usePlaylistImportStore.getState().tracks;
-        const scoped = selectedIds ? finalTracks.filter(t => selectedIds.has(t.id)) : finalTracks;
-        const doneCount = scoped.filter(t => t.status === 'done').length;
-        const skippedCount = scoped.filter(t => t.status === 'skipped').length;
-        const errorCount = scoped.filter(t => t.status === 'error').length;
-
-        toast.success(
-          i18n.t('importSummary', {
-            ns: 'toast',
-            done: doneCount,
-            skipped: skippedCount,
-            errors: errorCount,
+      // Enqueue every pending track, capturing each resulting item id; seal the
+      // batch only once every enqueue has settled so the coordinator's
+      // completion gate uses the actually-enqueued set (reject-safe).
+      const enqueues = pending.map((track, index) => {
+        updateTrackStatus(track.id, 'downloading', 0);
+        return window.electronAPI.downloader
+          .enqueueDownload({
+            url: trackUrl(track.searchResult),
+            youtubeId: track.searchResult.id,
+            title: track.searchResult.title,
+            batchId,
+            batchIndex: index,
           })
-        );
-      } else {
-        toast.info(i18n.t('importCancelled', { ns: 'toast' }));
-      }
-
-      // Recreate the source playlist (name + order). Runs even on cancel for
-      // the tracks that did import, so a partial import still yields a playlist.
-      const { createPlaylist, sourceTitle } = usePlaylistImportStore.getState();
-      if (createPlaylist && sourceTitle && orderedTrackIds.length > 0) {
-        try {
-          await window.electronAPI.db.playlists.createWithTracks({
-            name: sourceTitle,
-            trackIds: orderedTrackIds,
+          .then(itemId => {
+            useDownloadBatchStore.getState().addEnqueuedId(batchId, itemId);
+          })
+          .catch(() => {
+            // Enqueue rejected (e.g. non-http url): this track never enters the
+            // queue, so its id is simply absent from the batch membership.
           });
-          queryClient.invalidateQueries({ queryKey: playlistKeys.all });
-          toast.success(
-            i18n.t('playlistCreated', {
-              ns: 'toast',
-              name: sourceTitle,
-              count: orderedTrackIds.length,
-            })
-          );
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
-          toast.error(i18n.t('playlistCreateFailed', { ns: 'toast', error: msg }));
-        }
-      }
+      });
+
+      void Promise.allSettled(enqueues).then(() => {
+        useDownloadBatchStore.getState().sealBatch(batchId);
+      });
     },
-    [startImporting, updateTrackStatus, importTrack]
+    [startImporting, updateTrackStatus]
   );
 
   const handleStartImport = useCallback(() => runImport(null), [runImport]);
 
   const handleStartImportSelected = useCallback(
     (selectedIds: Set<string>) => {
-      if (selectedIds.size === 0) return Promise.resolve();
-      return runImport(selectedIds);
+      if (selectedIds.size === 0) return;
+      runImport(selectedIds);
     },
     [runImport]
   );
@@ -254,16 +213,25 @@ export function usePlaylistImport() {
 
   const handleCancel = useCallback(() => {
     cancelImport();
-    if (IS_ELECTRON) {
-      window.electronAPI.playlist.cancel();
+    if (!IS_ELECTRON) return;
+    // Stop the Spotify extraction phase if it's still running.
+    window.electronAPI.playlist.cancel();
+    // Cancel every still-running queue item in this batch.
+    const batchId = activeBatchIdRef.current;
+    if (!batchId) return;
+    const { items } = useDownloadQueueStore.getState();
+    for (const item of items) {
+      if (item.batchId !== batchId) continue;
+      if (item.status === 'queued' || item.status === 'active' || item.status === 'converting') {
+        window.electronAPI.downloader.cancelDownload(item.id).catch(() => {});
+      }
     }
   }, [cancelImport]);
 
   const handleReset = useCallback(() => {
     reset();
     setExtractError(null);
-    activeImportTrackIdRef.current = null;
-    activeImportTrackUrlRef.current = null;
+    activeBatchIdRef.current = null;
   }, [reset]);
 
   // Computed values — scoped to importingTrackIds when doing a selective import
