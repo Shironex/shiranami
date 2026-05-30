@@ -180,14 +180,10 @@ export function buildSmartMixes(tracks: readonly MixTrack[], signals: MixSignals
     );
   }
 
-  // Focus / activity mix — always offered (calm, instrumental picks).
-  candidates.push(
-    buildMix('focus', 'smart.focus', 'smart.focusDesc', all, track =>
-      genreMatches(track, FOCUS_GENRES)
-    )
-  );
-
-  // Weather-driven mixes (only when a signal is present).
+  // Weather-driven mixes (only when a signal is present). Pushed before the
+  // generic focus mix so that — when a weather mix shares the FOCUS_GENRES
+  // predicate and so yields identical picks — the more contextual shelf wins the
+  // content-dedup below and the redundant focus copy is dropped.
   switch (signals.weather) {
     case 'rain':
     case 'thunderstorm':
@@ -217,13 +213,25 @@ export function buildSmartMixes(tracks: readonly MixTrack[], signals: MixSignals
       break;
   }
 
-  // Dedupe by kind (a focus + late-night mix can collide on the same picks; the
-  // first/most-relevant wins) and drop the nulls.
-  const seen = new Set<SmartMixKind>();
+  // Focus / activity mix — always offered (calm, instrumental picks). Pushed last
+  // among the contextual candidates so a colliding weather mix takes precedence.
+  candidates.push(
+    buildMix('focus', 'smart.focus', 'smart.focusDesc', all, track =>
+      genreMatches(track, FOCUS_GENRES)
+    )
+  );
+
+  // Dedupe by track contents and drop the nulls. Several mixes share a genre
+  // predicate (e.g. focus, late-night, and rainy-day all use FOCUS_GENRES), so
+  // distinct kinds can resolve to identical track sets; the first/most-relevant
+  // wins so the UI never shows two shelves with the same songs.
+  const seenTrackSets = new Set<string>();
   const mixes: SmartMix[] = [];
   for (const mix of candidates) {
-    if (!mix || seen.has(mix.kind)) continue;
-    seen.add(mix.kind);
+    if (!mix) continue;
+    const trackKey = mix.trackIds.join(',');
+    if (seenTrackSets.has(trackKey)) continue;
+    seenTrackSets.add(trackKey);
     mixes.push(mix);
   }
 
