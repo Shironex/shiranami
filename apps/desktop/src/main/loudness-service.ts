@@ -42,7 +42,7 @@ export async function measureLoudness(
   return new Promise<number | null>(resolve => {
     // -af loudnorm=print_format=json runs the first (analysis) pass and prints
     // a JSON object with the measured values to stderr; -f null discards audio.
-    const child = execFile(
+    execFile(
       getFFmpegPath(),
       ['-hide_banner', '-i', filePath, '-af', 'loudnorm=print_format=json', '-f', 'null', '-'],
       { timeout: ANALYZE_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024, signal },
@@ -63,7 +63,8 @@ export async function measureLoudness(
         resolve(lufs);
       }
     );
-    child.on('error', () => resolve(null));
+    // No separate 'error' listener: execFile delivers spawn/exec errors to the
+    // callback above as `err`, which already resolves to null.
   });
 }
 
