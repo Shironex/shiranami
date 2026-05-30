@@ -111,7 +111,8 @@ export function SearchResultRow({
       <div className="shrink-0 relative z-10">
         <DownloadProgressButton
           status={dlState.status}
-          ariaLabel={isError ? (dlState.error ?? downloadAriaLabel) : downloadAriaLabel}
+          ariaLabel={downloadAriaLabel}
+          title={isError ? (dlState.error ?? t('retryDownload')) : undefined}
           onDownload={() => onDownload(result)}
         />
       </div>
