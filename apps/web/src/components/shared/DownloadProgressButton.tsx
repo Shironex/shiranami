@@ -90,7 +90,7 @@ export function DownloadProgressButton({
       title={title}
       aria-busy={isBusy ? 'true' : undefined}
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors hover:border-border/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-100',
+        'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors enabled:hover:border-border/40 enabled:hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-100',
         borderClass,
         colorClass,
         className
