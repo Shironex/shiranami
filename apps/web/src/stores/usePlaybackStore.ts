@@ -11,6 +11,16 @@ export const DEFAULT_SLEEP_FADE_DURATION = 8;
 export const SLEEP_FADE_MIN_SECONDS = 2;
 export const SLEEP_FADE_MAX_SECONDS = 30;
 
+// Loudness leveling (ReplayGain / EBU R128). The target is the perceived
+// loudness every track is normalised toward; -14 LUFS matches the de-facto
+// streaming standard (Spotify/YouTube). The playback gain for a track is
+// `target − measuredLufs`, clamped to ±LOUDNESS_MAX_GAIN_DB to avoid extreme
+// boosts on very quiet sources.
+export const DEFAULT_LOUDNESS_TARGET_LUFS = -14;
+export const LOUDNESS_TARGET_MIN_LUFS = -23;
+export const LOUDNESS_TARGET_MAX_LUFS = -9;
+export const LOUDNESS_MAX_GAIN_DB = 12;
+
 const STORE_KEY = 'shiranami.player-store';
 
 const LEGACY_KEYS = {
@@ -22,7 +32,15 @@ type PersistedPlaybackState = {
   crossfadeEnabled: boolean;
   crossfadeDuration: number;
   sleepFadeDuration: number;
+  loudnessEnabled: boolean;
+  loudnessTargetLufs: number;
 };
+
+function sanitizeLoudnessTarget(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return DEFAULT_LOUDNESS_TARGET_LUFS;
+  return Math.round(Math.min(LOUDNESS_TARGET_MAX_LUFS, Math.max(LOUDNESS_TARGET_MIN_LUFS, parsed)));
+}
 
 function sanitizeCrossfadeDuration(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
@@ -47,6 +65,10 @@ function sanitize(
     out.crossfadeDuration = sanitizeCrossfadeDuration(persisted.crossfadeDuration);
   if (persisted.sleepFadeDuration !== undefined)
     out.sleepFadeDuration = sanitizeSleepFadeDuration(persisted.sleepFadeDuration);
+  if (typeof persisted.loudnessEnabled === 'boolean')
+    out.loudnessEnabled = persisted.loudnessEnabled;
+  if (persisted.loudnessTargetLufs !== undefined)
+    out.loudnessTargetLufs = sanitizeLoudnessTarget(persisted.loudnessTargetLufs);
   return out;
 }
 
@@ -86,6 +108,10 @@ interface PlaybackState {
   // Crossfade
   crossfadeEnabled: boolean;
   crossfadeDuration: number; // seconds
+
+  // Loudness leveling (ReplayGain / EBU R128)
+  loudnessEnabled: boolean;
+  loudnessTargetLufs: number;
 
   // Sleep timer
   sleepFadeDuration: number; // seconds — fade-out window before the sleep timer pauses
@@ -133,6 +159,10 @@ interface PlaybackActions {
   // Crossfade
   setCrossfadeEnabled: (enabled: boolean) => void;
   setCrossfadeDuration: (duration: number) => void;
+
+  // Loudness leveling
+  setLoudnessEnabled: (enabled: boolean) => void;
+  setLoudnessTargetLufs: (lufs: number) => void;
 
   // Sleep timer
   setSleepFadeDuration: (duration: number) => void;
@@ -184,6 +214,8 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     error: null,
     crossfadeEnabled: false,
     crossfadeDuration: DEFAULT_CROSSFADE_DURATION,
+    loudnessEnabled: false,
+    loudnessTargetLufs: DEFAULT_LOUDNESS_TARGET_LUFS,
     sleepFadeDuration: DEFAULT_SLEEP_FADE_DURATION,
     _sleepFading: false,
     _seekTarget: null,
@@ -251,6 +283,13 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     setCrossfadeDuration: duration => {
       const clamped = Math.round(Math.max(1, Math.min(12, duration)));
       set({ crossfadeDuration: clamped });
+    },
+
+    setLoudnessEnabled: enabled => {
+      set({ loudnessEnabled: enabled });
+    },
+    setLoudnessTargetLufs: lufs => {
+      set({ loudnessTargetLufs: sanitizeLoudnessTarget(lufs) });
     },
 
     setSleepFadeDuration: duration => {
@@ -412,6 +451,8 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
       crossfadeEnabled: s.crossfadeEnabled,
       crossfadeDuration: s.crossfadeDuration,
       sleepFadeDuration: s.sleepFadeDuration,
+      loudnessEnabled: s.loudnessEnabled,
+      loudnessTargetLufs: s.loudnessTargetLufs,
     }),
     sanitize: (persisted, current) => ({
       ...current,

@@ -1,13 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
-import { CrossfadePreview, ResumePreview } from '@/components/settings/PlaybackPreferencePreview';
+import {
+  CrossfadePreview,
+  ResumePreview,
+  LoudnessPreview,
+} from '@/components/settings/PlaybackPreferencePreview';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
 import {
   usePlaybackStore,
   SLEEP_FADE_MIN_SECONDS,
   SLEEP_FADE_MAX_SECONDS,
+  LOUDNESS_TARGET_MIN_LUFS,
+  LOUDNESS_TARGET_MAX_LUFS,
 } from '@/stores/usePlaybackStore';
+import { useLoudnessAnalysis } from '@/hooks/useLoudnessAnalysis';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
 
 export function PlaybackSection() {
@@ -24,6 +32,12 @@ export function PlaybackSection() {
 
   const sleepFadeDuration = usePlaybackStore(s => s.sleepFadeDuration);
   const setSleepFadeDuration = usePlaybackStore(s => s.setSleepFadeDuration);
+
+  const loudnessEnabled = usePlaybackStore(s => s.loudnessEnabled);
+  const loudnessTargetLufs = usePlaybackStore(s => s.loudnessTargetLufs);
+  const setLoudnessEnabled = usePlaybackStore(s => s.setLoudnessEnabled);
+  const setLoudnessTargetLufs = usePlaybackStore(s => s.setLoudnessTargetLufs);
+  const loudness = useLoudnessAnalysis();
 
   const updateSetting = (key: 'rememberPlaybackPosition', value: boolean) => {
     updateSettings.mutate({ [key]: value });
@@ -67,6 +81,61 @@ export function PlaybackSection() {
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-muted-foreground/60">1s</span>
               <span className="text-[10px] text-muted-foreground/60">12s</span>
+            </div>
+          </div>
+        )}
+
+        <SettingsToggleRow
+          divider
+          label={t('play.loudness')}
+          description={t('play.loudnessDesc')}
+          checked={loudnessEnabled}
+          onCheckedChange={setLoudnessEnabled}
+        />
+        <LoudnessPreview enabled={loudnessEnabled} target={loudnessTargetLufs} />
+
+        {loudnessEnabled && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">{t('play.loudnessTarget')}</p>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {loudnessTargetLufs} LUFS
+              </span>
+            </div>
+            <Slider
+              min={LOUDNESS_TARGET_MIN_LUFS}
+              max={LOUDNESS_TARGET_MAX_LUFS}
+              step={1}
+              value={[loudnessTargetLufs]}
+              onValueChange={([v]) => setLoudnessTargetLufs(v)}
+            />
+            <div className="flex justify-between mt-1">
+              <span className="text-[10px] text-muted-foreground/60">
+                {LOUDNESS_TARGET_MIN_LUFS} LUFS
+              </span>
+              <span className="text-[10px] text-muted-foreground/60">
+                {LOUDNESS_TARGET_MAX_LUFS} LUFS
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 mt-3">
+              <p className="text-xs text-muted-foreground">
+                {loudness.running
+                  ? t('play.loudnessAnalyzing', {
+                      current: loudness.current,
+                      total: loudness.total,
+                    })
+                  : t('play.loudnessAnalyzeDesc')}
+              </p>
+              {loudness.running ? (
+                <Button variant="ghost" size="sm" onClick={loudness.cancel}>
+                  {t('play.loudnessCancel')}
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={() => void loudness.start()}>
+                  {t('play.loudnessAnalyze')}
+                </Button>
+              )}
             </div>
           </div>
         )}

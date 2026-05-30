@@ -163,6 +163,13 @@ export const IPC_CHANNELS = {
     // DB row. Distinct from the automatic enrichment flow above.
     writeTags: 'metadata:write-tags',
   },
+  loudness: {
+    // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
+    // Measures integrated loudness per track and persists it on the DB row.
+    analyze: 'loudness:analyze',
+    cancel: 'loudness:cancel',
+    progress: 'loudness:progress',
+  },
   recommendations: {
     // Renderer-facing reads. `get` returns both shelves from the cache;
     // `refresh` runs the background job (affinity + yt-dlp RD-mix) and returns

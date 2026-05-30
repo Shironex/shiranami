@@ -2,6 +2,9 @@ import type {
   EnrichTrackInput,
   EnrichTrackResult,
   EnrichProgress,
+  LoudnessAnalyzeInput,
+  LoudnessAnalyzeResult,
+  LoudnessProgress,
   MetadataLookupResult,
   WriteTagsInput,
   WriteTagsResult,
@@ -148,6 +151,11 @@ export interface ElectronAPI {
       }) => void
     ) => () => void;
     cancelScan: () => Promise<void>;
+  };
+  loudness: {
+    analyze: (tracks: LoudnessAnalyzeInput[]) => Promise<LoudnessAnalyzeResult>;
+    cancel: () => Promise<void>;
+    onProgress: (callback: (data: LoudnessProgress) => void) => () => void;
   };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;

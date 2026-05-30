@@ -18,6 +18,7 @@ import { dialogApi, type DialogApi } from './api/dialog';
 import { discordApi, type DiscordApi } from './api/discord';
 import { downloaderApi, type DownloaderApi } from './api/downloader';
 import { libraryApi, type LibraryApi } from './api/library';
+import { loudnessApi, type LoudnessApi } from './api/loudness';
 import { lyricsApi, type LyricsApi } from './api/lyrics';
 import { weatherApi, type WeatherApi } from './api/weather';
 import { mediaApi, type MediaApi } from './api/media';
@@ -38,6 +39,7 @@ export interface ElectronAPI {
   dialog: DialogApi;
   app: AppApi;
   library: LibraryApi;
+  loudness: LoudnessApi;
   db: DbApi;
   lyrics: LyricsApi;
   weather: WeatherApi;
@@ -76,6 +78,7 @@ const electronAPI: ElectronAPI = {
   dialog: dialogApi,
   app: appApi,
   library: libraryApi,
+  loudness: loudnessApi,
   db: dbApi,
   lyrics: lyricsApi,
   weather: weatherApi,

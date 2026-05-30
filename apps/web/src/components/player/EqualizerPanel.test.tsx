@@ -23,10 +23,16 @@ const mockState = vi.hoisted(() => ({
     | 'custom',
   gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
   preampDb: 0,
+  customPresets: [] as { id: string; name: string; gains: number[] }[],
+  activeCustomId: null as string | null,
   setEnabled: vi.fn(),
   setBandGain: vi.fn(),
   setPreampDb: vi.fn(),
   applyPreset: vi.fn(),
+  applyCustomPreset: vi.fn(),
+  saveCustomPreset: vi.fn(),
+  renameCustomPreset: vi.fn(),
+  deleteCustomPreset: vi.fn(),
   reset: vi.fn(),
 }));
 
@@ -64,6 +70,8 @@ describe('EqualizerPanel', () => {
     mockState.preset = 'flat';
     mockState.gains = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     mockState.preampDb = 0;
+    mockState.customPresets = [];
+    mockState.activeCustomId = null;
     mockState.setEnabled.mockReset();
     mockState.setBandGain.mockReset();
     mockState.setPreampDb.mockReset();

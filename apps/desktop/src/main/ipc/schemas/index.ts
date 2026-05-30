@@ -12,6 +12,7 @@ export * from './dialog';
 export * from './discord-rpc';
 export * from './downloader';
 export * from './library';
+export * from './loudness';
 export * from './lyrics';
 export * from './media';
 export * from './metadata';

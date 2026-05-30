@@ -1,6 +1,7 @@
 import { Clock3, Music2, RadioTower } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { LOUDNESS_TARGET_MIN_LUFS, LOUDNESS_TARGET_MAX_LUFS } from '@/stores/usePlaybackStore';
 
 interface ResumePreviewProps {
   enabled: boolean;
@@ -9,6 +10,12 @@ interface ResumePreviewProps {
 interface CrossfadePreviewProps {
   enabled: boolean;
   duration: number;
+}
+
+interface LoudnessPreviewProps {
+  enabled: boolean;
+  /** Current target LUFS from the slider; drives the target line position. */
+  target: number;
 }
 
 export function ResumePreview({ enabled }: ResumePreviewProps) {
@@ -89,6 +96,54 @@ export function CrossfadePreview({ enabled, duration }: CrossfadePreviewProps) {
             </span>
           </div>
         </div>
+      </div>
+    </SettingsPreview>
+  );
+}
+
+// A few illustrative tracks at varying perceived loudness (as a 0..1 fraction
+// of the bar height). When leveling is OFF they sit at these raw levels; when
+// ON they converge toward the shared target line.
+const LOUDNESS_BARS = [0.34, 0.86, 0.52, 0.95, 0.68] as const;
+
+export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
+  const { t } = useTranslation('settings');
+
+  // Map the target LUFS onto the bar's 0..1 height (louder target = taller).
+  const targetFrac =
+    (target - LOUDNESS_TARGET_MIN_LUFS) / (LOUDNESS_TARGET_MAX_LUFS - LOUDNESS_TARGET_MIN_LUFS);
+  // Converge each bar toward the target line when leveling is on.
+  const levelFor = (raw: number) => (enabled ? targetFrac : raw);
+
+  return (
+    <SettingsPreview title={t('play.loudnessPreview')}>
+      <div className="rounded-xl border border-border/30 bg-background/40 p-3">
+        <div className="relative h-20 rounded-lg border border-border/25 bg-surface/60 px-3 pt-2 pb-3">
+          {/* Target loudness line */}
+          <div
+            className="pointer-events-none absolute inset-x-3 border-t border-dashed border-primary/50 transition-[bottom] duration-300"
+            style={{ bottom: `calc(0.75rem + ${targetFrac * 3.5}rem)` }}
+          >
+            <span className="absolute -top-3.5 right-0 text-[9px] tabular-nums text-primary/70">
+              {target} LUFS
+            </span>
+          </div>
+
+          {/* Track level bars */}
+          <div className="flex h-full items-end justify-between gap-2">
+            {LOUDNESS_BARS.map((raw, i) => (
+              <div
+                key={i}
+                className="w-full rounded-full bg-primary/45 transition-[height] duration-300"
+                style={{ height: `${Math.max(0.1, levelFor(raw)) * 3.5}rem` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          {enabled ? t('play.loudnessPreviewOn') : t('play.loudnessPreviewOff')}
+        </p>
       </div>
     </SettingsPreview>
   );

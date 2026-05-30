@@ -129,6 +129,11 @@ function createElectronAPIMock(): ElectronAPI {
       onScanProgress: vi.fn(() => noopUnsub()),
       cancelScan: asyncFn(undefined),
     },
+    loudness: {
+      analyze: asyncFn({ analyzed: 0, skipped: 0, failed: 0 }),
+      cancel: asyncFn(undefined),
+      onProgress: vi.fn(() => noopUnsub()),
+    },
     media: {
       onCommand: vi.fn(() => noopUnsub()),
       sendPlaybackState: vi.fn(),
