@@ -62,6 +62,12 @@ export function DownloadProgressButton({
     icon = <AlertCircle className="size-4" />;
     colorClass = 'text-destructive';
     borderClass = 'border-destructive/20';
+  } else if (disabled) {
+    // Force-disabled idle (e.g. a waiting playlist row during a batch import):
+    // mute it so it reads as inert rather than a clickable affordance.
+    icon = <Download className="size-4" />;
+    colorClass = 'text-muted-foreground/30';
+    borderClass = 'border-border/10';
   } else {
     icon = <Download className="size-4" />;
     colorClass = 'text-primary/80';

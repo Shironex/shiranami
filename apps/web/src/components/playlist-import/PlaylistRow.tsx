@@ -101,7 +101,11 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
         onClick={handleClick}
         className={cn(
           'group flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors relative overflow-hidden h-full cursor-pointer',
-          isSelected ? 'bg-primary/[0.12] ring-1 ring-primary/20' : 'hover:bg-accent/50'
+          isSelected
+            ? 'bg-primary/[0.12] ring-1 ring-primary/20'
+            : isActive
+              ? 'bg-primary/[0.04]'
+              : 'hover:bg-accent/50'
         )}
       >
         <span className="w-6 text-center text-xs text-muted-foreground/40 tabular-nums relative z-10">
