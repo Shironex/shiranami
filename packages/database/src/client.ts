@@ -70,6 +70,11 @@ export function initializeDatabase(
  * Run SQLite's built-in corruption checks. Logs a warning on failure rather
  * than throwing — a partially-readable database is still worth opening so the
  * user can export/recover, and the launch-time backup provides a fallback.
+ *
+ * Only the fast structural quick_check runs synchronously at init so launch
+ * stays non-blocking. The thorough integrity_check can block the main thread
+ * for several seconds on large DBs or slow disks, so it is deferred to the
+ * background after init returns.
  */
 function runIntegrityChecks(database: Database.Database): void {
   try {
@@ -77,15 +82,28 @@ function runIntegrityChecks(database: Database.Database): void {
     if (quick && quick !== 'ok') {
       console.warn(`[database] quick_check reported: ${String(quick)}`);
     }
-    const integrity = database.pragma('integrity_check', { simple: true });
-    if (integrity && integrity !== 'ok') {
-      console.warn(`[database] integrity_check reported: ${String(integrity)}`);
-    }
   } catch (err) {
-    console.warn('[database] integrity check failed to run:', err);
+    console.warn('[database] quick_check failed to run:', err);
   }
-}
 
+  // Defer the thorough (potentially slow) integrity_check off the startup
+  // path so it never blocks launch. It still surfaces corruption via the same
+  // warning, just after the UI has had a chance to load.
+  setImmediate(() => {
+    // The connection may have been closed before this fires.
+    if (sqliteDb !== database) {
+      return;
+    }
+    try {
+      const integrity = database.pragma('integrity_check', { simple: true });
+      if (integrity && integrity !== 'ok') {
+        console.warn(`[database] integrity_check reported: ${String(integrity)}`);
+      }
+    } catch (err) {
+      console.warn('[database] integrity_check failed to run:', err);
+    }
+  });
+}
 
 /**
  * Get the current database instance
