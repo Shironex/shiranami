@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import type { DiscoverRecommendation, DownloadQueueStatus } from '@shiranami/contracts';
@@ -28,6 +28,10 @@ function mapQueueStatus(status: DownloadQueueStatus): DownloadStatus {
  */
 export function useDiscoverDownload() {
   const byYoutubeId = useDownloadQueueStore(s => s.byYoutubeId);
+  // Synchronous guard against double-enqueue on rapid clicks: the store-derived
+  // status is empty until the first queue snapshot round-trips from main, so two
+  // fast clicks would otherwise both pass the status check and enqueue twice.
+  const inFlightRef = useRef<Set<string>>(new Set());
 
   const statuses = useMemo<Record<string, DownloadStatus>>(() => {
     const out: Record<string, DownloadStatus> = {};
@@ -40,9 +44,12 @@ export function useDiscoverDownload() {
   const download = useCallback(
     (item: DiscoverRecommendation) => {
       if (!IS_ELECTRON || statuses[item.youtubeId] === 'downloading') return;
+      if (inFlightRef.current.has(item.youtubeId)) return;
+      inFlightRef.current.add(item.youtubeId);
       window.electronAPI.downloader
         .enqueueDownload({ url: item.url, youtubeId: item.youtubeId, title: item.title })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => inFlightRef.current.delete(item.youtubeId));
     },
     [statuses]
   );
