@@ -99,6 +99,17 @@ export function registerLoudnessHandlers(): void {
 
           try {
             const lufs = await measureLoudness(track.filePath, abort.signal);
+            if (abort.signal.aborted) {
+              // Cancellation resolves measureLoudness to null; report it as
+              // cancelled rather than letting the null branch mark it skipped.
+              sendToRenderer(C.progress, {
+                current: i,
+                total,
+                trackName: track.title,
+                status: 'cancelled',
+              } satisfies LoudnessProgress);
+              break;
+            }
             if (lufs === null) {
               // Non-finite / missing file / ffmpeg unavailable — skip silently.
               skipped++;
