@@ -473,7 +473,18 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
         <TooltipContent side="top">{tPlayer('eqTooltip')}</TooltipContent>
       </Tooltip>
 
-      <PopoverContent side="top" align="center" className="w-[380px]">
+      <PopoverContent
+        side="top"
+        align="center"
+        className="w-[380px]"
+        onInteractOutside={e => {
+          // Keep the popover open while a save/delete dialog spawned from
+          // within it is active — Radix treats dialog interaction as outside.
+          if (nameDialog !== null || deleteTarget !== null) {
+            e.preventDefault();
+          }
+        }}
+      >
         {controls}
       </PopoverContent>
       {dialogs}
