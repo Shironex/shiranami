@@ -18,16 +18,20 @@ export const recommendationsNotInterestedArgs = z.tuple([z.string().min(1)]);
 // (0–23); `weather` is the optional opted-in condition bucket. Unknown weather
 // strings are coerced to 'unknown' so a tampered payload degrades gracefully
 // instead of throwing.
-const smartMixWeather = z.enum([
-  'clear',
-  'partly_cloudy',
-  'cloudy',
-  'rain',
-  'snow',
-  'thunderstorm',
-  'fog',
-  'unknown',
-]);
+const smartMixWeather = z
+  .enum([
+    'clear',
+    'partly_cloudy',
+    'cloudy',
+    'rain',
+    'snow',
+    'thunderstorm',
+    'fog',
+    'unknown',
+  ])
+  // `.catch` coerces any non-matching value to 'unknown' instead of throwing, so a
+  // tampered/stale weather string degrades gracefully rather than rejecting the call.
+  .catch('unknown');
 export const recommendationsSmartMixesArgs = z.tuple([
   z.object({
     hour: z.number().int().min(0).max(23),
