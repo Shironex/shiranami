@@ -164,7 +164,15 @@ function sanitize(persisted: Partial<PersistedEqState> | undefined): Partial<Per
   }
 
   if (typeof persisted.activeCustomId === 'string' || persisted.activeCustomId === null) {
-    out.activeCustomId = persisted.activeCustomId;
+    const presets = out.customPresets;
+    // Drop a dangling active id that no surviving sanitized preset resolves to.
+    // When customPresets weren't persisted we can't validate, so keep it as-is.
+    out.activeCustomId =
+      persisted.activeCustomId === null ||
+      presets === undefined ||
+      presets.some(p => p.id === persisted.activeCustomId)
+        ? persisted.activeCustomId
+        : null;
   }
 
   if (persisted.preampDb !== undefined) {
