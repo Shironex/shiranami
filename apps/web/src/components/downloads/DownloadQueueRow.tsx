@@ -68,8 +68,10 @@ export function DownloadQueueRow({ item, onCancel }: DownloadQueueRowProps) {
           status={toDownloadStatus(item.status)}
           ariaLabel={statusLabel}
           title={item.status === 'error' ? item.error : undefined}
-          // The row's own status button is presentational here — cancellation is
-          // the dedicated X button below. Idle/done/etc. are never clickable.
+          // The status glyph is presentational here — cancellation is the
+          // dedicated X button. Force-disable so terminal rows (error/canceled)
+          // don't render a clickable-looking no-op.
+          disabled
           onDownload={() => {}}
         />
         {isCancellable && (

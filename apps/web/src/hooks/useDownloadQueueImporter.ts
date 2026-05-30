@@ -215,7 +215,15 @@ export function useDownloadQueueImporter(): void {
     };
 
     handleSnapshot();
-    const unsubscribe = useDownloadQueueStore.subscribe(handleSnapshot);
-    return unsubscribe;
+    // Subscribe to BOTH stores: queue snapshots advance item status, but the
+    // batch's `sealBatch` (which makes a batch eligible to resolve) mutates only
+    // the batch store — and may land after the final queue snapshot. Re-running
+    // on batch-store changes guarantees the resolution trigger can't be missed.
+    const unsubQueue = useDownloadQueueStore.subscribe(handleSnapshot);
+    const unsubBatch = useDownloadBatchStore.subscribe(() => void runBatchCoordination());
+    return () => {
+      unsubQueue();
+      unsubBatch();
+    };
   }, [importTrack]);
 }
