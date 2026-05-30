@@ -18,6 +18,13 @@ export const tracks = sqliteTable('tracks', {
   trackNumber: integer('track_number'),
   discNumber: integer('disc_number'),
   albumArt: text('album_art'),
+  /**
+   * Integrated loudness (EBU R128 / ITU-R BS.1770) in LUFS, measured by ffmpeg
+   * `loudnorm`. Stored as the raw measurement (not a precomputed gain) so the
+   * playback gain can be recomputed instantly when the user changes the target
+   * LUFS without re-analysing every track. `null` = not yet analysed.
+   */
+  loudnessLufs: real('loudness_lufs'),
   isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
   playCount: integer('play_count').default(0),
   createdAt: text('created_at')

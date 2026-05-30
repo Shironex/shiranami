@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -148,6 +148,10 @@ const MIGRATIONS: EmbeddedMigration[] = [
       'ALTER TABLE `tracks` ADD `album_artist` text',
       'CREATE INDEX IF NOT EXISTS `idx_tracks_album_artist` ON `tracks`(`album_artist`)',
     ],
+  },
+  {
+    name: '20260101000002_track_loudness',
+    statements: ['ALTER TABLE `tracks` ADD `loudness_lufs` real'],
   },
 ];
 
@@ -268,8 +272,7 @@ export function runMigrations(sqlite: Database.Database): void {
     | { user_version?: number }
     | number
     | undefined;
-  const dbVersion =
-    typeof versionRow === 'number' ? versionRow : (versionRow?.user_version ?? 0);
+  const dbVersion = typeof versionRow === 'number' ? versionRow : (versionRow?.user_version ?? 0);
   assertNotDowngrade(dbVersion);
 
   if (isLegacyUnversionedDb(sqlite)) {
