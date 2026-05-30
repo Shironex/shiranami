@@ -279,6 +279,7 @@ export const useEqStore = createPersistedStore<EqState>(
       preampDb: s.preampDb,
       gains: s.gains,
       customPresets: s.customPresets,
+      activeCustomId: s.activeCustomId,
     }),
     sanitize: (persisted, current) => ({
       ...current,
