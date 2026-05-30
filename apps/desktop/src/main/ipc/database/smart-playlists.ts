@@ -211,7 +211,9 @@ export function registerSmartPlaylistHandlers(): void {
       }
     ) => {
       const db = getDatabase();
-      const patch: Partial<NewSmartPlaylist> = { updatedAt: new Date().toISOString() };
+      const patch: Partial<Omit<NewSmartPlaylist, 'updatedAt'>> & { updatedAt: SQL } = {
+        updatedAt: sql`datetime('now')`,
+      };
       if (data.name !== undefined) patch.name = data.name;
       if (data.description !== undefined) patch.description = data.description;
       if (data.matchType !== undefined) patch.matchType = data.matchType;
