@@ -14,6 +14,12 @@ interface DownloadProgressButtonProps {
   status: DownloadStatus;
   /** Accessible label; varies per call site, so it's passed in. */
   ariaLabel: string;
+  /**
+   * Optional tooltip for sighted users (e.g. the raw error message on retry).
+   * Kept separate from `ariaLabel` so screen readers get a clean, actionable
+   * label instead of an unlocalized technical string.
+   */
+  title?: string;
   /** Fired on click for the idle/error (retry) states. */
   onDownload: () => void;
   /**
@@ -35,6 +41,7 @@ interface DownloadProgressButtonProps {
 export function DownloadProgressButton({
   status,
   ariaLabel,
+  title,
   onDownload,
   disabled = false,
   className,
@@ -80,6 +87,7 @@ export function DownloadProgressButton({
       onClick={isDisabled ? undefined : onDownload}
       disabled={isDisabled}
       aria-label={ariaLabel}
+      title={title}
       aria-busy={isBusy ? 'true' : undefined}
       className={cn(
         'flex size-8 shrink-0 items-center justify-center rounded-lg border transition-colors hover:border-border/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-100',
