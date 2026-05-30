@@ -266,7 +266,13 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
         action: {
           label: tToast('undo'),
           onClick: () => {
-            void window.electronAPI.recommendations.undoNotInterested(trackId);
+            void (async () => {
+              try {
+                await window.electronAPI.recommendations.undoNotInterested(trackId);
+              } catch {
+                toast.error(tToast('failedUndoNotInterested'));
+              }
+            })();
           },
         },
       });
