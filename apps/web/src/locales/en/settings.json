@@ -554,6 +554,13 @@
     "listenBrainzInvalid": "That ListenBrainz token isn't valid.",
     "listenBrainzTokenPlaceholder": "ListenBrainz user token",
     "listenBrainzTokenLabel": "ListenBrainz user token",
+    "explainer": "When a track plays past the listening threshold, Shiranami quietly submits it to the services you connect below — building your listening history without ever interrupting playback.",
+    "lastfmHint": "Connect opens your browser to authorize Shiranami with your Last.fm account, then bring you back here to finish.",
+    "lastfmOpenBrowser": "Authorize in browser",
+    "listenBrainzTokenHint": "Paste your user token to connect. <1>Find your token</1> on your ListenBrainz settings page.",
+    "listenBrainzTokenHintLink": "Find your token",
+    "statusConnected": "Connected",
+    "statusNotConnected": "Not connected",
     "pending_one": "{{count}} play waiting to be submitted",
     "pending_other": "{{count}} plays waiting to be submitted",
     "note": "Your session key and token are stored locally and never leave your device except to scrobble. Scrobbling never blocks playback."

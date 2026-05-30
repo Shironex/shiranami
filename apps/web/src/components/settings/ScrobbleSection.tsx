@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Radio, Info, Loader2, Check, X } from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import { Radio, Info, Loader2, Check, X, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,6 +12,50 @@ import {
   SettingsToggleRow,
 } from '@/components/settings/SettingsCard';
 import type { ScrobbleStatus } from '@shiranami/contracts';
+
+const LISTENBRAINZ_SETTINGS_URL = 'https://listenbrainz.org/settings/';
+
+/**
+ * A small "Connected" / "Not connected" pill. External links open via the
+ * app's window-open handler (`shell.openExternal`), so `target="_blank"` never
+ * navigates the Electron window — see `apps/desktop/src/main/window.ts`.
+ */
+function StatusPill({ connected, label }: { connected: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        connected ? 'bg-primary/12 text-primary' : 'bg-muted/40 text-muted-foreground'
+      )}
+    >
+      <span
+        className={cn('size-1.5 rounded-full', connected ? 'bg-primary' : 'bg-muted-foreground/50')}
+      />
+      {label}
+    </span>
+  );
+}
+
+function ProviderHeader({
+  name,
+  connected,
+  statusLabel,
+}: {
+  name: string;
+  connected: boolean;
+  statusLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <p className="text-sm font-medium text-foreground">{name}</p>
+      <StatusPill connected={connected} label={statusLabel} />
+    </div>
+  );
+}
+
+function ProviderRow({ children }: { children: ReactNode }) {
+  return <div className="space-y-2.5 border-t border-border/30 pt-4">{children}</div>;
+}
 
 const EMPTY_STATUS: ScrobbleStatus = {
   enabled: false,
@@ -133,16 +178,28 @@ export function ScrobbleSection() {
           onCheckedChange={enabled => void handleToggle(enabled)}
         />
 
+        <p className="border-t border-border/30 pt-4 text-xs leading-relaxed text-muted-foreground">
+          {t('scrobbleSettings.explainer')}
+        </p>
+
         {/* Last.fm */}
-        <div className="space-y-2 border-t border-border/30 pt-4">
+        <ProviderRow>
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground">{t('scrobbleSettings.lastfm')}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {status.lastfmConnected
-                  ? t('scrobbleSettings.connectedAs', { name: status.lastfmUsername ?? '' })
-                  : t('scrobbleSettings.notConnected')}
-              </p>
+              <ProviderHeader
+                name={t('scrobbleSettings.lastfm')}
+                connected={status.lastfmConnected}
+                statusLabel={
+                  status.lastfmConnected
+                    ? t('scrobbleSettings.statusConnected')
+                    : t('scrobbleSettings.statusNotConnected')
+                }
+              />
+              {status.lastfmConnected && status.lastfmUsername && (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  {t('scrobbleSettings.connectedAs', { name: status.lastfmUsername })}
+                </p>
+              )}
             </div>
             {status.lastfmConnected ? (
               <Button
@@ -182,68 +239,95 @@ export function ScrobbleSection() {
                 {busy === 'lastfm' ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Check className="size-4" />
+                  <ExternalLink className="size-4" />
                 )}
                 {t('scrobbleSettings.connect')}
               </Button>
             )}
           </div>
-          {lastfmPendingToken && !status.lastfmConnected && (
-            <p className="text-xs text-muted-foreground/70">
-              {t('scrobbleSettings.lastfmApprovePrompt')}
+          {!status.lastfmConnected && (
+            <p className="text-xs leading-relaxed text-muted-foreground/70">
+              {lastfmPendingToken
+                ? t('scrobbleSettings.lastfmApprovePrompt')
+                : t('scrobbleSettings.lastfmHint')}
             </p>
           )}
-        </div>
+        </ProviderRow>
 
         {/* ListenBrainz */}
-        <div className="space-y-2 border-t border-border/30 pt-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">
-              {t('scrobbleSettings.listenBrainz')}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {status.listenBrainzConnected
-                ? t('scrobbleSettings.connected')
-                : t('scrobbleSettings.notConnected')}
-            </p>
+        <ProviderRow>
+          <div className="flex items-center justify-between gap-2">
+            <ProviderHeader
+              name={t('scrobbleSettings.listenBrainz')}
+              connected={status.listenBrainzConnected}
+              statusLabel={
+                status.listenBrainzConnected
+                  ? t('scrobbleSettings.statusConnected')
+                  : t('scrobbleSettings.statusNotConnected')
+              }
+            />
+            {status.listenBrainzConnected && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void handleDisconnectListenBrainz()}
+                className="shrink-0"
+              >
+                <X className="size-4" />
+                {t('scrobbleSettings.disconnect')}
+              </Button>
+            )}
           </div>
 
-          {status.listenBrainzConnected ? (
-            <Button variant="ghost" size="sm" onClick={() => void handleDisconnectListenBrainz()}>
-              <X className="size-4" />
-              {t('scrobbleSettings.disconnect')}
-            </Button>
-          ) : (
-            <form
-              className="flex items-center gap-2"
-              onSubmit={e => {
-                e.preventDefault();
-                void handleConnectListenBrainz();
-              }}
-            >
-              <Input
-                value={lbToken}
-                onChange={e => setLbToken(e.target.value)}
-                placeholder={t('scrobbleSettings.listenBrainzTokenPlaceholder')}
-                aria-label={t('scrobbleSettings.listenBrainzTokenLabel')}
-                type="password"
-                className="flex-1"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={busy === 'listenbrainz' || lbToken.trim().length === 0}
+          {!status.listenBrainzConnected && (
+            <>
+              <form
+                className="flex items-center gap-2"
+                onSubmit={e => {
+                  e.preventDefault();
+                  void handleConnectListenBrainz();
+                }}
               >
-                {busy === 'listenbrainz' ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Check className="size-4" />
-                )}
-                {t('scrobbleSettings.connect')}
-              </Button>
-            </form>
+                <Input
+                  value={lbToken}
+                  onChange={e => setLbToken(e.target.value)}
+                  placeholder={t('scrobbleSettings.listenBrainzTokenPlaceholder')}
+                  aria-label={t('scrobbleSettings.listenBrainzTokenLabel')}
+                  type="password"
+                  className="flex-1"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={busy === 'listenbrainz' || lbToken.trim().length === 0}
+                >
+                  {busy === 'listenbrainz' ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Check className="size-4" />
+                  )}
+                  {t('scrobbleSettings.connect')}
+                </Button>
+              </form>
+              <p className="text-xs leading-relaxed text-muted-foreground/70">
+                <Trans
+                  t={t}
+                  i18nKey="scrobbleSettings.listenBrainzTokenHint"
+                  components={{
+                    1: (
+                      <a
+                        href={LISTENBRAINZ_SETTINGS_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                      />
+                    ),
+                  }}
+                />
+              </p>
+            </>
           )}
-        </div>
+        </ProviderRow>
 
         {status.pendingCount > 0 && (
           <p className="border-t border-border/30 pt-3 text-xs text-muted-foreground/70">
