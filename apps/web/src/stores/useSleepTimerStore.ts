@@ -49,6 +49,9 @@ function clearFade() {
 
 function startTick() {
   clearTick();
+  // Abort any in-progress fade-out from a previous timer so it can't pause the
+  // newly started playback; this also restores the pre-fade volume.
+  clearFade();
   tickInterval = setInterval(() => {
     useSleepTimerStore.getState().tick();
   }, 1000);
