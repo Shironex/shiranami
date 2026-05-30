@@ -436,6 +436,8 @@ export interface ElectronAPI {
     get: () => Promise<RecommendationShelves>;
     refresh: () => Promise<RecommendationShelves>;
     similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
+    notInterested: (trackId: string) => Promise<void>;
+    undoNotInterested: (trackId: string) => Promise<void>;
   };
   system: {
     onNotice: (callback: (notice: SystemNotice) => void) => () => void;

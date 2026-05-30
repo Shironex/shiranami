@@ -179,6 +179,11 @@ export const IPC_CHANNELS = {
     // "More like this" / song-radio: rank existing library tracks by content
     // similarity to a seed track id (offline; @shiranami/recommendation core).
     similar: 'recommendations:similar',
+    // Negative signal: mark a track "Not interested" so the affinity engine
+    // drops it (and softly downranks its artist). Idempotent per track.
+    notInterested: 'recommendations:not-interested',
+    // Undo a "Not interested" mark (removes the negative signal for a track).
+    undoNotInterested: 'recommendations:undo-not-interested',
   },
   share: {
     track: 'share:track',

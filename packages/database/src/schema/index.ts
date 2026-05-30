@@ -21,3 +21,9 @@ export {
 } from './youtube-mappings.js';
 
 export { recommendations, type Recommendation, type NewRecommendation } from './recommendations.js';
+
+export {
+  negativeSignals,
+  type NegativeSignal,
+  type NewNegativeSignal,
+} from './negative-signals.js';

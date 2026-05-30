@@ -13,6 +13,7 @@ import {
   Disc3,
   Pencil,
   Radio,
+  ThumbsDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
@@ -252,6 +253,35 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
     onClose();
   }, [track.id, onClose, moreLikeThisMutation]);
 
+  // Negative signal: mark this track "Not interested". Fire-and-forget; the
+  // affinity engine drops it (and softly downranks its artist) on the next
+  // recommendation read. Offers an undo via the toast action.
+  const notInterestedMutation = useMutation({
+    mutationFn: async (trackId: string) => {
+      if (!IS_ELECTRON) return;
+      await window.electronAPI.recommendations.notInterested(trackId);
+    },
+    onSuccess: (_data, trackId) => {
+      toast.success(tToast('markedNotInterested'), {
+        action: {
+          label: tToast('undo'),
+          onClick: () => {
+            void window.electronAPI.recommendations.undoNotInterested(trackId);
+          },
+        },
+      });
+    },
+    onError: () => {
+      toast.error(tToast('failedNotInterested'));
+    },
+  });
+
+  const handleNotInterested = useCallback(() => {
+    if (!IS_ELECTRON) return;
+    notInterestedMutation.mutate(track.id);
+    onClose();
+  }, [track.id, onClose, notInterestedMutation]);
+
   const handleShowInFolder = useCallback(() => {
     if (!IS_ELECTRON) return;
     showInFolderMutation.mutate(track.filePath);
@@ -316,6 +346,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
             icon={<Radio className="w-4 h-4" />}
             label={t('moreLikeThis')}
             onClick={handleMoreLikeThis}
+          />
+        )}
+
+        {IS_ELECTRON && !isBulk && (
+          <MenuItem
+            icon={<ThumbsDown className="w-4 h-4" />}
+            label={t('notInterested')}
+            onClick={handleNotInterested}
           />
         )}
 

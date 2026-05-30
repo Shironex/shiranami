@@ -305,6 +305,8 @@ function createElectronAPIMock(): ElectronAPI {
         discover: { kind: 'discover', items: [], generatedAt: null, stale: true },
       }),
       similar: asyncFn([]),
+      notInterested: asyncFn(undefined),
+      undoNotInterested: asyncFn(undefined),
     },
     platform: 'win32',
     __e2e: false,

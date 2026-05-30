@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
-import { tracks, playlists, playlistTracks } from '@shiranami/database';
+import { tracks, playlists, playlistTracks, negativeSignals } from '@shiranami/database';
 import type { SimilarTrackResult } from '@shiranami/contracts';
 import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
 import { cleanupRecommendationsHandlers, registerRecommendationsHandlers } from './recommendations';
@@ -79,5 +79,63 @@ describe('recommendations:similar ipc (integration)', () => {
 
   it('rejects an empty seed id via zod validation', async () => {
     await expect(invokeSimilar('')).rejects.toThrow();
+  });
+});
+
+describe('recommendations:not-interested ipc (integration)', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    ipcHandlers.clear();
+    closeDatabase();
+    tempDir = makeTempDir();
+    initializeDatabase({ path: join(tempDir, 'app.sqlite') });
+    registerRecommendationsHandlers();
+  });
+
+  afterEach(() => {
+    cleanupRecommendationsHandlers();
+    closeDatabase();
+    cleanupTempDir(tempDir);
+  });
+
+  function insertTrack(id: string, artist: string) {
+    getDatabase()
+      .insert(tracks)
+      .values({ id, filePath: `/music/${id}.mp3`, title: id, artist, album: 'A' })
+      .run();
+  }
+
+  function invokeMark(trackId: string): Promise<void> {
+    const handler = ipcHandlers.get('recommendations:not-interested')!;
+    return handler(null as never, trackId) as Promise<void>;
+  }
+
+  function invokeUndo(trackId: string): Promise<void> {
+    const handler = ipcHandlers.get('recommendations:undo-not-interested')!;
+    return handler(null as never, trackId) as Promise<void>;
+  }
+
+  function dislikedCount(): number {
+    return getDatabase().select().from(negativeSignals).all().length;
+  }
+
+  it('persists a negative signal and is idempotent per track', async () => {
+    insertTrack('t1', 'Artist');
+    await invokeMark('t1');
+    await invokeMark('t1');
+    expect(dislikedCount()).toBe(1);
+  });
+
+  it('undo removes the negative signal', async () => {
+    insertTrack('t1', 'Artist');
+    await invokeMark('t1');
+    expect(dislikedCount()).toBe(1);
+    await invokeUndo('t1');
+    expect(dislikedCount()).toBe(0);
+  });
+
+  it('rejects an empty track id via zod validation', async () => {
+    await expect(invokeMark('')).rejects.toThrow();
   });
 });

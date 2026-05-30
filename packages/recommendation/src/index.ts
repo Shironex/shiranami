@@ -8,5 +8,10 @@
  */
 
 export * from './types.js';
-export { affinityScore, rankByAffinity, selectSeedTracks } from './affinity.js';
+export {
+  affinityScore,
+  rankByAffinity,
+  selectSeedTracks,
+  DEFAULT_ARTIST_DISLIKE_PENALTY,
+} from './affinity.js';
 export { similarityScore, rankBySimilarity } from './similarity.js';

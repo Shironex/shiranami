@@ -14,10 +14,16 @@ export interface RecommendationsApi {
   refresh: () => Promise<RecommendationShelves>;
   /** "More like this": rank library tracks by content similarity to a seed. */
   similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
+  /** Mark a track "Not interested" so the affinity engine stops surfacing it. */
+  notInterested: (trackId: string) => Promise<void>;
+  /** Undo a previous "Not interested" mark for a track. */
+  undoNotInterested: (trackId: string) => Promise<void>;
 }
 
 export const recommendationsApi: RecommendationsApi = {
   get: () => ipcRenderer.invoke(C.get),
   refresh: () => ipcRenderer.invoke(C.refresh),
   similar: (seedTrackId: string) => ipcRenderer.invoke(C.similar, seedTrackId),
+  notInterested: (trackId: string) => ipcRenderer.invoke(C.notInterested, trackId),
+  undoNotInterested: (trackId: string) => ipcRenderer.invoke(C.undoNotInterested, trackId),
 };

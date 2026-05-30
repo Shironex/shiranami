@@ -8,12 +8,15 @@ import {
   computeSimilarTracks,
   getRecommendationShelves,
   triggerRefresh,
+  markNotInterested,
+  undoNotInterested,
 } from '../recommendation-service';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import {
   recommendationsGetArgs,
   recommendationsRefreshArgs,
   recommendationsSimilarArgs,
+  recommendationsNotInterestedArgs,
 } from './schemas/recommendations';
 
 const C = IPC_CHANNELS.recommendations;
@@ -54,10 +57,27 @@ export function registerRecommendationsHandlers(): void {
       computeSimilarTracks(seedTrackId),
     { schema: recommendationsSimilarArgs }
   );
+
+  // Negative signal: persist a "Not interested" mark so affinity stops
+  // surfacing the track (and softly downranks its artist). Idempotent.
+  handle(
+    C.notInterested,
+    async (_event, trackId: string): Promise<void> => markNotInterested(trackId),
+    { schema: recommendationsNotInterestedArgs }
+  );
+
+  // Undo a "Not interested" mark.
+  handle(
+    C.undoNotInterested,
+    async (_event, trackId: string): Promise<void> => undoNotInterested(trackId),
+    { schema: recommendationsNotInterestedArgs }
+  );
 }
 
 export function cleanupRecommendationsHandlers(): void {
   ipcMain.removeHandler(C.get);
   ipcMain.removeHandler(C.refresh);
   ipcMain.removeHandler(C.similar);
+  ipcMain.removeHandler(C.notInterested);
+  ipcMain.removeHandler(C.undoNotInterested);
 }
