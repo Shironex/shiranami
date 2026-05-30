@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
+import { mapDbTrackToTrack } from '@/lib/trackMapper';
 
 interface EditTagsDialogProps {
   open: boolean;
@@ -86,11 +86,34 @@ export function EditTagsDialog({ open, onOpenChange, trackId }: EditTagsDialogPr
         return;
       }
 
-      // The handler already wrote the DB row; refresh the library so memoized
-      // selectors and album grouping pick up the new tags.
-      const allDbTracks = await window.electronAPI.db.tracks.getAll();
-      const refreshed = mapDbTracksToTracks(allDbTracks as DbTrackRecord[]);
-      useLibraryStore.getState().setLibrary(refreshed);
+      // The handler already wrote the DB row. Rather than refetching the entire
+      // library (an O(n) re-map that lags as the library grows past 10k tracks),
+      // patch just the edited track in the local store. We route the written
+      // values back through the same mapper used for DB loads so field
+      // normalization (artist/albumArtist fallbacks, etc.) stays the single
+      // source of truth, then hand only the tag fields to `updateTrackTags` —
+      // omitting isFavorite/playCount so the session overlay still merges on top.
+      const normalized = mapDbTrackToTrack({
+        ...track,
+        title: form.title,
+        artist: form.artist,
+        albumArtist: form.albumArtist,
+        album: form.album,
+        genre: form.genre,
+        year: input.year,
+        trackNumber: input.trackNumber,
+        discNumber: input.discNumber,
+      });
+      useLibraryStore.getState().updateTrackTags(track.id, {
+        title: normalized.title,
+        artist: normalized.artist,
+        albumArtist: normalized.albumArtist,
+        album: normalized.album,
+        genre: normalized.genre,
+        year: normalized.year,
+        trackNumber: normalized.trackNumber,
+        discNumber: normalized.discNumber,
+      });
 
       toast.success(t('savedToast'));
       onOpenChange(false);
