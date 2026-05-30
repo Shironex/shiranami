@@ -23,6 +23,8 @@ import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
+import { getDownloadQueue } from '../download-queue';
+import type { EnqueueDownloadInput } from '@shiranami/contracts';
 import { isHttpUrl } from '../shared/url-safety';
 import {
   spawnYtDlp,
@@ -56,6 +58,10 @@ import {
   downloaderInstallFfmpegArgs,
   downloaderGetStreamUrlArgs,
   downloaderInstallDependenciesArgs,
+  downloaderEnqueueArgs,
+  downloaderQueueCancelArgs,
+  downloaderClearCompletedArgs,
+  downloaderGetQueueArgs,
 } from './schemas/downloader';
 
 export type { SearchResult };
@@ -342,6 +348,44 @@ export function registerDownloaderHandlers(): void {
     { schema: downloaderDownloadArgs }
   );
 
+  const downloadQueue = getDownloadQueue({ getDownloadDir });
+
+  handle(
+    C.enqueue,
+    async (_event, input: EnqueueDownloadInput) => {
+      // Same argument-injection guard as the legacy `download` handler.
+      if (!isHttpUrl(input.url)) {
+        throw new IpcError('downloader.invalid_url', 'Refusing to download a non-http(s) URL');
+      }
+      return downloadQueue.enqueue(input);
+    },
+    { schema: downloaderEnqueueArgs }
+  );
+
+  handle(
+    C.cancel,
+    async (_event, id: string) => {
+      downloadQueue.cancel(id);
+    },
+    { schema: downloaderQueueCancelArgs }
+  );
+
+  handle(
+    C.clearCompleted,
+    async () => {
+      downloadQueue.clearCompleted();
+    },
+    { schema: downloaderClearCompletedArgs }
+  );
+
+  handle(
+    C.getQueue,
+    async () => {
+      return downloadQueue.getSnapshot();
+    },
+    { schema: downloaderGetQueueArgs }
+  );
+
   handle(
     C.getStreamUrl,
     async (_event, url: string) => {
@@ -511,6 +555,10 @@ export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler(C.check);
   ipcMain.removeHandler(C.search);
   ipcMain.removeHandler(C.download);
+  ipcMain.removeHandler(C.enqueue);
+  ipcMain.removeHandler(C.cancel);
+  ipcMain.removeHandler(C.clearCompleted);
+  ipcMain.removeHandler(C.getQueue);
   ipcMain.removeHandler(C.getStreamUrl);
   ipcMain.removeHandler(C.installYtdlp);
   ipcMain.removeHandler(C.getYtdlpPath);
