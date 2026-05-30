@@ -623,7 +623,11 @@ export function useAudioEngine() {
               _setIsPlaying(false);
             }
           });
-          animationFrameRef.current = requestAnimationFrame(updateTime);
+          // NOTE: do not start a RAF loop here. The play/pause sync effect
+          // already runs `updateTime`, which self-perpetuates while playing.
+          // Spawning a second loop overwrites animationFrameRef.current,
+          // double-executes updateTime per frame, and leaks a loop that
+          // cancelAnimationFrame can no longer reach.
         }
       }
       _setIsLoading(false);
