@@ -66,6 +66,8 @@ import {
   cleanupShareHandlers,
   registerMetadataEnrichHandlers,
   cleanupMetadataEnrichHandlers,
+  registerLoudnessHandlers,
+  cleanupLoudnessHandlers,
   registerRecommendationsHandlers,
   cleanupRecommendationsHandlers,
 } from './';
@@ -89,6 +91,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerPlaylistHandlers();
   registerShareHandlers();
   registerMetadataEnrichHandlers();
+  registerLoudnessHandlers();
   registerRecommendationsHandlers();
 }
 
@@ -111,5 +114,6 @@ export function cleanupIpcHandlers(): void {
   cleanupPlaylistHandlers();
   cleanupShareHandlers();
   cleanupMetadataEnrichHandlers();
+  cleanupLoudnessHandlers();
   cleanupRecommendationsHandlers();
 }
