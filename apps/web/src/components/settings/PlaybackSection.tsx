@@ -1,7 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
-import { CrossfadePreview, ResumePreview } from '@/components/settings/PlaybackPreferencePreview';
+import {
+  CrossfadePreview,
+  ResumePreview,
+  LoudnessPreview,
+} from '@/components/settings/PlaybackPreferencePreview';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import {
@@ -88,6 +92,7 @@ export function PlaybackSection() {
           checked={loudnessEnabled}
           onCheckedChange={setLoudnessEnabled}
         />
+        <LoudnessPreview enabled={loudnessEnabled} target={loudnessTargetLufs} />
 
         {loudnessEnabled && (
           <div className="px-3 pt-3 pb-1">
