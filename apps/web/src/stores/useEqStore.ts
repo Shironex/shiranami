@@ -51,17 +51,38 @@ export const EQ_MAX_DB = 12;
 const BAND_COUNT = EQ_BANDS.length;
 const GAIN_EPSILON = 0.001;
 
+/** Max length of a user preset name (trimmed). */
+export const EQ_PRESET_NAME_MAX = 40;
+
+/** A user-saved custom EQ preset (named snapshot of the 10 band gains). */
+export interface CustomEqPreset {
+  id: string;
+  name: string;
+  gains: number[];
+}
+
 export interface EqState {
   enabled: boolean;
   preset: EqPresetId;
   preampDb: number;
   gains: number[];
+  /** User-saved named presets, persisted alongside the built-ins. */
+  customPresets: CustomEqPreset[];
+  /** Id of the active user preset, or null when a built-in/custom is active. */
+  activeCustomId: string | null;
 
   setEnabled: (on: boolean) => void;
   setBandGain: (index: number, db: number) => void;
   setPreampDb: (db: number) => void;
   applyPreset: (id: EqPresetId) => void;
   reset: () => void;
+
+  /** Save the current band gains as a new named preset. Returns its id (or null
+   * when the name is empty after trimming). */
+  saveCustomPreset: (name: string) => string | null;
+  renameCustomPreset: (id: string, name: string) => void;
+  deleteCustomPreset: (id: string) => void;
+  applyCustomPreset: (id: string) => void;
 }
 
 interface PersistedEqState {
@@ -69,6 +90,7 @@ interface PersistedEqState {
   preset: EqPresetId;
   preampDb: number;
   gains: number[];
+  customPresets: CustomEqPreset[];
 }
 
 function clampDb(db: number): number {
@@ -101,13 +123,43 @@ const DEFAULT_STATE: PersistedEqState = {
   preset: 'flat',
   preampDb: 0,
   gains: [...EQ_PRESETS.flat],
+  customPresets: [],
 };
+
+/** Validate + normalise a band-gain array from persisted/untrusted input. */
+function sanitizeGains(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length !== BAND_COUNT) return null;
+  return value.map(v => clampDb(Number(v)));
+}
+
+/** Validate + normalise the persisted custom-preset list. Drops malformed
+ * entries (bad gains, empty name, duplicate id) defensively. */
+function sanitizeCustomPresets(value: unknown): CustomEqPreset[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: CustomEqPreset[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Partial<CustomEqPreset>;
+    const gains = sanitizeGains(e.gains);
+    if (typeof e.id !== 'string' || typeof e.name !== 'string' || !gains) continue;
+    const name = e.name.trim().slice(0, EQ_PRESET_NAME_MAX);
+    if (!name || seen.has(e.id)) continue;
+    seen.add(e.id);
+    out.push({ id: e.id, name, gains });
+  }
+  return out;
+}
 
 function sanitize(persisted: Partial<PersistedEqState> | undefined): Partial<PersistedEqState> {
   if (!persisted || typeof persisted !== 'object') return {};
   const out: Partial<PersistedEqState> = {};
 
   if (typeof persisted.enabled === 'boolean') out.enabled = persisted.enabled;
+
+  if (persisted.customPresets !== undefined) {
+    out.customPresets = sanitizeCustomPresets(persisted.customPresets);
+  }
 
   if (persisted.preampDb !== undefined) {
     out.preampDb = clampDb(Number(persisted.preampDb));
@@ -142,6 +194,8 @@ export const useEqStore = createPersistedStore<EqState>(
     preset: DEFAULT_STATE.preset,
     preampDb: DEFAULT_STATE.preampDb,
     gains: [...DEFAULT_STATE.gains],
+    customPresets: [],
+    activeCustomId: null,
 
     setEnabled: on => set({ enabled: on }),
 
@@ -151,7 +205,8 @@ export const useEqStore = createPersistedStore<EqState>(
       const gains = [...get().gains];
       if (Math.abs(gains[index] - clamped) <= GAIN_EPSILON) return;
       gains[index] = clamped;
-      set({ gains, preset: detectPreset(gains) });
+      // A manual band edit detaches from any active user preset.
+      set({ gains, preset: detectPreset(gains), activeCustomId: null });
     },
 
     setPreampDb: db => set({ preampDb: clampDb(db) }),
@@ -160,7 +215,7 @@ export const useEqStore = createPersistedStore<EqState>(
       if (id === 'custom') return;
       const preset = EQ_PRESETS[id];
       if (!preset) return;
-      set({ preset: id, gains: [...preset] });
+      set({ preset: id, gains: [...preset], activeCustomId: null });
     },
 
     reset: () =>
@@ -168,7 +223,46 @@ export const useEqStore = createPersistedStore<EqState>(
         preset: 'flat',
         preampDb: 0,
         gains: [...EQ_PRESETS.flat],
+        activeCustomId: null,
       }),
+
+    saveCustomPreset: name => {
+      const trimmed = name.trim().slice(0, EQ_PRESET_NAME_MAX);
+      if (!trimmed) return null;
+      const id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `eq-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const entry: CustomEqPreset = { id, name: trimmed, gains: [...get().gains] };
+      set(s => ({
+        customPresets: [...s.customPresets, entry],
+        // The just-saved preset becomes the active selection.
+        preset: 'custom',
+        activeCustomId: id,
+      }));
+      return id;
+    },
+
+    renameCustomPreset: (id, name) => {
+      const trimmed = name.trim().slice(0, EQ_PRESET_NAME_MAX);
+      if (!trimmed) return;
+      set(s => ({
+        customPresets: s.customPresets.map(p => (p.id === id ? { ...p, name: trimmed } : p)),
+      }));
+    },
+
+    deleteCustomPreset: id => {
+      set(s => ({
+        customPresets: s.customPresets.filter(p => p.id !== id),
+        activeCustomId: s.activeCustomId === id ? null : s.activeCustomId,
+      }));
+    },
+
+    applyCustomPreset: id => {
+      const entry = get().customPresets.find(p => p.id === id);
+      if (!entry) return;
+      set({ preset: 'custom', gains: [...entry.gains], activeCustomId: id });
+    },
   }),
   {
     name: STORE_KEY,
@@ -178,6 +272,7 @@ export const useEqStore = createPersistedStore<EqState>(
       preset: s.preset,
       preampDb: s.preampDb,
       gains: s.gains,
+      customPresets: s.customPresets,
     }),
     sanitize: (persisted, current) => ({
       ...current,

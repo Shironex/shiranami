@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SlidersVertical } from 'lucide-react';
+import { SlidersVertical, Save, Pencil, Trash2 } from 'lucide-react';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -8,9 +8,20 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { IconButton } from '@/components/ui/icon-button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -20,6 +31,7 @@ import {
   useEqStore,
   EQ_MIN_DB,
   EQ_MAX_DB,
+  EQ_PRESET_NAME_MAX,
   type EqPresetId,
   type NamedEqPresetId,
 } from '@/stores/useEqStore';
@@ -144,22 +156,57 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
   const preset = useEqStore(s => s.preset);
   const gains = useEqStore(s => s.gains);
   const preampDb = useEqStore(s => s.preampDb);
+  const customPresets = useEqStore(s => s.customPresets);
+  const activeCustomId = useEqStore(s => s.activeCustomId);
   const setEnabled = useEqStore(s => s.setEnabled);
   const setBandGain = useEqStore(s => s.setBandGain);
   const setPreampDb = useEqStore(s => s.setPreampDb);
   const applyPreset = useEqStore(s => s.applyPreset);
+  const applyCustomPreset = useEqStore(s => s.applyCustomPreset);
+  const saveCustomPreset = useEqStore(s => s.saveCustomPreset);
+  const renameCustomPreset = useEqStore(s => s.renameCustomPreset);
+  const deleteCustomPreset = useEqStore(s => s.deleteCustomPreset);
   const reset = useEqStore(s => s.reset);
 
-  const active = enabled && preset !== 'flat';
+  // Save / rename dialog state. `mode` distinguishes the two flows; `targetId`
+  // is the preset being renamed (null when saving a new one).
+  const [nameDialog, setNameDialog] = useState<{
+    mode: 'save' | 'rename';
+    targetId: string | null;
+    value: string;
+  } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const active = enabled && (preset !== 'flat' || activeCustomId !== null);
 
   const presetOptions = useMemo(
     () => ORDERED_PRESETS.map(id => ({ id, label: t(`preset.${id}`) })),
     [t]
   );
 
+  // Select value: a user preset takes a `custom:<id>` value so it round-trips
+  // through the same onValueChange handler as the built-ins.
+  const selectValue = activeCustomId ? `custom:${activeCustomId}` : preset;
+
   const handlePresetChange = (value: string) => {
+    if (value.startsWith('custom:')) {
+      applyCustomPreset(value.slice('custom:'.length));
+      return;
+    }
     if (value === 'custom') return;
     applyPreset(value as EqPresetId);
+  };
+
+  const submitNameDialog = () => {
+    if (!nameDialog) return;
+    const trimmed = nameDialog.value.trim();
+    if (!trimmed) return;
+    if (nameDialog.mode === 'save') {
+      saveCustomPreset(trimmed);
+    } else if (nameDialog.targetId) {
+      renameCustomPreset(nameDialog.targetId, trimmed);
+    }
+    setNameDialog(null);
   };
 
   const controls = (
@@ -178,20 +225,79 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
         <label htmlFor="eq-preset" className="text-xs text-muted-foreground">
           {t('preset')}
         </label>
-        <Select value={preset} onValueChange={handlePresetChange}>
-          <SelectTrigger id="eq-preset" className="min-w-[140px]">
-            <SelectValue placeholder={t('presetPlaceholder')}>
-              {preset === 'custom' ? t('customPreset') : t(`preset.${preset}`)}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {presetOptions.map(opt => (
-              <SelectItem key={opt.id} value={opt.id}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1.5">
+          <Select value={selectValue} onValueChange={handlePresetChange}>
+            <SelectTrigger id="eq-preset" className="min-w-[140px]">
+              <SelectValue placeholder={t('presetPlaceholder')}>
+                {activeCustomId
+                  ? (customPresets.find(p => p.id === activeCustomId)?.name ?? t('customPreset'))
+                  : preset === 'custom'
+                    ? t('customPreset')
+                    : t(`preset.${preset}`)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {presetOptions.map(opt => (
+                  <SelectItem key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+              {customPresets.length > 0 && (
+                <SelectGroup>
+                  {customPresets.map(p => (
+                    <SelectItem key={p.id} value={`custom:${p.id}`}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+            </SelectContent>
+          </Select>
+
+          {/* Rename / delete the active user preset */}
+          {activeCustomId && (
+            <>
+              <IconButton
+                aria-label={t('customPresets.rename')}
+                onClick={() => {
+                  const current = customPresets.find(p => p.id === activeCustomId);
+                  setNameDialog({
+                    mode: 'rename',
+                    targetId: activeCustomId,
+                    value: current?.name ?? '',
+                  });
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </IconButton>
+              <IconButton
+                aria-label={t('customPresets.delete')}
+                onClick={() => {
+                  const current = customPresets.find(p => p.id === activeCustomId);
+                  if (current) setDeleteTarget({ id: current.id, name: current.name });
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </IconButton>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Save current band settings as a named preset */}
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-xs"
+          disabled={!enabled}
+          onClick={() => setNameDialog({ mode: 'save', targetId: null, value: '' })}
+        >
+          <Save className="h-3.5 w-3.5" />
+          {t('customPresets.save')}
+        </Button>
       </div>
 
       {/* Band strip with zone labels */}
@@ -261,7 +367,86 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
     </div>
   );
 
-  if (inline) return controls;
+  const dialogs = (
+    <>
+      {/* Save / rename preset */}
+      <Dialog open={nameDialog !== null} onOpenChange={open => !open && setNameDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {nameDialog?.mode === 'rename'
+                ? t('customPresets.renameTitle')
+                : t('customPresets.saveTitle')}
+            </DialogTitle>
+            {nameDialog?.mode === 'save' && (
+              <DialogDescription>{t('customPresets.saveDesc')}</DialogDescription>
+            )}
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <label htmlFor="eq-preset-name" className="text-xs text-muted-foreground">
+              {t('customPresets.nameLabel')}
+            </label>
+            <Input
+              id="eq-preset-name"
+              autoFocus
+              maxLength={EQ_PRESET_NAME_MAX}
+              value={nameDialog?.value ?? ''}
+              placeholder={t('customPresets.namePlaceholder')}
+              onChange={e => setNameDialog(d => (d ? { ...d, value: e.target.value } : d))}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitNameDialog();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNameDialog(null)}>
+              {t('customPresets.cancel')}
+            </Button>
+            <Button onClick={submitNameDialog} disabled={!nameDialog?.value.trim()}>
+              {t('customPresets.confirmSave')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete preset confirmation */}
+      <Dialog open={deleteTarget !== null} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('customPresets.deleteTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('customPresets.deleteDesc', { name: deleteTarget?.name ?? '' })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDeleteTarget(null)}>
+              {t('customPresets.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteTarget) deleteCustomPreset(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              {t('customPresets.confirmDelete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
+  if (inline)
+    return (
+      <>
+        {controls}
+        {dialogs}
+      </>
+    );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -288,6 +473,7 @@ export function EqualizerPanel({ layout = 'popover', inline = false }: Equalizer
       <PopoverContent side="top" align="center" className="w-[380px]">
         {controls}
       </PopoverContent>
+      {dialogs}
     </Popover>
   );
 }

@@ -39,5 +39,21 @@
   "preset.vocal": "Vocal",
   "preset.bassboost": "Bass boost",
   "preset.trebleboost": "Treble boost",
-  "preset.loudness": "Loudness"
+  "preset.loudness": "Loudness",
+  "customPresets.group": "Built-in presets",
+  "customPresets.userGroup": "My presets",
+  "customPresets.save": "Save preset",
+  "customPresets.saveTitle": "Save EQ preset",
+  "customPresets.saveDesc": "Save the current band settings as a reusable preset.",
+  "customPresets.nameLabel": "Preset name",
+  "customPresets.namePlaceholder": "e.g. My headphones",
+  "customPresets.confirmSave": "Save",
+  "customPresets.cancel": "Cancel",
+  "customPresets.rename": "Rename",
+  "customPresets.renameTitle": "Rename preset",
+  "customPresets.delete": "Delete",
+  "customPresets.deleteTitle": "Delete preset",
+  "customPresets.deleteDesc": "Delete \"{{name}}\"? This cannot be undone.",
+  "customPresets.confirmDelete": "Delete",
+  "customPresets.empty": "No saved presets yet"
 }

@@ -22,6 +22,8 @@ function resetStore() {
     preset: 'flat',
     preampDb: 0,
     gains: [...EQ_PRESETS.flat],
+    customPresets: [],
+    activeCustomId: null,
   });
 }
 
@@ -40,10 +42,7 @@ describe('useEqStore', () => {
     });
 
     it('writes the correct gains for every named preset', () => {
-      const entries = Object.entries(EQ_PRESETS) as [
-        keyof typeof EQ_PRESETS,
-        number[],
-      ][];
+      const entries = Object.entries(EQ_PRESETS) as [keyof typeof EQ_PRESETS, number[]][];
       for (const [id, gains] of entries) {
         useEqStore.getState().applyPreset(id);
         const s = useEqStore.getState();
@@ -139,7 +138,7 @@ describe('useEqStore', () => {
             gains: [...EQ_PRESETS.flat],
           },
           version: 1,
-        }),
+        })
       );
       useEqStore.persist.rehydrate();
       expect(useEqStore.getState().preampDb).toBeLessThanOrEqual(EQ_MAX_DB);
@@ -157,7 +156,7 @@ describe('useEqStore', () => {
             gains: dirty,
           },
           version: 1,
-        }),
+        })
       );
       useEqStore.persist.rehydrate();
       const { gains } = useEqStore.getState();
@@ -176,7 +175,7 @@ describe('useEqStore', () => {
             gains: [1, 2, 3],
           },
           version: 1,
-        }),
+        })
       );
       useEqStore.persist.rehydrate();
       expect(useEqStore.getState().gains).toEqual(EQ_PRESETS.flat);
@@ -193,7 +192,7 @@ describe('useEqStore', () => {
             gains: [...EQ_PRESETS.flat],
           },
           version: 1,
-        }),
+        })
       );
       useEqStore.persist.rehydrate();
       expect(useEqStore.getState().preset).toBe('flat');
@@ -208,6 +207,54 @@ describe('useEqStore', () => {
       expect(persisted.preset).toBe('rock');
       expect(persisted.preampDb).toBe(3);
       expect(persisted.enabled).toBe(true);
+    });
+  });
+
+  describe('custom presets', () => {
+    it('saves the current gains as a named preset and activates it', () => {
+      useEqStore.getState().applyPreset('rock');
+      const id = useEqStore.getState().saveCustomPreset('  My Mix  ');
+      expect(id).toBeTruthy();
+      const s = useEqStore.getState();
+      expect(s.customPresets).toHaveLength(1);
+      expect(s.customPresets[0].name).toBe('My Mix'); // trimmed
+      expect(s.customPresets[0].gains).toEqual(EQ_PRESETS.rock);
+      expect(s.activeCustomId).toBe(id);
+      expect(s.preset).toBe('custom');
+    });
+
+    it('refuses to save an empty name', () => {
+      expect(useEqStore.getState().saveCustomPreset('   ')).toBeNull();
+      expect(useEqStore.getState().customPresets).toHaveLength(0);
+    });
+
+    it('applies a saved preset by id', () => {
+      const id = useEqStore.getState().saveCustomPreset('Mix')!;
+      useEqStore.getState().applyPreset('flat');
+      expect(useEqStore.getState().activeCustomId).toBeNull();
+      useEqStore.getState().applyCustomPreset(id);
+      expect(useEqStore.getState().activeCustomId).toBe(id);
+      expect(useEqStore.getState().preset).toBe('custom');
+    });
+
+    it('renames a saved preset', () => {
+      const id = useEqStore.getState().saveCustomPreset('Old')!;
+      useEqStore.getState().renameCustomPreset(id, 'New');
+      expect(useEqStore.getState().customPresets[0].name).toBe('New');
+    });
+
+    it('deletes a saved preset and clears the active id when it was active', () => {
+      const id = useEqStore.getState().saveCustomPreset('Mix')!;
+      useEqStore.getState().deleteCustomPreset(id);
+      expect(useEqStore.getState().customPresets).toHaveLength(0);
+      expect(useEqStore.getState().activeCustomId).toBeNull();
+    });
+
+    it('detaches the active custom preset on a manual band edit', () => {
+      const id = useEqStore.getState().saveCustomPreset('Mix')!;
+      expect(useEqStore.getState().activeCustomId).toBe(id);
+      useEqStore.getState().setBandGain(0, 5);
+      expect(useEqStore.getState().activeCustomId).toBeNull();
     });
   });
 });

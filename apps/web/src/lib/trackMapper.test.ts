@@ -28,6 +28,7 @@ const fullRecord: DbTrackRecord = {
   discNumber: 1,
   isFavorite: true,
   playCount: 42,
+  loudnessLufs: -16.5,
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-02-01T00:00:00Z',
 };
@@ -51,6 +52,7 @@ describe('mapDbTrackToTrack', () => {
       discNumber: 1,
       isFavorite: true,
       playCount: 42,
+      loudnessLufs: -16.5,
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-02-01T00:00:00Z',
     });

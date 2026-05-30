@@ -15,6 +15,7 @@ import {
   setPreampDb,
 } from '@/lib/audioAnalyser';
 import { useEqStore } from '@/stores/useEqStore';
+import { computeLoudnessGainDb } from '@/lib/loudness';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
@@ -85,6 +86,15 @@ export function useAudioEngine() {
     incomingDeck: Deck;
   }>({ active: false, startTime: 0, duration: 0, outgoingDeck: 'A', incomingDeck: 'B' });
 
+  // Near-gapless pre-buffer state. When crossfade is OFF, the next queue track
+  // is pre-loaded onto the idle deck so there's no decode gap at the boundary.
+  // `trackId` is the id currently pre-buffered (so we can detect a queue change
+  // and discard); `deck` is the idle deck holding it.
+  const preBufferRef = useRef<{ trackId: string | null; deck: Deck | null }>({
+    trackId: null,
+    deck: null,
+  });
+
   const playbackSessionRef = useRef<{
     track: Track | null;
     listenedSeconds: number;
@@ -140,6 +150,23 @@ export function useAudioEngine() {
     }
   }
 
+  // ── Preamp gain (shared by EQ preamp + loudness leveling) ─────
+  //
+  // There is a single preamp GainNode. Both the EQ preamp slider and loudness
+  // leveling feed it, so they MUST be summed and written together — writing one
+  // directly would clobber the other. This is the single funnel: call it on EQ
+  // preamp change, current-track change, and any loudness setting change.
+  const recomputePreamp = useCallback(() => {
+    if (!analyserInitRef.current) return;
+    const eq = useEqStore.getState();
+    const pb = usePlaybackStore.getState();
+    let db = eq.preampDb;
+    if (pb.loudnessEnabled) {
+      db += computeLoudnessGainDb(pb.currentTrack?.loudnessLufs, pb.loudnessTargetLufs);
+    }
+    setPreampDb(db);
+  }, []);
+
   // ── Playback session (listening history) ──────────────────────
 
   const resetPlaybackSession = useCallback((track: Track | null) => {
@@ -183,6 +210,74 @@ export function useAudioEngine() {
       session.recorded = false;
     }
   }, [incrementTrackPlayCount]);
+
+  // ── Near-gapless pre-buffer helpers ───────────────────────────
+
+  /** Determine the next-up track given the current queue/repeat state, or null
+   * when there is no eligible (non-radio) next track. */
+  function getNextQueueTrack(): Track | null {
+    const { queue, queueIndex, repeatMode: rm } = usePlaybackStore.getState();
+    let nextIndex = queueIndex + 1;
+    if (nextIndex >= queue.length) {
+      if (rm === 'all') nextIndex = 0;
+      else return null;
+    }
+    const next = queue[nextIndex];
+    if (!next || isRadioTrack(next.filePath)) return null;
+    return next;
+  }
+
+  /** Discard any pre-buffered track on the idle deck and reset the ref. Safe to
+   * call when nothing is pre-buffered. Never touches the active deck. */
+  const discardPreBuffer = useCallback(() => {
+    const pb = preBufferRef.current;
+    if (!pb.trackId || !pb.deck) return;
+    // Only clear if this deck is still idle and still holds the pre-buffered
+    // track — never disturb a deck that has since become active.
+    if (pb.deck !== activeDeckRef.current && deckTrackIdRef.current[pb.deck] === pb.trackId) {
+      const idle = getDeck(pb.deck);
+      if (idle) {
+        idle.pause();
+        idle.src = '';
+      }
+      deckTrackIdRef.current[pb.deck] = null;
+    }
+    preBufferRef.current = { trackId: null, deck: null };
+  }, []);
+
+  /** Pre-load the next queue track onto the idle deck (decode-ahead) so the
+   * transition at the track boundary is gap-free. No-op while crossfade is
+   * active/enabled, for radio, or repeat-one. Discards a stale pre-buffer if the
+   * upcoming track changed. */
+  const maybePreBuffer = useCallback(() => {
+    if (crossfadeRef.current.active) return;
+    const state = usePlaybackStore.getState();
+    if (state.crossfadeEnabled || state.repeatMode === 'one') {
+      discardPreBuffer();
+      return;
+    }
+
+    const next = getNextQueueTrack();
+    if (!next) {
+      discardPreBuffer();
+      return;
+    }
+
+    // Already pre-buffered the right track — nothing to do.
+    if (preBufferRef.current.trackId === next.id) return;
+
+    // The upcoming track changed — discard the old pre-buffer first.
+    discardPreBuffer();
+
+    const idleDeckId = getIdleDeckId();
+    const idleAudio = getIdleDeck();
+    if (!idleAudio) return;
+
+    idleAudio.src = getTrackSrc(next);
+    idleAudio.load();
+    deckTrackIdRef.current[idleDeckId] = next.id;
+    preBufferRef.current = { trackId: next.id, deck: idleDeckId };
+  }, [discardPreBuffer]);
 
   // ── Crossfade helpers ─────────────────────────────────────────
 
@@ -453,13 +548,22 @@ export function useAudioEngine() {
             startCrossfade();
           }
         }
+      } else if (state.isPlaying && !isRadioTrack(state.currentTrack?.filePath ?? '')) {
+        // ── Near-gapless pre-buffer (crossfade OFF) ──
+        // Once we're a few seconds from the end, decode-ahead the next queue
+        // track onto the idle deck. Cheap + idempotent: maybePreBuffer no-ops
+        // when the right track is already buffered.
+        const dur = audio.duration;
+        if (isFinite(dur) && dur > 0 && dur - audio.currentTime <= 30) {
+          maybePreBuffer();
+        }
       }
     }
 
     if (usePlaybackStore.getState().isPlaying) {
       animationFrameRef.current = requestAnimationFrame(updateTime);
     }
-  }, [_setCurrentTime, completeCrossfade, startCrossfade]);
+  }, [_setCurrentTime, completeCrossfade, startCrossfade, maybePreBuffer]);
 
   // ── Load track when currentTrack changes ──────────────────────
 
@@ -469,6 +573,7 @@ export function useAudioEngine() {
 
     if (!currentTrack) {
       cancelCrossfade();
+      discardPreBuffer();
       void flushPlaybackSession();
       resetPlaybackSession(null);
       audio.pause();
@@ -487,16 +592,33 @@ export function useAudioEngine() {
       return;
     }
 
-    // If loaded on the idle deck (crossfade advanced the store), swap
+    // If loaded on the idle deck, swap to it. This covers two cases: a crossfade
+    // advanced the store, OR the near-gapless pre-buffer decoded the next track
+    // ahead of time. In the pre-buffer case the deck is paused at 0 with gain 0
+    // (idle), so restore the user volume and reset the session; the play effect
+    // resumes + plays it.
     const idleDeckId = getIdleDeckId();
     if (deckTrackIdRef.current[idleDeckId] === currentTrack.id) {
+      const wasPreBuffered = preBufferRef.current.trackId === currentTrack.id;
       activeDeckRef.current = idleDeckId;
+      preBufferRef.current = { trackId: null, deck: null };
+      if (wasPreBuffered) {
+        const s = usePlaybackStore.getState();
+        setVolume(idleDeckId, s.isMuted ? 0 : s.volume);
+        setVolume(getIdleDeckId(), 0);
+        const incoming = getDeck(idleDeckId);
+        if (incoming && incoming.currentTime > 0.5) incoming.currentTime = 0;
+        void flushPlaybackSession();
+        resetPlaybackSession(currentTrack);
+      }
       _setIsLoading(false);
       return;
     }
 
     // Cancel any in-progress crossfade (manual skip)
     cancelCrossfade();
+    // A manual skip to a different track invalidates any pre-buffer.
+    discardPreBuffer();
 
     if (playbackSessionRef.current.track?.id !== currentTrack.id) {
       void flushPlaybackSession();
@@ -545,6 +667,7 @@ export function useAudioEngine() {
     updateTime,
     flushPlaybackSession,
     resetPlaybackSession,
+    discardPreBuffer,
   ]);
 
   // ── Sync play / pause ─────────────────────────────────────────
@@ -570,7 +693,7 @@ export function useAudioEngine() {
           // Replay the persisted EQ state into the newly-built chain.
           const eq = useEqStore.getState();
           applyEqPreset(eq.gains);
-          setPreampDb(eq.preampDb);
+          recomputePreamp();
           setEqEnabled(eq.enabled);
           if (!eq.enabled) {
             // Ensure bands are flat when disabled on boot.
@@ -622,7 +745,16 @@ export function useAudioEngine() {
       }
       cancelAnimationFrame(animationFrameRef.current);
     }
-  }, [isPlaying, updateTime, _setError, _setIsPlaying, _setIsLoading, volume, isMuted]);
+  }, [
+    isPlaying,
+    updateTime,
+    _setError,
+    _setIsPlaying,
+    _setIsLoading,
+    volume,
+    isMuted,
+    recomputePreamp,
+  ]);
 
   // ── Sync volume ───────────────────────────────────────────────
 
@@ -657,13 +789,36 @@ export function useAudioEngine() {
       }
 
       if (state.preampDb !== prev.preampDb) {
-        setPreampDb(state.preampDb);
+        recomputePreamp();
       }
 
       prev = state;
     });
     return unsub;
-  }, []);
+  }, [recomputePreamp]);
+
+  // ── Loudness leveling: recompute preamp when the current track changes ──
+  useEffect(() => {
+    recomputePreamp();
+  }, [currentTrack, recomputePreamp]);
+
+  // React to loudness toggle / target changes only (the store fires on every
+  // currentTime tick, so guard on the loudness fields to avoid re-writing the
+  // preamp node every frame). The gain feeds the shared preamp node alongside
+  // the EQ preamp via recomputePreamp.
+  useEffect(() => {
+    let prevEnabled = usePlaybackStore.getState().loudnessEnabled;
+    let prevTarget = usePlaybackStore.getState().loudnessTargetLufs;
+    const unsub = usePlaybackStore.subscribe(state => {
+      if (state.loudnessEnabled === prevEnabled && state.loudnessTargetLufs === prevTarget) {
+        return;
+      }
+      prevEnabled = state.loudnessEnabled;
+      prevTarget = state.loudnessTargetLufs;
+      recomputePreamp();
+    });
+    return unsub;
+  }, [recomputePreamp]);
 
   // ── Handle seeks while paused ─────────────────────────────────
 

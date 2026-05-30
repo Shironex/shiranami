@@ -39,5 +39,21 @@
   "preset.vocal": "Wokal",
   "preset.bassboost": "Wzmocniony bas",
   "preset.trebleboost": "Wzmocnione wysokie",
-  "preset.loudness": "Głośność"
+  "preset.loudness": "Głośność",
+  "customPresets.group": "Ustawienia wbudowane",
+  "customPresets.userGroup": "Moje ustawienia",
+  "customPresets.save": "Zapisz ustawienie",
+  "customPresets.saveTitle": "Zapisz ustawienie korektora",
+  "customPresets.saveDesc": "Zapisz bieżące ustawienia pasm jako ustawienie do ponownego użycia.",
+  "customPresets.nameLabel": "Nazwa ustawienia",
+  "customPresets.namePlaceholder": "np. Moje słuchawki",
+  "customPresets.confirmSave": "Zapisz",
+  "customPresets.cancel": "Anuluj",
+  "customPresets.rename": "Zmień nazwę",
+  "customPresets.renameTitle": "Zmień nazwę ustawienia",
+  "customPresets.delete": "Usuń",
+  "customPresets.deleteTitle": "Usuń ustawienie",
+  "customPresets.deleteDesc": "Usunąć „{{name}}”? Tej operacji nie można cofnąć.",
+  "customPresets.confirmDelete": "Usuń",
+  "customPresets.empty": "Brak zapisanych ustawień"
 }
