@@ -50,6 +50,13 @@ const LISTENBRAINZ_VALIDATE = 'https://api.listenbrainz.org/1/validate-token';
 const FLUSH_INTERVAL_MS = 60_000;
 
 /**
+ * Per-request timeout for the background submission fetches. Without it a hung
+ * network connection would keep the request (and its retry slot) open forever; a
+ * timeout makes it fail fast and requeue for the next flush.
+ */
+const SUBMIT_TIMEOUT_MS = 10_000;
+
+/**
  * Last.fm api_key + shared secret. Last.fm requires a registered application
  * key/secret to sign every authenticated call; they are read from the env at
  * build/run time. When unset, the Last.fm features stay disabled (the UI shows
@@ -182,12 +189,14 @@ async function sendLastfm(play: ScrobblePlay, sessionKey: string): Promise<void>
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: signLastfm(lastfmNowPlayingParams(play, LASTFM_API_KEY, sessionKey)),
+    signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
   }).catch(() => {});
 
   const res = await fetch(LASTFM_ENDPOINT, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: signLastfm(lastfmScrobbleParams(play, LASTFM_API_KEY, sessionKey)),
+    signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`lastfm scrobble http ${res.status}`);
   // Last.fm returns HTTP 200 with an `error` code in the body for API-level
@@ -225,12 +234,14 @@ async function sendListenBrainz(play: ScrobblePlay, token: string): Promise<void
     method: 'POST',
     headers: { Authorization: `Token ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify(listenBrainzBody(play, 'playing_now')),
+    signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
   }).catch(() => {});
 
   const res = await fetch(LISTENBRAINZ_ENDPOINT, {
     method: 'POST',
     headers: { Authorization: `Token ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify(listenBrainzBody(play, 'single')),
+    signal: AbortSignal.timeout(SUBMIT_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`listenbrainz submit http ${res.status}`);
 }
