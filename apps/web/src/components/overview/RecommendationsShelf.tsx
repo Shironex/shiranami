@@ -1,19 +1,10 @@
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertCircle,
-  Check,
-  Compass,
-  Download,
-  LibraryBig,
-  Loader2,
-  Pause,
-  Play,
-  RefreshCw,
-  Sparkles,
-} from 'lucide-react';
+import { Compass, LibraryBig, Loader2, Pause, Play, RefreshCw, Sparkles } from 'lucide-react';
 import type { DiscoverRecommendation, LibraryRecommendation } from '@shiranami/contracts';
 import { OverviewCover } from '@/components/overview/OverviewCover';
+import { DownloadProgressButton } from '@/components/shared/DownloadProgressButton';
+import { DownloadProgressBar } from '@/components/shared/DownloadProgressBar';
 import { formatRelativeTime } from '@/components/overview/overviewUtils';
 import { useRecommendations } from '@/hooks/queries/useRecommendations';
 import { useDiscoverDownload } from '@/hooks/useDiscoverDownload';
@@ -105,64 +96,6 @@ function RecommendationCard({
       {trailing}
       {overlay}
     </div>
-  );
-}
-
-// ── Download button state machine ────────────────────────────────────────────
-
-interface DiscoverDownloadButtonProps {
-  title: string;
-  status: 'idle' | 'downloading' | 'done' | 'error';
-  onDownload: () => void;
-}
-
-function DiscoverDownloadButton({ title, status, onDownload }: DiscoverDownloadButtonProps) {
-  const { t } = useTranslation('recommendations');
-
-  const ariaLabel =
-    status === 'downloading'
-      ? t('downloadingAria', { title })
-      : status === 'done'
-        ? t('addedAria', { title })
-        : status === 'error'
-          ? t('retryDownloadAria', { title })
-          : t('downloadAria', { title });
-
-  const isDisabled = status === 'downloading' || status === 'done';
-
-  let icon: React.ReactNode;
-  let colorClass: string;
-  let borderClass: string;
-
-  if (status === 'downloading') {
-    icon = <Loader2 className="size-4 animate-spin" />;
-    colorClass = 'text-primary/80';
-    borderClass = 'border-primary/20';
-  } else if (status === 'done') {
-    icon = <Check className="size-4" />;
-    colorClass = 'text-emerald-400/90';
-    borderClass = 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200';
-  } else if (status === 'error') {
-    icon = <AlertCircle className="size-4" />;
-    colorClass = 'text-destructive';
-    borderClass = 'border-destructive/20';
-  } else {
-    icon = <Download className="size-4" />;
-    colorClass = 'text-primary/80';
-    borderClass = 'border-border/20';
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={isDisabled ? undefined : onDownload}
-      disabled={isDisabled}
-      aria-label={ariaLabel}
-      aria-busy={status === 'downloading' ? 'true' : undefined}
-      className={`flex size-8 shrink-0 items-center justify-center rounded-lg border ${borderClass} ${colorClass} transition-colors hover:border-border/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-100`}
-    >
-      {icon}
-    </button>
   );
 }
 
@@ -339,16 +272,16 @@ function DiscoverRow({
     </>
   );
 
-  // Indeterminate progress bar along the card bottom while downloading.
-  // The sweep animation class is gated in globals.css reduced-motion block.
-  const progressBar = isDownloading ? (
-    <span
-      className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] overflow-hidden rounded-b-2xl"
-      aria-hidden="true"
-    >
-      <span className="progress-sweep block h-full w-1/3 rounded-full bg-primary/60" />
-    </span>
-  ) : null;
+  // Indeterminate sweep along the card bottom while downloading (no real %).
+  const progressBar = isDownloading ? <DownloadProgressBar className="rounded-b-2xl" /> : null;
+
+  const downloadAriaLabel = isDownloading
+    ? t('downloadingAria', { title: item.title })
+    : isDone
+      ? t('addedAria', { title: item.title })
+      : isError
+        ? t('retryDownloadAria', { title: item.title })
+        : t('downloadAria', { title: item.title });
 
   return (
     <>
@@ -366,9 +299,9 @@ function DiscoverRow({
         cover={cover}
         subtitle={subtitle}
         trailing={
-          <DiscoverDownloadButton
-            title={item.title}
+          <DownloadProgressButton
             status={status}
+            ariaLabel={downloadAriaLabel}
             onDownload={() => onDownload(item)}
           />
         }

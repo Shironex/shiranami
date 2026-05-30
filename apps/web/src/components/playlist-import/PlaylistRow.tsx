@@ -1,19 +1,11 @@
-import {
-  Loader2,
-  Check,
-  AlertCircle,
-  AlertTriangle,
-  Music,
-  X,
-  Download,
-  Play,
-  Pause,
-} from 'lucide-react';
+import { Loader2, Check, AlertTriangle, Music, X, Play, Pause } from 'lucide-react';
 import { type RowComponentProps } from 'react-window';
 import { useTranslation } from 'react-i18next';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
+import { DownloadProgressButton } from '@/components/shared/DownloadProgressButton';
+import { DownloadProgressBar } from '@/components/shared/DownloadProgressBar';
 import { type PlaylistTrack, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 
 export interface PlaylistRowProps {
@@ -26,20 +18,9 @@ export interface PlaylistRowProps {
   handleDownloadTrack: (id: string) => void;
 }
 
-function StatusIcon({ track }: { track: PlaylistTrack }) {
-  switch (track.status) {
-    case 'done':
-      return <Check className="w-4 h-4 text-green-400" />;
-    case 'downloading':
-    case 'converting':
-      return <Loader2 className="w-4 h-4 text-primary animate-spin" />;
-    case 'error':
-      return <AlertCircle className="w-4 h-4 text-destructive" />;
-    case 'skipped':
-      return <Check className="w-3.5 h-3.5 text-muted-foreground/50" />;
-    default:
-      return <Download className="w-4 h-4 text-muted-foreground/30" />;
-  }
+/** Maps a playlist track status onto the shared download-button status. */
+function toDownloadStatus(status: PlaylistTrackStatus) {
+  return status === 'pending' ? 'idle' : status;
 }
 
 function useStatusLabel() {
@@ -120,16 +101,13 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
         onClick={handleClick}
         className={cn(
           'group flex items-center gap-3 px-3 py-1.5 rounded-xl transition-colors relative overflow-hidden h-full cursor-pointer',
-          isSelected ? 'bg-primary/[0.12] ring-1 ring-primary/20' : 'hover:bg-accent/50'
+          isSelected
+            ? 'bg-primary/[0.12] ring-1 ring-primary/20'
+            : isActive
+              ? 'bg-primary/[0.04]'
+              : 'hover:bg-accent/50'
         )}
       >
-        {isActive && (
-          <div
-            className="absolute inset-0 bg-primary/5 transition-all duration-300"
-            style={{ width: `${playlistTrack.progress}%` }}
-          />
-        )}
-
         <span className="w-6 text-center text-xs text-muted-foreground/40 tabular-nums relative z-10">
           {index + 1}
         </span>
@@ -222,23 +200,19 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           {formatDuration(result.duration)}
         </span>
 
-        {playlistTrack.status === 'pending' && !isImporting ? (
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              handleDownloadTrack(playlistTrack.id);
-            }}
-            className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-primary/10 transition-colors"
-            title={t('downloadTrack')}
-            aria-label={t('downloadTrack')}
-          >
-            <Download className="w-4 h-4 text-muted-foreground/50 hover:text-primary transition-colors" />
-          </button>
-        ) : (
-          <div className="shrink-0 relative z-10 w-9 h-9 flex items-center justify-center">
-            <StatusIcon track={playlistTrack} />
-          </div>
-        )}
+        <div className="shrink-0 relative z-10" onClick={e => e.stopPropagation()}>
+          <DownloadProgressButton
+            status={toDownloadStatus(playlistTrack.status)}
+            ariaLabel={
+              playlistTrack.status === 'error'
+                ? t('retryDownloadTrack')
+                : statusLabel(playlistTrack.status)
+            }
+            title={playlistTrack.status === 'error' ? playlistTrack.error : undefined}
+            disabled={isImporting}
+            onDownload={() => handleDownloadTrack(playlistTrack.id)}
+          />
+        </div>
 
         {playlistTrack.status === 'pending' && !isImporting && (
           <button
@@ -252,6 +226,14 @@ export function PlaylistRow(props: RowComponentProps<PlaylistRowProps>) {
           >
             <X className="w-3.5 h-3.5" />
           </button>
+        )}
+
+        {isActive && (
+          <DownloadProgressBar
+            progress={playlistTrack.progress}
+            className="rounded-b-xl"
+            ariaLabel={t('downloadProgressAria')}
+          />
         )}
       </div>
     </div>

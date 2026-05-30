@@ -193,7 +193,7 @@ describe('SearchView', () => {
   it('renders download button for each result', async () => {
     mockUseSearch.results = [makeFakeResult()];
     await renderSearchView();
-    expect(screen.getByTitle('Download')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download Test Song' })).toBeInTheDocument();
   });
 
   it('calls handleDownload when download button is clicked', async () => {
@@ -202,7 +202,7 @@ describe('SearchView', () => {
     mockUseSearch.results = [result];
     await renderSearchView();
 
-    await user.click(screen.getByTitle('Download'));
+    await user.click(screen.getByRole('button', { name: 'Download Test Song' }));
     expect(mockUseSearch.handleDownload).toHaveBeenCalled();
   });
 
