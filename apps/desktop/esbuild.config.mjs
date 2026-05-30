@@ -54,10 +54,25 @@ const sharedOptions = {
   outdir: 'dist/main',
   sourcemap: true,
   logLevel: 'info',
-  // Inject the (public-ish) Sentry DSN at build time. Empty string when the
-  // env var is absent → main-process Sentry init is skipped entirely.
+  // Inject build-time constants. Each is replaced at compile time so the value
+  // is baked into the shipped bundle (the packaged main process has no access
+  // to these env vars at runtime on a user's machine).
+  //   - Sentry DSN (public-ish): empty string → main-process Sentry init is
+  //     skipped entirely.
+  //   - Last.fm app key + shared secret: a per-application credential (not a
+  //     user secret). Last.fm's desktop-auth model expects it to ship inside
+  //     the client; empty string → the UI shows Last.fm as unavailable while
+  //     ListenBrainz (user-token only) keeps working. Inlining the
+  //     `process.env.*` read makes the value available in packaged builds; in
+  //     dev, run `SHIRANAMI_LASTFM_API_KEY=... SHIRANAMI_LASTFM_SECRET=... pnpm dev`.
   define: {
     __SENTRY_DSN__: JSON.stringify(process.env.SENTRY_DSN ?? ''),
+    'process.env.SHIRANAMI_LASTFM_API_KEY': JSON.stringify(
+      process.env.SHIRANAMI_LASTFM_API_KEY ?? ''
+    ),
+    'process.env.SHIRANAMI_LASTFM_SECRET': JSON.stringify(
+      process.env.SHIRANAMI_LASTFM_SECRET ?? ''
+    ),
   },
 };
 
