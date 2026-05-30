@@ -71,48 +71,45 @@ export function registerHistoryHandlers(): void {
 
         const entry = tx.insert(playHistory).values(row).returning().get();
 
-        tx.update(tracks)
+        // RETURNING the updated track metadata avoids a second round-trip just to
+        // read the tags the scrobbler needs.
+        const trackMeta = tx
+          .update(tracks)
           .set({
             playCount: sql`COALESCE(${tracks.playCount}, 0) + 1`,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(tracks.id, data.trackId))
-          .run();
+          .returning({
+            title: tracks.title,
+            artist: tracks.artist,
+            album: tracks.album,
+            duration: tracks.duration,
+          })
+          .get();
 
-        return entry;
+        return { entry, trackMeta };
       });
 
       // Scrobble this local play event (opt-in; main-only). Fire-and-forget so
       // it never blocks the record-play response or playback. Only 'library'
       // plays carry reliable artist/track tags worth scrobbling — radio entries
       // are skipped. The scrobbler itself no-ops when scrobbling is disabled.
-      if (source === 'library') {
+      if (source === 'library' && historyEntry.trackMeta) {
         try {
-          const meta = db
-            .select({
-              title: tracks.title,
-              artist: tracks.artist,
-              album: tracks.album,
-              duration: tracks.duration,
-            })
-            .from(tracks)
-            .where(eq(tracks.id, data.trackId))
-            .get();
-          if (meta) {
-            submitPlay({
-              artist: meta.artist ?? '',
-              track: meta.title,
-              album: meta.album,
-              durationSeconds: meta.duration ?? data.duration,
-              playedSeconds,
-            });
-          }
+          submitPlay({
+            artist: historyEntry.trackMeta.artist ?? '',
+            track: historyEntry.trackMeta.title,
+            album: historyEntry.trackMeta.album,
+            durationSeconds: historyEntry.trackMeta.duration ?? data.duration,
+            playedSeconds,
+          });
         } catch {
           // Scrobbling is best-effort; never let it affect record-play.
         }
       }
 
-      return historyEntry;
+      return historyEntry.entry;
     },
     { schema: historyRecordPlayArgs }
   );
