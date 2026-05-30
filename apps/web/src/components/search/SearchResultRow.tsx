@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { Download, Check, AlertCircle, Loader2, Music, Play, Pause } from 'lucide-react';
+import { Loader2, Music, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatViewCount } from '@/lib/formatViewCount';
 import { formatDuration } from '@shiranami/shared';
+import { DownloadProgressButton } from '@/components/shared/DownloadProgressButton';
+import { DownloadProgressBar } from '@/components/shared/DownloadProgressBar';
 import type { SearchResult } from '@/types/electron';
 import type { DownloadState } from '@/hooks/useSearch';
 
@@ -29,19 +31,25 @@ export function SearchResultRow({
   const isDone = dlState.status === 'done';
   const isError = dlState.status === 'error';
 
-  return (
-    <div className="group flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/50 transition-colors relative overflow-hidden">
-      {isDownloading && (
-        <div
-          className="absolute inset-0 bg-primary/5 transition-all duration-300"
-          role="progressbar"
-          aria-valuenow={dlState.progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          style={{ width: `${dlState.progress}%` }}
-        />
-      )}
+  const downloadAriaLabel = isDownloading
+    ? t('downloadingAria', { title: result.title })
+    : isDone
+      ? t('addedAria', { title: result.title })
+      : isError
+        ? t('retryDownloadAria', { title: result.title })
+        : t('downloadAria', { title: result.title });
 
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors relative overflow-hidden',
+        isDownloading
+          ? 'bg-primary/[0.04]'
+          : isDone
+            ? 'border border-emerald-400/15'
+            : 'hover:bg-accent/50'
+      )}
+    >
       <button
         onClick={() => onPreview(result)}
         className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
@@ -78,47 +86,43 @@ export function SearchResultRow({
 
       <div className="flex-1 min-w-0 relative z-10">
         <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
-        <p className="text-xs text-muted-foreground truncate mt-0.5">
-          {result.uploader}
-          {result.view_count != null &&
-            (() => {
-              const { key, count } = formatViewCount(result.view_count);
-              return <span className="text-muted-foreground/50"> · {t(key, { count })}</span>;
-            })()}
-        </p>
+        {isDownloading ? (
+          <p className="text-xs text-primary/70 truncate mt-0.5">{t('downloading')}</p>
+        ) : isDone ? (
+          <p className="text-xs text-emerald-400/80 truncate mt-0.5">{t('addedToLibrary')}</p>
+        ) : isError ? (
+          <p className="text-xs text-destructive/80 truncate mt-0.5">{t('downloadError')}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {result.uploader}
+            {result.view_count != null &&
+              (() => {
+                const { key, count } = formatViewCount(result.view_count);
+                return <span className="text-muted-foreground/50"> · {t(key, { count })}</span>;
+              })()}
+          </p>
+        )}
       </div>
 
       <span className="text-xs text-muted-foreground/60 tabular-nums shrink-0 relative z-10">
         {formatDuration(result.duration)}
       </span>
 
-      <div className="shrink-0 relative z-10 w-9">
-        {isDone ? (
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-green-400">
-            <Check className="w-4 h-4" />
-          </div>
-        ) : isDownloading ? (
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center">
-            <Loader2 className="w-4 h-4 text-primary animate-spin" />
-          </div>
-        ) : isError ? (
-          <button
-            onClick={() => onDownload(result)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
-            title={dlState.error ?? t('retryDownload')}
-          >
-            <AlertCircle className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={() => onDownload(result)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors opacity-0 group-hover:opacity-100"
-            title={t('download')}
-          >
-            <Download className="w-4 h-4" />
-          </button>
-        )}
+      <div className="shrink-0 relative z-10">
+        <DownloadProgressButton
+          status={dlState.status}
+          ariaLabel={isError ? (dlState.error ?? downloadAriaLabel) : downloadAriaLabel}
+          onDownload={() => onDownload(result)}
+        />
       </div>
+
+      {isDownloading && (
+        <DownloadProgressBar
+          progress={dlState.progress}
+          className="rounded-b-xl"
+          ariaLabel={t('downloadProgressAria')}
+        />
+      )}
     </div>
   );
 }
