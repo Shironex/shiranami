@@ -85,10 +85,13 @@ export function SmartPlaylistFormDialog({
 
   const handleFieldChange = (index: number, field: SmartPlaylistField) => {
     // Reset operator + value when the field changes so the pair stays valid.
+    // isFavorite seeds 'true' so an untouched boolean select (which only
+    // *displays* "Yes" via `value || 'true'`) actually persists that value
+    // rather than an empty string the backend reads as `false`.
     updateRule(index, {
       field,
       operator: defaultOperatorFor(field),
-      value: '',
+      value: field === 'isFavorite' ? 'true' : '',
       valueTo: undefined,
     });
   };
