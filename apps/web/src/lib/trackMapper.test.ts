@@ -111,6 +111,24 @@ describe('mapDbTrackToTrack', () => {
     const track = mapDbTrackToTrack(record);
     expect(track.duration).toBe(0);
   });
+
+  it('passes through loudnessLufs when present', () => {
+    const record = { ...fullRecord, loudnessLufs: -23.1 };
+    const track = mapDbTrackToTrack(record);
+    expect(track.loudnessLufs).toBe(-23.1);
+  });
+
+  it('defaults loudnessLufs to null when missing', () => {
+    const record = { ...fullRecord, loudnessLufs: undefined };
+    const track = mapDbTrackToTrack(record);
+    expect(track.loudnessLufs).toBeNull();
+  });
+
+  it('defaults loudnessLufs to null when null', () => {
+    const record = { ...fullRecord, loudnessLufs: null };
+    const track = mapDbTrackToTrack(record);
+    expect(track.loudnessLufs).toBeNull();
+  });
 });
 
 describe('mapDbTracksToTracks', () => {
