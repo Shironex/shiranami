@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import type { LoudnessProgress } from '@shiranami/contracts';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
@@ -22,6 +24,7 @@ const IDLE: LoudnessAnalysisState = { running: false, current: 0, total: 0, trac
 export function useLoudnessAnalysis() {
   const [state, setState] = useState<LoudnessAnalysisState>(IDLE);
   const runningRef = useRef(false);
+  const { t: tToast } = useTranslation('toast');
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -55,11 +58,14 @@ export function useLoudnessAnalysis() {
       const allDbTracks = await window.electronAPI.db.tracks.getAll();
       const refreshed = mapDbTracksToTracks(allDbTracks as DbTrackRecord[]);
       useLibraryStore.getState().setLibrary(refreshed);
+    } catch (err) {
+      console.error('Loudness analysis failed', err);
+      toast.error(tToast('loudnessAnalysisFailed'), { id: 'loudness-analysis-error' });
     } finally {
       runningRef.current = false;
       setState(IDLE);
     }
-  }, []);
+  }, [tToast]);
 
   const cancel = useCallback(() => {
     if (!IS_ELECTRON) return;

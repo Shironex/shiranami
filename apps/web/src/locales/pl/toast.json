@@ -123,5 +123,6 @@
   "nowPlayingNoTrack": "Najpierw odtwórz utwór, aby otworzyć Teraz odtwarzane",
   "failedLoadLibrary": "Nie udało się załadować biblioteki",
   "failedLoadHistory": "Nie udało się załadować historii",
-  "scanCancelled": "Skanowanie anulowane"
+  "scanCancelled": "Skanowanie anulowane",
+  "loudnessAnalysisFailed": "Analiza głośności nie powiodła się"
 }

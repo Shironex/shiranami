@@ -107,5 +107,6 @@
   "nowPlayingNoTrack": "Play a track first to open Now Playing",
   "failedLoadLibrary": "Failed to load library",
   "failedLoadHistory": "Failed to load history",
-  "scanCancelled": "Scan cancelled"
+  "scanCancelled": "Scan cancelled",
+  "loudnessAnalysisFailed": "Loudness analysis failed"
 }
