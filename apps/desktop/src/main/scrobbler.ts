@@ -75,6 +75,8 @@ const DEFAULT_SETTINGS: ScrobbleSettings = {
 
 let queue: QueuedScrobble[] = [];
 let flushTimer: NodeJS.Timeout | null = null;
+/** Guards against overlapping flushes (a slow tick must not run twice). */
+let isFlushing = false;
 
 function getSettings(): ScrobbleSettings {
   return { ...DEFAULT_SETTINGS, ...(store.get('scrobble.settings') ?? {}) };
@@ -319,20 +321,29 @@ export function submitPlay(input: {
 
 /** Retry every due parked scrobble once. Driven by the flush timer. */
 async function flushQueue(): Promise<void> {
-  const settings = getSettings();
-  if (!settings.enabled) return;
-  const now = Date.now();
-  const due = dueItems(queue, now);
-  for (const item of due) {
-    const play: ScrobblePlay = {
-      artist: item.artist,
-      track: item.track,
-      album: item.album,
-      durationSeconds: item.durationSeconds,
-      startedAt: item.startedAt,
-    };
-    const failed = await submitTargets(play, item.targets, settings);
-    queue = failed.length === 0 ? remove(queue, item.id) : markRetried(queue, item.id, failed, now);
+  // A flush can outlive its interval tick on a slow network; without this guard a
+  // later tick would reprocess the same still-pending items and double-scrobble.
+  if (isFlushing) return;
+  isFlushing = true;
+  try {
+    const settings = getSettings();
+    if (!settings.enabled) return;
+    const now = Date.now();
+    const due = dueItems(queue, now);
+    for (const item of due) {
+      const play: ScrobblePlay = {
+        artist: item.artist,
+        track: item.track,
+        album: item.album,
+        durationSeconds: item.durationSeconds,
+        startedAt: item.startedAt,
+      };
+      const failed = await submitTargets(play, item.targets, settings);
+      queue =
+        failed.length === 0 ? remove(queue, item.id) : markRetried(queue, item.id, failed, now);
+    }
+  } finally {
+    isFlushing = false;
   }
 }
 
