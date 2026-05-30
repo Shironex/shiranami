@@ -610,6 +610,21 @@ export function useAudioEngine() {
         if (incoming && incoming.currentTime > 0.5) incoming.currentTime = 0;
         void flushPlaybackSession();
         resetPlaybackSession(currentTrack);
+        // The pre-buffered deck was `.load()`-ed but never played, and the
+        // play/pause sync effect does NOT re-run on a currentTrack change
+        // (isPlaying is unchanged). Start it here so playback continues
+        // gaplessly across the boundary. (The crossfade-advanced swap doesn't
+        // need this — completeCrossfade already played the incoming deck.)
+        if (incoming && s.isPlaying) {
+          resumeAudioContext();
+          incoming.play().catch(err => {
+            if (err.name !== 'AbortError') {
+              _setError(err.message);
+              _setIsPlaying(false);
+            }
+          });
+          animationFrameRef.current = requestAnimationFrame(updateTime);
+        }
       }
       _setIsLoading(false);
       return;
