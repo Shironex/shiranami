@@ -275,9 +275,19 @@ async function submitTargets(
   await Promise.all(
     targets.map(async target => {
       try {
-        if (target === 'lastfm' && settings.lastfmSessionKey && isLastfmConfigured()) {
+        if (target === 'lastfm') {
+          // Credentials absent (disconnected/not configured): retain for a later
+          // flush instead of silently dropping the play.
+          if (!settings.lastfmSessionKey || !isLastfmConfigured()) {
+            failed.push(target);
+            return;
+          }
           await sendLastfm(play, settings.lastfmSessionKey);
-        } else if (target === 'listenbrainz' && settings.listenBrainzToken) {
+        } else if (target === 'listenbrainz') {
+          if (!settings.listenBrainzToken) {
+            failed.push(target);
+            return;
+          }
           await sendListenBrainz(play, settings.listenBrainzToken);
         }
       } catch (err) {
