@@ -20,6 +20,7 @@ import {
   tracksIncrementPlayCountArgs,
   tracksExistsArgs,
   tracksExistsManyArgs,
+  tracksGetIdByPathArgs,
 } from '../schemas/db-tracks';
 
 const T = IPC_CHANNELS.db.tracks;
@@ -226,6 +227,20 @@ export function registerTrackHandlers(): void {
     },
     { schema: tracksExistsManyArgs }
   );
+
+  handle(
+    T.getIdByPath,
+    async (_event, filePath: string) => {
+      const db = getDatabase();
+      const row = db
+        .select({ id: tracks.id })
+        .from(tracks)
+        .where(eq(tracks.filePath, filePath))
+        .get();
+      return row?.id ?? null;
+    },
+    { schema: tracksGetIdByPathArgs }
+  );
 }
 
 export function cleanupTrackHandlers(): void {
@@ -241,4 +256,5 @@ export function cleanupTrackHandlers(): void {
   ipcMain.removeHandler(T.incrementPlayCount);
   ipcMain.removeHandler(T.exists);
   ipcMain.removeHandler(T.existsMany);
+  ipcMain.removeHandler(T.getIdByPath);
 }

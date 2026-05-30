@@ -172,6 +172,7 @@ function createElectronAPIMock(): ElectronAPI {
         exists: asyncFn(false),
         existsMany: asyncFn([]),
         updateMany: asyncFn([]),
+        getIdByPath: asyncFn(null),
       },
       history: {
         recordPlay: vi.fn(),

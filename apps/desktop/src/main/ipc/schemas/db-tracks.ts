@@ -54,3 +54,4 @@ export const tracksGetFavoritesArgs = z.tuple([]);
 export const tracksIncrementPlayCountArgs = z.tuple([uuid]);
 export const tracksExistsArgs = z.tuple([nonEmpty]);
 export const tracksExistsManyArgs = z.tuple([z.array(nonEmpty)]);
+export const tracksGetIdByPathArgs = z.tuple([nonEmpty]);

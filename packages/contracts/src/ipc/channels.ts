@@ -97,6 +97,7 @@ export const IPC_CHANNELS = {
       incrementPlayCount: 'db:tracks:increment-play-count',
       exists: 'db:tracks:exists',
       existsMany: 'db:tracks:exists-many',
+      getIdByPath: 'db:tracks:get-id-by-path',
     },
     history: {
       recordPlay: 'db:history:record-play',

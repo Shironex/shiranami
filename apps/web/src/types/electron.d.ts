@@ -215,6 +215,7 @@ export interface ElectronAPI {
       incrementPlayCount: (id: string) => Promise<unknown>;
       exists: (filePath: string) => Promise<boolean>;
       existsMany: (filePaths: string[]) => Promise<string[]>;
+      getIdByPath: (filePath: string) => Promise<string | null>;
     };
     history: {
       recordPlay: (data: {

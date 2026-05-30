@@ -3,7 +3,6 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaylistImportStore, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
-import { useLibraryStore } from '@/stores/useLibraryStore';
 import { queryClient } from '@/lib/queryClient';
 import { playlistKeys } from '@/hooks/queries/usePlaylists';
 import { toast } from 'sonner';
@@ -157,19 +156,21 @@ export function usePlaylistImport() {
 
           const exists = await window.electronAPI.db.tracks.exists(filePath);
           if (exists) {
-            // Duplicate: pull the existing library row so it still joins the
-            // recreated playlist in order.
-            const existing = useLibraryStore
-              .getState()
-              .library.find(libTrack => libTrack.filePath === filePath);
-            recordId(existing?.id);
+            // Duplicate: resolve the existing DB id directly from the database
+            // (authoritative) rather than the renderer-side library store,
+            // which may not be synced yet — relying on it could silently drop
+            // the track from the recreated playlist.
+            recordId(await window.electronAPI.db.tracks.getIdByPath(filePath));
             completedUrls.add(trackUrl);
             updateTrackStatus(trackId, 'skipped');
             continue;
           }
 
           const imported = await importTrack(filePath);
-          recordId(imported?.id);
+          // importTrack returns null when the row already existed (e.g. a
+          // concurrent import won the race). Fall back to the authoritative DB
+          // id so the track still joins the recreated playlist in order.
+          recordId(imported?.id ?? (await window.electronAPI.db.tracks.getIdByPath(filePath)));
           completedUrls.add(trackUrl);
           updateTrackStatus(trackId, 'done', 100);
         } catch (err) {

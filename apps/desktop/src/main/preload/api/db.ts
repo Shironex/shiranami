@@ -31,6 +31,7 @@ export interface DbTracksApi {
   incrementPlayCount: (id: string) => Promise<unknown>;
   exists: (filePath: string) => Promise<boolean>;
   existsMany: (filePaths: string[]) => Promise<string[]>;
+  getIdByPath: (filePath: string) => Promise<string | null>;
 }
 
 export interface DbHistoryApi {
@@ -135,6 +136,8 @@ const tracksApi: DbTracksApi = {
   incrementPlayCount: id => ipcRenderer.invoke(C.tracks.incrementPlayCount, id),
   exists: filePath => ipcRenderer.invoke(C.tracks.exists, filePath),
   existsMany: filePaths => ipcRenderer.invoke(C.tracks.existsMany, filePaths) as Promise<string[]>,
+  getIdByPath: filePath =>
+    ipcRenderer.invoke(C.tracks.getIdByPath, filePath) as Promise<string | null>,
 };
 
 const historyApi: DbHistoryApi = {
