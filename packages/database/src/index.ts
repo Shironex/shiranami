@@ -10,9 +10,14 @@ export * from './schema/index.js';
 // Re-export commonly used Drizzle utilities
 export {
   eq,
+  ne,
   and,
   or,
   like,
+  gt,
+  gte,
+  lt,
+  lte,
   desc,
   asc,
   sql,
@@ -20,3 +25,5 @@ export {
   isNull,
   isNotNull,
 } from 'drizzle-orm';
+
+export type { SQL } from 'drizzle-orm';

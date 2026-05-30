@@ -3,6 +3,7 @@ import { registerTrackHandlers, cleanupTrackHandlers } from './tracks';
 import { registerHistoryHandlers, cleanupHistoryHandlers } from './history';
 import { registerFolderHandlers, cleanupFolderHandlers } from './folders';
 import { registerPlaylistHandlers, cleanupPlaylistHandlers } from './playlists';
+import { registerSmartPlaylistHandlers, cleanupSmartPlaylistHandlers } from './smart-playlists';
 import { registerBackupHandlers, cleanupBackupHandlers } from './backup';
 
 export function registerDatabaseHandlers(mainWindow: BrowserWindow): void {
@@ -10,6 +11,7 @@ export function registerDatabaseHandlers(mainWindow: BrowserWindow): void {
   registerHistoryHandlers();
   registerFolderHandlers();
   registerPlaylistHandlers();
+  registerSmartPlaylistHandlers();
   registerBackupHandlers(mainWindow);
 }
 
@@ -18,5 +20,6 @@ export function cleanupDatabaseHandlers(): void {
   cleanupHistoryHandlers();
   cleanupFolderHandlers();
   cleanupPlaylistHandlers();
+  cleanupSmartPlaylistHandlers();
   cleanupBackupHandlers();
 }

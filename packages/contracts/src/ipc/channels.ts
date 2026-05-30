@@ -125,6 +125,17 @@ export const IPC_CHANNELS = {
       getPlaylistsForTracks: 'db:playlists:get-playlists-for-tracks',
       reorder: 'db:playlists:reorder',
     },
+    smartPlaylists: {
+      getAll: 'db:smart-playlists:get-all',
+      get: 'db:smart-playlists:get',
+      create: 'db:smart-playlists:create',
+      update: 'db:smart-playlists:update',
+      delete: 'db:smart-playlists:delete',
+      // Evaluate a saved smart playlist's rules and return matching tracks.
+      getTracks: 'db:smart-playlists:get-tracks',
+      // Evaluate an unsaved rule definition (live preview in the editor).
+      preview: 'db:smart-playlists:preview',
+    },
     backup: {
       // Export a consistent copy of the library DB to a user-chosen file, and
       // restore the library from a user-chosen backup. Both run a native file

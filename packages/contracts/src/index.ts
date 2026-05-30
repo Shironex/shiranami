@@ -5,6 +5,7 @@ export * from './domain/media';
 export * from './domain/weather';
 export * from './domain/recommendation';
 export * from './domain/scrobble';
+export * from './domain/smart-playlist';
 export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';

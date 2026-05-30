@@ -1,6 +1,13 @@
 import { ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import type { DbExportResult, DbImportResult } from '@shiranami/contracts';
+import type {
+  DbExportResult,
+  DbImportResult,
+  SmartPlaylist,
+  SmartPlaylistDefinition,
+  SmartPlaylistRule,
+  SmartPlaylistMatchType,
+} from '@shiranami/contracts';
 import type {
   ListeningActivityPoint,
   ListeningHourlyActivityPoint,
@@ -76,6 +83,31 @@ export interface DbPlaylistsApi {
   reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
 }
 
+export interface DbSmartPlaylistsApi {
+  getAll: () => Promise<SmartPlaylist[]>;
+  get: (id: string) => Promise<SmartPlaylist | null>;
+  create: (data: {
+    name: string;
+    description?: string;
+    matchType: SmartPlaylistMatchType;
+    rules: SmartPlaylistRule[];
+  }) => Promise<SmartPlaylist>;
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      matchType?: SmartPlaylistMatchType;
+      rules?: SmartPlaylistRule[];
+    }
+  ) => Promise<SmartPlaylist | null>;
+  delete: (id: string) => Promise<void>;
+  /** Evaluate a saved smart playlist and return matching track rows. */
+  getTracks: (id: string) => Promise<unknown[]>;
+  /** Evaluate an unsaved rule definition (live editor preview). */
+  preview: (definition: SmartPlaylistDefinition) => Promise<unknown[]>;
+}
+
 export interface DbBackupApi {
   export: () => Promise<DbExportResult>;
   import: () => Promise<DbImportResult>;
@@ -86,6 +118,7 @@ export interface DbApi {
   history: DbHistoryApi;
   folders: DbFoldersApi;
   playlists: DbPlaylistsApi;
+  smartPlaylists: DbSmartPlaylistsApi;
   backup: DbBackupApi;
 }
 
@@ -138,6 +171,16 @@ const playlistsApi: DbPlaylistsApi = {
     ipcRenderer.invoke(C.playlists.reorder, { playlistId, trackIds }),
 };
 
+const smartPlaylistsApi: DbSmartPlaylistsApi = {
+  getAll: () => ipcRenderer.invoke(C.smartPlaylists.getAll),
+  get: id => ipcRenderer.invoke(C.smartPlaylists.get, id),
+  create: data => ipcRenderer.invoke(C.smartPlaylists.create, data),
+  update: (id, data) => ipcRenderer.invoke(C.smartPlaylists.update, id, data),
+  delete: id => ipcRenderer.invoke(C.smartPlaylists.delete, id),
+  getTracks: id => ipcRenderer.invoke(C.smartPlaylists.getTracks, id),
+  preview: definition => ipcRenderer.invoke(C.smartPlaylists.preview, definition),
+};
+
 const backupApi: DbBackupApi = {
   export: () => ipcRenderer.invoke(C.backup.export),
   import: () => ipcRenderer.invoke(C.backup.import),
@@ -148,5 +191,6 @@ export const dbApi: DbApi = {
   history: historyApi,
   folders: foldersApi,
   playlists: playlistsApi,
+  smartPlaylists: smartPlaylistsApi,
   backup: backupApi,
 };

@@ -6,6 +6,8 @@ export { tracks, type Track, type NewTrack } from './tracks.js';
 
 export { playlists, type Playlist, type NewPlaylist } from './playlists.js';
 
+export { smartPlaylists, type SmartPlaylist, type NewSmartPlaylist } from './smart-playlists.js';
+
 export { playlistTracks, type PlaylistTrack, type NewPlaylistTrack } from './playlist-tracks.js';
 
 export { folders, type Folder, type NewFolder } from './folders.js';
