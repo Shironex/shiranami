@@ -259,16 +259,21 @@ export function registerHistoryHandlers(): void {
       // album rows are filtered out so untagged libraries don't show a blank
       // album dominating the chart.
       const albumExpression = sql<string>`COALESCE(NULLIF(${tracks.album}, ''), '')`;
+      // Group on (albumArtist || artist, album) — not the album title alone —
+      // so same-named albums by different artists stay separate and a
+      // compilation's varied track artists don't fragment one album. The
+      // displayed artist is the grouping anchor (album artist), not MAX(artist).
+      const albumArtistExpression = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), ${tracks.artist})`;
       const albumsQuery = db
         .select({
           album: albumExpression,
-          artist: sql<string>`MAX(${tracks.artist})`,
+          artist: sql<string>`MAX(${albumArtistExpression})`,
           albumArt: sql<string | null>`MAX(${tracks.albumArt})`,
           playCount: sql<number>`COUNT(*)`,
         })
         .from(playHistory)
         .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-        .groupBy(albumExpression)
+        .groupBy(albumArtistExpression, albumExpression)
         .having(sql`${albumExpression} <> ''`);
       const topAlbums = (sinceFilter ? albumsQuery.where(sinceFilter) : albumsQuery)
         .orderBy(desc(sql`COUNT(*)`))

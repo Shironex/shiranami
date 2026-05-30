@@ -1,9 +1,18 @@
 import { ipcMain } from 'electron';
-import type { EnrichTrackInput, EnrichTrackResult, EnrichProgress } from '@shiranami/contracts';
+import type {
+  EnrichTrackInput,
+  EnrichTrackResult,
+  EnrichProgress,
+  WriteTagsInput,
+  WriteTagsResult,
+} from '@shiranami/contracts';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { tracks, eq, type NewTrack } from '@shiranami/database';
+import { getDatabase } from '@shiranami/database/client';
 import { lookupMetadata, type MetadataLookupResult } from '../metadata-lookup';
 import { logger } from '../logger';
 import { sendToRenderer } from '../utils/window';
+import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { enrichSingleTrack, runEnrichmentBatch } from '../metadata-enrich-batch';
@@ -12,6 +21,7 @@ import {
   metadataEnrichTracksArgs,
   metadataEnrichPreviewArgs,
   metadataEnrichCancelArgs,
+  metadataWriteTagsArgs,
 } from './schemas/metadata';
 
 const C = IPC_CHANNELS.metadata;
@@ -148,6 +158,66 @@ export function registerMetadataEnrichHandlers(): void {
     },
     { schema: metadataEnrichTracksArgs }
   );
+
+  // Manual tag editor: write user-edited tags back to the audio file, then
+  // update the DB row to match. The file write is best-effort — like the
+  // enrichment flow, `writeMetadataToFile` swallows per-format write failures
+  // internally and logs them rather than throwing, so `success: true` means
+  // "the request was processed", not "every byte hit disk". The DB row is
+  // updated to reflect the user's intended tags regardless.
+  handle(
+    C.writeTags,
+    async (_event, input: WriteTagsInput): Promise<WriteTagsResult> => {
+      logger.info(
+        `[metadata:write-tags] Writing user-edited tags for "${input.title ?? input.id}"`
+      );
+
+      // Map the wire input to the writer options. `undefined` fields are left
+      // unchanged; the writer skips any option that is undefined. `null` numeric
+      // fields (cleared in the UI) are passed through so the writer CLEARS the
+      // corresponding tag in the file — otherwise the DB row (nulled below) and
+      // the file drift, and a rescan would restore the stale tag.
+      const writeOptions: WriteMetadataOptions = {
+        title: input.title,
+        artist: input.artist,
+        albumArtist: input.albumArtist,
+        album: input.album,
+        genre: input.genre,
+        year: input.year,
+        trackNumber: input.trackNumber,
+        discNumber: input.discNumber,
+      };
+
+      try {
+        await writeMetadataToFile(input.filePath, writeOptions);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error(`[metadata:write-tags] File write failed for ${input.filePath}:`, error);
+        return { success: false, error: message };
+      }
+
+      // Update the DB row. Only set fields the user actually provided so an
+      // omitted field isn't clobbered. Empty strings ARE written (the user
+      // deliberately cleared the tag).
+      const updates: Partial<NewTrack> = {};
+      if (input.title !== undefined) updates.title = input.title;
+      if (input.artist !== undefined) updates.artist = input.artist;
+      if (input.albumArtist !== undefined) updates.albumArtist = input.albumArtist;
+      if (input.album !== undefined) updates.album = input.album;
+      if (input.genre !== undefined) updates.genre = input.genre;
+      if (input.year !== undefined) updates.year = input.year;
+      if (input.trackNumber !== undefined) updates.trackNumber = input.trackNumber;
+      if (input.discNumber !== undefined) updates.discNumber = input.discNumber;
+
+      if (Object.keys(updates).length > 0) {
+        const db = getDatabase();
+        db.update(tracks).set(updates).where(eq(tracks.id, input.id)).run();
+      }
+
+      return { success: true };
+    },
+    { schema: metadataWriteTagsArgs }
+  );
 }
 
 export function cleanupMetadataEnrichHandlers(): void {
@@ -155,4 +225,5 @@ export function cleanupMetadataEnrichHandlers(): void {
   ipcMain.removeHandler(C.enrichCancel);
   ipcMain.removeHandler(C.enrichPreview);
   ipcMain.removeHandler(C.enrichTracks);
+  ipcMain.removeHandler(C.writeTags);
 }

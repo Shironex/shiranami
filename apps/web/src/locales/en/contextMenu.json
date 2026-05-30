@@ -1,6 +1,7 @@
 {
   "playNext": "Play Next",
   "addToQueue": "Add to Queue",
+  "moreLikeThis": "More Like This",
   "addToPlaylist": "Add to Playlist",
   "removeFromFavorites": "Remove from Favorites",
   "addToFavorites": "Add to Favorites",
@@ -19,5 +20,6 @@
   "selectedCount": "{{count}} selected",
   "dragToReorder": "Drag to reorder",
   "findMissingMetadata": "Find Missing Metadata",
-  "findMissingMetadataBusy": "A bulk enrichment run is already in progress."
+  "findMissingMetadataBusy": "A bulk enrichment run is already in progress.",
+  "editTags": "Edit Tags"
 }

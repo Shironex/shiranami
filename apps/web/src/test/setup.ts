@@ -195,6 +195,10 @@ function createElectronAPIMock(): ElectronAPI {
         remove: asyncFn(undefined),
         updateScanned: vi.fn(),
       },
+      backup: {
+        export: asyncFn({ success: false }),
+        import: asyncFn({ success: false }),
+      },
     },
     downloader: {
       getStreamUrl: asyncFn(''),
@@ -247,6 +251,7 @@ function createElectronAPIMock(): ElectronAPI {
       }),
       cancelEnrichment: asyncFn(undefined),
       onEnrichProgress: vi.fn(() => noopUnsub()),
+      writeTags: asyncFn({ success: true }),
     },
     share: {
       track: asyncFn({
@@ -282,6 +287,9 @@ function createElectronAPIMock(): ElectronAPI {
       stop: asyncFn(undefined),
       onMetrics: vi.fn(() => noopUnsub()),
     },
+    system: {
+      onNotice: vi.fn(() => noopUnsub()),
+    },
     recommendations: {
       get: asyncFn({
         library: { kind: 'library', items: [], generatedAt: null, stale: true },
@@ -291,6 +299,7 @@ function createElectronAPIMock(): ElectronAPI {
         library: { kind: 'library', items: [], generatedAt: null, stale: true },
         discover: { kind: 'discover', items: [], generatedAt: null, stale: true },
       }),
+      similar: asyncFn([]),
     },
     platform: 'win32',
     __e2e: false,

@@ -10,6 +10,7 @@ export const tracks = sqliteTable('tracks', {
   filePath: text('file_path').notNull().unique(),
   title: text('title').notNull(),
   artist: text('artist').default('Unknown Artist'),
+  albumArtist: text('album_artist'),
   album: text('album').default('Unknown Album'),
   duration: real('duration'),
   genre: text('genre'),

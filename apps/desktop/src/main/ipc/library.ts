@@ -97,6 +97,7 @@ function fallbackMetadata(filePath: string): TrackMetadata {
   return {
     title: fileName,
     artist: 'Unknown Artist',
+    albumArtist: null,
     album: 'Unknown Album',
     duration: 0,
     genre: '',

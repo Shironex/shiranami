@@ -11,7 +11,7 @@ import { motion } from 'motion/react';
 import { TrackRowContent } from '@/components/shared/TrackRowContent';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
-import { sortAlbumTracks } from '@/lib/albumSort';
+import { sortAlbumTracks, albumKeyOf } from '@/lib/albumSort';
 
 function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
   const counts = new Map<T, number>();
@@ -31,7 +31,7 @@ function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
 
 export function AlbumDetailView() {
   const { t } = useTranslation('library');
-  const selectedAlbumName = useViewStore(s => s.selectedAlbumName);
+  const selectedAlbumKey = useViewStore(s => s.selectedAlbumKey);
   const selectAlbum = useViewStore(s => s.selectAlbum);
   const library = useLibraryStore(s => s.library);
   const setQueue = usePlaybackStore(s => s.setQueue);
@@ -41,10 +41,14 @@ export function AlbumDetailView() {
   const hasSelection = useSelectionStore(s => s.selectedTrackIds.size > 0);
 
   const albumTracks = useMemo(() => {
-    if (!selectedAlbumName) return [];
-    const filtered = library.filter(t => t.album === selectedAlbumName);
+    if (!selectedAlbumKey) return [];
+    const filtered = library.filter(t => albumKeyOf(t) === selectedAlbumKey);
     return sortAlbumTracks(filtered);
-  }, [library, selectedAlbumName]);
+  }, [library, selectedAlbumKey]);
+
+  // Display title comes from the matched tracks (the key embeds the album
+  // artist, not a human-readable title).
+  const albumName = useMemo(() => albumTracks[0]?.album ?? '', [albumTracks]);
 
   // Multi-disc album detection: only render disc subheaders when the
   // sorted list actually spans more than one disc (after treating missing
@@ -110,7 +114,7 @@ export function AlbumDetailView() {
     [albumTracks, setQueue]
   );
 
-  if (!selectedAlbumName) return null;
+  if (!selectedAlbumKey) return null;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -154,13 +158,13 @@ export function AlbumDetailView() {
         <div className="flex items-center gap-4">
           <TrackThumbnail
             albumArt={albumArt}
-            alt={selectedAlbumName}
+            alt={albumName}
             className="w-20 h-20 rounded-xl bg-surface border border-border/30"
             fallback={<Disc3 className="w-8 h-8 text-muted-foreground/20" />}
           />
           <div className="min-w-0 flex-1">
             <p className="font-serif italic text-2xl text-foreground truncate">
-              {selectedAlbumName}
+              {albumName}
             </p>
             <p className="text-sm text-muted-foreground/60 truncate">{headerMeta}</p>
             <p className="text-xs text-muted-foreground/50 mt-0.5">

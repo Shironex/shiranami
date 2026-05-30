@@ -41,6 +41,15 @@ interface LibraryActions {
   setLibrary: (tracks: Track[]) => void;
   addToLibrary: (tracks: Track[]) => void;
   removeFromLibrary: (trackIds: string[]) => void;
+  /**
+   * Patch the editable tag fields of a single library track in place, leaving
+   * every other track's reference untouched. Used by the manual tag editor so
+   * an edit doesn't trigger a full-library refetch. Deliberately does NOT route
+   * through `setLibrary` (which clears the session overlay) — favorite /
+   * play-count deltas held in `useTrackOverlayStore` must survive a tag edit.
+   * Omits isFavorite/playCount from the patch so the overlay still merges on top.
+   */
+  updateTrackTags: (trackId: string, patch: Partial<Track>) => void;
 
   /** Toggle favorite on a track; syncs library, queue, and currentTrack. */
   toggleFavorite: (trackId: string) => void;
@@ -101,6 +110,11 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
   },
 
   addToLibrary: tracks => set(s => ({ library: [...s.library, ...tracks] })),
+
+  updateTrackTags: (trackId, patch) =>
+    set(s => ({
+      library: s.library.map(t => (t.id === trackId ? { ...t, ...patch } : t)),
+    })),
 
   removeFromLibrary: trackIds => {
     const ids = new Set(trackIds);

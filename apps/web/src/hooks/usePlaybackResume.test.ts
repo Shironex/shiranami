@@ -5,6 +5,10 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 
 vi.mock('@/lib/platform', () => ({ IS_ELECTRON: true }));
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+}));
+import { toast } from 'sonner';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,6 +134,46 @@ describe('buildPersistedState (via store state)', () => {
     });
 
     expect(buildPersistedState()!.currentTime).toBe(0);
+  });
+});
+
+describe('parsePersistedPlayerState (zod validation / reset)', () => {
+  it('accepts a valid persisted blob', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    const valid = makePersistedState();
+    expect(parsePersistedPlayerState(valid)).toEqual(valid);
+  });
+
+  it('rejects null / non-object input', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    expect(parsePersistedPlayerState(null)).toBeNull();
+    expect(parsePersistedPlayerState(undefined)).toBeNull();
+    expect(parsePersistedPlayerState('nope')).toBeNull();
+    expect(parsePersistedPlayerState(42)).toBeNull();
+  });
+
+  it('rejects a blob missing required fields', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    expect(parsePersistedPlayerState({ currentTrackPath: '/a.mp3' })).toBeNull();
+  });
+
+  it('rejects a blob with wrong field types', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    expect(
+      parsePersistedPlayerState(makePersistedState({ queuePaths: 'not-an-array' }))
+    ).toBeNull();
+    expect(parsePersistedPlayerState(makePersistedState({ isPlaying: 'yes' }))).toBeNull();
+    expect(parsePersistedPlayerState(makePersistedState({ currentTime: 'soon' }))).toBeNull();
+  });
+
+  it('rejects an empty currentTrackPath', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    expect(parsePersistedPlayerState(makePersistedState({ currentTrackPath: '' }))).toBeNull();
+  });
+
+  it('rejects a non-integer queueIndex', async () => {
+    const { parsePersistedPlayerState } = await import('./usePlaybackResume');
+    expect(parsePersistedPlayerState(makePersistedState({ queueIndex: 1.5 }))).toBeNull();
   });
 });
 
@@ -630,5 +674,63 @@ describe('usePlaybackResume hook', () => {
 
     // Should not throw; player should remain in default state
     expect(usePlaybackStore.getState().currentTrack).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // Validation / reset-on-mismatch
+  // -------------------------------------------------------------------------
+
+  it('deletes the persisted key when the stored blob is invalid', async () => {
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
+      if (key === 'settings') return { rememberPlaybackPosition: true };
+      // Corrupt / foreign shape — missing required fields.
+      if (key === PLAYER_STATE_KEY) return { foo: 'bar' };
+      return undefined;
+    });
+
+    const { usePlaybackResume } = await import('./usePlaybackResume');
+
+    useLibraryStore.setState({ library: tracks });
+    renderHook(() => usePlaybackResume(true));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    const deleteCalls = vi
+      .mocked(window.electronAPI.store.delete)
+      .mock.calls.filter(call => call[0] === PLAYER_STATE_KEY);
+    expect(deleteCalls.length).toBeGreaterThanOrEqual(1);
+    // Nothing should have been restored from the invalid blob.
+    expect(usePlaybackStore.getState().currentTrack).toBeNull();
+  });
+
+  it('warns the user when some tracks could not be restored', async () => {
+    vi.mocked(toast.warning).mockClear();
+    // queuePaths references one missing file; the current track still exists.
+    const persisted = makePersistedState({
+      currentTrackPath: '/music/track1.mp3',
+      queuePaths: ['/music/track1.mp3', '/music/gone.mp3', '/music/track3.mp3'],
+      queueIndex: 0,
+    });
+
+    vi.mocked(window.electronAPI.store.get).mockImplementation(async key => {
+      if (key === 'settings') return { rememberPlaybackPosition: true };
+      if (key === PLAYER_STATE_KEY) return persisted;
+      return undefined;
+    });
+
+    const { usePlaybackResume } = await import('./usePlaybackResume');
+
+    useLibraryStore.setState({ library: tracks });
+    renderHook(() => usePlaybackResume(true));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(toast.warning).toHaveBeenCalled();
+    // Queue restored without the missing track.
+    expect(usePlaybackStore.getState().queue).toHaveLength(2);
   });
 });

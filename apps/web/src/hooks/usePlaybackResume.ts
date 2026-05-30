@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
+import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
+import { logger } from '@/lib/logger';
+import i18n from '@/lib/i18n';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
@@ -8,16 +12,53 @@ interface SettingsData {
   rememberPlaybackPosition?: boolean;
 }
 
-interface PersistedPlayerState {
-  currentTrackPath: string;
-  queuePaths: string[];
-  queueIndex: number;
-  currentTime: number;
-  isPlaying: boolean;
+/**
+ * Schema for the persisted player-state blob. The store value is `unknown` on
+ * the main side (renderer-owned), so a stale/corrupt/foreign-shape blob would
+ * otherwise be trusted blindly. `safeParse` lets us reset-on-mismatch instead.
+ */
+const persistedPlayerStateSchema = z.object({
+  currentTrackPath: z.string().min(1),
+  queuePaths: z.array(z.string()),
+  queueIndex: z.number().int(),
+  // Accept any numeric value (including NaN/Infinity from older blobs); the
+  // restore path clamps non-finite values to 0 rather than discarding the blob.
+  // `z.number()` rejects NaN/Infinity in zod v4, so gate on `typeof` instead.
+  currentTime: z.custom<number>(val => typeof val === 'number'),
+  isPlaying: z.boolean(),
+});
+
+type PersistedPlayerState = z.infer<typeof persistedPlayerStateSchema>;
+
+/**
+ * Validate a raw persisted blob. Returns the typed state on success, or `null`
+ * when the shape doesn't match (so the caller resets the key). Pure and
+ * exported so the validation/reset behavior is unit-testable without the hook.
+ */
+export function parsePersistedPlayerState(raw: unknown): PersistedPlayerState | null {
+  const result = persistedPlayerStateSchema.safeParse(raw);
+  return result.success ? result.data : null;
 }
 
 const PLAYER_STATE_KEY = 'player-state';
 const PERSIST_INTERVAL_MS = 1000;
+// Throttle window for surfacing persist failures. Writes happen at 1Hz, so a
+// persistent failure must not toast every tick — show it at most once per
+// window.
+const WRITE_FAILURE_TOAST_THROTTLE_MS = 60_000;
+
+let lastWriteFailureToastAt = 0;
+
+/** Surface a playback-resume persist failure as a calm, throttled toast. */
+function surfaceWriteFailure(err: unknown): void {
+  logger.warn('Failed to persist player-state', err);
+  const now = Date.now();
+  if (now - lastWriteFailureToastAt < WRITE_FAILURE_TOAST_THROTTLE_MS) return;
+  lastWriteFailureToastAt = now;
+  toast.warning(i18n.t('playbackSaveFailed', { ns: 'toast' }), {
+    id: 'playback-save-failed',
+  });
+}
 
 function buildPersistedState(): PersistedPlayerState | null {
   const { currentTrack, queue, queueIndex, currentTime, isPlaying } = usePlaybackStore.getState();
@@ -69,15 +110,23 @@ export function usePlaybackResume(enabled = true) {
 
     async function loadSetting() {
       try {
-        const [settings, savedState] = await Promise.all([
+        const [settings, savedRaw] = await Promise.all([
           window.electronAPI.store.get<SettingsData>('settings'),
-          window.electronAPI.store.get<PersistedPlayerState>(PLAYER_STATE_KEY),
+          window.electronAPI.store.get<unknown>(PLAYER_STATE_KEY),
         ]);
+
+        // Validate the persisted blob; on a shape mismatch drop the stored key
+        // (reset-on-mismatch) so a corrupt/foreign value can't wedge restore.
+        const savedState = savedRaw == null ? null : parsePersistedPlayerState(savedRaw);
+        if (savedRaw != null && savedState === null) {
+          logger.warn('Discarding invalid persisted player-state');
+          window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
+        }
 
         if (!cancelled) {
           const rememberPlaybackPosition = Boolean(settings?.rememberPlaybackPosition);
           setShouldRestore(rememberPlaybackPosition);
-          setPersistedState(savedState ?? null);
+          setPersistedState(savedState);
           if (!rememberPlaybackPosition || !savedState?.currentTrackPath) {
             setIsRestoreResolved(true);
           }
@@ -129,6 +178,18 @@ export function usePlaybackResume(enabled = true) {
         const restoredIndex = restoredQueue.findIndex(
           track => track.filePath === state.currentTrackPath
         );
+
+        // Tracks whose files moved/were removed since the state was saved are
+        // dropped during restore. Count them so we can tell the user rather
+        // than silently shrinking their queue. When the current track itself is
+        // gone (restoredIndex < 0) the whole persisted queue is unrestorable.
+        const droppedCount =
+          restoredIndex < 0
+            ? state.queuePaths.length
+            : Math.max(0, state.queuePaths.length - restoredQueue.length);
+        if (droppedCount > 0) {
+          toast.warning(i18n.t('playbackRestorePartial', { ns: 'toast', count: droppedCount }));
+        }
 
         if (restoredIndex < 0) {
           return;
@@ -198,7 +259,7 @@ export function usePlaybackResume(enabled = true) {
     if (!state) return;
 
     lastKeyRef.current = key;
-    window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(() => {});
+    window.electronAPI.store.set(PLAYER_STATE_KEY, state).catch(surfaceWriteFailure);
   }, []);
 
   useEffect(() => {

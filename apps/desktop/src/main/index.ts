@@ -14,8 +14,10 @@ import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
 import { migrateAlbumArtToDisk } from './migrate-album-art';
+import { emitSystemNotice } from './system-notice';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
+import { backupDatabaseOnLaunch } from './db-backup';
 import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
@@ -127,7 +129,11 @@ async function bootstrap(): Promise<void> {
   }
   logger.info('════════════════════════════════════════════════════════════');
 
-  initializeDatabase({ path: join(app.getPath('userData'), 'shiranami.db') });
+  const dbPath = join(app.getPath('userData'), 'shiranami.db');
+  // Snapshot the DB BEFORE migrations run so a bad upgrade leaves a
+  // pre-migration copy. Best-effort — never blocks launch.
+  await backupDatabaseOnLaunch(dbPath);
+  initializeDatabase({ path: dbPath });
   logger.info('Database initialized');
 
   // Warm the recommendation discover shelf in the background once after startup
@@ -160,6 +166,10 @@ async function bootstrap(): Promise<void> {
   // never blocks bootstrap; pruneOrphanedAlbumArt swallows its own errors.
   pruneOrphanedAlbumArt().catch(err => {
     logger.warn('Album art prune failed:', err);
+    // Not awaited — this almost always settles after the window is up, so the
+    // renderer can receive it. sendToRenderer no-ops safely if it's still early.
+    // Shares the album-art notice code with the post-remove path (deduped).
+    emitSystemNotice({ source: 'album-art', level: 'warn', code: 'albumArtPruneFailed' });
   });
 
   mainWindow = await createMainWindow();

@@ -1,0 +1,20 @@
+{
+  "title": "Edytuj tagi",
+  "field": {
+    "title": "Tytuł",
+    "artist": "Wykonawca",
+    "albumArtist": "Wykonawca albumu",
+    "album": "Album",
+    "genre": "Gatunek",
+    "year": "Rok",
+    "trackNumber": "Utwór",
+    "discNumber": "Płyta"
+  },
+  "writeWarning": "Zmiany są zapisywane bezpośrednio w pliku i nie można ich cofnąć.",
+  "cancel": "Anuluj",
+  "save": "Zapisz",
+  "saving": "Zapisywanie...",
+  "savedToast": "Zaktualizowano tagi",
+  "saveFailed": "Nie udało się zapisać tagów",
+  "saveFailedWith": "Nie udało się zapisać tagów: {{error}}"
+}

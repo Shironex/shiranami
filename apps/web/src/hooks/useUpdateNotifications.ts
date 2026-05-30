@@ -60,6 +60,12 @@ export function useUpdateNotifications() {
       window.electronAPI.updater.onUpdateError(message => {
         // RELEASE_PENDING is not a real error — ignore it
         if (message === 'RELEASE_PENDING') return;
+        // Surface real update failures instead of swallowing them. Reuse the
+        // shared toast id so a retry replaces rather than stacks.
+        logger.warn('Auto-updater error', message);
+        toast.error(i18n.t('updateFailed', { ns: 'toast' }), {
+          id: TOAST_ID,
+        });
       })
     );
 

@@ -21,6 +21,7 @@ export const newTrackSchema = z.object({
   filePath: nonEmpty,
   title: nonEmpty,
   artist: z.string().nullish(),
+  albumArtist: z.string().nullish(),
   album: z.string().nullish(),
   duration: z.number().nullish(),
   genre: z.string().nullish(),

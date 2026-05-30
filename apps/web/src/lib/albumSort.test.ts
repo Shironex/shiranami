@@ -59,12 +59,39 @@ describe('groupTracksByAlbum', () => {
     expect(groups.map(g => g.name)).toEqual(['Nebula', 'Mirror', 'Zenith', 'Aurora']);
   });
 
-  it('aggregates multiple artists on a compilation album', () => {
-    const a1 = makeTrack({ id: 'a', album: 'Comp', artist: 'Alice' });
-    const a2 = makeTrack({ id: 'b', album: 'Comp', artist: 'Bob' });
+  it('keeps a compilation (shared albumArtist) as one album and aggregates its artists', () => {
+    // A real compilation shares an album artist (e.g. "Various Artists") even
+    // though each track has a different performing artist. Keyed on
+    // (albumArtist, album) it stays a single album.
+    const a1 = makeTrack({
+      id: 'a',
+      album: 'Comp',
+      artist: 'Alice',
+      albumArtist: 'Various Artists',
+    });
+    const a2 = makeTrack({ id: 'b', album: 'Comp', artist: 'Bob', albumArtist: 'Various Artists' });
     const [group] = groupTracksByAlbum([a1, a2]);
     expect(group.name).toBe('Comp');
+    expect(group.albumArtist).toBe('Various Artists');
     expect(group.artist).toBe('Alice, Bob');
+    expect(group.trackCount).toBe(2);
+  });
+
+  it('separates same-named albums by different album artists', () => {
+    // Two distinct "Greatest Hits" albums must not merge into one.
+    const a = makeTrack({ id: 'a', album: 'Greatest Hits', artist: 'Alice' });
+    const b = makeTrack({ id: 'b', album: 'Greatest Hits', artist: 'Bob' });
+    const groups = groupTracksByAlbum([a, b]);
+    expect(groups).toHaveLength(2);
+    expect(groups.map(g => g.albumArtist).sort()).toEqual(['Alice', 'Bob']);
+    expect(new Set(groups.map(g => g.key)).size).toBe(2);
+  });
+
+  it('falls back to track artist for albumArtist when the tag is absent', () => {
+    const a1 = makeTrack({ id: 'a', album: 'Solo', artist: 'Alice' });
+    const a2 = makeTrack({ id: 'b', album: 'Solo', artist: 'Alice' });
+    const [group] = groupTracksByAlbum([a1, a2]);
+    expect(group.albumArtist).toBe('Alice');
     expect(group.trackCount).toBe(2);
   });
 

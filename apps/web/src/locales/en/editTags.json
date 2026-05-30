@@ -1,0 +1,20 @@
+{
+  "title": "Edit Tags",
+  "field": {
+    "title": "Title",
+    "artist": "Artist",
+    "albumArtist": "Album Artist",
+    "album": "Album",
+    "genre": "Genre",
+    "year": "Year",
+    "trackNumber": "Track",
+    "discNumber": "Disc"
+  },
+  "writeWarning": "Changes are written directly to the file and cannot be undone.",
+  "cancel": "Cancel",
+  "save": "Save",
+  "saving": "Saving...",
+  "savedToast": "Tags updated",
+  "saveFailed": "Failed to write tags",
+  "saveFailedWith": "Failed to write tags: {{error}}"
+}

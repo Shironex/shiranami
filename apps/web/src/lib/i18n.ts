@@ -30,6 +30,7 @@ import nowPlayingEn from '@/locales/en/nowPlaying.json';
 import errorBoundaryEn from '@/locales/en/errorBoundary.json';
 import equalizerEn from '@/locales/en/equalizer.json';
 import enrichDialogEn from '@/locales/en/enrichDialog.json';
+import editTagsEn from '@/locales/en/editTags.json';
 import onboardingEn from '@/locales/en/onboarding.json';
 import recommendationsEn from '@/locales/en/recommendations.json';
 
@@ -61,6 +62,7 @@ import nowPlayingPl from '@/locales/pl/nowPlaying.json';
 import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
 import equalizerPl from '@/locales/pl/equalizer.json';
 import enrichDialogPl from '@/locales/pl/enrichDialog.json';
+import editTagsPl from '@/locales/pl/editTags.json';
 import onboardingPl from '@/locales/pl/onboarding.json';
 import recommendationsPl from '@/locales/pl/recommendations.json';
 
@@ -122,6 +124,7 @@ const namespaces = [
   'errorBoundary',
   'equalizer',
   'enrichDialog',
+  'editTags',
   'onboarding',
   'recommendations',
 ] as const;
@@ -157,6 +160,7 @@ i18n.use(initReactI18next).init({
       errorBoundary: errorBoundaryEn,
       equalizer: equalizerEn,
       enrichDialog: enrichDialogEn,
+      editTags: editTagsEn,
       onboarding: onboardingEn,
       recommendations: recommendationsEn,
     },
@@ -189,6 +193,7 @@ i18n.use(initReactI18next).init({
       errorBoundary: errorBoundaryPl,
       equalizer: equalizerPl,
       enrichDialog: enrichDialogPl,
+      editTags: editTagsPl,
       onboarding: onboardingPl,
       recommendations: recommendationsPl,
     },

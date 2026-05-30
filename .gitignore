@@ -16,7 +16,11 @@ coverage
 .omniscribe
 .playwright-mcp
 docs/*
-packages/database/drizzle/
+# Versioned migration folders under packages/database/drizzle/ ARE tracked
+# (they are the canonical migration ledger). Only ignore local dev databases.
+packages/database/data/
+packages/database/drizzle/**/*.db
+packages/database/drizzle/**/*.db-*
 playwright-report/
 test-results/
 apps/desktop/e2e/.tmp/

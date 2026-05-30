@@ -8,10 +8,15 @@ import { logger } from './logger';
 export interface WriteMetadataOptions {
   title?: string;
   artist?: string;
+  albumArtist?: string;
   album?: string;
   genre?: string;
-  year?: number;
-  trackNumber?: number;
+  // Numeric tags accept three states: `undefined` leaves the existing frame
+  // untouched, `null` clears it from the file (so it matches a deliberately
+  // emptied DB column), and a number sets it.
+  year?: number | null;
+  trackNumber?: number | null;
+  discNumber?: number | null;
   coverImageBuffer?: Buffer;
   coverImageMime?: string;
 }
@@ -78,10 +83,19 @@ async function writeMp3Tags(filePath: string, options: WriteMetadataOptions): Pr
   const tags: Record<string, unknown> = {};
   if (options.title !== undefined) tags.title = options.title;
   if (options.artist !== undefined) tags.artist = options.artist;
+  // node-id3 maps `performerInfo` to the TPE2 frame (album artist / band).
+  if (options.albumArtist !== undefined) tags.performerInfo = options.albumArtist;
   if (options.album !== undefined) tags.album = options.album;
   if (options.genre !== undefined) tags.genre = options.genre;
-  if (options.year !== undefined) tags.year = String(options.year);
-  if (options.trackNumber !== undefined) tags.trackNumber = String(options.trackNumber);
+  // node-id3 `update()` rebuilds frames from the merged tag set, and an empty
+  // string yields no frame — so writing '' for an explicit null drops the frame.
+  if (options.year === null) tags.year = '';
+  else if (options.year !== undefined) tags.year = String(options.year);
+  if (options.trackNumber === null) tags.trackNumber = '';
+  else if (options.trackNumber !== undefined) tags.trackNumber = String(options.trackNumber);
+  // node-id3 maps `partOfSet` to the TPOS frame (disc number).
+  if (options.discNumber === null) tags.partOfSet = '';
+  else if (options.discNumber !== undefined) tags.partOfSet = String(options.discNumber);
 
   if (options.coverImageBuffer) {
     tags.image = {
@@ -107,10 +121,14 @@ async function writeFlacTags(filePath: string, options: WriteMetadataOptions): P
   const tagMap: Record<string, string> = {};
   if (options.title !== undefined) tagMap.title = options.title;
   if (options.artist !== undefined) tagMap.artist = options.artist;
+  if (options.albumArtist !== undefined) tagMap.albumartist = options.albumArtist;
   if (options.album !== undefined) tagMap.album = options.album;
   if (options.genre !== undefined) tagMap.genre = options.genre;
-  if (options.year !== undefined) tagMap.date = String(options.year);
-  if (options.trackNumber !== undefined) tagMap.tracknumber = String(options.trackNumber);
+  // flac-tagger rebuilds the vorbis comment block from this tagMap, so omitting
+  // a key clears it from the file when the user emptied it (null).
+  if (options.year != null) tagMap.date = String(options.year);
+  if (options.trackNumber != null) tagMap.tracknumber = String(options.trackNumber);
+  if (options.discNumber != null) tagMap.discnumber = String(options.discNumber);
 
   const tags: { tagMap: Record<string, string>; picture?: { buffer: Buffer } } = {
     tagMap,
@@ -164,10 +182,19 @@ async function writeTagsWithFFmpeg(
   // Add metadata flags
   if (options.title !== undefined) args.push('-metadata', `title=${options.title}`);
   if (options.artist !== undefined) args.push('-metadata', `artist=${options.artist}`);
+  if (options.albumArtist !== undefined)
+    args.push('-metadata', `album_artist=${options.albumArtist}`);
   if (options.album !== undefined) args.push('-metadata', `album=${options.album}`);
   if (options.genre !== undefined) args.push('-metadata', `genre=${options.genre}`);
-  if (options.year !== undefined) args.push('-metadata', `date=${options.year}`);
-  if (options.trackNumber !== undefined) args.push('-metadata', `track=${options.trackNumber}`);
+  // An empty metadata value (e.g. `track=`) makes ffmpeg drop the tag, so an
+  // explicit null clears it to match a deliberately emptied DB column.
+  if (options.year === null) args.push('-metadata', 'date=');
+  else if (options.year !== undefined) args.push('-metadata', `date=${options.year}`);
+  if (options.trackNumber === null) args.push('-metadata', 'track=');
+  else if (options.trackNumber !== undefined)
+    args.push('-metadata', `track=${options.trackNumber}`);
+  if (options.discNumber === null) args.push('-metadata', 'disc=');
+  else if (options.discNumber !== undefined) args.push('-metadata', `disc=${options.discNumber}`);
 
   args.push('-y', tempPath);
 

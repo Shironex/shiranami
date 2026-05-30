@@ -2,7 +2,17 @@ import { type Track } from '@/stores/types';
 import { type AlbumSortMode, type AlbumSortOrder } from '@/stores/useUIStore';
 
 export interface AlbumData {
+  /**
+   * Stable composite identity for this album: `albumArtist \u0000 album`. Two
+   * albums with the same title but different album artists stay separate, and a
+   * compilation whose tracks have varied artists stays a single album. Use this
+   * (not `name`) to select/filter an album. The NUL separator can't appear in a
+   * tag string, so it can't collide.
+   */
+  key: string;
   name: string;
+  /** Album artist — the grouping anchor. Falls back to the track artist. */
+  albumArtist: string;
   artist: string;
   year: number | null;
   createdAt: string | null;
@@ -11,13 +21,25 @@ export interface AlbumData {
   tracks: Track[];
 }
 
+/** The album-artist used for grouping: explicit albumArtist, else artist. */
+export function albumArtistOf(track: Track): string {
+  return track.albumArtist?.trim() || track.artist;
+}
+
+/** Composite album identity used as the grouping/selection key. */
+export function albumKeyOf(track: Track): string {
+  return `${albumArtistOf(track)}\u0000${track.album}`;
+}
+
 /**
  * Group a flat list of tracks into album buckets.
  *
- * Each album's displayed artist is derived from the distinct artists across
- * its tracks (e.g. "Artist A, Artist B" for compilations). The album's year
- * is taken from the first track encountered for that album — good enough for
- * sort-by-year since tracks on the same album almost always share a year.
+ * Albums are keyed on `(albumArtist || artist, album)` rather than the album
+ * title alone, so identically-named albums by different artists do not merge
+ * and a compilation's varied track artists do not fragment one album. Each
+ * album's displayed `artist` is still derived from the distinct track artists
+ * (e.g. "Artist A, Artist B" for compilations). The album's year is taken from
+ * the first track encountered for that album.
  */
 export function groupTracksByAlbum(
   tracks: Track[],
@@ -28,7 +50,7 @@ export function groupTracksByAlbum(
   const artistSets = new Map<string, Set<string>>();
 
   for (const track of tracks) {
-    const key = track.album;
+    const key = albumKeyOf(track);
     const existing = map.get(key);
     if (existing) {
       existing.trackCount++;
@@ -53,7 +75,9 @@ export function groupTracksByAlbum(
     } else {
       artistSets.set(key, new Set([track.artist]));
       map.set(key, {
-        name: key,
+        key,
+        name: track.album,
+        albumArtist: albumArtistOf(track),
         artist: track.artist,
         year: track.year ?? null,
         createdAt: track.createdAt ?? null,

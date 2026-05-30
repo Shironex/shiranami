@@ -111,6 +111,13 @@ export const IPC_CHANNELS = {
       getPlaylistsForTracks: 'db:playlists:get-playlists-for-tracks',
       reorder: 'db:playlists:reorder',
     },
+    backup: {
+      // Export a consistent copy of the library DB to a user-chosen file, and
+      // restore the library from a user-chosen backup. Both run a native file
+      // dialog in the main process and return a status.
+      export: 'db:backup:export',
+      import: 'db:backup:import',
+    },
   },
   downloader: {
     check: 'downloader:check',
@@ -152,6 +159,9 @@ export const IPC_CHANNELS = {
     enrichPreview: 'metadata:enrich:preview',
     enrichCancel: 'metadata:enrich:cancel',
     enrichProgress: 'metadata:enrich:progress',
+    // Manual tag editor: write user-edited tags back to the file and update the
+    // DB row. Distinct from the automatic enrichment flow above.
+    writeTags: 'metadata:write-tags',
   },
   recommendations: {
     // Renderer-facing reads. `get` returns both shelves from the cache;
@@ -159,6 +169,9 @@ export const IPC_CHANNELS = {
     // the freshly-cached shelves. The renderer never spawns yt-dlp itself.
     get: 'recommendations:get',
     refresh: 'recommendations:refresh',
+    // "More like this" / song-radio: rank existing library tracks by content
+    // similarity to a seed track id (offline; @shiranami/recommendation core).
+    similar: 'recommendations:similar',
   },
   share: {
     track: 'share:track',
@@ -177,6 +190,12 @@ export const IPC_CHANNELS = {
     downloadProgress: 'updater:download-progress',
     updateDownloaded: 'updater:update-downloaded',
     error: 'updater:error',
+  },
+  system: {
+    // Main→renderer: structured notice for silent subsystem failures (Discord
+    // RPC login, album-art prune, etc.) so they surface as a calm toast instead
+    // of being swallowed in the logs.
+    notice: 'system:notice',
   },
 } as const;
 

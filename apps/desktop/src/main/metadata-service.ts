@@ -41,6 +41,9 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
     return {
       title: common.title || fileName,
       artist: common.artist || 'Unknown Artist',
+      // Prefer the dedicated albumartist tag; fall back to the track artist so
+      // album grouping always has a stable key even for untagged files.
+      albumArtist: common.albumartist || common.artist || null,
       album: common.album || 'Unknown Album',
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',
@@ -55,6 +58,7 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
     return {
       title: fileName,
       artist: 'Unknown Artist',
+      albumArtist: null,
       album: 'Unknown Album',
       duration: 0,
       genre: '',

@@ -19,7 +19,12 @@ interface ViewState {
   previousView: AppView;
   rightPanel: RightPanel;
   selectedPlaylistId: string | null;
-  selectedAlbumName: string | null;
+  /**
+   * Composite album identity (`albumArtist   album`, see `albumKeyOf`), NOT a
+   * bare album title — so identically-named albums by different artists are
+   * addressable separately.
+   */
+  selectedAlbumKey: string | null;
   albumGridScrollTop: number;
 }
 
@@ -30,7 +35,7 @@ interface ViewActions {
   selectPlaylist: (id: string | null) => void;
   setRightPanel: (panel: RightPanel) => void;
   toggleRightPanel: (panel: 'lyrics' | 'queue') => void;
-  selectAlbum: (name: string | null) => void;
+  selectAlbum: (key: string | null) => void;
   setAlbumGridScrollTop: (scrollTop: number) => void;
 }
 
@@ -39,7 +44,7 @@ export const useViewStore = create<ViewState & ViewActions>()((set, get) => ({
   previousView: 'library',
   rightPanel: null,
   selectedPlaylistId: null,
-  selectedAlbumName: null,
+  selectedAlbumKey: null,
   albumGridScrollTop: 0,
 
   navigateTo: (view, playlistId) =>
@@ -62,7 +67,7 @@ export const useViewStore = create<ViewState & ViewActions>()((set, get) => ({
     const current = get().rightPanel;
     set({ rightPanel: current === panel ? null : panel });
   },
-  selectAlbum: name => set({ selectedAlbumName: name }),
+  selectAlbum: key => set({ selectedAlbumKey: key }),
   setAlbumGridScrollTop: scrollTop => set({ albumGridScrollTop: scrollTop }),
 }));
 

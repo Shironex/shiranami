@@ -3,11 +3,17 @@ import type {
   EnrichTrackResult,
   EnrichProgress,
   MetadataLookupResult,
+  WriteTagsInput,
+  WriteTagsResult,
+  DbExportResult,
+  DbImportResult,
   MainMetricsSnapshot,
   GeocodeResult,
   WeatherCurrent,
   RecommendationShelves,
+  SimilarTrackResult,
   ShareImportResponse,
+  SystemNotice,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -240,6 +246,10 @@ export interface ElectronAPI {
       remove: (id: string) => Promise<void>;
       updateScanned: (id: string) => Promise<unknown>;
     };
+    backup: {
+      export: () => Promise<DbExportResult>;
+      import: () => Promise<DbImportResult>;
+    };
   };
   downloader: {
     getStreamUrl: (url: string) => Promise<string>;
@@ -400,6 +410,7 @@ export interface ElectronAPI {
     ) => Promise<EnrichTrackResult>;
     cancelEnrichment: () => Promise<void>;
     onEnrichProgress: (callback: (data: EnrichProgress) => void) => () => void;
+    writeTags: (input: WriteTagsInput) => Promise<WriteTagsResult>;
   };
   share: {
     track: (trackId: string) => Promise<{ code: string; url: string; expiresAt: string }>;
@@ -416,6 +427,10 @@ export interface ElectronAPI {
   recommendations: {
     get: () => Promise<RecommendationShelves>;
     refresh: () => Promise<RecommendationShelves>;
+    similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
+  };
+  system: {
+    onNotice: (callback: (notice: SystemNotice) => void) => () => void;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */

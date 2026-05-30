@@ -1,6 +1,7 @@
 {
   "playNext": "Odtwórz następny",
   "addToQueue": "Dodaj do kolejki",
+  "moreLikeThis": "Więcej takich utworów",
   "addToPlaylist": "Dodaj do playlisty",
   "removeFromFavorites": "Usuń z ulubionych",
   "addToFavorites": "Dodaj do ulubionych",
@@ -23,5 +24,6 @@
   "selectedCount_other": "{{count}} zaznaczonych",
   "dragToReorder": "Przeciągnij, aby zmienić kolejność",
   "findMissingMetadata": "Znajdź brakujące metadane",
-  "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych."
+  "findMissingMetadataBusy": "Trwa już zbiorcze uzupełnianie metadanych.",
+  "editTags": "Edytuj tagi"
 }

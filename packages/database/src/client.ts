@@ -5,6 +5,9 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import * as schema from './schema/index.js';
+import { runMigrations } from './migrate.js';
+
+export { runMigrations, SCHEMA_VERSION, assertNotDowngrade } from './migrate.js';
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let sqliteDb: Database.Database | null = null;
@@ -49,11 +52,14 @@ export function initializeDatabase(
   // Enable foreign keys
   sqliteDb.pragma('foreign_keys = ON');
 
-  // Create tables if they don't exist
-  createTables(sqliteDb);
+  // Verify the file isn't corrupt before we operate on it. quick_check is a
+  // fast structural pass; integrity_check is the thorough one. Both return the
+  // single row 'ok' on a healthy database.
+  runIntegrityChecks(sqliteDb);
 
-  // Apply incremental schema migrations for existing databases
-  migrateSchema(sqliteDb);
+  // Apply versioned migrations (creates tables on a fresh DB, baselines and
+  // upgrades legacy/older DBs). Replaces the old createTables/migrateSchema.
+  runMigrations(sqliteDb);
 
   db = drizzle({ client: sqliteDb, schema });
 
@@ -61,154 +67,42 @@ export function initializeDatabase(
 }
 
 /**
- * Create database tables if they don't exist
- */
-function createTables(database: Database.Database): void {
-  // Tracks table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS tracks (
-      id TEXT PRIMARY KEY,
-      file_path TEXT NOT NULL UNIQUE,
-      title TEXT NOT NULL,
-      artist TEXT DEFAULT 'Unknown Artist',
-      album TEXT DEFAULT 'Unknown Album',
-      duration REAL,
-      genre TEXT,
-      year INTEGER,
-      track_number INTEGER,
-      disc_number INTEGER,
-      album_art TEXT,
-      is_favorite INTEGER DEFAULT 0,
-      play_count INTEGER DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Playlists table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS playlists (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      cover_art TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Playlist tracks join table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS playlist_tracks (
-      id TEXT PRIMARY KEY,
-      playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
-      track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-      position INTEGER NOT NULL,
-      UNIQUE(playlist_id, track_id)
-    )
-  `);
-
-  // Watched folders table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS folders (
-      id TEXT PRIMARY KEY,
-      path TEXT NOT NULL UNIQUE,
-      last_scanned TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Radio favorites table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS radio_favorites (
-      id TEXT PRIMARY KEY,
-      station_uuid TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      url TEXT NOT NULL,
-      url_resolved TEXT NOT NULL,
-      homepage TEXT,
-      favicon TEXT,
-      country TEXT,
-      country_code TEXT,
-      language TEXT,
-      codec TEXT,
-      bitrate INTEGER,
-      tags TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Listening history table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS play_history (
-      id TEXT PRIMARY KEY,
-      track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-      played_at TEXT NOT NULL DEFAULT (datetime('now')),
-      played_seconds REAL NOT NULL,
-      completion_ratio REAL NOT NULL,
-      completed INTEGER NOT NULL DEFAULT 0,
-      source TEXT NOT NULL DEFAULT 'library'
-    )
-  `);
-
-  // YouTube mappings table
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS youtube_mappings (
-      id TEXT PRIMARY KEY,
-      track_id TEXT NOT NULL UNIQUE REFERENCES tracks(id) ON DELETE CASCADE,
-      youtube_id TEXT NOT NULL,
-      searched_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Recommendation cache table — one row per shelf kind, holding a JSON
-  // payload + the instant it was generated. The 24h TTL is enforced at read
-  // time against generated_at, not in SQL. See schema/recommendations.ts.
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS recommendations (
-      kind TEXT PRIMARY KEY,
-      payload TEXT NOT NULL,
-      generated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Create indexes for common queries
-  database.exec(`
-    CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
-    CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
-    CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album);
-    CREATE INDEX IF NOT EXISTS idx_tracks_is_favorite ON tracks(is_favorite);
-    CREATE INDEX IF NOT EXISTS idx_playlist_tracks_playlist_id ON playlist_tracks(playlist_id);
-    CREATE INDEX IF NOT EXISTS idx_playlist_tracks_track_id ON playlist_tracks(track_id);
-    CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
-    CREATE INDEX IF NOT EXISTS idx_radio_favorites_station_uuid ON radio_favorites(station_uuid);
-    CREATE INDEX IF NOT EXISTS idx_play_history_track_id ON play_history(track_id);
-    CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at);
-    CREATE INDEX IF NOT EXISTS idx_youtube_mappings_track_id ON youtube_mappings(track_id);
-  `);
-}
-
-/**
- * Apply incremental schema migrations for existing databases.
+ * Run SQLite's built-in corruption checks. Logs a warning on failure rather
+ * than throwing — a partially-readable database is still worth opening so the
+ * user can export/recover, and the launch-time backup provides a fallback.
  *
- * SQLite's ALTER TABLE ADD COLUMN has no IF NOT EXISTS form, so existence is
- * checked via PRAGMA table_info before each additive migration. Keep operations
- * idempotent and append-only.
+ * Only the fast structural quick_check runs synchronously at init so launch
+ * stays non-blocking. The thorough integrity_check can block the main thread
+ * for several seconds on large DBs or slow disks, so it is deferred to the
+ * background after init returns.
  */
-function migrateSchema(database: Database.Database): void {
-  // disc_number: added for multi-disc album support
-  if (!hasColumn(database, 'tracks', 'disc_number')) {
-    database.prepare('ALTER TABLE tracks ADD COLUMN disc_number INTEGER').run();
+function runIntegrityChecks(database: Database.Database): void {
+  try {
+    const quick = database.pragma('quick_check', { simple: true });
+    if (quick && quick !== 'ok') {
+      console.warn(`[database] quick_check reported: ${String(quick)}`);
+    }
+  } catch (err) {
+    console.warn('[database] quick_check failed to run:', err);
   }
-}
 
-/**
- * Returns true if `table` has a column named `column`. Uses PRAGMA table_info,
- * which is the canonical SQLite introspection for schema existence checks.
- */
-function hasColumn(database: Database.Database, table: string, column: string): boolean {
-  const rows = database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  return rows.some(row => row.name === column);
+  // Defer the thorough (potentially slow) integrity_check off the startup
+  // path so it never blocks launch. It still surfaces corruption via the same
+  // warning, just after the UI has had a chance to load.
+  setImmediate(() => {
+    // The connection may have been closed before this fires.
+    if (sqliteDb !== database) {
+      return;
+    }
+    try {
+      const integrity = database.pragma('integrity_check', { simple: true });
+      if (integrity && integrity !== 'ok') {
+        console.warn(`[database] integrity_check reported: ${String(integrity)}`);
+      }
+    } catch (err) {
+      console.warn('[database] integrity_check failed to run:', err);
+    }
+  });
 }
 
 /**

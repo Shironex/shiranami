@@ -480,7 +480,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setLibraryViewMode: mode => {
       set({ libraryViewMode: mode });
-      useViewStore.setState({ selectedAlbumName: null, albumGridScrollTop: 0 });
+      useViewStore.setState({ selectedAlbumKey: null, albumGridScrollTop: 0 });
     },
     setAlbumGridSize: size => {
       set({ albumGridSize: size });
