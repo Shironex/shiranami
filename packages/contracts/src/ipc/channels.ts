@@ -184,6 +184,9 @@ export const IPC_CHANNELS = {
     notInterested: 'recommendations:not-interested',
     // Undo a "Not interested" mark (removes the negative signal for a track).
     undoNotInterested: 'recommendations:undo-not-interested',
+    // Smart mixes: generate mood/activity/decade mixes from the renderer's
+    // contextual signals (hour + optional weather) and library metadata.
+    smartMixes: 'recommendations:smart-mixes',
   },
   share: {
     track: 'share:track',

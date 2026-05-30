@@ -15,6 +15,8 @@ import type {
   WeatherCurrent,
   RecommendationShelves,
   SimilarTrackResult,
+  SmartMixResult,
+  SmartMixSignals,
   ShareImportResponse,
   SystemNotice,
 } from '@shiranami/contracts';
@@ -438,6 +440,7 @@ export interface ElectronAPI {
     similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
     notInterested: (trackId: string) => Promise<void>;
     undoNotInterested: (trackId: string) => Promise<void>;
+    smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
   };
   system: {
     onNotice: (callback: (notice: SystemNotice) => void) => () => void;

@@ -33,9 +33,11 @@ import {
   rankByAffinity,
   rankBySimilarity,
   selectSeedTracks,
+  buildSmartMixes,
   type SharedPlaylistCounts,
   type SimilarityTrack,
   type TrackStats,
+  type MixTrack,
 } from '@shiranami/recommendation';
 import { playlistTracks } from '@shiranami/database';
 import {
@@ -48,6 +50,8 @@ import {
   type RecommendationKind,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixSignals,
+  type SmartMixResult,
 } from '@shiranami/contracts';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
@@ -289,6 +293,52 @@ export function computeSimilarTracks(seedTrackId: string): SimilarTrackResult[] 
   return rankBySimilarity(seed, candidates, sharedPlaylists)
     .slice(0, SIMILAR_TRACKS_MAX)
     .map(track => ({ trackId: track.trackId, similarity: track.similarity }));
+}
+
+// ──────────────────────────────── smart mixes ───────────────────────────────
+
+/** Project the `tracks` table into the minimal metadata shape the pure
+ *  smart-mix generator consumes (id + genre/year/playCount). */
+function getMixTracks(): MixTrack[] {
+  const db = getDatabase();
+  const rows = db
+    .select({
+      trackId: tracks.id,
+      genre: tracks.genre,
+      year: tracks.year,
+      playCount: tracks.playCount,
+    })
+    .from(tracks)
+    .all();
+  return rows.map(row => ({
+    trackId: row.trackId,
+    genre: row.genre ?? null,
+    year: row.year ?? null,
+    playCount: Number(row.playCount ?? 0),
+  }));
+}
+
+/**
+ * Generate mood/activity/decade mixes for the renderer's contextual signals
+ * (current hour + optional weather) and the library's metadata. Offline and
+ * cheap — safe on the render path — so it is computed on demand rather than
+ * cached. Returns [] when no mix reaches the minimum size (e.g. a thin or
+ * untagged library), which the renderer renders as a quiet empty state.
+ */
+export function computeSmartMixes(signals: SmartMixSignals): SmartMixResult[] {
+  const mixes = buildSmartMixes(getMixTracks(), {
+    hour: signals.hour,
+    weather: signals.weather,
+  });
+  // The pure SmartMix shape is structurally identical to the contract type.
+  return mixes.map(mix => ({
+    id: mix.id,
+    kind: mix.kind,
+    titleKey: mix.titleKey,
+    descKey: mix.descKey,
+    decade: mix.decade,
+    trackIds: mix.trackIds,
+  }));
 }
 
 // ──────────────────────────── yt-dlp discovery ─────────────────────────────

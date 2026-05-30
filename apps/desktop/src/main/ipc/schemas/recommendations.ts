@@ -13,3 +13,24 @@ export const recommendationsSimilarArgs = z.tuple([z.string().min(1)]);
 // Negative signal (mark / undo "Not interested"): a single track id. Non-empty
 // so a tampered/empty payload is rejected before the DB write.
 export const recommendationsNotInterestedArgs = z.tuple([z.string().min(1)]);
+
+// Smart mixes: contextual signals from the renderer. `hour` is the local hour
+// (0–23); `weather` is the optional opted-in condition bucket. Unknown weather
+// strings are coerced to 'unknown' so a tampered payload degrades gracefully
+// instead of throwing.
+const smartMixWeather = z.enum([
+  'clear',
+  'partly_cloudy',
+  'cloudy',
+  'rain',
+  'snow',
+  'thunderstorm',
+  'fog',
+  'unknown',
+]);
+export const recommendationsSmartMixesArgs = z.tuple([
+  z.object({
+    hour: z.number().int().min(0).max(23),
+    weather: smartMixWeather.optional(),
+  }),
+]);

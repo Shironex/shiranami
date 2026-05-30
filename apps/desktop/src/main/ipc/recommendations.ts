@@ -3,9 +3,12 @@ import {
   IPC_CHANNELS,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixResult,
+  type SmartMixSignals,
 } from '@shiranami/contracts';
 import {
   computeSimilarTracks,
+  computeSmartMixes,
   getRecommendationShelves,
   triggerRefresh,
   markNotInterested,
@@ -17,6 +20,7 @@ import {
   recommendationsRefreshArgs,
   recommendationsSimilarArgs,
   recommendationsNotInterestedArgs,
+  recommendationsSmartMixesArgs,
 } from './schemas/recommendations';
 
 const C = IPC_CHANNELS.recommendations;
@@ -72,6 +76,17 @@ export function registerRecommendationsHandlers(): void {
     async (_event, trackId: string): Promise<void> => undoNotInterested(trackId),
     { schema: recommendationsNotInterestedArgs }
   );
+
+  // Smart mixes: offline generation of mood/activity/decade mixes from the
+  // renderer's contextual signals + library metadata. Returns a (possibly
+  // empty) ordered list.
+  handleWithFallback(
+    C.smartMixes,
+    async (_event, signals: SmartMixSignals): Promise<SmartMixResult[]> =>
+      computeSmartMixes(signals),
+    () => [],
+    { schema: recommendationsSmartMixesArgs }
+  );
 }
 
 export function cleanupRecommendationsHandlers(): void {
@@ -80,4 +95,5 @@ export function cleanupRecommendationsHandlers(): void {
   ipcMain.removeHandler(C.similar);
   ipcMain.removeHandler(C.notInterested);
   ipcMain.removeHandler(C.undoNotInterested);
+  ipcMain.removeHandler(C.smartMixes);
 }

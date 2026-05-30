@@ -139,3 +139,46 @@ describe('recommendations:not-interested ipc (integration)', () => {
     await expect(invokeMark('')).rejects.toThrow();
   });
 });
+
+describe('recommendations:smart-mixes ipc (integration)', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    ipcHandlers.clear();
+    closeDatabase();
+    tempDir = makeTempDir();
+    initializeDatabase({ path: join(tempDir, 'app.sqlite') });
+    registerRecommendationsHandlers();
+  });
+
+  afterEach(() => {
+    cleanupRecommendationsHandlers();
+    closeDatabase();
+    cleanupTempDir(tempDir);
+  });
+
+  function insertTrack(id: string, genre: string | null, year: number | null, playCount: number) {
+    getDatabase()
+      .insert(tracks)
+      .values({ id, filePath: `/music/${id}.mp3`, title: id, genre, year, playCount })
+      .run();
+  }
+
+  function invoke(signals: { hour: number; weather?: string }) {
+    const handler = ipcHandlers.get('recommendations:smart-mixes')!;
+    return handler(null as never, signals) as Promise<
+      Array<{ kind: string; decade?: number; trackIds: string[] }>
+    >;
+  }
+
+  it('generates a focus mix from instrumental-tagged tracks', async () => {
+    for (let i = 0; i < 6; i += 1) insertTrack(`f${i}`, 'lofi', 2015, i);
+    const mixes = await invoke({ hour: 14 });
+    expect(mixes.some(m => m.kind === 'focus')).toBe(true);
+    expect(mixes.some(m => m.kind === 'decade' && m.decade === 2010)).toBe(true);
+  });
+
+  it('rejects an out-of-range hour via zod validation', async () => {
+    await expect(invoke({ hour: 99 })).rejects.toThrow();
+  });
+});

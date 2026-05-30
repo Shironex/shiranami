@@ -307,6 +307,7 @@ function createElectronAPIMock(): ElectronAPI {
       similar: asyncFn([]),
       notInterested: asyncFn(undefined),
       undoNotInterested: asyncFn(undefined),
+      smartMixes: asyncFn([]),
     },
     platform: 'win32',
     __e2e: false,

@@ -3,6 +3,8 @@ import {
   IPC_CHANNELS,
   type RecommendationShelves,
   type SimilarTrackResult,
+  type SmartMixResult,
+  type SmartMixSignals,
 } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.recommendations;
@@ -18,6 +20,8 @@ export interface RecommendationsApi {
   notInterested: (trackId: string) => Promise<void>;
   /** Undo a previous "Not interested" mark for a track. */
   undoNotInterested: (trackId: string) => Promise<void>;
+  /** Generate mood/activity/decade mixes from contextual signals + metadata. */
+  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
 }
 
 export const recommendationsApi: RecommendationsApi = {
@@ -26,4 +30,5 @@ export const recommendationsApi: RecommendationsApi = {
   similar: (seedTrackId: string) => ipcRenderer.invoke(C.similar, seedTrackId),
   notInterested: (trackId: string) => ipcRenderer.invoke(C.notInterested, trackId),
   undoNotInterested: (trackId: string) => ipcRenderer.invoke(C.undoNotInterested, trackId),
+  smartMixes: (signals: SmartMixSignals) => ipcRenderer.invoke(C.smartMixes, signals),
 };
