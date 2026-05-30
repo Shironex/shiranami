@@ -3,6 +3,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import type { SmartMixResult } from '@shiranami/contracts';
 import { useWeatherStore } from '@/stores/useWeatherStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
+import { useCurrentHour } from '@/hooks/useCurrentHour';
 
 /** Smart mixes shift slowly (time-of-day + weather); refresh every ~15 min. */
 const SMART_MIX_STALE_MS = 15 * 60 * 1000;
@@ -22,7 +23,7 @@ export function useSmartMixes() {
   const weatherCoords = useWeatherStore(s => s.coords);
   const { data: weather } = useWeatherQuery(weatherEnabled, weatherCoords);
 
-  const hour = new Date().getHours();
+  const hour = useCurrentHour();
   const condition = weatherEnabled ? weather?.condition : undefined;
 
   return useQuery({
