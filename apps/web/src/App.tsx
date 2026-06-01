@@ -28,6 +28,7 @@ const MixesView = lazy(() => import('@/components/mixes/MixesView'));
 const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
 const SmartPlaylistsView = lazy(() => import('@/components/smart-playlists/SmartPlaylistsView'));
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
+const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
@@ -57,6 +58,8 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
+import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
+import { useDownloadQueueImporter } from '@/hooks/useDownloadQueueImporter';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -163,6 +166,21 @@ function App() {
     });
     return cleanup;
   }, [updateDependencyInstall]);
+
+  // Hydrate + subscribe to the main-process download queue. The importer hook
+  // (mounted below) is the single owner of library import for queued downloads.
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const applySnapshot = useDownloadQueueStore.getState().applySnapshot;
+    window.electronAPI.downloader
+      .getDownloadQueue()
+      .then(applySnapshot)
+      .catch(() => {});
+    const cleanup = window.electronAPI.downloader.onQueueState(applySnapshot);
+    return cleanup;
+  }, []);
+
+  useDownloadQueueImporter();
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -357,6 +375,13 @@ function App() {
                         <ErrorBoundary viewName="NowPlayingView">
                           <Suspense fallback={null}>
                             <NowPlayingView />
+                          </Suspense>
+                        </ErrorBoundary>
+                      )}
+                      {activeView === 'downloads' && (
+                        <ErrorBoundary viewName="DownloadsView">
+                          <Suspense fallback={null}>
+                            <DownloadsView />
                           </Suspense>
                         </ErrorBoundary>
                       )}

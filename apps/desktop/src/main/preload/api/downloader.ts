@@ -1,5 +1,10 @@
 import { ipcRenderer } from 'electron';
-import { IPC_CHANNELS, type SearchResult } from '@shiranami/contracts';
+import {
+  IPC_CHANNELS,
+  type SearchResult,
+  type DownloadQueueSnapshot,
+  type EnqueueDownloadInput,
+} from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 import type { InstallDependenciesResult } from '../types';
 
@@ -31,6 +36,11 @@ export interface DownloaderApi {
   suggest: (query: string) => Promise<string[]>;
   search: (query: string) => Promise<SearchResult[]>;
   download: (url: string) => Promise<string>;
+  enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
+  cancelDownload: (id: string) => Promise<void>;
+  clearCompletedDownloads: () => Promise<void>;
+  getDownloadQueue: () => Promise<DownloadQueueSnapshot>;
+  onQueueState: (cb: (snapshot: DownloadQueueSnapshot) => void) => () => void;
   getDownloadLocation: () => Promise<DownloadLocation>;
   setDownloadLocation: (path: string | null) => Promise<DownloadLocation>;
   checkDependencies: () => Promise<{ ytdlpInstalled: boolean; ffmpegInstalled: boolean }>;
@@ -67,6 +77,11 @@ export const downloaderApi: DownloaderApi = {
   search: query => ipcRenderer.invoke(C.search, query),
   getStreamUrl: url => ipcRenderer.invoke(C.getStreamUrl, url),
   download: url => ipcRenderer.invoke(C.download, { url }),
+  enqueueDownload: input => ipcRenderer.invoke(C.enqueue, input),
+  cancelDownload: id => ipcRenderer.invoke(C.cancel, id),
+  clearCompletedDownloads: () => ipcRenderer.invoke(C.clearCompleted),
+  getDownloadQueue: () => ipcRenderer.invoke(C.getQueue),
+  onQueueState: createIpcListener<DownloadQueueSnapshot>(C.queueState),
   getDownloadLocation: () => ipcRenderer.invoke(C.getDownloadLocation),
   setDownloadLocation: downloadPath => ipcRenderer.invoke(C.setDownloadLocation, downloadPath),
   checkDependencies: () => ipcRenderer.invoke(C.checkDependencies),

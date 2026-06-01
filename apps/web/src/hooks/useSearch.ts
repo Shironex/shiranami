@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
-import { useTrackImport } from '@/hooks/useTrackImport';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
-import { toast } from 'sonner';
+import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import i18n from '@/lib/i18n';
 import { translateYtDlpError } from '@/lib/ytdlpErrors';
-import type { SearchResult, DownloadProgress } from '@/types/electron';
+import type { SearchResult } from '@/types/electron';
+import type { DownloadQueueStatus } from '@shiranami/contracts';
 
 interface DownloadState {
   progress: number;
@@ -16,38 +16,37 @@ interface DownloadState {
 
 export type { DownloadState };
 
+/** Map the main-queue lifecycle status onto the search row's UI status. */
+function mapQueueStatus(status: DownloadQueueStatus): DownloadState['status'] {
+  switch (status) {
+    case 'queued':
+    case 'active':
+      return 'downloading';
+    case 'converting':
+      return 'converting';
+    case 'done':
+      return 'done';
+    case 'error':
+      return 'error';
+    case 'canceled':
+      return 'idle';
+  }
+}
+
 export function useSearch() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
-  // Synchronous in-flight set keyed by URL. The `downloads` state can't guard
-  // against a fast double-invoke (it flushes a render later, and handleDownload
-  // doesn't close over it), so a ref is the reliable dedupe.
+  // Synchronous in-flight set keyed by URL so a fast double-trigger enqueues once.
   const downloadInFlightRef = useRef<Set<string>>(new Set());
 
-  const { importTrack } = useTrackImport();
+  // Subscribe to the queue store so rows re-render as their items advance.
+  const byUrl = useDownloadQueueStore(s => s.byUrl);
+
   const { previewLoadingId, isPreviewPlaying, handlePreview } = useAudioPreview(
     i18n.t('previewAlbum', { ns: 'search' })
   );
-
-  // Listen to download progress events
-  useEffect(() => {
-    if (!IS_ELECTRON) return;
-    const cleanup = window.electronAPI.downloader.onProgress((data: DownloadProgress) => {
-      setDownloads(prev => ({
-        ...prev,
-        [data.url]: {
-          ...prev[data.url],
-          progress: data.progress,
-          status: data.status,
-          error: data.error,
-        },
-      }));
-    });
-    return cleanup;
-  }, []);
 
   const handleSearch = useCallback(async () => {
     const trimmed = query.trim();
@@ -80,57 +79,35 @@ export function useSearch() {
     [handleSearch]
   );
 
-  const handleDownload = useCallback(
-    async (result: SearchResult) => {
-      if (!IS_ELECTRON) return;
-      const url = result.webpage_url || result.url;
-      // Guard against a duplicate download (and the duplicate library row it
-      // would produce) from a rapid double-trigger before state flushes.
-      if (downloadInFlightRef.current.has(url)) return;
-      downloadInFlightRef.current.add(url);
+  const handleDownload = useCallback((result: SearchResult) => {
+    if (!IS_ELECTRON) return;
+    const url = result.webpage_url || result.url;
+    // Guard against a duplicate enqueue from a rapid double-trigger.
+    if (downloadInFlightRef.current.has(url)) return;
+    downloadInFlightRef.current.add(url);
 
-      setDownloads(prev => ({
-        ...prev,
-        [url]: { progress: 0, status: 'downloading' },
-      }));
-
-      try {
-        const filePath = await window.electronAPI.downloader.download(url);
-        setDownloads(prev => ({
-          ...prev,
-          [url]: { progress: 100, status: 'done', filePath },
-        }));
-        const track = await importTrack(filePath);
-        if (track) {
-          // Cache the YouTube video ID for accurate sharing later
-          if (result.id) {
-            window.electronAPI.share.cacheYoutubeId(track.id, result.id).catch(() => {});
-          }
-          toast.success(i18n.t('downloaded', { ns: 'toast', title: track.title }));
-        } else {
-          toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));
-        }
-      } catch (err) {
-        const raw = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
-        const msg = translateYtDlpError(raw);
-        setDownloads(prev => ({
-          ...prev,
-          [url]: { progress: 0, status: 'error', error: msg },
-        }));
-        toast.error(i18n.t('downloadFailed', { ns: 'toast', error: msg }));
-      } finally {
+    window.electronAPI.downloader
+      .enqueueDownload({ url, youtubeId: result.id, title: result.title })
+      .catch(() => {})
+      .finally(() => {
         downloadInFlightRef.current.delete(url);
-      }
-    },
-    [importTrack]
-  );
+      });
+    // Import + success/dup toast happen in the central queue importer.
+  }, []);
 
   const getDownloadState = useCallback(
     (result: SearchResult): DownloadState => {
       const url = result.webpage_url || result.url;
-      return downloads[url] ?? { progress: 0, status: 'idle' };
+      const item = byUrl.get(url);
+      if (!item) return { progress: 0, status: 'idle' };
+      return {
+        progress: item.progress,
+        status: mapQueueStatus(item.status),
+        error: item.error ? translateYtDlpError(item.error) : undefined,
+        filePath: item.filePath,
+      };
     },
-    [downloads]
+    [byUrl]
   );
 
   return {

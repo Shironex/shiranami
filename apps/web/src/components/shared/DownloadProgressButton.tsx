@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Download, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, Download, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -8,7 +8,15 @@ import { cn } from '@/lib/utils';
  * extra values. `idle` covers playlist-import's `pending`; map it at the call
  * site. `skipped` is rendered as a muted check (already-in-library).
  */
-export type DownloadStatus = 'idle' | 'downloading' | 'converting' | 'done' | 'error' | 'skipped';
+export type DownloadStatus =
+  | 'idle'
+  | 'queued'
+  | 'downloading'
+  | 'converting'
+  | 'done'
+  | 'canceled'
+  | 'error'
+  | 'skipped';
 
 interface DownloadProgressButtonProps {
   status: DownloadStatus;
@@ -47,13 +55,25 @@ export function DownloadProgressButton({
   className,
 }: DownloadProgressButtonProps) {
   const isBusy = status === 'downloading' || status === 'converting';
-  const isDisabled = disabled || isBusy || status === 'done' || status === 'skipped';
+  const isDisabled =
+    disabled ||
+    isBusy ||
+    status === 'queued' ||
+    status === 'done' ||
+    status === 'skipped' ||
+    status === 'canceled';
 
   let icon: React.ReactNode;
   let colorClass: string;
   let borderClass: string;
 
-  if (isBusy) {
+  if (status === 'queued') {
+    // Waiting for a concurrency slot: a muted clock, visually distinct from the
+    // active spinner so "waiting vs downloading" is legible at a glance.
+    icon = <Clock className="size-4" />;
+    colorClass = 'text-muted-foreground/50';
+    borderClass = 'border-border/15';
+  } else if (isBusy) {
     icon = <Loader2 className="size-4 animate-spin" />;
     colorClass = 'text-primary/80';
     borderClass = 'border-primary/20';
@@ -63,6 +83,12 @@ export function DownloadProgressButton({
     borderClass = 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200';
   } else if (status === 'skipped') {
     icon = <Check className="size-4" />;
+    colorClass = 'text-muted-foreground/50';
+    borderClass = 'border-border/15';
+  } else if (status === 'canceled') {
+    // Cancel is intentionally distinct from failure — render it neutral, not
+    // with the destructive error glyph.
+    icon = <X className="size-4" />;
     colorClass = 'text-muted-foreground/50';
     borderClass = 'border-border/15';
   } else if (status === 'error') {

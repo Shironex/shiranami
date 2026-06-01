@@ -21,14 +21,31 @@ export interface RunYtDlpDownloadOptions {
 }
 
 /**
+ * Sentinel thrown when a download is aborted via the provided `AbortSignal`.
+ * The queue maps this to `canceled` (vs `error`) by inspecting its own
+ * controller's `signal.aborted`; the dedicated error name is a secondary guard.
+ */
+export class DownloadAbortError extends Error {
+  constructor() {
+    super('canceled');
+    this.name = 'AbortError';
+  }
+}
+
+/**
  * Spawns yt-dlp to download `url` into `downloadDir` and resolves with the
  * downloaded file path. `onProgress` receives the same progress events the IPC
- * handler streams to the renderer. The spawn lifecycle, abort/error handling,
- * and temp-file readback are preserved exactly as the original handler had them.
+ * handler streams to the renderer.
+ *
+ * When an `AbortSignal` is supplied, aborting kills the child process: the
+ * `close` handler short-circuits to a `DownloadAbortError` (it never emits an
+ * `error` progress) and the partial output file (`<dest>` and `<dest>.part`) is
+ * removed so the downloads folder stays clean.
  */
 export function runYtDlpDownload(
   { url, downloadDir }: RunYtDlpDownloadOptions,
-  onProgress: (progress: DownloadProgress) => void
+  onProgress: (progress: DownloadProgress) => void,
+  signal?: AbortSignal
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const outputTemplate = path.join(downloadDir, '%(title)s.%(ext)s');
@@ -84,16 +101,49 @@ export function runYtDlpDownload(
 
     // appendUrlArg validates the http(s) scheme and inserts the `--`
     // end-of-options separator so `url` can never be parsed as a yt-dlp flag.
+    // Abort early if the caller already cancelled before we spawned.
+    if (signal?.aborted) {
+      reject(new DownloadAbortError());
+      return;
+    }
+
     const proc = spawn(getYtDlpPath(), appendUrlArg(args, url), {
       env: { ...process.env },
     });
 
     let allOutput = '';
     let downloadedFilePath = '';
+    // Destination paths yt-dlp announces during download AND post-processing
+    // (`[download]`, `[ExtractAudio]`, `[ffmpeg]` … `Destination: <path>`) so an
+    // abort mid-download or mid-convert can clean up both the partial download
+    // and the converted output (`<dest>` + `<dest>.part`).
+    const destinations = new Set<string>();
+
+    const onAbort = () => proc.kill();
+    if (signal) {
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+    const removeAbortListener = () => {
+      if (signal) signal.removeEventListener('abort', onAbort);
+    };
+
+    const cleanupPartialFiles = async () => {
+      await Promise.all(
+        [...destinations].flatMap(dest => [
+          fs.promises.unlink(dest).catch(() => {}),
+          fs.promises.unlink(`${dest}.part`).catch(() => {}),
+        ])
+      );
+    };
 
     proc.stdout.on('data', (data: Buffer) => {
       const text = data.toString();
       allOutput += text;
+
+      const destMatch = text.match(/\[[^\]]+\]\s+Destination:\s+(.+)/);
+      if (destMatch) {
+        destinations.add(destMatch[1].trim());
+      }
 
       const progressMatch = text.match(/\[download\]\s+([\d.]+)%/);
       if (progressMatch) {
@@ -111,13 +161,30 @@ export function runYtDlpDownload(
     });
 
     proc.on('error', err => {
+      removeAbortListener();
       fs.promises.unlink(tmpFile).catch(() => {});
+      // An abort can surface as a spawn error on some platforms; treat it as a
+      // cancel (no error progress) and clean up the partial file.
+      if (signal?.aborted) {
+        void cleanupPartialFiles().finally(() => reject(new DownloadAbortError()));
+        return;
+      }
       onProgress({ url, progress: 0, status: 'error', error: err.message });
       reject(err);
     });
 
     proc.on('close', code => {
       void (async () => {
+        removeAbortListener();
+        // Abort takes precedence over the exit code: killing the child fires
+        // `close` with a non-zero/null code, but this is a cancel, not a
+        // failure — never emit an `error` progress here.
+        if (signal?.aborted) {
+          await cleanupPartialFiles();
+          await fs.promises.unlink(tmpFile).catch(() => {});
+          reject(new DownloadAbortError());
+          return;
+        }
         try {
           if (code !== 0) {
             const reason = classifyYtDlpFailure(allOutput);

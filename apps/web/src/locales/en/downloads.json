@@ -1,0 +1,33 @@
+{
+  "title": "Downloads",
+  "subtitle": "Track and manage your active and completed downloads.",
+  "section": {
+    "active": "Active",
+    "queued": "Queued",
+    "completed": "Completed"
+  },
+  "status": {
+    "queued": "Waiting",
+    "active": "Downloading",
+    "converting": "Converting",
+    "done": "Downloaded",
+    "error": "Failed",
+    "canceled": "Canceled"
+  },
+  "action": {
+    "cancel": "Cancel",
+    "clearCompleted": "Clear completed"
+  },
+  "error": {
+    "cancelFailed": "Couldn't cancel the download. Please try again.",
+    "clearFailed": "Couldn't clear completed downloads. Please try again."
+  },
+  "empty": {
+    "title": "No downloads yet",
+    "description": "Tracks you download from search, recommendations, or playlist import will appear here."
+  },
+  "a11y": {
+    "cancelDownload": "Cancel download of {{title}}",
+    "progress": "Download progress for {{title}}"
+  }
+}

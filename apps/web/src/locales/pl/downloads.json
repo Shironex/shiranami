@@ -1,0 +1,33 @@
+{
+  "title": "Pobierania",
+  "subtitle": "Śledź aktywne i zakończone pobierania oraz zarządzaj nimi.",
+  "section": {
+    "active": "Aktywne",
+    "queued": "W kolejce",
+    "completed": "Zakończone"
+  },
+  "status": {
+    "queued": "Oczekuje",
+    "active": "Pobieranie",
+    "converting": "Konwertowanie",
+    "done": "Pobrano",
+    "error": "Niepowodzenie",
+    "canceled": "Anulowano"
+  },
+  "action": {
+    "cancel": "Anuluj",
+    "clearCompleted": "Wyczyść zakończone"
+  },
+  "error": {
+    "cancelFailed": "Nie udało się anulować pobierania. Spróbuj ponownie.",
+    "clearFailed": "Nie udało się wyczyścić zakończonych pobierań. Spróbuj ponownie."
+  },
+  "empty": {
+    "title": "Brak pobierań",
+    "description": "Utwory pobrane z wyszukiwarki, rekomendacji lub importu playlisty pojawią się tutaj."
+  },
+  "a11y": {
+    "cancelDownload": "Anuluj pobieranie {{title}}",
+    "progress": "Postęp pobierania {{title}}"
+  }
+}

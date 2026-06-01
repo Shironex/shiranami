@@ -161,6 +161,14 @@ export const IPC_CHANNELS = {
     checkFfmpeg: 'downloader:check-ffmpeg',
     installFfmpeg: 'downloader:install-ffmpeg',
     installDependencies: 'downloader:install-dependencies',
+    // Download-queue manager (in-memory main-process queue with concurrency).
+    enqueue: 'downloader:queue-enqueue',
+    cancel: 'downloader:queue-cancel',
+    clearCompleted: 'downloader:queue-clear-completed',
+    getQueue: 'downloader:queue-get',
+    queueState: 'downloader:queue-state',
+    // Legacy per-URL download + progress (kept for direct callers; the feature
+    // hooks now route through the queue above).
     progress: 'downloader:progress',
     installProgress: 'downloader:install-progress',
     ffmpegInstallProgress: 'downloader:ffmpeg-install-progress',

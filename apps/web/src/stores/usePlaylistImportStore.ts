@@ -33,6 +33,12 @@ interface PlaylistImportState {
   isImporting: boolean;
   isCancelled: boolean;
   importingTrackIds: Set<string> | null;
+  /**
+   * The download-queue batch this import session owns, kept here (not in a
+   * component-local ref) so the view's progress projection survives navigating
+   * away to the Downloads view and back. `null` when no import is in flight.
+   */
+  activeBatchId: string | null;
 }
 
 interface PlaylistImportActions {
@@ -50,7 +56,7 @@ interface PlaylistImportActions {
   startExtracting: () => void;
   stopExtracting: () => void;
   setExtractProgress: (progress: { current: number; total: number; trackName: string }) => void;
-  startImporting: (trackIds?: Set<string>) => void;
+  startImporting: (trackIds?: Set<string>, batchId?: string) => void;
   cancelImport: () => void;
   reset: () => void;
 }
@@ -65,6 +71,7 @@ const INITIAL_STATE: PlaylistImportState = {
   isImporting: false,
   isCancelled: false,
   importingTrackIds: null,
+  activeBatchId: null,
 };
 
 function createPlaylistTrackId(result: SearchResult, index: number): string {
@@ -119,9 +126,15 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
   startExtracting: () => set({ isExtracting: true, extractProgress: null, isCancelled: false }),
   stopExtracting: () => set({ isExtracting: false }),
   setExtractProgress: progress => set({ extractProgress: progress }),
-  startImporting: trackIds =>
-    set({ isImporting: true, isCancelled: false, importingTrackIds: trackIds ?? null }),
-  cancelImport: () => set({ isCancelled: true, isImporting: false }),
+  startImporting: (trackIds, batchId) =>
+    set({
+      isImporting: true,
+      isCancelled: false,
+      importingTrackIds: trackIds ?? null,
+      activeBatchId: batchId ?? null,
+    }),
+  cancelImport: () =>
+    set({ isCancelled: true, isImporting: false, importingTrackIds: null, activeBatchId: null }),
   reset: () => set(INITIAL_STATE),
 }));
 

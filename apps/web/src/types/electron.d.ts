@@ -26,6 +26,8 @@ import type {
   SmartPlaylistDefinition,
   SmartPlaylistRule,
   SmartPlaylistMatchType,
+  DownloadQueueSnapshot,
+  EnqueueDownloadInput,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -296,6 +298,11 @@ export interface ElectronAPI {
     suggest: (query: string) => Promise<string[]>;
     search: (query: string) => Promise<SearchResult[]>;
     download: (url: string) => Promise<string>;
+    enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
+    cancelDownload: (id: string) => Promise<void>;
+    clearCompletedDownloads: () => Promise<void>;
+    getDownloadQueue: () => Promise<DownloadQueueSnapshot>;
+    onQueueState: (callback: (snapshot: DownloadQueueSnapshot) => void) => () => void;
     getDownloadLocation: () => Promise<{
       path: string;
       defaultPath: string;

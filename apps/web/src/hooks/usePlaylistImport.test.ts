@@ -18,6 +18,8 @@ vi.mock('@/lib/i18n', () => ({
 
 import { usePlaylistImport } from '@/hooks/usePlaylistImport';
 import { usePlaylistImportStore } from '@/stores/usePlaylistImportStore';
+import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
+import { useDownloadBatchStore } from '@/stores/useDownloadBatchStore';
 import { toast } from 'sonner';
 
 function makeSearchResult(id: string, overrides?: Partial<SearchResult>): SearchResult {
@@ -42,16 +44,22 @@ describe('usePlaylistImport', () => {
     resetStore();
     vi.mocked(window.electronAPI.playlist.extract).mockReset();
     vi.mocked(window.electronAPI.playlist.cancel).mockReset();
-    vi.mocked(window.electronAPI.downloader.download).mockReset();
-    vi.mocked(window.electronAPI.downloader.onProgress).mockReset();
+    vi.mocked(window.electronAPI.downloader.enqueueDownload).mockReset();
+    vi.mocked(window.electronAPI.downloader.cancelDownload).mockReset();
     vi.mocked(window.electronAPI.playlist.onExtractProgress).mockReset();
     vi.mocked(window.electronAPI.db.tracks.exists).mockReset();
     vi.mocked(window.electronAPI.library.parseMetadata).mockReset();
     vi.mocked(window.electronAPI.db.tracks.add).mockReset();
+    useDownloadQueueStore
+      .getState()
+      .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+    useDownloadBatchStore.setState({ batches: {} });
 
     // Default mock returns for event listeners
-    vi.mocked(window.electronAPI.downloader.onProgress).mockReturnValue(vi.fn());
     vi.mocked(window.electronAPI.playlist.onExtractProgress).mockReturnValue(vi.fn());
+    vi.mocked(window.electronAPI.downloader.enqueueDownload).mockImplementation(
+      async () => `item-${Math.random().toString(36).slice(2)}`
+    );
 
     vi.mocked(toast.success).mockClear();
     vi.mocked(toast.info).mockClear();
@@ -274,294 +282,17 @@ describe('usePlaylistImport', () => {
     });
   });
 
-  // --- handleStartImport ---
+  // --- handleStartImport (batch enqueue) ---
   describe('handleStartImport', () => {
-    const fakeMetadata = {
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      duration: 210,
-      genre: 'Rock',
-      year: 2024,
-      trackNumber: 1,
-      albumArt: null,
-    };
-
-    const fakeDbTrack = {
-      id: 'track-1',
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      duration: 210,
-      filePath: '/music/song.mp3',
-      genre: 'Rock',
-      year: 2024,
-      trackNumber: 1,
-      albumArt: null,
-      isFavorite: false,
-      playCount: 0,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
-    };
-
-    function setupImportMocks() {
-      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue(
-        '/music/song.mp3' as never
+    beforeEach(() => {
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockReset();
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockImplementation(
+        async () => `item-${Math.random().toString(36).slice(2)}`
       );
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-      vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
-        metadata: fakeMetadata,
-      } as never);
-      vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue(fakeDbTrack as never);
-    }
-
-    it('imports all pending tracks successfully', async () => {
-      setupImportMocks();
-      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      expect(window.electronAPI.downloader.download).toHaveBeenCalledTimes(2);
-      expect(result.current.isImporting).toBe(false);
-
-      const doneTracks = result.current.tracks.filter(t => t.status === 'done');
-      expect(doneTracks).toHaveLength(2);
+      useDownloadBatchStore.setState({ batches: {} });
     });
 
-    it('shows success toast with summary after import', async () => {
-      setupImportMocks();
-      const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      expect(toast.success).toHaveBeenCalledWith('importSummary');
-    });
-
-    it('skips tracks that already exist in the database', async () => {
-      setupImportMocks();
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(true as never);
-
-      const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      const skippedTracks = result.current.tracks.filter(t => t.status === 'skipped');
-      expect(skippedTracks).toHaveLength(1);
-    });
-
-    it('skips duplicate URLs within the same import batch', async () => {
-      setupImportMocks();
-      // Two tracks with the same URL
-      const duplicateUrl = 'https://example.com/watch/same-video';
-      const fakeResults = [
-        makeSearchResult('v1', { webpage_url: duplicateUrl }),
-        makeSearchResult('v2', { webpage_url: duplicateUrl }),
-      ];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      // First should be done, second should be skipped (duplicate URL)
-      expect(window.electronAPI.downloader.download).toHaveBeenCalledTimes(1);
-      const trackStatuses = result.current.tracks.map(t => t.status);
-      expect(trackStatuses).toContain('done');
-      expect(trackStatuses).toContain('skipped');
-    });
-
-    it('sets error status on track when download fails', async () => {
-      vi.mocked(window.electronAPI.downloader.download).mockRejectedValue(
-        new Error('Download failed')
-      );
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-
-      const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      const errorTracks = result.current.tracks.filter(t => t.status === 'error');
-      expect(errorTracks).toHaveLength(1);
-      expect(errorTracks[0].error).toBe('Download failed');
-    });
-
-    it('uses i18n fallback for non-Error exceptions during import', async () => {
-      vi.mocked(window.electronAPI.downloader.download).mockRejectedValue('string error');
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-
-      const fakeResults = [makeSearchResult('v1')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      const errorTracks = result.current.tracks.filter(t => t.status === 'error');
-      expect(errorTracks[0].error).toBe('unknownError');
-    });
-
-    it('continues importing remaining tracks when one fails', async () => {
-      vi.mocked(window.electronAPI.downloader.download)
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValueOnce('/music/song2.mp3' as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-      vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
-        metadata: fakeMetadata,
-      } as never);
-      vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue(fakeDbTrack as never);
-
-      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
-      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
-        title: null,
-        tracks: fakeResults,
-      } as never);
-
-      const { result } = renderHook(() => usePlaylistImport());
-
-      act(() => {
-        result.current.setUrl('https://youtube.com/playlist?list=PL123');
-      });
-      await act(async () => {
-        await result.current.handleExtract();
-      });
-
-      await act(async () => {
-        await result.current.handleStartImport();
-      });
-
-      const statuses = result.current.tracks.map(t => t.status);
-      expect(statuses[0]).toBe('error');
-      expect(statuses[1]).toBe('done');
-    });
-  });
-
-  // --- handleStartImportSelected ---
-  describe('handleStartImportSelected', () => {
-    const fakeMetadata = {
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      duration: 210,
-      genre: 'Rock',
-      year: 2024,
-      trackNumber: 1,
-      albumArt: null,
-    };
-
-    const fakeDbTrack = {
-      id: 'track-1',
-      title: 'Test Song',
-      artist: 'Test Artist',
-      album: 'Test Album',
-      duration: 210,
-      filePath: '/music/song.mp3',
-      genre: 'Rock',
-      year: 2024,
-      trackNumber: 1,
-      albumArt: null,
-      isFavorite: false,
-      playCount: 0,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01',
-    };
-
-    function setupImportMocks() {
-      vi.mocked(window.electronAPI.downloader.download).mockResolvedValue(
-        '/music/song.mp3' as never
-      );
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-      vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
-        metadata: fakeMetadata,
-      } as never);
-      vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue(fakeDbTrack as never);
-    }
-
-    it('only imports selected tracks', async () => {
-      setupImportMocks();
+    it('enqueues every pending track with a shared batchId + ordered batchIndex', async () => {
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
       vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
         title: null,
@@ -577,23 +308,187 @@ describe('usePlaylistImport', () => {
         await result.current.handleExtract();
       });
 
-      // Select only the first and third tracks
+      await act(async () => {
+        result.current.handleStartImport();
+      });
+
+      const enqueue = vi.mocked(window.electronAPI.downloader.enqueueDownload);
+      expect(enqueue).toHaveBeenCalledTimes(3);
+
+      const calls = enqueue.mock.calls.map(c => c[0]);
+      // Same batchId across the whole import.
+      const batchIds = new Set(calls.map(c => c.batchId));
+      expect(batchIds.size).toBe(1);
+      // batchIndex follows source playlist order.
+      expect(calls.map(c => c.batchIndex)).toEqual([0, 1, 2]);
+      // url passed is webpage_url (the canonical queue key).
+      expect(calls.map(c => c.url)).toEqual([
+        'https://example.com/watch/v1',
+        'https://example.com/watch/v2',
+        'https://example.com/watch/v3',
+      ]);
+    });
+
+    it('registers a batch with the source title + createPlaylist flag', async () => {
+      const fakeResults = [makeSearchResult('v1')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: 'My Playlist',
+        tracks: fakeResults,
+      } as never);
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
+      await act(async () => {
+        result.current.handleStartImport();
+      });
+
+      const batches = Object.values(useDownloadBatchStore.getState().batches);
+      expect(batches).toHaveLength(1);
+      expect(batches[0].sourceTitle).toBe('My Playlist');
+      expect(batches[0].createPlaylist).toBe(true);
+    });
+
+    it('seals the batch with the actually-enqueued ids after enqueues settle', async () => {
+      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
+      await act(async () => {
+        result.current.handleStartImport();
+        // Let the enqueue promises + sealBatch settle.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const batch = Object.values(useDownloadBatchStore.getState().batches)[0];
+      expect(batch.sealed).toBe(true);
+      expect(batch.enqueuedIds.size).toBe(2);
+    });
+
+    it('marks pending tracks downloading and does nothing with no pending tracks', async () => {
+      const fakeResults = [makeSearchResult('v1')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
+      // Mark the only track done so nothing is pending.
+      act(() => {
+        usePlaylistImportStore
+          .getState()
+          .updateTrackStatus(result.current.tracks[0].id, 'done', 100);
+      });
+
+      await act(async () => {
+        result.current.handleStartImport();
+      });
+
+      expect(window.electronAPI.downloader.enqueueDownload).not.toHaveBeenCalled();
+    });
+
+    it('marks a track errored when its enqueue rejects', async () => {
+      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+      vi.mocked(window.electronAPI.downloader.enqueueDownload)
+        .mockReset()
+        .mockResolvedValueOnce('item-0')
+        .mockRejectedValueOnce(new Error('not http'));
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
+      await act(async () => {
+        result.current.handleStartImport();
+        // Let the enqueue promises (and the rejected one's catch) settle.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const tracks = usePlaylistImportStore.getState().tracks;
+      // The rejected enqueue corrects its optimistic 'downloading' to 'error';
+      // the resolved one stays mid-flight.
+      expect(tracks[1].status).toBe('error');
+      expect(tracks[0].status).toBe('downloading');
+    });
+  });
+
+  // --- handleStartImportSelected (batch enqueue) ---
+  describe('handleStartImportSelected', () => {
+    beforeEach(() => {
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockReset();
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockImplementation(
+        async () => `item-${Math.random().toString(36).slice(2)}`
+      );
+      useDownloadBatchStore.setState({ batches: {} });
+    });
+
+    it('only enqueues selected tracks', async () => {
+      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
       const selectedIds = new Set([result.current.tracks[0].id, result.current.tracks[2].id]);
 
       await act(async () => {
-        await result.current.handleStartImportSelected(selectedIds);
+        result.current.handleStartImportSelected(selectedIds);
       });
 
-      expect(window.electronAPI.downloader.download).toHaveBeenCalledTimes(2);
-
-      const statuses = result.current.tracks.map(t => t.status);
-      expect(statuses[0]).toBe('done');
-      expect(statuses[1]).toBe('pending'); // Not selected, stays pending
-      expect(statuses[2]).toBe('done');
+      const enqueue = vi.mocked(window.electronAPI.downloader.enqueueDownload);
+      expect(enqueue).toHaveBeenCalledTimes(2);
+      expect(enqueue.mock.calls.map(c => c[0].url)).toEqual([
+        'https://example.com/watch/v1',
+        'https://example.com/watch/v3',
+      ]);
     });
 
     it('does nothing when selectedIds is empty', async () => {
-      setupImportMocks();
       const fakeResults = [makeSearchResult('v1')];
       vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
         title: null,
@@ -610,10 +505,10 @@ describe('usePlaylistImport', () => {
       });
 
       await act(async () => {
-        await result.current.handleStartImportSelected(new Set());
+        result.current.handleStartImportSelected(new Set());
       });
 
-      expect(window.electronAPI.downloader.download).not.toHaveBeenCalled();
+      expect(window.electronAPI.downloader.enqueueDownload).not.toHaveBeenCalled();
     });
   });
 
@@ -632,41 +527,16 @@ describe('usePlaylistImport', () => {
       expect(storeState.isImporting).toBe(false);
     });
 
-    it('stops the import loop when cancelled mid-import', async () => {
-      let downloadCallCount = 0;
-      vi.mocked(window.electronAPI.downloader.download).mockImplementation(async () => {
-        downloadCallCount++;
-        // Cancel after first download starts
-        if (downloadCallCount === 1) {
-          usePlaylistImportStore.getState().cancelImport();
-        }
-        return '/music/song.mp3';
-      });
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
-      vi.mocked(window.electronAPI.library.parseMetadata).mockResolvedValue({
-        metadata: {
-          title: 'Test',
-          artist: 'Artist',
-          album: 'Album',
-          duration: 100,
-          genre: null,
-          year: null,
-          trackNumber: null,
-          albumArt: null,
-        },
-      } as never);
-      vi.mocked(window.electronAPI.db.tracks.add).mockResolvedValue({
-        id: 'track-1',
-        title: 'Test',
-        artist: 'Artist',
-        album: 'Album',
-        duration: 100,
-        filePath: '/music/song.mp3',
-        isFavorite: false,
-        playCount: 0,
-        createdAt: '2024-01-01',
-        updatedAt: '2024-01-01',
-      } as never);
+    it('cancels every non-terminal queue item in the active batch', async () => {
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockReset();
+      vi.mocked(window.electronAPI.downloader.cancelDownload).mockReset();
+      vi.mocked(window.electronAPI.downloader.cancelDownload).mockResolvedValue(undefined);
+      useDownloadBatchStore.setState({ batches: {} });
+
+      let nextId = 0;
+      vi.mocked(window.electronAPI.downloader.enqueueDownload).mockImplementation(
+        async () => `item-${nextId++}`
+      );
 
       const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')];
       vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
@@ -684,12 +554,63 @@ describe('usePlaylistImport', () => {
       });
 
       await act(async () => {
-        await result.current.handleStartImport();
+        result.current.handleStartImport();
+        await Promise.resolve();
+        await Promise.resolve();
       });
 
-      // Should have only downloaded 1 track before cancellation stopped the loop
-      expect(downloadCallCount).toBe(1);
-      expect(toast.info).toHaveBeenCalledWith('importCancelled');
+      // Simulate the main-process queue: one active, one queued, one already done.
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 1,
+          items: [
+            {
+              id: 'item-0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'active',
+              progress: 40,
+              batchId: Object.keys(useDownloadBatchStore.getState().batches)[0],
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'item-1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'queued',
+              progress: 0,
+              batchId: Object.keys(useDownloadBatchStore.getState().batches)[0],
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+            {
+              id: 'item-2',
+              url: 'https://example.com/watch/v3',
+              title: 'Title v3',
+              status: 'done',
+              progress: 100,
+              filePath: '/music/v3.mp3',
+              batchId: Object.keys(useDownloadBatchStore.getState().batches)[0],
+              batchIndex: 2,
+              enqueuedAt: 3,
+            },
+          ],
+        });
+      });
+
+      act(() => {
+        result.current.handleCancel();
+      });
+
+      expect(window.electronAPI.playlist.cancel).toHaveBeenCalled();
+      const cancel = vi.mocked(window.electronAPI.downloader.cancelDownload);
+      const cancelledIds = cancel.mock.calls.map(c => c[0]);
+      expect(cancelledIds).toContain('item-0');
+      expect(cancelledIds).toContain('item-1');
+      // The already-done item is not cancelled.
+      expect(cancelledIds).not.toContain('item-2');
     });
   });
 
@@ -847,26 +768,170 @@ describe('usePlaylistImport', () => {
     });
   });
 
-  // --- Event listeners ---
-  describe('event listeners', () => {
-    it('registers onProgress listener on mount', () => {
-      renderHook(() => usePlaylistImport());
-      expect(window.electronAPI.downloader.onProgress).toHaveBeenCalled();
+  // --- Projection survives view remount ---
+  // The progress, per-row status, and counter must survive navigating away to
+  // the Downloads view and back, because the active batch id lives in the store
+  // (not a component-local ref that resets on remount).
+  describe('projection survives view remount', () => {
+    async function startImportOf(...ids: string[]) {
+      const fakeResults = ids.map(id => makeSearchResult(id));
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+
+      const view = renderHook(() => usePlaylistImport());
+      act(() => {
+        view.result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await view.result.current.handleExtract();
+      });
+      await act(async () => {
+        view.result.current.handleStartImport();
+        // Let the enqueue promises + sealBatch settle.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      const batchId = Object.keys(useDownloadBatchStore.getState().batches)[0];
+      return { view, batchId };
+    }
+
+    it('resumes projecting live queue status after remount (counter not stuck)', async () => {
+      const { view: first, batchId } = await startImportOf('v1', 'v2');
+
+      // First mount sees the items downloading.
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 2,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'active',
+              progress: 30,
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'active',
+              progress: 10,
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+      expect(first.result.current.isImporting).toBe(true);
+      expect(first.result.current.processedCount).toBe(0);
+
+      // Navigate away — the import view unmounts (component-local refs are lost).
+      first.unmount();
+
+      // Downloads finish while away; the queue snapshot still holds the done items.
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 0,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'done',
+              progress: 100,
+              filePath: '/music/v1.mp3',
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'done',
+              progress: 100,
+              filePath: '/music/v2.mp3',
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+
+      // Navigate back — fresh mount projects the live queue onto the rows.
+      const second = renderHook(() => usePlaylistImport());
+
+      expect(second.result.current.processedCount).toBe(2);
+      expect(second.result.current.isImporting).toBe(false);
+      expect(second.result.current.isFinished).toBe(true);
     });
 
+    it('reconciles to finished when the batch resolved + queue cleared while unmounted', async () => {
+      const { view: first, batchId } = await startImportOf('v1', 'v2');
+
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 2,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'active',
+              progress: 20,
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'active',
+              progress: 10,
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+      expect(first.result.current.isImporting).toBe(true);
+
+      first.unmount();
+
+      // Coordinator imported everything and removed the batch; queue is cleared.
+      act(() => {
+        useDownloadBatchStore.setState({ batches: {} });
+        useDownloadQueueStore
+          .getState()
+          .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+      });
+
+      // Return to a self-consistent finished state, not a stuck spinner.
+      const second = renderHook(() => usePlaylistImport());
+
+      expect(second.result.current.isImporting).toBe(false);
+      expect(second.result.current.isFinished).toBe(true);
+      expect(second.result.current.processedCount).toBe(2);
+    });
+  });
+
+  // --- Event listeners ---
+  describe('event listeners', () => {
     it('registers onExtractProgress listener on mount', () => {
       renderHook(() => usePlaylistImport());
       expect(window.electronAPI.playlist.onExtractProgress).toHaveBeenCalled();
-    });
-
-    it('calls cleanup function on unmount for onProgress', () => {
-      const cleanupFn = vi.fn();
-      vi.mocked(window.electronAPI.downloader.onProgress).mockReturnValue(cleanupFn);
-
-      const { unmount } = renderHook(() => usePlaylistImport());
-      unmount();
-
-      expect(cleanupFn).toHaveBeenCalled();
     });
 
     it('calls cleanup function on unmount for onExtractProgress', () => {

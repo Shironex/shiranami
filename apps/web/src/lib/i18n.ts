@@ -34,6 +34,7 @@ import editTagsEn from '@/locales/en/editTags.json';
 import onboardingEn from '@/locales/en/onboarding.json';
 import recommendationsEn from '@/locales/en/recommendations.json';
 import smartPlaylistsEn from '@/locales/en/smartPlaylists.json';
+import downloadsEn from '@/locales/en/downloads.json';
 
 import commonPl from '@/locales/pl/common.json';
 import sidebarPl from '@/locales/pl/sidebar.json';
@@ -67,6 +68,7 @@ import editTagsPl from '@/locales/pl/editTags.json';
 import onboardingPl from '@/locales/pl/onboarding.json';
 import recommendationsPl from '@/locales/pl/recommendations.json';
 import smartPlaylistsPl from '@/locales/pl/smartPlaylists.json';
+import downloadsPl from '@/locales/pl/downloads.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -130,6 +132,7 @@ const namespaces = [
   'onboarding',
   'recommendations',
   'smartPlaylists',
+  'downloads',
 ] as const;
 
 i18n.use(initReactI18next).init({
@@ -167,6 +170,7 @@ i18n.use(initReactI18next).init({
       onboarding: onboardingEn,
       recommendations: recommendationsEn,
       smartPlaylists: smartPlaylistsEn,
+      downloads: downloadsEn,
     },
     pl: {
       common: commonPl,
@@ -201,6 +205,7 @@ i18n.use(initReactI18next).init({
       onboarding: onboardingPl,
       recommendations: recommendationsPl,
       smartPlaylists: smartPlaylistsPl,
+      downloads: downloadsPl,
     },
   },
   lng: getInitialLanguage(),
