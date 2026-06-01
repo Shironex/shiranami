@@ -18,6 +18,10 @@
     "cancel": "Anuluj",
     "clearCompleted": "Wyczyść zakończone"
   },
+  "error": {
+    "cancelFailed": "Nie udało się anulować pobierania. Spróbuj ponownie.",
+    "clearFailed": "Nie udało się wyczyścić zakończonych pobierań. Spróbuj ponownie."
+  },
   "empty": {
     "title": "Brak pobierań",
     "description": "Utwory pobrane z wyszukiwarki, rekomendacji lub importu playlisty pojawią się tutaj."

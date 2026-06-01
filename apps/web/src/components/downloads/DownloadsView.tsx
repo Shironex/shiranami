@@ -1,19 +1,31 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { DownloadCloud, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IS_ELECTRON } from '@/lib/platform';
+import i18n from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import { DownloadQueueRow } from '@/components/downloads/DownloadQueueRow';
 import type { DownloadQueueItem } from '@shiranami/contracts';
 
 function cancel(id: string) {
-  if (IS_ELECTRON) window.electronAPI.downloader.cancelDownload(id).catch(() => {});
+  if (!IS_ELECTRON) return;
+  // Explicit user action — surface failures instead of dropping them silently.
+  window.electronAPI.downloader.cancelDownload(id).catch((err: unknown) => {
+    logger.error('[downloads] cancel failed', err);
+    toast.error(i18n.t('error.cancelFailed', { ns: 'downloads' }));
+  });
 }
 
 function clearCompleted() {
-  if (IS_ELECTRON) window.electronAPI.downloader.clearCompletedDownloads().catch(() => {});
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.clearCompletedDownloads().catch((err: unknown) => {
+    logger.error('[downloads] clear completed failed', err);
+    toast.error(i18n.t('error.clearFailed', { ns: 'downloads' }));
+  });
 }
 
 interface Section {

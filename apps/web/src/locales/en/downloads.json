@@ -18,6 +18,10 @@
     "cancel": "Cancel",
     "clearCompleted": "Clear completed"
   },
+  "error": {
+    "cancelFailed": "Couldn't cancel the download. Please try again.",
+    "clearFailed": "Couldn't clear completed downloads. Please try again."
+  },
   "empty": {
     "title": "No downloads yet",
     "description": "Tracks you download from search, recommendations, or playlist import will appear here."
