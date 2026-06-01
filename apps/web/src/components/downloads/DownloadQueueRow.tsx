@@ -19,8 +19,9 @@ function toDownloadStatus(status: DownloadQueueStatus): DownloadStatus {
       return 'converting';
     case 'done':
       return 'done';
-    case 'error':
     case 'canceled':
+      return 'canceled';
+    case 'error':
       return 'error';
   }
 }
@@ -39,7 +40,8 @@ export function DownloadQueueRow({ item, onCancel }: DownloadQueueRowProps) {
 
   const statusClass = cn(
     item.status === 'done' && 'text-emerald-400/80',
-    (item.status === 'error' || item.status === 'canceled') && 'text-destructive/80',
+    item.status === 'error' && 'text-destructive/80',
+    item.status === 'canceled' && 'text-muted-foreground/60',
     isActive && 'text-primary/70',
     item.status === 'queued' && 'text-muted-foreground/60'
   );

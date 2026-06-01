@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Clock, Download, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, Clock, Download, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -14,6 +14,7 @@ export type DownloadStatus =
   | 'downloading'
   | 'converting'
   | 'done'
+  | 'canceled'
   | 'error'
   | 'skipped';
 
@@ -55,7 +56,12 @@ export function DownloadProgressButton({
 }: DownloadProgressButtonProps) {
   const isBusy = status === 'downloading' || status === 'converting';
   const isDisabled =
-    disabled || isBusy || status === 'queued' || status === 'done' || status === 'skipped';
+    disabled ||
+    isBusy ||
+    status === 'queued' ||
+    status === 'done' ||
+    status === 'skipped' ||
+    status === 'canceled';
 
   let icon: React.ReactNode;
   let colorClass: string;
@@ -77,6 +83,12 @@ export function DownloadProgressButton({
     borderClass = 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200';
   } else if (status === 'skipped') {
     icon = <Check className="size-4" />;
+    colorClass = 'text-muted-foreground/50';
+    borderClass = 'border-border/15';
+  } else if (status === 'canceled') {
+    // Cancel is intentionally distinct from failure — render it neutral, not
+    // with the destructive error glyph.
+    icon = <X className="size-4" />;
     colorClass = 'text-muted-foreground/50';
     borderClass = 'border-border/15';
   } else if (status === 'error') {
