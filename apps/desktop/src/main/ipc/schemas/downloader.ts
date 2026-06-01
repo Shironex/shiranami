@@ -27,13 +27,22 @@ export const downloaderGetStreamUrlArgs = z.tuple([nonEmpty]);
 export const downloaderInstallDependenciesArgs = z.tuple([]);
 
 export const downloaderEnqueueArgs = z.tuple([
-  z.object({
-    url: nonEmpty,
-    youtubeId: z.string().optional(),
-    title: nonEmpty,
-    batchId: z.string().optional(),
-    batchIndex: z.number().int().nonnegative().optional(),
-  }),
+  z
+    .object({
+      url: nonEmpty,
+      youtubeId: z.string().optional(),
+      title: nonEmpty,
+      batchId: z.string().optional(),
+      batchIndex: z.number().int().nonnegative().optional(),
+    })
+    // `batchId` + `batchIndex` are a coupled pair: a playlist-import item carries
+    // both, a single download carries neither. The importer treats a missing
+    // `batchId` as the single-item path, so a half-specified pair would silently
+    // misroute — reject it at the boundary.
+    .refine(input => (input.batchId === undefined) === (input.batchIndex === undefined), {
+      message: 'batchId and batchIndex must be provided together',
+      path: ['batchIndex'],
+    }),
 ]);
 export const downloaderQueueCancelArgs = z.tuple([nonEmpty]); // item id
 export const downloaderClearCompletedArgs = z.tuple([]);
