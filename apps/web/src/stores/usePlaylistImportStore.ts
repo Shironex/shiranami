@@ -133,7 +133,8 @@ export const usePlaylistImportStore = create<PlaylistImportState & PlaylistImpor
       importingTrackIds: trackIds ?? null,
       activeBatchId: batchId ?? null,
     }),
-  cancelImport: () => set({ isCancelled: true, isImporting: false }),
+  cancelImport: () =>
+    set({ isCancelled: true, isImporting: false, importingTrackIds: null, activeBatchId: null }),
   reset: () => set(INITIAL_STATE),
 }));
 

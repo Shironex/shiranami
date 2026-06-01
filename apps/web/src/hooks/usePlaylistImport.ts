@@ -241,12 +241,14 @@ export function usePlaylistImport() {
   );
 
   const handleCancel = useCallback(() => {
+    // Capture the active batch id before cancelImport() clears it, so we can
+    // still cancel this batch's in-flight queue items below.
+    const batchId = usePlaylistImportStore.getState().activeBatchId;
     cancelImport();
     if (!IS_ELECTRON) return;
     // Stop the Spotify extraction phase if it's still running.
     window.electronAPI.playlist.cancel();
     // Cancel every still-running queue item in this batch.
-    const batchId = usePlaylistImportStore.getState().activeBatchId;
     if (!batchId) return;
     const { items } = useDownloadQueueStore.getState();
     for (const item of items) {
