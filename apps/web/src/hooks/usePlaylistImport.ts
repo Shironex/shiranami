@@ -164,8 +164,10 @@ export function usePlaylistImport() {
 
   /**
    * Batch-enqueue every pending (and selected, if scoped) track into the
-   * download queue, carrying a shared `batchId` + per-track `batchIndex` (source
-   * playlist position). The batch metadata is registered in the app-level batch
+   * download queue, carrying a shared `batchId` + per-track `batchIndex` (its
+   * position within this enqueued batch — for a selective import this is the
+   * index within the selection, not the source playlist position). The batch
+   * metadata is registered in the app-level batch
    * store so the App-level coordinator imports the downloaded tracks in source
    * order and recreates the playlist once the batch drains — even if the user
    * navigates away from this view while downloads run.
