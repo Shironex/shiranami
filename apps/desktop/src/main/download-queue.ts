@@ -143,13 +143,32 @@ export class DownloadQueue {
     this.abortControllers.set(item.id, controller);
     this.broadcast();
 
-    const downloadDir = this.getDownloadDir();
+    let run: Promise<string>;
+    try {
+      const downloadDir = this.getDownloadDir();
+      run = this.runner(
+        { url: item.url, downloadDir },
+        progress => this.onProgress(item.id, progress),
+        controller.signal
+      );
+    } catch (err: unknown) {
+      // A synchronous throw (e.g. resolving the download dir) before the
+      // promise chain is attached would otherwise leave the item stuck
+      // 'active' with a live controller, wedging the concurrency slot so
+      // queued items never promote. Settle it as an error and free the slot.
+      const current = this.items.get(item.id);
+      if (current) {
+        current.status = 'error';
+        current.error = err instanceof Error ? err.message : String(err);
+        current.finishedAt = Date.now();
+      }
+      this.abortControllers.delete(item.id);
+      this.broadcast();
+      this.pump();
+      return;
+    }
 
-    this.runner(
-      { url: item.url, downloadDir },
-      progress => this.onProgress(item.id, progress),
-      controller.signal
-    )
+    run
       .then(filePath => {
         const current = this.items.get(item.id);
         if (current) {
