@@ -113,8 +113,10 @@ export function runYtDlpDownload(
 
     let allOutput = '';
     let downloadedFilePath = '';
-    // Destination paths yt-dlp announces (`[download] Destination: <path>`) so a
-    // mid-download abort can clean up the partial output (`<dest>` + `<dest>.part`).
+    // Destination paths yt-dlp announces during download AND post-processing
+    // (`[download]`, `[ExtractAudio]`, `[ffmpeg]` … `Destination: <path>`) so an
+    // abort mid-download or mid-convert can clean up both the partial download
+    // and the converted output (`<dest>` + `<dest>.part`).
     const destinations = new Set<string>();
 
     const onAbort = () => proc.kill();
@@ -138,7 +140,7 @@ export function runYtDlpDownload(
       const text = data.toString();
       allOutput += text;
 
-      const destMatch = text.match(/\[download\]\s+Destination:\s+(.+)/);
+      const destMatch = text.match(/\[[^\]]+\]\s+Destination:\s+(.+)/);
       if (destMatch) {
         destinations.add(destMatch[1].trim());
       }
