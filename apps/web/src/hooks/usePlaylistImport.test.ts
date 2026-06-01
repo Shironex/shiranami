@@ -412,6 +412,40 @@ describe('usePlaylistImport', () => {
 
       expect(window.electronAPI.downloader.enqueueDownload).not.toHaveBeenCalled();
     });
+
+    it('marks a track errored when its enqueue rejects', async () => {
+      const fakeResults = [makeSearchResult('v1'), makeSearchResult('v2')];
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+      vi.mocked(window.electronAPI.downloader.enqueueDownload)
+        .mockReset()
+        .mockResolvedValueOnce('item-0')
+        .mockRejectedValueOnce(new Error('not http'));
+
+      const { result } = renderHook(() => usePlaylistImport());
+
+      act(() => {
+        result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await result.current.handleExtract();
+      });
+
+      await act(async () => {
+        result.current.handleStartImport();
+        // Let the enqueue promises (and the rejected one's catch) settle.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const tracks = usePlaylistImportStore.getState().tracks;
+      // The rejected enqueue corrects its optimistic 'downloading' to 'error';
+      // the resolved one stays mid-flight.
+      expect(tracks[1].status).toBe('error');
+      expect(tracks[0].status).toBe('downloading');
+    });
   });
 
   // --- handleStartImportSelected (batch enqueue) ---
@@ -731,6 +765,165 @@ describe('usePlaylistImport', () => {
     it('overallProgress is 0 when there are no tracks', () => {
       const { result } = renderHook(() => usePlaylistImport());
       expect(result.current.overallProgress).toBe(0);
+    });
+  });
+
+  // --- Projection survives view remount ---
+  // The progress, per-row status, and counter must survive navigating away to
+  // the Downloads view and back, because the active batch id lives in the store
+  // (not a component-local ref that resets on remount).
+  describe('projection survives view remount', () => {
+    async function startImportOf(...ids: string[]) {
+      const fakeResults = ids.map(id => makeSearchResult(id));
+      vi.mocked(window.electronAPI.playlist.extract).mockResolvedValue({
+        title: null,
+        tracks: fakeResults,
+      } as never);
+
+      const view = renderHook(() => usePlaylistImport());
+      act(() => {
+        view.result.current.setUrl('https://youtube.com/playlist?list=PL123');
+      });
+      await act(async () => {
+        await view.result.current.handleExtract();
+      });
+      await act(async () => {
+        view.result.current.handleStartImport();
+        // Let the enqueue promises + sealBatch settle.
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      const batchId = Object.keys(useDownloadBatchStore.getState().batches)[0];
+      return { view, batchId };
+    }
+
+    it('resumes projecting live queue status after remount (counter not stuck)', async () => {
+      const { view: first, batchId } = await startImportOf('v1', 'v2');
+
+      // First mount sees the items downloading.
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 2,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'active',
+              progress: 30,
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'active',
+              progress: 10,
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+      expect(first.result.current.isImporting).toBe(true);
+      expect(first.result.current.processedCount).toBe(0);
+
+      // Navigate away — the import view unmounts (component-local refs are lost).
+      first.unmount();
+
+      // Downloads finish while away; the queue snapshot still holds the done items.
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 0,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'done',
+              progress: 100,
+              filePath: '/music/v1.mp3',
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'done',
+              progress: 100,
+              filePath: '/music/v2.mp3',
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+
+      // Navigate back — fresh mount projects the live queue onto the rows.
+      const second = renderHook(() => usePlaylistImport());
+
+      expect(second.result.current.processedCount).toBe(2);
+      expect(second.result.current.isImporting).toBe(false);
+      expect(second.result.current.isFinished).toBe(true);
+    });
+
+    it('reconciles to finished when the batch resolved + queue cleared while unmounted', async () => {
+      const { view: first, batchId } = await startImportOf('v1', 'v2');
+
+      act(() => {
+        useDownloadQueueStore.getState().applySnapshot({
+          maxConcurrency: 3,
+          activeCount: 2,
+          items: [
+            {
+              id: 'i0',
+              url: 'https://example.com/watch/v1',
+              title: 'Title v1',
+              status: 'active',
+              progress: 20,
+              batchId,
+              batchIndex: 0,
+              enqueuedAt: 1,
+            },
+            {
+              id: 'i1',
+              url: 'https://example.com/watch/v2',
+              title: 'Title v2',
+              status: 'active',
+              progress: 10,
+              batchId,
+              batchIndex: 1,
+              enqueuedAt: 2,
+            },
+          ],
+        });
+      });
+      expect(first.result.current.isImporting).toBe(true);
+
+      first.unmount();
+
+      // Coordinator imported everything and removed the batch; queue is cleared.
+      act(() => {
+        useDownloadBatchStore.setState({ batches: {} });
+        useDownloadQueueStore
+          .getState()
+          .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+      });
+
+      // Return to a self-consistent finished state, not a stuck spinner.
+      const second = renderHook(() => usePlaylistImport());
+
+      expect(second.result.current.isImporting).toBe(false);
+      expect(second.result.current.isFinished).toBe(true);
+      expect(second.result.current.processedCount).toBe(2);
     });
   });
 

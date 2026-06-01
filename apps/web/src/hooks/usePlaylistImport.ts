@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaylistImportStore, type PlaylistTrackStatus } from '@/stores/usePlaylistImportStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
@@ -30,8 +30,6 @@ function mapQueueStatus(status: DownloadQueueStatus): PlaylistTrackStatus {
 
 export function usePlaylistImport() {
   const [extractError, setExtractError] = useState<string | null>(null);
-  /** The batch currently owned by this import session (for per-item cancel). */
-  const activeBatchIdRef = useRef<string | null>(null);
 
   // Store selectors
   const url = usePlaylistImportStore(s => s.url);
@@ -65,18 +63,40 @@ export function usePlaylistImport() {
 
   // Project queue status onto the display store while the view is mounted, and
   // flip `isImporting` off once every track in the active batch is terminal.
+  // The batch id lives in the store (not a component-local ref), so this runs
+  // correctly on remount — the progress and counter survive navigating away to
+  // the Downloads view and back.
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    const batchId = activeBatchIdRef.current;
-    if (!batchId) return;
-
     const state = usePlaylistImportStore.getState();
     if (!state.isImporting) return;
 
+    const batchId = state.activeBatchId;
+    if (!batchId) return;
+
+    // Finished-while-away reconcile: the App-level coordinator removes a batch
+    // once it has imported every track (and recreated the playlist). If our
+    // batch is gone, the import completed while this view was unmounted and the
+    // queue may already be cleared — settle into a finished state rather than
+    // leaving rows stuck mid-flight.
+    if (!(batchId in useDownloadBatchStore.getState().batches)) {
+      usePlaylistImportStore.setState(s => ({
+        isImporting: false,
+        tracks: s.tracks.map(track =>
+          track.status === 'downloading' || track.status === 'converting'
+            ? { ...track, status: 'done', progress: 100 }
+            : track
+        ),
+      }));
+      return;
+    }
+
+    let sawAny = false;
     let anyActive = false;
     for (const track of state.tracks) {
       const item = byUrl.get(trackUrl(track.searchResult));
       if (!item || item.batchId !== batchId) continue;
+      sawAny = true;
       const mapped = mapQueueStatus(item.status);
       const isTerminal =
         item.status === 'done' || item.status === 'error' || item.status === 'canceled';
@@ -86,7 +106,11 @@ export function usePlaylistImport() {
       }
     }
 
-    if (!anyActive) {
+    // Only conclude the import is finished once we've actually observed this
+    // batch's items in the snapshot. An empty match set means the enqueues
+    // haven't reached the queue yet (async IPC) — not that every track is done;
+    // flipping `isImporting` here would latch a premature "finished" state.
+    if (sawAny && !anyActive) {
       usePlaylistImportStore.setState({ isImporting: false });
     }
   }, [byUrl, updateTrackStatus]);
@@ -157,8 +181,7 @@ export function usePlaylistImport() {
       if (pending.length === 0) return;
 
       const batchId = crypto.randomUUID();
-      activeBatchIdRef.current = batchId;
-      startImporting(selectedIds ?? undefined);
+      startImporting(selectedIds ?? undefined, batchId);
 
       const { createPlaylist: create, sourceTitle: title } = usePlaylistImportStore.getState();
 
@@ -183,7 +206,11 @@ export function usePlaylistImport() {
           })
           .catch(() => {
             // Enqueue rejected (e.g. non-http url): this track never enters the
-            // queue, so its id is simply absent from the batch membership.
+            // queue, so its id is absent from the batch membership. Mark the row
+            // errored to correct the optimistic 'downloading' above — otherwise
+            // the finished-while-away reconcile would later promote a track that
+            // never downloaded to 'done'.
+            updateTrackStatus(track.id, 'error');
           });
       });
 
@@ -217,7 +244,7 @@ export function usePlaylistImport() {
     // Stop the Spotify extraction phase if it's still running.
     window.electronAPI.playlist.cancel();
     // Cancel every still-running queue item in this batch.
-    const batchId = activeBatchIdRef.current;
+    const batchId = usePlaylistImportStore.getState().activeBatchId;
     if (!batchId) return;
     const { items } = useDownloadQueueStore.getState();
     for (const item of items) {
@@ -231,7 +258,6 @@ export function usePlaylistImport() {
   const handleReset = useCallback(() => {
     reset();
     setExtractError(null);
-    activeBatchIdRef.current = null;
   }, [reset]);
 
   // Computed values — scoped to importingTrackIds when doing a selective import
