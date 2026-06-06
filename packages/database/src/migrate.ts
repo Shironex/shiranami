@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -179,6 +179,27 @@ const MIGRATIONS: EmbeddedMigration[] = [
 \t\`rules\` text DEFAULT '[]' NOT NULL,
 \t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
 \t\`updated_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+    ],
+  },
+  {
+    name: '20260101000005_download_queue',
+    statements: [
+      `CREATE TABLE \`download_queue\` (
+\t\`id\` text PRIMARY KEY,
+\t\`url\` text NOT NULL,
+\t\`youtube_id\` text,
+\t\`title\` text NOT NULL,
+\t\`thumbnail\` text,
+\t\`status\` text NOT NULL,
+\t\`file_path\` text,
+\t\`batch_id\` text,
+\t\`batch_index\` integer,
+\t\`batch_source_title\` text,
+\t\`batch_create_playlist\` integer,
+\t\`enqueued_at\` integer NOT NULL,
+\t\`started_at\` integer,
+\t\`finished_at\` integer
 )`,
     ],
   },

@@ -29,3 +29,9 @@ export {
   type NegativeSignal,
   type NewNegativeSignal,
 } from './negative-signals.js';
+
+export {
+  downloadQueue,
+  type DownloadQueueRow,
+  type NewDownloadQueueRow,
+} from './download-queue.js';
