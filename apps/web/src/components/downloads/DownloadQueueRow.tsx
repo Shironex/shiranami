@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Music, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,8 @@ interface DownloadQueueRowProps {
 
 export function DownloadQueueRow({ item, onCancel }: DownloadQueueRowProps) {
   const { t } = useTranslation('downloads');
+  // Fall back to the Music icon if the thumbnail URL is broken/unreachable.
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
   const isActive = item.status === 'active' || item.status === 'converting';
   const isCancellable = isActive || item.status === 'queued';
@@ -54,13 +57,14 @@ export function DownloadQueueRow({ item, onCancel }: DownloadQueueRowProps) {
       )}
     >
       <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center relative z-10">
-        {item.thumbnail ? (
+        {item.thumbnail && !thumbnailFailed ? (
           <img
             src={item.thumbnail}
             alt=""
             className="w-full h-full object-cover"
             loading="lazy"
             draggable={false}
+            onError={() => setThumbnailFailed(true)}
           />
         ) : (
           <Music className="w-4 h-4 text-muted-foreground/40" />
