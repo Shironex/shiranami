@@ -10,6 +10,7 @@ import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
+import { diskUsageKeys } from '@/hooks/queries/useDiskUsage';
 import { playlistKeys, usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import type { Playlist } from '@/types/electron';
 import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
@@ -106,6 +107,8 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
+      // Files were added/removed on disk — recompute disk usage.
+      queryClient.invalidateQueries({ queryKey: diskUsageKeys.all });
 
       if (totalAdded > 0 && totalRemoved > 0) {
         toast.success(

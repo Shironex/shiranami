@@ -314,6 +314,9 @@ function createElectronAPIMock(): ElectronAPI {
     system: {
       onNotice: vi.fn(() => noopUnsub()),
     },
+    storage: {
+      getUsage: asyncFn({ volumes: [], computedAt: '1970-01-01T00:00:00.000Z' }),
+    },
     recommendations: {
       get: asyncFn({
         library: { kind: 'library', items: [], generatedAt: null, stale: true },

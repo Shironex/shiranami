@@ -124,6 +124,22 @@
     "scanCancel": "Cancel",
     "scanCancelling": "Cancelling..."
   },
+  "diskUsage": {
+    "title": "Disk Usage",
+    "subtitle": "How much space your music takes and what's free on each drive",
+    "musicLabel": "Music",
+    "otherLabel": "Other",
+    "freeLabel": "Free",
+    "ofTotal": "{{used}} of {{total}} used",
+    "barAria": "Music {{music}}, other {{other}}, free {{free}} of {{total}} total",
+    "folderCount": "{{count}} folders",
+    "volumeUnavailable": "Drive unavailable",
+    "noFolders": "Add a music folder to see disk usage",
+    "loading": "Calculating disk usage...",
+    "error": "Couldn't calculate disk usage",
+    "retry": "Retry",
+    "refresh": "Refresh disk usage"
+  },
   "enr": {
     "previewTitle": "Before / after",
     "beforeLabel": "From filename",

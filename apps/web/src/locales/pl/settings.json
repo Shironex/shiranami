@@ -140,6 +140,22 @@
     "scanCancel": "Anuluj",
     "scanCancelling": "Anulowanie..."
   },
+  "diskUsage": {
+    "title": "Wykorzystanie dysku",
+    "subtitle": "Ile miejsca zajmuje Twoja muzyka i ile jest wolne na każdym dysku",
+    "musicLabel": "Muzyka",
+    "otherLabel": "Inne",
+    "freeLabel": "Wolne",
+    "ofTotal": "{{used}} z {{total}} zajęte",
+    "barAria": "Muzyka {{music}}, inne {{other}}, wolne {{free}} z {{total}} łącznie",
+    "folderCount": "{{count}} folderów",
+    "volumeUnavailable": "Dysk niedostępny",
+    "noFolders": "Dodaj folder z muzyką, aby zobaczyć wykorzystanie dysku",
+    "loading": "Obliczanie wykorzystania dysku...",
+    "error": "Nie udało się obliczyć wykorzystania dysku",
+    "retry": "Ponów",
+    "refresh": "Odśwież wykorzystanie dysku"
+  },
   "enr": {
     "previewTitle": "Przed / po",
     "beforeLabel": "Z nazwy pliku",

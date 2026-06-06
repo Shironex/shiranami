@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { HardDrive, Music, RefreshCw, Trash2, Loader2, Download, Upload, DatabaseBackup } from 'lucide-react';
+import {
+  HardDrive,
+  Music,
+  RefreshCw,
+  Trash2,
+  Loader2,
+  Download,
+  Upload,
+  DatabaseBackup,
+} from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
@@ -11,6 +20,7 @@ import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
 import { IS_ELECTRON } from '@/lib/platform';
 import { ScanProgressCard } from '@/components/library/ScanProgressCard';
+import { DiskUsageSection } from '@/components/settings/DiskUsageSection';
 import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 
 export function LibrarySection() {
@@ -112,6 +122,8 @@ export function LibrarySection() {
           <ScanProgressCard />
         </div>
       </SettingsCard>
+
+      {IS_ELECTRON && <DiskUsageSection />}
 
       {IS_ELECTRON && (
         <SettingsCard
