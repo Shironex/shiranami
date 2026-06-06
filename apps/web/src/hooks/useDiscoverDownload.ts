@@ -47,7 +47,12 @@ export function useDiscoverDownload() {
       if (inFlightRef.current.has(item.youtubeId)) return;
       inFlightRef.current.add(item.youtubeId);
       window.electronAPI.downloader
-        .enqueueDownload({ url: item.url, youtubeId: item.youtubeId, title: item.title })
+        .enqueueDownload({
+          url: item.url,
+          youtubeId: item.youtubeId,
+          title: item.title,
+          thumbnail: item.thumbnail,
+        })
         .catch(() => {})
         .finally(() => inFlightRef.current.delete(item.youtubeId));
     },

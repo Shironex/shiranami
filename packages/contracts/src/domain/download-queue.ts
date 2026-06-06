@@ -1,6 +1,9 @@
-// Domain types for the main-process download queue. The queue is an ephemeral,
-// in-memory manager in the desktop main process; the renderer mirrors it in a
-// zustand store, hydrated on mount and kept in sync by a `queue-state` event.
+// Domain types for the main-process download queue. The queue is an in-memory
+// manager in the desktop main process, write-through persisted to a
+// `download_queue` table so it survives an app restart; the renderer mirrors it
+// in a zustand store, hydrated on mount and kept in sync by a `queue-state`
+// event. On restart the main process reloads pending/in-progress rows (resetting
+// in-flight items to `queued`) and resumes downloading unless the queue is paused.
 
 /**
  * Download lifecycle status. Tracks the DOWNLOAD only — `done` means the file
@@ -27,6 +30,8 @@ export interface DownloadQueueItem {
   youtubeId?: string;
   /** Display title for the row. */
   title: string;
+  /** Artwork URL for the row (from the search/import result), when known. */
+  thumbnail?: string;
   status: DownloadQueueStatus;
   /** 0–100. Meaningful for active/converting; 0 when queued. */
   progress: number;
@@ -37,6 +42,14 @@ export interface DownloadQueueItem {
   /** Playlist-import batch grouping (absent for single downloads). */
   batchId?: string;
   batchIndex?: number;
+  /**
+   * Batch intent, denormalized onto every batch item so the renderer can
+   * reconstruct the batch coordinator after a restart (import in order +
+   * recreate the playlist) — these live only here on disk, not in any renderer
+   * store. Absent for single downloads.
+   */
+  batchSourceTitle?: string | null;
+  batchCreatePlaylist?: boolean;
   /** Timestamps (ms epoch) for ordering + clear-completed. */
   enqueuedAt: number;
   startedAt?: number;
@@ -47,12 +60,18 @@ export interface DownloadQueueSnapshot {
   items: DownloadQueueItem[];
   maxConcurrency: number;
   activeCount: number;
+  /** Whether the queue is paused (no queued items will be promoted to active). */
+  paused: boolean;
 }
 
 export interface EnqueueDownloadInput {
   url: string;
   youtubeId?: string;
   title: string;
+  thumbnail?: string;
   batchId?: string;
   batchIndex?: number;
+  /** Batch intent (see `DownloadQueueItem`) — required together with `batchId`. */
+  batchSourceTitle?: string | null;
+  batchCreatePlaylist?: boolean;
 }

@@ -200,8 +200,13 @@ export function usePlaylistImport() {
             url: trackUrl(track.searchResult),
             youtubeId: track.searchResult.id,
             title: track.searchResult.title,
+            thumbnail: track.searchResult.thumbnail,
             batchId,
             batchIndex: index,
+            // Batch intent persisted per-item so a mid-import restart can
+            // reconstruct this batch and still recreate the playlist.
+            batchSourceTitle: title,
+            batchCreatePlaylist: create,
           })
           .then(itemId => {
             useDownloadBatchStore.getState().addEnqueuedId(batchId, itemId);

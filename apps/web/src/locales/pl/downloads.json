@@ -16,18 +16,34 @@
   },
   "action": {
     "cancel": "Anuluj",
-    "clearCompleted": "Wyczyść zakończone"
+    "clearCompleted": "Wyczyść zakończone",
+    "pause": "Wstrzymaj",
+    "resume": "Wznów",
+    "cancelAll": "Anuluj wszystko",
+    "cancelAllConfirm": "Anulować wszystkie pobierania? Trwające pobierania zostaną zatrzymane, a kolejka wyczyszczona.",
+    "cancelAllConfirmAction": "Anuluj wszystko",
+    "keep": "Zostaw"
+  },
+  "paused": {
+    "banner": "Kolejka wstrzymana — pobierania nie ruszą, dopóki ich nie wznowisz."
   },
   "error": {
     "cancelFailed": "Nie udało się anulować pobierania. Spróbuj ponownie.",
-    "clearFailed": "Nie udało się wyczyścić zakończonych pobierań. Spróbuj ponownie."
+    "clearFailed": "Nie udało się wyczyścić zakończonych pobierań. Spróbuj ponownie.",
+    "pauseFailed": "Nie udało się wstrzymać kolejki. Spróbuj ponownie.",
+    "resumeFailed": "Nie udało się wznowić kolejki. Spróbuj ponownie.",
+    "cancelAllFailed": "Nie udało się anulować kolejki. Spróbuj ponownie."
   },
+  "loading": "Ładowanie pobierań…",
   "empty": {
     "title": "Brak pobierań",
     "description": "Utwory pobrane z wyszukiwarki, rekomendacji lub importu playlisty pojawią się tutaj."
   },
   "a11y": {
     "cancelDownload": "Anuluj pobieranie {{title}}",
-    "progress": "Postęp pobierania {{title}}"
+    "progress": "Postęp pobierania {{title}}",
+    "pauseQueue": "Wstrzymaj kolejkę pobierań",
+    "resumeQueue": "Wznów kolejkę pobierań",
+    "cancelAll": "Anuluj wszystkie pobierania"
   }
 }

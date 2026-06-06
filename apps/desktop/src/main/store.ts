@@ -56,6 +56,9 @@ export interface StoreSchema {
   // Main-only (downloader.ts).
   'downloads.location': string;
   'downloads.toolStatusCache': ToolStatusCache;
+  // Main-only (download-queue): persisted queue-paused flag, so a queue paused
+  // before quitting stays paused (no auto-resume) on the next launch.
+  'downloads.queuePaused': boolean;
 
   // Main-only migration flags.
   'migrations.albumArtV1': boolean;

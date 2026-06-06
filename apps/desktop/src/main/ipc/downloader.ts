@@ -24,6 +24,7 @@ import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
 import { getDownloadQueue } from '../download-queue';
+import { createDownloadQueuePersistence } from '../download-queue-persistence';
 import type { EnqueueDownloadInput } from '@shiranami/contracts';
 import { isHttpUrl } from '../shared/url-safety';
 import {
@@ -60,7 +61,11 @@ import {
   downloaderInstallDependenciesArgs,
   downloaderEnqueueArgs,
   downloaderQueueCancelArgs,
+  downloaderCancelAllArgs,
   downloaderClearCompletedArgs,
+  downloaderPauseArgs,
+  downloaderResumeArgs,
+  downloaderMarkImportedArgs,
   downloaderGetQueueArgs,
 } from './schemas/downloader';
 
@@ -348,7 +353,14 @@ export function registerDownloaderHandlers(): void {
     { schema: downloaderDownloadArgs }
   );
 
-  const downloadQueue = getDownloadQueue({ getDownloadDir });
+  const downloadQueue = getDownloadQueue({
+    getDownloadDir,
+    persistence: createDownloadQueuePersistence(),
+  });
+  // Reload any persisted queue + resume downloading. Runs here (during IPC
+  // registration, which happens after `initializeDatabase()`), so the DB is
+  // ready and construction itself stays side-effect-free.
+  downloadQueue.hydrateAndResume();
 
   handle(
     C.enqueue,
@@ -371,11 +383,43 @@ export function registerDownloaderHandlers(): void {
   );
 
   handle(
+    C.cancelAll,
+    async () => {
+      downloadQueue.cancelAll();
+    },
+    { schema: downloaderCancelAllArgs }
+  );
+
+  handle(
     C.clearCompleted,
     async () => {
       downloadQueue.clearCompleted();
     },
     { schema: downloaderClearCompletedArgs }
+  );
+
+  handle(
+    C.pause,
+    async () => {
+      downloadQueue.pause();
+    },
+    { schema: downloaderPauseArgs }
+  );
+
+  handle(
+    C.resume,
+    async () => {
+      downloadQueue.resume();
+    },
+    { schema: downloaderResumeArgs }
+  );
+
+  handle(
+    C.markImported,
+    async (_event, ids: string[]) => {
+      downloadQueue.markImported(ids);
+    },
+    { schema: downloaderMarkImportedArgs }
   );
 
   handle(
@@ -557,7 +601,11 @@ export function cleanupDownloaderHandlers(): void {
   ipcMain.removeHandler(C.download);
   ipcMain.removeHandler(C.enqueue);
   ipcMain.removeHandler(C.cancel);
+  ipcMain.removeHandler(C.cancelAll);
   ipcMain.removeHandler(C.clearCompleted);
+  ipcMain.removeHandler(C.pause);
+  ipcMain.removeHandler(C.resume);
+  ipcMain.removeHandler(C.markImported);
   ipcMain.removeHandler(C.getQueue);
   ipcMain.removeHandler(C.getStreamUrl);
   ipcMain.removeHandler(C.installYtdlp);

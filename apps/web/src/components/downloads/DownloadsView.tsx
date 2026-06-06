@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { DownloadCloud, Trash2 } from 'lucide-react';
+import { DownloadCloud, Trash2, Pause, Play, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
 import { logger } from '@/lib/logger';
@@ -28,6 +29,30 @@ function clearCompleted() {
   });
 }
 
+function pauseQueue() {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.pauseDownloadQueue().catch((err: unknown) => {
+    logger.error('[downloads] pause failed', err);
+    toast.error(i18n.t('error.pauseFailed', { ns: 'downloads' }));
+  });
+}
+
+function resumeQueue() {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.resumeDownloadQueue().catch((err: unknown) => {
+    logger.error('[downloads] resume failed', err);
+    toast.error(i18n.t('error.resumeFailed', { ns: 'downloads' }));
+  });
+}
+
+function cancelAll() {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.cancelAllDownloads().catch((err: unknown) => {
+    logger.error('[downloads] cancel all failed', err);
+    toast.error(i18n.t('error.cancelAllFailed', { ns: 'downloads' }));
+  });
+}
+
 interface Section {
   key: 'active' | 'queued' | 'completed';
   items: DownloadQueueItem[];
@@ -36,6 +61,9 @@ interface Section {
 export default function DownloadsView() {
   const { t } = useTranslation('downloads');
   const items = useDownloadQueueStore(s => s.items);
+  const paused = useDownloadQueueStore(s => s.paused);
+  const hydrated = useDownloadQueueStore(s => s.hydrated);
+  const [showCancelAllConfirm, setShowCancelAllConfirm] = useState(false);
 
   const sections = useMemo<Section[]>(() => {
     const active: DownloadQueueItem[] = [];
@@ -54,8 +82,23 @@ export default function DownloadsView() {
   }, [items]);
 
   const hasCompleted = sections.find(s => s.key === 'completed')!.items.length > 0;
+  // There is in-flight or pending work to pause / cancel.
+  const hasPendingWork =
+    sections.find(s => s.key === 'active')!.items.length > 0 ||
+    sections.find(s => s.key === 'queued')!.items.length > 0;
 
   if (items.length === 0) {
+    // Hold a blank frame until the first snapshot lands so a persisted queue
+    // doesn't flash "No downloads yet" on launch before it hydrates.
+    if (!hydrated) {
+      return (
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6" aria-busy="true">
+          <span role="status" className="sr-only">
+            {t('loading')}
+          </span>
+        </div>
+      );
+    }
     return (
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6">
         <ViewEmptyState
@@ -74,17 +117,85 @@ export default function DownloadsView() {
           <h1 className="font-display text-2xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-muted-foreground/70 mt-1">{t('subtitle')}</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={clearCompleted}
-          disabled={!hasCompleted}
-          className="rounded-xl shrink-0"
-        >
-          <Trash2 className="size-4" />
-          {t('action.clearCompleted')}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {paused ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resumeQueue}
+              aria-label={t('a11y.resumeQueue')}
+              className="rounded-xl"
+            >
+              <Play className="size-4" />
+              {t('action.resume')}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={pauseQueue}
+              disabled={!hasPendingWork}
+              aria-label={t('a11y.pauseQueue')}
+              className="rounded-xl"
+            >
+              <Pause className="size-4" />
+              {t('action.pause')}
+            </Button>
+          )}
+
+          <Popover open={showCancelAllConfirm} onOpenChange={setShowCancelAllConfirm}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasPendingWork}
+                aria-label={t('a11y.cancelAll')}
+                className="rounded-xl text-destructive hover:text-destructive"
+              >
+                <Ban className="size-4" />
+                {t('action.cancelAll')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64">
+              <p className="text-xs text-foreground/80 mb-2">{t('action.cancelAllConfirm')}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowCancelAllConfirm(false);
+                    cancelAll();
+                  }}
+                  className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t('action.cancelAllConfirmAction')}
+                </button>
+                <button
+                  onClick={() => setShowCancelAllConfirm(false)}
+                  className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t('action.keep')}
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearCompleted}
+            disabled={!hasCompleted}
+            className="rounded-xl"
+          >
+            <Trash2 className="size-4" />
+            {t('action.clearCompleted')}
+          </Button>
+        </div>
       </header>
+
+      {paused && (
+        <div className="mb-4 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500/90">
+          {t('paused.banner')}
+        </div>
+      )}
 
       <div className="flex flex-col gap-6">
         {sections.map(section =>

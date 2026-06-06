@@ -32,8 +32,11 @@ export const downloaderEnqueueArgs = z.tuple([
       url: nonEmpty,
       youtubeId: z.string().optional(),
       title: nonEmpty,
+      thumbnail: z.string().optional(),
       batchId: z.string().optional(),
       batchIndex: z.number().int().nonnegative().optional(),
+      batchSourceTitle: z.string().nullable().optional(),
+      batchCreatePlaylist: z.boolean().optional(),
     })
     // `batchId` + `batchIndex` are a coupled pair: a playlist-import item carries
     // both, a single download carries neither. The importer treats a missing
@@ -45,5 +48,9 @@ export const downloaderEnqueueArgs = z.tuple([
     }),
 ]);
 export const downloaderQueueCancelArgs = z.tuple([nonEmpty]); // item id
+export const downloaderCancelAllArgs = z.tuple([]);
 export const downloaderClearCompletedArgs = z.tuple([]);
+export const downloaderPauseArgs = z.tuple([]);
+export const downloaderResumeArgs = z.tuple([]);
+export const downloaderMarkImportedArgs = z.tuple([z.array(z.string())]); // item ids
 export const downloaderGetQueueArgs = z.tuple([]);

@@ -300,7 +300,11 @@ export interface ElectronAPI {
     download: (url: string) => Promise<string>;
     enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
     cancelDownload: (id: string) => Promise<void>;
+    cancelAllDownloads: () => Promise<void>;
     clearCompletedDownloads: () => Promise<void>;
+    pauseDownloadQueue: () => Promise<void>;
+    resumeDownloadQueue: () => Promise<void>;
+    markDownloadsImported: (ids: string[]) => Promise<void>;
     getDownloadQueue: () => Promise<DownloadQueueSnapshot>;
     onQueueState: (callback: (snapshot: DownloadQueueSnapshot) => void) => () => void;
     getDownloadLocation: () => Promise<{

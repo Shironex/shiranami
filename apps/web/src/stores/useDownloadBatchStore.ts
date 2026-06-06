@@ -52,6 +52,18 @@ interface DownloadBatchActions {
   addEnqueuedId: (batchId: string, itemId: string) => void;
   /** Mark that all enqueue calls have settled (membership is final). */
   sealBatch: (batchId: string) => void;
+  /**
+   * Reconstruct a batch from a persisted queue snapshot on app restart, with
+   * membership already final (sealed). No-op if the batch already exists, so it
+   * is safe to call repeatedly (e.g. StrictMode double-invoke). The coordinator
+   * then records terminals + resolves it exactly as for a live batch.
+   */
+  reconstructBatch: (batch: {
+    batchId: string;
+    sourceTitle: string | null;
+    createPlaylist: boolean;
+    itemIds: string[];
+  }) => void;
   recordDone: (batchId: string, entry: BatchDoneEntry) => void;
   recordFailure: (batchId: string, itemId: string) => void;
   markResolved: (batchId: string) => void;
@@ -99,6 +111,27 @@ export const useDownloadBatchStore = create<DownloadBatchState & DownloadBatchAc
 
   sealBatch: batchId =>
     set(s => ({ batches: patch(s.batches, batchId, b => ({ ...b, sealed: true })) })),
+
+  reconstructBatch: ({ batchId, sourceTitle, createPlaylist, itemIds }) =>
+    set(s => {
+      if (batchId in s.batches) return s; // already present — don't clobber.
+      return {
+        batches: {
+          ...s.batches,
+          [batchId]: {
+            batchId,
+            sourceTitle,
+            createPlaylist,
+            enqueuedIds: new Set(itemIds),
+            sealed: true,
+            done: [],
+            failedCount: 0,
+            recordedTerminalIds: new Set(),
+            resolved: false,
+          },
+        },
+      };
+    }),
 
   recordDone: (batchId, entry) =>
     set(s => ({

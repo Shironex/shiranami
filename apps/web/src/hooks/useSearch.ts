@@ -87,7 +87,12 @@ export function useSearch() {
     downloadInFlightRef.current.add(url);
 
     window.electronAPI.downloader
-      .enqueueDownload({ url, youtubeId: result.id, title: result.title })
+      .enqueueDownload({
+        url,
+        youtubeId: result.id,
+        title: result.title,
+        thumbnail: result.thumbnail,
+      })
       .catch(() => {})
       .finally(() => {
         downloadInFlightRef.current.delete(url);
