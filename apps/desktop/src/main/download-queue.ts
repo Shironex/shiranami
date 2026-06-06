@@ -163,12 +163,24 @@ export class DownloadQueue {
   }
 
   /**
-   * Drop persisted rows for items the renderer has finished importing into the
-   * library. The in-memory items stay visible (until clear-completed); this only
-   * removes their disk rows so they aren't re-imported on the next launch.
+   * Drop rows for items the renderer has finished importing into the library so
+   * they aren't re-imported on the next launch. Single-download items keep their
+   * in-memory entry (they clear via clearCompleted, like before); batch items —
+   * which clearCompleted intentionally skips to protect restart reconstruction —
+   * are removed from the in-memory queue here too, so a resolved batch's rows
+   * disappear from the view once its playlist has been created.
    */
   markImported(ids: string[]): void {
     this.persistence?.removeMany(ids);
+    let changed = false;
+    for (const id of ids) {
+      const item = this.items.get(id);
+      if (item?.batchId) {
+        this.items.delete(id);
+        changed = true;
+      }
+    }
+    if (changed) this.broadcast();
   }
 
   cancel(id: string): void {
@@ -197,6 +209,13 @@ export class DownloadQueue {
     const removed: string[] = [];
     for (const [id, item] of this.items) {
       if (item.status === 'done' || item.status === 'error' || item.status === 'canceled') {
+        // Batch items are lifecycle-managed: they must stay in the queue AND
+        // persistence until the batch coordinator resolves and removes them via
+        // markImported(). Clearing a batch's done items early would drop their
+        // persisted rows, so a restart before the batch finishes reconstructs it
+        // with fewer items — recreating the playlist without the cleared tracks
+        // (and never importing them). They are removed in markImported() instead.
+        if (item.batchId) continue;
         this.items.delete(id);
         removed.push(id);
       }

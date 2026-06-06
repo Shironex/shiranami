@@ -185,6 +185,58 @@ describe('DownloadQueue clearCompleted', () => {
   });
 });
 
+describe('DownloadQueue batch item lifecycle', () => {
+  it('clearCompleted keeps batch items but clears single ones', async () => {
+    const { queue, runs } = makeQueue();
+    queue.enqueue({ url: 'https://example.com/single', title: 'Single' });
+    queue.enqueue({
+      url: 'https://example.com/batch',
+      title: 'Batch',
+      batchId: 'b1',
+      batchIndex: 0,
+      batchSourceTitle: 'My Playlist',
+      batchCreatePlaylist: true,
+    });
+    runs[0].resolve('/tmp/single.mp3');
+    runs[1].resolve('/tmp/batch.mp3');
+    await vi.waitFor(() => {
+      const items = queue.getSnapshot().items;
+      expect(items.find(i => i.url.endsWith('/single'))?.status).toBe('done');
+      expect(items.find(i => i.url.endsWith('/batch'))?.status).toBe('done');
+    });
+
+    queue.clearCompleted();
+
+    const urls = queue.getSnapshot().items.map(i => i.url);
+    // The single completed item is cleared; the batch item stays until its
+    // batch resolves (protects restart reconstruction of the batch).
+    expect(urls).not.toContain('https://example.com/single');
+    expect(urls).toContain('https://example.com/batch');
+  });
+
+  it('markImported removes resolved batch items from the queue but leaves singles', async () => {
+    const { queue, runs } = makeQueue();
+    const singleId = queue.enqueue({ url: 'https://example.com/single', title: 'Single' });
+    const batchId = queue.enqueue({
+      url: 'https://example.com/batch',
+      title: 'Batch',
+      batchId: 'b1',
+      batchIndex: 0,
+    });
+    runs[0].resolve('/tmp/single.mp3');
+    runs[1].resolve('/tmp/batch.mp3');
+    await vi.waitFor(() =>
+      expect(queue.getSnapshot().items.every(i => i.status === 'done')).toBe(true)
+    );
+
+    queue.markImported([singleId, batchId]);
+
+    const ids = queue.getSnapshot().items.map(i => i.id);
+    expect(ids).toContain(singleId); // single stays in the view
+    expect(ids).not.toContain(batchId); // resolved batch item is removed
+  });
+});
+
 describe('DownloadQueue pause / resume', () => {
   it('pause() stops promoting queued items; in-flight downloads keep running', () => {
     const { queue, runs } = makeQueue();
