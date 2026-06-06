@@ -34,6 +34,7 @@
     "resumeFailed": "Nie udało się wznowić kolejki. Spróbuj ponownie.",
     "cancelAllFailed": "Nie udało się anulować kolejki. Spróbuj ponownie."
   },
+  "loading": "Ładowanie pobierań…",
   "empty": {
     "title": "Brak pobierań",
     "description": "Utwory pobrane z wyszukiwarki, rekomendacji lub importu playlisty pojawią się tutaj."

@@ -91,7 +91,13 @@ export default function DownloadsView() {
     // Hold a blank frame until the first snapshot lands so a persisted queue
     // doesn't flash "No downloads yet" on launch before it hydrates.
     if (!hydrated) {
-      return <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6" />;
+      return (
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6" aria-busy="true">
+          <span role="status" className="sr-only">
+            {t('loading')}
+          </span>
+        </div>
+      );
     }
     return (
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6">

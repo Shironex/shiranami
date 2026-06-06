@@ -34,6 +34,7 @@
     "resumeFailed": "Couldn't resume the queue. Please try again.",
     "cancelAllFailed": "Couldn't cancel the queue. Please try again."
   },
+  "loading": "Loading downloads…",
   "empty": {
     "title": "No downloads yet",
     "description": "Tracks you download from search, recommendations, or playlist import will appear here."
