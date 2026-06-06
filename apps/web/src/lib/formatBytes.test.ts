@@ -13,6 +13,14 @@ describe('formatBytes', () => {
     expect(formatBytes(512)).toBe('512 B');
   });
 
+  it('handles fractional bytes without underflowing the unit index', () => {
+    // 0 < bytes < 1 → negative log; exponent must clamp to 0, not -1 (which
+    // would index UNITS out of bounds and render "undefined").
+    const out = formatBytes(0.5);
+    expect(out).not.toContain('undefined');
+    expect(out).toBe('1 B');
+  });
+
   it('uses decimal (1000-base) units, not binary', () => {
     expect(formatBytes(1000)).toBe('1 KB');
     expect(formatBytes(1_000_000)).toBe('1 MB');

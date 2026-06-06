@@ -14,7 +14,13 @@ const BASE = 1000;
 export function formatBytes(bytes: number, fractionDigits = 1): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
 
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(BASE)), UNITS.length - 1);
+  // Clamp the low end too: a fractional byte count (0 < bytes < 1) yields a
+  // negative log, which would underflow `exponent` to -1 and index UNITS out of
+  // bounds ("500 undefined").
+  const exponent = Math.max(
+    0,
+    Math.min(Math.floor(Math.log(bytes) / Math.log(BASE)), UNITS.length - 1)
+  );
   const value = bytes / BASE ** exponent;
   // Whole bytes never need a decimal; larger units show one by default.
   const digits = exponent === 0 ? 0 : fractionDigits;
