@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
  */
 export function DiskUsageSection() {
   const { t } = useTranslation('settings');
-  const { data: folders = [] } = useFoldersQuery();
+  const { data: folders = [], isLoading: isFoldersLoading } = useFoldersQuery();
   const { data, isLoading, isError, isFetching, refetch } = useDiskUsageQuery();
 
   const hasFolders = folders.length > 0;
@@ -39,15 +39,17 @@ export function DiskUsageSection() {
         ) : undefined
       }
     >
-      {!hasFolders ? (
-        <p className="text-sm text-muted-foreground/60 py-3 text-center">
-          {t('diskUsage.noFolders')}
-        </p>
-      ) : isLoading ? (
+      {isFoldersLoading || isLoading ? (
+        // Show the spinner while folders are still loading too, so the
+        // "no folders" empty state never flashes before the list arrives.
         <div className="flex items-center justify-center py-6 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin mr-2" aria-hidden="true" />
           <span className="text-sm">{t('diskUsage.loading')}</span>
         </div>
+      ) : !hasFolders ? (
+        <p className="text-sm text-muted-foreground/60 py-3 text-center">
+          {t('diskUsage.noFolders')}
+        </p>
       ) : isError ? (
         <div className="space-y-3 py-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
