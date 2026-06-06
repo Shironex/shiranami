@@ -1,5 +1,5 @@
 import { getDatabase } from '@shiranami/database/client';
-import { downloadQueue, asc, inArray } from '@shiranami/database';
+import { downloadQueue, asc, eq, inArray } from '@shiranami/database';
 import type { DownloadQueueItem } from '@shiranami/contracts';
 import { store } from './store';
 import { logger } from './logger';
@@ -109,10 +109,7 @@ export function createDownloadQueuePersistence(): DownloadQueuePersistence {
 
     remove(id) {
       try {
-        getDatabase()
-          .delete(downloadQueue)
-          .where(inArray(downloadQueue.id, [id]))
-          .run();
+        getDatabase().delete(downloadQueue).where(eq(downloadQueue.id, id)).run();
       } catch (err) {
         logger.warn('[download-queue] Failed to remove persisted item:', err);
       }
