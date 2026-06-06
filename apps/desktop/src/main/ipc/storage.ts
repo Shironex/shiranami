@@ -26,8 +26,11 @@ const STAT_CONCURRENCY = 128;
 export function volumeKeyFor(folderPath: string, dev: number): string {
   // `path.win32.parse` (not `path.parse`) so the drive-root grouping is correct
   // even when this runs under test on a POSIX host; at runtime on Windows the
-  // two are identical.
-  return process.platform === 'win32' ? path.win32.parse(folderPath).root : String(dev);
+  // two are identical. Upper-case the root because Windows drive letters / UNC
+  // shares are case-insensitive — `C:\` and `c:\` must bucket as one volume.
+  return process.platform === 'win32'
+    ? path.win32.parse(folderPath).root.toUpperCase()
+    : String(dev);
 }
 
 /**

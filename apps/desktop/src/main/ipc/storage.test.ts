@@ -46,6 +46,13 @@ describe('volumeKeyFor', () => {
       expect(volumeKeyFor('D:\\Audio', 7)).toBe('D:\\');
     });
   });
+
+  it('normalizes Windows drive-root case so c:\\ and C:\\ bucket together', () => {
+    withPlatform('win32', () => {
+      expect(volumeKeyFor('c:\\Music', 1)).toBe(volumeKeyFor('C:\\Other', 2));
+      expect(volumeKeyFor('c:\\Music', 1)).toBe('C:\\');
+    });
+  });
 });
 
 describe('mountLabelFor', () => {
