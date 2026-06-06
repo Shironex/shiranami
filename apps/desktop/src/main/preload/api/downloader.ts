@@ -38,7 +38,11 @@ export interface DownloaderApi {
   download: (url: string) => Promise<string>;
   enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
   cancelDownload: (id: string) => Promise<void>;
+  cancelAllDownloads: () => Promise<void>;
   clearCompletedDownloads: () => Promise<void>;
+  pauseDownloadQueue: () => Promise<void>;
+  resumeDownloadQueue: () => Promise<void>;
+  markDownloadsImported: (ids: string[]) => Promise<void>;
   getDownloadQueue: () => Promise<DownloadQueueSnapshot>;
   onQueueState: (cb: (snapshot: DownloadQueueSnapshot) => void) => () => void;
   getDownloadLocation: () => Promise<DownloadLocation>;
@@ -79,7 +83,11 @@ export const downloaderApi: DownloaderApi = {
   download: url => ipcRenderer.invoke(C.download, { url }),
   enqueueDownload: input => ipcRenderer.invoke(C.enqueue, input),
   cancelDownload: id => ipcRenderer.invoke(C.cancel, id),
+  cancelAllDownloads: () => ipcRenderer.invoke(C.cancelAll),
   clearCompletedDownloads: () => ipcRenderer.invoke(C.clearCompleted),
+  pauseDownloadQueue: () => ipcRenderer.invoke(C.pause),
+  resumeDownloadQueue: () => ipcRenderer.invoke(C.resume),
+  markDownloadsImported: ids => ipcRenderer.invoke(C.markImported, ids),
   getDownloadQueue: () => ipcRenderer.invoke(C.getQueue),
   onQueueState: createIpcListener<DownloadQueueSnapshot>(C.queueState),
   getDownloadLocation: () => ipcRenderer.invoke(C.getDownloadLocation),
