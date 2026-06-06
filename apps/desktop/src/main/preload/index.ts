@@ -29,6 +29,7 @@ import { recommendationsApi, type RecommendationsApi } from './api/recommendatio
 import { scrobbleApi, type ScrobbleApi } from './api/scrobble';
 import { shareApi, type ShareApi } from './api/share';
 import { shellApi, type ShellApi } from './api/shell';
+import { storageApi, type StorageApi } from './api/storage';
 import { storeApi, type StoreApi } from './api/store';
 import { updaterApi, type UpdaterApi } from './api/updater';
 import { windowApi, type WindowApi } from './api/window';
@@ -57,6 +58,7 @@ export interface ElectronAPI {
   share: ShareApi;
   debug: DebugApi;
   system: SystemApi;
+  storage: StorageApi;
   errors: {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
     SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
@@ -97,6 +99,7 @@ const electronAPI: ElectronAPI = {
   share: shareApi,
   debug: debugApi,
   system: systemApi,
+  storage: storageApi,
   errors: {
     isIpcError,
     SHARE_ERROR_CODES,

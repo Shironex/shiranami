@@ -28,6 +28,7 @@ import type {
   SmartPlaylistMatchType,
   DownloadQueueSnapshot,
   EnqueueDownloadInput,
+  DiskUsageResult,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
@@ -494,6 +495,9 @@ export interface ElectronAPI {
   };
   system: {
     onNotice: (callback: (notice: SystemNotice) => void) => () => void;
+  };
+  storage: {
+    getUsage: (folderPaths: string[]) => Promise<DiskUsageResult>;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */
