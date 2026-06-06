@@ -17,7 +17,7 @@ describe('useDownloadQueueStore', () => {
   beforeEach(() => {
     useDownloadQueueStore
       .getState()
-      .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+      .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0, paused: false });
   });
 
   it('rebuilds byUrl + byYoutubeId indices from a snapshot', () => {
@@ -26,6 +26,7 @@ describe('useDownloadQueueStore', () => {
     useDownloadQueueStore.getState().applySnapshot({
       items: [a, b],
       maxConcurrency: 3,
+      paused: false,
       activeCount: 1,
     });
 
@@ -44,6 +45,7 @@ describe('useDownloadQueueStore', () => {
     useDownloadQueueStore.getState().applySnapshot({
       items: [oldCanceled, fresh],
       maxConcurrency: 3,
+      paused: false,
       activeCount: 1,
     });
 
@@ -51,12 +53,18 @@ describe('useDownloadQueueStore', () => {
   });
 
   it('replaces items wholesale on each snapshot', () => {
-    useDownloadQueueStore
-      .getState()
-      .applySnapshot({ items: [item({ id: 'a' })], maxConcurrency: 3, activeCount: 0 });
-    useDownloadQueueStore
-      .getState()
-      .applySnapshot({ items: [item({ id: 'b' })], maxConcurrency: 3, activeCount: 0 });
+    useDownloadQueueStore.getState().applySnapshot({
+      items: [item({ id: 'a' })],
+      maxConcurrency: 3,
+      activeCount: 0,
+      paused: false,
+    });
+    useDownloadQueueStore.getState().applySnapshot({
+      items: [item({ id: 'b' })],
+      maxConcurrency: 3,
+      activeCount: 0,
+      paused: false,
+    });
 
     const s = useDownloadQueueStore.getState();
     expect(s.items.map(i => i.id)).toEqual(['b']);

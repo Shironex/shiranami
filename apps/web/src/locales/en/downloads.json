@@ -16,11 +16,23 @@
   },
   "action": {
     "cancel": "Cancel",
-    "clearCompleted": "Clear completed"
+    "clearCompleted": "Clear completed",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancelAll": "Cancel all",
+    "cancelAllConfirm": "Cancel all downloads? In-progress downloads will be stopped and the queue cleared.",
+    "cancelAllConfirmAction": "Cancel all",
+    "keep": "Keep"
+  },
+  "paused": {
+    "banner": "Queue paused — downloads won't start until you resume."
   },
   "error": {
     "cancelFailed": "Couldn't cancel the download. Please try again.",
-    "clearFailed": "Couldn't clear completed downloads. Please try again."
+    "clearFailed": "Couldn't clear completed downloads. Please try again.",
+    "pauseFailed": "Couldn't pause the queue. Please try again.",
+    "resumeFailed": "Couldn't resume the queue. Please try again.",
+    "cancelAllFailed": "Couldn't cancel the queue. Please try again."
   },
   "empty": {
     "title": "No downloads yet",
@@ -28,6 +40,9 @@
   },
   "a11y": {
     "cancelDownload": "Cancel download of {{title}}",
-    "progress": "Download progress for {{title}}"
+    "progress": "Download progress for {{title}}",
+    "pauseQueue": "Pause the download queue",
+    "resumeQueue": "Resume the download queue",
+    "cancelAll": "Cancel all downloads"
   }
 }

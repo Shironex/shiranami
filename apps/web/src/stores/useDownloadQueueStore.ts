@@ -15,6 +15,14 @@ interface DownloadQueueState {
   byYoutubeId: Map<string, DownloadQueueItem>;
   maxConcurrency: number;
   activeCount: number;
+  /** Whether the main-process queue is paused (no queued items promote). */
+  paused: boolean;
+  /**
+   * False until the first snapshot lands from the main process. Lets the view
+   * distinguish "not loaded yet" from "loaded and empty" so a persisted queue
+   * doesn't flash the empty state on launch.
+   */
+  hydrated: boolean;
 }
 
 interface DownloadQueueActions {
@@ -45,6 +53,8 @@ export const useDownloadQueueStore = create<DownloadQueueState & DownloadQueueAc
     byYoutubeId: new Map(),
     maxConcurrency: 0,
     activeCount: 0,
+    paused: false,
+    hydrated: false,
 
     applySnapshot: snapshot => {
       const { byUrl, byYoutubeId } = buildIndices(snapshot.items);
@@ -54,6 +64,8 @@ export const useDownloadQueueStore = create<DownloadQueueState & DownloadQueueAc
         byYoutubeId,
         maxConcurrency: snapshot.maxConcurrency,
         activeCount: snapshot.activeCount,
+        paused: snapshot.paused,
+        hydrated: true,
       });
     },
 

@@ -54,7 +54,17 @@ export function DownloadQueueRow({ item, onCancel }: DownloadQueueRowProps) {
       )}
     >
       <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center relative z-10">
-        <Music className="w-4 h-4 text-muted-foreground/40" />
+        {item.thumbnail ? (
+          <img
+            src={item.thumbnail}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <Music className="w-4 h-4 text-muted-foreground/40" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0 relative z-10">

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -59,7 +60,10 @@ import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
-import { useDownloadQueueImporter } from '@/hooks/useDownloadQueueImporter';
+import {
+  useDownloadQueueImporter,
+  reconstructBatchesFromSnapshot,
+} from '@/hooks/useDownloadQueueImporter';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -174,8 +178,18 @@ function App() {
     const applySnapshot = useDownloadQueueStore.getState().applySnapshot;
     window.electronAPI.downloader
       .getDownloadQueue()
-      .then(applySnapshot)
-      .catch(() => {});
+      .then(snapshot => {
+        // Reconstruct any in-flight playlist-import batches from the restored
+        // queue BEFORE applying the snapshot, so the App-level importer sees each
+        // batch the instant it sees its items (zustand setState is synchronous).
+        reconstructBatchesFromSnapshot(snapshot.items);
+        applySnapshot(snapshot);
+      })
+      .catch((err: unknown) => {
+        // The persisted queue failed to load at boot. The next queue-state
+        // broadcast will recover the snapshot, but log so it's diagnosable.
+        logger.error('[downloads] initial queue hydration failed', err);
+      });
     const cleanup = window.electronAPI.downloader.onQueueState(applySnapshot);
     return cleanup;
   }, []);

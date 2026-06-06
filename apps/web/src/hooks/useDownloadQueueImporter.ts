@@ -16,6 +16,40 @@ export function orderBatchDone(done: BatchDoneEntry[]): BatchDoneEntry[] {
   return [...done].sort((a, b) => a.batchIndex - b.batchIndex);
 }
 
+/**
+ * Reconstruct in-flight playlist-import batches from a persisted queue snapshot
+ * on app restart. Groups items by `batchId` and re-registers each batch (sealed,
+ * membership final) so the coordinator imports the downloaded tracks in order
+ * and recreates the playlist — exactly as before the restart. Batch intent
+ * (`sourceTitle`, `createPlaylist`) rides on the persisted items. Must run
+ * BEFORE the snapshot is applied to the queue store so the coordinator sees the
+ * batch the moment it sees the items. Idempotent (the store action no-ops on an
+ * existing batch).
+ */
+export function reconstructBatchesFromSnapshot(items: DownloadQueueItem[]): void {
+  const { reconstructBatch } = useDownloadBatchStore.getState();
+  const groups = new Map<
+    string,
+    { sourceTitle: string | null; createPlaylist: boolean; itemIds: string[] }
+  >();
+  for (const item of items) {
+    if (!item.batchId) continue;
+    let group = groups.get(item.batchId);
+    if (!group) {
+      group = {
+        sourceTitle: item.batchSourceTitle ?? null,
+        createPlaylist: item.batchCreatePlaylist ?? false,
+        itemIds: [],
+      };
+      groups.set(item.batchId, group);
+    }
+    group.itemIds.push(item.id);
+  }
+  for (const [batchId, group] of groups) {
+    reconstructBatch({ batchId, ...group });
+  }
+}
+
 export interface BatchImportSummary {
   done: number;
   skipped: number;
@@ -125,6 +159,12 @@ export function useDownloadQueueImporter(): void {
           } else {
             toast.info(i18n.t('trackAlreadyInLibrary', { ns: 'toast' }));
           }
+          // Imported (or already present): drop its persisted row so it isn't
+          // re-imported on the next launch. On error we keep the row so the
+          // import retries after a restart.
+          window.electronAPI.downloader
+            .markDownloadsImported([item.id])
+            .catch(err => logger.warn('[download-queue] markDownloadsImported failed', err));
         } catch (err) {
           logger.error('[download-queue] single import failed', err);
           const msg = err instanceof Error ? err.message : i18n.t('unknownError', { ns: 'common' });
@@ -208,7 +248,20 @@ export function useDownloadQueueImporter(): void {
               toast.error(i18n.t('playlistCreateFailed', { ns: 'toast', error: msg }));
             }
           }
+        } catch (err) {
+          // The batch was already claimed (markResolved) above, so it won't
+          // re-run this session; log rather than leak an unhandled rejection
+          // (this fn is invoked fire-and-forget).
+          logger.error('[download-queue] batch coordination failed', err);
         } finally {
+          // The batch's tracks are imported (idempotent) — drop its persisted
+          // rows so they aren't re-imported / its playlist isn't recreated on the
+          // next launch. Narrow residual window: a crash after the playlist is
+          // created but before this completes would recreate the playlist once on
+          // the next boot — accepted as rare and non-corrupting.
+          window.electronAPI.downloader
+            .markDownloadsImported([...batch.enqueuedIds])
+            .catch(err => logger.warn('[download-queue] markDownloadsImported failed', err));
           removeBatch(batch.batchId);
         }
       }

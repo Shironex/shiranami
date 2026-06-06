@@ -52,7 +52,7 @@ describe('usePlaylistImport', () => {
     vi.mocked(window.electronAPI.db.tracks.add).mockReset();
     useDownloadQueueStore
       .getState()
-      .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+      .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0, paused: false });
     useDownloadBatchStore.setState({ batches: {} });
 
     // Default mock returns for event listeners
@@ -563,6 +563,7 @@ describe('usePlaylistImport', () => {
       act(() => {
         useDownloadQueueStore.getState().applySnapshot({
           maxConcurrency: 3,
+          paused: false,
           activeCount: 1,
           items: [
             {
@@ -804,6 +805,7 @@ describe('usePlaylistImport', () => {
       act(() => {
         useDownloadQueueStore.getState().applySnapshot({
           maxConcurrency: 3,
+          paused: false,
           activeCount: 2,
           items: [
             {
@@ -839,6 +841,7 @@ describe('usePlaylistImport', () => {
       act(() => {
         useDownloadQueueStore.getState().applySnapshot({
           maxConcurrency: 3,
+          paused: false,
           activeCount: 0,
           items: [
             {
@@ -881,6 +884,7 @@ describe('usePlaylistImport', () => {
       act(() => {
         useDownloadQueueStore.getState().applySnapshot({
           maxConcurrency: 3,
+          paused: false,
           activeCount: 2,
           items: [
             {
@@ -915,7 +919,7 @@ describe('usePlaylistImport', () => {
         useDownloadBatchStore.setState({ batches: {} });
         useDownloadQueueStore
           .getState()
-          .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0 });
+          .applySnapshot({ items: [], maxConcurrency: 3, activeCount: 0, paused: false });
       });
 
       // Return to a self-consistent finished state, not a stuck spinner.
