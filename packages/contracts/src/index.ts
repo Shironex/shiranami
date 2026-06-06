@@ -13,4 +13,5 @@ export * from './ipc/metadata';
 export * from './ipc/loudness';
 export * from './ipc/database';
 export * from './ipc/system';
+export * from './ipc/storage';
 export * from './share/dto';

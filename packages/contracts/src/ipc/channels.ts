@@ -250,6 +250,12 @@ export const IPC_CHANNELS = {
     // of being swallowed in the logs.
     notice: 'system:notice',
   },
+  storage: {
+    // Renderer→main: compute how much disk the watched library folders occupy
+    // and how much free space each host volume has. Returns one entry per
+    // physical volume (folders are bucketed by device id / drive root).
+    getUsage: 'storage:get-usage',
+  },
 } as const;
 
 /** Recursively extract every string-leaf value from a nested const object. */
