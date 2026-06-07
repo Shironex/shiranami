@@ -59,7 +59,7 @@ export const ALWAYS_VISIBLE_SIDEBAR_ITEMS: ReadonlySet<AppView> = new Set(['sett
  * settings. Existing installs keep their own persisted visibility; this only
  * seeds the default and the "Reset sidebar" action.
  */
-export const DEFAULT_HIDDEN_SIDEBAR_ITEMS: AppView[] = ['smart-playlists'];
+export const DEFAULT_HIDDEN_SIDEBAR_ITEMS: readonly AppView[] = ['smart-playlists'];
 
 /**
  * Views still marked experimental. Surfaced as an "Experimental" badge in the
