@@ -3,6 +3,7 @@ import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import {
   ALWAYS_VISIBLE_SIDEBAR_ITEMS,
+  DEFAULT_HIDDEN_SIDEBAR_ITEMS,
   DEFAULT_SIDEBAR_ORDER,
   sanitizeSidebarOrder,
 } from '@/lib/sidebar-items';
@@ -392,7 +393,7 @@ interface UIActions {
 export const useUIStore = createPersistedStore<UIState & UIActions>(
   (set, get) => ({
     sidebarCollapsed: false,
-    sidebarHiddenItems: [],
+    sidebarHiddenItems: DEFAULT_HIDDEN_SIDEBAR_ITEMS,
     sidebarOrder: DEFAULT_SIDEBAR_ORDER,
     sidebarPlaylistsVisible: true,
     showVisualizer: true,
@@ -458,7 +459,10 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
       set({ sidebarOrder: arrayMove(order, oldIndex, newIndex) });
     },
     resetSidebar: () => {
-      set({ sidebarOrder: DEFAULT_SIDEBAR_ORDER, sidebarHiddenItems: [] });
+      set({
+        sidebarOrder: DEFAULT_SIDEBAR_ORDER,
+        sidebarHiddenItems: DEFAULT_HIDDEN_SIDEBAR_ITEMS,
+      });
     },
     setSidebarPlaylistsVisible: visible => {
       set({ sidebarPlaylistsVisible: visible });

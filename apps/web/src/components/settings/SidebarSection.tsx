@@ -21,6 +21,7 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   SettingsCard,
   SettingsRow,
@@ -32,6 +33,7 @@ import { SidebarPreview } from '@/components/settings/SidebarPreview';
 import {
   ALWAYS_VISIBLE_SIDEBAR_ITEMS,
   DEFAULT_SIDEBAR_ORDER,
+  EXPERIMENTAL_SIDEBAR_ITEMS,
   SIDEBAR_ITEM_BY_ID,
   type SidebarNavItem,
 } from '@/lib/sidebar-items';
@@ -44,8 +46,10 @@ interface SortableSidebarRowProps {
   label: string;
   alwaysOn: boolean;
   visible: boolean;
+  experimental: boolean;
   dragHandleLabel: string;
   alwaysOnLabel: string;
+  experimentalLabel: string;
   onToggle: () => void;
   onHover: (hovering: boolean) => void;
 }
@@ -56,8 +60,10 @@ function SortableSidebarRow({
   label,
   alwaysOn,
   visible,
+  experimental,
   dragHandleLabel,
   alwaysOnLabel,
+  experimentalLabel,
   onToggle,
   onHover,
 }: SortableSidebarRowProps) {
@@ -103,20 +109,27 @@ function SortableSidebarRow({
           visible ? 'text-muted-foreground' : 'text-muted-foreground/35'
         )}
       />
-      <span
-        id={labelId}
-        className={cn(
-          'min-w-0 flex-1 truncate text-sm font-medium',
-          visible ? 'text-foreground' : 'text-muted-foreground/50'
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span
+          id={labelId}
+          className={cn(
+            'min-w-0 truncate text-sm font-medium',
+            visible ? 'text-foreground' : 'text-muted-foreground/50'
+          )}
+        >
+          {label}
+          {alwaysOn && (
+            <span className="ml-2 text-[10px] font-normal text-muted-foreground/60">
+              {alwaysOnLabel}
+            </span>
+          )}
+        </span>
+        {experimental && (
+          <StatusBadge variant="experimental" className={cn(!visible && 'opacity-60')}>
+            {experimentalLabel}
+          </StatusBadge>
         )}
-      >
-        {label}
-        {alwaysOn && (
-          <span className="ml-2 text-[10px] font-normal text-muted-foreground/60">
-            {alwaysOnLabel}
-          </span>
-        )}
-      </span>
+      </div>
       <Switch
         checked={visible}
         disabled={alwaysOn}
@@ -202,8 +215,10 @@ export function SidebarSection() {
                       label={label}
                       alwaysOn={alwaysOn}
                       visible={visible}
+                      experimental={EXPERIMENTAL_SIDEBAR_ITEMS.has(item.id)}
                       dragHandleLabel={t('app.sidebarDragHandle', { label })}
                       alwaysOnLabel={t('app.sidebarAlwaysOn')}
+                      experimentalLabel={t('app.sidebarExperimental')}
                       onToggle={() => toggleSidebarItem(item.id)}
                       onHover={hovering =>
                         setHoveredId(prev => (hovering ? item.id : prev === item.id ? null : prev))
