@@ -393,7 +393,7 @@ interface UIActions {
 export const useUIStore = createPersistedStore<UIState & UIActions>(
   (set, get) => ({
     sidebarCollapsed: false,
-    sidebarHiddenItems: DEFAULT_HIDDEN_SIDEBAR_ITEMS,
+    sidebarHiddenItems: [...DEFAULT_HIDDEN_SIDEBAR_ITEMS],
     sidebarOrder: DEFAULT_SIDEBAR_ORDER,
     sidebarPlaylistsVisible: true,
     showVisualizer: true,
