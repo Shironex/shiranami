@@ -461,7 +461,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     resetSidebar: () => {
       set({
         sidebarOrder: DEFAULT_SIDEBAR_ORDER,
-        sidebarHiddenItems: DEFAULT_HIDDEN_SIDEBAR_ITEMS,
+        sidebarHiddenItems: [...DEFAULT_HIDDEN_SIDEBAR_ITEMS],
       });
     },
     setSidebarPlaylistsVisible: visible => {
