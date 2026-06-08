@@ -9,6 +9,7 @@ export interface E2ETrackRow {
   title: string;
   artist: string | null;
   album: string | null;
+  albumArtist: string | null;
   duration: number | null;
   isFavorite: boolean;
   playCount: number;
