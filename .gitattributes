@@ -1,0 +1,6 @@
+# Let git normalize line endings (LF in the repo, native on checkout).
+* text=auto
+
+# Keep generated SQL migrations LF on every platform so the embedded-vs-on-disk
+# migration test stays stable on Windows checkouts.
+*.sql text eol=lf

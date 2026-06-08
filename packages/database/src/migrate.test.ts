@@ -14,6 +14,10 @@ import { createLegacyTables } from './test/helpers/legacy-schema';
 const here = dirname(fileURLToPath(import.meta.url));
 const drizzleDir = join(here, '..', 'drizzle');
 
+// Normalize CRLF to LF so the on-disk/embedded comparison is independent of how
+// git checked out the .sql files (Windows checkouts can carry CRLF).
+const normalizeEol = (s: string): string => s.replace(/\r\n/g, '\n');
+
 function tableNames(db: Database.Database): string[] {
   return (
     db.prepare(`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`).all() as Array<{
@@ -66,9 +70,7 @@ describe('runMigrations', () => {
     expect(indexes).toContain('idx_tracks_album_artist');
 
     // ledger has both migrations
-    expect(ledgerRows(db).map(r => r.name)).toEqual(
-      __embeddedMigrationsForTest.map(m => m.name)
-    );
+    expect(ledgerRows(db).map(r => r.name)).toEqual(__embeddedMigrationsForTest.map(m => m.name));
 
     db.close();
   });
@@ -99,9 +101,7 @@ describe('runMigrations', () => {
 
     // Baseline marked + newer migration applied (album_artist exists now).
     expect(tableNames(db)).toContain('__drizzle_migrations');
-    expect(ledgerRows(db).map(r => r.name)).toEqual(
-      __embeddedMigrationsForTest.map(m => m.name)
-    );
+    expect(ledgerRows(db).map(r => r.name)).toEqual(__embeddedMigrationsForTest.map(m => m.name));
     expect(columnNames(db, 'tracks')).toContain('album_artist');
 
     // Idempotent: a second run does nothing and does not duplicate ledger rows.
@@ -138,12 +138,12 @@ describe('embedded migrations stay in lock-step with on-disk drizzle files', () 
   it('matches each drizzle/<name>/migration.sql statement-for-statement', () => {
     for (const m of __embeddedMigrationsForTest) {
       const sqlPath = join(drizzleDir, m.name, 'migration.sql');
-      const disk = readFileSync(sqlPath, 'utf8');
+      const disk = normalizeEol(readFileSync(sqlPath, 'utf8'));
       const diskStatements = disk
         .split('--> statement-breakpoint')
         .map(s => s.trim())
         .filter(Boolean);
-      const embedded = m.statements.map(s => s.trim()).filter(Boolean);
+      const embedded = m.statements.map(s => normalizeEol(s).trim()).filter(Boolean);
       expect(embedded).toEqual(diskStatements);
     }
   });
