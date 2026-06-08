@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -202,6 +202,23 @@ const MIGRATIONS: EmbeddedMigration[] = [
 \t\`finished_at\` integer
 )`,
     ],
+  },
+  {
+    // #269: earlier builds baked the track artist into album_artist for files
+    // with no albumartist tag, so untagged various-artists albums fragmented at
+    // grouping time. Un-bake it: where album_artist merely mirrors the track
+    // artist, reset it to NULL ("untagged") so the grouping layer falls back to
+    // the album title alone. Idempotent: once nulled, `album_artist = artist`
+    // no longer matches (NULL = artist is NULL).
+    //
+    // Tradeoff (accepted): the WHERE cannot tell a baked fallback from a genuine
+    // albumartist tag that legitimately equals the artist (a solo album). It
+    // nulls both, so two same-titled solo albums by different artists now MERGE
+    // (they key on the title alone) — same behavior as <=0.21.0, and rare. The
+    // on-disk tag is untouched: a genuine albumartist==artist tag re-populates
+    // on the next rescan (the scan layer no longer bakes), restoring separation.
+    name: '20260101000006_unbake_album_artist',
+    statements: ['UPDATE `tracks` SET `album_artist` = NULL WHERE `album_artist` = `artist`'],
   },
 ];
 

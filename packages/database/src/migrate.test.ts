@@ -122,6 +122,71 @@ describe('runMigrations', () => {
   });
 });
 
+describe('un-bake album_artist data migration (#269)', () => {
+  // The shipped statement, pulled from the embedded list so the test can't
+  // drift from what actually runs against user databases.
+  const unbakeSql = __embeddedMigrationsForTest.find(
+    m => m.name === '20260101000006_unbake_album_artist'
+  )!.statements[0];
+
+  it('nulls album_artist that merely mirrors the track artist, preserves real tags', () => {
+    const db = new Database(':memory:');
+    runMigrations(db); // schema ready; the data migration ran on an empty table
+
+    const insert = db.prepare(
+      `INSERT INTO tracks (id, file_path, title, artist, album, album_artist) VALUES (?, ?, ?, ?, ?, ?)`
+    );
+    // Baked untagged track: album_artist was forced to equal the track artist.
+    insert.run('baked', '/m/baked.mp3', 'A', 'Alice', 'Comp', 'Alice');
+    // Genuine compilation tag: album_artist differs from the track artist.
+    insert.run('tagged', '/m/tagged.mp3', 'B', 'Bob', 'Comp', 'Various Artists');
+    // Already untagged.
+    insert.run('null', '/m/null.mp3', 'C', 'Carol', 'Comp', null);
+
+    db.prepare(unbakeSql).run();
+
+    const byId = Object.fromEntries(
+      (
+        db.prepare(`SELECT id, album_artist FROM tracks`).all() as Array<{
+          id: string;
+          album_artist: string | null;
+        }>
+      ).map(r => [r.id, r.album_artist])
+    );
+    expect(byId.baked).toBeNull(); // un-baked → grouping falls back to album title
+    expect(byId.tagged).toBe('Various Artists'); // genuine tag preserved
+    expect(byId.null).toBeNull();
+
+    db.close();
+  });
+
+  it('is idempotent — a second apply nulls nothing further', () => {
+    const db = new Database(':memory:');
+    runMigrations(db);
+    db.prepare(
+      `INSERT INTO tracks (id, file_path, title, artist, album, album_artist) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run('t', '/m/t.mp3', 'A', 'Alice', 'Comp', 'Alice');
+
+    db.prepare(unbakeSql).run();
+    const after1 = (
+      db.prepare(`SELECT album_artist FROM tracks WHERE id='t'`).get() as {
+        album_artist: string | null;
+      }
+    ).album_artist;
+    db.prepare(unbakeSql).run();
+    const after2 = (
+      db.prepare(`SELECT album_artist FROM tracks WHERE id='t'`).get() as {
+        album_artist: string | null;
+      }
+    ).album_artist;
+
+    expect(after1).toBeNull();
+    expect(after2).toBeNull();
+
+    db.close();
+  });
+});
+
 describe('assertNotDowngrade', () => {
   it('allows equal or older DB versions', () => {
     expect(() => assertNotDowngrade(SCHEMA_VERSION)).not.toThrow();
