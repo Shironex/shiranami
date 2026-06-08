@@ -45,7 +45,7 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
       // artist, or an untagged various-artists album gets a per-track album
       // artist and fragments at grouping time (#269). Null means "untagged",
       // which the grouping layer keys on the album title alone.
-      albumArtist: common.albumartist || null,
+      albumArtist: common.albumartist?.trim() || null,
       album: common.album || 'Unknown Album',
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',
