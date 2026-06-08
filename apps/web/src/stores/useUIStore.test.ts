@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUIStore } from './useUIStore';
 import { useViewStore } from './useViewStore';
-import { DEFAULT_SIDEBAR_ORDER } from '@/lib/sidebar-items';
+import { DEFAULT_HIDDEN_SIDEBAR_ITEMS, DEFAULT_SIDEBAR_ORDER } from '@/lib/sidebar-items';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -23,7 +23,8 @@ describe('useUIStore', () => {
     localStorage.clear();
     useUIStore.setState({
       sidebarCollapsed: false,
-      sidebarHiddenItems: [],
+      // Mirror the production default so tests run against the real baseline.
+      sidebarHiddenItems: [...DEFAULT_HIDDEN_SIDEBAR_ITEMS],
       sidebarOrder: DEFAULT_SIDEBAR_ORDER,
       sidebarPlaylistsVisible: true,
       showVisualizer: true,
@@ -35,20 +36,24 @@ describe('useUIStore', () => {
     const { toggleSidebarItem } = useUIStore.getState();
 
     toggleSidebarItem('favorites');
-    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['favorites']);
-    expect(readPersisted().sidebarHiddenItems).toEqual(['favorites']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['smart-playlists', 'favorites']);
+    expect(readPersisted().sidebarHiddenItems).toEqual(['smart-playlists', 'favorites']);
 
     toggleSidebarItem('history');
-    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['favorites', 'history']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual([
+      'smart-playlists',
+      'favorites',
+      'history',
+    ]);
 
     toggleSidebarItem('favorites');
-    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['history']);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['smart-playlists', 'history']);
   });
 
   it('toggleSidebarItem ignores always-visible items (settings)', () => {
     useUIStore.getState().toggleSidebarItem('settings');
-    expect(useUIStore.getState().sidebarHiddenItems).toEqual([]);
-    expect(readPersisted().sidebarHiddenItems ?? []).toEqual([]);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(['smart-playlists']);
+    expect(readPersisted().sidebarHiddenItems ?? []).toEqual(['smart-playlists']);
   });
 
   it('reorderSidebarItem moves an item to a new slot and persists the order', () => {
@@ -56,13 +61,7 @@ describe('useUIStore', () => {
     useUIStore.getState().reorderSidebarItem('library', 'favorites');
 
     const order = useUIStore.getState().sidebarOrder;
-    expect(order.slice(0, 5)).toEqual([
-      'overview',
-      'playlists',
-      'smart-playlists',
-      'favorites',
-      'library',
-    ]);
+    expect(order.slice(0, 5)).toEqual(['overview', 'playlists', 'favorites', 'library', 'history']);
     // No items lost, no duplicates introduced.
     expect(order).toHaveLength(DEFAULT_SIDEBAR_ORDER.length);
     expect(new Set(order).size).toBe(DEFAULT_SIDEBAR_ORDER.length);
@@ -77,14 +76,14 @@ describe('useUIStore', () => {
     expect(useUIStore.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
   });
 
-  it('resetSidebar restores the default order and clears hidden items', () => {
+  it('resetSidebar restores the default order and default hidden items', () => {
     useUIStore.getState().reorderSidebarItem('radio', 'overview');
     useUIStore.getState().toggleSidebarItem('mixes');
     expect(useUIStore.getState().sidebarOrder).not.toEqual(DEFAULT_SIDEBAR_ORDER);
 
     useUIStore.getState().resetSidebar();
     expect(useUIStore.getState().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
-    expect(useUIStore.getState().sidebarHiddenItems).toEqual([]);
+    expect(useUIStore.getState().sidebarHiddenItems).toEqual(DEFAULT_HIDDEN_SIDEBAR_ITEMS);
     expect(readPersisted().sidebarOrder).toEqual(DEFAULT_SIDEBAR_ORDER);
   });
 

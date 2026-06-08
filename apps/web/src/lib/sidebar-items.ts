@@ -31,14 +31,16 @@ export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'overview', key: 'overview', Icon: LayoutDashboard },
   { id: 'library', key: 'library', Icon: Library },
   { id: 'playlists', key: 'playlists', Icon: ListMusic },
-  { id: 'smart-playlists', key: 'smartPlaylists', Icon: Wand2 },
   { id: 'favorites', key: 'favorites', Icon: Heart },
   { id: 'history', key: 'history', Icon: History },
   { id: 'mixes', key: 'mixes', Icon: Sparkles },
   { id: 'search', key: 'search', Icon: Search },
   { id: 'import-playlist', key: 'importPlaylist', Icon: ListPlus },
-  { id: 'downloads', key: 'downloads', Icon: DownloadCloud },
   { id: 'radio', key: 'radio', Icon: Radio },
+  // Opt-in extras grouped just before Settings. Smart Playlists is still
+  // experimental and ships hidden by default (see DEFAULT_HIDDEN_SIDEBAR_ITEMS).
+  { id: 'smart-playlists', key: 'smartPlaylists', Icon: Wand2 },
+  { id: 'downloads', key: 'downloads', Icon: DownloadCloud },
   { id: 'settings', key: 'settings', Icon: Settings },
 ];
 
@@ -50,6 +52,20 @@ export const SIDEBAR_ITEM_BY_ID = new Map(SIDEBAR_NAV_ITEMS.map(item => [item.id
  * back into this very customization UI, so it always stays visible.
  */
 export const ALWAYS_VISIBLE_SIDEBAR_ITEMS: ReadonlySet<AppView> = new Set(['settings']);
+
+/**
+ * Views toggled off in the sidebar on a fresh install. Experimental / opt-in
+ * features ship hidden — the user enables them from the sidebar customization
+ * settings. Existing installs keep their own persisted visibility; this only
+ * seeds the default and the "Reset sidebar" action.
+ */
+export const DEFAULT_HIDDEN_SIDEBAR_ITEMS: readonly AppView[] = ['smart-playlists'];
+
+/**
+ * Views still marked experimental. Surfaced as an "Experimental" badge in the
+ * sidebar customization list so users know the feature may change or be removed.
+ */
+export const EXPERIMENTAL_SIDEBAR_ITEMS: ReadonlySet<AppView> = new Set(['smart-playlists']);
 
 /** Default sidebar display order — the static order of {@link SIDEBAR_NAV_ITEMS}. */
 export const DEFAULT_SIDEBAR_ORDER: AppView[] = SIDEBAR_NAV_ITEMS.map(item => item.id);
