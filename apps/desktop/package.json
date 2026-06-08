@@ -30,7 +30,7 @@
     "adm-zip": "^0.5.17",
     "better-sqlite3": "^12.10.0",
     "electron-store": "^8.2.0",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "flac-tagger": "^2.0.0",
     "ipaddr.js": "^2.4.0",
     "lrclib-api": "^2.0.4",
