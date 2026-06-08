@@ -297,7 +297,7 @@ export function registerHistoryHandlers(): void {
       const albumArtistGroupKey = sql<string>`COALESCE(NULLIF(TRIM(${tracks.albumArtist}), ''), '')`;
       // Display falls back to a representative track artist so an untagged
       // album's card isn't blank.
-      const albumArtistDisplay = sql<string>`COALESCE(NULLIF(TRIM(${tracks.albumArtist}), ''), ${tracks.artist})`;
+      const albumArtistDisplay = sql<string>`COALESCE(NULLIF(TRIM(${tracks.albumArtist}), ''), NULLIF(${tracks.artist}, ''), ${UNKNOWN_ARTIST})`;
       const albumsQuery = db
         .select({
           album: albumExpression,
