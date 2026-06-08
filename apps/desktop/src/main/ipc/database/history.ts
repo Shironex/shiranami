@@ -294,10 +294,10 @@ export function registerHistoryHandlers(): void {
       // — NOT the track artist, which fragments an untagged various-artists
       // compilation into one entry per artist (#269). Same-titled albums by
       // different artists still stay separate when they carry album-artist tags.
-      const albumArtistGroupKey = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), '')`;
+      const albumArtistGroupKey = sql<string>`COALESCE(NULLIF(TRIM(${tracks.albumArtist}), ''), '')`;
       // Display falls back to a representative track artist so an untagged
       // album's card isn't blank.
-      const albumArtistDisplay = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), ${tracks.artist})`;
+      const albumArtistDisplay = sql<string>`COALESCE(NULLIF(TRIM(${tracks.albumArtist}), ''), ${tracks.artist})`;
       const albumsQuery = db
         .select({
           album: albumExpression,
