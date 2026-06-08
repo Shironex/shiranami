@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.22.0': '録', // "record / log" — scrobbling, persistent download queue, library backups
   '0.21.0': '堅', // "sturdy / solid" — stability + security hardening, reorderable sidebar
   '0.20.0': '新', // "new / renew" — the big redesign, home screen, and recommendations
   '0.19.0': '灯', // "lamp / light" — cafe-window splash redesign
@@ -132,6 +133,96 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.22.0',
+    date: '2026-06-08',
+    title: l(
+      'A full downloads manager, volume leveling, scrobbling, and smart playlists',
+      'Pełny menedżer pobierania, wyrównywanie głośności, scrobblowanie i inteligentne playlisty'
+    ),
+    description: l(
+      'A feature-packed update. Everything you download now runs through one queue you can watch, pause, resume, and cancel, and it survives a restart. Tracks can play at a consistent volume with near-gapless transitions, you can save your own equalizer presets, and Shiranami can scrobble to Last.fm and ListenBrainz. There are new auto-generated mixes, experimental rule-based playlists, a manual tag editor, and tools to back up and restore your whole library.',
+      'Aktualizacja pełna nowości. Wszystko, co pobierasz, przechodzi teraz przez jedną kolejkę, którą możesz obserwować, wstrzymywać, wznawiać i anulować, a do tego przetrwa ponowne uruchomienie. Utwory mogą grać z wyrównaną głośnością i niemal bezprzerwowymi przejściami, możesz zapisać własne ustawienia korektora, a Shiranami potrafi scrobblować do Last.fm i ListenBrainz. Pojawiły się nowe automatyczne miksy, eksperymentalne playlisty regułowe, ręczny edytor tagów oraz narzędzia do tworzenia kopii zapasowej i przywracania całej biblioteki.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'A real downloads manager: every download from search, discover, and playlist imports now flows through one queue with a dedicated Downloads page. Pause, resume, or cancel individual items, cancel everything at once, and interrupted batches pick up again after a restart, with artwork and progress shown throughout',
+            'Prawdziwy menedżer pobierania: każde pobieranie z wyszukiwarki, sekcji odkrywania i importu playlist trafia teraz do jednej kolejki z osobną stroną Pobierania. Wstrzymuj, wznawiaj lub anuluj pojedyncze pozycje, anuluj wszystko naraz, a przerwane partie wznawiają się po ponownym uruchomieniu, z widoczną okładką i postępem'
+          ),
+          l(
+            'Scrobbling to Last.fm and ListenBrainz: connect your account in settings and Shiranami logs what you listen to, with queued scrobbles kept safely when a service is briefly unavailable',
+            'Scrobblowanie do Last.fm i ListenBrainz: połącz konto w ustawieniach, a Shiranami zapisuje to, czego słuchasz, bezpiecznie przechowując kolejkę, gdy usługa jest chwilowo niedostępna'
+          ),
+          l(
+            'New auto-generated mixes built from your library by mood, activity, and decade, plus a "More like this" action that starts a song radio from any track',
+            'Nowe automatyczne miksy tworzone z Twojej biblioteki według nastroju, aktywności i dekady, a także akcja „Więcej w tym stylu”, która uruchamia radio na podstawie dowolnego utworu'
+          ),
+          l(
+            'Smart Playlists (experimental): build rule-based playlists that keep themselves up to date. Turn them on from the sidebar when you want to try them',
+            'Inteligentne playlisty (eksperymentalne): twórz playlisty oparte na regułach, które same się aktualizują. Włącz je w pasku bocznym, gdy chcesz je wypróbować'
+          ),
+          l(
+            'A manual tag editor for fixing track titles, artists, and albums, with album artist now its own field',
+            'Ręczny edytor tagów do poprawiania tytułów, wykonawców i albumów, a wykonawca albumu jest teraz osobnym polem'
+          ),
+          l(
+            'Library backup and restore, plus export and import of your whole collection, with automatic integrity checks to keep your data safe',
+            'Kopia zapasowa i przywracanie biblioteki oraz eksport i import całej kolekcji, z automatycznymi kontrolami spójności, które dbają o bezpieczeństwo danych'
+          ),
+          l(
+            'A Disk Usage panel in Library settings showing how much space your music takes up',
+            'Panel Wykorzystania dysku w ustawieniach Biblioteki pokazujący, ile miejsca zajmuje Twoja muzyka'
+          ),
+        ],
+      },
+      {
+        label: l('Player', 'Odtwarzacz'),
+        entries: [
+          l(
+            'Volume leveling so tracks play at a consistent loudness, with a preview in settings, so you no longer reach for the volume between songs',
+            'Wyrównywanie głośności, dzięki czemu utwory grają z jednakowym poziomem, z podglądem w ustawieniach, więc nie musisz już regulować głośności między utworami'
+          ),
+          l(
+            'Near-gapless playback for smoother transitions between tracks',
+            'Niemal bezprzerwowe odtwarzanie dla płynniejszych przejść między utworami'
+          ),
+          l(
+            'Save your own equalizer presets and switch between them, with grouped headers in the selector',
+            'Zapisuj własne ustawienia korektora i przełączaj się między nimi, z pogrupowanymi nagłówkami w selektorze'
+          ),
+          l(
+            'The sleep timer now fades out gently before pausing instead of cutting off',
+            'Wyłącznik czasowy wycisza teraz dźwięk łagodnie przed pauzą, zamiast ucinać go nagle'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Shiranami now tells you with a calm toast when something behind the scenes fails, such as a Discord login or an update check, instead of failing silently',
+            'Shiranami informuje teraz spokojnym powiadomieniem, gdy coś zawiedzie w tle, na przykład logowanie do Discorda lub sprawdzanie aktualizacji, zamiast milczeć'
+          ),
+          l(
+            'Playlist imports keep their download progress as you move around the app, and recreate the source playlist with its original name and order',
+            'Importy playlist zachowują postęp pobierania podczas poruszania się po aplikacji i odtwarzają źródłową playlistę z oryginalną nazwą i kolejnością'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'The library database now upgrades cleanly between versions through versioned migrations, and a slow startup check was moved off the launch path so the app opens faster',
+            'Baza danych biblioteki aktualizuje się teraz czysto między wersjami dzięki wersjonowanym migracjom, a powolna kontrola przy starcie została przeniesiona poza ścieżkę uruchamiania, więc aplikacja otwiera się szybciej'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.21.0',
     date: '2026-05-27',
