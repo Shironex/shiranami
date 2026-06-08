@@ -77,14 +77,36 @@ describe('groupTracksByAlbum', () => {
     expect(group.trackCount).toBe(2);
   });
 
-  it('separates same-named albums by different album artists', () => {
-    // Two distinct "Greatest Hits" albums must not merge into one.
-    const a = makeTrack({ id: 'a', album: 'Greatest Hits', artist: 'Alice' });
-    const b = makeTrack({ id: 'b', album: 'Greatest Hits', artist: 'Bob' });
+  it('separates same-named albums by different album-artist tags', () => {
+    // Two distinct "Greatest Hits" albums with genuine album-artist tags must
+    // not merge. (Untagged same-title albums intentionally merge — they key on
+    // the title alone; see the untagged-compilation test below.)
+    const a = makeTrack({
+      id: 'a',
+      album: 'Greatest Hits',
+      artist: 'Alice',
+      albumArtist: 'Alice',
+    });
+    const b = makeTrack({ id: 'b', album: 'Greatest Hits', artist: 'Bob', albumArtist: 'Bob' });
     const groups = groupTracksByAlbum([a, b]);
     expect(groups).toHaveLength(2);
     expect(groups.map(g => g.albumArtist).sort()).toEqual(['Alice', 'Bob']);
     expect(new Set(groups.map(g => g.key)).size).toBe(2);
+  });
+
+  it('keeps an untagged various-artists album as one album (#269)', () => {
+    // A compilation with NO album-artist tag: each track has a different
+    // performing artist. Keying on the track artist (the 0.22.0 regression)
+    // fragments it into one album per artist. Without an album-artist tag we
+    // key on the album title alone, so it stays a single album.
+    const c1 = makeTrack({ id: 'x', album: 'Lofi Mix', artist: 'Alice' });
+    const c2 = makeTrack({ id: 'y', album: 'Lofi Mix', artist: 'Bob' });
+    const c3 = makeTrack({ id: 'z', album: 'Lofi Mix', artist: 'Carol' });
+    const groups = groupTracksByAlbum([c1, c2, c3]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].name).toBe('Lofi Mix');
+    expect(groups[0].artist).toBe('Alice, Bob, Carol');
+    expect(groups[0].trackCount).toBe(3);
   });
 
   it('falls back to track artist for albumArtist when the tag is absent', () => {

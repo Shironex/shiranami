@@ -290,21 +290,24 @@ export function registerHistoryHandlers(): void {
       // album rows are filtered out so untagged libraries don't show a blank
       // album dominating the chart.
       const albumExpression = sql<string>`COALESCE(NULLIF(${tracks.album}, ''), '')`;
-      // Group on (albumArtist || artist, album) — not the album title alone —
-      // so same-named albums by different artists stay separate and a
-      // compilation's varied track artists don't fragment one album. The
-      // displayed artist is the grouping anchor (album artist), not MAX(artist).
-      const albumArtistExpression = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), ${tracks.artist})`;
+      // Group on the album-artist tag when present, else the album title alone
+      // — NOT the track artist, which fragments an untagged various-artists
+      // compilation into one entry per artist (#269). Same-titled albums by
+      // different artists still stay separate when they carry album-artist tags.
+      const albumArtistGroupKey = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), '')`;
+      // Display falls back to a representative track artist so an untagged
+      // album's card isn't blank.
+      const albumArtistDisplay = sql<string>`COALESCE(NULLIF(${tracks.albumArtist}, ''), ${tracks.artist})`;
       const albumsQuery = db
         .select({
           album: albumExpression,
-          artist: sql<string>`MAX(${albumArtistExpression})`,
+          artist: sql<string>`MAX(${albumArtistDisplay})`,
           albumArt: sql<string | null>`MAX(${tracks.albumArt})`,
           playCount: sql<number>`COUNT(*)`,
         })
         .from(playHistory)
         .innerJoin(tracks, eq(playHistory.trackId, tracks.id))
-        .groupBy(albumArtistExpression, albumExpression)
+        .groupBy(albumArtistGroupKey, albumExpression)
         .having(sql`${albumExpression} <> ''`);
       const topAlbums = (sinceFilter ? albumsQuery.where(sinceFilter) : albumsQuery)
         .orderBy(desc(sql`COUNT(*)`))
