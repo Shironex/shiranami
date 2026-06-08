@@ -4,14 +4,14 @@ import { type AlbumSortMode, type AlbumSortOrder } from '@/stores/useUIStore';
 export interface AlbumData {
   /**
    * Stable composite identity for this album: `albumArtist \u0000 album`. Two
-   * albums with the same title but different album artists stay separate, and a
-   * compilation whose tracks have varied artists stays a single album. Use this
-   * (not `name`) to select/filter an album. The NUL separator can't appear in a
-   * tag string, so it can't collide.
+   * albums with the same title but different album artists stay separate.
+   * Untagged albums have no album-artist tag and are keyed on the title alone,
+   * so an untagged various-artists compilation stays one album (#269). Use this
+   * (not `name`) to select/filter an album.
    */
   key: string;
   name: string;
-  /** Album artist — the grouping anchor. Falls back to the track artist. */
+  /** Album artist for display — the tag if present, else a representative track artist. */
   albumArtist: string;
   artist: string;
   year: number | null;
@@ -21,25 +21,40 @@ export interface AlbumData {
   tracks: Track[];
 }
 
-/** The album-artist used for grouping: explicit albumArtist, else artist. */
+/**
+ * The album-artist used for *display*: the album-artist tag if present, else
+ * the track artist as a representative fallback. NOT used for grouping — see
+ * `albumKeyOf`, which deliberately does not fall back to the track artist.
+ */
 export function albumArtistOf(track: Track): string {
   return track.albumArtist?.trim() || track.artist;
 }
 
-/** Composite album identity used as the grouping/selection key. */
+/**
+ * Composite album identity used as the grouping/selection key.
+ *
+ * Keyed on the album-artist tag when present, so identically-titled albums by
+ * different artists stay separate. Without an album-artist tag we key on the
+ * album title alone — keying on the track artist (as 0.22.0 did) fragments an
+ * untagged various-artists compilation into one album per track artist (#269).
+ * The NUL separator can't appear in a tag string, so the two key shapes can't
+ * collide.
+ */
 export function albumKeyOf(track: Track): string {
-  return `${albumArtistOf(track)}\u0000${track.album}`;
+  const albumArtist = track.albumArtist?.trim();
+  return albumArtist ? `${albumArtist}\u0000${track.album}` : `\u0000${track.album}`;
 }
 
 /**
  * Group a flat list of tracks into album buckets.
  *
- * Albums are keyed on `(albumArtist || artist, album)` rather than the album
- * title alone, so identically-named albums by different artists do not merge
- * and a compilation's varied track artists do not fragment one album. Each
- * album's displayed `artist` is still derived from the distinct track artists
- * (e.g. "Artist A, Artist B" for compilations). The album's year is taken from
- * the first track encountered for that album.
+ * Albums are keyed by `albumKeyOf` (album-artist tag when present, else the
+ * album title alone) — not by the track artist — so identically-named albums by
+ * different artists do not merge while an untagged compilation's varied track
+ * artists do not fragment one album (#269). Each album's displayed `artist` is
+ * still derived from the distinct track artists (e.g. "Artist A, Artist B" for
+ * compilations). The album's year is taken from the first track encountered for
+ * that album.
  */
 export function groupTracksByAlbum(
   tracks: Track[],

@@ -41,9 +41,11 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
     return {
       title: common.title || fileName,
       artist: common.artist || 'Unknown Artist',
-      // Prefer the dedicated albumartist tag; fall back to the track artist so
-      // album grouping always has a stable key even for untagged files.
-      albumArtist: common.albumartist || common.artist || null,
+      // Only the dedicated albumartist tag — do NOT fall back to the track
+      // artist, or an untagged various-artists album gets a per-track album
+      // artist and fragments at grouping time (#269). Null means "untagged",
+      // which the grouping layer keys on the album title alone.
+      albumArtist: common.albumartist?.trim() || null,
       album: common.album || 'Unknown Album',
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',

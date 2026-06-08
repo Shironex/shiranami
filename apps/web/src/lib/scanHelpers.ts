@@ -58,7 +58,9 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
       filePath: r.filePath,
       title: r.metadata.title,
       artist: r.metadata.artist,
-      albumArtist: r.metadata.albumArtist ?? r.metadata.artist ?? null,
+      // Pass the album-artist tag through as-is (null = untagged); don't
+      // re-introduce the track-artist fallback removed at the scan layer (#269).
+      albumArtist: r.metadata.albumArtist ?? null,
       album: r.metadata.album,
       duration: r.metadata.duration,
       genre: r.metadata.genre ?? null,
