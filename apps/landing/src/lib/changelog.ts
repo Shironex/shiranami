@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.22.1': '揃', // "to be gathered / in order" — various-artists albums regrouped into one
   '0.22.0': '録', // "record / log" — scrobbling, persistent download queue, library backups
   '0.21.0': '堅', // "sturdy / solid" — stability + security hardening, reorderable sidebar
   '0.20.0': '新', // "new / renew" — the big redesign, home screen, and recommendations
@@ -133,6 +134,38 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.22.1',
+    date: '2026-06-08',
+    title: l(
+      'Compilation albums stay in one piece again',
+      'Albumy składanki znów w jednym kawałku'
+    ),
+    description: l(
+      'A quick fix for a regression in 0.22.0: albums that gather tracks by several artists — compilations and "various artists" albums — were being split into a separate album for every artist in your library. They now stay grouped as a single album again, and existing libraries are corrected automatically the next time you open the app, with no rescan needed.',
+      'Szybka poprawka regresji z wersji 0.22.0: albumy zbierające utwory wielu wykonawców — składanki i albumy „różni wykonawcy” — były dzielone w bibliotece na osobny album dla każdego wykonawcy. Teraz znów pozostają jednym albumem, a istniejące biblioteki są poprawiane automatycznie przy następnym otwarciu aplikacji, bez potrzeby ponownego skanowania.'
+    ),
+    categories: [
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Albums with multiple artists are grouped as one album again instead of fragmenting into one entry per artist. Albums without an album-artist tag now group by their title, while albums that carry a real album-artist tag stay correctly separated',
+            'Albumy z wieloma wykonawcami są znów grupowane jako jeden album, zamiast dzielić się na osobny wpis dla każdego wykonawcy. Albumy bez tagu wykonawcy albumu są teraz grupowane według tytułu, a albumy z prawdziwym tagiem wykonawcy albumu nadal pozostają poprawnie rozdzielone'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'A one-time data migration repairs libraries scanned by 0.22.0, and whitespace-only album-artist tags are normalized to untagged so they no longer cause stray splits',
+            'Jednorazowa migracja danych naprawia biblioteki zeskanowane w wersji 0.22.0, a tagi wykonawcy albumu zawierające tylko spacje są traktowane jako brak tagu, więc nie powodują już przypadkowych podziałów'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.22.0',
     date: '2026-06-08',
