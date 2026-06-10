@@ -72,6 +72,19 @@ describe('recommendations:similar ipc (integration)', () => {
     expect(results[0].similarity).toBe(1);
   });
 
+  it('matches on the real album when the seed artist is the Unknown sentinel', async () => {
+    // Mixed seed: untagged artist but a real album. The album axis must still
+    // drive the prefilter; the sentinel artist must not pull untagged loners.
+    insertTrack('seed', 'Unknown Artist', 'Modal Soul');
+    insertTrack('sameAlbum', 'Some Artist', 'Modal Soul');
+    insertTrack('untaggedLoner', 'Unknown Artist', 'Unknown Album');
+    insertTrack('unrelated', 'Other', 'Other Album');
+
+    const results = await invokeSimilar('seed');
+
+    expect(results.map(r => r.trackId)).toEqual(['sameAlbum']);
+  });
+
   it('returns an empty list for an unknown seed', async () => {
     insertTrack('a', 'Artist', 'Album');
     expect(await invokeSimilar('does-not-exist')).toEqual([]);

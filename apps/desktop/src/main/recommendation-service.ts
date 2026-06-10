@@ -24,6 +24,9 @@ import {
   recommendations,
   negativeSignals,
   eq,
+  ne,
+  and,
+  or,
   sql,
   inArray,
   type NewRecommendation,
@@ -34,6 +37,8 @@ import {
   rankBySimilarity,
   selectSeedTracks,
   buildSmartMixes,
+  UNKNOWN_ARTIST,
+  UNKNOWN_ALBUM,
   type SharedPlaylistCounts,
   type SimilarityTrack,
   type TrackStats,
@@ -236,19 +241,65 @@ function computeLibraryItems(): LibraryRecommendation[] {
 
 // ─────────────────────────── content similarity ─────────────────────────────
 
-/** Project every library track into the minimal content shape the similarity
- *  core consumes (id + the two reliable axes, artist/album). */
-function getSimilarityTracks(): SimilarityTrack[] {
-  const db = getDatabase();
-  const rows = db
-    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
-    .from(tracks)
-    .all();
-  return rows.map(row => ({
+/** Project one row into the minimal content shape the similarity core
+ *  consumes (id + the two reliable axes, artist/album). */
+function toSimilarityTrack(row: {
+  trackId: string;
+  artist: string | null;
+  album: string | null;
+}): SimilarityTrack {
+  return {
     trackId: row.trackId,
     artist: row.artist ?? '',
     album: row.album ?? '',
-  }));
+  };
+}
+
+/** Fetch a single track's similarity shape by id, or null when absent. */
+function getSimilaritySeed(seedTrackId: string): SimilarityTrack | null {
+  const db = getDatabase();
+  const row = db
+    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
+    .from(tracks)
+    .where(eq(tracks.id, seedTrackId))
+    .get();
+  return row ? toSimilarityTrack(row) : null;
+}
+
+/**
+ * Candidate pool for "more like this": only tracks that can possibly score > 0.
+ * similarityScore sums shared-artist, shared-album, and shared-playlist
+ * contributions and rankBySimilarity drops every 0, so a track sharing NONE of
+ * those with the seed is always discarded. SQL-prefilter on exactly those axes
+ * — same (real) artist, same (real) album, or playlist co-membership — instead
+ * of loading the entire tracks table on every click. The sentinel guards mirror
+ * the core's isRealArtist/isRealAlbum so an untagged seed doesn't drag the whole
+ * untagged library into the pool (those would score 0 anyway).
+ */
+function getSimilarityCandidates(seed: SimilarityTrack, coMemberIds: string[]): SimilarityTrack[] {
+  const db = getDatabase();
+
+  const axisClauses = [];
+  if (seed.artist.length > 0 && seed.artist !== UNKNOWN_ARTIST) {
+    axisClauses.push(eq(tracks.artist, seed.artist));
+  }
+  if (seed.album.length > 0 && seed.album !== UNKNOWN_ALBUM) {
+    axisClauses.push(eq(tracks.album, seed.album));
+  }
+  if (coMemberIds.length > 0) {
+    axisClauses.push(inArray(tracks.id, coMemberIds));
+  }
+
+  // No axis can match (untagged seed with no playlist co-members) → no
+  // candidate can score > 0, so skip the query entirely.
+  if (axisClauses.length === 0) return [];
+
+  const rows = db
+    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
+    .from(tracks)
+    .where(and(ne(tracks.id, seed.trackId), or(...axisClauses)))
+    .all();
+  return rows.map(toSimilarityTrack);
 }
 
 /**
@@ -287,14 +338,14 @@ function getSharedPlaylistCounts(seedTrackId: string): SharedPlaylistCounts {
  * unknown so the renderer renders a quiet empty state.
  */
 export function computeSimilarTracks(seedTrackId: string): SimilarTrackResult[] {
-  const candidates = getSimilarityTracks();
-  const seed = candidates.find(track => track.trackId === seedTrackId);
+  const seed = getSimilaritySeed(seedTrackId);
   if (!seed) {
     logger.info(`[recommendations] similar: seed ${seedTrackId} not in library`);
     return [];
   }
 
   const sharedPlaylists = getSharedPlaylistCounts(seedTrackId);
+  const candidates = getSimilarityCandidates(seed, Object.keys(sharedPlaylists));
   return rankBySimilarity(seed, candidates, sharedPlaylists)
     .slice(0, SIMILAR_TRACKS_MAX)
     .map(track => ({ trackId: track.trackId, similarity: track.similarity }));
