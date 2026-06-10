@@ -4,7 +4,7 @@ import type {
   EnrichProgress,
   MetadataLookupSource,
 } from '@shiranami/contracts';
-import { mapWithConcurrency } from '@shiranami/shared';
+import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from './metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from './metadata-writer';
 import { logger } from './logger';
@@ -19,7 +19,7 @@ export const ENRICH_CONCURRENCY = 4;
  * Compute the proposed updated fields for a single track from a lookup result.
  * `onlyMissing` mirrors the bulk gate at the renderer + this file's previous
  * inline check: when true, only fill fields that are absent or set to the
- * 'Unknown Artist' / 'Unknown Album' sentinels written by the scanner.
+ * UNKNOWN_ARTIST / UNKNOWN_ALBUM sentinels written by the scanner.
  */
 function computeUpdatedFields(
   track: EnrichTrackInput,
@@ -29,10 +29,10 @@ function computeUpdatedFields(
   const updatedFields: EnrichTrackResult['updatedFields'] = {};
 
   if (onlyMissing) {
-    if (track.artist === 'Unknown Artist' && lookup.artist) {
+    if (track.artist === UNKNOWN_ARTIST && lookup.artist) {
       updatedFields.artist = lookup.artist;
     }
-    if (track.album === 'Unknown Album' && lookup.album) {
+    if (track.album === UNKNOWN_ALBUM && lookup.album) {
       updatedFields.album = lookup.album;
     }
     if (!track.genre && lookup.genre) {

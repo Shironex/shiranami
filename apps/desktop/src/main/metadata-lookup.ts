@@ -1,4 +1,5 @@
 import type { MetadataLookupResult } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST } from '@shiranami/shared';
 import { requestBuffer, requestJson } from './http';
 import { isYtDlpInstalled } from './ytdlp-manager';
 import { spawnYtDlp } from './utils/ytdlp-spawn';
@@ -15,7 +16,7 @@ export function cleanTitleForSearch(title: string, artist: string): string {
   let cleaned = title;
 
   // If the title starts with "Artist - ...", strip the artist prefix
-  if (artist && artist !== 'Unknown Artist') {
+  if (artist && artist !== UNKNOWN_ARTIST) {
     const lower = cleaned.toLowerCase();
     const artistLower = artist.toLowerCase();
     if (lower.startsWith(`${artistLower} - `)) {
@@ -77,8 +78,7 @@ async function searchItunes(
   try {
     // Build search query: clean title and combine with artist
     const cleanedTitle = cleanTitleForSearch(title, artist);
-    const query =
-      artist && artist !== 'Unknown Artist' ? `${artist} ${cleanedTitle}` : cleanedTitle;
+    const query = artist && artist !== UNKNOWN_ARTIST ? `${artist} ${cleanedTitle}` : cleanedTitle;
 
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=5`;
     logger.info(`[metadata-lookup] iTunes search: "${query}"`);
@@ -108,8 +108,8 @@ async function searchItunes(
         score += 0.3;
       }
 
-      // Artist match
-      if (normalizedArtist !== 'unknown artist') {
+      // Artist match (skip when the artist is the unknown sentinel)
+      if (normalizedArtist !== UNKNOWN_ARTIST.toLowerCase()) {
         if (resultArtist === normalizedArtist) {
           score += 0.5;
         } else if (
@@ -173,7 +173,7 @@ async function searchYouTube(
   try {
     const cleanedTitle = cleanTitleForSearch(title, artist);
     const query =
-      artist && artist !== 'Unknown Artist' ? `${artist} - ${cleanedTitle}` : cleanedTitle;
+      artist && artist !== UNKNOWN_ARTIST ? `${artist} - ${cleanedTitle}` : cleanedTitle;
     logger.info(`[metadata-lookup] YouTube search: "${query}"`);
 
     const { stdout, code } = await spawnYtDlp(
@@ -247,7 +247,7 @@ export async function lookupMetadata(
   const dashMatch = title.match(/^(.+?)\s*[-–]\s*(.+)$/);
   if (
     dashMatch &&
-    (artist === 'Unknown Artist' || !title.toLowerCase().startsWith(artist.toLowerCase()))
+    (artist === UNKNOWN_ARTIST || !title.toLowerCase().startsWith(artist.toLowerCase()))
   ) {
     const candidateArtist = dashMatch[1].trim();
     const candidateTitle = dashMatch[2].trim();
@@ -255,7 +255,7 @@ export async function lookupMetadata(
     if (NON_ARTIST_PREFIXES.test(candidateArtist)) {
       // "Nightcore - Darkside" → just use "Darkside" as title, keep original artist as Unknown
       searchTitle = candidateTitle;
-      searchArtist = 'Unknown Artist';
+      searchArtist = UNKNOWN_ARTIST;
       logger.info(
         `[metadata-lookup] Stripped non-artist prefix "${candidateArtist}", title: "${searchTitle}"`
       );

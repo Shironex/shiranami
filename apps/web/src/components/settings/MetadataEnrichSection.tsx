@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
@@ -15,11 +16,6 @@ import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { EnrichBeforeAfterPreview } from '@/components/settings/EnrichBeforeAfterPreview';
 import { EnrichProgressBar } from '@/components/settings/EnrichProgressBar';
 import { EnrichLastRunPanel } from '@/components/settings/EnrichLastRunPanel';
-
-// DB writes these exact strings (scan-utility.ts, metadata-service.ts).
-// Module-level so the useMemo dep is a stable reference and never causes a spurious rebuild.
-const UNKNOWN_ARTIST = 'Unknown Artist';
-const UNKNOWN_ALBUM = 'Unknown Album';
 
 export function MetadataEnrichSection() {
   const { t } = useTranslation('settings');
@@ -46,8 +42,9 @@ export function MetadataEnrichSection() {
     loadSkipped();
   }, [loadSkipped]);
 
-  // Count tracks with missing metadata. UNKNOWN_ARTIST/UNKNOWN_ALBUM are module-level
-  // constants so the memo dep is stable and never rebuilds on locale switches.
+  // Count tracks with missing metadata against the DB sentinels (the scanner
+  // writes these exact strings). The imported constants are stable module-level
+  // references, so the memo dep never rebuilds on locale switches.
   const tracksNeedingEnrichment = useMemo(
     () =>
       library.filter(

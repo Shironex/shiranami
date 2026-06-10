@@ -19,6 +19,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { TrackMetadata } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { artUrlFor, downscaleAndHash } from './lib/album-art-image';
 
 interface ParentPortMessageEvent {
@@ -240,13 +241,13 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
 
     return {
       title: common.title || fallbackTitle,
-      artist: common.artist || 'Unknown Artist',
+      artist: common.artist || UNKNOWN_ARTIST,
       // Only the dedicated albumartist tag — do NOT fall back to the track
       // artist, or an untagged various-artists album gets a per-track album
       // artist and fragments at grouping time (#269). Null means "untagged",
       // which the grouping layer keys on the album title alone.
       albumArtist: common.albumartist?.trim() || null,
-      album: common.album || 'Unknown Album',
+      album: common.album || UNKNOWN_ALBUM,
       duration: format.duration || 0,
       genre: common.genre?.[0] || '',
       year: common.year || null,
@@ -258,9 +259,9 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
     log.warn(`parse failed for ${filePath}`, err);
     return {
       title: fallbackTitle,
-      artist: 'Unknown Artist',
+      artist: UNKNOWN_ARTIST,
       albumArtist: null,
-      album: 'Unknown Album',
+      album: UNKNOWN_ALBUM,
       duration: 0,
       genre: '',
       year: null,

@@ -8,6 +8,7 @@ import {
   IPC_CHANNELS,
   type CreateShareDto,
 } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST } from '@shiranami/shared';
 import { logger } from '../logger';
 import { HttpError, requestJson } from '../http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
@@ -159,7 +160,7 @@ export function registerShareHandlers(): void {
       const db = getDatabase();
       const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
       if (!track) throw new IpcError(SHARE_ERROR_CODES.TRACK_NOT_FOUND, 'Track not found');
-      logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
+      logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? UNKNOWN_ARTIST}`);
 
       const ytId = await getYoutubeId(trackId);
       if (!ytId)
@@ -172,7 +173,7 @@ export function registerShareHandlers(): void {
         type: 'TRACK',
         payload: {
           title: track.title,
-          artist: track.artist ?? 'Unknown Artist',
+          artist: track.artist ?? UNKNOWN_ARTIST,
           ytId,
         },
       });
@@ -236,7 +237,7 @@ export function registerShareHandlers(): void {
         if (ytId) {
           shareTracks.push({
             title: track.title,
-            artist: track.artist ?? 'Unknown Artist',
+            artist: track.artist ?? UNKNOWN_ARTIST,
             ytId,
           });
         }

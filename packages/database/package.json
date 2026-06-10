@@ -33,6 +33,7 @@
     "test": "vitest run --project database"
   },
   "dependencies": {
+    "@shiranami/shared": "workspace:*",
     "better-sqlite3": "^12.10.0",
     "drizzle-orm": "1.0.0-rc.2"
   },

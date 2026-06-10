@@ -7,6 +7,7 @@ import type {
   EnrichUpdatedFields,
   EnrichResultSource,
 } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -214,14 +215,14 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       const library = useLibraryStore.getState().library;
       const { skippedIds } = get();
 
-      // DB stores the English literals 'Unknown Artist' / 'Unknown Album' (scan-utility.ts,
-      // metadata-service.ts). Compare against the literals so the filter is consistent
-      // with what the main-process onlyMissing gate checks at metadata-enrich.ts.
+      // DB stores the UNKNOWN_ARTIST / UNKNOWN_ALBUM sentinels (scan-utility.ts,
+      // metadata-service.ts). Compare against the shared constants so the filter
+      // stays consistent with the main-process onlyMissing gate (metadata-enrich.ts).
       let candidates = onlyMissing
         ? library.filter(
             t =>
-              t.artist === 'Unknown Artist' ||
-              t.album === 'Unknown Album' ||
+              t.artist === UNKNOWN_ARTIST ||
+              t.album === UNKNOWN_ALBUM ||
               !t.albumArt ||
               !t.genre ||
               !t.year

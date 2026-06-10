@@ -1,3 +1,4 @@
+import { UNKNOWN_ALBUM } from '@shiranami/shared';
 import { getLrclibGate } from './http';
 import { logger } from './logger';
 
@@ -53,10 +54,7 @@ export function parseLrc(lrc: string): LyricLine[] {
     if (match) {
       const minutes = parseInt(match[1], 10);
       const seconds = parseInt(match[2], 10);
-      const ms =
-        match[3].length === 2
-          ? parseInt(match[3], 10) * 10
-          : parseInt(match[3], 10);
+      const ms = match[3].length === 2 ? parseInt(match[3], 10) * 10 : parseInt(match[3], 10);
       const time = minutes * 60 + seconds + ms / 1000;
       const text = match[4].trim();
       if (text) {
@@ -92,7 +90,10 @@ export function buildSearchQueries(title: string, artist: string): string[] {
 
   // 3. If title contains " - ", split and try both parts as search terms
   if (title.includes(' - ')) {
-    const parts = title.split(' - ').map(p => p.trim()).filter(Boolean);
+    const parts = title
+      .split(' - ')
+      .map(p => p.trim())
+      .filter(Boolean);
     // Try "part1 part2" without the dash
     add(parts.join(' '));
     // Try reversed: "part2 part1" (handles "ARTIST - TITLE" format)
@@ -103,7 +104,10 @@ export function buildSearchQueries(title: string, artist: string): string[] {
 
   // 4. If title contains " – " (en-dash variant)
   if (title.includes(' – ')) {
-    const parts = title.split(' – ').map(p => p.trim()).filter(Boolean);
+    const parts = title
+      .split(' – ')
+      .map(p => p.trim())
+      .filter(Boolean);
     add(parts.join(' '));
     if (parts.length === 2) {
       add(`${parts[1]} ${parts[0]}`);
@@ -138,7 +142,7 @@ export async function fetchLyrics(
     const query = {
       track_name: title,
       artist_name: artist,
-      ...(album && album !== 'Unknown Album' ? { album_name: album } : {}),
+      ...(album && album !== UNKNOWN_ALBUM ? { album_name: album } : {}),
       ...(duration && duration > 0 ? { duration: Math.round(duration * 1000) } : {}),
     };
 
@@ -162,7 +166,7 @@ export async function fetchLyrics(
         try {
           type SearchResult = Array<{ syncedLyrics?: string | null; plainLyrics?: string | null }>;
           const searchResults = await getLrclibGate().run<SearchResult>(() =>
-            client.searchLyrics({ query: sq }),
+            client.searchLyrics({ query: sq })
           );
           if (searchResults && searchResults.length > 0) {
             const best = searchResults[0];
@@ -199,10 +203,7 @@ export async function fetchLyrics(
     );
     return lyricsResult;
   } catch (error) {
-    logger.warn(
-      `[lyrics] Failed to fetch lyrics for: ${title} - ${artist}`,
-      error
-    );
+    logger.warn(`[lyrics] Failed to fetch lyrics for: ${title} - ${artist}`, error);
     return { synced: null, plain: null, source: null };
   }
 }

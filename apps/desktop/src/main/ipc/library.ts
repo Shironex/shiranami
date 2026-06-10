@@ -1,6 +1,6 @@
 import { app, ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { mapWithConcurrency } from '@shiranami/shared';
+import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
@@ -97,9 +97,9 @@ function fallbackMetadata(filePath: string): TrackMetadata {
   const fileName = path.basename(filePath, path.extname(filePath));
   return {
     title: fileName,
-    artist: 'Unknown Artist',
+    artist: UNKNOWN_ARTIST,
     albumArtist: null,
-    album: 'Unknown Album',
+    album: UNKNOWN_ALBUM,
     duration: 0,
     genre: '',
     year: null,

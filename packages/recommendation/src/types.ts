@@ -122,6 +122,9 @@ export interface SimilarityWeights {
   perSharedPlaylist?: number;
 }
 
-/** Sentinel values the scanner writes for missing tags — never a real match. */
-export const UNKNOWN_ARTIST = 'Unknown Artist';
-export const UNKNOWN_ALBUM = 'Unknown Album';
+/**
+ * Sentinel values the scanner writes for missing tags — never a real match.
+ * Re-exported from `@shiranami/shared` so the scoring core and the desktop
+ * adapter compare against one canonical literal.
+ */
+export { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
