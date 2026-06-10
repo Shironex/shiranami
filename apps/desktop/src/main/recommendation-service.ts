@@ -286,8 +286,12 @@ function getSimilarityCandidates(seed: SimilarityTrack, coMemberIds: string[]): 
   if (seed.album.length > 0 && seed.album !== UNKNOWN_ALBUM) {
     axisClauses.push(eq(tracks.album, seed.album));
   }
-  if (coMemberIds.length > 0) {
-    axisClauses.push(inArray(tracks.id, coMemberIds));
+  // Chunk co-member ids so the OR'd clauses stay well under SQLite's bound
+  // parameter limit even for seeds sharing playlists with thousands of tracks;
+  // multiple inArray clauses under or(...) match exactly the same rows as one.
+  const CHUNK_SIZE = 500;
+  for (let i = 0; i < coMemberIds.length; i += CHUNK_SIZE) {
+    axisClauses.push(inArray(tracks.id, coMemberIds.slice(i, i + CHUNK_SIZE)));
   }
 
   // No axis can match (untagged seed with no playlist co-members) → no
