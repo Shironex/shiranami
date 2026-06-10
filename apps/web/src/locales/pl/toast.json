@@ -30,6 +30,7 @@
   "failedRename": "Nie udało się zmienić nazwy playlisty",
   "playlistDeleted": "Usunięto playlistę",
   "failedDeletePlaylist": "Nie udało się usunąć playlisty",
+  "failedReorderPlaylist": "Nie udało się zmienić kolejności playlisty",
   "failedCreateSmartPlaylist": "Nie udało się utworzyć inteligentnej playlisty",
   "failedUpdateSmartPlaylist": "Nie udało się zaktualizować inteligentnej playlisty",
   "failedDeleteSmartPlaylist": "Nie udało się usunąć inteligentnej playlisty",

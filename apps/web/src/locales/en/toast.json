@@ -30,6 +30,7 @@
   "failedRename": "Failed to rename playlist",
   "playlistDeleted": "Playlist deleted",
   "failedDeletePlaylist": "Failed to delete playlist",
+  "failedReorderPlaylist": "Failed to reorder playlist",
   "failedCreateSmartPlaylist": "Failed to create smart playlist",
   "failedUpdateSmartPlaylist": "Failed to update smart playlist",
   "failedDeleteSmartPlaylist": "Failed to delete smart playlist",
