@@ -8,6 +8,7 @@ export * from './domain/scrobble';
 export * from './domain/smart-playlist';
 export * from './domain/download-queue';
 export * from './domain/dependencies';
+export * from './domain/radio';
 export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';

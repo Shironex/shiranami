@@ -128,20 +128,7 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
       hasMore: false,
     });
     try {
-      const rows = (await window.electronAPI.radio.favorites.getAll()) as Array<{
-        stationUuid: string;
-        name: string;
-        urlResolved: string;
-        url: string;
-        homepage?: string;
-        favicon?: string;
-        country?: string;
-        countryCode?: string;
-        language?: string;
-        codec?: string;
-        bitrate?: number;
-        tags?: string;
-      }>;
+      const rows = await window.electronAPI.radio.favorites.getAll();
       const favoriteIds = rows.map(r => r.stationUuid);
       // Convert DB rows to Station-like objects for display
       const stations = rows.map(r => ({

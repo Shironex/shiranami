@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Station } from 'radio-browser-api';
+import type { RadioFavorite } from '@shiranami/contracts';
 
 const { mockSearchStations } = vi.hoisted(() => ({
   mockSearchStations: vi.fn(),
@@ -409,8 +410,9 @@ describe('useRadioStore', () => {
   // --- loadFavorites ---
   describe('loadFavorites', () => {
     it('loads from DB, maps rows, and sets favorites array', async () => {
-      const dbRows = [
+      const dbRows: RadioFavorite[] = [
         {
+          id: 'fav1',
           stationUuid: 'db1',
           name: 'DB Station 1',
           urlResolved: 'http://db1.com/stream',
@@ -423,12 +425,24 @@ describe('useRadioStore', () => {
           codec: 'AAC',
           bitrate: 256,
           tags: 'pop,rock',
+          createdAt: '2026-01-01 00:00:00',
         },
         {
+          // Persisted row with every nullable column unset (null over the wire).
+          id: 'fav2',
           stationUuid: 'db2',
           name: 'DB Station 2',
           urlResolved: 'http://db2.com/stream',
           url: 'http://db2.com',
+          homepage: null,
+          favicon: null,
+          country: null,
+          countryCode: null,
+          language: null,
+          codec: null,
+          bitrate: null,
+          tags: null,
+          createdAt: '2026-01-01 00:00:00',
         },
       ];
 

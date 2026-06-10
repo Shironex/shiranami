@@ -30,6 +30,8 @@ import type {
   EnqueueDownloadInput,
   DiskUsageResult,
   Track,
+  RadioStationInput,
+  RadioFavorite,
 } from '@shiranami/contracts';
 import type {
   SHARE_ERROR_CODES,
@@ -378,21 +380,8 @@ export interface ElectronAPI {
   };
   radio: {
     favorites: {
-      getAll: () => Promise<unknown[]>;
-      add: (station: {
-        stationUuid: string;
-        name: string;
-        url: string;
-        urlResolved: string;
-        homepage?: string;
-        favicon?: string;
-        country?: string;
-        countryCode?: string;
-        language?: string;
-        codec?: string;
-        bitrate?: number;
-        tags?: string;
-      }) => Promise<unknown>;
+      getAll: () => Promise<RadioFavorite[]>;
+      add: (station: RadioStationInput) => Promise<RadioFavorite>;
       remove: (stationUuid: string) => Promise<void>;
       isFavorite: (stationUuid: string) => Promise<boolean>;
     };
