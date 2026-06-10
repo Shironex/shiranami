@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Clock3 } from 'lucide-react';
+import { pad2 } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import {
   formatPeakWindow,
@@ -80,7 +81,7 @@ export function ListeningClock({ heatmap }: ListeningClockProps) {
                           )}
                           title={t('heatmap.cellLabel', {
                             day: days[rowIndex],
-                            hour: `${String(cell.hour).padStart(2, '0')}:00`,
+                            hour: `${pad2(cell.hour)}:00`,
                             level: t(`heatmap.level.${cell.level}`),
                             count: cell.playCount,
                           })}

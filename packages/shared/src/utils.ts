@@ -63,6 +63,14 @@ export async function mapWithConcurrency<T, R>(
 }
 
 /**
+ * Zero-pad a number to two digits (e.g. `5` -> `"05"`). Used for clock/duration
+ * fields where single digits must align (`09:00`, `1:05:09`).
+ */
+export function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+/**
  * Format duration in seconds to mm:ss or hh:mm:ss string.
  */
 export function formatDuration(seconds: number): string {
@@ -70,10 +78,9 @@ export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.floor(seconds % 60);
-  const sPad = s.toString().padStart(2, '0');
+  const sPad = pad2(s);
   if (h > 0) {
-    const mPad = m.toString().padStart(2, '0');
-    return `${h}:${mPad}:${sPad}`;
+    return `${h}:${pad2(m)}:${sPad}`;
   }
   return `${m}:${sPad}`;
 }
