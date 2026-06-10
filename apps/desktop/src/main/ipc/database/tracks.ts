@@ -165,12 +165,21 @@ export function registerTrackHandlers(): void {
       // statements instead of one per track.
       const byPatch = new Map<string, { data: Partial<NewTrack>; ids: string[] }>();
       for (const { id, data } of updates) {
-        const key = JSON.stringify(data);
+        // Strip undefined-valued keys before grouping: JSON.stringify drops
+        // them silently, so { a: 1 } and { a: 1, b: undefined } would collide
+        // into one group keyed on '{"a":1}'. Cleaning first keeps grouping
+        // honest, and skipping empty patches avoids drizzle's "No values to
+        // set" throw from .set({}) aborting the whole transaction.
+        const cleanData = Object.fromEntries(
+          Object.entries(data).filter(([, v]) => v !== undefined)
+        ) as Partial<NewTrack>;
+        if (Object.keys(cleanData).length === 0) continue;
+        const key = JSON.stringify(cleanData);
         const group = byPatch.get(key);
         if (group) {
           group.ids.push(id);
         } else {
-          byPatch.set(key, { data, ids: [id] });
+          byPatch.set(key, { data: cleanData, ids: [id] });
         }
       }
 

@@ -459,6 +459,34 @@ describe('database ipc (integration)', () => {
     expect(result).toBeUndefined();
   });
 
+  it('tracks:update-many skips empty and undefined-only patches', async () => {
+    // An empty patch ({}) or one whose values are all undefined would hit
+    // drizzle's .set({}) "No values to set" throw and abort the transaction.
+    // The handler must drop them while still applying real patches in the
+    // same call — including a patch that mixes undefined with real values.
+    const t1 = await insertTrack({ title: 'Keep Me' });
+    const t2 = await insertTrack({ title: 'Change Me', album: 'Old' });
+
+    const updateMany = ipcHandlers.get('db:tracks:update-many')!;
+    await expect(
+      updateMany(null as never, [
+        { id: t1.id, data: {} },
+        { id: t1.id, data: { title: undefined } },
+        { id: t2.id, data: { album: 'New', year: undefined } },
+      ])
+    ).resolves.toBeUndefined();
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as Array<{
+      id: string;
+      title: string;
+      album: string;
+    }>;
+    const byId = new Map(all.map(t => [t.id, t]));
+    expect(byId.get(t1.id)!.title).toBe('Keep Me');
+    expect(byId.get(t2.id)!.album).toBe('New');
+  });
+
   /* ------------------------------------------------------------------ */
   /*  tracks:toggle-favorite                                            */
   /* ------------------------------------------------------------------ */
