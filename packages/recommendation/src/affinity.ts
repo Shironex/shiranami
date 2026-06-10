@@ -10,6 +10,7 @@
  * a track whose artist has been disliked elsewhere is softly downranked.
  */
 
+import { clamp01 } from '@shiranami/shared';
 import type { AffinityOptions, ScoredTrack, TrackStats } from './types.js';
 
 const DEFAULT_HALF_LIFE_DAYS = 14;
@@ -103,11 +104,4 @@ export function selectSeedTracks(
 ): ScoredTrack[] {
   if (count <= 0) return [];
   return rankByAffinity(stats, options).slice(0, count);
-}
-
-function clamp01(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  if (value < 0) return 0;
-  if (value > 1) return 1;
-  return value;
 }

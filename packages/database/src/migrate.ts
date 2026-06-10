@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -220,6 +220,114 @@ const MIGRATIONS: EmbeddedMigration[] = [
     name: '20260101000006_unbake_album_artist',
     statements: ['UPDATE `tracks` SET `album_artist` = NULL WHERE `album_artist` = `artist`'],
   },
+  {
+    // Heal legacy databases that were baselined (markBaseline) while missing
+    // baseline-era tables. The legacy boot path created tables additively via
+    // CREATE TABLE IF NOT EXISTS as features shipped (play_history in v0.10,
+    // recommendations in v0.20, …), so a user jumping from e.g. v0.9 straight
+    // to a migrator build has `tracks` but not the later tables. markBaseline
+    // stamps the baseline as applied without running DDL, leaving those tables
+    // permanently absent while user_version reads "current". Re-running the
+    // baseline DDL as CREATE TABLE / INDEX IF NOT EXISTS restores anything
+    // missing and is a no-op on an already-complete (fresh or v7) database.
+    //
+    // The `disc_number` column heal is NOT here: SQLite has no
+    // `ADD COLUMN IF NOT EXISTS`, and these embedded statements run as raw SQL
+    // inside drizzle's migrator (no per-statement guard). It is applied as a
+    // PRAGMA-guarded JS step in runMigrations() before the migrator runs.
+    name: '20260101000007_heal_legacy_tables',
+    statements: [
+      `CREATE TABLE IF NOT EXISTS \`folders\` (
+\t\`id\` text PRIMARY KEY,
+\t\`path\` text NOT NULL UNIQUE,
+\t\`last_scanned\` text,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+      `CREATE TABLE IF NOT EXISTS \`play_history\` (
+\t\`id\` text PRIMARY KEY,
+\t\`track_id\` text NOT NULL,
+\t\`played_at\` text DEFAULT (datetime('now')) NOT NULL,
+\t\`played_seconds\` real NOT NULL,
+\t\`completion_ratio\` real NOT NULL,
+\t\`completed\` integer DEFAULT false NOT NULL,
+\t\`source\` text DEFAULT 'library' NOT NULL,
+\tCONSTRAINT \`fk_play_history_track_id_tracks_id_fk\` FOREIGN KEY (\`track_id\`) REFERENCES \`tracks\`(\`id\`) ON DELETE CASCADE
+)`,
+      `CREATE TABLE IF NOT EXISTS \`playlist_tracks\` (
+\t\`id\` text PRIMARY KEY,
+\t\`playlist_id\` text NOT NULL,
+\t\`track_id\` text NOT NULL,
+\t\`position\` integer NOT NULL,
+\tCONSTRAINT \`fk_playlist_tracks_playlist_id_playlists_id_fk\` FOREIGN KEY (\`playlist_id\`) REFERENCES \`playlists\`(\`id\`) ON DELETE CASCADE,
+\tCONSTRAINT \`fk_playlist_tracks_track_id_tracks_id_fk\` FOREIGN KEY (\`track_id\`) REFERENCES \`tracks\`(\`id\`) ON DELETE CASCADE,
+\tCONSTRAINT \`playlist_tracks_playlist_id_track_id_unique\` UNIQUE(\`playlist_id\`,\`track_id\`)
+)`,
+      `CREATE TABLE IF NOT EXISTS \`playlists\` (
+\t\`id\` text PRIMARY KEY,
+\t\`name\` text NOT NULL,
+\t\`description\` text,
+\t\`cover_art\` text,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+\t\`updated_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+      `CREATE TABLE IF NOT EXISTS \`radio_favorites\` (
+\t\`id\` text PRIMARY KEY,
+\t\`station_uuid\` text NOT NULL UNIQUE,
+\t\`name\` text NOT NULL,
+\t\`url\` text NOT NULL,
+\t\`url_resolved\` text NOT NULL,
+\t\`homepage\` text,
+\t\`favicon\` text,
+\t\`country\` text,
+\t\`country_code\` text,
+\t\`language\` text,
+\t\`codec\` text,
+\t\`bitrate\` integer,
+\t\`tags\` text,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+      `CREATE TABLE IF NOT EXISTS \`recommendations\` (
+\t\`kind\` text PRIMARY KEY,
+\t\`payload\` text NOT NULL,
+\t\`generated_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+      `CREATE TABLE IF NOT EXISTS \`tracks\` (
+\t\`id\` text PRIMARY KEY,
+\t\`file_path\` text NOT NULL UNIQUE,
+\t\`title\` text NOT NULL,
+\t\`artist\` text DEFAULT 'Unknown Artist',
+\t\`album\` text DEFAULT 'Unknown Album',
+\t\`duration\` real,
+\t\`genre\` text,
+\t\`year\` integer,
+\t\`track_number\` integer,
+\t\`disc_number\` integer,
+\t\`album_art\` text,
+\t\`is_favorite\` integer DEFAULT false,
+\t\`play_count\` integer DEFAULT 0,
+\t\`created_at\` text DEFAULT (datetime('now')) NOT NULL,
+\t\`updated_at\` text DEFAULT (datetime('now')) NOT NULL
+)`,
+      `CREATE TABLE IF NOT EXISTS \`youtube_mappings\` (
+\t\`id\` text PRIMARY KEY,
+\t\`track_id\` text NOT NULL UNIQUE,
+\t\`youtube_id\` text NOT NULL,
+\t\`searched_at\` text DEFAULT (datetime('now')) NOT NULL,
+\tCONSTRAINT \`fk_youtube_mappings_track_id_tracks_id_fk\` FOREIGN KEY (\`track_id\`) REFERENCES \`tracks\`(\`id\`) ON DELETE CASCADE
+)`,
+      'CREATE INDEX IF NOT EXISTS `idx_tracks_file_path` ON `tracks`(`file_path`)',
+      'CREATE INDEX IF NOT EXISTS `idx_tracks_artist` ON `tracks`(`artist`)',
+      'CREATE INDEX IF NOT EXISTS `idx_tracks_album` ON `tracks`(`album`)',
+      'CREATE INDEX IF NOT EXISTS `idx_tracks_is_favorite` ON `tracks`(`is_favorite`)',
+      'CREATE INDEX IF NOT EXISTS `idx_playlist_tracks_playlist_id` ON `playlist_tracks`(`playlist_id`)',
+      'CREATE INDEX IF NOT EXISTS `idx_playlist_tracks_track_id` ON `playlist_tracks`(`track_id`)',
+      'CREATE INDEX IF NOT EXISTS `idx_folders_path` ON `folders`(`path`)',
+      'CREATE INDEX IF NOT EXISTS `idx_radio_favorites_station_uuid` ON `radio_favorites`(`station_uuid`)',
+      'CREATE INDEX IF NOT EXISTS `idx_play_history_track_id` ON `play_history`(`track_id`)',
+      'CREATE INDEX IF NOT EXISTS `idx_play_history_played_at` ON `play_history`(`played_at`)',
+      'CREATE INDEX IF NOT EXISTS `idx_youtube_mappings_track_id` ON `youtube_mappings`(`track_id`)',
+    ],
+  },
 ];
 
 /**
@@ -302,6 +410,29 @@ function markBaseline(sqlite: Database.Database): void {
 }
 
 /**
+ * Heal the `tracks.disc_number` column on legacy databases that predate it.
+ *
+ * The old boot path added `disc_number` via an ad-hoc PRAGMA-guarded ALTER
+ * (`9c0d0564~1:packages/database/src/client.ts`). A user who upgraded before
+ * that ALTER shipped — or whose `tracks` table predates multi-disc support —
+ * can reach the migrator without the column. SQLite has no
+ * `ADD COLUMN IF NOT EXISTS`, and the embedded migration SQL runs unguarded
+ * inside drizzle's migrator, so the guard lives here in JS instead: introspect
+ * via `PRAGMA table_info` and ALTER only when absent. No-op on every current DB.
+ */
+function healDiscNumberColumn(sqlite: Database.Database): void {
+  const hasTracks = sqlite
+    .prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='tracks'`)
+    .get();
+  if (!hasTracks) return;
+
+  const columns = sqlite.prepare(`PRAGMA table_info(tracks)`).all() as Array<{ name: string }>;
+  if (columns.some(c => c.name === 'disc_number')) return;
+
+  sqlite.exec('ALTER TABLE `tracks` ADD COLUMN `disc_number` integer');
+}
+
+/**
  * Compare two schema versions. Throws if `dbVersion` is newer than the app's
  * current `SCHEMA_VERSION` (a downgrade), which would risk data loss if the
  * older build tried to operate on a newer schema.
@@ -323,7 +454,9 @@ export function assertNotDowngrade(dbVersion: number, appVersion: number = SCHEM
  *
  * - Fresh DB: drizzle's migrator creates every table from the baseline upward.
  * - Legacy unversioned DB: the baseline is marked as applied (no SQL run) so
- *   existing tables/data are preserved, then only newer migrations run.
+ *   existing tables/data are preserved; the disc_number column is healed if
+ *   absent, then only newer migrations run (the heal migration re-creates any
+ *   baseline-era table the additive legacy boot path never created).
  * - Already-versioned DB: only newer-than-recorded migrations run.
  *
  * Idempotent: a second call applies nothing.
@@ -345,6 +478,10 @@ export function runMigrations(sqlite: Database.Database): void {
   if (isLegacyUnversionedDb(sqlite)) {
     markBaseline(sqlite);
   }
+
+  // Heal a missing tracks.disc_number column on pre-multi-disc legacy DBs.
+  // PRAGMA-guarded (SQLite has no ADD COLUMN IF NOT EXISTS); no-op otherwise.
+  healDiscNumberColumn(sqlite);
 
   const db = drizzle({ client: sqlite, schema });
   const migrations = buildMigrationMetas();

@@ -7,26 +7,42 @@
  * query (see the smart-playlists IPC handler).
  */
 
+/**
+ * Track columns a rule can match against. This tuple is the single source of
+ * truth: the `SmartPlaylistField` union, the IPC zod enum, and the renderer's
+ * per-field operator map are all derived from it, so adding a field here is the
+ * only edit needed to thread it through every layer.
+ */
+export const SMART_PLAYLIST_FIELDS = [
+  'genre',
+  'artist',
+  'album',
+  'title',
+  'year',
+  'playCount',
+  'isFavorite',
+  'dateAdded',
+] as const;
+
 /** Track columns a rule can match against. */
-export type SmartPlaylistField =
-  | 'genre'
-  | 'artist'
-  | 'album'
-  | 'title'
-  | 'year'
-  | 'playCount'
-  | 'isFavorite'
-  | 'dateAdded';
+export type SmartPlaylistField = (typeof SMART_PLAYLIST_FIELDS)[number];
+
+/**
+ * Comparison operators. Applicability depends on the field's type. Source of
+ * truth for the `SmartPlaylistOperator` union and the IPC zod enum.
+ */
+export const SMART_PLAYLIST_OPERATORS = [
+  'is',
+  'isNot',
+  'contains',
+  'greaterThan',
+  'lessThan',
+  'between',
+  'inLastDays',
+] as const;
 
 /** Comparison operators. Applicability depends on the field's type. */
-export type SmartPlaylistOperator =
-  | 'is'
-  | 'isNot'
-  | 'contains'
-  | 'greaterThan'
-  | 'lessThan'
-  | 'between'
-  | 'inLastDays';
+export type SmartPlaylistOperator = (typeof SMART_PLAYLIST_OPERATORS)[number];
 
 /**
  * A single rule. `value` / `valueTo` semantics depend on the operator:

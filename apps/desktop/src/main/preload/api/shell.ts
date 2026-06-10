@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.shell;
@@ -9,6 +9,6 @@ export interface ShellApi {
 }
 
 export const shellApi: ShellApi = {
-  showInFolder: filePath => ipcRenderer.invoke(C.showInFolder, filePath),
-  trashFile: filePath => ipcRenderer.invoke(C.trashFile, filePath),
+  showInFolder: filePath => invoke(C.showInFolder, filePath),
+  trashFile: filePath => invoke(C.trashFile, filePath),
 };

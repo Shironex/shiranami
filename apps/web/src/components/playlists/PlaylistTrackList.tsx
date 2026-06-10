@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ListMusic } from 'lucide-react';
+import { List } from 'react-window';
 import type { Track } from '@/stores/types';
 import {
   DndContext,
@@ -11,8 +13,11 @@ import {
   type SensorOptions,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { SortableTrackRow } from '@/components/shared/SortableTrackRow';
+import { VirtualSortableTrackRow } from './VirtualSortableTrackRow';
 import { DragOverlayContent } from './DragOverlayContent';
+
+/** Matches TrackRowContent's fixed h-[48px] compact row. */
+const ROW_HEIGHT = 48;
 
 interface PlaylistTrackListProps {
   displayTracks: Track[];
@@ -45,6 +50,20 @@ export function PlaylistTrackList({
 }: PlaylistTrackListProps) {
   const { t } = useTranslation('playlists');
 
+  // Row props are passed once to react-window; it re-renders rows when any of
+  // these change. The row reads its own track via `index` from `tracks`.
+  const rowProps = useMemo(
+    () => ({
+      tracks: displayTracks,
+      currentTrack,
+      isPlaying,
+      onPlayTrack,
+      onToggleFavorite,
+      onRemoveTrack,
+    }),
+    [displayTracks, currentTrack, isPlaying, onPlayTrack, onToggleFavorite, onRemoveTrack]
+  );
+
   if (displayTracks.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
@@ -61,7 +80,7 @@ export function PlaylistTrackList({
 
   return (
     <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
-      <div className="h-full overflow-y-auto px-2 py-1.5 scrollbar-thin">
+      <div className="h-full px-2 py-1.5">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -69,20 +88,20 @@ export function PlaylistTrackList({
           onDragEnd={onDragEnd}
           onDragCancel={onDragCancel}
         >
+          {/* The full id list stays in SortableContext so dnd-kit knows the
+              complete ordering even though react-window only mounts the visible
+              rows below. Auto-scroll mounts rows as the cursor nears an edge, so
+              dragging across a scroll boundary registers the new drop targets. */}
           <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-            {displayTracks.map((track, index) => (
-              <SortableTrackRow
-                key={track.id}
-                track={track}
-                index={index}
-                queue={displayTracks}
-                currentTrack={currentTrack}
-                isPlaying={isPlaying}
-                handlePlayTrack={onPlayTrack}
-                onToggleFavorite={onToggleFavorite}
-                onRemoveFromPlaylist={onRemoveTrack}
-              />
-            ))}
+            <List
+              rowCount={displayTracks.length}
+              rowHeight={ROW_HEIGHT}
+              overscanCount={10}
+              className="scrollbar-thin"
+              style={{ height: '100%' }}
+              rowComponent={VirtualSortableTrackRow}
+              rowProps={rowProps}
+            />
           </SortableContext>
           <DragOverlay dropAnimation={null}>
             {activeTrack ? <DragOverlayContent track={activeTrack} /> : null}

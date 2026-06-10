@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -22,10 +22,15 @@ import { useMarqueeOnOverflow } from '@/hooks/useMarqueeOnOverflow';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
-import { LyricsPanel } from '@/components/lyrics/LyricsPanel';
 import { TimeDisplay } from './TimeDisplay';
 import { Heart, Maximize2, Mic2, Minimize2, Music, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+
+// Lazy so the lyrics panel (and its lyrics data layer) stays out of the eager
+// bundle. App.tsx already lazy-imports this module; a static import here would
+// win and pull it back in eagerly, which is the [INEFFECTIVE_DYNAMIC_IMPORT]
+// the build used to warn about. It only renders when the user opens lyrics.
+const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 
 export function CompactPlayer() {
   const { t } = useTranslation('compact');
@@ -302,7 +307,9 @@ export function CompactPlayer() {
             className="relative z-10 flex min-h-0 flex-1 flex-col px-2.5 pb-2.5 focus:outline-none"
           >
             <div className="glass-panel h-full overflow-hidden rounded-2xl border border-border/25 shadow-lg shadow-black/20">
-              <LyricsPanel />
+              <Suspense fallback={null}>
+                <LyricsPanel />
+              </Suspense>
             </div>
           </motion.div>
         )}

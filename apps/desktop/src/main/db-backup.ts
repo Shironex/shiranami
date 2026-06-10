@@ -145,12 +145,14 @@ export async function importDatabase(dbPath: string, sourcePath: string): Promis
   }
 
   // Atomically replace the main file. Copy to a temp file first, then rename
-  // into place — fs.copyFileSync is not atomic, so a mid-copy failure (disk
-  // full, interruption) would otherwise leave a corrupted file at dbPath. On
-  // failure, unlink the temp and rethrow so the original DB + sidecars survive.
+  // into place — the copy is not atomic, so a mid-copy failure (disk full,
+  // interruption) would otherwise leave a corrupted file at dbPath. On failure,
+  // unlink the temp and rethrow so the original DB + sidecars survive.
   const tmpPath = `${dbPath}.tmp`;
   try {
-    fs.copyFileSync(sourcePath, tmpPath);
+    // Async copy so a multi-hundred-MB DB doesn't block the main event loop for
+    // the whole transfer. The rename is O(1) and stays sync.
+    await fs.promises.copyFile(sourcePath, tmpPath);
     fs.renameSync(tmpPath, dbPath);
   } catch (err) {
     if (fs.existsSync(tmpPath)) {

@@ -12,4 +12,7 @@ import type { DisplayTrack } from '@shiranami/contracts';
 
 export type Track = DisplayTrack;
 
-export type RepeatMode = 'off' | 'all' | 'one';
+/** Ordered repeat-mode cycle. Single source of truth for the union + cycling. */
+export const REPEAT_MODES = ['off', 'all', 'one'] as const;
+
+export type RepeatMode = (typeof REPEAT_MODES)[number];

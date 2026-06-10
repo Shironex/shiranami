@@ -55,8 +55,18 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Group each lazily-loaded locale's namespaces into one chunk so a
+          // language switch pulls a single request instead of ~33. English is
+          // excluded — it's statically bundled into the i18n entry chunk and
+          // must not be split back out into an eager locale chunk.
+          const localeMatch = /\/src\/locales\/([^/]+)\//.exec(id);
+          if (localeMatch && localeMatch[1] !== 'en') return `locale-${localeMatch[1]}`;
+
           if (!id.includes('node_modules/')) return;
-          if (/\/(react|react-dom|zustand|use-sync-external-store)\//.test(id))
+          // Anchor on the package's own node_modules segment so scoped packages
+          // that merely end in `react` (e.g. @sentry/react) are NOT swept into
+          // the eager vendor-react chunk — that would undo their lazy-loading.
+          if (/\/node_modules\/(react|react-dom|zustand|use-sync-external-store)\//.test(id))
             return 'vendor-react';
           if (id.includes('/@radix-ui/')) return 'vendor-radix';
           if (id.includes('/lucide-react/')) return 'vendor-icons';

@@ -1,12 +1,10 @@
 import { useCallback, useState } from 'react';
 import { logger } from '@/lib/logger';
-import { useLibraryStore } from '@/stores/useLibraryStore';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useTrackImport } from '@/hooks/useTrackImport';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
-import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
+import { scanAndPersistFolder } from '@/lib/scanHelpers';
 import { queryClient } from '@/lib/queryClient';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { folderKeys } from '@/hooks/queries/useFolders';
@@ -40,65 +38,24 @@ export function useLibraryActions() {
     if (!dirPath) return;
     setIsScanning(true);
     try {
-      const results = await window.electronAPI.library.scanFolder(dirPath);
-      if (results.length === 0) {
+      // Delegate scan + dedup + persist to the shared helper. It uses the
+      // grouped scan, a batched existsMany (no per-file N+1), and carries the
+      // albumArtist tag through — restoring the #269/#270 fix this path lost.
+      const result = await scanAndPersistFolder(dirPath);
+
+      if (result.empty) {
         toast.info(i18n.t('noAudioInFolder', { ns: 'toast' }));
         return;
       }
 
-      // Filter out tracks that already exist in the library
-      const existingLibrary = useLibraryStore.getState().library;
-      const existingPaths = new Set(existingLibrary.map(t => t.filePath));
-
-      const newResults = results.filter(r => !existingPaths.has(r.filePath));
-
-      // Also check DB for any tracks not in current queue
-      const toCheck = await Promise.all(
-        newResults.map(async r => ({
-          result: r,
-          exists: await window.electronAPI.db.tracks.exists(r.filePath),
-        }))
-      );
-      const genuinelyNew = toCheck.filter(c => !c.exists).map(c => c.result);
-
-      if (genuinelyNew.length === 0) {
+      if (result.allExisted) {
         toast.info(i18n.t('allTracksExist', { ns: 'toast' }));
         return;
       }
 
-      // Save to DB
-      const dbTracks = (await window.electronAPI.db.tracks.addMany(
-        genuinelyNew.map(r => ({
-          filePath: r.filePath,
-          title: r.metadata.title,
-          artist: r.metadata.artist,
-          album: r.metadata.album,
-          duration: r.metadata.duration,
-          genre: r.metadata.genre ?? null,
-          year: r.metadata.year ?? null,
-          trackNumber: r.metadata.trackNumber ?? null,
-          discNumber: r.metadata.discNumber ?? null,
-          albumArt: r.metadata.albumArt ?? null,
-        }))
-      )) as DbTrackRecord[];
-
-      const newTracks = mapDbTracksToTracks(dbTracks);
-
-      // Save folder path to DB
-      try {
-        await window.electronAPI.db.folders.add(dirPath);
-      } catch {
-        // Folder may already exist, that's fine
-      }
-
-      // Add to library
-      useLibraryStore.getState().addToLibrary(newTracks);
-
-      usePlaybackStore.getState().enqueueTracks(newTracks, 'first');
-
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
-      toast.success(i18n.t('addedTracks', { ns: 'toast', count: newTracks.length }));
+      toast.success(i18n.t('addedTracks', { ns: 'toast', count: result.addedCount }));
     } catch (err) {
       logger.error('Failed to add folder:', err);
       toast.error(i18n.t('failedScanFolder', { ns: 'toast' }));

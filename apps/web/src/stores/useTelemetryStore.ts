@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 
 /** localStorage key — matches the shiranami.* store convention. */
 const STORE_KEY = 'shiranami.telemetry';
@@ -59,7 +60,7 @@ export const useTelemetryStore = createPersistedStore<TelemetryState>(
       } catch (err) {
         // Revert so renderer consent never drifts from the main-process gate.
         set({ enabled: previous });
-        console.error('[telemetry] failed to persist consent', err);
+        logger.error('[telemetry] failed to persist consent', err);
         toast.error(i18n.t('settings:priv.saveError'));
       }
     },
@@ -71,7 +72,7 @@ export const useTelemetryStore = createPersistedStore<TelemetryState>(
         await window.electronAPI.store.set(ELECTRON_PERF_KEY, value);
       } catch (err) {
         set({ performanceEnabled: previous });
-        console.error('[telemetry] failed to persist performance consent', err);
+        logger.error('[telemetry] failed to persist performance consent', err);
         toast.error(i18n.t('settings:priv.saveError'));
       }
     },

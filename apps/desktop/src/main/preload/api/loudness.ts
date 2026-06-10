@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type LoudnessAnalyzeInput,
@@ -21,7 +21,7 @@ export interface LoudnessApi {
 }
 
 export const loudnessApi: LoudnessApi = {
-  analyze: tracks => ipcRenderer.invoke(C.analyze, tracks),
-  cancel: () => ipcRenderer.invoke(C.cancel),
+  analyze: tracks => invoke(C.analyze, tracks),
+  cancel: () => invoke(C.cancel),
   onProgress: createIpcListener<LoudnessProgress>(C.progress),
 };

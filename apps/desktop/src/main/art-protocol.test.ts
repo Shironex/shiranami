@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import { join } from 'node:path';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
-import { tracks } from '@shiranami/database';
+import { tracks, playlists } from '@shiranami/database';
 import { makeTempDir, cleanupTempDir } from '../../test/setup';
 import { extToMime, toArtUrl } from './art-protocol';
 
@@ -277,6 +277,13 @@ describe('pruneOrphanedAlbumArt', () => {
       .run();
   }
 
+  function insertPlaylist(id: string, coverArt: string | null): void {
+    getDatabase()
+      .insert(playlists)
+      .values({ id, name: `Playlist ${id}`, coverArt })
+      .run();
+  }
+
   it('does nothing when the disk is empty', async () => {
     const { pruneOrphanedAlbumArt } = await import('./art-protocol');
     const result = await pruneOrphanedAlbumArt();
@@ -315,6 +322,23 @@ describe('pruneOrphanedAlbumArt', () => {
     expect(fs.existsSync(join(artDir, 'referenced.jpg'))).toBe(true);
     expect(fs.existsSync(join(artDir, 'orphan-1.jpg'))).toBe(false);
     expect(fs.existsSync(join(artDir, 'orphan-2.jpg'))).toBe(false);
+  });
+
+  it('keeps a file referenced ONLY by a playlist cover (no track references it)', async () => {
+    // "Use suggested cover" copies a track's shiranami-art:// URL into a
+    // playlist cover. After the originating track is removed, the file is
+    // referenced solely by playlists.cover_art and must survive the prune.
+    writeArtFile('playlist-cover.jpg');
+    writeArtFile('true-orphan.jpg');
+    insertPlaylist('p1', 'shiranami-art://art/playlist-cover.jpg');
+
+    const { pruneOrphanedAlbumArt } = await import('./art-protocol');
+    const result = await pruneOrphanedAlbumArt();
+
+    expect(result.referenced).toBe(1);
+    expect(result.deleted).toBe(1);
+    expect(fs.existsSync(join(artDir, 'playlist-cover.jpg'))).toBe(true);
+    expect(fs.existsSync(join(artDir, 'true-orphan.jpg'))).toBe(false);
   });
 
   it('does not error when DB references a file that does not exist on disk', async () => {

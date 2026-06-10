@@ -1,5 +1,6 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { pad2 } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import {
@@ -57,8 +58,7 @@ function ClockCardImpl({ weatherRow, glyph }: ClockCardProps) {
     minute: '2-digit',
   }).formatToParts(now);
   const hourPart = parts.find(p => p.type === 'hour')?.value ?? String(now.getHours());
-  const minutePart =
-    parts.find(p => p.type === 'minute')?.value ?? String(now.getMinutes()).padStart(2, '0');
+  const minutePart = parts.find(p => p.type === 'minute')?.value ?? pad2(now.getMinutes());
   const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value;
   const fullTime = now.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 

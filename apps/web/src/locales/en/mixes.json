@@ -20,6 +20,7 @@
   "emptyRecentlyPlayed": "Your recently played tracks will appear here",
   "smart": {
     "sectionTitle": "For you right now",
+    "failed": "Couldn't build your mixes right now. Try again in a bit.",
     "focus": "Focus",
     "focusDesc": "Calm, instrumental tracks to concentrate to",
     "lateNight": "Late-night",

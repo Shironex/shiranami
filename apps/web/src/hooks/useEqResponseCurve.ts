@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { clamp } from '@shiranami/shared';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
 import { EQ_MIN_DB, EQ_MAX_DB } from '@/stores/useEqStore';
 
@@ -39,10 +40,6 @@ const PREAMP_HEADROOM_DB = Math.max(Math.abs(EQ_MIN_DB), Math.abs(EQ_MAX_DB));
 const DISPLAY_MIN_DB = EQ_MIN_DB - PREAMP_HEADROOM_DB;
 const DISPLAY_MAX_DB = EQ_MAX_DB + PREAMP_HEADROOM_DB;
 const DB_RANGE = DISPLAY_MAX_DB - DISPLAY_MIN_DB;
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
 
 /**
  * Builds a smooth frequency-response curve (Catmull-Rom spline) from the EQ band

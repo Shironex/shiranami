@@ -25,6 +25,7 @@ import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
+import { useTrackActions } from '@/hooks/useTrackActions';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -160,15 +161,14 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const menuRef = useRef<HTMLDivElement>(null);
   const adjustedPosition = useContextMenuDismiss(menuRef, position, onClose);
 
-  const playNext = usePlaybackStore(s => s.playNext);
-  const addToQueue = usePlaybackStore(s => s.addToQueue);
   const setQueue = usePlaybackStore(s => s.setQueue);
-  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const queue = usePlaybackStore(s => s.queue);
   const library = useLibraryStore(s => s.library);
 
   const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
   const clearSelection = useSelectionStore(s => s.clearSelection);
+
+  const trackActions = useTrackActions({ onComplete: onClose });
 
   // Disable the per-track enrich entry while a bulk run holds the abort slot —
   // the IPC would reject anyway, but a visibly-disabled item is friendlier
@@ -201,29 +201,20 @@ export function TrackContextMenu({ track, position, onClose }: TrackContextMenuP
   const isFavorite =
     overlayFavorite ?? queue.find(t => t.id === track.id)?.isFavorite ?? track.isFavorite;
 
-  const handlePlayNext = useCallback(() => {
-    for (const t of targetTracks) {
-      playNext(t);
-    }
-    toast.success(isBulk ? tToast('tracksPlayNext', { count }) : tToast('trackPlayNext'));
-    clearSelection();
-    onClose();
-  }, [targetTracks, isBulk, count, playNext, onClose, clearSelection]);
+  const handlePlayNext = useCallback(
+    () => trackActions.handlePlayNext(targetTracks),
+    [trackActions, targetTracks]
+  );
 
-  const handleAddToQueue = useCallback(() => {
-    addToQueue(targetTracks);
-    toast.success(isBulk ? tToast('addedTracksToQueue', { count }) : tToast('addedToQueue'));
-    clearSelection();
-    onClose();
-  }, [targetTracks, isBulk, count, addToQueue, onClose, clearSelection]);
+  const handleAddToQueue = useCallback(
+    () => trackActions.handleAddToQueue(targetTracks),
+    [trackActions, targetTracks]
+  );
 
-  const handleToggleFavorite = useCallback(() => {
-    for (const id of targetTrackIds) {
-      toggleFavorite(id);
-    }
-    clearSelection();
-    onClose();
-  }, [targetTrackIds, toggleFavorite, onClose, clearSelection]);
+  const handleToggleFavorite = useCallback(
+    () => trackActions.handleToggleFavorite(targetTrackIds),
+    [trackActions, targetTrackIds]
+  );
 
   // "More like this" / song radio: rank library tracks by content similarity to
   // this seed (main process), then build a queue of the seed followed by the

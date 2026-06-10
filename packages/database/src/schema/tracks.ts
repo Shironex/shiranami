@@ -4,14 +4,15 @@
 
 import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 
 export const tracks = sqliteTable('tracks', {
   id: text('id').primaryKey(),
   filePath: text('file_path').notNull().unique(),
   title: text('title').notNull(),
-  artist: text('artist').default('Unknown Artist'),
+  artist: text('artist').default(UNKNOWN_ARTIST),
   albumArtist: text('album_artist'),
-  album: text('album').default('Unknown Album'),
+  album: text('album').default(UNKNOWN_ALBUM),
   duration: real('duration'),
   genre: text('genre'),
   year: integer('year'),

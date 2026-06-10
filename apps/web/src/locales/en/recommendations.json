@@ -17,6 +17,7 @@
   "updatedAgo": "Updated {{time}}",
   "stale": "Out of date",
   "refreshAria": "Refresh recommendations",
+  "refreshFailedCached": "Couldn't refresh — showing your cached recommendations",
   "moreCount": "+{{count}} more",
   "discoverTag": "New",
   "previewAria": "Preview {{title}}",

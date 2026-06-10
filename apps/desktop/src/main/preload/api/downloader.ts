@@ -1,12 +1,12 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type SearchResult,
   type DownloadQueueSnapshot,
   type EnqueueDownloadInput,
+  type InstallDependenciesResult,
 } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
-import type { InstallDependenciesResult } from '../types';
 
 const C = IPC_CHANNELS.downloader;
 
@@ -77,38 +77,38 @@ export interface DownloaderApi {
 }
 
 export const downloaderApi: DownloaderApi = {
-  suggest: query => ipcRenderer.invoke(C.suggest, query),
-  search: query => ipcRenderer.invoke(C.search, query),
-  getStreamUrl: url => ipcRenderer.invoke(C.getStreamUrl, url),
-  download: url => ipcRenderer.invoke(C.download, { url }),
-  enqueueDownload: input => ipcRenderer.invoke(C.enqueue, input),
-  cancelDownload: id => ipcRenderer.invoke(C.cancel, id),
-  cancelAllDownloads: () => ipcRenderer.invoke(C.cancelAll),
-  clearCompletedDownloads: () => ipcRenderer.invoke(C.clearCompleted),
-  pauseDownloadQueue: () => ipcRenderer.invoke(C.pause),
-  resumeDownloadQueue: () => ipcRenderer.invoke(C.resume),
-  markDownloadsImported: ids => ipcRenderer.invoke(C.markImported, ids),
-  getDownloadQueue: () => ipcRenderer.invoke(C.getQueue),
+  suggest: query => invoke(C.suggest, query),
+  search: query => invoke(C.search, query),
+  getStreamUrl: url => invoke(C.getStreamUrl, url),
+  download: url => invoke(C.download, { url }),
+  enqueueDownload: input => invoke(C.enqueue, input),
+  cancelDownload: id => invoke(C.cancel, id),
+  cancelAllDownloads: () => invoke(C.cancelAll),
+  clearCompletedDownloads: () => invoke(C.clearCompleted),
+  pauseDownloadQueue: () => invoke(C.pause),
+  resumeDownloadQueue: () => invoke(C.resume),
+  markDownloadsImported: ids => invoke(C.markImported, ids),
+  getDownloadQueue: () => invoke(C.getQueue),
   onQueueState: createIpcListener<DownloadQueueSnapshot>(C.queueState),
-  getDownloadLocation: () => ipcRenderer.invoke(C.getDownloadLocation),
-  setDownloadLocation: downloadPath => ipcRenderer.invoke(C.setDownloadLocation, downloadPath),
-  checkDependencies: () => ipcRenderer.invoke(C.checkDependencies),
-  getCachedToolStatus: () => ipcRenderer.invoke(C.getCachedToolStatus),
-  refreshToolStatus: () => ipcRenderer.invoke(C.refreshToolStatus),
-  check: () => ipcRenderer.invoke(C.check),
+  getDownloadLocation: () => invoke(C.getDownloadLocation),
+  setDownloadLocation: downloadPath => invoke(C.setDownloadLocation, downloadPath),
+  checkDependencies: () => invoke(C.checkDependencies),
+  getCachedToolStatus: () => invoke(C.getCachedToolStatus),
+  refreshToolStatus: () => invoke(C.refreshToolStatus),
+  check: () => invoke(C.check),
   onProgress: createIpcListener<{
     url: string;
     progress: number;
     status: 'downloading' | 'converting' | 'done' | 'error';
     error?: string;
   }>(C.progress),
-  installYtDlp: () => ipcRenderer.invoke(C.installYtdlp),
+  installYtDlp: () => invoke(C.installYtdlp),
   onInstallProgress: createIpcListener<{ percent: number }>(C.installProgress),
-  getYtDlpPath: () => ipcRenderer.invoke(C.getYtdlpPath),
-  checkFfmpeg: () => ipcRenderer.invoke(C.checkFfmpeg),
-  installFfmpeg: () => ipcRenderer.invoke(C.installFfmpeg),
+  getYtDlpPath: () => invoke(C.getYtdlpPath),
+  checkFfmpeg: () => invoke(C.checkFfmpeg),
+  installFfmpeg: () => invoke(C.installFfmpeg),
   onFfmpegInstallProgress: createIpcListener<{ percent: number }>(C.ffmpegInstallProgress),
-  installDependencies: () => ipcRenderer.invoke(C.installDependencies),
+  installDependencies: () => invoke(C.installDependencies),
   onDependencyInstallProgress: createIpcListener<{
     target: 'ytdlp' | 'ffmpeg';
     percent: number;

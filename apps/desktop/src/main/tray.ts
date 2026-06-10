@@ -1,6 +1,7 @@
 import { app, Tray, Menu, nativeImage, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
 import { sendToRenderer } from './utils/window';
 import type { PlaybackState } from './media-controls';
@@ -50,7 +51,7 @@ function showWindow(win: BrowserWindow): void {
 }
 
 function sendMediaCommand(command: string): void {
-  sendToRenderer('media:command', command);
+  sendToRenderer(IPC_CHANNELS.media.command, command);
 }
 
 function rebuildContextMenu(): void {
@@ -101,6 +102,14 @@ function rebuildContextMenu(): void {
 }
 
 export function createTray(mainWindow: BrowserWindow): void {
+  // On macOS the dock-reactivate flow can call createTray again while a tray
+  // already exists; destroy the old native Tray (and its click listener) first
+  // so we don't leak it.
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+
   mainWindowRef = mainWindow;
   const iconPath = getTrayIconPath();
   logger.debug(`[tray] Loading icon from: ${iconPath}`);

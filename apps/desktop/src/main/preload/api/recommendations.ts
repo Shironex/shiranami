@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type RecommendationShelves,
@@ -20,15 +20,20 @@ export interface RecommendationsApi {
   notInterested: (trackId: string) => Promise<void>;
   /** Undo a previous "Not interested" mark for a track. */
   undoNotInterested: (trackId: string) => Promise<void>;
-  /** Generate mood/activity/decade mixes from contextual signals + metadata. */
-  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
+  /**
+   * Generate mood/activity/decade mixes from contextual signals + metadata.
+   * Resolves to `null` when generation fails (distinct from `[]` = no mixes
+   * apply) so the renderer can show an honest error rather than the
+   * empty-library state.
+   */
+  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[] | null>;
 }
 
 export const recommendationsApi: RecommendationsApi = {
-  get: () => ipcRenderer.invoke(C.get),
-  refresh: () => ipcRenderer.invoke(C.refresh),
-  similar: (seedTrackId: string) => ipcRenderer.invoke(C.similar, seedTrackId),
-  notInterested: (trackId: string) => ipcRenderer.invoke(C.notInterested, trackId),
-  undoNotInterested: (trackId: string) => ipcRenderer.invoke(C.undoNotInterested, trackId),
-  smartMixes: (signals: SmartMixSignals) => ipcRenderer.invoke(C.smartMixes, signals),
+  get: () => invoke(C.get),
+  refresh: () => invoke(C.refresh),
+  similar: (seedTrackId: string) => invoke(C.similar, seedTrackId),
+  notInterested: (trackId: string) => invoke(C.notInterested, trackId),
+  undoNotInterested: (trackId: string) => invoke(C.undoNotInterested, trackId),
+  smartMixes: (signals: SmartMixSignals) => invoke(C.smartMixes, signals),
 };

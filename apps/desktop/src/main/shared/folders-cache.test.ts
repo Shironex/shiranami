@@ -79,13 +79,11 @@ describe('folders-cache', () => {
     it('returns userData + default download dir when no folders are registered', () => {
       const roots = getAllowedRoots();
       // Lowercased on darwin/win32 by normalizePathForCompare.
-      const expectUserData = process.platform === 'linux'
-        ? MOCK_USER_DATA
-        : MOCK_USER_DATA.toLowerCase();
+      const expectUserData =
+        process.platform === 'linux' ? MOCK_USER_DATA : MOCK_USER_DATA.toLowerCase();
       const expectDownloads = path.join(MOCK_MUSIC, 'Shiranami Downloads');
-      const expectDownloadsNorm = process.platform === 'linux'
-        ? expectDownloads
-        : expectDownloads.toLowerCase();
+      const expectDownloadsNorm =
+        process.platform === 'linux' ? expectDownloads : expectDownloads.toLowerCase();
 
       expect(roots).toContain(expectUserData);
       expect(roots).toContain(expectDownloadsNorm);
@@ -93,10 +91,7 @@ describe('folders-cache', () => {
 
     it('includes folder rows from the DB', () => {
       const folderPath = path.resolve('/mock/library/music');
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: folderPath })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: folderPath }).run();
 
       const roots = getAllowedRoots();
       const expected = process.platform === 'linux' ? folderPath : folderPath.toLowerCase();
@@ -106,7 +101,7 @@ describe('folders-cache', () => {
     it('respects the configured download.location override', () => {
       const custom = path.resolve('/mock/custom-downloads');
       mockStore.get.mockImplementation((key: string) =>
-        key === 'downloads.location' ? custom : undefined,
+        key === 'downloads.location' ? custom : undefined
       );
 
       const roots = getAllowedRoots();
@@ -117,19 +112,13 @@ describe('folders-cache', () => {
     it('caches the result — subsequent calls do not re-query the DB', () => {
       // Insert a folder, prime the cache.
       const folderPath = path.resolve('/mock/library/a');
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: folderPath })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: folderPath }).run();
       const first = getAllowedRoots();
 
       // Insert a second folder — without invalidate(), the new one should
       // NOT appear (cache stale by design).
       const folderB = path.resolve('/mock/library/b');
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: folderB })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: folderB }).run();
       const second = getAllowedRoots();
 
       expect(second).toEqual(first);
@@ -140,10 +129,7 @@ describe('folders-cache', () => {
     it('invalidate() forces a rebuild', () => {
       getAllowedRoots(); // prime
       const folderPath = path.resolve('/mock/library/late');
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: folderPath })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: folderPath }).run();
       invalidate();
       const refreshed = getAllowedRoots();
       const expected = process.platform === 'linux' ? folderPath : folderPath.toLowerCase();
@@ -158,10 +144,7 @@ describe('folders-cache', () => {
   describe('isPathAllowed', () => {
     it('accepts a path inside an allowed folder root', async () => {
       const folderPath = path.resolve('/mock/library/music');
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: folderPath })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: folderPath }).run();
 
       const inside = path.join(folderPath, 'sub', 'song.mp3');
       await expect(isPathAllowed(inside)).resolves.toBe(true);
@@ -208,16 +191,68 @@ describe('folders-cache', () => {
         return;
       }
 
-      getDatabase()
-        .insert(folders)
-        .values({ id: crypto.randomUUID(), path: allowedRoot })
-        .run();
+      getDatabase().insert(folders).values({ id: crypto.randomUUID(), path: allowedRoot }).run();
       invalidate();
 
       await expect(isPathAllowed(link)).resolves.toBe(false);
 
       fs.rmSync(allowedRoot, { recursive: true, force: true });
       fs.rmSync(outside, { recursive: true, force: true });
+    });
+
+    it('caches a positive authorization so a repeat check skips the DB lookup', async () => {
+      const standaloneFile = path.resolve('/cached/standalone.mp3');
+      getDatabase()
+        .insert(tracks)
+        .values({
+          id: crypto.randomUUID(),
+          filePath: standaloneFile,
+          title: 'Cached',
+          artist: 'X',
+        })
+        .run();
+
+      // First check authorizes via the tracks fallback and caches the grant.
+      await expect(isPathAllowed(standaloneFile)).resolves.toBe(true);
+
+      // Delete the row: an uncached check would now fail (outside every root,
+      // no tracks row). The cached grant keeps the repeat check positive.
+      getDatabase().delete(tracks).run();
+      await expect(isPathAllowed(standaloneFile)).resolves.toBe(true);
+    });
+
+    it('invalidate() clears the positive-authorization cache', async () => {
+      const standaloneFile = path.resolve('/cached/cleared.mp3');
+      getDatabase()
+        .insert(tracks)
+        .values({
+          id: crypto.randomUUID(),
+          filePath: standaloneFile,
+          title: 'Cleared',
+          artist: 'X',
+        })
+        .run();
+
+      await expect(isPathAllowed(standaloneFile)).resolves.toBe(true);
+
+      // Drop the row and invalidate — the now-stale grant must be gone, so the
+      // re-authorization fails closed.
+      getDatabase().delete(tracks).run();
+      invalidate();
+      await expect(isPathAllowed(standaloneFile)).resolves.toBe(false);
+    });
+
+    it('never caches a negative result', async () => {
+      const unknown = path.resolve('/never/cached/denied.mp3');
+      await expect(isPathAllowed(unknown)).resolves.toBe(false);
+
+      // Insert a matching track AFTER the denial. If negatives were cached the
+      // path would stay denied; because they are not, the new row is honored.
+      getDatabase()
+        .insert(tracks)
+        .values({ id: crypto.randomUUID(), filePath: unknown, title: 'Now Known', artist: 'X' })
+        .run();
+      await expect(isPathAllowed(unknown)).resolves.toBe(true);
     });
 
     it('matches a known track when the renderer sends a path with collapsible segments', async () => {

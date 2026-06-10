@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function HistoryViewSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-10 pt-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 pb-10 pt-6" aria-busy="true">
       <div className="rounded-[28px] border border-border/25 bg-surface/35 p-6">
         <Skeleton className="h-4 w-28" />
         <Skeleton className="mt-3 h-10 w-72 max-w-full" />

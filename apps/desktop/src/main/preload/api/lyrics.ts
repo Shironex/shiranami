@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.lyrics;
@@ -17,6 +17,5 @@ export interface LyricsApi {
 }
 
 export const lyricsApi: LyricsApi = {
-  fetch: (title, artist, album, duration) =>
-    ipcRenderer.invoke(C.fetch, title, artist, album, duration),
+  fetch: (title, artist, album, duration) => invoke(C.fetch, title, artist, album, duration),
 };

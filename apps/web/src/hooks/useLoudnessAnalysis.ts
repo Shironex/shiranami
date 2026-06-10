@@ -6,6 +6,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
 import { IS_ELECTRON } from '@/lib/platform';
 import { isRadioTrack } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface LoudnessAnalysisState {
   running: boolean;
@@ -59,7 +60,7 @@ export function useLoudnessAnalysis() {
       const refreshed = mapDbTracksToTracks(allDbTracks as DbTrackRecord[]);
       useLibraryStore.getState().setLibrary(refreshed);
     } catch (err) {
-      console.error('Loudness analysis failed', err);
+      logger.error('Loudness analysis failed', err);
       toast.error(tToast('loudnessAnalysisFailed'), { id: 'loudness-analysis-error' });
     } finally {
       runningRef.current = false;

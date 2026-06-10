@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -18,12 +18,11 @@ export interface WindowApi {
 }
 
 export const windowApi: WindowApi = {
-  minimize: () => ipcRenderer.invoke(C.minimize),
-  maximize: () => ipcRenderer.invoke(C.maximize),
-  close: () => ipcRenderer.invoke(C.close),
-  isMaximized: () => ipcRenderer.invoke(C.isMaximized),
-  setAlwaysOnTop: alwaysOnTop => ipcRenderer.invoke(C.setAlwaysOnTop, alwaysOnTop),
-  setCompactMode: (compactMode, dimensions) =>
-    ipcRenderer.invoke(C.setCompactMode, compactMode, dimensions),
+  minimize: () => invoke(C.minimize),
+  maximize: () => invoke(C.maximize),
+  close: () => invoke(C.close),
+  isMaximized: () => invoke(C.isMaximized),
+  setAlwaysOnTop: alwaysOnTop => invoke(C.setAlwaysOnTop, alwaysOnTop),
+  setCompactMode: (compactMode, dimensions) => invoke(C.setCompactMode, compactMode, dimensions),
   onMaximizedChange: createIpcListener<boolean>(C.maximizedChange),
 };

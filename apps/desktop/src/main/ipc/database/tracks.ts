@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { tracks, eq, desc, inArray, sql, type NewTrack } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { chunk } from '@shiranami/shared';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
 import { pruneOrphanedAlbumArt } from '../../art-protocol';
@@ -73,9 +74,21 @@ export function registerTrackHandlers(): void {
       const CHUNK_SIZE = 100;
       const results = db.transaction(tx => {
         const results = [];
-        for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-          const chunk = rows.slice(i, i + CHUNK_SIZE);
-          results.push(...tx.insert(tracks).values(chunk).returning().all());
+        for (const batch of chunk(rows, CHUNK_SIZE)) {
+          // file_path is UNIQUE. Mirror `add` (see comment above) and no-op the
+          // insert on conflict so a single duplicate filePath can't abort the
+          // whole import transaction. `.returning()` then yields only the rows
+          // actually inserted, which matches the existing contract (callers map
+          // the returned rows into the library; already-present tracks are
+          // intentionally omitted).
+          results.push(
+            ...tx
+              .insert(tracks)
+              .values(batch)
+              .onConflictDoNothing({ target: tracks.filePath })
+              .returning()
+              .all()
+          );
         }
         return results;
       });
@@ -106,9 +119,8 @@ export function registerTrackHandlers(): void {
       const db = getDatabase();
       const CHUNK_SIZE = 500;
       db.transaction(tx => {
-        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-          const chunk = ids.slice(i, i + CHUNK_SIZE);
-          tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
+        for (const batch of chunk(ids, CHUNK_SIZE)) {
+          tx.delete(tracks).where(inArray(tracks.id, batch)).run();
         }
       });
       logger.info(
@@ -139,13 +151,44 @@ export function registerTrackHandlers(): void {
   handle(
     T.updateMany,
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
-      if (updates.length === 0) return [];
+      if (updates.length === 0) return;
       logger.info(`[database] tracks:update-many: updating ${updates.length} tracks`);
       const db = getDatabase();
-      return db.transaction(tx => {
-        return updates.map(({ id, data }) =>
-          tx.update(tracks).set(data).where(eq(tracks.id, id)).returning().get()
-        );
+
+      // The sole consumer (metadata-enrich apply) re-reads the library via
+      // getAll() right after, so it ignores the returned rows. Drop the
+      // per-row RETURNING .get() round-trips and group ids by identical patch
+      // shape, applying each distinct patch to all its ids in one inArray
+      // UPDATE. Enrichment patches repeat heavily (e.g. a whole album getting
+      // the same album/artist/year fix), so this collapses to a handful of
+      // statements instead of one per track.
+      const byPatch = new Map<string, { data: Partial<NewTrack>; ids: string[] }>();
+      for (const { id, data } of updates) {
+        // Strip undefined-valued keys before grouping: JSON.stringify drops
+        // them silently, so { a: 1 } and { a: 1, b: undefined } would collide
+        // into one group keyed on '{"a":1}'. Cleaning first keeps grouping
+        // honest, and skipping empty patches avoids drizzle's "No values to
+        // set" throw from .set({}) aborting the whole transaction.
+        const cleanData = Object.fromEntries(
+          Object.entries(data).filter(([, v]) => v !== undefined)
+        ) as Partial<NewTrack>;
+        if (Object.keys(cleanData).length === 0) continue;
+        const key = JSON.stringify(cleanData);
+        const group = byPatch.get(key);
+        if (group) {
+          group.ids.push(id);
+        } else {
+          byPatch.set(key, { data: cleanData, ids: [id] });
+        }
+      }
+
+      const CHUNK_SIZE = 500;
+      db.transaction(tx => {
+        for (const { data, ids } of byPatch.values()) {
+          for (const batch of chunk(ids, CHUNK_SIZE)) {
+            tx.update(tracks).set(data).where(inArray(tracks.id, batch)).run();
+          }
+        }
       });
     },
     { schema: tracksUpdateManyArgs }
@@ -210,16 +253,15 @@ export function registerTrackHandlers(): void {
   handle(
     T.existsMany,
     async (_event, filePaths: string[]) => {
-      if (filePaths.length === 0) return new Set<string>();
+      if (filePaths.length === 0) return [];
       const db = getDatabase();
       const CHUNK_SIZE = 500;
       const existing = new Set<string>();
-      for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
-        const chunk = filePaths.slice(i, i + CHUNK_SIZE);
+      for (const batch of chunk(filePaths, CHUNK_SIZE)) {
         const rows = db
           .select({ filePath: tracks.filePath })
           .from(tracks)
-          .where(inArray(tracks.filePath, chunk))
+          .where(inArray(tracks.filePath, batch))
           .all();
         for (const row of rows) existing.add(row.filePath);
       }

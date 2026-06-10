@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import type { StoreSchema } from '../../store';
 
@@ -12,8 +12,7 @@ export interface StoreApi {
 
 export const storeApi: StoreApi = {
   get: <K extends keyof StoreSchema>(key: K) =>
-    ipcRenderer.invoke(C.get, key) as Promise<StoreSchema[K] | undefined>,
-  set: <K extends keyof StoreSchema>(key: K, value: StoreSchema[K]) =>
-    ipcRenderer.invoke(C.set, key, value),
-  delete: <K extends keyof StoreSchema>(key: K) => ipcRenderer.invoke(C.delete, key),
+    invoke(C.get, key) as Promise<StoreSchema[K] | undefined>,
+  set: <K extends keyof StoreSchema>(key: K, value: StoreSchema[K]) => invoke(C.set, key, value),
+  delete: <K extends keyof StoreSchema>(key: K) => invoke(C.delete, key),
 };

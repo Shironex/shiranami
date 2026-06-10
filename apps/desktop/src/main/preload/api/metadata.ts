@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type EnrichTrackInput,
@@ -38,10 +38,10 @@ export interface MetadataApi {
 }
 
 export const metadataApi: MetadataApi = {
-  lookup: (title, artist) => ipcRenderer.invoke(C.lookup, title, artist),
-  enrichTracks: (tracks, options) => ipcRenderer.invoke(C.enrichTracks, tracks, options),
-  previewEnrich: (track, options) => ipcRenderer.invoke(C.enrichPreview, track, options),
-  cancelEnrichment: () => ipcRenderer.invoke(C.enrichCancel),
+  lookup: (title, artist) => invoke(C.lookup, title, artist),
+  enrichTracks: (tracks, options) => invoke(C.enrichTracks, tracks, options),
+  previewEnrich: (track, options) => invoke(C.enrichPreview, track, options),
+  cancelEnrichment: () => invoke(C.enrichCancel),
   onEnrichProgress: createIpcListener<EnrichProgress>(C.enrichProgress),
-  writeTags: input => ipcRenderer.invoke(C.writeTags, input),
+  writeTags: input => invoke(C.writeTags, input),
 };

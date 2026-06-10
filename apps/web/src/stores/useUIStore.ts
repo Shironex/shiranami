@@ -1,6 +1,7 @@
-import { arrayMove } from '@dnd-kit/sortable';
+import { clamp } from '@shiranami/shared';
+import { arrayMove } from '@/lib/array';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
-import { useViewStore, type AppView } from '@/stores/useViewStore';
+import { useViewStore, type AppView, type PlayerSidePanel } from '@/stores/useViewStore';
 import {
   ALWAYS_VISIBLE_SIDEBAR_ITEMS,
   DEFAULT_HIDDEN_SIDEBAR_ITEMS,
@@ -46,8 +47,12 @@ export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
 export type AlbumSortOrder = 'asc' | 'desc';
-/** Which panel the full-screen Now Playing view shows in its right column. */
-export type NowPlayingPanel = 'lyrics' | 'queue' | 'eq' | null;
+/**
+ * Which panel the full-screen Now Playing view shows in its right column. Shares
+ * the lyrics/queue base with the player-bar `RightPanel` (useViewStore) and adds
+ * an `eq` option that only this surface exposes.
+ */
+export type NowPlayingPanel = PlayerSidePanel | 'eq' | null;
 /** The view the app opens to on launch. */
 export type LandingView = 'overview' | 'library';
 
@@ -123,7 +128,7 @@ function coerceNowPlayingPanel(v: unknown): NowPlayingPanel {
 function coerceUiScale(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
-  return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
+  return Math.round(clamp(parsed, UI_SCALE_MIN, UI_SCALE_MAX));
 }
 function coerceLandingView(v: unknown): LandingView {
   return v === 'overview' || v === 'library' ? v : LANDING_VIEW_DEFAULT;
@@ -474,7 +479,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
       set({ visualizerStyle: style });
     },
     setUiScale: scale => {
-      const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
+      const clamped = Math.round(clamp(scale, UI_SCALE_MIN, UI_SCALE_MAX));
       applyUiScale(clamped);
       set({ uiScale: clamped });
     },

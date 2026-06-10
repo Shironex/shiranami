@@ -31,6 +31,11 @@ const playlistTrackPair = z.object({
   trackId: uuid,
 });
 
+const playlistTracksBatch = z.object({
+  playlistId: uuid,
+  trackIds: z.array(uuid),
+});
+
 export const playlistsGetAllArgs = z.tuple([]);
 export const playlistsGetArgs = z.tuple([uuid]);
 export const playlistsCreateArgs = z.tuple([playlistCreateInput]);
@@ -39,7 +44,9 @@ export const playlistsUpdateArgs = z.tuple([uuid, playlistUpdateInput]);
 export const playlistsDeleteArgs = z.tuple([uuid]);
 export const playlistsGetTracksArgs = z.tuple([uuid]);
 export const playlistsAddTrackArgs = z.tuple([playlistTrackPair]);
+export const playlistsAddTracksArgs = z.tuple([playlistTracksBatch]);
 export const playlistsRemoveTrackArgs = z.tuple([playlistTrackPair]);
+export const playlistsRemoveTracksArgs = z.tuple([playlistTracksBatch]);
 export const playlistsGetPlaylistsForTracksArgs = z.tuple([z.array(uuid)]);
 export const playlistsReorderArgs = z.tuple([
   z.object({

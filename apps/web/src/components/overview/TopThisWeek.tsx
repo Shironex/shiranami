@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Disc3, Play } from 'lucide-react';
+import { pad2 } from '@shiranami/shared';
 import type { ListeningStatsTrack } from '@/types/electron';
 import { OverviewCover } from '@/components/overview/OverviewCover';
 
@@ -32,7 +33,7 @@ function TopRow({
       className="group flex w-full items-center gap-3 rounded-2xl border border-border/15 bg-background/20 px-3 py-2.5 text-left transition-colors hover:border-border/35 hover:bg-accent/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="w-6 shrink-0 text-center font-mono text-xs tabular-nums text-muted-foreground/55">
-        {String(rank).padStart(2, '0')}
+        {pad2(rank)}
       </span>
 
       <div className="relative size-10 shrink-0">

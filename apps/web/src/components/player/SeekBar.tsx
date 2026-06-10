@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
-import { formatDuration } from '@shiranami/shared';
+import { formatDuration, clamp01 } from '@shiranami/shared';
 
 /** Apply a 0..1 progress ratio to the fill (scaleX) and thumb (left + translateX).
  *  The fill is a compositor-only transform — no layout/paint per frame. The thumb
@@ -16,7 +16,7 @@ import { formatDuration } from '@shiranami/shared';
 const SEEK_KEY_STEP_SECONDS = 5;
 
 function applyProgress(ratio: number, fill: HTMLDivElement | null, thumb: HTMLDivElement | null) {
-  const clamped = Math.max(0, Math.min(1, ratio));
+  const clamped = clamp01(ratio);
   if (fill) fill.style.transform = `scaleX(${clamped})`;
   if (thumb) {
     thumb.style.left = `${clamped * 100}%`;
@@ -42,7 +42,7 @@ export function SeekBar() {
       const track = trackRef.current;
       if (!track || !duration) return 0;
       const rect = track.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const ratio = clamp01((clientX - rect.left) / rect.width);
       return ratio * duration;
     },
     [duration]

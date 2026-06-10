@@ -11,6 +11,12 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   viewName?: string;
   root?: boolean;
+  /**
+   * Render a minimal inline fallback instead of the full-page error card.
+   * Use for small chrome surfaces (top bar, player bar, sidebar) where the
+   * large card would blow out the layout if that surface crashes.
+   */
+  compact?: boolean;
   onReset?: () => void;
 }
 
@@ -24,6 +30,7 @@ interface ErrorBoundaryFallbackProps {
   errorInfo: ErrorInfo | null;
   viewName?: string;
   root?: boolean;
+  compact?: boolean;
   onReset: () => void;
 }
 
@@ -32,6 +39,7 @@ function ErrorBoundaryFallback({
   errorInfo,
   viewName,
   root,
+  compact,
   onReset,
 }: ErrorBoundaryFallbackProps) {
   const { t } = useTranslation('errorBoundary');
@@ -62,6 +70,37 @@ function ErrorBoundaryFallback({
   const title = root ? t('rootTitle') : t('title');
   const message = root ? t('rootMessage') : error.message || t('messageFallback');
   const primaryLabel = root ? t('reloadApp') : t('reloadView');
+
+  // Compact inline variant for chrome surfaces (top bar, player bar, sidebar):
+  // a single self-sized strip that won't blow out the surrounding layout.
+  if (compact) {
+    return (
+      <div
+        role="alert"
+        className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground"
+      >
+        <AlertCircle className="size-3.5 shrink-0 text-destructive" aria-hidden="true" />
+        <span className="truncate">{t('title')}</span>
+        <button
+          type="button"
+          onClick={onReset}
+          className="shrink-0 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-primary transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <RefreshCw className="size-3" />
+          {primaryLabel}
+        </button>
+        <button
+          type="button"
+          onClick={handleReport}
+          className="shrink-0 rounded-md p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={t('report')}
+          title={t('report')}
+        >
+          <ClipboardCopy className="size-3" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -131,6 +170,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         errorInfo={errorInfo}
         viewName={this.props.viewName}
         root={this.props.root}
+        compact={this.props.compact}
         onReset={this.reset}
       />
     );

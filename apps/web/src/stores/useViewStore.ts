@@ -14,7 +14,16 @@ export type AppView =
   | 'smart-playlists'
   | 'downloads'
   | 'now-playing';
-export type RightPanel = 'lyrics' | 'queue' | null;
+/**
+ * The lyrics/queue surfaces both the player-bar side column and the full-screen
+ * Now Playing view can show. The Now Playing view extends this with its own `eq`
+ * option (see `NowPlayingPanel` in useUIStore); the player bar does not, since EQ
+ * lives in the bar's own popover.
+ */
+export type PlayerSidePanel = 'lyrics' | 'queue';
+
+/** Which panel the player-bar right column shows (lyrics/queue), or none. */
+export type RightPanel = PlayerSidePanel | null;
 
 interface ViewState {
   activeView: AppView;

@@ -1,8 +1,10 @@
+import { clamp, clamp01 } from '@shiranami/shared';
 import {
   createPersistedStore,
   acceptStoreHmr,
   migrateLegacyKeys,
 } from '@/lib/createPersistedStore';
+import { REPEAT_MODES } from '@/stores/types';
 import type { Track, RepeatMode } from '@/stores/types';
 
 export const DEFAULT_CROSSFADE_DURATION = 5;
@@ -39,19 +41,19 @@ type PersistedPlaybackState = {
 function sanitizeLoudnessTarget(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return DEFAULT_LOUDNESS_TARGET_LUFS;
-  return Math.round(Math.min(LOUDNESS_TARGET_MAX_LUFS, Math.max(LOUDNESS_TARGET_MIN_LUFS, parsed)));
+  return Math.round(clamp(parsed, LOUDNESS_TARGET_MIN_LUFS, LOUDNESS_TARGET_MAX_LUFS));
 }
 
 function sanitizeCrossfadeDuration(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return DEFAULT_CROSSFADE_DURATION;
-  return Math.round(Math.min(12, Math.max(1, parsed)));
+  return Math.round(clamp(parsed, 1, 12));
 }
 
 function sanitizeSleepFadeDuration(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return DEFAULT_SLEEP_FADE_DURATION;
-  return Math.round(Math.min(SLEEP_FADE_MAX_SECONDS, Math.max(SLEEP_FADE_MIN_SECONDS, parsed)));
+  return Math.round(clamp(parsed, SLEEP_FADE_MIN_SECONDS, SLEEP_FADE_MAX_SECONDS));
 }
 
 function sanitize(
@@ -281,7 +283,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
       set({ crossfadeEnabled: enabled });
     },
     setCrossfadeDuration: duration => {
-      const clamped = Math.round(Math.max(1, Math.min(12, duration)));
+      const clamped = Math.round(clamp(duration, 1, 12));
       set({ crossfadeDuration: clamped });
     },
 
@@ -299,7 +301,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
 
     // Volume
     setVolume: (volume: number) => {
-      const clamped = Math.max(0, Math.min(1, volume));
+      const clamped = clamp01(volume);
       set({ volume: clamped, isMuted: false });
     },
     toggleMute: () => {
@@ -418,10 +420,9 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     },
 
     cycleRepeatMode: () => {
-      const modes: RepeatMode[] = ['off', 'all', 'one'];
       const { repeatMode } = get();
-      const nextIndex = (modes.indexOf(repeatMode) + 1) % modes.length;
-      set({ repeatMode: modes[nextIndex] });
+      const nextIndex = (REPEAT_MODES.indexOf(repeatMode) + 1) % REPEAT_MODES.length;
+      set({ repeatMode: REPEAT_MODES[nextIndex] });
     },
 
     // Internal setters (called by the audio engine hook)

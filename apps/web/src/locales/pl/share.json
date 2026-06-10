@@ -6,6 +6,8 @@
   "expiresIn": "Link wygasa za {{minutes}} minut",
   "share": "Udostępnij",
   "shareError": "Nie udało się utworzyć linku",
+  "copyFailed": "Nie udało się skopiować linku do schowka",
+  "retry": "Spróbuj ponownie",
   "importTitle": "Importuj udostępnioną muzykę",
   "loadingShare": "Ładowanie udostępnionej treści...",
   "downloadAll": "Pobierz wszystko ({{count}} utworów)",

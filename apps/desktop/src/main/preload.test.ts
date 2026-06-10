@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * Unit tests for the preload context-bridge utilities: the channel allowlist
- * (assertAllowedChannel) and invokeWithTimeout. These are tested directly
- * against context-bridge.ts rather than through the renderer surface, since
- * the ipc.invokeWithTimeout escape hatch was removed from the exposed API.
+ * (assertAllowedChannel) and the shared `invoke` wrapper every api/* module
+ * routes through. Tested directly against context-bridge.ts rather than the
+ * renderer surface. Error rehydration is covered in context-bridge.test.ts.
  */
 
 const mockInvoke = vi.fn();
@@ -24,7 +24,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-let invokeWithTimeout: (channel: string, timeoutMs: number, ...args: unknown[]) => Promise<unknown>;
+let invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
 
 beforeEach(async () => {
   vi.clearAllMocks();
@@ -43,37 +43,39 @@ beforeEach(async () => {
   }));
 
   const mod = await import('./preload/context-bridge');
-  invokeWithTimeout = mod.invokeWithTimeout;
+  invoke = mod.invoke;
 });
 
-describe('preload assertAllowedChannel', () => {
-  it('invokeWithTimeout resolves for an allowed channel', async () => {
+describe('preload invoke wrapper', () => {
+  it('forwards args and resolves for an allowed channel', async () => {
     mockInvoke.mockResolvedValue('ok');
 
-    const result = await invokeWithTimeout('store:get', 5000, 'theme');
+    const result = await invoke('store:get', 'theme');
     expect(result).toBe('ok');
     expect(mockInvoke).toHaveBeenCalledWith('store:get', 'theme');
   });
 
-  it('invokeWithTimeout throws synchronously for a disallowed channel', () => {
-    expect(() => invokeWithTimeout('evil:channel', 5000)).toThrow(
-      'IPC channel not allowed: "evil:channel"'
-    );
+  it('throws synchronously for a disallowed channel before any IPC traffic', () => {
+    expect(() => invoke('evil:channel')).toThrow('IPC channel not allowed: "evil:channel"');
     expect(mockInvoke).not.toHaveBeenCalled();
   });
 
-  it('invokeWithTimeout rejects after timeout when invoke hangs', async () => {
+  it('does not impose a timeout on a hanging invoke (long-running ops are allowed)', async () => {
+    let settled = false;
     mockInvoke.mockReturnValue(new Promise(() => {}));
 
-    await expect(invokeWithTimeout('store:get', 50, 'theme')).rejects.toThrow(
-      'IPC timeout: "store:get" did not respond within 50ms'
+    const pending = invoke('store:get', 'theme').then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      }
     );
-  });
-
-  it('invokeWithTimeout resolves before timeout for fast responses', async () => {
-    mockInvoke.mockResolvedValue(42);
-
-    const result = await invokeWithTimeout('store:get', 5000, 'settings');
-    expect(result).toBe(42);
+    // Yield the microtask queue; the wrapper must NOT reject on its own.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    void pending;
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import i18n from '@/lib/i18n';
+import i18n, { initI18n } from '@/lib/i18n';
 import type { ListeningHourlyActivityPoint } from '@/types/electron';
 import {
   buildHeatmap,
@@ -10,6 +10,13 @@ import {
   getTimeOfDay,
   WEATHER_GLYPH,
 } from './overviewUtils';
+
+// i18n is now initialized explicitly (English bundled, Polish lazy) rather than
+// as a module side effect, so the suite boots it before exercising translated
+// formatters and the en↔pl switch (which lazy-loads the Polish chunk).
+beforeAll(async () => {
+  await initI18n();
+});
 
 describe('getTimeOfDay', () => {
   it.each([

@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { clamp } from '@shiranami/shared';
 import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
 import { type FrequencySource } from './visualizer-source';
 
@@ -25,10 +26,6 @@ interface GradientCache {
   key: string;
   ctx: CanvasRenderingContext2D | null;
   bezel: CanvasGradient | null;
-}
-
-function clamp(v: number, a: number, b: number): number {
-  return v < a ? a : v > b ? b : v;
 }
 
 function drawVuFace(

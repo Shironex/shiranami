@@ -5,11 +5,10 @@ import { Play, ListPlus, Heart, Trash2, X, CheckCheck, MoreHorizontal } from 'lu
 import { cn } from '@/lib/utils';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useRemoveFromLibrary } from '@/hooks/useRemoveFromLibrary';
-import { toast } from 'sonner';
+import { useTrackActions } from '@/hooks/useTrackActions';
 import { useTranslation } from 'react-i18next';
 
 interface BulkActionBarProps {
@@ -208,7 +207,6 @@ function MoreMenu({ actions }: { actions: OverflowAction[] }) {
 
 export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBarProps) {
   const { t } = useTranslation('contextMenu');
-  const { t: tToast } = useTranslation('toast');
   const { t: tCommon } = useTranslation('common');
 
   const selectedTrackIds = useSelectionStore(s => s.selectedTrackIds);
@@ -216,12 +214,12 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
   const selectAll = useSelectionStore(s => s.selectAll);
   const count = selectedTrackIds.size;
 
-  const addToQueue = usePlaybackStore(s => s.addToQueue);
-  const playNext = usePlaybackStore(s => s.playNext);
-  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
   const library = useLibraryStore(s => s.library);
 
   const { handleRemoveFromLibrary, handleDeleteFromDisk } = useRemoveFromLibrary();
+  // The bar is conceptually a bulk surface, so keep its plural-only toast wording
+  // even when a single track happens to be selected.
+  const trackActions = useTrackActions({ alwaysPlural: true });
 
   if (count === 0) return null;
 
@@ -230,26 +228,9 @@ export function BulkActionBar({ trackList, onRemoveFromPlaylist }: BulkActionBar
     selectedTracks.length > 0 ? selectedTracks : trackList.filter(t => selectedTrackIds.has(t.id));
   const ids = Array.from(selectedTrackIds);
 
-  const handlePlayNext = () => {
-    for (const t of resolvedTracks) {
-      playNext(t);
-    }
-    toast.success(tToast('tracksPlayNext', { count }));
-    clearSelection();
-  };
-
-  const handleAddToQueue = () => {
-    addToQueue(resolvedTracks);
-    toast.success(tToast('addedTracksToQueue', { count }));
-    clearSelection();
-  };
-
-  const handleToggleFavorite = () => {
-    for (const id of ids) {
-      toggleFavorite(id);
-    }
-    clearSelection();
-  };
+  const handlePlayNext = () => trackActions.handlePlayNext(resolvedTracks);
+  const handleAddToQueue = () => trackActions.handleAddToQueue(resolvedTracks);
+  const handleToggleFavorite = () => trackActions.handleToggleFavorite(ids);
 
   const onRemoveFromLibrary = async () => {
     await handleRemoveFromLibrary(ids);

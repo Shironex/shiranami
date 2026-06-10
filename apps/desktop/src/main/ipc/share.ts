@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { randomUUID } from 'crypto';
-import { eq, youtubeMappings, tracks } from '@shiranami/database';
+import { eq, inArray, youtubeMappings, tracks, type Track } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import {
   createShareSchema,
@@ -8,6 +8,7 @@ import {
   IPC_CHANNELS,
   type CreateShareDto,
 } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST, chunk } from '@shiranami/shared';
 import { logger } from '../logger';
 import { HttpError, requestJson } from '../http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
@@ -22,8 +23,33 @@ import {
 
 const C = IPC_CHANNELS.share;
 
+// Bulk inArray reads are chunked to stay well under SQLite's bound-parameter
+// limit on pathological playlists (consistent with the other bulk call sites
+// in ipc/database/*).
+const CHUNK_SIZE = 500;
+
 const SHARE_API_URL =
   process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.shiranami.app';
+
+/**
+ * Read every cached track→youtubeId mapping for the given ids in one query.
+ * Lets bulk callers (playlist share) resolve cache hits without N per-track
+ * SELECTs; only cache misses fall through to the per-track yt-dlp search.
+ */
+function getCachedYoutubeIds(trackIds: string[]): Map<string, string> {
+  if (trackIds.length === 0) return new Map();
+  const db = getDatabase();
+  const cached = new Map<string, string>();
+  for (const batch of chunk(trackIds, CHUNK_SIZE)) {
+    const rows = db
+      .select({ trackId: youtubeMappings.trackId, youtubeId: youtubeMappings.youtubeId })
+      .from(youtubeMappings)
+      .where(inArray(youtubeMappings.trackId, batch))
+      .all();
+    for (const r of rows) cached.set(r.trackId, r.youtubeId);
+  }
+  return cached;
+}
 
 async function getYoutubeId(trackId: string): Promise<string | null> {
   const db = getDatabase();
@@ -143,7 +169,7 @@ export function registerShareHandlers(): void {
       const db = getDatabase();
       const track = await db.select().from(tracks).where(eq(tracks.id, trackId)).get();
       if (!track) throw new IpcError(SHARE_ERROR_CODES.TRACK_NOT_FOUND, 'Track not found');
-      logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? 'Unknown Artist'}`);
+      logger.info(`[share] Sharing track: "${track.title}" by ${track.artist ?? UNKNOWN_ARTIST}`);
 
       const ytId = await getYoutubeId(trackId);
       if (!ytId)
@@ -156,7 +182,7 @@ export function registerShareHandlers(): void {
         type: 'TRACK',
         payload: {
           title: track.title,
-          artist: track.artist ?? 'Unknown Artist',
+          artist: track.artist ?? UNKNOWN_ARTIST,
           ytId,
         },
       });
@@ -188,24 +214,35 @@ export function registerShareHandlers(): void {
         .orderBy(playlistTracks.position)
         .all();
 
-      const trackRows = [];
-      for (const pt of ptRows) {
-        const track = await db.select().from(tracks).where(eq(tracks.id, pt.trackId)).get();
-        if (track) trackRows.push(track);
+      // Fetch all playlist tracks in chunked bulk queries, then reorder in JS
+      // to match the playlist's position order (inArray returns rows
+      // unordered, and chunking discards any cross-chunk ordering anyway).
+      const orderedTrackIds = ptRows.map(pt => pt.trackId);
+      const trackById = new Map<string, Track>();
+      for (const batch of chunk(orderedTrackIds, CHUNK_SIZE)) {
+        const rows = db.select().from(tracks).where(inArray(tracks.id, batch)).all();
+        for (const row of rows) trackById.set(row.id, row);
       }
+      const trackRows = orderedTrackIds
+        .map(id => trackById.get(id))
+        .filter((t): t is NonNullable<typeof t> => t !== undefined);
 
       if (trackRows.length === 0)
         throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_EMPTY, 'Playlist has no tracks');
       logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
 
-      // Resolve YouTube IDs for all tracks
+      // Pre-resolve cached YouTube IDs in one query so the common case (an
+      // already-shared playlist) skips the per-track cache SELECT. Cache
+      // misses still fall through to getYoutubeId's per-track yt-dlp search,
+      // which is an unavoidable network op.
+      const cachedYtIds = getCachedYoutubeIds(trackRows.map(t => t.id));
       const shareTracks = [];
       for (const track of trackRows) {
-        const ytId = await getYoutubeId(track.id);
+        const ytId = cachedYtIds.get(track.id) ?? (await getYoutubeId(track.id));
         if (ytId) {
           shareTracks.push({
             title: track.title,
-            artist: track.artist ?? 'Unknown Artist',
+            artist: track.artist ?? UNKNOWN_ARTIST,
             ytId,
           });
         }

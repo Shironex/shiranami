@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -20,6 +20,6 @@ export interface MediaApi {
 
 export const mediaApi: MediaApi = {
   onCommand: createIpcListener<string>(C.command),
-  sendPlaybackState: state => ipcRenderer.invoke(C.playbackState, state),
-  clearState: () => ipcRenderer.invoke(C.clearState),
+  sendPlaybackState: state => invoke(C.playbackState, state),
+  clearState: () => invoke(C.clearState),
 };

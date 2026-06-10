@@ -206,10 +206,47 @@ function App() {
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
+
+    // A large scan fires one progress event per parsed file (~50k for a big
+    // library), and each event committed straight to the store re-renders
+    // ScanProgressCard. Coalesce to ~10 commits/sec: keep only the latest
+    // event between ticks, but ALWAYS flush the final event (fileIndex reaches
+    // fileCount) immediately so the bar never sticks below 100%.
+    const THROTTLE_MS = 100;
+    let pending: { filePath: string; fileIndex: number; fileCount: number; ok: boolean } | null =
+      null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = () => {
+      timer = null;
+      if (pending) {
+        useLibraryStore.getState().updateScanProgress(pending);
+        pending = null;
+      }
+    };
+
     const cleanup = window.electronAPI.library.onScanProgress(p => {
-      useLibraryStore.getState().updateScanProgress(p);
+      const isFinal = p.fileCount > 0 && p.fileIndex >= p.fileCount;
+      if (isFinal) {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        pending = null;
+        useLibraryStore.getState().updateScanProgress(p);
+        return;
+      }
+      pending = p;
+      if (!timer) timer = setTimeout(flush, THROTTLE_MS);
     });
-    return cleanup;
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      // Flush any straggler so the store reflects the last event the scan sent.
+      if (pending) useLibraryStore.getState().updateScanProgress(pending);
+      pending = null;
+      cleanup();
+    };
   }, []);
 
   return (
@@ -225,9 +262,11 @@ function App() {
       />
 
       {splashDone && !onboardingDone && (
-        <Suspense fallback={null}>
-          <OnboardingWizard onComplete={handleOnboardingComplete} />
-        </Suspense>
+        <ErrorBoundary viewName="OnboardingWizard">
+          <Suspense fallback={null}>
+            <OnboardingWizard onComplete={handleOnboardingComplete} />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {splashDone && onboardingDone && (
@@ -241,7 +280,9 @@ function App() {
           >
             <ThemeBackground />
             <AmbientBackground />
-            <CommandPalette />
+            <ErrorBoundary viewName="CommandPalette">
+              <CommandPalette />
+            </ErrorBoundary>
             {debugOpen && DebugOverlay && (
               <Suspense fallback={null}>
                 <DebugOverlay />
@@ -269,7 +310,9 @@ function App() {
             </ErrorBoundary>
 
             {compactMode ? (
-              <CompactPlayer />
+              <ErrorBoundary viewName="CompactPlayer" compact>
+                <CompactPlayer />
+              </ErrorBoundary>
             ) : (
               <>
                 {/* Skip to content link for keyboard users */}
@@ -281,18 +324,22 @@ function App() {
                 </a>
 
                 {/* Sidebar */}
-                <Sidebar />
+                <ErrorBoundary viewName="Sidebar" compact>
+                  <Sidebar />
+                </ErrorBoundary>
 
                 {/* Main content area */}
                 <div className="flex-1 flex flex-col min-w-0 relative">
                   {/* Support launch banner — shown once ever, after onboarding */}
                   <SupportBanner />
 
-                  <TopBar
-                    onAddFile={handleOpenFile}
-                    onAddFolder={handleOpenFolder}
-                    isScanning={isScanning}
-                  />
+                  <ErrorBoundary viewName="TopBar" compact>
+                    <TopBar
+                      onAddFile={handleOpenFile}
+                      onAddFolder={handleOpenFolder}
+                      isScanning={isScanning}
+                    />
+                  </ErrorBoundary>
 
                   <main
                     id="main-content"
@@ -443,9 +490,11 @@ function App() {
 
                   {/* Player bar (hidden in now-playing view — controls are inline) */}
                   {activeView !== 'now-playing' && (
-                    <DevProfiler id="player">
-                      <PlayerBar />
-                    </DevProfiler>
+                    <ErrorBoundary viewName="PlayerBar" compact>
+                      <DevProfiler id="player">
+                        <PlayerBar />
+                      </DevProfiler>
+                    </ErrorBoundary>
                   )}
                 </div>
               </>

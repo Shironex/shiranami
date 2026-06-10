@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
+import {
+  SHARE_ERROR_CODES,
+  PLAYLIST_ERROR_CODES,
+  VALIDATION_ERROR_CODES,
+} from '@shiranami/contracts';
 import type { ElectronAPI } from '@/types/electron';
 
 // Test-accessible ResizeObserver mock. Captures the callback and target so
@@ -171,7 +176,7 @@ function createElectronAPIMock(): ElectronAPI {
         incrementPlayCount: vi.fn(),
         exists: asyncFn(false),
         existsMany: asyncFn([]),
-        updateMany: asyncFn([]),
+        updateMany: asyncFn(undefined),
         getIdByPath: asyncFn(null),
       },
       history: {
@@ -191,7 +196,9 @@ function createElectronAPIMock(): ElectronAPI {
         delete: asyncFn(undefined),
         getTracks: asyncFn([]),
         addTrack: vi.fn(),
+        addTracks: asyncFn(undefined),
         removeTrack: asyncFn(undefined),
+        removeTracks: asyncFn(undefined),
         getPlaylistsForTracks: asyncFn([]),
         reorder: asyncFn(undefined),
       },
@@ -364,9 +371,31 @@ function createElectronAPIMock(): ElectronAPI {
         pendingCount: 0,
       }),
     },
+    errors: {
+      // Mirrors the preload's structural isIpcError: anything with a string
+      // `code` is treated as a rehydrated IpcError (the shape the invoke
+      // wrapper produces renderer-side).
+      isIpcError: (e: unknown): e is { code: string; message: string; details?: unknown } =>
+        typeof e === 'object' &&
+        e !== null &&
+        'code' in e &&
+        typeof (e as Record<string, unknown>).code === 'string',
+      SHARE_ERROR_CODES,
+      PLAYLIST_ERROR_CODES,
+      VALIDATION_ERROR_CODES,
+    },
     platform: 'win32',
     __e2e: false,
   };
 }
 
 window.electronAPI = createElectronAPIMock();
+
+// i18n is initialized explicitly now (English bundled, other locales lazy)
+// rather than as a module side effect, so boot it here for the test run — the
+// previous behavior where importing `@/lib/i18n` initialized it. Guarded so
+// suites that `vi.mock('@/lib/i18n')` (which omit `initI18n`) are unaffected.
+const { initI18n } = await import('@/lib/i18n');
+if (typeof initI18n === 'function') {
+  await initI18n();
+}

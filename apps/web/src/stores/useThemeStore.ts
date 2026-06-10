@@ -21,7 +21,7 @@ function coerceTheme(v: unknown): ThemeId {
 }
 
 /** Side-effect — mirrors applyLowPerformanceMode in useUIStore exactly. */
-export function applyTheme(theme: ThemeId) {
+export function applyTheme(theme: ThemeId): void {
   if (typeof document === 'undefined') return;
   if (theme === DEFAULT_THEME) {
     delete document.documentElement.dataset.theme; // bare :root == today

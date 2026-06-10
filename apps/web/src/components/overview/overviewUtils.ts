@@ -1,4 +1,5 @@
 import i18n from '@/lib/i18n';
+import { pad2 } from '@shiranami/shared';
 import type { WeatherCondition } from '@shiranami/contracts';
 import type { ListeningHourlyActivityPoint } from '@/types/electron';
 
@@ -130,9 +131,7 @@ export function formatTrendDelta(deltaMinutes: number): { sign: 1 | -1; label: s
   const rounded = Math.round(deltaMinutes);
   if (rounded === 0) return null;
   const sign = rounded > 0 ? 1 : -1;
-  const abs = Math.abs(rounded);
-  const hours = Math.floor(abs / 60);
-  const minutes = abs % 60;
+  const { hours, minutes } = formatHoursMinutes(Math.abs(rounded));
   const magnitude = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return { sign, label: `${sign > 0 ? '+' : '−'}${magnitude}` };
 }
@@ -257,6 +256,5 @@ export function getWeekdayShortNames(locale: string): string[] {
 export function formatPeakWindow(peakHour: number): string {
   const start = peakHour;
   const end = (peakHour + 3) % 24;
-  const pad = (h: number) => String(h).padStart(2, '0');
-  return `${pad(start)}:00 – ${pad(end)}:00`;
+  return `${pad2(start)}:00 – ${pad2(end)}:00`;
 }

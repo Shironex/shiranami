@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.app;
@@ -10,7 +10,7 @@ export interface AppApi {
 }
 
 export const appApi: AppApi = {
-  getVersion: () => ipcRenderer.invoke(C.getVersion),
-  openLogsFolder: () => ipcRenderer.invoke(C.openLogsFolder),
-  getLocaleCountry: () => ipcRenderer.invoke(C.getLocaleCountry),
+  getVersion: () => invoke(C.getVersion),
+  openLogsFolder: () => invoke(C.openLogsFolder),
+  getLocaleCountry: () => invoke(C.getLocaleCountry),
 };

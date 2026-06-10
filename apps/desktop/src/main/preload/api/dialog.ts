@@ -1,5 +1,5 @@
 import type { OpenDialogOptions } from 'electron';
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.dialog;
@@ -10,6 +10,6 @@ export interface DialogApi {
 }
 
 export const dialogApi: DialogApi = {
-  openDirectory: () => ipcRenderer.invoke(C.openDirectory),
-  openFile: options => ipcRenderer.invoke(C.openFile, options),
+  openDirectory: () => invoke(C.openDirectory),
+  openFile: options => invoke(C.openFile, options),
 };

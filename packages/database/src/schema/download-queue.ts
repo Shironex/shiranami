@@ -18,6 +18,20 @@
 
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
+/**
+ * Download lifecycle status. Kept in lockstep with the canonical
+ * `DownloadQueueStatus` union in `@shiranami/contracts` (domain/download-queue).
+ * Redeclared locally because this package must not depend on `@shiranami/contracts`.
+ * Type-level only — applied via `.$type<>()` so the generated SQL is unchanged.
+ */
+export type DownloadQueueStatus =
+  | 'queued'
+  | 'active'
+  | 'converting'
+  | 'done'
+  | 'error'
+  | 'canceled';
+
 export const downloadQueue = sqliteTable('download_queue', {
   /** Canonical queue-item id (must equal the runtime id so the renderer's batch
    * coordinator, which keys on item id, reconstructs correctly). */
@@ -26,7 +40,7 @@ export const downloadQueue = sqliteTable('download_queue', {
   youtubeId: text('youtube_id'),
   title: text('title').notNull(),
   thumbnail: text('thumbnail'),
-  status: text('status').notNull(),
+  status: text('status').notNull().$type<DownloadQueueStatus>(),
   filePath: text('file_path'),
   /** Playlist-import batch grouping (null for single downloads). */
   batchId: text('batch_id'),

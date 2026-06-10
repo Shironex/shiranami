@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { AlertCircle, ArrowLeft, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import type { SmartPlaylist } from '@shiranami/contracts';
@@ -21,10 +22,12 @@ import {
   useDeleteSmartPlaylistMutation,
 } from '@/hooks/queries/useSmartPlaylists';
 import { SmartPlaylistFormDialog } from './SmartPlaylistFormDialog';
+import { SmartPlaylistsViewSkeleton } from './SmartPlaylistsViewSkeleton';
 
 function SmartPlaylistDetail({ id }: { id: string }) {
   const { t } = useTranslation('smartPlaylists');
   const { t: tCommon } = useTranslation('common');
+  const { t: tToast } = useTranslation('toast');
   const selectSmartPlaylist = useViewStore(s => s.selectSmartPlaylist);
   const setQueue = usePlaybackStore(s => s.setQueue);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
@@ -49,10 +52,16 @@ function SmartPlaylistDetail({ id }: { id: string }) {
   const handleBack = useCallback(() => selectSmartPlaylist(null), [selectSmartPlaylist]);
 
   const handleDelete = useCallback(async () => {
-    await deleteMutation.mutateAsync(id);
-    setShowDeleteConfirm(false);
-    selectSmartPlaylist(null);
-  }, [deleteMutation, id, selectSmartPlaylist]);
+    if (deleteMutation.isPending) return;
+    try {
+      await deleteMutation.mutateAsync(id);
+      setShowDeleteConfirm(false);
+      selectSmartPlaylist(null);
+    } catch {
+      // Keep the confirm popover open so the user can retry or cancel.
+      toast.error(tToast('failedDeleteSmartPlaylist'));
+    }
+  }, [deleteMutation, id, selectSmartPlaylist, tToast]);
 
   if (loadingMeta) {
     return (
@@ -118,7 +127,8 @@ function SmartPlaylistDetail({ id }: { id: string }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleDelete}
-                    className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
+                    disabled={deleteMutation.isPending}
+                    className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors disabled:opacity-50"
                   >
                     {tCommon('delete')}
                   </button>
@@ -214,6 +224,10 @@ export function SmartPlaylistsView() {
     return <SmartPlaylistDetail id={selectedId} />;
   }
 
+  if (isLoading) {
+    return <SmartPlaylistsViewSkeleton />;
+  }
+
   if (isError) {
     return (
       <ViewEmptyState
@@ -242,11 +256,7 @@ export function SmartPlaylistsView() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
-        </div>
-      ) : sorted.length === 0 ? (
+      {sorted.length === 0 ? (
         <ViewEmptyState
           title={t('emptyTitle')}
           subtitle={t('emptySubtitle')}

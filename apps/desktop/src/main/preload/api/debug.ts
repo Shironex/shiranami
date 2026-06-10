@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS, type MainMetricsSnapshot } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -14,7 +14,7 @@ export interface DebugApi {
 }
 
 export const debugApi: DebugApi = {
-  start: () => ipcRenderer.invoke(C.start),
-  stop: () => ipcRenderer.invoke(C.stop),
+  start: () => invoke(C.start),
+  stop: () => invoke(C.stop),
   onMetrics: createIpcListener<MainMetricsSnapshot>(C.metrics),
 };

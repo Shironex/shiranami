@@ -1,4 +1,5 @@
 import { globalShortcut, BrowserWindow } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
 import { sendToRenderer } from './utils/window';
 
@@ -13,7 +14,7 @@ export interface PlaybackState {
 }
 
 function sendMediaCommand(command: string): void {
-  sendToRenderer('media:command', command);
+  sendToRenderer(IPC_CHANNELS.media.command, command);
 }
 
 export function initializeMediaControls(_mainWindow: BrowserWindow): void {

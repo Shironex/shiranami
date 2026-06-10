@@ -1,7 +1,7 @@
 /** Loading placeholder mirroring the Overview layout (hero, stats, two-column row, rail). */
 export function OverviewViewSkeleton() {
   return (
-    <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6" aria-hidden="true">
+    <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6" aria-busy="true" aria-hidden="true">
       <div className="h-44 animate-pulse rounded-[24px] border border-border/25 glass-panel" />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

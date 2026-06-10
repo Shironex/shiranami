@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { RecommendationShelves } from '@shiranami/contracts';
+import i18n from '@/lib/i18n';
 import { IS_ELECTRON } from '@/lib/platform';
 
 /** Recommendations come from a precomputed cache; a 15-minute stale window
@@ -41,7 +43,21 @@ export function useRecommendations() {
   const refresh = useMutation({
     mutationFn: async (): Promise<RecommendationShelves> => {
       if (!IS_ELECTRON) return EMPTY_SHELVES;
-      return window.electronAPI.recommendations.refresh();
+      // Snapshot the pre-refresh timestamp so onSuccess can tell a real refresh
+      // (generatedAt advances) from main silently degrading to the same cache
+      // (generatedAt unchanged) — the IPC resolves successfully either way.
+      const before =
+        queryClient.getQueryData<RecommendationShelves>(recommendationKeys.all) ?? EMPTY_SHELVES;
+      const after = await window.electronAPI.recommendations.refresh();
+      const beforeAt = before.discover.generatedAt ?? before.library.generatedAt;
+      const afterAt = after.discover.generatedAt ?? after.library.generatedAt;
+      // Unchanged timestamp on still-stale shelves ⇒ the refresh fell back to
+      // cache. Surface it so the spinner→same-data cycle isn't mistaken for a
+      // successful refresh.
+      if (beforeAt === afterAt && (after.discover.stale || after.library.stale)) {
+        toast.info(i18n.t('refreshFailedCached', { ns: 'recommendations' }));
+      }
+      return after;
     },
     onSuccess: shelves => {
       queryClient.setQueryData(recommendationKeys.all, shelves);

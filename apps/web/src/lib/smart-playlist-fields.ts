@@ -1,12 +1,20 @@
-import type { SmartPlaylistField, SmartPlaylistOperator } from '@shiranami/contracts';
+import {
+  SMART_PLAYLIST_FIELDS,
+  type SmartPlaylistField,
+  type SmartPlaylistOperator,
+} from '@shiranami/contracts';
+
+export { SMART_PLAYLIST_FIELDS };
 
 /** Value-input kind a field+operator pair expects in the rule builder. */
 export type RuleValueKind = 'text' | 'number' | 'boolean' | 'range' | 'days';
 
 /**
  * Which operators each field supports, mirroring what the backend
- * `ruleToCondition` translator actually handles. Keep in sync with
- * apps/desktop/src/main/ipc/database/smart-playlists.ts.
+ * `ruleToCondition` translator actually handles. Keyed by `SmartPlaylistField`
+ * (the contract tuple), so adding a field there forces an entry here at compile
+ * time. The field/operator *names* themselves come from @shiranami/contracts —
+ * only the per-field applicability lives here.
  */
 export const FIELD_OPERATORS: Record<SmartPlaylistField, SmartPlaylistOperator[]> = {
   genre: ['is', 'isNot', 'contains'],
@@ -18,8 +26,6 @@ export const FIELD_OPERATORS: Record<SmartPlaylistField, SmartPlaylistOperator[]
   isFavorite: ['is', 'isNot'],
   dateAdded: ['inLastDays'],
 };
-
-export const SMART_PLAYLIST_FIELDS = Object.keys(FIELD_OPERATORS) as SmartPlaylistField[];
 
 /** Resolve the value-input kind for a field+operator pair. */
 export function valueKindFor(

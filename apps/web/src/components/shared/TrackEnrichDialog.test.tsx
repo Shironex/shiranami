@@ -108,7 +108,7 @@ describe('TrackEnrichDialog', () => {
     });
     vi.mocked(window.electronAPI.db.tracks.getAll).mockResolvedValueOnce([
       { ...TRACK, artist: 'Real Artist' },
-    ]);
+    ] as never);
 
     render(<TrackEnrichDialog open={true} onOpenChange={() => {}} trackId="id-1" />);
 

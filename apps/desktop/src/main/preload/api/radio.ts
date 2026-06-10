@@ -1,26 +1,11 @@
-import { ipcRenderer } from 'electron';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import { invoke } from '../context-bridge';
+import { IPC_CHANNELS, type RadioStationInput, type RadioFavorite } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.radio.favorites;
 
-interface RadioStation {
-  stationUuid: string;
-  name: string;
-  url: string;
-  urlResolved: string;
-  homepage?: string;
-  favicon?: string;
-  country?: string;
-  countryCode?: string;
-  language?: string;
-  codec?: string;
-  bitrate?: number;
-  tags?: string;
-}
-
 export interface RadioFavoritesApi {
-  getAll: () => Promise<unknown[]>;
-  add: (station: RadioStation) => Promise<unknown>;
+  getAll: () => Promise<RadioFavorite[]>;
+  add: (station: RadioStationInput) => Promise<RadioFavorite>;
   remove: (stationUuid: string) => Promise<void>;
   isFavorite: (stationUuid: string) => Promise<boolean>;
 }
@@ -31,9 +16,9 @@ export interface RadioApi {
 
 export const radioApi: RadioApi = {
   favorites: {
-    getAll: () => ipcRenderer.invoke(C.getAll),
-    add: station => ipcRenderer.invoke(C.add, station),
-    remove: stationUuid => ipcRenderer.invoke(C.remove, stationUuid),
-    isFavorite: stationUuid => ipcRenderer.invoke(C.isFavorite, stationUuid) as Promise<boolean>,
+    getAll: () => invoke(C.getAll),
+    add: station => invoke(C.add, station),
+    remove: stationUuid => invoke(C.remove, stationUuid),
+    isFavorite: stationUuid => invoke(C.isFavorite, stationUuid),
   },
 };

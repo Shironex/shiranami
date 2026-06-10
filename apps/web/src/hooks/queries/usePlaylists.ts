@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import i18n from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useTrackOverlayStore } from '@/stores/useTrackOverlayStore';
@@ -22,7 +25,7 @@ export function usePlaylistsQuery() {
     queryKey: playlistKeys.all,
     queryFn: async () => {
       if (!IS_ELECTRON) return [];
-      return (await window.electronAPI.db.playlists.getAll()) as Playlist[];
+      return window.electronAPI.db.playlists.getAll();
     },
     enabled: IS_ELECTRON,
   });
@@ -103,7 +106,7 @@ export function useTrackPlaylistMembershipQuery(trackIds: string[]) {
     queryKey: [...playlistKeys.all, 'membership', [...trackIds].sort()],
     queryFn: async () => {
       if (!IS_ELECTRON || trackIds.length === 0) return [];
-      return (await window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds)) as string[];
+      return window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds);
     },
     enabled: IS_ELECTRON && trackIds.length > 0,
   });
@@ -158,9 +161,7 @@ export function useAddTrackToPlaylistMutation() {
 
   return useMutation({
     mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
-      for (const trackId of trackIds) {
-        await window.electronAPI.db.playlists.addTrack(playlistId, trackId);
-      }
+      await window.electronAPI.db.playlists.addTracks(playlistId, trackIds);
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });
@@ -174,9 +175,7 @@ export function useRemoveTrackFromPlaylistMutation() {
 
   return useMutation({
     mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
-      for (const trackId of trackIds) {
-        await window.electronAPI.db.playlists.removeTrack(playlistId, trackId);
-      }
+      await window.electronAPI.db.playlists.removeTracks(playlistId, trackIds);
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });
@@ -196,7 +195,7 @@ export function useCreatePlaylistsFromSubfoldersMutation() {
           name: sf.name,
           trackIds: sf.trackIds,
         });
-        created.push(playlist);
+        if (playlist) created.push(playlist);
       }
       return created;
     },
@@ -225,10 +224,14 @@ export function useReorderPlaylistMutation() {
 
       return { previous, playlistId };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(playlistKeys.tracks(context.playlistId), context.previous);
       }
+      // The optimistic order was rolled back above; tell the user the reorder
+      // didn't stick rather than silently snapping the rows back.
+      logger.error('Failed to reorder playlist:', err);
+      toast.error(i18n.t('failedReorderPlaylist', { ns: 'toast' }));
     },
   });
 }

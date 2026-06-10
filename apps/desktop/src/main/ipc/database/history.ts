@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { tracks, playHistory, eq, and, desc, sql, type NewPlayHistory } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { handle } from '../with-ipc-handler';
 import { submitPlay } from '../../scrobbler';
 import {
@@ -19,11 +20,9 @@ const SESSION_GAP_MS = 30 * 60 * 1000;
 
 // The `tracks` table stores nullable artist/album, but the history wire types
 // (ListeningHistoryEntry / ListeningStatsTrack / ListeningStatsArtist) declare
-// them non-null and the renderer renders them directly. Collapse nulls to these
-// sentinels at the IPC boundary so the type is honest and the UI never shows a
-// literal "null". (The simplify pass folds these into a shared constant.)
-const UNKNOWN_ARTIST = 'Unknown Artist';
-const UNKNOWN_ALBUM = 'Unknown Album';
+// them non-null and the renderer renders them directly. Collapse nulls to the
+// shared UNKNOWN_ARTIST / UNKNOWN_ALBUM sentinels at the IPC boundary so the
+// type is honest and the UI never shows a literal "null".
 
 const H = IPC_CHANNELS.db.history;
 

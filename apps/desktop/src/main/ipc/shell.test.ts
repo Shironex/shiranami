@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcHandlers } from '../../../test/setup';
+import { ipcHandlers, expectIpcErrorCode } from '../../../test/setup';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -76,23 +76,22 @@ describe('shell ipc handlers', () => {
       mockIsPathAllowed.mockResolvedValue(false);
       const handler = ipcHandlers.get('shell:show-in-folder')!;
 
-      await expect(handler(null as never, '/etc/passwd')).rejects.toMatchObject({
-        code: 'FORBIDDEN',
-      });
+      await expectIpcErrorCode(Promise.resolve(handler(null as never, '/etc/passwd')), 'FORBIDDEN');
       expect(mockShowItemInFolder).not.toHaveBeenCalled();
     });
 
-    it('rejected error has the IpcError shape', async () => {
+    it('rejected error transport-encodes the IpcError shape', async () => {
       mockIsPathAllowed.mockResolvedValue(false);
       const handler = ipcHandlers.get('shell:show-in-folder')!;
 
-      try {
-        await handler(null as never, '/etc/passwd');
-        throw new Error('handler should have thrown');
-      } catch (err) {
-        expect(isIpcError(err)).toBe(true);
-        expect((err as { code: string }).code).toBe('FORBIDDEN');
-      }
+      // The error leaving ipcMain.handle is sentinel-encoded; decoding it back
+      // yields the structured FORBIDDEN payload the renderer will rehydrate.
+      const decoded = await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, '/etc/passwd')),
+        'FORBIDDEN'
+      );
+      expect(isIpcError(decoded)).toBe(true);
+      expect(decoded.message).toBeTruthy();
     });
   });
 
@@ -112,9 +111,7 @@ describe('shell ipc handlers', () => {
       mockIsPathAllowed.mockResolvedValue(false);
       const handler = ipcHandlers.get('shell:trash-file')!;
 
-      await expect(handler(null as never, '/etc/passwd')).rejects.toMatchObject({
-        code: 'FORBIDDEN',
-      });
+      await expectIpcErrorCode(Promise.resolve(handler(null as never, '/etc/passwd')), 'FORBIDDEN');
       expect(mockTrashItem).not.toHaveBeenCalled();
     });
   });

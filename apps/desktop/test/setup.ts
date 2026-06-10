@@ -18,6 +18,14 @@ export function setMockMainWindow(win: BrowserWindow | null): void {
   mockMainWindow = win;
 }
 
+// `@sentry/electron/main` evaluates the real `electron` CommonJS module at
+// import time, which breaks the ESM named-import interop under vitest. Stub it
+// so modules that report errors via Sentry (e.g. with-ipc-handler) stay
+// importable; captureException is a harmless no-op in tests.
+vi.mock('@sentry/electron/main', () => ({
+  captureException: vi.fn(),
+}));
+
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn((key: string) => {
@@ -111,4 +119,40 @@ export function fireIpcOn(channel: string): void {
   for (const listener of set) {
     listener();
   }
+}
+
+/**
+ * Assert that a rejected handler promise carries an IpcError with `expectedCode`.
+ *
+ * `handle()` / `handleWithFallback()` sentinel-encode IpcErrors when they cross
+ * the ipcMain.handle boundary (so code/details survive Electron's serialization,
+ * which only keeps name/message). Registered handlers pulled from `ipcHandlers`
+ * therefore reject with a transport-encoded plain Error — this helper decodes it
+ * back to the structured payload and returns it for further assertions.
+ */
+export async function expectIpcErrorCode(
+  promise: Promise<unknown>,
+  expectedCode: string
+): Promise<{ code: string; message: string; details?: unknown }> {
+  const { decodeIpcError } = await import('../src/main/ipc/errors');
+  try {
+    await promise;
+  } catch (err) {
+    const decoded = decodeIpcError(err instanceof Error ? err.message : String(err));
+    if (!decoded) {
+      throw new Error(
+        `Expected a transport-encoded IpcError(${expectedCode}), got: ${String(err)}`,
+        {
+          cause: err,
+        }
+      );
+    }
+    if (decoded.code !== expectedCode) {
+      throw new Error(`Expected IpcError code ${expectedCode}, got ${decoded.code}`, {
+        cause: err,
+      });
+    }
+    return decoded;
+  }
+  throw new Error(`Expected promise to reject with IpcError(${expectedCode}), but it resolved`);
 }

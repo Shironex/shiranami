@@ -101,6 +101,20 @@ function cacheCoord(value: number): string {
 const currentCache = new Map<string, CacheEntry<WeatherCurrent>>();
 const geocodeCache = new Map<string, CacheEntry<GeocodeResult>>();
 
+// `geocodeCache` is keyed by free-text query, so bound it to avoid unbounded
+// growth from arbitrary searches. Evict the oldest (least-recently-set) entry
+// when full, mirroring the LRU pattern in lyrics-service.ts.
+const GEOCODE_CACHE_MAX = 50;
+function geocodeCacheSet(key: string, entry: CacheEntry<GeocodeResult>): void {
+  if (geocodeCache.has(key)) {
+    geocodeCache.delete(key);
+  } else if (geocodeCache.size >= GEOCODE_CACHE_MAX) {
+    const oldest = geocodeCache.keys().next().value;
+    if (oldest !== undefined) geocodeCache.delete(oldest);
+  }
+  geocodeCache.set(key, entry);
+}
+
 /** Thin `fetch` wrapper: 8s timeout, fair-use UA, throws WEATHER_UNAVAILABLE on any failure. */
 async function fetchJson<T>(url: string): Promise<T> {
   const controller = new AbortController();
@@ -194,7 +208,7 @@ export async function geocodeCity(query: string): Promise<GeocodeResult | null> 
     label: labelParts.join(', '),
   };
 
-  geocodeCache.set(normalized, { value: result, expiresAt: now + GEOCODE_CACHE_TTL_MS });
+  geocodeCacheSet(normalized, { value: result, expiresAt: now + GEOCODE_CACHE_TTL_MS });
   return result;
 }
 

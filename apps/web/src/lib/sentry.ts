@@ -1,9 +1,17 @@
-import * as SentryElectron from '@sentry/electron/renderer';
-import { init as reactInit } from '@sentry/react';
 import { scrubEvent } from '@shiranami/shared';
 import { IS_ELECTRON } from '@/lib/platform';
 
+// Type-only imports — erased at build, so they never pull the SDK into the
+// eager bundle. The actual SDK is dynamically imported inside
+// `initSentryRenderer`, after the consent check passes.
+type SentryRenderer = typeof import('@sentry/electron/renderer');
+type CaptureException = SentryRenderer['captureException'];
+
 let initialized = false;
+
+// Lazily populated once the SDK loads. Until then `captureException` below is a
+// no-op, which is the correct behavior pre-consent: nothing is reported.
+let sdkCaptureException: CaptureException | null = null;
 
 /**
  * Local-test escape hatch, mirroring the main process. When
@@ -20,6 +28,9 @@ const forceEnabled = import.meta.env.VITE_SENTRY_FORCE_ENABLE === 'true';
  * when force-enabled for local testing), and only inside Electron. The
  * DSN/release/environment are inherited from the main process via the
  * @sentry/electron IPC transport — the renderer never needs its own DSN.
+ *
+ * The SDK (~216 KB source) is dynamically imported here, AFTER the gates pass,
+ * so a normal launch (no consent, or not a packaged build) never parses it.
  *
  * Idempotent: a guard makes repeat calls a no-op, so the Privacy "Send test
  * event" button can safely call this to ensure init when consent was toggled
@@ -45,6 +56,12 @@ export async function initSentryRenderer(): Promise<void> {
   }
   if (!consent) return;
 
+  // Only now that consent is confirmed do we pull the SDK into the page.
+  const [SentryElectron, { init: reactInit }] = await Promise.all([
+    import('@sentry/electron/renderer'),
+    import('@sentry/react'),
+  ]);
+
   // Mirror the main process: sample everything on an unpackaged dev build, a
   // modest rate on shipped builds, and nothing when performance monitoring is
   // off. browserTracing is only wired when tracing is actually enabled.
@@ -60,8 +77,16 @@ export async function initSentryRenderer(): Promise<void> {
     reactInit
   );
 
+  sdkCaptureException = SentryElectron.captureException;
   initialized = true;
 }
 
-/** Re-export the renderer capture surface for the ErrorBoundary. */
-export const captureException = SentryElectron.captureException;
+/**
+ * Renderer capture surface for the ErrorBoundary and global handlers. A no-op
+ * until the SDK is loaded (i.e. until consent was given and init ran), so it is
+ * always safe to call synchronously without dragging the SDK into the eager
+ * bundle. Returns the Sentry event id, or an empty string when not yet active.
+ */
+export const captureException: CaptureException = (exception, hint) => {
+  return sdkCaptureException?.(exception, hint) ?? '';
+};

@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS, type GeocodeResult, type WeatherCurrent } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.weather;
@@ -9,6 +9,6 @@ export interface WeatherApi {
 }
 
 export const weatherApi: WeatherApi = {
-  geocode: query => ipcRenderer.invoke(C.geocode, query),
-  getCurrent: coords => ipcRenderer.invoke(C.getCurrent, coords),
+  geocode: query => invoke(C.geocode, query),
+  getCurrent: coords => invoke(C.getCurrent, coords),
 };

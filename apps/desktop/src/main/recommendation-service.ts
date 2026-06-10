@@ -24,6 +24,9 @@ import {
   recommendations,
   negativeSignals,
   eq,
+  ne,
+  and,
+  or,
   sql,
   inArray,
   type NewRecommendation,
@@ -34,6 +37,8 @@ import {
   rankBySimilarity,
   selectSeedTracks,
   buildSmartMixes,
+  UNKNOWN_ARTIST,
+  UNKNOWN_ALBUM,
   type SharedPlaylistCounts,
   type SimilarityTrack,
   type TrackStats,
@@ -53,6 +58,7 @@ import {
   type SmartMixSignals,
   type SmartMixResult,
 } from '@shiranami/contracts';
+import { chunk, mapWithConcurrency } from '@shiranami/shared';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
 import { isYtDlpInstalled } from './ytdlp-manager';
@@ -61,8 +67,7 @@ import { isYtDlpInstalled } from './ytdlp-manager';
  *  yields ~25 candidates, so a couple of seeds covers a shelf. */
 const DISCOVER_SEED_COUNT = 3;
 
-/** Bounded concurrency for the parallel RD-mix fetches — matches the proven
- *  ENRICH_CONCURRENCY worker-pool size from metadata-enrich-batch.ts. */
+/** Bounded concurrency for the parallel RD-mix fetches. */
 const DISCOVER_CONCURRENCY = 4;
 
 /** Cap on discover items written to the cache, across all seed mixes. */
@@ -236,19 +241,69 @@ function computeLibraryItems(): LibraryRecommendation[] {
 
 // ─────────────────────────── content similarity ─────────────────────────────
 
-/** Project every library track into the minimal content shape the similarity
- *  core consumes (id + the two reliable axes, artist/album). */
-function getSimilarityTracks(): SimilarityTrack[] {
-  const db = getDatabase();
-  const rows = db
-    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
-    .from(tracks)
-    .all();
-  return rows.map(row => ({
+/** Project one row into the minimal content shape the similarity core
+ *  consumes (id + the two reliable axes, artist/album). */
+function toSimilarityTrack(row: {
+  trackId: string;
+  artist: string | null;
+  album: string | null;
+}): SimilarityTrack {
+  return {
     trackId: row.trackId,
     artist: row.artist ?? '',
     album: row.album ?? '',
-  }));
+  };
+}
+
+/** Fetch a single track's similarity shape by id, or null when absent. */
+function getSimilaritySeed(seedTrackId: string): SimilarityTrack | null {
+  const db = getDatabase();
+  const row = db
+    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
+    .from(tracks)
+    .where(eq(tracks.id, seedTrackId))
+    .get();
+  return row ? toSimilarityTrack(row) : null;
+}
+
+/**
+ * Candidate pool for "more like this": only tracks that can possibly score > 0.
+ * similarityScore sums shared-artist, shared-album, and shared-playlist
+ * contributions and rankBySimilarity drops every 0, so a track sharing NONE of
+ * those with the seed is always discarded. SQL-prefilter on exactly those axes
+ * — same (real) artist, same (real) album, or playlist co-membership — instead
+ * of loading the entire tracks table on every click. The sentinel guards mirror
+ * the core's isRealArtist/isRealAlbum so an untagged seed doesn't drag the whole
+ * untagged library into the pool (those would score 0 anyway).
+ */
+function getSimilarityCandidates(seed: SimilarityTrack, coMemberIds: string[]): SimilarityTrack[] {
+  const db = getDatabase();
+
+  const axisClauses = [];
+  if (seed.artist.length > 0 && seed.artist !== UNKNOWN_ARTIST) {
+    axisClauses.push(eq(tracks.artist, seed.artist));
+  }
+  if (seed.album.length > 0 && seed.album !== UNKNOWN_ALBUM) {
+    axisClauses.push(eq(tracks.album, seed.album));
+  }
+  // Chunk co-member ids so the OR'd clauses stay well under SQLite's bound
+  // parameter limit even for seeds sharing playlists with thousands of tracks;
+  // multiple inArray clauses under or(...) match exactly the same rows as one.
+  const CHUNK_SIZE = 500;
+  for (const batch of chunk(coMemberIds, CHUNK_SIZE)) {
+    axisClauses.push(inArray(tracks.id, batch));
+  }
+
+  // No axis can match (untagged seed with no playlist co-members) → no
+  // candidate can score > 0, so skip the query entirely.
+  if (axisClauses.length === 0) return [];
+
+  const rows = db
+    .select({ trackId: tracks.id, artist: tracks.artist, album: tracks.album })
+    .from(tracks)
+    .where(and(ne(tracks.id, seed.trackId), or(...axisClauses)))
+    .all();
+  return rows.map(toSimilarityTrack);
 }
 
 /**
@@ -287,14 +342,14 @@ function getSharedPlaylistCounts(seedTrackId: string): SharedPlaylistCounts {
  * unknown so the renderer renders a quiet empty state.
  */
 export function computeSimilarTracks(seedTrackId: string): SimilarTrackResult[] {
-  const candidates = getSimilarityTracks();
-  const seed = candidates.find(track => track.trackId === seedTrackId);
+  const seed = getSimilaritySeed(seedTrackId);
   if (!seed) {
     logger.info(`[recommendations] similar: seed ${seedTrackId} not in library`);
     return [];
   }
 
   const sharedPlaylists = getSharedPlaylistCounts(seedTrackId);
+  const candidates = getSimilarityCandidates(seed, Object.keys(sharedPlaylists));
   return rankBySimilarity(seed, candidates, sharedPlaylists)
     .slice(0, SIMILAR_TRACKS_MAX)
     .map(track => ({ trackId: track.trackId, similarity: track.similarity }));
@@ -440,20 +495,10 @@ async function computeDiscoverItems(signal?: AbortSignal): Promise<DiscoverRecom
 
   // Per-seed results slotted by index so the merge preserves seed order even
   // though mixes finish out of order.
-  const slots: DiscoverRecommendation[][] = new Array(seedYoutubeIds.length);
-  let nextIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (true) {
-      if (signal?.aborted) return;
-      const i = nextIndex++;
-      if (i >= seedYoutubeIds.length) return;
-      slots[i] = await fetchRdMix(seedYoutubeIds[i], signal);
-    }
-  }
-
-  const poolSize = Math.max(1, Math.min(DISCOVER_CONCURRENCY, seedYoutubeIds.length));
-  await Promise.all(Array.from({ length: poolSize }, () => worker()));
+  const slots = await mapWithConcurrency(seedYoutubeIds, DISCOVER_CONCURRENCY, youtubeId => {
+    if (signal?.aborted) return Promise.resolve<DiscoverRecommendation[]>([]);
+    return fetchRdMix(youtubeId, signal);
+  });
 
   for (const items of slots) {
     if (!items) continue;

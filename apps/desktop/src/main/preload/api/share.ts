@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS, type ShareImportResponse } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -21,9 +21,9 @@ export interface ShareApi {
 }
 
 export const shareApi: ShareApi = {
-  track: trackId => ipcRenderer.invoke(C.track, trackId),
-  playlist: playlistId => ipcRenderer.invoke(C.playlist, playlistId),
-  import: code => ipcRenderer.invoke(C.import, code),
-  cacheYoutubeId: (trackId, youtubeId) => ipcRenderer.invoke(C.cacheYoutubeId, trackId, youtubeId),
+  track: trackId => invoke(C.track, trackId),
+  playlist: playlistId => invoke(C.playlist, playlistId),
+  import: code => invoke(C.import, code),
+  cacheYoutubeId: (trackId, youtubeId) => invoke(C.cacheYoutubeId, trackId, youtubeId),
   onDeepLink: createIpcListener<string>(C.deepLink),
 };

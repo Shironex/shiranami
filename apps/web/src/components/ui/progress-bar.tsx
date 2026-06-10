@@ -1,3 +1,4 @@
+import { clamp } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 
 interface ProgressBarProps {
@@ -22,7 +23,7 @@ export function ProgressBar({
   fillClassName,
   'aria-label': ariaLabel,
 }: ProgressBarProps) {
-  const clamped = Math.max(0, Math.min(100, value));
+  const clamped = clamp(value, 0, 100);
   return (
     <div
       className={cn('w-full h-2 rounded-full bg-muted overflow-hidden', className)}

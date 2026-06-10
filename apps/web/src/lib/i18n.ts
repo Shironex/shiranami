@@ -1,6 +1,8 @@
 import i18n from 'i18next';
+import type { BackendModule, ReadCallback, ResourceLanguage } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
+import { logger } from '@/lib/logger';
 
 import commonEn from '@/locales/en/common.json';
 import sidebarEn from '@/locales/en/sidebar.json';
@@ -36,40 +38,6 @@ import recommendationsEn from '@/locales/en/recommendations.json';
 import smartPlaylistsEn from '@/locales/en/smartPlaylists.json';
 import downloadsEn from '@/locales/en/downloads.json';
 
-import commonPl from '@/locales/pl/common.json';
-import sidebarPl from '@/locales/pl/sidebar.json';
-import topbarPl from '@/locales/pl/topbar.json';
-import playerPl from '@/locales/pl/player.json';
-import libraryPl from '@/locales/pl/library.json';
-import favoritesPl from '@/locales/pl/favorites.json';
-import playlistsPl from '@/locales/pl/playlists.json';
-import searchPl from '@/locales/pl/search.json';
-import radioPl from '@/locales/pl/radio.json';
-import historyPl from '@/locales/pl/history.json';
-import overviewPl from '@/locales/pl/overview.json';
-import settingsPl from '@/locales/pl/settings.json';
-import queuePl from '@/locales/pl/queue.json';
-import lyricsPl from '@/locales/pl/lyrics.json';
-import compactPl from '@/locales/pl/compact.json';
-import commandPalettePl from '@/locales/pl/commandPalette.json';
-import shortcutsPl from '@/locales/pl/shortcuts.json';
-import sleepTimerPl from '@/locales/pl/sleepTimer.json';
-import contextMenuPl from '@/locales/pl/contextMenu.json';
-import toastPl from '@/locales/pl/toast.json';
-import splashPl from '@/locales/pl/splash.json';
-import importPl from '@/locales/pl/import.json';
-import sharePl from '@/locales/pl/share.json';
-import mixesPl from '@/locales/pl/mixes.json';
-import nowPlayingPl from '@/locales/pl/nowPlaying.json';
-import errorBoundaryPl from '@/locales/pl/errorBoundary.json';
-import equalizerPl from '@/locales/pl/equalizer.json';
-import enrichDialogPl from '@/locales/pl/enrichDialog.json';
-import editTagsPl from '@/locales/pl/editTags.json';
-import onboardingPl from '@/locales/pl/onboarding.json';
-import recommendationsPl from '@/locales/pl/recommendations.json';
-import smartPlaylistsPl from '@/locales/pl/smartPlaylists.json';
-import downloadsPl from '@/locales/pl/downloads.json';
-
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'pl', label: 'Polski' },
@@ -95,7 +63,9 @@ export function persistLanguage(lang: SupportedLanguage) {
   window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
 
   if (IS_ELECTRON) {
-    window.electronAPI.store.set('app.language', lang).catch(() => {});
+    window.electronAPI.store
+      .set('app.language', lang)
+      .catch(err => logger.warn('Failed to persist language preference', err));
   }
 }
 
@@ -135,87 +105,120 @@ const namespaces = [
   'downloads',
 ] as const;
 
-i18n.use(initReactI18next).init({
-  resources: {
-    en: {
-      common: commonEn,
-      sidebar: sidebarEn,
-      topbar: topbarEn,
-      player: playerEn,
-      library: libraryEn,
-      favorites: favoritesEn,
-      playlists: playlistsEn,
-      search: searchEn,
-      radio: radioEn,
-      history: historyEn,
-      overview: overviewEn,
-      settings: settingsEn,
-      queue: queueEn,
-      lyrics: lyricsEn,
-      compact: compactEn,
-      commandPalette: commandPaletteEn,
-      shortcuts: shortcutsEn,
-      sleepTimer: sleepTimerEn,
-      contextMenu: contextMenuEn,
-      toast: toastEn,
-      splash: splashEn,
-      import: importEn,
-      share: shareEn,
-      mixes: mixesEn,
-      nowPlaying: nowPlayingEn,
-      errorBoundary: errorBoundaryEn,
-      equalizer: equalizerEn,
-      enrichDialog: enrichDialogEn,
-      editTags: editTagsEn,
-      onboarding: onboardingEn,
-      recommendations: recommendationsEn,
-      smartPlaylists: smartPlaylistsEn,
-      downloads: downloadsEn,
-    },
-    pl: {
-      common: commonPl,
-      sidebar: sidebarPl,
-      topbar: topbarPl,
-      player: playerPl,
-      library: libraryPl,
-      favorites: favoritesPl,
-      playlists: playlistsPl,
-      search: searchPl,
-      radio: radioPl,
-      history: historyPl,
-      overview: overviewPl,
-      settings: settingsPl,
-      queue: queuePl,
-      lyrics: lyricsPl,
-      compact: compactPl,
-      commandPalette: commandPalettePl,
-      shortcuts: shortcutsPl,
-      sleepTimer: sleepTimerPl,
-      contextMenu: contextMenuPl,
-      toast: toastPl,
-      splash: splashPl,
-      import: importPl,
-      share: sharePl,
-      mixes: mixesPl,
-      nowPlaying: nowPlayingPl,
-      errorBoundary: errorBoundaryPl,
-      equalizer: equalizerPl,
-      enrichDialog: enrichDialogPl,
-      editTags: editTagsPl,
-      onboarding: onboardingPl,
-      recommendations: recommendationsPl,
-      smartPlaylists: smartPlaylistsPl,
-      downloads: downloadsPl,
-    },
+// English is the fallback locale, so its 33 namespaces stay statically bundled
+// into the entry chunk — every key must resolve synchronously even when another
+// locale is active and missing a key. Every other locale is loaded on demand by
+// the backend below so its namespaces never weigh down first paint.
+const englishResources: ResourceLanguage = {
+  common: commonEn,
+  sidebar: sidebarEn,
+  topbar: topbarEn,
+  player: playerEn,
+  library: libraryEn,
+  favorites: favoritesEn,
+  playlists: playlistsEn,
+  search: searchEn,
+  radio: radioEn,
+  history: historyEn,
+  overview: overviewEn,
+  settings: settingsEn,
+  queue: queueEn,
+  lyrics: lyricsEn,
+  compact: compactEn,
+  commandPalette: commandPaletteEn,
+  shortcuts: shortcutsEn,
+  sleepTimer: sleepTimerEn,
+  contextMenu: contextMenuEn,
+  toast: toastEn,
+  splash: splashEn,
+  import: importEn,
+  share: shareEn,
+  mixes: mixesEn,
+  nowPlaying: nowPlayingEn,
+  errorBoundary: errorBoundaryEn,
+  equalizer: equalizerEn,
+  enrichDialog: enrichDialogEn,
+  editTags: editTagsEn,
+  onboarding: onboardingEn,
+  recommendations: recommendationsEn,
+  smartPlaylists: smartPlaylistsEn,
+  downloads: downloadsEn,
+};
+
+// Per-namespace lazy importers for the non-English locales. English is excluded
+// because it ships statically in `englishResources` above; pulling it into the
+// glob would split the bundled fallback back out into eager chunks. Vite turns
+// each matched JSON into its own dynamically-imported module, and Rollup groups
+// a locale's namespaces into one chunk — switching to Polish pulls one `pl`
+// chunk, not 33 round-trips.
+const localeModules = import.meta.glob<{ default: ResourceLanguage[string] }>([
+  '../locales/*/*.json',
+  '!../locales/en/*.json',
+]);
+
+// Re-key the glob by `${locale}/${namespace}` so lookups don't depend on the
+// path prefix Vite happens to emit for the matched keys.
+type LocaleLoader = () => Promise<{ default: ResourceLanguage[string] }>;
+const localeLoaders = new Map<string, LocaleLoader>();
+for (const [path, loader] of Object.entries(localeModules)) {
+  const match = /\/locales\/([^/]+)\/([^/]+)\.json$/.exec(path);
+  if (match) localeLoaders.set(`${match[1]}/${match[2]}`, loader);
+}
+
+/**
+ * On-demand resource backend. English is served from the eagerly-bundled
+ * resources; any other locale's namespace is dynamically imported the first
+ * time i18next asks for it (initial render in that language, or a switch).
+ * Routing every locale through here means direct `i18n.changeLanguage(...)`
+ * calls anywhere in the app — and in tests — transparently pull the chunk.
+ */
+const lazyLocaleBackend: BackendModule = {
+  type: 'backend',
+  init: () => {},
+  read: (language: string, namespace: string, callback: ReadCallback) => {
+    if (language === 'en') {
+      callback(null, englishResources[namespace] ?? false);
+      return;
+    }
+    const loader = localeLoaders.get(`${language}/${namespace}`);
+    if (!loader) {
+      callback(null, false);
+      return;
+    }
+    loader()
+      .then(mod => callback(null, mod.default))
+      .catch(err => {
+        logger.warn(`Failed to load locale ${language}/${namespace}`, err);
+        // Signal a hard failure so i18next falls back to English for this key.
+        callback(err instanceof Error ? err : new Error(String(err)), false);
+      });
   },
-  lng: getInitialLanguage(),
-  fallbackLng: 'en',
-  ns: namespaces as unknown as string[],
-  defaultNS: 'common',
-  interpolation: {
-    escapeValue: false,
-  },
-});
+};
+
+/**
+ * Boot i18next with English bundled and every other locale lazy. Awaiting the
+ * returned promise guarantees the initial language's namespaces are present
+ * before first paint, so a user whose persisted language is Polish never sees a
+ * flash of raw English keys (main.tsx awaits this before rendering).
+ */
+export function initI18n(): Promise<unknown> {
+  return i18n
+    .use(lazyLocaleBackend)
+    .use(initReactI18next)
+    .init({
+      // Only English ships eagerly; `partialBundledLanguages` lets the backend
+      // supply the rest on demand even though `resources` is populated.
+      resources: { en: englishResources },
+      partialBundledLanguages: true,
+      lng: getInitialLanguage(),
+      fallbackLng: 'en',
+      ns: namespaces as unknown as string[],
+      defaultNS: 'common',
+      interpolation: {
+        escapeValue: false,
+      },
+    });
+}
 
 export async function hydrateLanguageFromStore() {
   if (!IS_ELECTRON) return;
@@ -224,6 +227,8 @@ export async function hydrateLanguageFromStore() {
     if (isSupportedLanguage(stored)) {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, stored);
       if (i18n.language !== stored) {
+        // changeLanguage awaits the backend, so the target locale's namespaces
+        // are loaded before the UI re-renders in the new language.
         await i18n.changeLanguage(stored);
       }
     }

@@ -1,3 +1,4 @@
+import { clamp } from '@shiranami/shared';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
 
@@ -48,6 +49,8 @@ export const EQ_PRESETS: Record<NamedEqPresetId, number[]> = {
 
 export const EQ_MIN_DB = -12;
 export const EQ_MAX_DB = 12;
+export const PREAMP_MIN_DB = -12;
+export const PREAMP_MAX_DB = 12;
 const BAND_COUNT = EQ_BANDS.length;
 const GAIN_EPSILON = 0.001;
 
@@ -96,7 +99,7 @@ interface PersistedEqState {
 
 function clampDb(db: number): number {
   if (!Number.isFinite(db)) return 0;
-  return Math.max(EQ_MIN_DB, Math.min(EQ_MAX_DB, db));
+  return clamp(db, EQ_MIN_DB, EQ_MAX_DB);
 }
 
 function gainsMatch(a: readonly number[], b: readonly number[]): boolean {

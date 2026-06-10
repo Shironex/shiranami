@@ -127,3 +127,41 @@ export function createLegacyTables(database: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_youtube_mappings_track_id ON youtube_mappings(track_id);
   `);
 }
+
+/**
+ * Recreate a much OLDER legacy database — the additive boot path mid-history,
+ * before later features shipped their tables. This reproduces the data-loss
+ * hole: a user who jumped from e.g. v0.9 straight to a migrator build has only
+ * the `tracks` table (no play_history/recommendations/playlists/etc.) and a
+ * `tracks` shape that predates the `disc_number` ALTER.
+ *
+ * Used to assert the heal migration restores every missing baseline-era table
+ * and the disc_number column without data loss. Do NOT use in production code.
+ */
+export function createOldEraLegacyTracksTable(database: Database.Database): void {
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS tracks (
+      id TEXT PRIMARY KEY,
+      file_path TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      artist TEXT DEFAULT 'Unknown Artist',
+      album TEXT DEFAULT 'Unknown Album',
+      duration REAL,
+      genre TEXT,
+      year INTEGER,
+      track_number INTEGER,
+      album_art TEXT,
+      is_favorite INTEGER DEFAULT 0,
+      play_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  database.exec(`
+    CREATE INDEX IF NOT EXISTS idx_tracks_file_path ON tracks(file_path);
+    CREATE INDEX IF NOT EXISTS idx_tracks_artist ON tracks(artist);
+    CREATE INDEX IF NOT EXISTS idx_tracks_album ON tracks(album);
+    CREATE INDEX IF NOT EXISTS idx_tracks_is_favorite ON tracks(is_favorite);
+  `);
+}

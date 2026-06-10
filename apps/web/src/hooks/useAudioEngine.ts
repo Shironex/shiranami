@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { clamp01 } from '@shiranami/shared';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import type { Track } from '@/stores/types';
@@ -15,7 +16,7 @@ import {
   setPreampDb,
 } from '@/lib/audioAnalyser';
 import { useEqStore } from '@/stores/useEqStore';
-import { computeLoudnessGainDb } from '@/lib/loudness';
+import { computeLoudnessGainDb, dbToLinear } from '@/lib/loudness';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
@@ -59,7 +60,7 @@ export function loudnessLinearGain(
 ): number {
   if (!enabled) return 1;
   const db = computeLoudnessGainDb(measuredLufs, targetLufs);
-  return 10 ** (db / 20);
+  return dbToLinear(db);
 }
 
 /**
@@ -209,7 +210,7 @@ export function useAudioEngine() {
       // Pre-analyser fallback: audio.volume is clamped to [0, 1], so loudness
       // boosts above unity can't be honoured here (they take effect once the
       // GainNode chain is live on first play).
-      if (audio) audio.volume = Math.max(0, Math.min(1, gain));
+      if (audio) audio.volume = clamp01(gain);
     }
   }
 
@@ -408,7 +409,9 @@ export function useAudioEngine() {
       if (!crossfadeRef.current.active) return;
       resumeAudioContext();
       setVolume(incomingDeckId, 0);
-      incomingAudio.play().catch(() => {});
+      incomingAudio.play().catch(err => {
+        if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);
+      });
     };
     incomingAudio.addEventListener('canplay', onCanPlay);
 
@@ -453,7 +456,9 @@ export function useAudioEngine() {
       // silently rejected during startCrossfade the element sits paused with
       // gain ramped up — the user hears nothing, permanently.
       if (incoming.paused && incoming.src) {
-        incoming.play().catch(() => {});
+        incoming.play().catch(err => {
+          if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);
+        });
       }
     }
     _setIsLoading(false);
@@ -686,6 +691,7 @@ export function useAudioEngine() {
           resumeAudioContext();
           incoming.play().catch(err => {
             if (err.name !== 'AbortError') {
+              logger.error('[audio] play() rejected', err);
               _setError(err.message);
               _setIsPlaying(false);
             }
@@ -723,6 +729,7 @@ export function useAudioEngine() {
         resumeAudioContext();
         audio.play().catch(err => {
           if (err.name !== 'AbortError') {
+            logger.error('[audio] play() rejected', err);
             _setError(err.message);
             _setIsPlaying(false);
           }
@@ -794,6 +801,7 @@ export function useAudioEngine() {
       resumeAudioContext();
       active.play().catch((err: DOMException) => {
         if (err.name !== 'AbortError') {
+          logger.error('[audio] play() rejected', err);
           _setError(err.message);
           _setIsPlaying(false);
         }
@@ -802,7 +810,9 @@ export function useAudioEngine() {
       // Also resume incoming deck if crossfading
       if (crossfadeRef.current.active) {
         const incoming = getDeck(crossfadeRef.current.incomingDeck);
-        incoming?.play().catch(() => {});
+        incoming?.play().catch(err => {
+          if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);
+        });
       }
 
       animationFrameRef.current = requestAnimationFrame(updateTime);
@@ -1036,7 +1046,9 @@ export function useAudioEngine() {
     const onEnded = () => {
       if (repeatMode === 'one') {
         audio.currentTime = 0;
-        audio.play().catch(() => {});
+        audio.play().catch(err => {
+          if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);
+        });
       }
     };
 

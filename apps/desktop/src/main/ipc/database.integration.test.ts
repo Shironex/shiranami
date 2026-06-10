@@ -415,6 +415,79 @@ describe('database ipc (integration)', () => {
   });
 
   /* ------------------------------------------------------------------ */
+  /*  tracks:update-many (patch-grouped batch update)                   */
+  /* ------------------------------------------------------------------ */
+
+  it('tracks:update-many applies distinct patches and groups identical ones', async () => {
+    // Two tracks share one patch (same album/year fix), a third gets a
+    // different patch — exercises both the grouped inArray path and a
+    // singleton patch in the same call.
+    const t1 = await insertTrack({ title: 'One', album: 'Old', year: null });
+    const t2 = await insertTrack({ title: 'Two', album: 'Old', year: null });
+    const t3 = await insertTrack({ title: 'Three', artist: 'Unknown Artist' });
+
+    const updateMany = ipcHandlers.get('db:tracks:update-many')!;
+    const result = (await updateMany(null as never, [
+      { id: t1.id, data: { album: 'New Album', year: 2020 } },
+      { id: t2.id, data: { album: 'New Album', year: 2020 } },
+      { id: t3.id, data: { artist: 'Real Artist' } },
+    ])) as unknown;
+
+    // Return contract is void now — the renderer re-reads via getAll().
+    expect(result).toBeUndefined();
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as Array<{
+      id: string;
+      album: string;
+      year: number | null;
+      artist: string;
+    }>;
+    const byId = new Map(all.map(t => [t.id, t]));
+    expect(byId.get(t1.id)!.album).toBe('New Album');
+    expect(byId.get(t1.id)!.year).toBe(2020);
+    expect(byId.get(t2.id)!.album).toBe('New Album');
+    expect(byId.get(t2.id)!.year).toBe(2020);
+    expect(byId.get(t3.id)!.artist).toBe('Real Artist');
+    // Untouched fields stay put.
+    expect(byId.get(t3.id)!.album).toBe('Test Album');
+  });
+
+  it('tracks:update-many handles an empty array', async () => {
+    const updateMany = ipcHandlers.get('db:tracks:update-many')!;
+    const result = (await updateMany(null as never, [])) as unknown;
+    expect(result).toBeUndefined();
+  });
+
+  it('tracks:update-many skips empty and undefined-only patches', async () => {
+    // An empty patch ({}) or one whose values are all undefined would hit
+    // drizzle's .set({}) "No values to set" throw and abort the transaction.
+    // The handler must drop them while still applying real patches in the
+    // same call — including a patch that mixes undefined with real values.
+    const t1 = await insertTrack({ title: 'Keep Me' });
+    const t2 = await insertTrack({ title: 'Change Me', album: 'Old' });
+
+    const updateMany = ipcHandlers.get('db:tracks:update-many')!;
+    await expect(
+      updateMany(null as never, [
+        { id: t1.id, data: {} },
+        { id: t1.id, data: { title: undefined } },
+        { id: t2.id, data: { album: 'New', year: undefined } },
+      ])
+    ).resolves.toBeUndefined();
+
+    const getAll = ipcHandlers.get('db:tracks:get-all')!;
+    const all = (await getAll(null as never)) as Array<{
+      id: string;
+      title: string;
+      album: string;
+    }>;
+    const byId = new Map(all.map(t => [t.id, t]));
+    expect(byId.get(t1.id)!.title).toBe('Keep Me');
+    expect(byId.get(t2.id)!.album).toBe('New');
+  });
+
+  /* ------------------------------------------------------------------ */
   /*  tracks:toggle-favorite                                            */
   /* ------------------------------------------------------------------ */
 
@@ -537,6 +610,125 @@ describe('database ipc (integration)', () => {
     const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
     const result = (await getTracks(null as never, playlist.id)) as unknown[];
     expect(result).toHaveLength(0);
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  playlists:add-tracks / remove-tracks (batch)                       */
+  /* ------------------------------------------------------------------ */
+
+  it('playlists:add-tracks appends in input order and is idempotent', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+    const t2 = await insertTrack({ title: 'B' });
+    const t3 = await insertTrack({ title: 'C' });
+
+    const create = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await create(null as never, { name: 'Batch Add' })) as { id: string };
+
+    const addTracks = ipcHandlers.get('db:playlists:add-tracks')!;
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t2.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    let result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['A', 'B']);
+
+    // Re-adding t2 (already present) and adding t3 appends only t3 after the
+    // existing tail — idempotent membership, order preserved.
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t2.id, t3.id] });
+    result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('playlists:add-tracks de-dups repeats within a single call', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+
+    const create = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await create(null as never, { name: 'Dedup Batch' })) as { id: string };
+
+    const addTracks = ipcHandlers.get('db:playlists:add-tracks')!;
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t1.id, t1.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as unknown[];
+    expect(result).toHaveLength(1);
+  });
+
+  it('playlists:remove-tracks removes the supplied ids and leaves the rest', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+    const t2 = await insertTrack({ title: 'B' });
+    const t3 = await insertTrack({ title: 'C' });
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Batch Remove',
+      trackIds: [t1.id, t2.id, t3.id],
+    })) as { id: string };
+
+    const removeTracks = ipcHandlers.get('db:playlists:remove-tracks')!;
+    await removeTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t3.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['B']);
+  });
+
+  /* ------------------------------------------------------------------ */
+  /*  playlists:reorder                                                  */
+  /* ------------------------------------------------------------------ */
+
+  it('playlists:reorder rewrites positions to match the supplied order', async () => {
+    const trackA = await insertTrack({ title: 'A' });
+    const trackB = await insertTrack({ title: 'B' });
+    const trackC = await insertTrack({ title: 'C' });
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Reorder',
+      trackIds: [trackA.id, trackB.id, trackC.id],
+    })) as { id: string };
+
+    const reorder = ipcHandlers.get('db:playlists:reorder')!;
+    await reorder(null as never, {
+      playlistId: playlist.id,
+      trackIds: [trackC.id, trackA.id, trackB.id],
+    });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['C', 'A', 'B']);
+  });
+
+  it('playlists:reorder reverses a playlist larger than the chunk size', async () => {
+    // 250 tracks spans 3 reorder chunks (100/100/50). Reverse the whole list
+    // and assert the round-trip order, which only holds if positions across
+    // chunk boundaries are written correctly.
+    const count = 250;
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const added = (await addMany(
+      null as never,
+      Array.from({ length: count }, (_, i) => ({
+        filePath: `/music/reorder-${i}.mp3`,
+        title: `Track ${i}`,
+        artist: 'Artist',
+        album: 'Album',
+        duration: 120,
+      }))
+    )) as Array<{ id: string }>;
+    const ids = added.map(t => t.id);
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Big Reorder',
+      trackIds: ids,
+    })) as { id: string };
+
+    const reversed = [...ids].reverse();
+    const reorder = ipcHandlers.get('db:playlists:reorder')!;
+    await reorder(null as never, { playlistId: playlist.id, trackIds: reversed });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ id: string }>;
+    expect(result).toHaveLength(count);
+    expect(result.map(t => t.id)).toEqual(reversed);
   });
 
   /* ------------------------------------------------------------------ */

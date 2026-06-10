@@ -1,5 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, truncate } from './utils';
+import { chunk, clamp, clamp01, formatDuration, mapWithConcurrency, truncate } from './utils';
+
+describe('clamp', () => {
+  it('passes finite values through within range and clamps the bounds', () => {
+    expect(clamp(5, 0, 10)).toBe(5);
+    expect(clamp(-3, 0, 10)).toBe(0);
+    expect(clamp(42, 0, 10)).toBe(10);
+  });
+
+  it('collapses non-finite values to min instead of propagating', () => {
+    expect(clamp(NaN, 0, 10)).toBe(0);
+    expect(clamp(Infinity, 0, 10)).toBe(0);
+    expect(clamp(-Infinity, 0, 10)).toBe(0);
+    expect(clamp(NaN, 2, 8)).toBe(2);
+  });
+});
+
+describe('clamp01', () => {
+  it('clamps into [0, 1] and treats malformed input as 0', () => {
+    expect(clamp01(0.5)).toBe(0.5);
+    expect(clamp01(5)).toBe(1);
+    expect(clamp01(-3)).toBe(0);
+    expect(clamp01(NaN)).toBe(0);
+    expect(clamp01(Infinity)).toBe(0);
+  });
+});
 
 describe('truncate', () => {
   it('returns empty string when max <= 0', () => {
@@ -33,5 +58,131 @@ describe('formatDuration', () => {
   it('handles non-finite and negative', () => {
     expect(formatDuration(Number.NaN)).toBe('0:00');
     expect(formatDuration(-1)).toBe('0:00');
+  });
+});
+
+describe('chunk', () => {
+  it('returns no batches for an empty array', () => {
+    expect(chunk([], 3)).toEqual([]);
+  });
+
+  it('splits an exact multiple into equal batches', () => {
+    expect(chunk([1, 2, 3, 4], 2)).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+  });
+
+  it('puts the remainder in a final shorter batch', () => {
+    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+
+  it('yields one item per batch when size is 1', () => {
+    expect(chunk([1, 2, 3], 1)).toEqual([[1], [2], [3]]);
+  });
+
+  it('coerces a malformed size to one item per batch', () => {
+    expect(chunk([1, 2, 3], 0)).toEqual([[1], [2], [3]]);
+    expect(chunk([1, 2, 3], -5)).toEqual([[1], [2], [3]]);
+    expect(chunk([1, 2, 3], Number.NaN)).toEqual([[1], [2], [3]]);
+  });
+});
+
+describe('mapWithConcurrency', () => {
+  it('returns an empty array for empty input', async () => {
+    const fn = async (x: number) => x;
+    expect(await mapWithConcurrency([], 4, fn)).toEqual([]);
+  });
+
+  it('preserves input order regardless of completion order', async () => {
+    const delays = [30, 0, 20, 5, 10];
+    const result = await mapWithConcurrency(delays, 2, async (ms, i) => {
+      await new Promise(resolve => setTimeout(resolve, ms));
+      return i;
+    });
+    expect(result).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('applies fn to every item with its index', async () => {
+    const result = await mapWithConcurrency(['a', 'b', 'c'], 5, async (item, i) => `${item}${i}`);
+    expect(result).toEqual(['a0', 'b1', 'c2']);
+  });
+
+  it('never exceeds the concurrency limit', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await mapWithConcurrency(
+      Array.from({ length: 20 }, (_, i) => i),
+      3,
+      async i => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise(resolve => setTimeout(resolve, 1));
+        inFlight -= 1;
+        return i;
+      }
+    );
+    expect(maxInFlight).toBeLessThanOrEqual(3);
+  });
+
+  it('treats limit <= 0 as serial (pool of 1)', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await mapWithConcurrency([1, 2, 3], 0, async i => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return i;
+    });
+    expect(maxInFlight).toBe(1);
+  });
+
+  it('propagates the first rejection', async () => {
+    await expect(
+      mapWithConcurrency([1, 2, 3], 2, async i => {
+        if (i === 2) throw new Error('boom');
+        return i;
+      })
+    ).rejects.toThrow('boom');
+  });
+
+  it('stops starting new items after the first failure', async () => {
+    const started: number[] = [];
+    await expect(
+      mapWithConcurrency(
+        Array.from({ length: 10 }, (_, i) => i),
+        1,
+        async i => {
+          started.push(i);
+          if (i === 2) throw new Error('boom');
+          return i;
+        }
+      )
+    ).rejects.toThrow('boom');
+    expect(started).toEqual([0, 1, 2]);
+  });
+
+  it('stops other workers from pulling new items after a failure', async () => {
+    const started: number[] = [];
+    await expect(
+      mapWithConcurrency(
+        Array.from({ length: 10 }, (_, i) => i),
+        2,
+        async i => {
+          started.push(i);
+          if (i === 0) {
+            // Fails while the other worker is still busy with item 1, so by
+            // the time that worker loops it must observe hasFailed and stop.
+            throw new Error('boom');
+          }
+          await new Promise(resolve => setTimeout(resolve, 20));
+          return i;
+        }
+      )
+    ).rejects.toThrow('boom');
+    // Give the surviving worker a chance to (incorrectly) pull more items.
+    await new Promise(resolve => setTimeout(resolve, 60));
+    expect(started).toEqual([0, 1]);
   });
 });

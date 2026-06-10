@@ -13,6 +13,7 @@ import {
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { chunk } from '@shiranami/shared';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
 import {
@@ -24,7 +25,9 @@ import {
   playlistsDeleteArgs,
   playlistsGetTracksArgs,
   playlistsAddTrackArgs,
+  playlistsAddTracksArgs,
   playlistsRemoveTrackArgs,
+  playlistsRemoveTracksArgs,
   playlistsGetPlaylistsForTracksArgs,
   playlistsReorderArgs,
 } from '../schemas/db-playlists';
@@ -154,6 +157,80 @@ export function registerPlaylistHandlers(): void {
   );
 
   handle(
+    P.addTracks,
+    async (_event, data: { playlistId: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      if (data.trackIds.length === 0) return;
+
+      // Batch sibling of addTrack: one transaction, idempotent per the
+      // UNIQUE(playlist_id, track_id) constraint, positions appended in input
+      // order after the current MAX. Adding N tracks via N serial addTrack IPC
+      // calls risked interleaved position computation; this computes the base
+      // once and assigns positions deterministically.
+      db.transaction(tx => {
+        const existing = tx
+          .select({ trackId: playlistTracks.trackId })
+          .from(playlistTracks)
+          .where(eq(playlistTracks.playlistId, data.playlistId))
+          .all();
+        const present = new Set(existing.map(r => r.trackId));
+
+        const maxRow = tx
+          .select({ maxPos: sql<number>`COALESCE(MAX(${playlistTracks.position}), -1)` })
+          .from(playlistTracks)
+          .where(eq(playlistTracks.playlistId, data.playlistId))
+          .get();
+
+        // De-dup the incoming list too, so the same track passed twice in one
+        // call only lands once.
+        const seen = new Set<string>();
+        const toInsert: string[] = [];
+        for (const trackId of data.trackIds) {
+          if (present.has(trackId) || seen.has(trackId)) continue;
+          seen.add(trackId);
+          toInsert.push(trackId);
+        }
+        if (toInsert.length === 0) return;
+
+        let nextPosition = (maxRow?.maxPos ?? -1) + 1;
+        const CHUNK_SIZE = 100;
+        for (const batch of chunk(toInsert, CHUNK_SIZE)) {
+          const values = batch.map(trackId => ({
+            id: crypto.randomUUID(),
+            playlistId: data.playlistId,
+            trackId,
+            position: nextPosition++,
+          }));
+          tx.insert(playlistTracks).values(values).run();
+        }
+      });
+    },
+    { schema: playlistsAddTracksArgs }
+  );
+
+  handle(
+    P.removeTracks,
+    async (_event, data: { playlistId: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      if (data.trackIds.length === 0) return;
+      db.transaction(tx => {
+        const CHUNK_SIZE = 500;
+        for (const batch of chunk(data.trackIds, CHUNK_SIZE)) {
+          tx.delete(playlistTracks)
+            .where(
+              and(
+                eq(playlistTracks.playlistId, data.playlistId),
+                inArray(playlistTracks.trackId, batch)
+              )
+            )
+            .run();
+        }
+      });
+    },
+    { schema: playlistsRemoveTracksArgs }
+  );
+
+  handle(
     P.createWithTracks,
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
       logger.info(
@@ -224,13 +301,19 @@ export function registerPlaylistHandlers(): void {
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
       db.transaction(tx => {
-        for (let i = 0; i < data.trackIds.length; i++) {
+        // Set-based reorder: one CASE-when-then update per chunk instead of a
+        // statement per track, so a 1k-track drag-drop runs ~10 statements
+        // rather than 1k. Only `position` changes — row ids are preserved.
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < data.trackIds.length; i += CHUNK_SIZE) {
+          const chunk = data.trackIds.slice(i, i + CHUNK_SIZE);
+          const cases = chunk.map((trackId, idx) => sql`WHEN ${trackId} THEN ${i + idx}`);
           tx.update(playlistTracks)
-            .set({ position: i })
+            .set({ position: sql`CASE ${playlistTracks.trackId} ${sql.join(cases, sql` `)} END` })
             .where(
               and(
                 eq(playlistTracks.playlistId, data.playlistId),
-                eq(playlistTracks.trackId, data.trackIds[i])
+                inArray(playlistTracks.trackId, chunk)
               )
             )
             .run();
@@ -249,8 +332,10 @@ export function cleanupPlaylistHandlers(): void {
   ipcMain.removeHandler(P.delete);
   ipcMain.removeHandler(P.getTracks);
   ipcMain.removeHandler(P.addTrack);
+  ipcMain.removeHandler(P.addTracks);
   ipcMain.removeHandler(P.createWithTracks);
   ipcMain.removeHandler(P.removeTrack);
+  ipcMain.removeHandler(P.removeTracks);
   ipcMain.removeHandler(P.getPlaylistsForTracks);
   ipcMain.removeHandler(P.reorder);
 }
