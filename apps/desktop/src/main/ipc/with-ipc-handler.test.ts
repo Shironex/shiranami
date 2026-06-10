@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { z } from 'zod';
+import * as Sentry from '@sentry/electron/main';
 import { ipcHandlers } from '../../../test/setup';
 import { handle, handleWithFallback } from './with-ipc-handler';
-import { decodeIpcError } from './errors';
+import { decodeIpcError, IpcError } from './errors';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -18,6 +19,7 @@ const event = null as never;
 describe('handle()', () => {
   beforeEach(() => {
     ipcHandlers.clear();
+    vi.mocked(Sentry.captureException).mockClear();
   });
 
   it('runs the handler normally when no schema is provided', async () => {
@@ -85,6 +87,27 @@ describe('handle()', () => {
       message: 'busy',
       details: { slot: 1 },
     });
+  });
+
+  it('does not report expected IpcErrors to Sentry', async () => {
+    handle<[], string>('boom', async () => {
+      throw new IpcError('metadata.enrich_busy', 'busy');
+    });
+
+    const registered = ipcHandlers.get('boom')!;
+    await expect(registered(event)).rejects.toThrow();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports unexpected errors to Sentry', async () => {
+    const unexpected = new Error('disk on fire');
+    handle<[], string>('boom', async () => {
+      throw unexpected;
+    });
+
+    const registered = ipcHandlers.get('boom')!;
+    await expect(registered(event)).rejects.toThrow('disk on fire');
+    expect(Sentry.captureException).toHaveBeenCalledWith(unexpected);
   });
 });
 

@@ -72,7 +72,11 @@ export function handle<Args extends unknown[], R>(
       return await handler(event, ...parsedArgs);
     } catch (err) {
       logger.error(`[ipc:${channel}]`, err);
-      Sentry.captureException(err);
+      // IpcErrors are deliberate, user-meaningful failures (validation, busy
+      // states) — only report unexpected errors to Sentry.
+      if (!(err instanceof IpcError)) {
+        Sentry.captureException(err);
+      }
       // Encode IpcError so its code/details survive the IPC bridge; the preload
       // invoke wrapper rehydrates the structured error renderer-side.
       throw toTransportError(err);
