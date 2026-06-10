@@ -1,5 +1,6 @@
 import { app, ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { mapWithConcurrency } from '@shiranami/shared';
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
@@ -122,31 +123,21 @@ async function parseAudioFilesViaUtility(
   utility: ScanUtilityClient,
   filePaths: string[]
 ): Promise<ScannedTrack[]> {
-  const results: ScannedTrack[] = new Array(filePaths.length);
-  for (let i = 0; i < filePaths.length; i += PARSE_CONCURRENCY) {
+  return mapWithConcurrency(filePaths, PARSE_CONCURRENCY, async filePath => {
     if (utility.cancelled) throw new ScanCancelledError();
-    const batch = filePaths.slice(i, i + PARSE_CONCURRENCY);
-    const parsed = await Promise.all(
-      batch.map(async filePath => {
-        try {
-          const result = await utility.parse(filePath);
-          if (result.ok) {
-            return { filePath, metadata: result.metadata };
-          }
-          logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
-          return { filePath, metadata: fallbackMetadata(filePath) };
-        } catch (err) {
-          if (err instanceof ScanCancelledError) throw err;
-          logger.warn(`[library] utility.parse rejected for ${filePath}:`, err);
-          return { filePath, metadata: fallbackMetadata(filePath) };
-        }
-      })
-    );
-    for (let j = 0; j < parsed.length; j++) {
-      results[i + j] = parsed[j];
+    try {
+      const result = await utility.parse(filePath);
+      if (result.ok) {
+        return { filePath, metadata: result.metadata };
+      }
+      logger.warn(`[library] utility parse failed for ${filePath}: ${result.error}`);
+      return { filePath, metadata: fallbackMetadata(filePath) };
+    } catch (err) {
+      if (err instanceof ScanCancelledError) throw err;
+      logger.warn(`[library] utility.parse rejected for ${filePath}:`, err);
+      return { filePath, metadata: fallbackMetadata(filePath) };
     }
-  }
-  return results;
+  });
 }
 
 /**
@@ -452,17 +443,14 @@ export function registerLibraryHandlers(): void {
             const rootTracks = await parseAudioFilesViaUtility(utility, rootFiles);
 
             const SUBFOLDER_CONCURRENCY = 4;
-            const parsedSubfolders = [];
-            for (let i = 0; i < subfolders.length; i += SUBFOLDER_CONCURRENCY) {
-              const batch = subfolders.slice(i, i + SUBFOLDER_CONCURRENCY);
-              const sub = await Promise.all(
-                batch.map(async subfolder => {
-                  const tracks = await parseAudioFilesViaUtility(utility, subfolder.files);
-                  return { name: subfolder.name, path: subfolder.path, tracks };
-                })
-              );
-              parsedSubfolders.push(...sub);
-            }
+            const parsedSubfolders = await mapWithConcurrency(
+              subfolders,
+              SUBFOLDER_CONCURRENCY,
+              async subfolder => {
+                const tracks = await parseAudioFilesViaUtility(utility, subfolder.files);
+                return { name: subfolder.name, path: subfolder.path, tracks };
+              }
+            );
             return { rootTracks, subfolders: parsedSubfolders } satisfies GroupedScanResult;
           },
           {
