@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { logger } from './logger';
-import { tracks } from '@shiranami/database';
+import { tracks, playlists } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { artUrlFor } from './lib/album-art-image';
 import { IMAGE_EXTENSIONS, imageMime } from './shared/media-types';
@@ -152,7 +152,9 @@ export function _resetArtLruForTest(): void {
 
 // ---------------------------------------------------------------------------
 // Orphan pruning — diff DB-referenced files vs disk; delete files no longer
-// referenced. Pure additive: never deletes anything still in tracks.albumArt.
+// referenced. Never deletes a file still referenced by a track's albumArt or a
+// playlist's coverArt (a "use suggested cover" copies a track's art URL into
+// playlists.cover_art, so the file outlives the originating track).
 // ---------------------------------------------------------------------------
 
 /**
@@ -174,7 +176,8 @@ export function artFileNameFromUrl(url: string | null | undefined): string | nul
 }
 
 /**
- * Delete on-disk album-art files that no `tracks.albumArt` row references.
+ * Delete on-disk album-art files that no `tracks.albumArt` or
+ * `playlists.coverArt` row references.
  *
  * Returns counts so callers can log progress; never throws — readdir errors
  * (missing dir, perms) are logged and the function exits cleanly so it is
@@ -190,9 +193,17 @@ export async function pruneOrphanedAlbumArt(): Promise<{
   const referenced = new Set<string>();
   try {
     const db = getDatabase();
-    const rows = db.selectDistinct({ albumArt: tracks.albumArt }).from(tracks).all();
-    for (const row of rows) {
+    const trackRows = db.selectDistinct({ albumArt: tracks.albumArt }).from(tracks).all();
+    for (const row of trackRows) {
       const name = artFileNameFromUrl(row.albumArt);
+      if (name) referenced.add(name);
+    }
+    // Playlist covers can hold a shiranami-art:// URL copied from a track's
+    // albumArt ("use suggested cover"). Without this they'd be treated as
+    // orphans once the originating track is removed, 404ing the cover forever.
+    const playlistRows = db.selectDistinct({ coverArt: playlists.coverArt }).from(playlists).all();
+    for (const row of playlistRows) {
+      const name = artFileNameFromUrl(row.coverArt);
       if (name) referenced.add(name);
     }
   } catch (error) {
