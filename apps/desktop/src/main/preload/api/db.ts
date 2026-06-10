@@ -25,7 +25,7 @@ export interface DbTracksApi {
   remove: (id: string) => Promise<void>;
   removeMany: (ids: string[]) => Promise<void>;
   update: (id: string, data: unknown) => Promise<unknown>;
-  updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<unknown[]>;
+  updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<void>;
   toggleFavorite: (id: string) => Promise<unknown>;
   getFavorites: () => Promise<unknown[]>;
   incrementPlayCount: (id: string) => Promise<unknown>;

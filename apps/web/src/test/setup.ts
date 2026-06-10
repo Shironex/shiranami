@@ -176,7 +176,7 @@ function createElectronAPIMock(): ElectronAPI {
         incrementPlayCount: vi.fn(),
         exists: asyncFn(false),
         existsMany: asyncFn([]),
-        updateMany: asyncFn([]),
+        updateMany: asyncFn(undefined),
         getIdByPath: asyncFn(null),
       },
       history: {

@@ -152,13 +152,36 @@ export function registerTrackHandlers(): void {
   handle(
     T.updateMany,
     async (_event, updates: Array<{ id: string; data: Partial<NewTrack> }>) => {
-      if (updates.length === 0) return [];
+      if (updates.length === 0) return;
       logger.info(`[database] tracks:update-many: updating ${updates.length} tracks`);
       const db = getDatabase();
-      return db.transaction(tx => {
-        return updates.map(({ id, data }) =>
-          tx.update(tracks).set(data).where(eq(tracks.id, id)).returning().get()
-        );
+
+      // The sole consumer (metadata-enrich apply) re-reads the library via
+      // getAll() right after, so it ignores the returned rows. Drop the
+      // per-row RETURNING .get() round-trips and group ids by identical patch
+      // shape, applying each distinct patch to all its ids in one inArray
+      // UPDATE. Enrichment patches repeat heavily (e.g. a whole album getting
+      // the same album/artist/year fix), so this collapses to a handful of
+      // statements instead of one per track.
+      const byPatch = new Map<string, { data: Partial<NewTrack>; ids: string[] }>();
+      for (const { id, data } of updates) {
+        const key = JSON.stringify(data);
+        const group = byPatch.get(key);
+        if (group) {
+          group.ids.push(id);
+        } else {
+          byPatch.set(key, { data, ids: [id] });
+        }
+      }
+
+      const CHUNK_SIZE = 500;
+      db.transaction(tx => {
+        for (const { data, ids } of byPatch.values()) {
+          for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+            const chunk = ids.slice(i, i + CHUNK_SIZE);
+            tx.update(tracks).set(data).where(inArray(tracks.id, chunk)).run();
+          }
+        }
       });
     },
     { schema: tracksUpdateManyArgs }

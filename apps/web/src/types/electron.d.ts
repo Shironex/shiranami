@@ -169,9 +169,7 @@ export interface ElectronAPI {
       remove: (id: string) => Promise<void>;
       removeMany: (ids: string[]) => Promise<void>;
       update: (id: string, data: unknown) => Promise<Track | undefined>;
-      updateMany: (
-        updates: Array<{ id: string; data: unknown }>
-      ) => Promise<Array<Track | undefined>>;
+      updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<void>;
       toggleFavorite: (id: string) => Promise<Track | undefined>;
       getFavorites: () => Promise<Track[]>;
       incrementPlayCount: (id: string) => Promise<Track | undefined>;
