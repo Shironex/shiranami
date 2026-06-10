@@ -17,6 +17,7 @@
   "updatedAgo": "Zaktualizowano {{time}}",
   "stale": "Nieaktualne",
   "refreshAria": "Odśwież polecane",
+  "refreshFailedCached": "Nie udało się odświeżyć — pokazujemy zapisane propozycje",
   "moreCount": "+{{count}} więcej",
   "discoverTag": "Nowe",
   "previewAria": "Posłuchaj zapowiedzi {{title}}",
