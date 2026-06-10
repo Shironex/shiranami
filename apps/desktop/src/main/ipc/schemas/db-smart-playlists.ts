@@ -1,33 +1,18 @@
 import { z } from 'zod';
+import { SMART_PLAYLIST_FIELDS, SMART_PLAYLIST_OPERATORS } from '@shiranami/contracts';
 
 const uuid = z.string().uuid();
 const nonEmpty = z.string().min(1);
 
 /**
- * Hand-authored zod mirrors for the `db:smart-playlists:*` IPC payloads. The
- * rule shape mirrors `SmartPlaylistDefinition` in @shiranami/contracts. Values
+ * Zod mirrors for the `db:smart-playlists:*` IPC payloads. The rule shape
+ * mirrors `SmartPlaylistDefinition` in @shiranami/contracts; the field/operator
+ * enums are derived from the contract's tuples so they can never drift. Values
  * are kept as strings (the editor emits text) and coerced during evaluation.
  */
-const ruleField = z.enum([
-  'genre',
-  'artist',
-  'album',
-  'title',
-  'year',
-  'playCount',
-  'isFavorite',
-  'dateAdded',
-]);
+const ruleField = z.enum(SMART_PLAYLIST_FIELDS);
 
-const ruleOperator = z.enum([
-  'is',
-  'isNot',
-  'contains',
-  'greaterThan',
-  'lessThan',
-  'between',
-  'inLastDays',
-]);
+const ruleOperator = z.enum(SMART_PLAYLIST_OPERATORS);
 
 export const smartPlaylistRule = z.object({
   field: ruleField,
