@@ -13,6 +13,7 @@ import {
 } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { chunk } from '@shiranami/shared';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
 import {
@@ -193,9 +194,8 @@ export function registerPlaylistHandlers(): void {
 
         let nextPosition = (maxRow?.maxPos ?? -1) + 1;
         const CHUNK_SIZE = 100;
-        for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
-          const chunk = toInsert.slice(i, i + CHUNK_SIZE);
-          const values = chunk.map(trackId => ({
+        for (const batch of chunk(toInsert, CHUNK_SIZE)) {
+          const values = batch.map(trackId => ({
             id: crypto.randomUUID(),
             playlistId: data.playlistId,
             trackId,
@@ -215,13 +215,12 @@ export function registerPlaylistHandlers(): void {
       if (data.trackIds.length === 0) return;
       db.transaction(tx => {
         const CHUNK_SIZE = 500;
-        for (let i = 0; i < data.trackIds.length; i += CHUNK_SIZE) {
-          const chunk = data.trackIds.slice(i, i + CHUNK_SIZE);
+        for (const batch of chunk(data.trackIds, CHUNK_SIZE)) {
           tx.delete(playlistTracks)
             .where(
               and(
                 eq(playlistTracks.playlistId, data.playlistId),
-                inArray(playlistTracks.trackId, chunk)
+                inArray(playlistTracks.trackId, batch)
               )
             )
             .run();

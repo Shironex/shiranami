@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clamp, clamp01, formatDuration, mapWithConcurrency, truncate } from './utils';
+import { chunk, clamp, clamp01, formatDuration, mapWithConcurrency, truncate } from './utils';
 
 describe('clamp', () => {
   it('passes finite values through within range and clamps the bounds', () => {
@@ -58,6 +58,33 @@ describe('formatDuration', () => {
   it('handles non-finite and negative', () => {
     expect(formatDuration(Number.NaN)).toBe('0:00');
     expect(formatDuration(-1)).toBe('0:00');
+  });
+});
+
+describe('chunk', () => {
+  it('returns no batches for an empty array', () => {
+    expect(chunk([], 3)).toEqual([]);
+  });
+
+  it('splits an exact multiple into equal batches', () => {
+    expect(chunk([1, 2, 3, 4], 2)).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+  });
+
+  it('puts the remainder in a final shorter batch', () => {
+    expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+
+  it('yields one item per batch when size is 1', () => {
+    expect(chunk([1, 2, 3], 1)).toEqual([[1], [2], [3]]);
+  });
+
+  it('coerces a malformed size to one item per batch', () => {
+    expect(chunk([1, 2, 3], 0)).toEqual([[1], [2], [3]]);
+    expect(chunk([1, 2, 3], -5)).toEqual([[1], [2], [3]]);
+    expect(chunk([1, 2, 3], Number.NaN)).toEqual([[1], [2], [3]]);
   });
 });
 

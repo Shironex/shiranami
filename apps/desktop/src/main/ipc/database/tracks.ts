@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { tracks, eq, desc, inArray, sql, type NewTrack } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
+import { chunk } from '@shiranami/shared';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
 import { pruneOrphanedAlbumArt } from '../../art-protocol';
@@ -73,8 +74,7 @@ export function registerTrackHandlers(): void {
       const CHUNK_SIZE = 100;
       const results = db.transaction(tx => {
         const results = [];
-        for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
-          const chunk = rows.slice(i, i + CHUNK_SIZE);
+        for (const batch of chunk(rows, CHUNK_SIZE)) {
           // file_path is UNIQUE. Mirror `add` (see comment above) and no-op the
           // insert on conflict so a single duplicate filePath can't abort the
           // whole import transaction. `.returning()` then yields only the rows
@@ -84,7 +84,7 @@ export function registerTrackHandlers(): void {
           results.push(
             ...tx
               .insert(tracks)
-              .values(chunk)
+              .values(batch)
               .onConflictDoNothing({ target: tracks.filePath })
               .returning()
               .all()
@@ -119,9 +119,8 @@ export function registerTrackHandlers(): void {
       const db = getDatabase();
       const CHUNK_SIZE = 500;
       db.transaction(tx => {
-        for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-          const chunk = ids.slice(i, i + CHUNK_SIZE);
-          tx.delete(tracks).where(inArray(tracks.id, chunk)).run();
+        for (const batch of chunk(ids, CHUNK_SIZE)) {
+          tx.delete(tracks).where(inArray(tracks.id, batch)).run();
         }
       });
       logger.info(
@@ -186,9 +185,8 @@ export function registerTrackHandlers(): void {
       const CHUNK_SIZE = 500;
       db.transaction(tx => {
         for (const { data, ids } of byPatch.values()) {
-          for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
-            const chunk = ids.slice(i, i + CHUNK_SIZE);
-            tx.update(tracks).set(data).where(inArray(tracks.id, chunk)).run();
+          for (const batch of chunk(ids, CHUNK_SIZE)) {
+            tx.update(tracks).set(data).where(inArray(tracks.id, batch)).run();
           }
         }
       });
@@ -259,12 +257,11 @@ export function registerTrackHandlers(): void {
       const db = getDatabase();
       const CHUNK_SIZE = 500;
       const existing = new Set<string>();
-      for (let i = 0; i < filePaths.length; i += CHUNK_SIZE) {
-        const chunk = filePaths.slice(i, i + CHUNK_SIZE);
+      for (const batch of chunk(filePaths, CHUNK_SIZE)) {
         const rows = db
           .select({ filePath: tracks.filePath })
           .from(tracks)
-          .where(inArray(tracks.filePath, chunk))
+          .where(inArray(tracks.filePath, batch))
           .all();
         for (const row of rows) existing.add(row.filePath);
       }

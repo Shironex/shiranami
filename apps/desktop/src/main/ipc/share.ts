@@ -8,7 +8,7 @@ import {
   IPC_CHANNELS,
   type CreateShareDto,
 } from '@shiranami/contracts';
-import { UNKNOWN_ARTIST } from '@shiranami/shared';
+import { UNKNOWN_ARTIST, chunk } from '@shiranami/shared';
 import { logger } from '../logger';
 import { HttpError, requestJson } from '../http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
@@ -40,12 +40,11 @@ function getCachedYoutubeIds(trackIds: string[]): Map<string, string> {
   if (trackIds.length === 0) return new Map();
   const db = getDatabase();
   const cached = new Map<string, string>();
-  for (let i = 0; i < trackIds.length; i += CHUNK_SIZE) {
-    const chunk = trackIds.slice(i, i + CHUNK_SIZE);
+  for (const batch of chunk(trackIds, CHUNK_SIZE)) {
     const rows = db
       .select({ trackId: youtubeMappings.trackId, youtubeId: youtubeMappings.youtubeId })
       .from(youtubeMappings)
-      .where(inArray(youtubeMappings.trackId, chunk))
+      .where(inArray(youtubeMappings.trackId, batch))
       .all();
     for (const r of rows) cached.set(r.trackId, r.youtubeId);
   }
@@ -220,9 +219,8 @@ export function registerShareHandlers(): void {
       // unordered, and chunking discards any cross-chunk ordering anyway).
       const orderedTrackIds = ptRows.map(pt => pt.trackId);
       const trackById = new Map<string, Track>();
-      for (let i = 0; i < orderedTrackIds.length; i += CHUNK_SIZE) {
-        const chunk = orderedTrackIds.slice(i, i + CHUNK_SIZE);
-        const rows = db.select().from(tracks).where(inArray(tracks.id, chunk)).all();
+      for (const batch of chunk(orderedTrackIds, CHUNK_SIZE)) {
+        const rows = db.select().from(tracks).where(inArray(tracks.id, batch)).all();
         for (const row of rows) trackById.set(row.id, row);
       }
       const trackRows = orderedTrackIds

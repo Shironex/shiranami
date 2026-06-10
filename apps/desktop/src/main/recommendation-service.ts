@@ -58,7 +58,7 @@ import {
   type SmartMixSignals,
   type SmartMixResult,
 } from '@shiranami/contracts';
-import { mapWithConcurrency } from '@shiranami/shared';
+import { chunk, mapWithConcurrency } from '@shiranami/shared';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
 import { isYtDlpInstalled } from './ytdlp-manager';
@@ -290,8 +290,8 @@ function getSimilarityCandidates(seed: SimilarityTrack, coMemberIds: string[]): 
   // parameter limit even for seeds sharing playlists with thousands of tracks;
   // multiple inArray clauses under or(...) match exactly the same rows as one.
   const CHUNK_SIZE = 500;
-  for (let i = 0; i < coMemberIds.length; i += CHUNK_SIZE) {
-    axisClauses.push(inArray(tracks.id, coMemberIds.slice(i, i + CHUNK_SIZE)));
+  for (const batch of chunk(coMemberIds, CHUNK_SIZE)) {
+    axisClauses.push(inArray(tracks.id, batch));
   }
 
   // No axis can match (untagged seed with no playlist co-members) → no

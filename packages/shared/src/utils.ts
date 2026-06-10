@@ -70,6 +70,24 @@ export async function mapWithConcurrency<T, R>(
 }
 
 /**
+ * Split `items` into consecutive sub-arrays of at most `size` elements,
+ * preserving order. Used to batch bulk SQLite reads/writes so a single
+ * statement stays under the bound-parameter limit. `size` is coerced to a
+ * whole number >= 1 so a malformed caller (`0`, a fraction, `NaN`) degrades to
+ * one-item-per-chunk rather than looping forever on a zero/negative step.
+ */
+export function chunk<T>(items: readonly T[], size: number): T[][] {
+  // Math.floor(NaN) is NaN and Math.max(1, NaN) is NaN, so floor only after
+  // clamping the low bound — keeps a NaN/0/negative `size` at exactly 1.
+  const step = Math.floor(Math.max(1, size)) || 1;
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i += step) {
+    result.push(items.slice(i, i + step));
+  }
+  return result;
+}
+
+/**
  * Zero-pad a number to two digits (e.g. `5` -> `"05"`). Used for clock/duration
  * fields where single digits must align (`09:00`, `1:05:09`).
  */
