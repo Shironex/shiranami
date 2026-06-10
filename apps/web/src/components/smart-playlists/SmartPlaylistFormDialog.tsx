@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Plus, Trash2 } from 'lucide-react';
 import type {
   SmartPlaylist,
@@ -57,6 +58,7 @@ export function SmartPlaylistFormDialog({
 }: SmartPlaylistFormDialogProps) {
   const { t } = useTranslation('smartPlaylists');
   const { t: tCommon } = useTranslation('common');
+  const { t: tToast } = useTranslation('toast');
   const isEdit = !!playlist;
 
   const [name, setName] = useState('');
@@ -105,12 +107,18 @@ export function SmartPlaylistFormDialog({
   const handleSave = async () => {
     if (!canSave) return;
     const payload: SmartPlaylistInput = { name: name.trim(), matchType, rules };
-    if (isEdit && playlist) {
-      await updateMutation.mutateAsync({ id: playlist.id, data: payload });
-    } else {
-      await createMutation.mutateAsync(payload);
+    try {
+      if (isEdit && playlist) {
+        await updateMutation.mutateAsync({ id: playlist.id, data: payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      // Only dismiss on success — on failure the dialog stays open with the
+      // user's input intact so they can retry.
+      onOpenChange(false);
+    } catch {
+      toast.error(tToast(isEdit ? 'failedUpdateSmartPlaylist' : 'failedCreateSmartPlaylist'));
     }
-    onOpenChange(false);
   };
 
   return (
