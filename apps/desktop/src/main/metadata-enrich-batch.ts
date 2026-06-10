@@ -4,6 +4,7 @@ import type {
   EnrichProgress,
   MetadataLookupSource,
 } from '@shiranami/contracts';
+import { mapWithConcurrency } from '@shiranami/shared';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from './metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from './metadata-writer';
 import { logger } from './logger';
@@ -164,133 +165,125 @@ export async function runEnrichmentBatch(
 ): Promise<EnrichTrackResult[]> {
   const total = tracks.length;
 
-  // Results are slotted by input index so the returned array preserves
-  // input order even though tasks finish out of order.
-  const slots: (EnrichTrackResult | undefined)[] = new Array(total);
-
   const sendProgress = onProgress;
 
   // Monotonic completed-count so the renderer's progress bar never jumps
   // backward when faster tasks finish before slower ones.
   let completed = 0;
-  // Shared cursor over the input list; workers pull the next index.
-  let nextIndex = 0;
   let cancelled = false;
 
   const inFlightCurrent = () => Math.min(completed + 1, total);
 
-  async function worker(): Promise<void> {
-    while (true) {
-      if (signal.aborted) {
+  const enrichOne = async (
+    track: EnrichTrackInput,
+    i: number
+  ): Promise<EnrichTrackResult | undefined> => {
+    if (signal.aborted) {
+      if (!cancelled) {
+        cancelled = true;
+        logger.info(`[metadata:enrich] Cancelled after ${completed}/${total} tracks`);
+        sendProgress({
+          current: Math.min(completed, total),
+          total,
+          trackName: track.title,
+          status: 'cancelled',
+        });
+      }
+      return undefined;
+    }
+
+    try {
+      const result = await enrichSingleTrack(
+        track,
+        {
+          writeToFile: options.writeToFile,
+          onlyMissing: options.onlyMissing,
+          mode: 'apply',
+        },
+        signal,
+        {
+          onSearching: () =>
+            sendProgress({
+              current: inFlightCurrent(),
+              total,
+              trackName: track.title,
+              status: 'searching',
+            }),
+          onDownloading: () =>
+            sendProgress({
+              current: inFlightCurrent(),
+              total,
+              trackName: track.title,
+              status: 'downloading',
+            }),
+          onWriting: () =>
+            sendProgress({
+              current: inFlightCurrent(),
+              total,
+              trackName: track.title,
+              status: 'writing',
+            }),
+        }
+      );
+
+      const fieldCount = Object.keys(result.updatedFields).length;
+      if (result.source === 'none') {
+        logger.info(`[metadata:enrich] [${i + 1}/${total}] No results: "${track.title}"`);
+      } else {
+        logger.info(
+          `[metadata:enrich] [${i + 1}/${total}] ${fieldCount > 0 ? 'Updated' : 'No changes'}: "${track.title}" (source: ${result.source}, confidence: ${result.confidence?.toFixed(2) ?? 'n/a'}, fields: ${fieldCount > 0 ? Object.keys(result.updatedFields).join(', ') : 'none'})`
+        );
+      }
+
+      completed += 1;
+      sendProgress({
+        current: completed,
+        total,
+        trackName: track.title,
+        status: 'done',
+        confidence: result.confidence,
+        // result.source is always a MetadataLookupSource here; the
+        // 'preview' variant of EnrichResultSource is only produced by
+        // the DB-only apply path in the renderer, never the bulk worker.
+        source: result.source as MetadataLookupSource,
+      });
+      return result;
+    } catch (error) {
+      if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
         if (!cancelled) {
           cancelled = true;
-          logger.info(`[metadata:enrich] Cancelled after ${completed}/${total} tracks`);
           sendProgress({
             current: Math.min(completed, total),
             total,
-            trackName: tracks[Math.min(nextIndex, total - 1)]?.title ?? '',
+            trackName: track.title,
             status: 'cancelled',
           });
         }
-        return;
+        return undefined;
       }
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(`[metadata:enrich] Failed to enrich "${track.title}":`, error);
 
-      const i = nextIndex++;
-      if (i >= total) return;
-      const track = tracks[i];
-
-      try {
-        const result = await enrichSingleTrack(
-          track,
-          {
-            writeToFile: options.writeToFile,
-            onlyMissing: options.onlyMissing,
-            mode: 'apply',
-          },
-          signal,
-          {
-            onSearching: () =>
-              sendProgress({
-                current: inFlightCurrent(),
-                total,
-                trackName: track.title,
-                status: 'searching',
-              }),
-            onDownloading: () =>
-              sendProgress({
-                current: inFlightCurrent(),
-                total,
-                trackName: track.title,
-                status: 'downloading',
-              }),
-            onWriting: () =>
-              sendProgress({
-                current: inFlightCurrent(),
-                total,
-                trackName: track.title,
-                status: 'writing',
-              }),
-          }
-        );
-
-        const fieldCount = Object.keys(result.updatedFields).length;
-        if (result.source === 'none') {
-          logger.info(`[metadata:enrich] [${i + 1}/${total}] No results: "${track.title}"`);
-        } else {
-          logger.info(
-            `[metadata:enrich] [${i + 1}/${total}] ${fieldCount > 0 ? 'Updated' : 'No changes'}: "${track.title}" (source: ${result.source}, confidence: ${result.confidence?.toFixed(2) ?? 'n/a'}, fields: ${fieldCount > 0 ? Object.keys(result.updatedFields).join(', ') : 'none'})`
-          );
-        }
-
-        slots[i] = result;
-        completed += 1;
-        sendProgress({
-          current: completed,
-          total,
-          trackName: track.title,
-          status: 'done',
-          confidence: result.confidence,
-          // result.source is always a MetadataLookupSource here; the
-          // 'preview' variant of EnrichResultSource is only produced by
-          // the DB-only apply path in the renderer, never the bulk worker.
-          source: result.source as MetadataLookupSource,
-        });
-      } catch (error) {
-        if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
-          if (!cancelled) {
-            cancelled = true;
-            sendProgress({
-              current: Math.min(completed, total),
-              total,
-              trackName: track.title,
-              status: 'cancelled',
-            });
-          }
-          return;
-        }
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error(`[metadata:enrich] Failed to enrich "${track.title}":`, error);
-
-        slots[i] = {
-          id: track.id,
-          success: false,
-          updatedFields: {},
-          source: 'none',
-          error: errorMessage,
-        };
-        completed += 1;
-        sendProgress({
-          current: completed,
-          total,
-          trackName: track.title,
-          status: 'error',
-        });
-      }
+      completed += 1;
+      sendProgress({
+        current: completed,
+        total,
+        trackName: track.title,
+        status: 'error',
+      });
+      return {
+        id: track.id,
+        success: false,
+        updatedFields: {},
+        source: 'none',
+        error: errorMessage,
+      };
     }
-  }
+  };
 
-  const poolSize = Math.max(1, Math.min(ENRICH_CONCURRENCY, total || 1));
-  await Promise.all(Array.from({ length: poolSize }, () => worker()));
+  // Results are slotted by input index so the returned array preserves
+  // input order even though tasks finish out of order.
+  const slots = await mapWithConcurrency(tracks, ENRICH_CONCURRENCY, enrichOne);
 
   const results = slots.filter((r): r is EnrichTrackResult => r !== undefined);
   const successCount = results.filter(r => r.success).length;

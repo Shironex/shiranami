@@ -53,6 +53,7 @@ import {
   type SmartMixSignals,
   type SmartMixResult,
 } from '@shiranami/contracts';
+import { mapWithConcurrency } from '@shiranami/shared';
 import { logger } from './logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
 import { isYtDlpInstalled } from './ytdlp-manager';
@@ -61,8 +62,7 @@ import { isYtDlpInstalled } from './ytdlp-manager';
  *  yields ~25 candidates, so a couple of seeds covers a shelf. */
 const DISCOVER_SEED_COUNT = 3;
 
-/** Bounded concurrency for the parallel RD-mix fetches — matches the proven
- *  ENRICH_CONCURRENCY worker-pool size from metadata-enrich-batch.ts. */
+/** Bounded concurrency for the parallel RD-mix fetches. */
 const DISCOVER_CONCURRENCY = 4;
 
 /** Cap on discover items written to the cache, across all seed mixes. */
@@ -440,20 +440,10 @@ async function computeDiscoverItems(signal?: AbortSignal): Promise<DiscoverRecom
 
   // Per-seed results slotted by index so the merge preserves seed order even
   // though mixes finish out of order.
-  const slots: DiscoverRecommendation[][] = new Array(seedYoutubeIds.length);
-  let nextIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (true) {
-      if (signal?.aborted) return;
-      const i = nextIndex++;
-      if (i >= seedYoutubeIds.length) return;
-      slots[i] = await fetchRdMix(seedYoutubeIds[i], signal);
-    }
-  }
-
-  const poolSize = Math.max(1, Math.min(DISCOVER_CONCURRENCY, seedYoutubeIds.length));
-  await Promise.all(Array.from({ length: poolSize }, () => worker()));
+  const slots = await mapWithConcurrency(seedYoutubeIds, DISCOVER_CONCURRENCY, youtubeId => {
+    if (signal?.aborted) return Promise.resolve<DiscoverRecommendation[]>([]);
+    return fetchRdMix(youtubeId, signal);
+  });
 
   for (const items of slots) {
     if (!items) continue;

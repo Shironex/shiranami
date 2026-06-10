@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, truncate } from './utils';
+import { formatDuration, mapWithConcurrency, truncate } from './utils';
 
 describe('truncate', () => {
   it('returns empty string when max <= 0', () => {
@@ -33,5 +33,65 @@ describe('formatDuration', () => {
   it('handles non-finite and negative', () => {
     expect(formatDuration(Number.NaN)).toBe('0:00');
     expect(formatDuration(-1)).toBe('0:00');
+  });
+});
+
+describe('mapWithConcurrency', () => {
+  it('returns an empty array for empty input', async () => {
+    const fn = async (x: number) => x;
+    expect(await mapWithConcurrency([], 4, fn)).toEqual([]);
+  });
+
+  it('preserves input order regardless of completion order', async () => {
+    const delays = [30, 0, 20, 5, 10];
+    const result = await mapWithConcurrency(delays, 2, async (ms, i) => {
+      await new Promise(resolve => setTimeout(resolve, ms));
+      return i;
+    });
+    expect(result).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('applies fn to every item with its index', async () => {
+    const result = await mapWithConcurrency(['a', 'b', 'c'], 5, async (item, i) => `${item}${i}`);
+    expect(result).toEqual(['a0', 'b1', 'c2']);
+  });
+
+  it('never exceeds the concurrency limit', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await mapWithConcurrency(
+      Array.from({ length: 20 }, (_, i) => i),
+      3,
+      async i => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        await new Promise(resolve => setTimeout(resolve, 1));
+        inFlight -= 1;
+        return i;
+      }
+    );
+    expect(maxInFlight).toBeLessThanOrEqual(3);
+  });
+
+  it('treats limit <= 0 as serial (pool of 1)', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await mapWithConcurrency([1, 2, 3], 0, async i => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise(resolve => setTimeout(resolve, 1));
+      inFlight -= 1;
+      return i;
+    });
+    expect(maxInFlight).toBe(1);
+  });
+
+  it('propagates the first rejection', async () => {
+    await expect(
+      mapWithConcurrency([1, 2, 3], 2, async i => {
+        if (i === 2) throw new Error('boom');
+        return i;
+      })
+    ).rejects.toThrow('boom');
   });
 });
