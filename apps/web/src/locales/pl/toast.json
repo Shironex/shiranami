@@ -18,6 +18,7 @@
   "failedAddToPlaylist": "Nie udało się dodać do playlisty",
   "failedLoadPlaylists": "Nie udało się załadować playlist",
   "createdPlaylistAdded": "Utworzono playlistę \"{{name}}\" i dodano utwór",
+  "createdPlaylistAddFailed": "Utworzono playlistę \"{{name}}\", ale nie udało się dodać utworu",
   "failedCreatePlaylist": "Nie udało się utworzyć playlisty",
   "playlistNoTracks": "Playlista \"{{name}}\" nie zawiera jeszcze żadnych utworów",
   "createdPlaylist": "Utworzono playlistę \"{{name}}\"",

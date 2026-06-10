@@ -31,6 +31,10 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
 
   const memberSet = useMemo(() => new Set(memberPlaylistIds), [memberPlaylistIds]);
   const isBulk = toastMode === 'bulk' || (toastMode == null && trackIds.length > 1);
+  // Any in-flight membership change: rows go non-interactive so a second click
+  // doesn't queue a conflicting add/remove before the first resolves.
+  const isMutating =
+    addTrackMutation.isPending || removeTrackMutation.isPending || createPlaylistMutation.isPending;
 
   const handleToggle = useCallback(
     async (playlist: Playlist) => {
@@ -72,8 +76,21 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
   const handleCreateAndAdd = useCallback(async () => {
     const name = newName.trim();
     if (!name) return;
+    // Create isn't idempotent — a double Enter/click would otherwise make two
+    // playlists. Block re-entry while either mutation is in flight.
+    if (createPlaylistMutation.isPending || addTrackMutation.isPending) return;
+
+    let playlist: Playlist;
     try {
-      const playlist = await createPlaylistMutation.mutateAsync({ name });
+      playlist = await createPlaylistMutation.mutateAsync({ name });
+    } catch {
+      toast.error(tToast('failedCreatePlaylist'));
+      return;
+    }
+
+    // The playlist now exists; if only the track-add fails, tell the truth so
+    // the user doesn't think nothing was created and retry into a duplicate.
+    try {
       await addTrackMutation.mutateAsync({ playlistId: playlist.id, trackIds });
       if (isBulk) {
         toast.success(
@@ -84,7 +101,8 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
       }
       onDone();
     } catch {
-      toast.error(tToast('failedCreatePlaylist'));
+      toast.error(tToast('createdPlaylistAddFailed', { name: playlist.name }));
+      onDone();
     }
   }, [newName, trackIds, isBulk, createPlaylistMutation, addTrackMutation, onDone, tToast]);
 
@@ -111,7 +129,8 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
                 e.stopPropagation();
                 handleToggle(pl);
               }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left ${
+              disabled={isMutating}
+              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left disabled:pointer-events-none ${
                 isInPlaylist
                   ? 'text-primary/80 hover:text-primary hover:bg-accent'
                   : 'text-foreground/80 hover:text-foreground hover:bg-accent'
@@ -153,7 +172,7 @@ export function PlaylistPickerContent({ trackIds, onDone, toastMode }: PlaylistP
                 e.stopPropagation();
                 handleCreateAndAdd();
               }}
-              disabled={!newName.trim()}
+              disabled={!newName.trim() || isMutating}
               className="h-auto rounded bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary shadow-none hover:bg-primary/30"
             >
               {tCommon('add')}

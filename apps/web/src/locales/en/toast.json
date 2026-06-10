@@ -18,6 +18,7 @@
   "failedAddToPlaylist": "Failed to add to playlist",
   "failedLoadPlaylists": "Failed to load playlists",
   "createdPlaylistAdded": "Created \"{{name}}\" and added track",
+  "createdPlaylistAddFailed": "Created \"{{name}}\", but couldn't add the track",
   "failedCreatePlaylist": "Failed to create playlist",
   "playlistNoTracks": "\"{{name}}\" has no tracks yet",
   "createdPlaylist": "Created \"{{name}}\"",
