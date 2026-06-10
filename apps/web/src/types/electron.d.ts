@@ -445,7 +445,7 @@ export interface ElectronAPI {
     similar: (seedTrackId: string) => Promise<SimilarTrackResult[]>;
     notInterested: (trackId: string) => Promise<void>;
     undoNotInterested: (trackId: string) => Promise<void>;
-    smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
+    smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[] | null>;
   };
   scrobble: {
     getStatus: () => Promise<ScrobbleStatus>;

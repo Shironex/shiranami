@@ -79,12 +79,15 @@ export function registerRecommendationsHandlers(): void {
 
   // Smart mixes: offline generation of mood/activity/decade mixes from the
   // renderer's contextual signals + library metadata. Returns a (possibly
-  // empty) ordered list.
+  // empty) ordered list on success; the fallback returns `null` so the
+  // renderer can tell a genuine "no mixes apply" ([]) apart from a generation
+  // failure (null) and show an honest message instead of the empty-library
+  // state.
   handleWithFallback(
     C.smartMixes,
-    async (_event, signals: SmartMixSignals): Promise<SmartMixResult[]> =>
+    async (_event, signals: SmartMixSignals): Promise<SmartMixResult[] | null> =>
       computeSmartMixes(signals),
-    () => [],
+    () => null,
     { schema: recommendationsSmartMixesArgs }
   );
 }

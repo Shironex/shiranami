@@ -27,8 +27,11 @@ export function useSmartMixes() {
   const condition = weatherEnabled ? weather?.condition : undefined;
 
   return useQuery({
+    // `null` = the main-process generation failed (distinct from `[]` = no
+    // mixes apply); the view renders an honest "couldn't build mixes" notice
+    // for null instead of masquerading as an empty library.
     queryKey: ['smartMixes', hour, condition ?? 'none'],
-    queryFn: async (): Promise<SmartMixResult[]> => {
+    queryFn: async (): Promise<SmartMixResult[] | null> => {
       return window.electronAPI.recommendations.smartMixes({ hour, weather: condition });
     },
     enabled: IS_ELECTRON,

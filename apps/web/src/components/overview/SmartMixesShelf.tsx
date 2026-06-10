@@ -17,7 +17,11 @@ import type { Track } from '@/stores/types';
  */
 export function SmartMixesShelf() {
   const { t } = useTranslation('mixes');
-  const { data: mixes = [] } = useSmartMixes();
+  // null (generation failed) collapses to empty here: this compact Overview
+  // shelf stays hidden rather than surfacing an error — the Mixes view owns the
+  // honest failure notice.
+  const { data: mixes } = useSmartMixes();
+  const mixList = mixes ?? [];
   const library = useMergedLibrary();
   const setQueue = usePlaybackStore(s => s.setQueue);
 
@@ -33,7 +37,7 @@ export function SmartMixesShelf() {
     [library, setQueue]
   );
 
-  if (mixes.length === 0) return null;
+  if (mixList.length === 0) return null;
 
   return (
     <section className="flex flex-col gap-3 rounded-[24px] border border-border/25 glass-panel p-4">
@@ -42,7 +46,7 @@ export function SmartMixesShelf() {
         {t('smart.sectionTitle')}
       </h2>
       <div className="flex flex-wrap gap-2">
-        {mixes.map(mix => {
+        {mixList.map(mix => {
           const Icon = SMART_MIX_ICONS[mix.kind];
           const title =
             mix.kind === 'decade' ? t('smart.decade', { decade: mix.decade }) : t(mix.titleKey);

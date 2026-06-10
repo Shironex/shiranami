@@ -22,6 +22,7 @@
   "emptyRecentlyPlayed": "Ostatnio odtwarzane utwory pojawią się tutaj",
   "smart": {
     "sectionTitle": "Dla Ciebie teraz",
+    "failed": "Nie udało się teraz zbudować Twoich miksów. Spróbuj ponownie za chwilę.",
     "focus": "Skupienie",
     "focusDesc": "Spokojne, instrumentalne utwory do koncentracji",
     "lateNight": "Późna noc",

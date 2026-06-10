@@ -20,8 +20,13 @@ export interface RecommendationsApi {
   notInterested: (trackId: string) => Promise<void>;
   /** Undo a previous "Not interested" mark for a track. */
   undoNotInterested: (trackId: string) => Promise<void>;
-  /** Generate mood/activity/decade mixes from contextual signals + metadata. */
-  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[]>;
+  /**
+   * Generate mood/activity/decade mixes from contextual signals + metadata.
+   * Resolves to `null` when generation fails (distinct from `[]` = no mixes
+   * apply) so the renderer can show an honest error rather than the
+   * empty-library state.
+   */
+  smartMixes: (signals: SmartMixSignals) => Promise<SmartMixResult[] | null>;
 }
 
 export const recommendationsApi: RecommendationsApi = {
