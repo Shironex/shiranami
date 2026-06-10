@@ -76,8 +76,9 @@ export async function writeMetadataToFile(
 
 async function writeMp3Tags(filePath: string, options: WriteMetadataOptions): Promise<void> {
   // node-id3 is CJS — dynamic import wraps exports under .default in bundled contexts
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const NodeID3Module = (await import('node-id3')) as any;
+  const NodeID3Module = (await import('node-id3')) as typeof import('node-id3') & {
+    default?: typeof import('node-id3');
+  };
   const NodeID3 = NodeID3Module.default ?? NodeID3Module;
 
   const tags: Record<string, unknown> = {};
