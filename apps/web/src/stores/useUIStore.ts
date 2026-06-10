@@ -1,5 +1,5 @@
-import { arrayMove } from '@dnd-kit/sortable';
 import { clamp } from '@shiranami/shared';
+import { arrayMove } from '@/lib/array';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import {
