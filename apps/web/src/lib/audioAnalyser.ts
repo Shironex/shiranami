@@ -16,6 +16,8 @@
  * analyser readings.
  */
 
+import { dbToLinear } from '@/lib/loudness';
+
 /** 10 ISO-style bands used by the EQ chain. */
 export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const;
 
@@ -210,7 +212,7 @@ export function setEqEnabled(enabled: boolean): void {
  */
 export function setPreampDb(db: number): void {
   if (!eqReady || !preamp) return;
-  const linear = 10 ** (db / 20);
+  const linear = dbToLinear(db);
   rampParam(preamp.gain, linear);
 }
 

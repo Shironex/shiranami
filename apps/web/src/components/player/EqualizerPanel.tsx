@@ -28,17 +28,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
+import { formatGain } from '@/lib/eqFormat';
 import {
   useEqStore,
   EQ_MIN_DB,
   EQ_MAX_DB,
+  PREAMP_MIN_DB,
+  PREAMP_MAX_DB,
   EQ_PRESET_NAME_MAX,
   type EqPresetId,
   type NamedEqPresetId,
 } from '@/stores/useEqStore';
 
-const PREAMP_MIN_DB = -12;
-const PREAMP_MAX_DB = 12;
 const PREAMP_STEP = 0.5;
 const BAND_STEP = 0.5;
 
@@ -63,12 +64,6 @@ function formatBandLabel(t: (key: string, opts?: Record<string, unknown>) => str
     return t('bandLabelKhz', { freq: freq / 1000 });
   }
   return t('bandLabel', { freq });
-}
-
-function formatGain(db: number) {
-  const rounded = Math.round(db * 10) / 10;
-  const sign = rounded > 0 ? '+' : '';
-  return `${sign}${rounded}`;
 }
 
 interface VerticalBandSliderProps {

@@ -16,3 +16,8 @@ export function computeLoudnessGainDb(
   const gain = targetLufs - measuredLufs;
   return Math.max(-LOUDNESS_MAX_GAIN_DB, Math.min(LOUDNESS_MAX_GAIN_DB, gain));
 }
+
+/** Convert a decibel value to a linear amplitude multiplier. */
+export function dbToLinear(db: number): number {
+  return 10 ** (db / 20);
+}
