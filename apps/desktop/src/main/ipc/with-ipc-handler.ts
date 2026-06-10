@@ -117,8 +117,10 @@ export function handleWithFallback<Args extends unknown[], R>(
     try {
       return await handler(event, ...parsedArgs);
     } catch (err) {
+      // Fallback channels degrade gracefully by design (Discord RPC offline,
+      // network fetch timeout) — these are expected failures, so don't report
+      // them to Sentry; the warn log is enough.
       logger.warn(`[ipc:${channel}] using fallback`, err);
-      Sentry.captureException(err);
       return fallback(err);
     }
   });

@@ -114,6 +114,7 @@ describe('handle()', () => {
 describe('handleWithFallback()', () => {
   beforeEach(() => {
     ipcHandlers.clear();
+    vi.mocked(Sentry.captureException).mockClear();
   });
 
   it('runs fallback on non-validation handler errors', async () => {
@@ -130,6 +131,20 @@ describe('handleWithFallback()', () => {
     const result = await registered(event);
     expect(result).toBe('fallback-value');
     expect(fallback).toHaveBeenCalled();
+  });
+
+  it('does not report gracefully-degraded failures to Sentry', async () => {
+    handleWithFallback<[], string>(
+      'flaky',
+      async () => {
+        throw new Error('upstream down');
+      },
+      () => 'fallback-value'
+    );
+
+    const registered = ipcHandlers.get('flaky')!;
+    await expect(registered(event)).resolves.toBe('fallback-value');
+    expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
   it('bypasses fallback when schema validation fails and throws BAD_REQUEST', async () => {
