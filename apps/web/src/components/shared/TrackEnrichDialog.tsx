@@ -87,14 +87,12 @@ export function TrackEnrichDialog({ open, onOpenChange, trackId }: TrackEnrichDi
         coverArt: result.updatedFields.albumArt,
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
       // Surface the busy-rejection as a friendly explanation instead of a
       // raw error message — the UI also gates the menu entry, but a
-      // race is still possible (open dialog, then start bulk).
+      // race is still possible (open dialog, then start bulk). The preload
+      // invoke wrapper rehydrates the IpcError so `.code` is present here.
       const isBusy =
-        typeof err === 'object' && err !== null && 'code' in err
-          ? (err as { code: unknown }).code === 'metadata.enrich_busy'
-          : message.includes('enrich_busy');
+        window.electronAPI.errors.isIpcError(err) && err.code === 'metadata.enrich_busy';
       setState({ kind: 'error', message: isBusy ? t('errorBusy') : t('errorGeneric') });
     }
   }, [previewSingleTrack, trackId, t]);

@@ -4,6 +4,7 @@ import {
   createMainWindowMock,
   asBrowserWindow,
   setMockMainWindow,
+  expectIpcErrorCode,
   type MainWindowMock,
 } from '../../../test/setup';
 import {
@@ -569,9 +570,11 @@ describe('metadata-enrich handlers', () => {
       await vi.advanceTimersByTimeAsync(0);
 
       // Preview must reject with the busy code while the bulk run holds the slot.
-      await expect(
-        previewHandler(null as never, makeTrack(), { onlyMissing: true })
-      ).rejects.toMatchObject({ code: 'metadata.enrich_busy' });
+      // The error is transport-encoded at the handler boundary; decode it back.
+      await expectIpcErrorCode(
+        Promise.resolve(previewHandler(null as never, makeTrack(), { onlyMissing: true })),
+        'metadata.enrich_busy'
+      );
 
       // Let the bulk run finish so the test cleans up.
       releaseLookup?.();
@@ -603,9 +606,12 @@ describe('metadata-enrich handlers', () => {
       await vi.advanceTimersByTimeAsync(0);
 
       // Bulk must reject with the busy code while the preview holds the slot.
-      await expect(
-        bulkHandler(null as never, [makeTrack()], { writeToFile: false, onlyMissing: false })
-      ).rejects.toMatchObject({ code: 'metadata.enrich_busy' });
+      await expectIpcErrorCode(
+        Promise.resolve(
+          bulkHandler(null as never, [makeTrack()], { writeToFile: false, onlyMissing: false })
+        ),
+        'metadata.enrich_busy'
+      );
 
       // Let the preview finish so the test cleans up.
       releaseLookup?.();

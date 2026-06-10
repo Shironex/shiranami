@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type RecommendationShelves,
@@ -25,10 +25,10 @@ export interface RecommendationsApi {
 }
 
 export const recommendationsApi: RecommendationsApi = {
-  get: () => ipcRenderer.invoke(C.get),
-  refresh: () => ipcRenderer.invoke(C.refresh),
-  similar: (seedTrackId: string) => ipcRenderer.invoke(C.similar, seedTrackId),
-  notInterested: (trackId: string) => ipcRenderer.invoke(C.notInterested, trackId),
-  undoNotInterested: (trackId: string) => ipcRenderer.invoke(C.undoNotInterested, trackId),
-  smartMixes: (signals: SmartMixSignals) => ipcRenderer.invoke(C.smartMixes, signals),
+  get: () => invoke(C.get),
+  refresh: () => invoke(C.refresh),
+  similar: (seedTrackId: string) => invoke(C.similar, seedTrackId),
+  notInterested: (trackId: string) => invoke(C.notInterested, trackId),
+  undoNotInterested: (trackId: string) => invoke(C.undoNotInterested, trackId),
+  smartMixes: (signals: SmartMixSignals) => invoke(C.smartMixes, signals),
 };

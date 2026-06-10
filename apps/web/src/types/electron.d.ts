@@ -499,6 +499,12 @@ export interface ElectronAPI {
   storage: {
     getUsage: (folderPaths: string[]) => Promise<DiskUsageResult>;
   };
+  errors: {
+    isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
+    SHARE_ERROR_CODES: Readonly<Record<string, string>>;
+    PLAYLIST_ERROR_CODES: Readonly<Record<string, string>>;
+    VALIDATION_ERROR_CODES: Readonly<Record<string, string>>;
+  };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */
   __e2e: boolean;

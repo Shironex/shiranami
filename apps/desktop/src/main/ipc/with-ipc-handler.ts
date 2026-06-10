@@ -2,7 +2,21 @@ import { ipcMain } from 'electron';
 import * as Sentry from '@sentry/electron/main';
 import type { ZodType } from 'zod';
 import { logger } from '../logger';
-import { IpcError } from './errors';
+import { IpcError, encodeIpcError } from './errors';
+
+/**
+ * Electron's `invoke` serializes only an error's `name`/`message` across the
+ * IPC bridge, so an `IpcError`'s `code`/`details` would be lost. Re-pack an
+ * IpcError as a plain Error whose message carries the sentinel-encoded payload;
+ * the preload `invoke` wrapper rehydrates it renderer-side. Non-IpcError
+ * rejections pass through unchanged.
+ */
+function toTransportError(err: unknown): unknown {
+  if (err instanceof IpcError) {
+    return new Error(encodeIpcError(err));
+  }
+  return err;
+}
 
 type Handler<Args extends unknown[], R> = (
   event: Electron.IpcMainInvokeEvent,
@@ -15,9 +29,12 @@ type Handler<Args extends unknown[], R> = (
  * When `schema` is provided, it must be a `z.tuple([...])` schema matching the
  * positional arguments the renderer forwards. On validation failure the
  * handler is NOT invoked — we log the zod issues and throw
- * `IpcError('BAD_REQUEST', …, issues)` so the renderer receives a stable,
- * structured error. Validation errors bypass `handleWithFallback`'s fallback
- * path: fallbacks exist for degraded upstream, not for tampered input.
+ * `IpcError('BAD_REQUEST', …, issues)`. That IpcError (like any thrown from a
+ * handler) is sentinel-encoded on rethrow via `toTransportError` because
+ * Electron's `invoke` otherwise drops the `code`/`details` fields; the preload
+ * `invoke` wrapper rehydrates the structured error renderer-side. Validation
+ * errors bypass `handleWithFallback`'s fallback path: fallbacks exist for
+ * degraded upstream, not for tampered input.
  */
 export interface HandleOptions<Args extends unknown[]> {
   schema?: ZodType<Args>;
@@ -50,13 +67,15 @@ export function handle<Args extends unknown[], R>(
 ): void {
   const schema = options?.schema;
   ipcMain.handle(channel, async (event, ...args) => {
-    const parsedArgs = schema ? validateOrThrow(channel, schema, args) : (args as Args);
     try {
+      const parsedArgs = schema ? validateOrThrow(channel, schema, args) : (args as Args);
       return await handler(event, ...parsedArgs);
     } catch (err) {
       logger.error(`[ipc:${channel}]`, err);
       Sentry.captureException(err);
-      throw err;
+      // Encode IpcError so its code/details survive the IPC bridge; the preload
+      // invoke wrapper rehydrates the structured error renderer-side.
+      throw toTransportError(err);
     }
   });
 }
@@ -81,7 +100,12 @@ export function handleWithFallback<Args extends unknown[], R>(
     if (schema) {
       // validateOrThrow throws IpcError BAD_REQUEST — bypass the fallback path
       // so tampered input cannot masquerade as a degraded upstream response.
-      parsedArgs = validateOrThrow(channel, schema, args);
+      // Encode it so its code/details still reach the renderer.
+      try {
+        parsedArgs = validateOrThrow(channel, schema, args);
+      } catch (err) {
+        throw toTransportError(err);
+      }
     } else {
       parsedArgs = args as Args;
     }

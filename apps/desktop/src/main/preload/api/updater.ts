@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -30,9 +30,9 @@ export interface UpdaterApi {
 }
 
 export const updaterApi: UpdaterApi = {
-  checkForUpdates: () => ipcRenderer.invoke(C.checkForUpdates),
-  startDownload: () => ipcRenderer.invoke(C.startDownload),
-  installNow: () => ipcRenderer.invoke(C.installNow),
+  checkForUpdates: () => invoke(C.checkForUpdates),
+  startDownload: () => invoke(C.startDownload),
+  installNow: () => invoke(C.installNow),
   onCheckingForUpdate: createIpcListener<void>(C.checkingForUpdate),
   onUpdateAvailable: createIpcListener<UpdateInfo>(C.updateAvailable),
   onUpdateNotAvailable: createIpcListener<void>(C.updateNotAvailable),

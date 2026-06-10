@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ipcHandlers } from '../../../test/setup';
+import { ipcHandlers, expectIpcErrorCode } from '../../../test/setup';
 import { cleanupStoreHandlers, registerStoreHandlers } from './store';
 
 const mockStore = {
@@ -60,9 +60,7 @@ describe('store ipc', () => {
 
     it('throws BAD_REQUEST for disallowed key', async () => {
       const get = ipcHandlers.get('store:get')!;
-      await expect(get(null as never, 'secret-key')).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-      });
+      await expectIpcErrorCode(Promise.resolve(get(null as never, 'secret-key')), 'BAD_REQUEST');
     });
   });
 
@@ -76,9 +74,10 @@ describe('store ipc', () => {
 
     it('throws BAD_REQUEST for disallowed key', async () => {
       const set = ipcHandlers.get('store:set')!;
-      await expect(
-        set(null as never, 'admin.password', 'hunter2'),
-      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      await expectIpcErrorCode(
+        Promise.resolve(set(null as never, 'admin.password', 'hunter2')),
+        'BAD_REQUEST'
+      );
     });
   });
 
@@ -92,9 +91,7 @@ describe('store ipc', () => {
 
     it('throws BAD_REQUEST for disallowed key', async () => {
       const del = ipcHandlers.get('store:delete')!;
-      await expect(del(null as never, 'not-allowed')).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-      });
+      await expectIpcErrorCode(Promise.resolve(del(null as never, 'not-allowed')), 'BAD_REQUEST');
     });
   });
 

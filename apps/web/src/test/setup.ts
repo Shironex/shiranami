@@ -364,6 +364,19 @@ function createElectronAPIMock(): ElectronAPI {
         pendingCount: 0,
       }),
     },
+    errors: {
+      // Mirrors the preload's structural isIpcError: anything with a string
+      // `code` is treated as a rehydrated IpcError (the shape the invoke
+      // wrapper produces renderer-side).
+      isIpcError: (e: unknown): e is { code: string; message: string; details?: unknown } =>
+        typeof e === 'object' &&
+        e !== null &&
+        'code' in e &&
+        typeof (e as Record<string, unknown>).code === 'string',
+      SHARE_ERROR_CODES: {},
+      PLAYLIST_ERROR_CODES: {},
+      VALIDATION_ERROR_CODES: {},
+    },
     platform: 'win32',
     __e2e: false,
   };

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { z } from 'zod';
 import { ipcHandlers } from '../../../test/setup';
 import { handle, handleWithFallback } from './with-ipc-handler';
-import { IpcError } from './errors';
+import { decodeIpcError } from './errors';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -41,7 +41,7 @@ describe('handle()', () => {
     expect(fn).toHaveBeenCalledWith(event, 'hello');
   });
 
-  it('does not invoke the handler and throws IpcError BAD_REQUEST when schema fails', async () => {
+  it('does not invoke the handler and throws a transport-encoded BAD_REQUEST when schema fails', async () => {
     const schema = z.tuple([z.string().min(1)]);
     const fn = vi.fn();
     handle<[string], string>('echo', fn, { schema });
@@ -54,13 +54,37 @@ describe('handle()', () => {
       caught = err;
     }
 
-    expect(caught).toBeInstanceOf(IpcError);
-    const ipcErr = caught as IpcError;
-    expect(ipcErr.code).toBe('BAD_REQUEST');
-    expect(ipcErr.details).toBeDefined();
-    expect(Array.isArray(ipcErr.details)).toBe(true);
-    expect((ipcErr.details as unknown[]).length).toBeGreaterThan(0);
+    // The error leaving ipcMain.handle is sentinel-encoded so its code/details
+    // survive Electron's invoke serialization. Decode it back to assert shape.
+    expect(caught).toBeInstanceOf(Error);
+    const decoded = decodeIpcError((caught as Error).message);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.code).toBe('BAD_REQUEST');
+    expect(Array.isArray(decoded!.details)).toBe(true);
+    expect((decoded!.details as unknown[]).length).toBeGreaterThan(0);
     expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('transport-encodes an IpcError thrown by the handler body', async () => {
+    handle<[], string>('boom', async () => {
+      const { IpcError } = await import('./errors');
+      throw new IpcError('metadata.enrich_busy', 'busy', { slot: 1 });
+    });
+
+    const registered = ipcHandlers.get('boom')!;
+    let caught: unknown;
+    try {
+      await registered(event);
+    } catch (err) {
+      caught = err;
+    }
+
+    const decoded = decodeIpcError((caught as Error).message);
+    expect(decoded).toEqual({
+      code: 'metadata.enrich_busy',
+      message: 'busy',
+      details: { slot: 1 },
+    });
   });
 });
 
@@ -76,7 +100,7 @@ describe('handleWithFallback()', () => {
       async () => {
         throw new Error('upstream down');
       },
-      fallback,
+      fallback
     );
 
     const registered = ipcHandlers.get('flaky')!;
@@ -100,8 +124,11 @@ describe('handleWithFallback()', () => {
       caught = err;
     }
 
-    expect(caught).toBeInstanceOf(IpcError);
-    expect((caught as IpcError).code).toBe('BAD_REQUEST');
+    // Validation errors bypass the fallback and still transport-encode so the
+    // renderer receives the structured BAD_REQUEST.
+    const decoded = decodeIpcError((caught as Error).message);
+    expect(decoded).not.toBeNull();
+    expect(decoded!.code).toBe('BAD_REQUEST');
     expect(handlerFn).not.toHaveBeenCalled();
     expect(fallback).not.toHaveBeenCalled();
   });

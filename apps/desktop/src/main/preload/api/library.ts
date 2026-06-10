@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 import type { TrackMetadata } from '../types';
@@ -29,10 +29,10 @@ export interface LibraryApi {
 }
 
 export const libraryApi: LibraryApi = {
-  parseMetadata: filePath => ipcRenderer.invoke(C.parseMetadata, filePath),
-  scanFolder: dirPath => ipcRenderer.invoke(C.scanFolder, dirPath),
-  scanFolderGrouped: dirPath => ipcRenderer.invoke(C.scanFolderGrouped, dirPath),
-  validateFiles: filePaths => ipcRenderer.invoke(C.validateFiles, filePaths) as Promise<string[]>,
+  parseMetadata: filePath => invoke(C.parseMetadata, filePath),
+  scanFolder: dirPath => invoke(C.scanFolder, dirPath),
+  scanFolderGrouped: dirPath => invoke(C.scanFolderGrouped, dirPath),
+  validateFiles: filePaths => invoke(C.validateFiles, filePaths) as Promise<string[]>,
   onScanProgress: createIpcListener<ScanProgress>(C.scanProgress),
-  cancelScan: () => ipcRenderer.invoke(C.scanCancel),
+  cancelScan: () => invoke(C.scanCancel),
 };

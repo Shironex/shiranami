@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import {
   IPC_CHANNELS,
   type ScrobbleStatus,
@@ -26,11 +26,11 @@ export interface ScrobbleApi {
 }
 
 export const scrobbleApi: ScrobbleApi = {
-  getStatus: () => ipcRenderer.invoke(C.getStatus),
-  setEnabled: enabled => ipcRenderer.invoke(C.setEnabled, enabled),
-  lastfmBeginAuth: () => ipcRenderer.invoke(C.lastfmBeginAuth),
-  lastfmCompleteAuth: token => ipcRenderer.invoke(C.lastfmCompleteAuth, token),
-  lastfmDisconnect: () => ipcRenderer.invoke(C.lastfmDisconnect),
-  listenBrainzConnect: token => ipcRenderer.invoke(C.listenBrainzConnect, token),
-  listenBrainzDisconnect: () => ipcRenderer.invoke(C.listenBrainzDisconnect),
+  getStatus: () => invoke(C.getStatus),
+  setEnabled: enabled => invoke(C.setEnabled, enabled),
+  lastfmBeginAuth: () => invoke(C.lastfmBeginAuth),
+  lastfmCompleteAuth: token => invoke(C.lastfmCompleteAuth, token),
+  lastfmDisconnect: () => invoke(C.lastfmDisconnect),
+  listenBrainzConnect: token => invoke(C.listenBrainzConnect, token),
+  listenBrainzDisconnect: () => invoke(C.listenBrainzDisconnect),
 };

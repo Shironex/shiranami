@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS, type DiskUsageResult } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.storage;
@@ -12,5 +12,5 @@ export interface StorageApi {
 }
 
 export const storageApi: StorageApi = {
-  getUsage: folderPaths => ipcRenderer.invoke(C.getUsage, folderPaths),
+  getUsage: folderPaths => invoke(C.getUsage, folderPaths),
 };

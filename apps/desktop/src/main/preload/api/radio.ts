@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.radio.favorites;
@@ -31,9 +31,9 @@ export interface RadioApi {
 
 export const radioApi: RadioApi = {
   favorites: {
-    getAll: () => ipcRenderer.invoke(C.getAll),
-    add: station => ipcRenderer.invoke(C.add, station),
-    remove: stationUuid => ipcRenderer.invoke(C.remove, stationUuid),
-    isFavorite: stationUuid => ipcRenderer.invoke(C.isFavorite, stationUuid) as Promise<boolean>,
+    getAll: () => invoke(C.getAll),
+    add: station => invoke(C.add, station),
+    remove: stationUuid => invoke(C.remove, stationUuid),
+    isFavorite: stationUuid => invoke(C.isFavorite, stationUuid) as Promise<boolean>,
   },
 };

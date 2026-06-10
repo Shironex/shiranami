@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
@@ -33,8 +33,8 @@ export interface PlaylistApi {
 }
 
 export const playlistApi: PlaylistApi = {
-  extract: url => ipcRenderer.invoke(C.extract, url),
-  cancel: () => ipcRenderer.invoke(C.cancel),
+  extract: url => invoke(C.extract, url),
+  cancel: () => invoke(C.cancel),
   onExtractProgress: createIpcListener<{ current: number; total: number; trackName: string }>(
     C.extractProgress
   ),

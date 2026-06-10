@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
 import { tracks, playlists, playlistTracks, youtubeMappings, eq } from '@shiranami/database';
-import { ipcHandlers, makeTempDir, cleanupTempDir } from '../../../test/setup';
+import { ipcHandlers, makeTempDir, cleanupTempDir, expectIpcErrorCode } from '../../../test/setup';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -213,20 +213,20 @@ describe('share ipc handlers', () => {
       mockSpawnYtDlp.mockResolvedValue({ stdout: '', stderr: 'nope', code: 1 });
 
       const handler = ipcHandlers.get('share:track')!;
-      await expect(handler(null as never, trackId)).rejects.toMatchObject({
-        code: 'share.no_youtube_match',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, trackId)),
+        'share.no_youtube_match'
+      );
     });
 
     it('throws TRACK_NOT_FOUND when track does not exist', async () => {
       const handler = ipcHandlers.get('share:track')!;
       // Valid-shape UUID that simply isn't in the DB — otherwise we'd trip
       // the zod validator and get BAD_REQUEST instead of TRACK_NOT_FOUND.
-      await expect(
-        handler(null as never, '00000000-0000-4000-8000-000000000000')
-      ).rejects.toMatchObject({
-        code: 'share.track_not_found',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, '00000000-0000-4000-8000-000000000000')),
+        'share.track_not_found'
+      );
     });
   });
 
@@ -258,19 +258,19 @@ describe('share ipc handlers', () => {
 
     it('throws PLAYLIST_NOT_FOUND for missing playlist', async () => {
       const handler = ipcHandlers.get('share:playlist')!;
-      await expect(
-        handler(null as never, '00000000-0000-4000-8000-000000000000')
-      ).rejects.toMatchObject({
-        code: 'share.playlist_not_found',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, '00000000-0000-4000-8000-000000000000')),
+        'share.playlist_not_found'
+      );
     });
 
     it('throws PLAYLIST_EMPTY when playlist has no tracks', async () => {
       const playlistId = insertPlaylist('Empty');
       const handler = ipcHandlers.get('share:playlist')!;
-      await expect(handler(null as never, playlistId)).rejects.toMatchObject({
-        code: 'share.playlist_empty',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, playlistId)),
+        'share.playlist_empty'
+      );
     });
 
     it('throws NO_MATCHES_FOR_ANY_TRACK when no track resolves on YouTube', async () => {
@@ -280,9 +280,10 @@ describe('share ipc handlers', () => {
       mockSpawnYtDlp.mockResolvedValue({ stdout: '', stderr: '', code: 1 });
 
       const handler = ipcHandlers.get('share:playlist')!;
-      await expect(handler(null as never, playlistId)).rejects.toMatchObject({
-        code: 'share.no_matches_for_any_track',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, playlistId)),
+        'share.no_matches_for_any_track'
+      );
     });
   });
 
@@ -310,9 +311,10 @@ describe('share ipc handlers', () => {
       apiResponse = { statusCode: 200, body: { type: 'TRACK', payload: { title: 'Shared' } } };
 
       const handler = ipcHandlers.get('share:import')!;
-      await expect(handler(null as never, 'abc123')).rejects.toMatchObject({
-        code: 'share.invalid_response',
-      });
+      await expectIpcErrorCode(
+        Promise.resolve(handler(null as never, 'abc123')),
+        'share.invalid_response'
+      );
     });
 
     it('rejects when API returns an error status', async () => {
