@@ -13,6 +13,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { Track } from '@/stores/types';
 import { useContextMenuDismiss, type ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
 import { playlistKeys } from '@/hooks/queries/usePlaylists';
+import { logger } from '@/lib/logger';
 
 interface PlaylistContextMenuProps {
   playlist: Playlist;
@@ -65,7 +66,7 @@ export function PlaylistContextMenu({ playlist, position, onClose }: PlaylistCon
       }
       return tracks;
     } catch (err) {
-      console.warn('Failed to load playlist tracks', err);
+      logger.warn('Failed to load playlist tracks', err);
       return [];
     }
   }, [playlist.id, playlist.name, tToast, queryClient]);

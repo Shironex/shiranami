@@ -1,5 +1,6 @@
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import { logger } from '@/lib/logger';
 
 /** localStorage key — matches the shiranami.* store convention. */
 const STORE_KEY = 'shiranami.supportBanner';
@@ -29,13 +30,17 @@ export const useSupportBannerStore = createPersistedStore<SupportBannerState>(
     setSeen: () => {
       set({ seen: true });
       if (IS_ELECTRON) {
-        window.electronAPI.store.set(ELECTRON_KEY, true).catch(() => {});
+        window.electronAPI.store
+          .set(ELECTRON_KEY, true)
+          .catch(err => logger.warn('Failed to persist support-banner seen state', err));
       }
     },
     reset: () => {
       set({ seen: false });
       if (IS_ELECTRON) {
-        window.electronAPI.store.delete(ELECTRON_KEY).catch(() => {});
+        window.electronAPI.store
+          .delete(ELECTRON_KEY)
+          .catch(err => logger.warn('Failed to clear support-banner seen state', err));
       }
     },
     hydrateSupportBanner: async () => {

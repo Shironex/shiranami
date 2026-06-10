@@ -153,7 +153,9 @@ export function useDownloadQueueImporter(): void {
           const track = await importTrack(item.filePath);
           if (track) {
             if (item.youtubeId) {
-              window.electronAPI.share.cacheYoutubeId(track.id, item.youtubeId).catch(() => {});
+              window.electronAPI.share
+                .cacheYoutubeId(track.id, item.youtubeId)
+                .catch(err => logger.warn('Failed to cache YouTube id for imported track', err));
             }
             toast.success(i18n.t('downloaded', { ns: 'toast', title: track.title }));
           } else {
@@ -216,7 +218,9 @@ export function useDownloadQueueImporter(): void {
             getIdByPath: fp => window.electronAPI.db.tracks.getIdByPath(fp),
             importTrack,
             cacheYoutubeId: (trackId, youtubeId) =>
-              void window.electronAPI.share.cacheYoutubeId(trackId, youtubeId).catch(() => {}),
+              void window.electronAPI.share
+                .cacheYoutubeId(trackId, youtubeId)
+                .catch(err => logger.warn('Failed to cache YouTube id during batch import', err)),
           });
 
           toast.success(

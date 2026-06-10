@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { IS_ELECTRON } from '@/lib/platform';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { logger } from '@/lib/logger';
 
 /**
  * Hydrates and persists player-only preferences that should survive app restarts.
  * Kept separate from library loading so volume/mute state is not coupled to DB startup.
  */
 export function usePlayerPreferences() {
-  const volume = usePlaybackStore((s) => s.volume);
-  const isMuted = usePlaybackStore((s) => s.isMuted);
+  const volume = usePlaybackStore(s => s.volume);
+  const isMuted = usePlaybackStore(s => s.isMuted);
   const [isHydrated, setIsHydrated] = useState(!IS_ELECTRON);
 
   useEffect(() => {
@@ -23,8 +24,9 @@ export function usePlayerPreferences() {
           window.electronAPI.store.get<boolean>('player.isMuted'),
         ]);
 
-        const updates: Partial<Pick<ReturnType<typeof usePlaybackStore.getState>, 'volume' | 'isMuted'>> =
-          {};
+        const updates: Partial<
+          Pick<ReturnType<typeof usePlaybackStore.getState>, 'volume' | 'isMuted'>
+        > = {};
 
         if (typeof storedVolume === 'number' && isFinite(storedVolume)) {
           updates.volume = Math.max(0, Math.min(1, storedVolume));
@@ -54,11 +56,15 @@ export function usePlayerPreferences() {
 
   useEffect(() => {
     if (!IS_ELECTRON || !isHydrated) return;
-    window.electronAPI.store.set('player.volume', volume).catch(() => {});
+    window.electronAPI.store
+      .set('player.volume', volume)
+      .catch(err => logger.warn('Failed to persist player volume', err));
   }, [isHydrated, volume]);
 
   useEffect(() => {
     if (!IS_ELECTRON || !isHydrated) return;
-    window.electronAPI.store.set('player.isMuted', isMuted).catch(() => {});
+    window.electronAPI.store
+      .set('player.isMuted', isMuted)
+      .catch(err => logger.warn('Failed to persist player mute state', err));
   }, [isHydrated, isMuted]);
 }

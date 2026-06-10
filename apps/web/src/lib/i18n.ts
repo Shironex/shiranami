@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
+import { logger } from '@/lib/logger';
 
 import commonEn from '@/locales/en/common.json';
 import sidebarEn from '@/locales/en/sidebar.json';
@@ -95,7 +96,9 @@ export function persistLanguage(lang: SupportedLanguage) {
   window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
 
   if (IS_ELECTRON) {
-    window.electronAPI.store.set('app.language', lang).catch(() => {});
+    window.electronAPI.store
+      .set('app.language', lang)
+      .catch(err => logger.warn('Failed to persist language preference', err));
   }
 }
 

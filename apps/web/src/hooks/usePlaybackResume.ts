@@ -120,7 +120,9 @@ export function usePlaybackResume(enabled = true) {
         const savedState = savedRaw == null ? null : parsePersistedPlayerState(savedRaw);
         if (savedRaw != null && savedState === null) {
           logger.warn('Discarding invalid persisted player-state');
-          window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
+          window.electronAPI.store
+            .delete(PLAYER_STATE_KEY)
+            .catch(err => logger.warn('Failed to clear invalid persisted player-state', err));
         }
 
         if (!cancelled) {
@@ -245,7 +247,9 @@ export function usePlaybackResume(enabled = true) {
     if (!currentTrack) {
       if (force || lastKeyRef.current !== '') {
         lastKeyRef.current = '';
-        window.electronAPI.store.delete(PLAYER_STATE_KEY).catch(() => {});
+        window.electronAPI.store
+          .delete(PLAYER_STATE_KEY)
+          .catch(err => logger.warn('Failed to clear persisted player-state', err));
       }
       return;
     }
