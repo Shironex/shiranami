@@ -75,7 +75,20 @@ export function registerTrackHandlers(): void {
         const results = [];
         for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
           const chunk = rows.slice(i, i + CHUNK_SIZE);
-          results.push(...tx.insert(tracks).values(chunk).returning().all());
+          // file_path is UNIQUE. Mirror `add` (see comment above) and no-op the
+          // insert on conflict so a single duplicate filePath can't abort the
+          // whole import transaction. `.returning()` then yields only the rows
+          // actually inserted, which matches the existing contract (callers map
+          // the returned rows into the library; already-present tracks are
+          // intentionally omitted).
+          results.push(
+            ...tx
+              .insert(tracks)
+              .values(chunk)
+              .onConflictDoNothing({ target: tracks.filePath })
+              .returning()
+              .all()
+          );
         }
         return results;
       });
@@ -210,7 +223,7 @@ export function registerTrackHandlers(): void {
   handle(
     T.existsMany,
     async (_event, filePaths: string[]) => {
-      if (filePaths.length === 0) return new Set<string>();
+      if (filePaths.length === 0) return [];
       const db = getDatabase();
       const CHUNK_SIZE = 500;
       const existing = new Set<string>();
