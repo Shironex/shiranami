@@ -36,6 +36,7 @@ const fakeScanResult = (filePath: string) => ({
   metadata: {
     title: `Title for ${filePath}`,
     artist: 'Test Artist',
+    albumArtist: 'Test Album Artist',
     album: 'Test Album',
     duration: 200,
     genre: 'Rock',
@@ -44,6 +45,12 @@ const fakeScanResult = (filePath: string) => ({
     discNumber: 1,
     albumArt: null,
   },
+});
+
+/** Wrap flat scan results into the grouped-scan shape scanFolderGrouped returns. */
+const groupedScan = (rootTracks: ReturnType<typeof fakeScanResult>[]) => ({
+  rootTracks,
+  subfolders: [],
 });
 
 const fakeDbTrack = (id: string, filePath: string): Record<string, unknown> => ({
@@ -74,12 +81,24 @@ function resetStore() {
 }
 
 function resetMocks() {
-  vi.mocked(window.electronAPI.dialog.openDirectory).mockReset().mockResolvedValue(null as never);
-  vi.mocked(window.electronAPI.dialog.openFile).mockReset().mockResolvedValue(null as never);
-  vi.mocked(window.electronAPI.library.scanFolder).mockReset().mockResolvedValue([] as never);
-  vi.mocked(window.electronAPI.db.tracks.exists).mockReset().mockResolvedValue(false as never);
-  vi.mocked(window.electronAPI.db.tracks.addMany).mockReset().mockResolvedValue([] as never);
-  vi.mocked(window.electronAPI.db.folders.add).mockReset().mockResolvedValue(undefined as never);
+  vi.mocked(window.electronAPI.dialog.openDirectory)
+    .mockReset()
+    .mockResolvedValue(null as never);
+  vi.mocked(window.electronAPI.dialog.openFile)
+    .mockReset()
+    .mockResolvedValue(null as never);
+  vi.mocked(window.electronAPI.library.scanFolderGrouped)
+    .mockReset()
+    .mockResolvedValue(groupedScan([]) as never);
+  vi.mocked(window.electronAPI.db.tracks.existsMany)
+    .mockReset()
+    .mockResolvedValue([] as never);
+  vi.mocked(window.electronAPI.db.tracks.addMany)
+    .mockReset()
+    .mockResolvedValue([] as never);
+  vi.mocked(window.electronAPI.db.folders.add)
+    .mockReset()
+    .mockResolvedValue(undefined as never);
   vi.mocked(queryClient.invalidateQueries).mockClear();
   vi.mocked(toast.success).mockClear();
   vi.mocked(toast.info).mockClear();
@@ -165,12 +184,14 @@ describe('useLibraryActions', () => {
         await result.current.handleOpenFolder();
       });
 
-      expect(window.electronAPI.library.scanFolder).not.toHaveBeenCalled();
+      expect(window.electronAPI.library.scanFolderGrouped).not.toHaveBeenCalled();
     });
 
     it('shows info toast when folder contains no audio files', async () => {
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music/empty' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue([] as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan([]) as never
+      );
 
       const { result } = renderHook(() => useLibraryActions());
 
@@ -184,9 +205,13 @@ describe('useLibraryActions', () => {
     it('shows info toast when all scanned tracks already exist', async () => {
       const scanResults = [fakeScanResult('/music/song1.mp3')];
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
       // Track exists in DB
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(true as never);
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([
+        '/music/song1.mp3',
+      ] as never);
 
       const { result } = renderHook(() => useLibraryActions());
 
@@ -211,7 +236,9 @@ describe('useLibraryActions', () => {
 
       const scanResults = [fakeScanResult('/music/song1.mp3')];
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
 
       const { result } = renderHook(() => useLibraryActions());
 
@@ -224,18 +251,17 @@ describe('useLibraryActions', () => {
     });
 
     it('saves new tracks to DB, adds to library and queue', async () => {
-      const scanResults = [
-        fakeScanResult('/music/song1.mp3'),
-        fakeScanResult('/music/song2.mp3'),
-      ];
+      const scanResults = [fakeScanResult('/music/song1.mp3'), fakeScanResult('/music/song2.mp3')];
       const dbTracks = [
         fakeDbTrack('t1', '/music/song1.mp3'),
         fakeDbTrack('t2', '/music/song2.mp3'),
       ];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -255,13 +281,37 @@ describe('useLibraryActions', () => {
       expect(usePlaybackStore.getState().queue).toHaveLength(2);
     });
 
+    it('carries the albumArtist tag through to addMany (no #269/#270 regression)', async () => {
+      const scanResults = [fakeScanResult('/music/song1.mp3')];
+      const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
+
+      vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
+      vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
+
+      const { result } = renderHook(() => useLibraryActions());
+
+      await act(async () => {
+        await result.current.handleOpenFolder();
+      });
+
+      expect(window.electronAPI.db.tracks.addMany).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ albumArtist: 'Test Album Artist' })])
+      );
+    });
+
     it('saves the folder path to DB', async () => {
       const scanResults = [fakeScanResult('/music/song1.mp3')];
       const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -278,8 +328,10 @@ describe('useLibraryActions', () => {
       const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -313,8 +365,10 @@ describe('useLibraryActions', () => {
       const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -333,8 +387,10 @@ describe('useLibraryActions', () => {
       const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -352,18 +408,17 @@ describe('useLibraryActions', () => {
     });
 
     it('shows success toast with track count after adding', async () => {
-      const scanResults = [
-        fakeScanResult('/music/song1.mp3'),
-        fakeScanResult('/music/song2.mp3'),
-      ];
+      const scanResults = [fakeScanResult('/music/song1.mp3'), fakeScanResult('/music/song2.mp3')];
       const dbTracks = [
         fakeDbTrack('t1', '/music/song1.mp3'),
         fakeDbTrack('t2', '/music/song2.mp3'),
       ];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -377,7 +432,7 @@ describe('useLibraryActions', () => {
 
     it('shows error toast when scan fails', async () => {
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockRejectedValue(
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockRejectedValue(
         new Error('scan error')
       );
 
@@ -391,13 +446,13 @@ describe('useLibraryActions', () => {
     });
 
     it('sets isScanning to true during scan and false after completion', async () => {
-      let resolveScan!: (value: unknown[]) => void;
-      const scanPromise = new Promise<unknown[]>(resolve => {
+      let resolveScan!: (value: unknown) => void;
+      const scanPromise = new Promise<unknown>(resolve => {
         resolveScan = resolve;
       });
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockReturnValue(scanPromise as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockReturnValue(scanPromise as never);
 
       const { result } = renderHook(() => useLibraryActions());
 
@@ -418,7 +473,7 @@ describe('useLibraryActions', () => {
 
       // Resolve with empty results to finish scan
       await act(async () => {
-        resolveScan([]);
+        resolveScan(groupedScan([]));
         await scanDone!;
       });
 
@@ -427,7 +482,7 @@ describe('useLibraryActions', () => {
 
     it('resets isScanning to false even when scan throws', async () => {
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockRejectedValue(
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockRejectedValue(
         new Error('scan error')
       );
 
@@ -458,8 +513,10 @@ describe('useLibraryActions', () => {
       const dbTracks = [fakeDbTrack('t2', '/music/song2.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
 
       const { result } = renderHook(() => useLibraryActions());
@@ -469,14 +526,11 @@ describe('useLibraryActions', () => {
       });
 
       // Only song2 should be checked against DB (song1 filtered by library store)
-      expect(window.electronAPI.db.tracks.exists).toHaveBeenCalledTimes(1);
-      expect(window.electronAPI.db.tracks.exists).toHaveBeenCalledWith('/music/song2.mp3');
+      expect(window.electronAPI.db.tracks.existsMany).toHaveBeenCalledWith(['/music/song2.mp3']);
 
       // Only song2 should be added
       expect(window.electronAPI.db.tracks.addMany).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ filePath: '/music/song2.mp3' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ filePath: '/music/song2.mp3' })])
       );
 
       // Library should now have existing + new
@@ -488,8 +542,10 @@ describe('useLibraryActions', () => {
       const dbTracks = [fakeDbTrack('t1', '/music/song1.mp3')];
 
       vi.mocked(window.electronAPI.dialog.openDirectory).mockResolvedValue('/music' as never);
-      vi.mocked(window.electronAPI.library.scanFolder).mockResolvedValue(scanResults as never);
-      vi.mocked(window.electronAPI.db.tracks.exists).mockResolvedValue(false as never);
+      vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue(
+        groupedScan(scanResults) as never
+      );
+      vi.mocked(window.electronAPI.db.tracks.existsMany).mockResolvedValue([] as never);
       vi.mocked(window.electronAPI.db.tracks.addMany).mockResolvedValue(dbTracks as never);
       vi.mocked(window.electronAPI.db.folders.add).mockRejectedValue(
         new Error('UNIQUE constraint')
