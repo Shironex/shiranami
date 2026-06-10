@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function MixesViewSkeleton() {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden" aria-busy="true">
       <div className="px-6 pt-2 pb-4 shrink-0">
         <Skeleton className="h-5 w-24" />
       </div>

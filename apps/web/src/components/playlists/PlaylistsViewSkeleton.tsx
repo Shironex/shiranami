@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function PlaylistsViewSkeleton() {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden" aria-busy="true">
       <div className="px-6 pt-2 pb-4 shrink-0 flex items-center gap-3">
         <Skeleton className="h-7 w-28 rounded-lg" />
         <div className="flex-1" />
