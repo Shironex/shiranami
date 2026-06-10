@@ -22,6 +22,7 @@ import {
   useDeleteSmartPlaylistMutation,
 } from '@/hooks/queries/useSmartPlaylists';
 import { SmartPlaylistFormDialog } from './SmartPlaylistFormDialog';
+import { SmartPlaylistsViewSkeleton } from './SmartPlaylistsViewSkeleton';
 
 function SmartPlaylistDetail({ id }: { id: string }) {
   const { t } = useTranslation('smartPlaylists');
@@ -223,6 +224,10 @@ export function SmartPlaylistsView() {
     return <SmartPlaylistDetail id={selectedId} />;
   }
 
+  if (isLoading) {
+    return <SmartPlaylistsViewSkeleton />;
+  }
+
   if (isError) {
     return (
       <ViewEmptyState
@@ -251,11 +256,7 @@ export function SmartPlaylistsView() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
-        </div>
-      ) : sorted.length === 0 ? (
+      {sorted.length === 0 ? (
         <ViewEmptyState
           title={t('emptyTitle')}
           subtitle={t('emptySubtitle')}
