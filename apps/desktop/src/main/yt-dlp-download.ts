@@ -169,6 +169,7 @@ export function runYtDlpDownload(
         void cleanupPartialFiles().finally(() => reject(new DownloadAbortError()));
         return;
       }
+      logger.error('[downloader] spawn failed', err);
       onProgress({ url, progress: 0, status: 'error', error: err.message });
       reject(err);
     });
@@ -208,7 +209,8 @@ export function runYtDlpDownload(
             if (downloadedFilePath) {
               await fs.promises.access(downloadedFilePath);
             }
-          } catch {
+          } catch (err) {
+            logger.error('[downloader] could not resolve downloaded file path', err);
             const errMsg = 'Could not determine downloaded file path';
             onProgress({ url, progress: 0, status: 'error', error: errMsg });
             reject(new Error(errMsg));

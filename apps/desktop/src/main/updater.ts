@@ -1,8 +1,11 @@
 import { BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo as ElectronUpdateInfo, ProgressInfo } from 'electron-updater';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
 import { sendToRenderer } from './utils/window';
+
+const U = IPC_CHANNELS.updater;
 
 let updaterEnabled = false;
 let updaterInitialized = false;
@@ -39,12 +42,12 @@ export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean
 
   autoUpdater.on('checking-for-update', () => {
     logger.info('[updater] Checking for update...');
-    sendToRenderer('updater:checking-for-update');
+    sendToRenderer(U.checkingForUpdate);
   });
 
   autoUpdater.on('update-available', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Update available: ${info.version}`);
-    sendToRenderer('updater:update-available', {
+    sendToRenderer(U.updateAvailable, {
       version: info.version,
       releaseNotes: parseReleaseNotes(info.releaseNotes),
       releaseDate: info.releaseDate,
@@ -53,11 +56,11 @@ export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean
 
   autoUpdater.on('update-not-available', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Up to date: ${info.version}`);
-    sendToRenderer('updater:update-not-available');
+    sendToRenderer(U.updateNotAvailable);
   });
 
   autoUpdater.on('download-progress', (progress: ProgressInfo) => {
-    sendToRenderer('updater:download-progress', {
+    sendToRenderer(U.downloadProgress, {
       bytesPerSecond: progress.bytesPerSecond,
       percent: progress.percent,
       transferred: progress.transferred,
@@ -67,7 +70,7 @@ export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean
 
   autoUpdater.on('update-downloaded', (info: ElectronUpdateInfo) => {
     logger.info(`[updater] Update downloaded: ${info.version}`);
-    sendToRenderer('updater:update-downloaded', {
+    sendToRenderer(U.updateDownloaded, {
       version: info.version,
       releaseNotes: parseReleaseNotes(info.releaseNotes),
       releaseDate: info.releaseDate,
@@ -81,10 +84,10 @@ export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean
 
     if (isReleasePending) {
       logger.warn('[updater] Release artifacts not yet available (build may still be in progress)');
-      sendToRenderer('updater:error', 'RELEASE_PENDING');
+      sendToRenderer(U.error, 'RELEASE_PENDING');
     } else {
-      logger.error('[updater] Error:', error.message);
-      sendToRenderer('updater:error', error.message);
+      logger.error('[updater] Error:', error);
+      sendToRenderer(U.error, error.message);
     }
   });
 

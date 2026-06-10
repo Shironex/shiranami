@@ -273,6 +273,7 @@ export class DownloadQueue {
       // promise chain is attached would otherwise leave the item stuck
       // 'active' with a live controller, wedging the concurrency slot so
       // queued items never promote. Settle it as an error and free the slot.
+      logger.error('[download-queue] item failed', { id: item.id, url: item.url, err });
       const current = this.items.get(item.id);
       if (current) {
         current.status = 'error';
@@ -308,6 +309,7 @@ export class DownloadQueue {
           if (controller.signal.aborted) {
             current.status = 'canceled';
           } else {
+            logger.error('[download-queue] item failed', { id: item.id, url: item.url, err });
             current.status = 'error';
             current.error = err instanceof Error ? err.message : String(err);
           }

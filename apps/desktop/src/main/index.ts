@@ -24,6 +24,7 @@ import {
 } from './recommendation-service';
 import { startScrobbler, stopScrobbler } from './scrobbler';
 import { PRIVILEGED_SCHEMES } from './privileged-schemes';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 
 // E2E hatch: when running under @playwright/test we disable noisy bootstrap
 // side-effects (tray, Discord RPC, auto-updater, OS media-controls) so the
@@ -80,7 +81,7 @@ function handleDeepLink(url: string): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show();
     mainWindow.focus();
-    mainWindow.webContents.send('share:deep-link', code);
+    mainWindow.webContents.send(IPC_CHANNELS.share.deepLink, code);
   }
 }
 
@@ -228,6 +229,7 @@ app
   .then(bootstrap)
   .catch(error => {
     logger.error('Failed to bootstrap application:', error);
+    Sentry.captureException(error);
   });
 
 app.on('window-all-closed', () => {
@@ -264,33 +266,33 @@ app.on('before-quit', event => {
     try {
       cancelRecommendationRefresh();
       stopScrobbler();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] recommendation/scrobbler stop failed', err);
     }
     try {
       cleanupDiscordRpc();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] discord-rpc cleanup failed', err);
     }
     try {
       cleanupMediaControls();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] media-controls cleanup failed', err);
     }
     try {
       destroyTray();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] tray destroy failed', err);
     }
     try {
       closeDatabase();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] database close failed', err);
     }
     try {
       await flushLogs();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.warn('[shutdown] log flush failed', err);
     }
   })().finally(() => {
     cleanupDone = true;

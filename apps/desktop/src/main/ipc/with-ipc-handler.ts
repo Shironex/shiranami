@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron';
+import * as Sentry from '@sentry/electron/main';
 import type { ZodType } from 'zod';
 import { logger } from '../logger';
 import { IpcError } from './errors';
@@ -25,16 +26,12 @@ export interface HandleOptions<Args extends unknown[]> {
 function validateOrThrow<Args extends unknown[]>(
   channel: string,
   schema: ZodType<Args>,
-  rawArgs: unknown[],
+  rawArgs: unknown[]
 ): Args {
   const parsed = schema.safeParse(rawArgs);
   if (!parsed.success) {
     logger.error(`[ipc:${channel}] validation failed`, parsed.error.issues);
-    throw new IpcError(
-      'BAD_REQUEST',
-      `Invalid payload for ${channel}`,
-      parsed.error.issues,
-    );
+    throw new IpcError('BAD_REQUEST', `Invalid payload for ${channel}`, parsed.error.issues);
   }
   return parsed.data;
 }
@@ -49,17 +46,16 @@ function validateOrThrow<Args extends unknown[]>(
 export function handle<Args extends unknown[], R>(
   channel: string,
   handler: Handler<Args, R>,
-  options?: HandleOptions<Args>,
+  options?: HandleOptions<Args>
 ): void {
   const schema = options?.schema;
   ipcMain.handle(channel, async (event, ...args) => {
-    const parsedArgs = schema
-      ? validateOrThrow(channel, schema, args)
-      : (args as Args);
+    const parsedArgs = schema ? validateOrThrow(channel, schema, args) : (args as Args);
     try {
       return await handler(event, ...parsedArgs);
     } catch (err) {
       logger.error(`[ipc:${channel}]`, err);
+      Sentry.captureException(err);
       throw err;
     }
   });
@@ -77,7 +73,7 @@ export function handleWithFallback<Args extends unknown[], R>(
   channel: string,
   handler: Handler<Args, R>,
   fallback: (err: unknown) => R,
-  options?: HandleOptions<Args>,
+  options?: HandleOptions<Args>
 ): void {
   const schema = options?.schema;
   ipcMain.handle(channel, async (event, ...args) => {
@@ -94,6 +90,7 @@ export function handleWithFallback<Args extends unknown[], R>(
       return await handler(event, ...parsedArgs);
     } catch (err) {
       logger.warn(`[ipc:${channel}] using fallback`, err);
+      Sentry.captureException(err);
       return fallback(err);
     }
   });

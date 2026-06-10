@@ -18,6 +18,14 @@ export function setMockMainWindow(win: BrowserWindow | null): void {
   mockMainWindow = win;
 }
 
+// `@sentry/electron/main` evaluates the real `electron` CommonJS module at
+// import time, which breaks the ESM named-import interop under vitest. Stub it
+// so modules that report errors via Sentry (e.g. with-ipc-handler) stay
+// importable; captureException is a harmless no-op in tests.
+vi.mock('@sentry/electron/main', () => ({
+  captureException: vi.fn(),
+}));
+
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn((key: string) => {
