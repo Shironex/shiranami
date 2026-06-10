@@ -206,10 +206,47 @@ function App() {
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
+
+    // A large scan fires one progress event per parsed file (~50k for a big
+    // library), and each event committed straight to the store re-renders
+    // ScanProgressCard. Coalesce to ~10 commits/sec: keep only the latest
+    // event between ticks, but ALWAYS flush the final event (fileIndex reaches
+    // fileCount) immediately so the bar never sticks below 100%.
+    const THROTTLE_MS = 100;
+    let pending: { filePath: string; fileIndex: number; fileCount: number; ok: boolean } | null =
+      null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = () => {
+      timer = null;
+      if (pending) {
+        useLibraryStore.getState().updateScanProgress(pending);
+        pending = null;
+      }
+    };
+
     const cleanup = window.electronAPI.library.onScanProgress(p => {
-      useLibraryStore.getState().updateScanProgress(p);
+      const isFinal = p.fileCount > 0 && p.fileIndex >= p.fileCount;
+      if (isFinal) {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        pending = null;
+        useLibraryStore.getState().updateScanProgress(p);
+        return;
+      }
+      pending = p;
+      if (!timer) timer = setTimeout(flush, THROTTLE_MS);
     });
-    return cleanup;
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      // Flush any straggler so the store reflects the last event the scan sent.
+      if (pending) useLibraryStore.getState().updateScanProgress(pending);
+      pending = null;
+      cleanup();
+    };
   }, []);
 
   return (
