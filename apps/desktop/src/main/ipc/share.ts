@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { randomUUID } from 'crypto';
-import { eq, youtubeMappings, tracks } from '@shiranami/database';
+import { eq, inArray, youtubeMappings, tracks } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import {
   createShareSchema,
@@ -24,6 +24,22 @@ const C = IPC_CHANNELS.share;
 
 const SHARE_API_URL =
   process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.shiranami.app';
+
+/**
+ * Read every cached track→youtubeId mapping for the given ids in one query.
+ * Lets bulk callers (playlist share) resolve cache hits without N per-track
+ * SELECTs; only cache misses fall through to the per-track yt-dlp search.
+ */
+function getCachedYoutubeIds(trackIds: string[]): Map<string, string> {
+  if (trackIds.length === 0) return new Map();
+  const db = getDatabase();
+  const rows = db
+    .select({ trackId: youtubeMappings.trackId, youtubeId: youtubeMappings.youtubeId })
+    .from(youtubeMappings)
+    .where(inArray(youtubeMappings.trackId, trackIds))
+    .all();
+  return new Map(rows.map(r => [r.trackId, r.youtubeId]));
+}
 
 async function getYoutubeId(trackId: string): Promise<string | null> {
   const db = getDatabase();
@@ -188,20 +204,35 @@ export function registerShareHandlers(): void {
         .orderBy(playlistTracks.position)
         .all();
 
-      const trackRows = [];
-      for (const pt of ptRows) {
-        const track = await db.select().from(tracks).where(eq(tracks.id, pt.trackId)).get();
-        if (track) trackRows.push(track);
-      }
+      // Fetch all playlist tracks in one query, then reorder in JS to match
+      // the playlist's position order (inArray returns rows unordered).
+      const orderedTrackIds = ptRows.map(pt => pt.trackId);
+      const trackById = new Map(
+        orderedTrackIds.length > 0
+          ? db
+              .select()
+              .from(tracks)
+              .where(inArray(tracks.id, orderedTrackIds))
+              .all()
+              .map(t => [t.id, t])
+          : []
+      );
+      const trackRows = orderedTrackIds
+        .map(id => trackById.get(id))
+        .filter((t): t is NonNullable<typeof t> => t !== undefined);
 
       if (trackRows.length === 0)
         throw new IpcError(SHARE_ERROR_CODES.PLAYLIST_EMPTY, 'Playlist has no tracks');
       logger.info(`[share] Sharing playlist "${playlist.name}" (${trackRows.length} tracks)`);
 
-      // Resolve YouTube IDs for all tracks
+      // Pre-resolve cached YouTube IDs in one query so the common case (an
+      // already-shared playlist) skips the per-track cache SELECT. Cache
+      // misses still fall through to getYoutubeId's per-track yt-dlp search,
+      // which is an unavoidable network op.
+      const cachedYtIds = getCachedYoutubeIds(trackRows.map(t => t.id));
       const shareTracks = [];
       for (const track of trackRows) {
-        const ytId = await getYoutubeId(track.id);
+        const ytId = cachedYtIds.get(track.id) ?? (await getYoutubeId(track.id));
         if (ytId) {
           shareTracks.push({
             title: track.title,

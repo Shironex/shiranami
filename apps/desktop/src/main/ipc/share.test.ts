@@ -256,6 +256,35 @@ describe('share ipc handlers', () => {
       });
     });
 
+    it('preserves playlist position order when assigned out of insertion order', async () => {
+      const playlistId = insertPlaylist('Reordered');
+      // Insert/add tracks so DB row order differs from playlist position: the
+      // first-added row sits at position 2, the last-added at position 0.
+      const tA = insertTrack({ title: 'A' });
+      const tB = insertTrack({ title: 'B' });
+      const tC = insertTrack({ title: 'C' });
+      insertYoutubeMapping(tA, 'ytA');
+      insertYoutubeMapping(tB, 'ytB');
+      insertYoutubeMapping(tC, 'ytC');
+      addTrackToPlaylist(playlistId, tA, 2);
+      addTrackToPlaylist(playlistId, tB, 0);
+      addTrackToPlaylist(playlistId, tC, 1);
+
+      const handler = ipcHandlers.get('share:playlist')!;
+      await handler(null as never, playlistId);
+
+      expect(apiCalls[0].body).toMatchObject({
+        type: 'PLAYLIST',
+        payload: {
+          tracks: [
+            expect.objectContaining({ title: 'B', ytId: 'ytB' }),
+            expect.objectContaining({ title: 'C', ytId: 'ytC' }),
+            expect.objectContaining({ title: 'A', ytId: 'ytA' }),
+          ],
+        },
+      });
+    });
+
     it('throws PLAYLIST_NOT_FOUND for missing playlist', async () => {
       const handler = ipcHandlers.get('share:playlist')!;
       await expectIpcErrorCode(
