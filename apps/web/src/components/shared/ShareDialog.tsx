@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Share2, Copy, Check, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { Share2, Copy, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useShareLink } from '@/hooks/useShareLink';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ShareDialogProps {
@@ -16,18 +18,22 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
   const { state, shareUrl, expiresAt, error, shareTrack, sharePlaylist, reset } = useShareLink();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
+  const generateLink = useCallback(() => {
     setCopied(false);
     if (type === 'track') {
       void shareTrack(id);
     } else {
       void sharePlaylist(id);
     }
+  }, [type, id, shareTrack, sharePlaylist]);
+
+  useEffect(() => {
+    if (!open) return;
+    generateLink();
     return () => {
       reset();
     };
-  }, [open, type, id, shareTrack, sharePlaylist, reset]);
+  }, [open, generateLink, reset]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -35,9 +41,9 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback
+      toast.error(t('copyFailed'));
     }
-  }, [shareUrl]);
+  }, [shareUrl, t]);
 
   const displayError = error || t('shareError');
 
@@ -66,6 +72,10 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
           <div className="flex flex-col items-center gap-3 py-8">
             <AlertCircle className="w-6 h-6 text-destructive" />
             <p className="text-sm text-muted-foreground text-center">{displayError}</p>
+            <Button size="sm" variant="outline" onClick={generateLink} className="gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" />
+              {t('retry')}
+            </Button>
           </div>
         )}
 
