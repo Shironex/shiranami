@@ -18,6 +18,35 @@ export const DEFAULT_COLOR: AmbientColor = {
 
 const AmbientColorContext = createContext<AmbientColor>(DEFAULT_COLOR);
 
+/**
+ * Bounded LRU of already-extracted ambient colors keyed on the art URL. Art
+ * URLs are content-addressed and immutable, so the same cover always yields
+ * the same color — re-decoding the image and re-running the FastAverageColor
+ * pixel scan on every track change is pure waste. A cache hit lets us set
+ * state synchronously and skip the Image/canvas/FAC pass entirely.
+ */
+const AMBIENT_CACHE_LIMIT = 100;
+const ambientCache = new Map<string, AmbientColor>();
+
+function readCache(url: string): AmbientColor | undefined {
+  const hit = ambientCache.get(url);
+  if (hit) {
+    // Refresh recency: re-insert so the eviction order tracks last use.
+    ambientCache.delete(url);
+    ambientCache.set(url, hit);
+  }
+  return hit;
+}
+
+function writeCache(url: string, color: AmbientColor): void {
+  ambientCache.delete(url);
+  ambientCache.set(url, color);
+  if (ambientCache.size > AMBIENT_CACHE_LIMIT) {
+    const oldest = ambientCache.keys().next().value;
+    if (oldest !== undefined) ambientCache.delete(oldest);
+  }
+}
+
 export function AmbientColorProvider({ children }: { children: ReactNode }) {
   const albumArt = usePlaybackStore(s => s.currentTrack?.albumArt);
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
@@ -25,6 +54,12 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!albumArt) {
       setColor(DEFAULT_COLOR);
+      return;
+    }
+
+    const cached = readCache(albumArt);
+    if (cached) {
+      setColor(cached);
       return;
     }
 
@@ -42,11 +77,13 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       try {
         const result = fac.getColor(img);
-        setColor({
+        const next: AmbientColor = {
           rgb: `${result.value[0]}, ${result.value[1]}, ${result.value[2]}`,
           hex: result.hex,
           isDark: result.isDark,
-        });
+        };
+        writeCache(albumArt, next);
+        setColor(next);
       } catch {
         setColor(DEFAULT_COLOR);
       }
