@@ -262,9 +262,11 @@ function App() {
       />
 
       {splashDone && !onboardingDone && (
-        <Suspense fallback={null}>
-          <OnboardingWizard onComplete={handleOnboardingComplete} />
-        </Suspense>
+        <ErrorBoundary viewName="OnboardingWizard">
+          <Suspense fallback={null}>
+            <OnboardingWizard onComplete={handleOnboardingComplete} />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {splashDone && onboardingDone && (
@@ -278,7 +280,9 @@ function App() {
           >
             <ThemeBackground />
             <AmbientBackground />
-            <CommandPalette />
+            <ErrorBoundary viewName="CommandPalette">
+              <CommandPalette />
+            </ErrorBoundary>
             {debugOpen && DebugOverlay && (
               <Suspense fallback={null}>
                 <DebugOverlay />
@@ -306,7 +310,9 @@ function App() {
             </ErrorBoundary>
 
             {compactMode ? (
-              <CompactPlayer />
+              <ErrorBoundary viewName="CompactPlayer" compact>
+                <CompactPlayer />
+              </ErrorBoundary>
             ) : (
               <>
                 {/* Skip to content link for keyboard users */}
@@ -318,18 +324,22 @@ function App() {
                 </a>
 
                 {/* Sidebar */}
-                <Sidebar />
+                <ErrorBoundary viewName="Sidebar" compact>
+                  <Sidebar />
+                </ErrorBoundary>
 
                 {/* Main content area */}
                 <div className="flex-1 flex flex-col min-w-0 relative">
                   {/* Support launch banner — shown once ever, after onboarding */}
                   <SupportBanner />
 
-                  <TopBar
-                    onAddFile={handleOpenFile}
-                    onAddFolder={handleOpenFolder}
-                    isScanning={isScanning}
-                  />
+                  <ErrorBoundary viewName="TopBar" compact>
+                    <TopBar
+                      onAddFile={handleOpenFile}
+                      onAddFolder={handleOpenFolder}
+                      isScanning={isScanning}
+                    />
+                  </ErrorBoundary>
 
                   <main
                     id="main-content"
@@ -480,9 +490,11 @@ function App() {
 
                   {/* Player bar (hidden in now-playing view — controls are inline) */}
                   {activeView !== 'now-playing' && (
-                    <DevProfiler id="player">
-                      <PlayerBar />
-                    </DevProfiler>
+                    <ErrorBoundary viewName="PlayerBar" compact>
+                      <DevProfiler id="player">
+                        <PlayerBar />
+                      </DevProfiler>
+                    </ErrorBoundary>
                   )}
                 </div>
               </>
