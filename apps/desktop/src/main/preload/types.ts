@@ -9,75 +9,18 @@
 
 export type { TrackMetadata } from '@shiranami/contracts';
 
-export interface ListeningHistoryEntry {
-  id: string;
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  duration: number | null;
-  playedAt: string;
-  playedSeconds: number;
-  completionRatio: number;
-  completed: boolean;
-  source: string;
-}
-
-export interface ListeningStatsTrack {
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  playCount: number;
-  listenedSeconds: number;
-  lastPlayedAt: string;
-}
-
-export interface ListeningStatsArtist {
-  artist: string;
-  playCount: number;
-  listenedSeconds: number;
-}
-
-export interface ListeningStatsSummary {
-  totalPlays: number;
-  totalMinutes: number;
-  uniqueTracks: number;
-  uniqueArtists: number;
-  completedPlays: number;
-  topTracks: ListeningStatsTrack[];
-  topArtists: ListeningStatsArtist[];
-}
-
-export interface ListeningActivityPoint {
-  date: string;
-  playCount: number;
-  listenedMinutes: number;
-}
-
-export interface ListeningHourlyActivityPoint {
-  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
-  dayOfWeek: number;
-  /** Hour of day in local time, 0–23. */
-  hour: number;
-  playCount: number;
-  listenedMinutes: number;
-}
-
-export interface ListeningAlbumStat {
-  album: string;
-  artist: string;
-  albumArt: string | null;
-  playCount: number;
-}
-
-export interface WeeklyInsights {
-  /** Gap-based session count for the window (>30 min idle starts a new session). */
-  sessionCount: number;
-  topAlbums: ListeningAlbumStat[];
-}
+// Listening-history wire types live in @shiranami/contracts so the preload and
+// renderer surfaces share one definition. Re-exported for the api/* modules.
+export type {
+  ListeningHistoryEntry,
+  ListeningStatsTrack,
+  ListeningStatsArtist,
+  ListeningStatsSummary,
+  ListeningActivityPoint,
+  ListeningHourlyActivityPoint,
+  ListeningAlbumStat,
+  WeeklyInsights,
+} from '@shiranami/contracts';
 
 export interface ToolInstallResult {
   tool: 'ytdlp' | 'ffmpeg';

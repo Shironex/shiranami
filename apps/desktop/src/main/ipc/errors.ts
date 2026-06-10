@@ -71,22 +71,11 @@ export function decodeIpcError(
   }
 }
 
-export const SHARE_ERROR_CODES = {
-  TRACK_NOT_FOUND: 'share.track_not_found',
-  NO_YOUTUBE_MATCH: 'share.no_youtube_match',
-  PLAYLIST_NOT_FOUND: 'share.playlist_not_found',
-  PLAYLIST_EMPTY: 'share.playlist_empty',
-  NO_MATCHES_FOR_ANY_TRACK: 'share.no_matches_for_any_track',
-  INVALID_RESPONSE: 'share.invalid_response',
-} as const;
-
-export const PLAYLIST_ERROR_CODES = {
-  UNSUPPORTED_URL: 'playlist.unsupported_url',
-  PRIVATE_PLAYLIST: 'playlist.private',
-  NO_TRACKS: 'playlist.no_tracks',
-} as const;
-
-export const VALIDATION_ERROR_CODES = {
-  BAD_REQUEST: 'BAD_REQUEST',
-  FORBIDDEN: 'FORBIDDEN',
-} as const;
+// Error-code constants now live in @shiranami/contracts so the renderer can
+// reference the same literals; re-exported here for the existing main-process
+// import sites (share/playlist/shell handlers).
+export {
+  SHARE_ERROR_CODES,
+  PLAYLIST_ERROR_CODES,
+  VALIDATION_ERROR_CODES,
+} from '@shiranami/contracts';
