@@ -29,14 +29,14 @@ const ruleOperator = z.enum([
   'inLastDays',
 ]);
 
-const smartPlaylistRule = z.object({
+export const smartPlaylistRule = z.object({
   field: ruleField,
   operator: ruleOperator,
   value: z.string(),
   valueTo: z.string().optional(),
 });
 
-const matchType = z.enum(['all', 'any']);
+export const matchType = z.enum(['all', 'any']);
 
 export const smartPlaylistDefinition = z.object({
   matchType,

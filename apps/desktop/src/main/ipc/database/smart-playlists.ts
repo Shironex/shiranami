@@ -27,6 +27,7 @@ import type {
 } from '@shiranami/contracts';
 import { logger } from '../../logger';
 import { handle } from '../with-ipc-handler';
+import { z } from 'zod';
 import {
   smartPlaylistsGetAllArgs,
   smartPlaylistsGetArgs,
@@ -35,6 +36,8 @@ import {
   smartPlaylistsDeleteArgs,
   smartPlaylistsGetTracksArgs,
   smartPlaylistsPreviewArgs,
+  smartPlaylistRule,
+  matchType,
 } from '../schemas/db-smart-playlists';
 
 const S = IPC_CHANNELS.db.smartPlaylists;
@@ -138,20 +141,32 @@ function evaluateDefinition(definition: SmartPlaylistDefinition) {
   return (where ? query.where(where) : query).orderBy(desc(tracks.createdAt)).all();
 }
 
+const rulesArraySchema = z.array(smartPlaylistRule);
+
 /** Parse a persisted row's JSON `rules` back into structured form. */
 function rowToSmartPlaylist(row: SmartPlaylistRow): SmartPlaylist {
   let rules: SmartPlaylistRule[] = [];
   try {
     const parsed = JSON.parse(row.rules);
-    if (Array.isArray(parsed)) rules = parsed as SmartPlaylistRule[];
+    const validated = rulesArraySchema.safeParse(parsed);
+    if (validated.success) {
+      rules = validated.data;
+    } else {
+      logger.warn(
+        `[database] smart-playlist ${row.id} has invalid rules shape`,
+        validated.error.issues
+      );
+    }
   } catch {
     logger.warn(`[database] smart-playlist ${row.id} has malformed rules JSON`);
   }
+
+  const matchTypeResult = matchType.safeParse(row.matchType);
   return {
     id: row.id,
     name: row.name,
     description: row.description ?? null,
-    matchType: (row.matchType as SmartPlaylistMatchType) ?? 'all',
+    matchType: matchTypeResult.success ? matchTypeResult.data : 'all',
     rules,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
