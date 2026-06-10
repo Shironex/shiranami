@@ -1,4 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
+import { clamp } from '@shiranami/shared';
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import {
@@ -123,7 +124,7 @@ function coerceNowPlayingPanel(v: unknown): NowPlayingPanel {
 function coerceUiScale(v: unknown): number {
   const parsed = typeof v === 'number' ? v : Number(v);
   if (Number.isNaN(parsed)) return UI_SCALE_DEFAULT;
-  return Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, parsed)));
+  return Math.round(clamp(parsed, UI_SCALE_MIN, UI_SCALE_MAX));
 }
 function coerceLandingView(v: unknown): LandingView {
   return v === 'overview' || v === 'library' ? v : LANDING_VIEW_DEFAULT;
@@ -474,7 +475,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
       set({ visualizerStyle: style });
     },
     setUiScale: scale => {
-      const clamped = Math.round(Math.min(UI_SCALE_MAX, Math.max(UI_SCALE_MIN, scale)));
+      const clamped = Math.round(clamp(scale, UI_SCALE_MIN, UI_SCALE_MAX));
       applyUiScale(clamped);
       set({ uiScale: clamped });
     },

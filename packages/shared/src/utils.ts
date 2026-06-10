@@ -9,6 +9,20 @@ export function truncate(text: string, max: number, ellipsis = '...'): string {
 }
 
 /**
+ * Clamp a number to the inclusive [min, max] range.
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Clamp a number to the inclusive [0, 1] range.
+ */
+export function clamp01(value: number): number {
+  return clamp(value, 0, 1);
+}
+
+/**
  * Format duration in seconds to mm:ss or hh:mm:ss string.
  */
 export function formatDuration(seconds: number): string {
