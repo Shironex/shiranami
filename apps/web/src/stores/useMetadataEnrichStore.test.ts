@@ -245,7 +245,7 @@ describe('useMetadataEnrichStore', () => {
           duration: 100,
           filePath: '/a.mp3',
         },
-      ]);
+      ] as never);
 
       await useMetadataEnrichStore
         .getState()
@@ -280,7 +280,7 @@ describe('useMetadataEnrichStore', () => {
           duration: 100,
           filePath: '/a.mp3',
         },
-      ]);
+      ] as never);
 
       await useMetadataEnrichStore
         .getState()
@@ -345,7 +345,7 @@ describe('useMetadataEnrichStore', () => {
           duration: 100,
           filePath: '/a.mp3',
         },
-      ]);
+      ] as never);
 
       await useMetadataEnrichStore
         .getState()

@@ -29,10 +29,29 @@ import type {
   DownloadQueueSnapshot,
   EnqueueDownloadInput,
   DiskUsageResult,
+  Track,
+} from '@shiranami/contracts';
+import type {
+  SHARE_ERROR_CODES,
+  PLAYLIST_ERROR_CODES,
+  VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
 import type { DiscordRpcSettings, DiscordMusicPresenceActivity } from '@shiranami/shared';
 
-export type { TrackMetadata, SearchResult } from '@shiranami/contracts';
+export type { TrackMetadata, SearchResult, Track } from '@shiranami/contracts';
+
+// Listening-history wire types are defined once in @shiranami/contracts and
+// re-exported here so renderer code can keep importing them from `@/types/electron`.
+export type {
+  ListeningHistoryEntry,
+  ListeningStatsTrack,
+  ListeningStatsArtist,
+  ListeningStatsSummary,
+  ListeningActivityPoint,
+  ListeningHourlyActivityPoint,
+  ListeningAlbumStat,
+  WeeklyInsights,
+} from '@shiranami/contracts';
 
 export interface Playlist {
   id: string;
@@ -43,81 +62,19 @@ export interface Playlist {
   updatedAt: string;
 }
 
+/** Row shape returned by `db.folders.*` — mirrors the `folders` table. */
+export interface WatchedFolder {
+  id: string;
+  path: string;
+  lastScanned: string | null;
+  createdAt: string;
+}
+
 export interface DownloadProgress {
   url: string;
   progress: number;
   status: 'downloading' | 'converting' | 'done' | 'error';
   error?: string;
-}
-
-export interface ListeningHistoryEntry {
-  id: string;
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  duration: number | null;
-  playedAt: string;
-  playedSeconds: number;
-  completionRatio: number;
-  completed: boolean;
-  source: string;
-}
-
-export interface ListeningStatsTrack {
-  trackId: string;
-  title: string;
-  artist: string;
-  album: string;
-  albumArt: string | null;
-  playCount: number;
-  listenedSeconds: number;
-  lastPlayedAt: string;
-}
-
-export interface ListeningStatsArtist {
-  artist: string;
-  playCount: number;
-  listenedSeconds: number;
-}
-
-export interface ListeningStatsSummary {
-  totalPlays: number;
-  totalMinutes: number;
-  uniqueTracks: number;
-  uniqueArtists: number;
-  completedPlays: number;
-  topTracks: ListeningStatsTrack[];
-  topArtists: ListeningStatsArtist[];
-}
-
-export interface ListeningActivityPoint {
-  date: string;
-  playCount: number;
-  listenedMinutes: number;
-}
-
-export interface ListeningHourlyActivityPoint {
-  /** Day of week, SQLite-indexed: 0=Sunday … 6=Saturday (local time). */
-  dayOfWeek: number;
-  /** Hour of day in local time, 0–23. */
-  hour: number;
-  playCount: number;
-  listenedMinutes: number;
-}
-
-export interface ListeningAlbumStat {
-  album: string;
-  artist: string;
-  albumArt: string | null;
-  playCount: number;
-}
-
-export interface WeeklyInsights {
-  /** Gap-based session count for the window (>30 min idle starts a new session). */
-  sessionCount: number;
-  topAlbums: ListeningAlbumStat[];
 }
 
 export interface ElectronAPI {
@@ -206,16 +163,18 @@ export interface ElectronAPI {
   };
   db: {
     tracks: {
-      getAll: () => Promise<unknown[]>;
-      add: (track: unknown) => Promise<unknown>;
-      addMany: (tracks: unknown[]) => Promise<unknown[]>;
+      getAll: () => Promise<Track[]>;
+      add: (track: unknown) => Promise<Track | undefined>;
+      addMany: (tracks: unknown[]) => Promise<Track[]>;
       remove: (id: string) => Promise<void>;
       removeMany: (ids: string[]) => Promise<void>;
-      update: (id: string, data: unknown) => Promise<unknown>;
-      updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<unknown[]>;
-      toggleFavorite: (id: string) => Promise<unknown>;
-      getFavorites: () => Promise<unknown[]>;
-      incrementPlayCount: (id: string) => Promise<unknown>;
+      update: (id: string, data: unknown) => Promise<Track | undefined>;
+      updateMany: (
+        updates: Array<{ id: string; data: unknown }>
+      ) => Promise<Array<Track | undefined>>;
+      toggleFavorite: (id: string) => Promise<Track | undefined>;
+      getFavorites: () => Promise<Track[]>;
+      incrementPlayCount: (id: string) => Promise<Track | undefined>;
       exists: (filePath: string) => Promise<boolean>;
       existsMany: (filePaths: string[]) => Promise<string[]>;
       getIdByPath: (filePath: string) => Promise<string | null>;
@@ -242,20 +201,24 @@ export interface ElectronAPI {
       getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
     };
     playlists: {
-      getAll: () => Promise<unknown[]>;
-      get: (id: string) => Promise<unknown>;
-      create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
+      getAll: () => Promise<Playlist[]>;
+      get: (id: string) => Promise<Playlist | undefined>;
+      create: (data: {
+        name: string;
+        description?: string;
+        coverArt?: string;
+      }) => Promise<Playlist | undefined>;
       createWithTracks: (data: {
         name: string;
         description?: string;
         trackIds: string[];
-      }) => Promise<Playlist>;
+      }) => Promise<Playlist | undefined>;
       update: (
         id: string,
         data: { name?: string; description?: string; coverArt?: string }
-      ) => Promise<unknown>;
+      ) => Promise<Playlist | undefined>;
       delete: (id: string) => Promise<void>;
-      getTracks: (playlistId: string) => Promise<unknown[]>;
+      getTracks: (playlistId: string) => Promise<Track[]>;
       addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
       removeTrack: (playlistId: string, trackId: string) => Promise<void>;
       getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
@@ -280,14 +243,14 @@ export interface ElectronAPI {
         }
       ) => Promise<SmartPlaylist | null>;
       delete: (id: string) => Promise<void>;
-      getTracks: (id: string) => Promise<unknown[]>;
-      preview: (definition: SmartPlaylistDefinition) => Promise<unknown[]>;
+      getTracks: (id: string) => Promise<Track[]>;
+      preview: (definition: SmartPlaylistDefinition) => Promise<Track[]>;
     };
     folders: {
-      getAll: () => Promise<unknown[]>;
-      add: (path: string) => Promise<unknown>;
+      getAll: () => Promise<WatchedFolder[]>;
+      add: (path: string) => Promise<WatchedFolder | undefined>;
       remove: (id: string) => Promise<void>;
-      updateScanned: (id: string) => Promise<unknown>;
+      updateScanned: (id: string) => Promise<WatchedFolder | undefined>;
     };
     backup: {
       export: () => Promise<DbExportResult>;
@@ -501,9 +464,9 @@ export interface ElectronAPI {
   };
   errors: {
     isIpcError: (e: unknown) => e is { code: string; message: string; details?: unknown };
-    SHARE_ERROR_CODES: Readonly<Record<string, string>>;
-    PLAYLIST_ERROR_CODES: Readonly<Record<string, string>>;
-    VALIDATION_ERROR_CODES: Readonly<Record<string, string>>;
+    SHARE_ERROR_CODES: typeof SHARE_ERROR_CODES;
+    PLAYLIST_ERROR_CODES: typeof PLAYLIST_ERROR_CODES;
+    VALIDATION_ERROR_CODES: typeof VALIDATION_ERROR_CODES;
   };
   platform: NodeJS.Platform;
   /** True when the main process was launched with SHIRANAMI_E2E=1. */

@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
+import {
+  SHARE_ERROR_CODES,
+  PLAYLIST_ERROR_CODES,
+  VALIDATION_ERROR_CODES,
+} from '@shiranami/contracts';
 import type { ElectronAPI } from '@/types/electron';
 
 // Test-accessible ResizeObserver mock. Captures the callback and target so
@@ -373,9 +378,9 @@ function createElectronAPIMock(): ElectronAPI {
         e !== null &&
         'code' in e &&
         typeof (e as Record<string, unknown>).code === 'string',
-      SHARE_ERROR_CODES: {},
-      PLAYLIST_ERROR_CODES: {},
-      VALIDATION_ERROR_CODES: {},
+      SHARE_ERROR_CODES,
+      PLAYLIST_ERROR_CODES,
+      VALIDATION_ERROR_CODES,
     },
     platform: 'win32',
     __e2e: false,

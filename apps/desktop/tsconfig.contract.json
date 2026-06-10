@@ -1,0 +1,22 @@
+{
+  "//": "Type-only check that the renderer ElectronAPI (apps/web) and the preload ElectronAPI stay assignable. Separate from tsconfig.build.json because it must reach across into apps/web and so cannot keep rootDir.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "baseUrl": ".",
+    "paths": {
+      "@shiranami/shared": ["../../packages/shared/src"],
+      "@shiranami/shared/*": ["../../packages/shared/src/*"],
+      "@shiranami/contracts": ["../../packages/contracts/src"]
+    }
+  },
+  "include": ["src/main/preload/electron-api-contract.test.ts"],
+  "exclude": ["node_modules", "dist"]
+}

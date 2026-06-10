@@ -97,10 +97,7 @@ export function useShareImport(): UseShareImportResult {
           importedTrackIds.push(track.id);
         } else {
           // Track already exists — find it by searching the library
-          const allTracks = (await window.electronAPI.db.tracks.getAll()) as Array<{
-            id: string;
-            filePath: string;
-          }>;
+          const allTracks = await window.electronAPI.db.tracks.getAll();
           const existing = allTracks.find(t => t.filePath === filePath);
           if (existing) importedTrackIds.push(existing.id);
         }

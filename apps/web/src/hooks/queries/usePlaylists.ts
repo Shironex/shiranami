@@ -22,7 +22,7 @@ export function usePlaylistsQuery() {
     queryKey: playlistKeys.all,
     queryFn: async () => {
       if (!IS_ELECTRON) return [];
-      return (await window.electronAPI.db.playlists.getAll()) as Playlist[];
+      return window.electronAPI.db.playlists.getAll();
     },
     enabled: IS_ELECTRON,
   });
@@ -103,7 +103,7 @@ export function useTrackPlaylistMembershipQuery(trackIds: string[]) {
     queryKey: [...playlistKeys.all, 'membership', [...trackIds].sort()],
     queryFn: async () => {
       if (!IS_ELECTRON || trackIds.length === 0) return [];
-      return (await window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds)) as string[];
+      return window.electronAPI.db.playlists.getPlaylistsForTracks(trackIds);
     },
     enabled: IS_ELECTRON && trackIds.length > 0,
   });
@@ -196,7 +196,7 @@ export function useCreatePlaylistsFromSubfoldersMutation() {
           name: sf.name,
           trackIds: sf.trackIds,
         });
-        created.push(playlist);
+        if (playlist) created.push(playlist);
       }
       return created;
     },

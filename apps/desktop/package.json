@@ -11,7 +11,7 @@
     "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
     "dev:inspect": "node esbuild.config.mjs && cross-env NODE_ENV=development electron . --remote-debugging-port=9222 --remote-allow-origins=*",
     "build": "node esbuild.config.mjs && node scripts/copy-renderer.mjs",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.contract.json",
     "test": "vitest run --project desktop",
     "test:watch": "vitest --project desktop",
     "test:cov": "vitest run --project desktop --coverage",

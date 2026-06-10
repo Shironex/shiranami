@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { IS_ELECTRON } from '@/lib/platform';
-import { mapDbTracksToTracks, type DbTrackRecord } from '@/lib/trackMapper';
+import { mapDbTracksToTracks } from '@/lib/trackMapper';
 import type {
   SmartPlaylist,
   SmartPlaylistDefinition,
@@ -52,7 +52,7 @@ export function useSmartPlaylistTracksQuery(id: string | null) {
     queryFn: async () => {
       // Same nullable-column collapse as the playlist/library load paths so
       // null artist/album/duration never render as the literal "null".
-      const rows = (await window.electronAPI.db.smartPlaylists.getTracks(id!)) as DbTrackRecord[];
+      const rows = await window.electronAPI.db.smartPlaylists.getTracks(id!);
       return mapDbTracksToTracks(rows);
     },
     enabled: !!id && IS_ELECTRON,
@@ -106,9 +106,7 @@ export function useSmartPlaylistPreviewQuery(definition: SmartPlaylistDefinition
   return useQuery({
     queryKey: ['smart-playlists', 'preview', definition],
     queryFn: async () => {
-      const rows = (await window.electronAPI.db.smartPlaylists.preview(
-        definition!
-      )) as DbTrackRecord[];
+      const rows = await window.electronAPI.db.smartPlaylists.preview(definition!);
       return mapDbTracksToTracks(rows);
     },
     enabled: !!definition && IS_ELECTRON,
