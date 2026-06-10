@@ -483,7 +483,8 @@
     "ready": "Update ready to install",
     "somethingWrong": "Something went wrong",
     "checkFailed": "Failed to check for updates",
-    "downloadFailed": "Download failed"
+    "downloadFailed": "Download failed",
+    "installFailed": "Failed to install the update"
   },
   "priv": {
     "title": "Crash reporting",

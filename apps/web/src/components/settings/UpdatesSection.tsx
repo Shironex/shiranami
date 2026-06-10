@@ -74,8 +74,13 @@ export function UpdatesSection() {
   }, [downloadMutation, setStatus, setProgress, setError, t]);
 
   const handleInstallUpdate = useCallback(async () => {
-    await installMutation.mutateAsync();
-  }, [installMutation]);
+    try {
+      await installMutation.mutateAsync();
+    } catch {
+      setStatus('error');
+      setError(t('upd.installFailed'));
+    }
+  }, [installMutation, setStatus, setError, t]);
 
   return (
     <SettingsCard

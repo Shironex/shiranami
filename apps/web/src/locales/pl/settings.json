@@ -499,7 +499,8 @@
     "ready": "Aktualizacja gotowa do zainstalowania",
     "somethingWrong": "Coś poszło nie tak",
     "checkFailed": "Nie udało się sprawdzić aktualizacji",
-    "downloadFailed": "Pobieranie nie powiodło się"
+    "downloadFailed": "Pobieranie nie powiodło się",
+    "installFailed": "Nie udało się zainstalować aktualizacji"
   },
   "priv": {
     "title": "Raporty awarii",
