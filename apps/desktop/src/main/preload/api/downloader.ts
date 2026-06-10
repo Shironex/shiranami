@@ -4,9 +4,9 @@ import {
   type SearchResult,
   type DownloadQueueSnapshot,
   type EnqueueDownloadInput,
+  type InstallDependenciesResult,
 } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
-import type { InstallDependenciesResult } from '../types';
 
 const C = IPC_CHANNELS.downloader;
 

@@ -1,10 +1,9 @@
 /**
  * Preload-side shape of the values flowing across the contextBridge.
  *
- * These mirror the renderer-facing `apps/web/src/types/electron.d.ts`. Shared
- * cross-process shapes (e.g. `TrackMetadata`) are re-exported from
- * `@shiranami/contracts` so the wire type is defined once; the remaining
- * interfaces below are preload-local surface descriptions.
+ * These mirror the renderer-facing `apps/web/src/types/electron.d.ts`. Every
+ * cross-process shape is defined once in `@shiranami/contracts` and re-exported
+ * here for the `api/*` modules, so the preload carries no local wire types.
  */
 
 export type { TrackMetadata } from '@shiranami/contracts';
@@ -21,13 +20,3 @@ export type {
   ListeningAlbumStat,
   WeeklyInsights,
 } from '@shiranami/contracts';
-
-export interface ToolInstallResult {
-  tool: 'ytdlp' | 'ffmpeg';
-  success: boolean;
-  error?: string;
-}
-
-export interface InstallDependenciesResult {
-  results: ToolInstallResult[];
-}

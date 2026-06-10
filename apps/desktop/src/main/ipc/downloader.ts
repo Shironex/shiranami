@@ -25,7 +25,11 @@ import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
 import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
 import { getDownloadQueue } from '../download-queue';
 import { createDownloadQueuePersistence } from '../download-queue-persistence';
-import type { EnqueueDownloadInput } from '@shiranami/contracts';
+import type {
+  EnqueueDownloadInput,
+  ToolInstallResult,
+  InstallDependenciesResult,
+} from '@shiranami/contracts';
 import { isHttpUrl } from '../shared/url-safety';
 import {
   spawnYtDlp,
@@ -88,8 +92,6 @@ interface DependencyInstallProgress {
   overallPercent: number;
   label: string;
 }
-
-import type { ToolInstallResult, InstallDependenciesResult } from '../preload/types';
 
 export type { ToolInstallResult, InstallDependenciesResult };
 

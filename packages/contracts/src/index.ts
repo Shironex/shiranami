@@ -7,6 +7,7 @@ export * from './domain/recommendation';
 export * from './domain/scrobble';
 export * from './domain/smart-playlist';
 export * from './domain/download-queue';
+export * from './domain/dependencies';
 export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';
