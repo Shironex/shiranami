@@ -35,7 +35,8 @@ export function clamp01(value: number): number {
  *
  * Results are returned in input order regardless of completion order. The
  * first rejection propagates (matching `Promise.all`); remaining in-flight
- * tasks settle but their results are discarded.
+ * tasks settle but their results are discarded, and no further items are
+ * started once a failure has been observed.
  */
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -47,12 +48,18 @@ export async function mapWithConcurrency<T, R>(
   if (total === 0) return results;
 
   let nextIndex = 0;
+  let hasFailed = false;
 
   async function worker(): Promise<void> {
-    while (true) {
+    while (!hasFailed) {
       const i = nextIndex++;
       if (i >= total) return;
-      results[i] = await fn(items[i], i);
+      try {
+        results[i] = await fn(items[i], i);
+      } catch (error) {
+        hasFailed = true;
+        throw error;
+      }
     }
   }
 

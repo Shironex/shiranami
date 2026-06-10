@@ -119,4 +119,43 @@ describe('mapWithConcurrency', () => {
       })
     ).rejects.toThrow('boom');
   });
+
+  it('stops starting new items after the first failure', async () => {
+    const started: number[] = [];
+    await expect(
+      mapWithConcurrency(
+        Array.from({ length: 10 }, (_, i) => i),
+        1,
+        async i => {
+          started.push(i);
+          if (i === 2) throw new Error('boom');
+          return i;
+        }
+      )
+    ).rejects.toThrow('boom');
+    expect(started).toEqual([0, 1, 2]);
+  });
+
+  it('stops other workers from pulling new items after a failure', async () => {
+    const started: number[] = [];
+    await expect(
+      mapWithConcurrency(
+        Array.from({ length: 10 }, (_, i) => i),
+        2,
+        async i => {
+          started.push(i);
+          if (i === 0) {
+            // Fails while the other worker is still busy with item 1, so by
+            // the time that worker loops it must observe hasFailed and stop.
+            throw new Error('boom');
+          }
+          await new Promise(resolve => setTimeout(resolve, 20));
+          return i;
+        }
+      )
+    ).rejects.toThrow('boom');
+    // Give the surviving worker a chance to (incorrectly) pull more items.
+    await new Promise(resolve => setTimeout(resolve, 60));
+    expect(started).toEqual([0, 1]);
+  });
 });
