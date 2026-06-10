@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { randomUUID } from 'crypto';
-import { eq, inArray, youtubeMappings, tracks } from '@shiranami/database';
+import { eq, inArray, youtubeMappings, tracks, type Track } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import {
   createShareSchema,
@@ -23,6 +23,11 @@ import {
 
 const C = IPC_CHANNELS.share;
 
+// Bulk inArray reads are chunked to stay well under SQLite's bound-parameter
+// limit on pathological playlists (consistent with the other bulk call sites
+// in ipc/database/*).
+const CHUNK_SIZE = 500;
+
 const SHARE_API_URL =
   process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://api.shiranami.app';
 
@@ -34,12 +39,17 @@ const SHARE_API_URL =
 function getCachedYoutubeIds(trackIds: string[]): Map<string, string> {
   if (trackIds.length === 0) return new Map();
   const db = getDatabase();
-  const rows = db
-    .select({ trackId: youtubeMappings.trackId, youtubeId: youtubeMappings.youtubeId })
-    .from(youtubeMappings)
-    .where(inArray(youtubeMappings.trackId, trackIds))
-    .all();
-  return new Map(rows.map(r => [r.trackId, r.youtubeId]));
+  const cached = new Map<string, string>();
+  for (let i = 0; i < trackIds.length; i += CHUNK_SIZE) {
+    const chunk = trackIds.slice(i, i + CHUNK_SIZE);
+    const rows = db
+      .select({ trackId: youtubeMappings.trackId, youtubeId: youtubeMappings.youtubeId })
+      .from(youtubeMappings)
+      .where(inArray(youtubeMappings.trackId, chunk))
+      .all();
+    for (const r of rows) cached.set(r.trackId, r.youtubeId);
+  }
+  return cached;
 }
 
 async function getYoutubeId(trackId: string): Promise<string | null> {
@@ -205,19 +215,16 @@ export function registerShareHandlers(): void {
         .orderBy(playlistTracks.position)
         .all();
 
-      // Fetch all playlist tracks in one query, then reorder in JS to match
-      // the playlist's position order (inArray returns rows unordered).
+      // Fetch all playlist tracks in chunked bulk queries, then reorder in JS
+      // to match the playlist's position order (inArray returns rows
+      // unordered, and chunking discards any cross-chunk ordering anyway).
       const orderedTrackIds = ptRows.map(pt => pt.trackId);
-      const trackById = new Map(
-        orderedTrackIds.length > 0
-          ? db
-              .select()
-              .from(tracks)
-              .where(inArray(tracks.id, orderedTrackIds))
-              .all()
-              .map(t => [t.id, t])
-          : []
-      );
+      const trackById = new Map<string, Track>();
+      for (let i = 0; i < orderedTrackIds.length; i += CHUNK_SIZE) {
+        const chunk = orderedTrackIds.slice(i, i + CHUNK_SIZE);
+        const rows = db.select().from(tracks).where(inArray(tracks.id, chunk)).all();
+        for (const row of rows) trackById.set(row.id, row);
+      }
       const trackRows = orderedTrackIds
         .map(id => trackById.get(id))
         .filter((t): t is NonNullable<typeof t> => t !== undefined);
