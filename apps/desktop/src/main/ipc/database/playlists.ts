@@ -24,7 +24,9 @@ import {
   playlistsDeleteArgs,
   playlistsGetTracksArgs,
   playlistsAddTrackArgs,
+  playlistsAddTracksArgs,
   playlistsRemoveTrackArgs,
+  playlistsRemoveTracksArgs,
   playlistsGetPlaylistsForTracksArgs,
   playlistsReorderArgs,
 } from '../schemas/db-playlists';
@@ -154,6 +156,82 @@ export function registerPlaylistHandlers(): void {
   );
 
   handle(
+    P.addTracks,
+    async (_event, data: { playlistId: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      if (data.trackIds.length === 0) return;
+
+      // Batch sibling of addTrack: one transaction, idempotent per the
+      // UNIQUE(playlist_id, track_id) constraint, positions appended in input
+      // order after the current MAX. Adding N tracks via N serial addTrack IPC
+      // calls risked interleaved position computation; this computes the base
+      // once and assigns positions deterministically.
+      db.transaction(tx => {
+        const existing = tx
+          .select({ trackId: playlistTracks.trackId })
+          .from(playlistTracks)
+          .where(eq(playlistTracks.playlistId, data.playlistId))
+          .all();
+        const present = new Set(existing.map(r => r.trackId));
+
+        const maxRow = tx
+          .select({ maxPos: sql<number>`COALESCE(MAX(${playlistTracks.position}), -1)` })
+          .from(playlistTracks)
+          .where(eq(playlistTracks.playlistId, data.playlistId))
+          .get();
+
+        // De-dup the incoming list too, so the same track passed twice in one
+        // call only lands once.
+        const seen = new Set<string>();
+        const toInsert: string[] = [];
+        for (const trackId of data.trackIds) {
+          if (present.has(trackId) || seen.has(trackId)) continue;
+          seen.add(trackId);
+          toInsert.push(trackId);
+        }
+        if (toInsert.length === 0) return;
+
+        let nextPosition = (maxRow?.maxPos ?? -1) + 1;
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < toInsert.length; i += CHUNK_SIZE) {
+          const chunk = toInsert.slice(i, i + CHUNK_SIZE);
+          const values = chunk.map(trackId => ({
+            id: crypto.randomUUID(),
+            playlistId: data.playlistId,
+            trackId,
+            position: nextPosition++,
+          }));
+          tx.insert(playlistTracks).values(values).run();
+        }
+      });
+    },
+    { schema: playlistsAddTracksArgs }
+  );
+
+  handle(
+    P.removeTracks,
+    async (_event, data: { playlistId: string; trackIds: string[] }) => {
+      const db = getDatabase();
+      if (data.trackIds.length === 0) return;
+      db.transaction(tx => {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < data.trackIds.length; i += CHUNK_SIZE) {
+          const chunk = data.trackIds.slice(i, i + CHUNK_SIZE);
+          tx.delete(playlistTracks)
+            .where(
+              and(
+                eq(playlistTracks.playlistId, data.playlistId),
+                inArray(playlistTracks.trackId, chunk)
+              )
+            )
+            .run();
+        }
+      });
+    },
+    { schema: playlistsRemoveTracksArgs }
+  );
+
+  handle(
     P.createWithTracks,
     async (_event, data: { name: string; description?: string; trackIds: string[] }) => {
       logger.info(
@@ -255,8 +333,10 @@ export function cleanupPlaylistHandlers(): void {
   ipcMain.removeHandler(P.delete);
   ipcMain.removeHandler(P.getTracks);
   ipcMain.removeHandler(P.addTrack);
+  ipcMain.removeHandler(P.addTracks);
   ipcMain.removeHandler(P.createWithTracks);
   ipcMain.removeHandler(P.removeTrack);
+  ipcMain.removeHandler(P.removeTracks);
   ipcMain.removeHandler(P.getPlaylistsForTracks);
   ipcMain.removeHandler(P.reorder);
 }

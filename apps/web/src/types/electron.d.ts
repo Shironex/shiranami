@@ -218,7 +218,9 @@ export interface ElectronAPI {
       delete: (id: string) => Promise<void>;
       getTracks: (playlistId: string) => Promise<Track[]>;
       addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
+      addTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
       removeTrack: (playlistId: string, trackId: string) => Promise<void>;
+      removeTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
       getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
       reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
     };

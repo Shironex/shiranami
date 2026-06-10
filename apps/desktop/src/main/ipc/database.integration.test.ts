@@ -585,6 +585,65 @@ describe('database ipc (integration)', () => {
   });
 
   /* ------------------------------------------------------------------ */
+  /*  playlists:add-tracks / remove-tracks (batch)                       */
+  /* ------------------------------------------------------------------ */
+
+  it('playlists:add-tracks appends in input order and is idempotent', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+    const t2 = await insertTrack({ title: 'B' });
+    const t3 = await insertTrack({ title: 'C' });
+
+    const create = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await create(null as never, { name: 'Batch Add' })) as { id: string };
+
+    const addTracks = ipcHandlers.get('db:playlists:add-tracks')!;
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t2.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    let result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['A', 'B']);
+
+    // Re-adding t2 (already present) and adding t3 appends only t3 after the
+    // existing tail — idempotent membership, order preserved.
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t2.id, t3.id] });
+    result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['A', 'B', 'C']);
+  });
+
+  it('playlists:add-tracks de-dups repeats within a single call', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+
+    const create = ipcHandlers.get('db:playlists:create')!;
+    const playlist = (await create(null as never, { name: 'Dedup Batch' })) as { id: string };
+
+    const addTracks = ipcHandlers.get('db:playlists:add-tracks')!;
+    await addTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t1.id, t1.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as unknown[];
+    expect(result).toHaveLength(1);
+  });
+
+  it('playlists:remove-tracks removes the supplied ids and leaves the rest', async () => {
+    const t1 = await insertTrack({ title: 'A' });
+    const t2 = await insertTrack({ title: 'B' });
+    const t3 = await insertTrack({ title: 'C' });
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Batch Remove',
+      trackIds: [t1.id, t2.id, t3.id],
+    })) as { id: string };
+
+    const removeTracks = ipcHandlers.get('db:playlists:remove-tracks')!;
+    await removeTracks(null as never, { playlistId: playlist.id, trackIds: [t1.id, t3.id] });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['B']);
+  });
+
+  /* ------------------------------------------------------------------ */
   /*  playlists:reorder                                                  */
   /* ------------------------------------------------------------------ */
 

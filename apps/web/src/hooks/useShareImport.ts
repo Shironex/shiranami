@@ -114,9 +114,7 @@ export function useShareImport(): UseShareImportResult {
         const playlist = (await window.electronAPI.db.playlists.create({
           name,
         })) as { id: string };
-        for (const trackId of importedTrackIds) {
-          await window.electronAPI.db.playlists.addTrack(playlist.id, trackId);
-        }
+        await window.electronAPI.db.playlists.addTracks(playlist.id, importedTrackIds);
         queryClient.invalidateQueries({ queryKey: playlistKeys.all });
       } catch {
         // Playlist creation failed but downloads succeeded

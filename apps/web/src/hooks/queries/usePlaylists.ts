@@ -158,9 +158,7 @@ export function useAddTrackToPlaylistMutation() {
 
   return useMutation({
     mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
-      for (const trackId of trackIds) {
-        await window.electronAPI.db.playlists.addTrack(playlistId, trackId);
-      }
+      await window.electronAPI.db.playlists.addTracks(playlistId, trackIds);
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });
@@ -174,9 +172,7 @@ export function useRemoveTrackFromPlaylistMutation() {
 
   return useMutation({
     mutationFn: async ({ playlistId, trackIds }: { playlistId: string; trackIds: string[] }) => {
-      for (const trackId of trackIds) {
-        await window.electronAPI.db.playlists.removeTrack(playlistId, trackId);
-      }
+      await window.electronAPI.db.playlists.removeTracks(playlistId, trackIds);
     },
     onSuccess: (_, { playlistId }) => {
       queryClient.invalidateQueries({ queryKey: playlistKeys.tracks(playlistId) });

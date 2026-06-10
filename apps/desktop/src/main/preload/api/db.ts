@@ -79,7 +79,9 @@ export interface DbPlaylistsApi {
   delete: (id: string) => Promise<void>;
   getTracks: (playlistId: string) => Promise<unknown[]>;
   addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
+  addTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
   removeTrack: (playlistId: string, trackId: string) => Promise<void>;
+  removeTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
   getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
   reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
 }
@@ -164,7 +166,10 @@ const playlistsApi: DbPlaylistsApi = {
   delete: id => invoke(C.playlists.delete, id),
   getTracks: playlistId => invoke(C.playlists.getTracks, playlistId),
   addTrack: (playlistId, trackId) => invoke(C.playlists.addTrack, { playlistId, trackId }),
+  addTracks: (playlistId, trackIds) => invoke(C.playlists.addTracks, { playlistId, trackIds }),
   removeTrack: (playlistId, trackId) => invoke(C.playlists.removeTrack, { playlistId, trackId }),
+  removeTracks: (playlistId, trackIds) =>
+    invoke(C.playlists.removeTracks, { playlistId, trackIds }),
   getPlaylistsForTracks: trackIds => invoke(C.playlists.getPlaylistsForTracks, trackIds),
   reorder: (playlistId, trackIds) => invoke(C.playlists.reorder, { playlistId, trackIds }),
 };
