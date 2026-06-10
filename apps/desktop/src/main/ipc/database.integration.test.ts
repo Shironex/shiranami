@@ -540,6 +540,66 @@ describe('database ipc (integration)', () => {
   });
 
   /* ------------------------------------------------------------------ */
+  /*  playlists:reorder                                                  */
+  /* ------------------------------------------------------------------ */
+
+  it('playlists:reorder rewrites positions to match the supplied order', async () => {
+    const trackA = await insertTrack({ title: 'A' });
+    const trackB = await insertTrack({ title: 'B' });
+    const trackC = await insertTrack({ title: 'C' });
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Reorder',
+      trackIds: [trackA.id, trackB.id, trackC.id],
+    })) as { id: string };
+
+    const reorder = ipcHandlers.get('db:playlists:reorder')!;
+    await reorder(null as never, {
+      playlistId: playlist.id,
+      trackIds: [trackC.id, trackA.id, trackB.id],
+    });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ title: string }>;
+    expect(result.map(t => t.title)).toEqual(['C', 'A', 'B']);
+  });
+
+  it('playlists:reorder reverses a playlist larger than the chunk size', async () => {
+    // 250 tracks spans 3 reorder chunks (100/100/50). Reverse the whole list
+    // and assert the round-trip order, which only holds if positions across
+    // chunk boundaries are written correctly.
+    const count = 250;
+    const addMany = ipcHandlers.get('db:tracks:add-many')!;
+    const added = (await addMany(
+      null as never,
+      Array.from({ length: count }, (_, i) => ({
+        filePath: `/music/reorder-${i}.mp3`,
+        title: `Track ${i}`,
+        artist: 'Artist',
+        album: 'Album',
+        duration: 120,
+      }))
+    )) as Array<{ id: string }>;
+    const ids = added.map(t => t.id);
+
+    const createWithTracks = ipcHandlers.get('db:playlists:create-with-tracks')!;
+    const playlist = (await createWithTracks(null as never, {
+      name: 'Big Reorder',
+      trackIds: ids,
+    })) as { id: string };
+
+    const reversed = [...ids].reverse();
+    const reorder = ipcHandlers.get('db:playlists:reorder')!;
+    await reorder(null as never, { playlistId: playlist.id, trackIds: reversed });
+
+    const getTracks = ipcHandlers.get('db:playlists:get-tracks')!;
+    const result = (await getTracks(null as never, playlist.id)) as Array<{ id: string }>;
+    expect(result).toHaveLength(count);
+    expect(result.map(t => t.id)).toEqual(reversed);
+  });
+
+  /* ------------------------------------------------------------------ */
   /*  folders:add                                                       */
   /* ------------------------------------------------------------------ */
 

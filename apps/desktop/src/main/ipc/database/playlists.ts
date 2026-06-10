@@ -224,13 +224,19 @@ export function registerPlaylistHandlers(): void {
     async (_event, data: { playlistId: string; trackIds: string[] }) => {
       const db = getDatabase();
       db.transaction(tx => {
-        for (let i = 0; i < data.trackIds.length; i++) {
+        // Set-based reorder: one CASE-when-then update per chunk instead of a
+        // statement per track, so a 1k-track drag-drop runs ~10 statements
+        // rather than 1k. Only `position` changes — row ids are preserved.
+        const CHUNK_SIZE = 100;
+        for (let i = 0; i < data.trackIds.length; i += CHUNK_SIZE) {
+          const chunk = data.trackIds.slice(i, i + CHUNK_SIZE);
+          const cases = chunk.map((trackId, idx) => sql`WHEN ${trackId} THEN ${i + idx}`);
           tx.update(playlistTracks)
-            .set({ position: i })
+            .set({ position: sql`CASE ${playlistTracks.trackId} ${sql.join(cases, sql` `)} END` })
             .where(
               and(
                 eq(playlistTracks.playlistId, data.playlistId),
-                eq(playlistTracks.trackId, data.trackIds[i])
+                inArray(playlistTracks.trackId, chunk)
               )
             )
             .run();
