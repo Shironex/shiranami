@@ -9,7 +9,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { initSentryRenderer, captureException } from '@/lib/sentry';
 import { logger } from '@/lib/logger';
 import './styles/globals.css';
-import '@/lib/i18n';
+import { initI18n } from '@/lib/i18n';
 
 const rootElement = document.getElementById('root');
 
@@ -42,15 +42,22 @@ window.addEventListener('error', event => {
   captureException(err);
 });
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={300}>
-        <ErrorBoundary root viewName="Root">
-          <App />
-        </ErrorBoundary>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  </StrictMode>
-);
+// English ships in the entry chunk; any other persisted locale is lazy. Await
+// init so the initial language's namespaces are loaded before first paint —
+// a Polish user never sees a flash of raw English keys.
+void initI18n()
+  .catch(err => logger.error('[i18n] init failed', err))
+  .finally(() => {
+    createRoot(rootElement).render(
+      <StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider delayDuration={300}>
+            <ErrorBoundary root viewName="Root">
+              <App />
+            </ErrorBoundary>
+            <Toaster />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </StrictMode>
+    );
+  });

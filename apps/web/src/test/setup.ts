@@ -390,3 +390,12 @@ function createElectronAPIMock(): ElectronAPI {
 }
 
 window.electronAPI = createElectronAPIMock();
+
+// i18n is initialized explicitly now (English bundled, other locales lazy)
+// rather than as a module side effect, so boot it here for the test run — the
+// previous behavior where importing `@/lib/i18n` initialized it. Guarded so
+// suites that `vi.mock('@/lib/i18n')` (which omit `initI18n`) are unaffected.
+const { initI18n } = await import('@/lib/i18n');
+if (typeof initI18n === 'function') {
+  await initI18n();
+}
