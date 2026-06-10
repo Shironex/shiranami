@@ -1,5 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { formatDuration, mapWithConcurrency, truncate } from './utils';
+import { clamp, clamp01, formatDuration, mapWithConcurrency, truncate } from './utils';
+
+describe('clamp', () => {
+  it('passes finite values through within range and clamps the bounds', () => {
+    expect(clamp(5, 0, 10)).toBe(5);
+    expect(clamp(-3, 0, 10)).toBe(0);
+    expect(clamp(42, 0, 10)).toBe(10);
+  });
+
+  it('collapses non-finite values to min instead of propagating', () => {
+    expect(clamp(NaN, 0, 10)).toBe(0);
+    expect(clamp(Infinity, 0, 10)).toBe(0);
+    expect(clamp(-Infinity, 0, 10)).toBe(0);
+    expect(clamp(NaN, 2, 8)).toBe(2);
+  });
+});
+
+describe('clamp01', () => {
+  it('clamps into [0, 1] and treats malformed input as 0', () => {
+    expect(clamp01(0.5)).toBe(0.5);
+    expect(clamp01(5)).toBe(1);
+    expect(clamp01(-3)).toBe(0);
+    expect(clamp01(NaN)).toBe(0);
+    expect(clamp01(Infinity)).toBe(0);
+  });
+});
 
 describe('truncate', () => {
   it('returns empty string when max <= 0', () => {

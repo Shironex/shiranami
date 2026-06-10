@@ -9,9 +9,13 @@ export function truncate(text: string, max: number, ellipsis = '...'): string {
 }
 
 /**
- * Clamp a number to the inclusive [min, max] range.
+ * Clamp a number to the inclusive [min, max] range. A non-finite `value`
+ * (`NaN`, `±Infinity`) collapses to `min` rather than propagating — callers use
+ * this to keep a malformed input (a corrupt DB row, a divide-by-zero ratio,
+ * `audio.volume = NaN`) from poisoning the result downstream.
  */
 export function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
 }
 
