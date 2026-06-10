@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useRef } from 'react';
+import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
+import i18n from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 import type { DiscoverRecommendation, DownloadQueueStatus } from '@shiranami/contracts';
 
 type DownloadStatus = 'idle' | 'downloading' | 'done' | 'error';
@@ -53,7 +56,10 @@ export function useDiscoverDownload() {
           title: item.title,
           thumbnail: item.thumbnail,
         })
-        .catch(() => {})
+        .catch((err: unknown) => {
+          logger.error('[discover] failed to enqueue download', err);
+          toast.error(i18n.t('failedQueueDownload', { ns: 'toast' }));
+        })
         .finally(() => inFlightRef.current.delete(item.youtubeId));
     },
     [statuses]

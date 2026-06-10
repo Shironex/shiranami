@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useAudioPreview } from '@/hooks/useAudioPreview';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import i18n from '@/lib/i18n';
+import { logger } from '@/lib/logger';
 import { translateYtDlpError } from '@/lib/ytdlpErrors';
 import type { SearchResult } from '@/types/electron';
 import type { DownloadQueueStatus } from '@shiranami/contracts';
@@ -93,7 +95,10 @@ export function useSearch() {
         title: result.title,
         thumbnail: result.thumbnail,
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        logger.error('[search] failed to enqueue download', err);
+        toast.error(i18n.t('failedQueueDownload', { ns: 'toast' }));
+      })
       .finally(() => {
         downloadInFlightRef.current.delete(url);
       });

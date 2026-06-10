@@ -61,6 +61,7 @@
   "downloaded": "Pobrano: {{title}}",
   "trackAlreadyInLibrary": "Utwór jest już w bibliotece",
   "downloadFailed": "Pobieranie nie powiodło się: {{error}}",
+  "failedQueueDownload": "Nie udało się dodać utworu do kolejki pobierania",
   "yt_dlp_age_restricted": "Ten film ma ograniczenie wiekowe. YouTube wymaga plików cookie zalogowanego użytkownika do jego odtworzenia lub pobrania (funkcja jeszcze nieobsługiwana).",
   "yt_dlp_video_unavailable": "Ten film jest niedostępny (może być zablokowany regionalnie, prywatny lub usunięty).",
   "yt_dlp_no_audio_format": "Dla tego filmu nie jest dostępny żaden zgodny format audio.",
