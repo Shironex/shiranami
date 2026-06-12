@@ -307,7 +307,10 @@ export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProp
         role="img"
         aria-label={t('app.interface.playerPreview')}
       >
-        <div className="mx-auto flex h-14 max-w-[360px] items-center gap-2 rounded-xl border border-border/25 bg-surface/60 px-2.5">
+        {/* Full width on purpose (unlike the capped sibling mocks): the bar
+            packs ~330px of fixed-width elements, so any tighter cap starves
+            the flex-1 seek section into a centered clump. */}
+        <div className="flex h-14 w-full items-center gap-2 rounded-xl border border-border/25 bg-surface/60 px-3">
           {/* Left: album art + title + favorite */}
           <El
             visible={s.playerAlbumArt}
