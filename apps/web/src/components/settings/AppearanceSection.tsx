@@ -29,6 +29,8 @@ import {
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { AccentPreview } from '@/components/settings/AccentPreview';
+import { UiScalePreview } from '@/components/settings/UiScalePreview';
 import { useAccentStore } from '@/stores/useAccentStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
@@ -132,6 +134,10 @@ export function AppearanceSection() {
                 </button>
               )}
             </div>
+
+            <SettingsCard tone="info" className="!p-3 mt-4">
+              <UiScalePreview scale={uiScale} />
+            </SettingsCard>
           </div>
         </div>
       </SettingsCard>
@@ -241,6 +247,10 @@ export function AppearanceSection() {
         <div className="px-3 pb-1">
           <AccentColorPicker />
         </div>
+
+        <SettingsCard tone="info" className="!p-3">
+          <AccentPreview />
+        </SettingsCard>
       </SettingsCard>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   CrossfadePreview,
   ResumePreview,
   LoudnessPreview,
+  SleepFadePreview,
 } from '@/components/settings/PlaybackPreferencePreview';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -163,6 +164,7 @@ export function PlaybackSection() {
             <span className="text-[10px] text-muted-foreground/60">{SLEEP_FADE_MAX_SECONDS}s</span>
           </div>
         </div>
+        <SleepFadePreview duration={sleepFadeDuration} />
       </div>
     </SettingsCard>
   );

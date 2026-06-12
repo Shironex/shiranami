@@ -182,6 +182,8 @@
     "sleepFade": "Sleep timer fade-out",
     "sleepFadeDesc": "Gently fade to silence before the sleep timer pauses",
     "sleepFadeDuration": "Fade duration",
+    "sleepFadePreview": "Fade preview",
+    "sleepFadePreviewCaption": "Volume eases out over {{seconds}}s when the sleep timer ends",
     "previewTrack": "Midnight Rain",
     "previewOutgoing": "Current track",
     "previewIncoming": "Next track"
@@ -367,6 +369,11 @@
     "subtitle": "Customize the look and feel of the app",
     "interfaceScale": "Interface scale",
     "scaleDesc": "Adjust the size of text and UI elements",
+    "scalePreview": "Scale preview",
+    "scalePreviewBase": "Default ({{value}}%)",
+    "scalePreviewCurrent": "Your scale ({{value}}%)",
+    "scaleSampleTitle": "Evening Rain",
+    "scaleSampleSubtitle": "Lofi Collective",
     "languageTitle": "Language",
     "languageScaleTitle": "Language & scale",
     "languageDesc": "Choose the display language for the app",
@@ -427,6 +434,7 @@
       "custom": "Custom color",
       "apply": "Use {{name}} accent",
       "reset": "Reset",
+      "previewTitle": "Accent preview",
       "names": {
         "violet": "Violet",
         "periwinkle": "Periwinkle",
@@ -443,8 +451,10 @@
     "interface": {
       "topBarTitle": "Top bar",
       "topBarDesc": "Elements shown in the bar at the top of the window",
+      "topBarPreview": "Top bar preview",
       "overviewTitle": "Overview widgets",
       "overviewDesc": "Choose which sections appear on your Overview page",
+      "overviewPreview": "Overview preview",
       "reset": "Reset",
       "elements": {
         "topBarLanguageSwitcher": "Language switcher",

@@ -198,6 +198,8 @@
     "sleepFade": "Wyciszanie wyłącznika czasowego",
     "sleepFadeDesc": "Delikatnie wycisz dźwięk, zanim wyłącznik czasowy wstrzyma odtwarzanie",
     "sleepFadeDuration": "Czas wyciszania",
+    "sleepFadePreview": "Podgląd wyciszania",
+    "sleepFadePreviewCaption": "Głośność wycisza się przez {{seconds}} s po zakończeniu wyłącznika czasowego",
     "previewTrack": "Midnight Rain",
     "previewOutgoing": "Bieżący utwór",
     "previewIncoming": "Następny utwór"
@@ -383,6 +385,11 @@
     "subtitle": "Dostosuj wygląd aplikacji",
     "interfaceScale": "Skala interfejsu",
     "scaleDesc": "Dostosuj rozmiar tekstu i elementów UI",
+    "scalePreview": "Podgląd skali",
+    "scalePreviewBase": "Domyślna ({{value}}%)",
+    "scalePreviewCurrent": "Twoja skala ({{value}}%)",
+    "scaleSampleTitle": "Evening Rain",
+    "scaleSampleSubtitle": "Lofi Collective",
     "languageTitle": "Język",
     "languageScaleTitle": "Język i skala",
     "languageDesc": "Wybierz język wyświetlania aplikacji",
@@ -443,6 +450,7 @@
       "custom": "Własny kolor",
       "apply": "Użyj akcentu {{name}}",
       "reset": "Resetuj",
+      "previewTitle": "Podgląd akcentu",
       "names": {
         "violet": "Fiolet",
         "periwinkle": "Barwinek",
@@ -459,8 +467,10 @@
     "interface": {
       "topBarTitle": "Górny pasek",
       "topBarDesc": "Elementy widoczne na pasku u góry okna",
+      "topBarPreview": "Podgląd górnego paska",
       "overviewTitle": "Widżety przeglądu",
       "overviewDesc": "Wybierz, które sekcje pojawiają się na stronie przeglądu",
+      "overviewPreview": "Podgląd przeglądu",
       "reset": "Resetuj",
       "elements": {
         "topBarLanguageSwitcher": "Przełącznik języka",

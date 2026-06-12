@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, PanelTop, RotateCcw } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { TopBarPreview, OverviewLayoutPreview } from '@/components/settings/InterfacePreview';
 import {
   useInterfaceStore,
   INTERFACE_DEFAULTS,
   type InterfaceElementKey,
 } from '@/stores/useInterfaceStore';
 
-const OVERVIEW_TOGGLES: InterfaceElementKey[] = [
+type OverviewWidgetKey = Exclude<InterfaceElementKey, 'topBarLanguageSwitcher'>;
+
+const OVERVIEW_TOGGLES: OverviewWidgetKey[] = [
   'overviewStats',
   'overviewTopWeek',
   'overviewClock',
@@ -21,6 +25,9 @@ export function InterfaceSection() {
   const { t } = useTranslation('settings');
   const state = useInterfaceStore();
   const { setVisible, resetInterface } = state;
+  // Hovered settings row → spotlighted block in the Overview mock (mirrors
+  // the SidebarSection ↔ SidebarPreview wiring).
+  const [hoveredKey, setHoveredKey] = useState<OverviewWidgetKey | null>(null);
 
   const isModified = (Object.keys(INTERFACE_DEFAULTS) as InterfaceElementKey[]).some(
     key => state[key] !== INTERFACE_DEFAULTS[key]
@@ -51,6 +58,7 @@ export function InterfaceSection() {
           checked={state.topBarLanguageSwitcher}
           onCheckedChange={v => setVisible('topBarLanguageSwitcher', v)}
         />
+        <TopBarPreview enabled={state.topBarLanguageSwitcher} />
       </SettingsCard>
 
       <SettingsCard
@@ -58,15 +66,21 @@ export function InterfaceSection() {
         title={t('app.interface.overviewTitle')}
         subtitle={t('app.interface.overviewDesc')}
       >
+        <OverviewLayoutPreview highlightedKey={hoveredKey} />
         {OVERVIEW_TOGGLES.map((key, index) => (
-          <SettingsToggleRow
+          <div
             key={key}
-            label={t(`app.interface.elements.${key}`)}
-            description={t(`app.interface.elements.${key}Desc`)}
-            checked={state[key]}
-            onCheckedChange={v => setVisible(key, v)}
-            divider={index > 0}
-          />
+            onMouseEnter={() => setHoveredKey(key)}
+            onMouseLeave={() => setHoveredKey(current => (current === key ? null : current))}
+          >
+            <SettingsToggleRow
+              label={t(`app.interface.elements.${key}`)}
+              description={t(`app.interface.elements.${key}Desc`)}
+              checked={state[key]}
+              onCheckedChange={v => setVisible(key, v)}
+              divider={index > 0}
+            />
+          </div>
         ))}
       </SettingsCard>
     </div>
