@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useRef, useState, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { Trash2, Music } from 'lucide-react';
@@ -18,7 +18,12 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 
 /* ── Main QueuePanel ───────────────────────────────────── */
 
-export function QueuePanel() {
+interface QueuePanelProps {
+  /** Optional control rendered at the right edge of the panel header. */
+  headerAction?: ReactNode;
+}
+
+export function QueuePanel({ headerAction }: QueuePanelProps) {
   const { t } = useTranslation('queue');
   const queue = usePlaybackStore(s => s.queue);
   const queueIndex = usePlaybackStore(s => s.queueIndex);
@@ -105,15 +110,18 @@ export function QueuePanel() {
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
           {t('title')}
         </h2>
-        {queue.length > 0 && (
-          <button
-            onClick={clearQueue}
-            className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
-          >
-            <Trash2 className="w-3 h-3" />
-            {t('clear')}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {queue.length > 0 && (
+            <button
+              onClick={clearQueue}
+              className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              {t('clear')}
+            </button>
+          )}
+          {headerAction}
+        </div>
       </div>
 
       {/* Content */}

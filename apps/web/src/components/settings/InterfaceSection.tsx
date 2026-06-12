@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, PanelBottom, PanelTop, RotateCcw } from 'lucide-react';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { LayoutDashboard, PanelBottom, PanelRight, PanelTop, RotateCcw } from 'lucide-react';
 import {
+  SettingsCard,
+  SettingsToggleRow,
+  SettingsSelectRow,
+} from '@/components/settings/SettingsCard';
+import {
+  LayoutPreview,
   TopBarPreview,
   OverviewLayoutPreview,
   PlayerBarPreview,
@@ -12,6 +17,7 @@ import {
   INTERFACE_DEFAULTS,
   type InterfaceElementKey,
 } from '@/stores/useInterfaceStore';
+import { useLayoutStore, type SidePanelSide } from '@/stores/useLayoutStore';
 
 type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`>;
 type PlayerElementKey = Extract<InterfaceElementKey, `player${string}`>;
@@ -48,12 +54,33 @@ export function InterfaceSection() {
   const [hoveredOverviewKey, setHoveredOverviewKey] = useState<OverviewWidgetKey | null>(null);
   const [hoveredPlayerKey, setHoveredPlayerKey] = useState<PlayerElementKey | null>(null);
 
+  const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
+  const setSidePanelSide = useLayoutStore(s => s.setSidePanelSide);
+
   const isModified = (Object.keys(INTERFACE_DEFAULTS) as InterfaceElementKey[]).some(
     key => state[key] !== INTERFACE_DEFAULTS[key]
   );
 
   return (
     <div className="space-y-4">
+      <SettingsCard
+        icon={PanelRight}
+        title={t('app.interface.layoutTitle')}
+        subtitle={t('app.interface.layoutDesc')}
+      >
+        <LayoutPreview />
+        <SettingsSelectRow
+          label={t('app.interface.sidePanelPosition')}
+          description={t('app.interface.sidePanelPositionDesc')}
+          value={sidePanelSide}
+          onValueChange={v => setSidePanelSide(v as SidePanelSide)}
+          options={[
+            { value: 'left', label: t('app.interface.positionLeft') },
+            { value: 'right', label: t('app.interface.positionRight') },
+          ]}
+        />
+      </SettingsCard>
+
       <SettingsCard
         icon={PanelTop}
         title={t('app.interface.topBarTitle')}

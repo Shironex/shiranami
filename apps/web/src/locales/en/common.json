@@ -25,5 +25,7 @@
   "clearSelection": "Clear Selection",
   "more": "More",
   "bulkActionsLabel": "Bulk actions",
-  "resizeRightPanel": "Resize side panel"
+  "resizeRightPanel": "Resize side panel",
+  "movePanelLeft": "Move panel to left side",
+  "movePanelRight": "Move panel to right side"
 }

@@ -9,7 +9,6 @@ import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
-import { VISUALIZER_COMPONENTS } from '@/components/player/visualizerRegistry';
 import { CompactPlayer } from '@/components/player/CompactPlayer';
 import { MediaSessionSync } from '@/components/player/MediaSessionSync';
 import { LibraryView } from '@/components/library/LibraryView';
@@ -17,7 +16,8 @@ import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { ThemeBackground } from '@/components/shared/ThemeBackground';
-import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
+import { SidePanel } from '@/components/shared/SidePanel';
+import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
@@ -32,8 +32,6 @@ const SmartPlaylistsView = lazy(() => import('@/components/smart-playlists/Smart
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
-const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
-const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
 // Dev-only: the import expression is dead code in prod (the ternary collapses
 // to `null`), so Rollup never emits the chunk for a production build.
 const DebugOverlay = import.meta.env.DEV
@@ -57,12 +55,8 @@ import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
-import {
-  usePanelSizeStore,
-  RIGHT_PANEL_WIDTH_MIN,
-  RIGHT_PANEL_WIDTH_MAX,
-} from '@/stores/usePanelSizeStore';
 import { useCompactStore } from '@/stores/useCompactStore';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
@@ -164,15 +158,22 @@ function App() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const activeView = useViewStore(s => s.activeView);
   const rightPanel = useViewStore(s => s.rightPanel);
-  const rightPanelWidth = usePanelSizeStore(s => s.rightPanelWidth);
-  const setRightPanelWidth = usePanelSizeStore(s => s.setRightPanelWidth);
-  const resetRightPanelWidth = usePanelSizeStore(s => s.resetRightPanelWidth);
+  const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
-  const visualizerStyle = useUIStore(s => s.visualizerStyle);
-  const Visualizer = VISUALIZER_COMPONENTS[visualizerStyle];
+  const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
   const compactMode = useCompactStore(s => s.compactMode);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  // Lyrics/queue panel shows beside the center views except in now-playing,
+  // where both are inline. Which side it docks on comes from useLayoutStore.
+  const showSidePanel =
+    !!currentTrack &&
+    activeView !== 'now-playing' &&
+    (rightPanel === 'lyrics' || rightPanel === 'queue');
+  // Visualizer strip is hidden in now-playing and in low-performance mode;
+  // whether it docks top or bottom comes from useLayoutStore.
+  const showVisualizerStrip =
+    !!currentTrack && showVisualizer && !lowPerformanceMode && activeView !== 'now-playing';
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore(s => s.updateProgress);
 
@@ -357,18 +358,24 @@ function App() {
                   <main
                     id="main-content"
                     aria-label={t(activeView, { ns: 'sidebar', defaultValue: activeView })}
-                    className="flex-1 flex overflow-hidden min-h-0"
+                    className="flex-1 flex overflow-hidden min-h-0 relative"
                     style={{
                       paddingBottom:
                         activeView === 'now-playing'
                           ? undefined
-                          : currentTrack && showVisualizer && !lowPerformanceMode
+                          : showVisualizerStrip && visualizerPosition === 'bottom'
                             ? PLAYER_BAR_PLUS_VIZ
                             : currentTrack
                               ? PLAYER_BAR_HEIGHT
                               : undefined,
+                      paddingTop:
+                        showVisualizerStrip && visualizerPosition === 'top'
+                          ? VISUALIZER_HEIGHT
+                          : undefined,
                     }}
                   >
+                    {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
                       {activeView === 'overview' && (
@@ -468,52 +475,10 @@ function App() {
                       )}
                     </div>
 
-                    {/* Right panel (hidden in now-playing view — lyrics are inline) */}
-                    {currentTrack &&
-                      activeView !== 'now-playing' &&
-                      (rightPanel === 'lyrics' || rightPanel === 'queue') && (
-                        <div
-                          id="player-side-panel"
-                          className="relative border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30"
-                          style={{ width: rightPanelWidth }}
-                        >
-                          <PanelResizeHandle
-                            edge="left"
-                            value={rightPanelWidth}
-                            min={RIGHT_PANEL_WIDTH_MIN}
-                            max={RIGHT_PANEL_WIDTH_MAX}
-                            onChange={setRightPanelWidth}
-                            onReset={resetRightPanelWidth}
-                            aria-label={t('resizeRightPanel', { ns: 'common' })}
-                            aria-controls="player-side-panel"
-                          />
-                          <ErrorBoundary viewName="RightPanel">
-                            <Suspense fallback={null}>
-                              {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
-                            </Suspense>
-                          </ErrorBoundary>
-                        </div>
-                      )}
-                  </main>
+                    {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
 
-                  {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
-                  {currentTrack &&
-                    showVisualizer &&
-                    !lowPerformanceMode &&
-                    activeView !== 'now-playing' && (
-                      <div
-                        className="absolute left-0 right-0 z-40"
-                        style={{ bottom: PLAYER_BAR_HEIGHT, height: VISUALIZER_HEIGHT }}
-                      >
-                        <ErrorBoundary viewName="Visualizer">
-                          <Suspense fallback={null}>
-                            <DevProfiler id="visualizer">
-                              <Visualizer />
-                            </DevProfiler>
-                          </Suspense>
-                        </ErrorBoundary>
-                      </div>
-                    )}
+                    {showVisualizerStrip && <VisualizerStrip />}
+                  </main>
 
                   {/* Player bar (hidden in now-playing view — controls are inline) */}
                   {activeView !== 'now-playing' && (
