@@ -7,15 +7,6 @@ import { IS_ELECTRON } from '@/lib/platform';
 type SentryRenderer = typeof import('@sentry/electron/renderer');
 type CaptureException = SentryRenderer['captureException'];
 
-// Names we actually consume from the renderer SDK, destructured at the dynamic
-// import below. Importing the bindings by name — instead of binding the whole
-// module namespace — lets the bundler tree-shake the barrel's unused re-exports
-// (Session Replay, Feedback, replay-canvas). A namespace object keeps every
-// export reachable, which is why those integrations otherwise ship as a ~420 KB
-// chunk even though Sentry.init never adds them.
-type RendererInit = SentryRenderer['init'];
-type BrowserTracingIntegration = SentryRenderer['browserTracingIntegration'];
-
 let initialized = false;
 
 // Lazily populated once the SDK loads. Until then `captureException` below is a
@@ -72,11 +63,9 @@ export async function initSentryRenderer(): Promise<void> {
     { init: sentryInit, browserTracingIntegration, captureException: sdkCapture },
     { init: reactInit },
   ] = await Promise.all([
-    import('@sentry/electron/renderer') as Promise<{
-      init: RendererInit;
-      browserTracingIntegration: BrowserTracingIntegration;
-      captureException: CaptureException;
-    }>,
+    import('@sentry/electron/renderer') as Promise<
+      Pick<SentryRenderer, 'init' | 'browserTracingIntegration' | 'captureException'>
+    >,
     import('@sentry/react'),
   ]);
 
