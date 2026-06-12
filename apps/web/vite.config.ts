@@ -35,11 +35,26 @@ export default defineConfig({
       : []),
   ],
   base: './',
+  // Drop SDK debug logging from the production renderer bundle. Documented
+  // Sentry tree-shake flag; no effect on behaviour, just removes dev-only
+  // logger code paths.
+  define: {
+    __SENTRY_DEBUG__: false,
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
       '@shiranami/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
       '@shiranami/shared': resolve(__dirname, '../../packages/shared/src/index.ts'),
+      // @sentry/browser's barrel statically re-exports Session Replay (rrweb +
+      // the replay-canvas recorder + a compression web worker) and the User
+      // Feedback widget (~420 KB raw combined), which a namespace re-export
+      // keeps un-shakeable. This app enables neither, so alias those packages to
+      // an inert stub that satisfies every binding @sentry/browser pulls from
+      // them. See src/lib/sentry-replay-stub.ts.
+      '@sentry-internal/replay': resolve(__dirname, './src/lib/sentry-replay-stub.ts'),
+      '@sentry-internal/replay-canvas': resolve(__dirname, './src/lib/sentry-replay-stub.ts'),
+      '@sentry-internal/feedback': resolve(__dirname, './src/lib/sentry-replay-stub.ts'),
     },
   },
   server: {

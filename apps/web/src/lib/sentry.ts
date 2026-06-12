@@ -7,6 +7,15 @@ import { IS_ELECTRON } from '@/lib/platform';
 type SentryRenderer = typeof import('@sentry/electron/renderer');
 type CaptureException = SentryRenderer['captureException'];
 
+// Names we actually consume from the renderer SDK, destructured at the dynamic
+// import below. Importing the bindings by name — instead of binding the whole
+// module namespace — lets the bundler tree-shake the barrel's unused re-exports
+// (Session Replay, Feedback, replay-canvas). A namespace object keeps every
+// export reachable, which is why those integrations otherwise ship as a ~420 KB
+// chunk even though Sentry.init never adds them.
+type RendererInit = SentryRenderer['init'];
+type BrowserTracingIntegration = SentryRenderer['browserTracingIntegration'];
+
 let initialized = false;
 
 // Lazily populated once the SDK loads. Until then `captureException` below is a
@@ -56,9 +65,18 @@ export async function initSentryRenderer(): Promise<void> {
   }
   if (!consent) return;
 
-  // Only now that consent is confirmed do we pull the SDK into the page.
-  const [SentryElectron, { init: reactInit }] = await Promise.all([
-    import('@sentry/electron/renderer'),
+  // Only now that consent is confirmed do we pull the SDK into the page. Pull
+  // the bindings by name rather than as a namespace so the bundler can drop the
+  // barrel's unused Replay/Feedback re-exports.
+  const [
+    { init: sentryInit, browserTracingIntegration, captureException: sdkCapture },
+    { init: reactInit },
+  ] = await Promise.all([
+    import('@sentry/electron/renderer') as Promise<{
+      init: RendererInit;
+      browserTracingIntegration: BrowserTracingIntegration;
+      captureException: CaptureException;
+    }>,
     import('@sentry/react'),
   ]);
 
@@ -67,17 +85,17 @@ export async function initSentryRenderer(): Promise<void> {
   // off. browserTracing is only wired when tracing is actually enabled.
   const tracesSampleRate = perfEnabled ? (import.meta.env.PROD ? 0.2 : 1.0) : 0;
 
-  SentryElectron.init(
+  sentryInit(
     {
       sendDefaultPii: false,
       tracesSampleRate,
-      integrations: perfEnabled ? [SentryElectron.browserTracingIntegration()] : [],
+      integrations: perfEnabled ? [browserTracingIntegration()] : [],
       beforeSend: event => scrubEvent(event),
     },
     reactInit
   );
 
-  sdkCaptureException = SentryElectron.captureException;
+  sdkCaptureException = sdkCapture;
   initialized = true;
 }
 
