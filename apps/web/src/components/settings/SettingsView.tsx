@@ -13,6 +13,7 @@ import {
   Monitor,
   Sparkles,
   PanelLeft,
+  PanelTop,
   RefreshCcw,
   Info,
   Heart,
@@ -34,6 +35,7 @@ import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { SidebarSection } from '@/components/settings/SidebarSection';
 import { VisualEffectsSection } from '@/components/settings/VisualEffectsSection';
+import { InterfaceSection } from '@/components/settings/InterfaceSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
@@ -55,6 +57,7 @@ type SettingsSection =
   | 'compact'
   | 'appearance'
   | 'effects'
+  | 'interface'
   | 'sidebar'
   | 'weather'
   | 'scrobble'
@@ -160,6 +163,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'interface',
+    labelKey: 'interface',
+    subtitleKey: 'subtitles.interface',
+    Icon: PanelTop,
+    group: 'appearance',
+  },
+  {
     id: 'sidebar',
     labelKey: 'sidebar',
     subtitleKey: 'subtitles.sidebar',
@@ -223,6 +233,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   compact: CompactSection,
   appearance: AppearanceSection,
   effects: VisualEffectsSection,
+  interface: InterfaceSection,
   sidebar: SidebarSection,
   weather: WeatherSection,
   scrobble: ScrobbleSection,

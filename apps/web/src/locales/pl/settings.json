@@ -17,6 +17,7 @@
     "compact": "Ustawienia mini-odtwarzacza",
     "appearance": "Wygląd i styl interfejsu",
     "effects": "Efekty interfejsu",
+    "interface": "Pokaż lub ukryj elementy interfejsu",
     "sidebar": "Widoczność głównej nawigacji",
     "weather": "Pogoda na zegarze w Przeglądzie",
     "scrobble": "Scrobblowanie do Last.fm i ListenBrainz",
@@ -37,6 +38,7 @@
   "compact": "Tryb kompaktowy",
   "appearance": "Wygląd",
   "effects": "Efekty wizualne",
+  "interface": "Interfejs",
   "sidebar": "Panel boczny",
   "weather": "Pogoda",
   "scrobble": "Scrobblowanie",
@@ -450,6 +452,31 @@
         "coral": "Koral",
         "rose": "Róż",
         "lavender": "Lawenda"
+      }
+    },
+    "interface": {
+      "topBarTitle": "Górny pasek",
+      "topBarDesc": "Elementy widoczne na pasku u góry okna",
+      "overviewTitle": "Widżety przeglądu",
+      "overviewDesc": "Wybierz, które sekcje pojawiają się na stronie przeglądu",
+      "reset": "Resetuj",
+      "elements": {
+        "topBarLanguageSwitcher": "Przełącznik języka",
+        "topBarLanguageSwitcherDesc": "Szybka zmiana języka na górnym pasku. Wybór języka pozostaje dostępny w ustawieniach wyglądu.",
+        "overviewStats": "Pasek statystyk",
+        "overviewStatsDesc": "Czas słuchania, sesje i trend w tym tygodniu",
+        "overviewTopWeek": "Top tego tygodnia",
+        "overviewTopWeekDesc": "Najczęściej grane utwory z ostatnich 7 dni",
+        "overviewClock": "Zegar słuchania",
+        "overviewClockDesc": "Godzinowa mapa cieplna Twojego słuchania",
+        "overviewTopAlbums": "Top albumy",
+        "overviewTopAlbumsDesc": "Najczęściej grane albumy tygodnia",
+        "overviewMixes": "Inteligentne miksy",
+        "overviewMixesDesc": "Automatyczne miksy tworzone z Twojej biblioteki",
+        "overviewRecommendations": "Rekomendacje",
+        "overviewRecommendationsDesc": "Propozycje utworów na podstawie Twojego słuchania",
+        "overviewRecentlyAdded": "Ostatnio dodane",
+        "overviewRecentlyAddedDesc": "Najnowsze utwory zaimportowane do biblioteki"
       }
     },
     "bgAdjust": {

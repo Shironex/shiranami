@@ -17,6 +17,7 @@
     "compact": "Mini-player window settings",
     "appearance": "Interface look and feel",
     "effects": "Immersive UI effects",
+    "interface": "Show or hide interface elements",
     "sidebar": "Main navigation visibility",
     "weather": "Weather on the Overview clock",
     "scrobble": "Scrobble to Last.fm and ListenBrainz",
@@ -37,6 +38,7 @@
   "compact": "Compact mode",
   "appearance": "Appearance",
   "effects": "Visual effects",
+  "interface": "Interface",
   "sidebar": "Sidebar",
   "weather": "Weather",
   "scrobble": "Scrobbling",
@@ -434,6 +436,31 @@
         "coral": "Coral",
         "rose": "Rose",
         "lavender": "Lavender"
+      }
+    },
+    "interface": {
+      "topBarTitle": "Top bar",
+      "topBarDesc": "Elements shown in the bar at the top of the window",
+      "overviewTitle": "Overview widgets",
+      "overviewDesc": "Choose which sections appear on your Overview page",
+      "reset": "Reset",
+      "elements": {
+        "topBarLanguageSwitcher": "Language switcher",
+        "topBarLanguageSwitcherDesc": "Quick language toggle in the top bar. The language picker stays available in Appearance settings.",
+        "overviewStats": "Stats strip",
+        "overviewStatsDesc": "Listening time, sessions, and trend for the week",
+        "overviewTopWeek": "Top this week",
+        "overviewTopWeekDesc": "Your most played tracks of the last 7 days",
+        "overviewClock": "Listening clock",
+        "overviewClockDesc": "Hour-by-hour heatmap of when you listen",
+        "overviewTopAlbums": "Top albums",
+        "overviewTopAlbumsDesc": "Your most played albums of the week",
+        "overviewMixes": "Smart mixes",
+        "overviewMixesDesc": "Auto-generated mixes built from your library",
+        "overviewRecommendations": "Recommendations",
+        "overviewRecommendationsDesc": "Suggested tracks based on your listening",
+        "overviewRecentlyAdded": "Recently added",
+        "overviewRecentlyAddedDesc": "The newest tracks imported into your library"
       }
     },
     "bgAdjust": {

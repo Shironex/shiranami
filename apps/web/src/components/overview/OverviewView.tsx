@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { AlertCircle, Disc3, LayoutDashboard } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useViewStore } from '@/stores/useViewStore';
@@ -13,6 +14,7 @@ import { RecentlyAdded } from '@/components/overview/RecentlyAdded';
 import { RecommendationsShelf } from '@/components/overview/RecommendationsShelf';
 import { SmartMixesShelf } from '@/components/overview/SmartMixesShelf';
 import { OverviewViewSkeleton } from '@/components/overview/OverviewViewSkeleton';
+import { useInterfaceStore } from '@/stores/useInterfaceStore';
 
 export default function OverviewView() {
   const { t } = useTranslation('overview');
@@ -35,6 +37,16 @@ export default function OverviewView() {
   } = useOverviewData();
   const { handleOpenFolder } = useLibraryActions();
   const navigateTo = useViewStore(s => s.navigateTo);
+  const showStats = useInterfaceStore(s => s.overviewStats);
+  const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
+  const showClock = useInterfaceStore(s => s.overviewClock);
+  const showTopAlbums = useInterfaceStore(s => s.overviewTopAlbums);
+  const showMixes = useInterfaceStore(s => s.overviewMixes);
+  const showRecommendations = useInterfaceStore(s => s.overviewRecommendations);
+  const showRecentlyAdded = useInterfaceStore(s => s.overviewRecentlyAdded);
+  // The week grid collapses to one column when either side is hidden, so a
+  // lone widget never floats beside an empty grid track.
+  const showRightColumn = showClock || showTopAlbums;
 
   if (isError) {
     return (
@@ -82,24 +94,37 @@ export default function OverviewView() {
 
         {hasHistory ? (
           <>
-            <StatStrip
-              summary={summary}
-              newInLibraryCount={newInLibraryCount}
-              trendDeltaMinutes={trendDeltaMinutes}
-              sessionCount={sessionCount}
-            />
-
-            <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
-              <TopThisWeek
-                tracks={summary.topTracks}
-                onPlay={handlePlayTrack}
-                onOpenLibrary={() => navigateTo('library')}
+            {showStats && (
+              <StatStrip
+                summary={summary}
+                newInLibraryCount={newInLibraryCount}
+                trendDeltaMinutes={trendDeltaMinutes}
+                sessionCount={sessionCount}
               />
-              <div className="flex flex-col gap-6">
-                <ListeningClock heatmap={heatmap} />
-                <TopAlbums albums={topAlbums} />
+            )}
+
+            {(showTopWeek || showRightColumn) && (
+              <div
+                className={cn(
+                  'grid gap-6',
+                  showTopWeek && showRightColumn && 'xl:grid-cols-[1.3fr_1fr]'
+                )}
+              >
+                {showTopWeek && (
+                  <TopThisWeek
+                    tracks={summary.topTracks}
+                    onPlay={handlePlayTrack}
+                    onOpenLibrary={() => navigateTo('library')}
+                  />
+                )}
+                {showRightColumn && (
+                  <div className="flex flex-col gap-6">
+                    {showClock && <ListeningClock heatmap={heatmap} />}
+                    {showTopAlbums && <TopAlbums albums={topAlbums} />}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </>
         ) : (
           <ViewEmptyState
@@ -110,11 +135,13 @@ export default function OverviewView() {
           />
         )}
 
-        <SmartMixesShelf />
+        {showMixes && <SmartMixesShelf />}
 
-        <RecommendationsShelf onPlay={handlePlayTrack} hasLibrary={hasLibrary} />
+        {showRecommendations && (
+          <RecommendationsShelf onPlay={handlePlayTrack} hasLibrary={hasLibrary} />
+        )}
 
-        {recentlyAdded.length > 0 && (
+        {showRecentlyAdded && recentlyAdded.length > 0 && (
           <RecentlyAdded tracks={recentlyAdded} onPlay={handlePlayTrack} />
         )}
       </div>
