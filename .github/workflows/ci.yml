@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' || steps.filter.outputs.server == 'true' }}
+      web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
     steps:
       - name: Checkout
@@ -116,6 +117,27 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  size:
+    name: Bundle Size
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      - name: Build web renderer
+        run: pnpm --filter @shiranami/web build
+
+      - name: Check bundle size
+        run: pnpm --filter @shiranami/web size
 
   landing:
     name: Landing Check
@@ -221,7 +243,7 @@ jobs:
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, e2e, landing]
+    needs: [lint, typecheck, test, size, e2e, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome
