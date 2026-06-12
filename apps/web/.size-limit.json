@@ -1,0 +1,20 @@
+[
+  {
+    "name": "entry chunk (index)",
+    "path": "dist/assets/index-*.js",
+    "limit": "105 kB",
+    "gzip": true
+  },
+  {
+    "name": "vendor-react",
+    "path": "dist/assets/vendor-react-*.js",
+    "limit": "65 kB",
+    "gzip": true
+  },
+  {
+    "name": "total JS",
+    "path": "dist/assets/*.js",
+    "limit": "660 kB",
+    "gzip": true
+  }
+]

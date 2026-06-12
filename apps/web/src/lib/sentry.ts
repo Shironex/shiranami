@@ -56,28 +56,30 @@ export async function initSentryRenderer(): Promise<void> {
   }
   if (!consent) return;
 
-  // Only now that consent is confirmed do we pull the SDK into the page.
-  const [SentryElectron, { init: reactInit }] = await Promise.all([
-    import('@sentry/electron/renderer'),
-    import('@sentry/react'),
-  ]);
+  // Only now that consent is confirmed do we pull the SDK into the page. Pull
+  // the bindings by name rather than as a namespace so the bundler can drop the
+  // barrel's unused Replay/Feedback re-exports.
+  const [
+    { init: sentryInit, browserTracingIntegration, captureException: sdkCapture },
+    { init: reactInit },
+  ] = await Promise.all([import('@sentry/electron/renderer'), import('@sentry/react')]);
 
   // Mirror the main process: sample everything on an unpackaged dev build, a
   // modest rate on shipped builds, and nothing when performance monitoring is
   // off. browserTracing is only wired when tracing is actually enabled.
   const tracesSampleRate = perfEnabled ? (import.meta.env.PROD ? 0.2 : 1.0) : 0;
 
-  SentryElectron.init(
+  sentryInit(
     {
       sendDefaultPii: false,
       tracesSampleRate,
-      integrations: perfEnabled ? [SentryElectron.browserTracingIntegration()] : [],
+      integrations: perfEnabled ? [browserTracingIntegration()] : [],
       beforeSend: event => scrubEvent(event),
     },
     reactInit
   );
 
-  sdkCaptureException = SentryElectron.captureException;
+  sdkCaptureException = sdkCapture;
   initialized = true;
 }
 
