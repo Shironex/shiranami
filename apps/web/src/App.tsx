@@ -9,7 +9,6 @@ import { Sidebar } from '@/components/shared/Sidebar';
 import { TopBar } from '@/components/shared/TopBar';
 import { SplashScreen } from '@/components/splash/SplashScreen';
 import { PlayerBar } from '@/components/player';
-import { VISUALIZER_COMPONENTS } from '@/components/player/visualizerRegistry';
 import { CompactPlayer } from '@/components/player/CompactPlayer';
 import { MediaSessionSync } from '@/components/player/MediaSessionSync';
 import { LibraryView } from '@/components/library/LibraryView';
@@ -18,6 +17,7 @@ import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SidePanel } from '@/components/shared/SidePanel';
+import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
@@ -161,8 +161,7 @@ function App() {
   const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
-  const visualizerStyle = useUIStore(s => s.visualizerStyle);
-  const Visualizer = VISUALIZER_COMPONENTS[visualizerStyle];
+  const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
   const compactMode = useCompactStore(s => s.compactMode);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   // Lyrics/queue panel shows beside the center views except in now-playing,
@@ -171,6 +170,10 @@ function App() {
     !!currentTrack &&
     activeView !== 'now-playing' &&
     (rightPanel === 'lyrics' || rightPanel === 'queue');
+  // Visualizer strip is hidden in now-playing and in low-performance mode;
+  // whether it docks top or bottom comes from useLayoutStore.
+  const showVisualizerStrip =
+    !!currentTrack && showVisualizer && !lowPerformanceMode && activeView !== 'now-playing';
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore(s => s.updateProgress);
 
@@ -355,16 +358,20 @@ function App() {
                   <main
                     id="main-content"
                     aria-label={t(activeView, { ns: 'sidebar', defaultValue: activeView })}
-                    className="flex-1 flex overflow-hidden min-h-0"
+                    className="flex-1 flex overflow-hidden min-h-0 relative"
                     style={{
                       paddingBottom:
                         activeView === 'now-playing'
                           ? undefined
-                          : currentTrack && showVisualizer && !lowPerformanceMode
+                          : showVisualizerStrip && visualizerPosition === 'bottom'
                             ? PLAYER_BAR_PLUS_VIZ
                             : currentTrack
                               ? PLAYER_BAR_HEIGHT
                               : undefined,
+                      paddingTop:
+                        showVisualizerStrip && visualizerPosition === 'top'
+                          ? VISUALIZER_HEIGHT
+                          : undefined,
                     }}
                   >
                     {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
@@ -469,26 +476,9 @@ function App() {
                     </div>
 
                     {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
-                  </main>
 
-                  {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
-                  {currentTrack &&
-                    showVisualizer &&
-                    !lowPerformanceMode &&
-                    activeView !== 'now-playing' && (
-                      <div
-                        className="absolute left-0 right-0 z-40"
-                        style={{ bottom: PLAYER_BAR_HEIGHT, height: VISUALIZER_HEIGHT }}
-                      >
-                        <ErrorBoundary viewName="Visualizer">
-                          <Suspense fallback={null}>
-                            <DevProfiler id="visualizer">
-                              <Visualizer />
-                            </DevProfiler>
-                          </Suspense>
-                        </ErrorBoundary>
-                      </div>
-                    )}
+                    {showVisualizerStrip && <VisualizerStrip />}
+                  </main>
 
                   {/* Player bar (hidden in now-playing view — controls are inline) */}
                   {activeView !== 'now-playing' && (
