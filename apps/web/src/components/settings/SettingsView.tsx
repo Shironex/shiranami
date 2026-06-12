@@ -13,6 +13,7 @@ import {
   Monitor,
   Sparkles,
   PanelLeft,
+  PanelTop,
   RefreshCcw,
   Info,
   Heart,
@@ -20,6 +21,7 @@ import {
   Radio,
   ShieldCheck,
   CloudSun,
+  MonitorCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -34,6 +36,7 @@ import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 import { SidebarSection } from '@/components/settings/SidebarSection';
 import { VisualEffectsSection } from '@/components/settings/VisualEffectsSection';
+import { InterfaceSection } from '@/components/settings/InterfaceSection';
 import { LyricsSection } from '@/components/settings/LyricsSection';
 import { CompactSection } from '@/components/settings/CompactSection';
 import { AboutSection } from '@/components/settings/AboutSection';
@@ -42,6 +45,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
 import { WeatherSection } from '@/components/settings/WeatherSection';
 import { ScrobbleSection } from '@/components/settings/ScrobbleSection';
+import { SystemSection } from '@/components/settings/SystemSection';
 
 type SettingsSection =
   | 'folders'
@@ -55,8 +59,10 @@ type SettingsSection =
   | 'compact'
   | 'appearance'
   | 'effects'
+  | 'interface'
   | 'sidebar'
   | 'weather'
+  | 'system'
   | 'scrobble'
   | 'discord'
   | 'updates'
@@ -160,6 +166,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'interface',
+    labelKey: 'interface',
+    subtitleKey: 'subtitles.interface',
+    Icon: PanelTop,
+    group: 'appearance',
+  },
+  {
     id: 'sidebar',
     labelKey: 'sidebar',
     subtitleKey: 'subtitles.sidebar',
@@ -172,6 +185,13 @@ const SECTIONS: {
     subtitleKey: 'subtitles.weather',
     Icon: CloudSun,
     group: 'appearance',
+  },
+  {
+    id: 'system',
+    labelKey: 'system',
+    subtitleKey: 'subtitles.system',
+    Icon: MonitorCog,
+    group: 'system',
   },
   {
     id: 'scrobble',
@@ -223,8 +243,10 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   compact: CompactSection,
   appearance: AppearanceSection,
   effects: VisualEffectsSection,
+  interface: InterfaceSection,
   sidebar: SidebarSection,
   weather: WeatherSection,
+  system: SystemSection,
   scrobble: ScrobbleSection,
   discord: DiscordSection,
   updates: UpdatesSection,

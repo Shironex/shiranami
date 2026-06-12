@@ -1,7 +1,11 @@
-import { Clock3, Music2, RadioTower } from 'lucide-react';
+import { Clock3, Moon, Music2, RadioTower } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
-import { LOUDNESS_TARGET_MIN_LUFS, LOUDNESS_TARGET_MAX_LUFS } from '@/stores/usePlaybackStore';
+import {
+  LOUDNESS_TARGET_MIN_LUFS,
+  LOUDNESS_TARGET_MAX_LUFS,
+  SLEEP_FADE_MAX_SECONDS,
+} from '@/stores/usePlaybackStore';
 
 interface ResumePreviewProps {
   enabled: boolean;
@@ -143,6 +147,46 @@ export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
 
         <p className="mt-2 text-[10px] text-muted-foreground">
           {enabled ? t('play.loudnessPreviewOn') : t('play.loudnessPreviewOff')}
+        </p>
+      </div>
+    </SettingsPreview>
+  );
+}
+
+interface SleepFadePreviewProps {
+  /** Current fade-out duration in seconds; drives the ramp slope. */
+  duration: number;
+}
+
+const SLEEP_FADE_BARS = 14;
+
+export function SleepFadePreview({ duration }: SleepFadePreviewProps) {
+  const { t } = useTranslation('settings');
+
+  // The tail of the bar row ramps to silence; a longer fade claims more bars,
+  // so the slope visibly flattens as the slider grows.
+  const fadeBars = Math.max(2, Math.round((duration / SLEEP_FADE_MAX_SECONDS) * SLEEP_FADE_BARS));
+  const fadeStart = SLEEP_FADE_BARS - fadeBars;
+  const heightFor = (i: number) =>
+    i < fadeStart ? 1 : Math.max(0.06, 1 - (i - fadeStart + 1) / fadeBars);
+
+  return (
+    <SettingsPreview title={t('play.sleepFadePreview')}>
+      <div className="rounded-xl border border-border/30 bg-background/40 p-3">
+        <div className="relative h-16 rounded-lg border border-border/25 bg-surface/60 px-3 pt-2 pb-2">
+          <Moon className="absolute right-2 top-2 size-3.5 text-primary/60" aria-hidden="true" />
+          <div className="flex h-full items-end gap-1">
+            {Array.from({ length: SLEEP_FADE_BARS }, (_, i) => (
+              <div
+                key={i}
+                className="w-full rounded-full bg-primary/45 transition-[height] duration-300"
+                style={{ height: `${heightFor(i) * 100}%` }}
+              />
+            ))}
+          </div>
+        </div>
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          {t('play.sleepFadePreviewCaption', { seconds: duration })}
         </p>
       </div>
     </SettingsPreview>

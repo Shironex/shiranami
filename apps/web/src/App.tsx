@@ -17,6 +17,7 @@ import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { ThemeBackground } from '@/components/shared/ThemeBackground';
+import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
@@ -56,6 +57,11 @@ import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
+import {
+  usePanelSizeStore,
+  RIGHT_PANEL_WIDTH_MIN,
+  RIGHT_PANEL_WIDTH_MAX,
+} from '@/stores/usePanelSizeStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -69,6 +75,10 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
+// Side-effect import: rehydrates the persisted accent override and applies it
+// to :root at startup. The store's only UI lives in lazy-loaded Settings, so
+// without this a custom accent would not apply until Settings is opened.
+import '@/stores/useAccentStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';
@@ -154,6 +164,9 @@ function App() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const activeView = useViewStore(s => s.activeView);
   const rightPanel = useViewStore(s => s.rightPanel);
+  const rightPanelWidth = usePanelSizeStore(s => s.rightPanelWidth);
+  const setRightPanelWidth = usePanelSizeStore(s => s.setRightPanelWidth);
+  const resetRightPanelWidth = usePanelSizeStore(s => s.resetRightPanelWidth);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerStyle = useUIStore(s => s.visualizerStyle);
@@ -459,7 +472,21 @@ function App() {
                     {currentTrack &&
                       activeView !== 'now-playing' &&
                       (rightPanel === 'lyrics' || rightPanel === 'queue') && (
-                        <div className="w-[320px] border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30">
+                        <div
+                          id="player-side-panel"
+                          className="relative border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30"
+                          style={{ width: rightPanelWidth }}
+                        >
+                          <PanelResizeHandle
+                            edge="left"
+                            value={rightPanelWidth}
+                            min={RIGHT_PANEL_WIDTH_MIN}
+                            max={RIGHT_PANEL_WIDTH_MAX}
+                            onChange={setRightPanelWidth}
+                            onReset={resetRightPanelWidth}
+                            aria-label={t('resizeRightPanel', { ns: 'common' })}
+                            aria-controls="player-side-panel"
+                          />
                           <ErrorBoundary viewName="RightPanel">
                             <Suspense fallback={null}>
                               {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}

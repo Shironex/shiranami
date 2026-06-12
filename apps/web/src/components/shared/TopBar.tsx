@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, FolderOpen, File, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewStore } from '@/stores/useViewStore';
+import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { WindowControls } from '@/components/shared/WindowControls';
 import { useLibraryRescan } from '@/hooks/useLibraryRescan';
 import { isScanLocked } from '@/lib/scanLock';
@@ -33,6 +34,7 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { isScanning: isRescanning, rescan } = useLibraryRescan();
+  const showLanguageSwitcher = useInterfaceStore(s => s.topBarLanguageSwitcher);
 
   const scanBlocked = isScanning || isRescanning || isScanLocked();
 
@@ -128,25 +130,28 @@ export function TopBar({ onAddFile, onAddFolder, isScanning }: TopBarProps) {
         </div>
       )}
 
-      {/* Language segmented control */}
-      <div className="no-drag flex items-center gap-0.5 mr-2">
-        {SUPPORTED_LANGUAGES.map(lang => (
-          <button
-            key={lang.code}
-            type="button"
-            onClick={() => handleLanguageChange(lang.code)}
-            aria-label={t(`language.${lang.code}`)}
-            className={cn(
-              'px-2 py-1 rounded-md text-xs font-medium transition-colors',
-              i18n.language === lang.code
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent'
-            )}
-          >
-            {t(`language.${lang.code}`)}
-          </button>
-        ))}
-      </div>
+      {/* Language segmented control — hideable via Settings · Interface
+          (the picker also lives in Settings · Appearance, so nothing is lost) */}
+      {showLanguageSwitcher && (
+        <div className="no-drag flex items-center gap-0.5 mr-2">
+          {SUPPORTED_LANGUAGES.map(lang => (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => handleLanguageChange(lang.code)}
+              aria-label={t(`language.${lang.code}`)}
+              className={cn(
+                'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                i18n.language === lang.code
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent'
+              )}
+            >
+              {t(`language.${lang.code}`)}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Window controls (Windows only) */}
       <WindowControls className="pr-1.5" />

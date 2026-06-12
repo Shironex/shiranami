@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Minimize2, AudioLines } from 'lucide-react';
 import { useUIStore } from '@/stores/useUIStore';
+import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
 import { cn } from '@/lib/utils';
@@ -24,8 +25,16 @@ export function PlayerOverflowMenu() {
   const setCompactMode = useCompactStore(s => s.setCompactMode);
   const eqEnabled = useEqStore(s => s.enabled);
   const eqPreset = useEqStore(s => s.preset);
+  // Mirror the PlayerBar element toggles so a hidden control stays hidden in
+  // the narrow-width overflow too. The parent renders this menu only when at
+  // least one of the four is visible.
+  const showSleepTimer = useInterfaceStore(s => s.playerSleepTimer);
+  const showEqualizer = useInterfaceStore(s => s.playerEqualizer);
+  const showCompactButton = useInterfaceStore(s => s.playerCompactButton);
+  const showVisualizerButton = useInterfaceStore(s => s.playerVisualizerButton);
 
-  const hasActive = showVisualizer || (eqEnabled && eqPreset !== 'flat');
+  const hasActive =
+    (showVisualizerButton && showVisualizer) || (showEqualizer && eqEnabled && eqPreset !== 'flat');
 
   return (
     <Popover>
@@ -45,33 +54,37 @@ export function PlayerOverflowMenu() {
 
       <PopoverContent side="top" align="end" className="w-auto p-1.5">
         <div className="flex items-center gap-0.5">
-          <SleepTimer />
-          <EqualizerPanel />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton onClick={() => void setCompactMode(true)} aria-label={t('compactMode')}>
-                <Minimize2 />
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <IconButton
-                onClick={toggleVisualizer}
-                className={cn(
-                  showVisualizer &&
-                    'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
-                )}
-                aria-label={t('toggleVisualizer')}
-              >
-                <AudioLines />
-              </IconButton>
-            </TooltipTrigger>
-            <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
-          </Tooltip>
+          {showSleepTimer && <SleepTimer />}
+          {showEqualizer && <EqualizerPanel />}
+          {showCompactButton && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton onClick={() => void setCompactMode(true)} aria-label={t('compactMode')}>
+                  <Minimize2 />
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {showVisualizerButton && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <IconButton
+                  onClick={toggleVisualizer}
+                  className={cn(
+                    showVisualizer &&
+                      'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+                  )}
+                  aria-label={t('toggleVisualizer')}
+                >
+                  <AudioLines />
+                </IconButton>
+              </TooltipTrigger>
+              <TooltipContent side="top">{t('visualizerTooltip')}</TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </PopoverContent>
     </Popover>
