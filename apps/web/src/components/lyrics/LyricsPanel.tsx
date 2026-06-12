@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useLyricsAppearanceStore,
@@ -22,7 +23,12 @@ const PANEL_IDLE = 'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:o
 const PANEL_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
 const PANEL_ACTIVE_AFFORDANCES = 'text-foreground font-semibold';
 
-export function LyricsPanel() {
+interface LyricsPanelProps {
+  /** Optional control rendered at the right edge of the panel header. */
+  headerAction?: ReactNode;
+}
+
+export function LyricsPanel({ headerAction }: LyricsPanelProps) {
   const { t } = useTranslation('lyrics');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
@@ -39,10 +45,11 @@ export function LyricsPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-3.5 border-b border-border/20 shrink-0">
+      <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           {t('title')}
         </h2>
+        {headerAction}
       </div>
       <LyricsBody
         synced={synced}

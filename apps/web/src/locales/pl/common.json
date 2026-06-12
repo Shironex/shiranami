@@ -29,5 +29,7 @@
   "clearSelection": "Wyczyść zaznaczenie",
   "more": "Więcej",
   "bulkActionsLabel": "Akcje zbiorcze",
-  "resizeRightPanel": "Zmień szerokość panelu bocznego"
+  "resizeRightPanel": "Zmień szerokość panelu bocznego",
+  "movePanelLeft": "Przenieś panel na lewą stronę",
+  "movePanelRight": "Przenieś panel na prawą stronę"
 }

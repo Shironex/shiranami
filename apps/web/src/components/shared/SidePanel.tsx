@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PanelLeft, PanelRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 import { useViewStore } from '@/stores/useViewStore';
@@ -9,7 +11,7 @@ import {
   RIGHT_PANEL_WIDTH_MIN,
   RIGHT_PANEL_WIDTH_MAX,
 } from '@/stores/usePanelSizeStore';
-import type { SidePanelSide } from '@/stores/useLayoutStore';
+import { useLayoutStore, type SidePanelSide } from '@/stores/useLayoutStore';
 
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
 const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
@@ -29,6 +31,25 @@ export function SidePanel({ side }: SidePanelProps) {
   const rightPanelWidth = usePanelSizeStore(s => s.rightPanelWidth);
   const setRightPanelWidth = usePanelSizeStore(s => s.setRightPanelWidth);
   const resetRightPanelWidth = usePanelSizeStore(s => s.resetRightPanelWidth);
+  const setSidePanelSide = useLayoutStore(s => s.setSidePanelSide);
+
+  const flipTo: SidePanelSide = side === 'right' ? 'left' : 'right';
+  const flipLabel = t(flipTo === 'left' ? 'movePanelLeft' : 'movePanelRight', { ns: 'common' });
+  const FlipIcon = flipTo === 'left' ? PanelLeft : PanelRight;
+  const flipButton = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={() => setSidePanelSide(flipTo)}
+          aria-label={flipLabel}
+          className="text-muted-foreground/40 hover:text-foreground transition-colors"
+        >
+          <FlipIcon className="w-3.5 h-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{flipLabel}</TooltipContent>
+    </Tooltip>
+  );
 
   return (
     <div
@@ -51,7 +72,11 @@ export function SidePanel({ side }: SidePanelProps) {
       />
       <ErrorBoundary viewName="RightPanel">
         <Suspense fallback={null}>
-          {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
+          {rightPanel === 'lyrics' ? (
+            <LyricsPanel headerAction={flipButton} />
+          ) : (
+            <QueuePanel headerAction={flipButton} />
+          )}
         </Suspense>
       </ErrorBoundary>
     </div>

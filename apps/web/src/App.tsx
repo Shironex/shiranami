@@ -56,6 +56,7 @@ import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
@@ -157,12 +158,19 @@ function App() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const activeView = useViewStore(s => s.activeView);
   const rightPanel = useViewStore(s => s.rightPanel);
+  const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerStyle = useUIStore(s => s.visualizerStyle);
   const Visualizer = VISUALIZER_COMPONENTS[visualizerStyle];
   const compactMode = useCompactStore(s => s.compactMode);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  // Lyrics/queue panel shows beside the center views except in now-playing,
+  // where both are inline. Which side it docks on comes from useLayoutStore.
+  const showSidePanel =
+    !!currentTrack &&
+    activeView !== 'now-playing' &&
+    (rightPanel === 'lyrics' || rightPanel === 'queue');
   const updateDependencyInstall = useDownloadStore(s => s.updateDependencyInstall);
   const updateEnrichProgress = useMetadataEnrichStore(s => s.updateProgress);
 
@@ -359,6 +367,8 @@ function App() {
                               : undefined,
                     }}
                   >
+                    {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
                       {activeView === 'overview' && (
@@ -458,12 +468,7 @@ function App() {
                       )}
                     </div>
 
-                    {/* Side panel (hidden in now-playing view — lyrics are inline) */}
-                    {currentTrack &&
-                      activeView !== 'now-playing' &&
-                      (rightPanel === 'lyrics' || rightPanel === 'queue') && (
-                        <SidePanel side="right" />
-                      )}
+                    {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
                   </main>
 
                   {/* Visualizer strip above player bar (hidden in now-playing view and in low performance mode) */}
