@@ -69,6 +69,10 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
+// Side-effect import: rehydrates the persisted accent override and applies it
+// to :root at startup. The store's only UI lives in lazy-loaded Settings, so
+// without this a custom accent would not apply until Settings is opened.
+import '@/stores/useAccentStore';
 import { AmbientColorProvider } from '@/hooks/useAmbientColor';
 import { CommandPalette } from '@/components/shared/CommandPalette';
 import { hydrateLanguageFromStore } from '@/lib/i18n';

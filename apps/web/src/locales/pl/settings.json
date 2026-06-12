@@ -432,6 +432,26 @@
         "wisteria": "Glicynia"
       }
     },
+    "accent": {
+      "title": "Kolor akcentu",
+      "desc": "Wybierz kolor wyróżnień używany w całej aplikacji. Auto podąża za aktywnym motywem.",
+      "auto": "Auto (akcent motywu)",
+      "custom": "Własny kolor",
+      "apply": "Użyj akcentu {{name}}",
+      "reset": "Resetuj",
+      "names": {
+        "violet": "Fiolet",
+        "periwinkle": "Barwinek",
+        "sky": "Błękit",
+        "mint": "Mięta",
+        "matcha": "Matcha",
+        "gold": "Złoto",
+        "peach": "Brzoskwinia",
+        "coral": "Koral",
+        "rose": "Róż",
+        "lavender": "Lawenda"
+      }
+    },
     "bgAdjust": {
       "title": "Regulacja tła",
       "opacity": "Widoczność obrazu",
@@ -541,29 +561,29 @@
     "github": "GitHub",
     "changelog": "Historia zmian",
     "storyTitle": "Historia",
-    "storySubtitle": "Od autora. Po prostu chcia\u0142em, \u017ceby taka aplikacja istnia\u0142a.",
+    "storySubtitle": "Od autora. Po prostu chciałem, żeby taka aplikacja istniała.",
     "storyP1": "Shiranami zaczęło się od prostej myśli. Nie chciałem płacić co miesiąc za Spotify tylko po to, żeby mieć <1>muzykę grającą w tle podczas pracy</1>. Więc zrobiłem własny.",
     "storyP2": "To część Shiro Suite, niewielkiego zestawu narzędzi, który buduję. Na razie są trzy: <1>Shiranami · ShiroAni · KireiManga</1>. Każda aplikacja robi jedną rzecz tak, jak chciałem, żeby działała.",
     "storyP3": "Lubię tworzyć narzędzia, które działają dla mnie, a okazują się działać też dla kogoś innego. Jeśli to o Tobie, <1>cieszę się, że tu jesteś</1>.",
     "logsTitle": "Logi aplikacji",
-    "logsSubtitle": "Otw\u00f3rz folder z logami w eksploratorze plik\u00f3w",
-    "openLogs": "Otw\u00f3rz folder log\u00f3w",
-    "replayTitle": "Powt\u00f3rz wprowadzenie",
-    "replaySubtitle": "Przejd\u017a ponownie przez konfiguracj\u0119 pierwszego uruchomienia",
-    "replayButton": "Powt\u00f3rz konfiguracj\u0119"
+    "logsSubtitle": "Otwórz folder z logami w eksploratorze plików",
+    "openLogs": "Otwórz folder logów",
+    "replayTitle": "Powtórz wprowadzenie",
+    "replaySubtitle": "Przejdź ponownie przez konfigurację pierwszego uruchomienia",
+    "replayButton": "Powtórz konfigurację"
   },
   "sup": {
     "title": "Wsparcie",
-    "subtitle": "Od autora. Je\u015bli Shiranami znalaz\u0142o miejsce w Twoim dniu.",
-    "p1": "Shiranami jest darmowe, bez reklam i takie pozostanie. Tworz\u0119 je po godzinach, bo chcia\u0142em <1>odtwarzacz, kt\u00f3ry po prostu gra</1>: bez konta, bez subskrypcji, bez szumu.",
-    "p2": "Je\u015bli wesz\u0142o Ci w nawyk i chcesz si\u0119 odwdzi\u0119czy\u0107, mo\u017cesz <1>postawi\u0107 mi kaw\u0119</1>. To ca\u0142kowicie opcjonalne i znaczy wi\u0119cej, ni\u017c my\u015blisz.",
-    "p3": "Tak czy inaczej, czy dorzucisz si\u0119, czy po prostu s\u0142uchasz dalej, <1>dzi\u0119kuj\u0119, \u017ce tu jeste\u015b</1>.",
-    "action": "Postaw mi kaw\u0119",
+    "subtitle": "Od autora. Jeśli Shiranami znalazło miejsce w Twoim dniu.",
+    "p1": "Shiranami jest darmowe, bez reklam i takie pozostanie. Tworzę je po godzinach, bo chciałem <1>odtwarzacz, który po prostu gra</1>: bez konta, bez subskrypcji, bez szumu.",
+    "p2": "Jeśli weszło Ci w nawyk i chcesz się odwdzięczyć, możesz <1>postawić mi kawę</1>. To całkowicie opcjonalne i znaczy więcej, niż myślisz.",
+    "p3": "Tak czy inaczej, czy dorzucisz się, czy po prostu słuchasz dalej, <1>dziękuję, że tu jesteś</1>.",
+    "action": "Postaw mi kawę",
     "sponsor": "Wesprzyj na GitHubie"
   },
   "supportBanner": {
-    "message": "Podoba Ci si\u0119 Shiranami? Jest darmowe i bez reklam, tworzone przez jedn\u0105 osob\u0119.",
-    "action": "Postaw mi kaw\u0119",
+    "message": "Podoba Ci się Shiranami? Jest darmowe i bez reklam, tworzone przez jedną osobę.",
+    "action": "Postaw mi kawę",
     "sponsor": "Wesprzyj na GitHubie",
     "dismiss": "Zamknij"
   },

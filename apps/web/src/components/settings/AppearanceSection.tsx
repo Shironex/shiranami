@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Languages, Palette, RotateCcw } from 'lucide-react';
+import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -28,6 +28,8 @@ import {
 } from '@/stores/useThemeBgStore';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
+import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { useAccentStore } from '@/stores/useAccentStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
@@ -47,6 +49,8 @@ export function AppearanceSection() {
   const bgDim = useThemeBgStore(s => s.bgDim);
   const setBgDim = useThemeBgStore(s => s.setBgDim);
   const resetBg = useThemeBgStore(s => s.resetBg);
+  const accentColor = useAccentStore(s => s.accentColor);
+  const resetAccent = useAccentStore(s => s.resetAccent);
 
   const isBgModified =
     bgOpacity !== THEME_BG_OPACITY_DEFAULT ||
@@ -214,6 +218,29 @@ export function AppearanceSection() {
             </SettingsCard>
           </div>
         )}
+      </SettingsCard>
+
+      {/* Card 3 — Accent color */}
+      <SettingsCard
+        icon={Paintbrush}
+        title={t('app.accent.title')}
+        subtitle={t('app.accent.desc')}
+        headerRight={
+          accentColor !== null ? (
+            <button
+              onClick={resetAccent}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={t('app.accent.reset')}
+            >
+              <RotateCcw className="size-3" />
+              {t('app.accent.reset')}
+            </button>
+          ) : undefined
+        }
+      >
+        <div className="px-3 pb-1">
+          <AccentColorPicker />
+        </div>
       </SettingsCard>
     </div>
   );

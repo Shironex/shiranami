@@ -416,6 +416,26 @@
         "wisteria": "Wisteria"
       }
     },
+    "accent": {
+      "title": "Accent color",
+      "desc": "Pick the highlight color used across the app. Auto follows the active theme.",
+      "auto": "Auto (theme accent)",
+      "custom": "Custom color",
+      "apply": "Use {{name}} accent",
+      "reset": "Reset",
+      "names": {
+        "violet": "Violet",
+        "periwinkle": "Periwinkle",
+        "sky": "Sky",
+        "mint": "Mint",
+        "matcha": "Matcha",
+        "gold": "Gold",
+        "peach": "Peach",
+        "coral": "Coral",
+        "rose": "Rose",
+        "lavender": "Lavender"
+      }
+    },
     "bgAdjust": {
       "title": "Background adjustments",
       "opacity": "Image opacity",
