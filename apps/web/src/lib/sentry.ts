@@ -62,12 +62,7 @@ export async function initSentryRenderer(): Promise<void> {
   const [
     { init: sentryInit, browserTracingIntegration, captureException: sdkCapture },
     { init: reactInit },
-  ] = await Promise.all([
-    import('@sentry/electron/renderer') as Promise<
-      Pick<SentryRenderer, 'init' | 'browserTracingIntegration' | 'captureException'>
-    >,
-    import('@sentry/react'),
-  ]);
+  ] = await Promise.all([import('@sentry/electron/renderer'), import('@sentry/react')]);
 
   // Mirror the main process: sample everything on an unpackaged dev build, a
   // modest rate on shipped builds, and nothing when performance monitoring is
