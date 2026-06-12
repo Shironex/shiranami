@@ -24,5 +24,6 @@
   "selectAll": "Select All",
   "clearSelection": "Clear Selection",
   "more": "More",
-  "bulkActionsLabel": "Bulk actions"
+  "bulkActionsLabel": "Bulk actions",
+  "resizeRightPanel": "Resize side panel"
 }

@@ -5,6 +5,12 @@ import { IS_MAC } from '@/lib/platform';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
+import {
+  usePanelSizeStore,
+  SIDEBAR_WIDTH_MIN,
+  SIDEBAR_WIDTH_MAX,
+} from '@/stores/usePanelSizeStore';
+import { PanelResizeHandle } from './PanelResizeHandle';
 import type { Playlist } from '@/types/electron';
 import { usePlaylistsQuery } from '@/hooks/queries/usePlaylists';
 import { Loader2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -32,6 +38,10 @@ export function Sidebar() {
   const navigateTo = useViewStore(s => s.navigateTo);
   const toggleSidebarCollapsed = useUIStore(s => s.toggleSidebarCollapsed);
   const version = useAppVersion();
+  const sidebarWidth = usePanelSizeStore(s => s.sidebarWidth);
+  const setSidebarWidth = usePanelSizeStore(s => s.setSidebarWidth);
+  const resetSidebarWidth = usePanelSizeStore(s => s.resetSidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
   const { data: playlists = [], isLoading: isLoadingPlaylists } = usePlaylistsQuery();
   const [contextMenuState, setContextMenuState] = useState<{
     playlist: Playlist;
@@ -71,10 +81,26 @@ export function Sidebar() {
         // in low-performance mode (where the override drops `backdrop-filter`
         // and with it the stacking context blur used to create), the theme
         // image paints over the sidebar and washes the nav chrome out.
-        'app-sidebar relative z-10 shrink-0 flex flex-col h-full glass border-r border-border/50 transition-[width] duration-200',
-        sidebarCollapsed ? 'w-[5.25rem]' : 'w-[12.5rem]'
+        'app-sidebar relative z-10 shrink-0 flex flex-col h-full glass border-r border-border/50',
+        // Suspend the width transition while dragging so the panel tracks the
+        // pointer 1:1 instead of easing behind it.
+        !isResizing && 'transition-[width] duration-200',
+        sidebarCollapsed && 'w-[5.25rem]'
       )}
+      style={sidebarCollapsed ? undefined : { width: sidebarWidth }}
     >
+      {!sidebarCollapsed && (
+        <PanelResizeHandle
+          edge="right"
+          value={sidebarWidth}
+          min={SIDEBAR_WIDTH_MIN}
+          max={SIDEBAR_WIDTH_MAX}
+          onChange={setSidebarWidth}
+          onReset={resetSidebarWidth}
+          onDraggingChange={setIsResizing}
+          aria-label={t('resizeSidebar')}
+        />
+      )}
       <div
         className={cn(
           'drag flex shrink-0',

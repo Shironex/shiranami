@@ -28,5 +28,6 @@
   "selectAll": "Zaznacz wszystko",
   "clearSelection": "Wyczyść zaznaczenie",
   "more": "Więcej",
-  "bulkActionsLabel": "Akcje zbiorcze"
+  "bulkActionsLabel": "Akcje zbiorcze",
+  "resizeRightPanel": "Zmień szerokość panelu bocznego"
 }

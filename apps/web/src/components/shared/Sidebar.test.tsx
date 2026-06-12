@@ -187,18 +187,18 @@ describe('Sidebar', () => {
     setStoreState({ sidebarCollapsed: true });
     const { container } = render(<Sidebar />);
 
-    const sidebarDiv = container.firstElementChild!;
+    const sidebarDiv = container.firstElementChild as HTMLElement;
     expect(sidebarDiv.className).toContain('w-[5.25rem]');
-    expect(sidebarDiv.className).not.toContain('w-[12.5rem]');
+    expect(sidebarDiv.style.width).toBe('');
   });
 
-  // 4d. Expanded sidebar uses wider width
-  it('uses wider width class when expanded', () => {
+  // 4d. Expanded sidebar uses the persisted resizable width (inline style)
+  it('uses the persisted resizable width when expanded', () => {
     setStoreState({ sidebarCollapsed: false });
     const { container } = render(<Sidebar />);
 
-    const sidebarDiv = container.firstElementChild!;
-    expect(sidebarDiv.className).toContain('w-[12.5rem]');
+    const sidebarDiv = container.firstElementChild as HTMLElement;
+    expect(sidebarDiv.style.width).toBe('200px');
     expect(sidebarDiv.className).not.toContain('w-[5.25rem]');
   });
 
