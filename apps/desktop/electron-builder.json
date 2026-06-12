@@ -6,7 +6,24 @@
     "output": "release",
     "buildResources": "resources"
   },
-  "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts", "!dist/**/*.d.ts"],
+  "files": [
+    "dist/**/*",
+    "package.json",
+    "!**/*.map",
+    "!**/*.d.ts",
+    "!dist/**/*.d.ts",
+    "!**/node_modules/better-sqlite3/deps/**",
+    "!**/node_modules/better-sqlite3/src/**",
+    "!**/node_modules/better-sqlite3/build/Release/obj/**",
+    "!**/node_modules/better-sqlite3/build/Release/obj.target/**",
+    "!**/node_modules/better-sqlite3/build/Release/.deps/**",
+    "!**/node_modules/better-sqlite3/build/Release/*.a",
+    "!**/node_modules/better-sqlite3/build/**/*.{c,h,cc,cpp,o,d,mk,Makefile,gypi}",
+    "!**/node_modules/better-sqlite3/build/Makefile",
+    "!**/node_modules/better-sqlite3/build/binding.Makefile",
+    "!**/node_modules/better-sqlite3/build/config.gypi",
+    "!**/node_modules/better-sqlite3/build/gyp-mac-tool"
+  ],
   "extraResources": [
     { "from": "resources/tray-icon.png", "to": "tray-icon.png" },
     { "from": "resources/icon-16.png", "to": "icon-16.png" },
