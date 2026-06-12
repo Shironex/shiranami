@@ -88,6 +88,7 @@ export function Sidebar() {
         sidebarCollapsed && 'w-[5.25rem]'
       )}
       style={sidebarCollapsed ? undefined : { width: sidebarWidth }}
+      id="app-sidebar"
     >
       {!sidebarCollapsed && (
         <PanelResizeHandle
@@ -99,6 +100,7 @@ export function Sidebar() {
           onReset={resetSidebarWidth}
           onDraggingChange={setIsResizing}
           aria-label={t('resizeSidebar')}
+          aria-controls="app-sidebar"
         />
       )}
       <div

@@ -473,6 +473,7 @@ function App() {
                       activeView !== 'now-playing' &&
                       (rightPanel === 'lyrics' || rightPanel === 'queue') && (
                         <div
+                          id="player-side-panel"
                           className="relative border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30"
                           style={{ width: rightPanelWidth }}
                         >
@@ -484,6 +485,7 @@ function App() {
                             onChange={setRightPanelWidth}
                             onReset={resetRightPanelWidth}
                             aria-label={t('resizeRightPanel', { ns: 'common' })}
+                            aria-controls="player-side-panel"
                           />
                           <ErrorBoundary viewName="RightPanel">
                             <Suspense fallback={null}>

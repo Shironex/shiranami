@@ -19,6 +19,8 @@ interface PanelResizeHandleProps {
   /** Fires on pointer drag start/end so the panel can suspend width transitions. */
   onDraggingChange?: (dragging: boolean) => void;
   'aria-label': string;
+  /** id of the panel element this separator resizes (a11y wiring). */
+  'aria-controls'?: string;
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export function PanelResizeHandle({
   onDraggingChange,
   className,
   'aria-label': ariaLabel,
+  'aria-controls': ariaControls,
 }: PanelResizeHandleProps) {
   // Read through a ref during drag so the pointermove math always starts from
   // the width at drag start, not a stale render closure.
@@ -95,6 +98,7 @@ export function PanelResizeHandle({
       role="separator"
       aria-orientation="vertical"
       aria-label={ariaLabel}
+      aria-controls={ariaControls}
       aria-valuenow={Math.round(value)}
       aria-valuemin={min}
       aria-valuemax={max}
