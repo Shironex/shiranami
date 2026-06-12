@@ -22,7 +22,10 @@ export type AppView =
  */
 export type PlayerSidePanel = 'lyrics' | 'queue';
 
-/** Which panel the player-bar right column shows (lyrics/queue), or none. */
+/**
+ * Which panel the player column shows (lyrics/queue), or none. The name is
+ * historical — the panel's docked side lives in useLayoutStore.
+ */
 export type RightPanel = PlayerSidePanel | null;
 
 interface ViewState {

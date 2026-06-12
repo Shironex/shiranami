@@ -17,7 +17,7 @@ import { FavoritesView } from '@/components/favorites/FavoritesView';
 import { PlaylistsView } from '@/components/playlists/PlaylistsView';
 import { AmbientBackground } from '@/components/shared/AmbientBackground';
 import { ThemeBackground } from '@/components/shared/ThemeBackground';
-import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
+import { SidePanel } from '@/components/shared/SidePanel';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
@@ -32,8 +32,6 @@ const SmartPlaylistsView = lazy(() => import('@/components/smart-playlists/Smart
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
-const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
-const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
 // Dev-only: the import expression is dead code in prod (the ternary collapses
 // to `null`), so Rollup never emits the chunk for a production build.
 const DebugOverlay = import.meta.env.DEV
@@ -57,11 +55,6 @@ import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
-import {
-  usePanelSizeStore,
-  RIGHT_PANEL_WIDTH_MIN,
-  RIGHT_PANEL_WIDTH_MAX,
-} from '@/stores/usePanelSizeStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -164,9 +157,6 @@ function App() {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const activeView = useViewStore(s => s.activeView);
   const rightPanel = useViewStore(s => s.rightPanel);
-  const rightPanelWidth = usePanelSizeStore(s => s.rightPanelWidth);
-  const setRightPanelWidth = usePanelSizeStore(s => s.setRightPanelWidth);
-  const resetRightPanelWidth = usePanelSizeStore(s => s.resetRightPanelWidth);
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerStyle = useUIStore(s => s.visualizerStyle);
@@ -468,31 +458,11 @@ function App() {
                       )}
                     </div>
 
-                    {/* Right panel (hidden in now-playing view — lyrics are inline) */}
+                    {/* Side panel (hidden in now-playing view — lyrics are inline) */}
                     {currentTrack &&
                       activeView !== 'now-playing' &&
                       (rightPanel === 'lyrics' || rightPanel === 'queue') && (
-                        <div
-                          id="player-side-panel"
-                          className="relative border-l border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30"
-                          style={{ width: rightPanelWidth }}
-                        >
-                          <PanelResizeHandle
-                            edge="left"
-                            value={rightPanelWidth}
-                            min={RIGHT_PANEL_WIDTH_MIN}
-                            max={RIGHT_PANEL_WIDTH_MAX}
-                            onChange={setRightPanelWidth}
-                            onReset={resetRightPanelWidth}
-                            aria-label={t('resizeRightPanel', { ns: 'common' })}
-                            aria-controls="player-side-panel"
-                          />
-                          <ErrorBoundary viewName="RightPanel">
-                            <Suspense fallback={null}>
-                              {rightPanel === 'lyrics' ? <LyricsPanel /> : <QueuePanel />}
-                            </Suspense>
-                          </ErrorBoundary>
-                        </div>
+                        <SidePanel side="right" />
                       )}
                   </main>
 
