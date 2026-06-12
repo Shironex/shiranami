@@ -455,6 +455,9 @@
       "overviewTitle": "Overview widgets",
       "overviewDesc": "Choose which sections appear on your Overview page",
       "overviewPreview": "Overview preview",
+      "playerTitle": "Player bar",
+      "playerDesc": "Choose which elements appear in the player bar. Playback controls and the seek bar always stay.",
+      "playerPreview": "Player bar preview",
       "reset": "Reset",
       "elements": {
         "topBarLanguageSwitcher": "Language switcher",
@@ -472,7 +475,27 @@
         "overviewRecommendations": "Recommendations",
         "overviewRecommendationsDesc": "Suggested tracks based on your listening",
         "overviewRecentlyAdded": "Recently added",
-        "overviewRecentlyAddedDesc": "The newest tracks imported into your library"
+        "overviewRecentlyAddedDesc": "The newest tracks imported into your library",
+        "playerAlbumArt": "Album art",
+        "playerAlbumArtDesc": "Cover thumbnail next to the track title",
+        "playerFavorite": "Favorite button",
+        "playerFavoriteDesc": "Heart toggle next to the track info",
+        "playerTimeLabels": "Time labels",
+        "playerTimeLabelsDesc": "Elapsed and total time around the seek bar",
+        "playerSleepTimer": "Sleep timer",
+        "playerSleepTimerDesc": "Moon button that fades music out after a delay",
+        "playerEqualizer": "Equalizer button",
+        "playerEqualizerDesc": "Quick access to the 10-band equalizer panel",
+        "playerCompactButton": "Compact mode button",
+        "playerCompactButtonDesc": "Shrinks the app into the mini player (Ctrl+Shift+M still works)",
+        "playerVisualizerButton": "Visualizer button",
+        "playerVisualizerButtonDesc": "Toggles the visualizer strip (the V key still works)",
+        "playerLyricsButton": "Lyrics button",
+        "playerLyricsButtonDesc": "Opens the lyrics panel (Ctrl+L still works)",
+        "playerQueueButton": "Queue button",
+        "playerQueueButtonDesc": "Opens the queue panel (Ctrl+Q still works)",
+        "playerVolume": "Volume control",
+        "playerVolumeDesc": "Volume slider on the right side of the bar"
       }
     },
     "bgAdjust": {

@@ -471,6 +471,9 @@
       "overviewTitle": "Widżety przeglądu",
       "overviewDesc": "Wybierz, które sekcje pojawiają się na stronie przeglądu",
       "overviewPreview": "Podgląd przeglądu",
+      "playerTitle": "Pasek odtwarzacza",
+      "playerDesc": "Wybierz, które elementy pojawiają się na pasku odtwarzacza. Sterowanie odtwarzaniem i pasek przewijania zawsze pozostają.",
+      "playerPreview": "Podgląd paska odtwarzacza",
       "reset": "Resetuj",
       "elements": {
         "topBarLanguageSwitcher": "Przełącznik języka",
@@ -488,7 +491,27 @@
         "overviewRecommendations": "Rekomendacje",
         "overviewRecommendationsDesc": "Propozycje utworów na podstawie Twojego słuchania",
         "overviewRecentlyAdded": "Ostatnio dodane",
-        "overviewRecentlyAddedDesc": "Najnowsze utwory zaimportowane do biblioteki"
+        "overviewRecentlyAddedDesc": "Najnowsze utwory zaimportowane do biblioteki",
+        "playerAlbumArt": "Okładka albumu",
+        "playerAlbumArtDesc": "Miniatura okładki obok tytułu utworu",
+        "playerFavorite": "Przycisk ulubionych",
+        "playerFavoriteDesc": "Serduszko obok informacji o utworze",
+        "playerTimeLabels": "Etykiety czasu",
+        "playerTimeLabelsDesc": "Czas odtwarzania i całkowity wokół paska przewijania",
+        "playerSleepTimer": "Wyłącznik czasowy",
+        "playerSleepTimerDesc": "Przycisk księżyca wyciszający muzykę po określonym czasie",
+        "playerEqualizer": "Przycisk korektora",
+        "playerEqualizerDesc": "Szybki dostęp do 10-pasmowego korektora",
+        "playerCompactButton": "Przycisk trybu kompaktowego",
+        "playerCompactButtonDesc": "Zmniejsza aplikację do mini odtwarzacza (Ctrl+Shift+M nadal działa)",
+        "playerVisualizerButton": "Przycisk wizualizera",
+        "playerVisualizerButtonDesc": "Przełącza pasek wizualizera (klawisz V nadal działa)",
+        "playerLyricsButton": "Przycisk tekstów",
+        "playerLyricsButtonDesc": "Otwiera panel tekstów (Ctrl+L nadal działa)",
+        "playerQueueButton": "Przycisk kolejki",
+        "playerQueueButtonDesc": "Otwiera panel kolejki (Ctrl+Q nadal działa)",
+        "playerVolume": "Regulacja głośności",
+        "playerVolumeDesc": "Suwak głośności po prawej stronie paska"
       }
     },
     "bgAdjust": {

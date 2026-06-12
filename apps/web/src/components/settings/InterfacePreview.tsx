@@ -1,4 +1,17 @@
 import { useTranslation } from 'react-i18next';
+import {
+  AudioLines,
+  Heart,
+  ListMusic,
+  Mic2,
+  Minimize2,
+  Moon,
+  Play,
+  SkipBack,
+  SkipForward,
+  SlidersHorizontal,
+  Volume2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useInterfaceStore, type InterfaceElementKey } from '@/stores/useInterfaceStore';
@@ -47,7 +60,8 @@ export function TopBarPreview({ enabled }: TopBarPreviewProps) {
   );
 }
 
-type OverviewWidgetKey = Exclude<InterfaceElementKey, 'topBarLanguageSwitcher'>;
+type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`>;
+type PlayerElementKey = Extract<InterfaceElementKey, `player${string}`>;
 
 interface OverviewLayoutPreviewProps {
   /** Widget to spotlight in the mock (mirrors the row hovered in settings). */
@@ -230,6 +244,148 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
               ))}
             </div>
           </Block>
+        </div>
+      </div>
+    </SettingsPreview>
+  );
+}
+
+interface PlayerBarPreviewProps {
+  /** Element to spotlight in the mock (mirrors the row hovered in settings). */
+  highlightedKey?: PlayerElementKey | null;
+}
+
+interface ElProps {
+  visible: boolean;
+  highlighted: boolean;
+  /** max-w-* class for the expanded state (collapse animates via max-width). */
+  expandedClass: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+/** Horizontally-collapsible mock element (the player-bar analog of Block). */
+function El({ visible, highlighted, expandedClass, children, className }: ElProps) {
+  return (
+    <div
+      className={cn(
+        'flex shrink-0 items-center overflow-hidden rounded-md transition-all duration-300',
+        visible ? cn(expandedClass, 'opacity-100') : 'max-w-0 opacity-0',
+        highlighted && visible && 'ring-1 ring-primary/40 bg-primary/10',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Scaled mock of the player bar reading the real interface store: hidden
+ * elements collapse away live, hovered settings rows spotlight their element.
+ * Core controls (prev/play/next, seek) render unconditionally, matching the
+ * real bar.
+ */
+export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProps) {
+  const { t } = useTranslation('settings');
+  const s = useInterfaceStore();
+  const spotlight = (key: PlayerElementKey) => highlightedKey === key;
+
+  const utilityIcons: Array<{ key: PlayerElementKey; Icon: typeof Moon }> = [
+    { key: 'playerSleepTimer', Icon: Moon },
+    { key: 'playerEqualizer', Icon: SlidersHorizontal },
+    { key: 'playerCompactButton', Icon: Minimize2 },
+    { key: 'playerVisualizerButton', Icon: AudioLines },
+    { key: 'playerLyricsButton', Icon: Mic2 },
+    { key: 'playerQueueButton', Icon: ListMusic },
+  ];
+
+  return (
+    <SettingsPreview title={t('app.interface.playerPreview')}>
+      <div
+        className="rounded-xl border border-border/30 bg-background/40 p-3"
+        role="img"
+        aria-label={t('app.interface.playerPreview')}
+      >
+        <div className="mx-auto flex h-14 max-w-[360px] items-center gap-2 rounded-xl border border-border/25 bg-surface/60 px-2.5">
+          {/* Left: album art + title + favorite */}
+          <El
+            visible={s.playerAlbumArt}
+            highlighted={spotlight('playerAlbumArt')}
+            expandedClass="max-w-10"
+          >
+            <div className="size-8 rounded-md bg-primary/20" />
+          </El>
+          <div className="min-w-0 space-y-1">
+            <div className="h-1.5 w-16 rounded-full bg-foreground/25" />
+            <div className="h-1 w-11 rounded-full bg-muted-foreground/25" />
+          </div>
+          <El
+            visible={s.playerFavorite}
+            highlighted={spotlight('playerFavorite')}
+            expandedClass="max-w-6"
+            className="p-1"
+          >
+            <Heart className="size-3 fill-favorite/70 text-favorite/70" />
+          </El>
+
+          {/* Center: controls + seek (always shown) */}
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-1 px-1">
+            <div className="flex items-center gap-1.5">
+              <SkipBack className="size-2.5 text-muted-foreground/60" />
+              <div className="grid size-5 place-items-center rounded-full bg-primary/35">
+                <Play className="size-2 fill-foreground/80 text-foreground/80" />
+              </div>
+              <SkipForward className="size-2.5 text-muted-foreground/60" />
+            </div>
+            <div className="flex w-full items-center gap-1.5">
+              <El
+                visible={s.playerTimeLabels}
+                highlighted={spotlight('playerTimeLabels')}
+                expandedClass="max-w-8"
+                className="px-0.5"
+              >
+                <span className="text-[8px] tabular-nums text-muted-foreground/70">1:24</span>
+              </El>
+              <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/35">
+                <div className="h-full w-[38%] rounded-full bg-primary/55" />
+              </div>
+              <El
+                visible={s.playerTimeLabels}
+                highlighted={spotlight('playerTimeLabels')}
+                expandedClass="max-w-8"
+                className="px-0.5"
+              >
+                <span className="text-[8px] tabular-nums text-muted-foreground/70">3:45</span>
+              </El>
+            </div>
+          </div>
+
+          {/* Right: utility buttons + volume */}
+          <div className="flex items-center gap-0.5">
+            {utilityIcons.map(({ key, Icon }) => (
+              <El
+                key={key}
+                visible={s[key]}
+                highlighted={spotlight(key)}
+                expandedClass="max-w-6"
+                className="p-1"
+              >
+                <Icon className="size-3 text-muted-foreground/70" />
+              </El>
+            ))}
+            <El
+              visible={s.playerVolume}
+              highlighted={spotlight('playerVolume')}
+              expandedClass="max-w-14"
+              className="gap-1 p-1"
+            >
+              <Volume2 className="size-3 shrink-0 text-muted-foreground/70" />
+              <div className="h-1 w-7 shrink-0 overflow-hidden rounded-full bg-muted/35">
+                <div className="h-full w-2/3 rounded-full bg-foreground/40" />
+              </div>
+            </El>
+          </div>
         </div>
       </div>
     </SettingsPreview>

@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, PanelTop, RotateCcw } from 'lucide-react';
+import { LayoutDashboard, PanelBottom, PanelTop, RotateCcw } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
-import { TopBarPreview, OverviewLayoutPreview } from '@/components/settings/InterfacePreview';
+import {
+  TopBarPreview,
+  OverviewLayoutPreview,
+  PlayerBarPreview,
+} from '@/components/settings/InterfacePreview';
 import {
   useInterfaceStore,
   INTERFACE_DEFAULTS,
   type InterfaceElementKey,
 } from '@/stores/useInterfaceStore';
 
-type OverviewWidgetKey = Exclude<InterfaceElementKey, 'topBarLanguageSwitcher'>;
+type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`>;
+type PlayerElementKey = Extract<InterfaceElementKey, `player${string}`>;
 
 const OVERVIEW_TOGGLES: OverviewWidgetKey[] = [
   'overviewStats',
@@ -21,13 +26,27 @@ const OVERVIEW_TOGGLES: OverviewWidgetKey[] = [
   'overviewRecentlyAdded',
 ];
 
+const PLAYER_TOGGLES: PlayerElementKey[] = [
+  'playerAlbumArt',
+  'playerFavorite',
+  'playerTimeLabels',
+  'playerSleepTimer',
+  'playerEqualizer',
+  'playerCompactButton',
+  'playerVisualizerButton',
+  'playerLyricsButton',
+  'playerQueueButton',
+  'playerVolume',
+];
+
 export function InterfaceSection() {
   const { t } = useTranslation('settings');
   const state = useInterfaceStore();
   const { setVisible, resetInterface } = state;
-  // Hovered settings row → spotlighted block in the Overview mock (mirrors
+  // Hovered settings row → spotlighted block in the matching mock (mirrors
   // the SidebarSection ↔ SidebarPreview wiring).
-  const [hoveredKey, setHoveredKey] = useState<OverviewWidgetKey | null>(null);
+  const [hoveredOverviewKey, setHoveredOverviewKey] = useState<OverviewWidgetKey | null>(null);
+  const [hoveredPlayerKey, setHoveredPlayerKey] = useState<PlayerElementKey | null>(null);
 
   const isModified = (Object.keys(INTERFACE_DEFAULTS) as InterfaceElementKey[]).some(
     key => state[key] !== INTERFACE_DEFAULTS[key]
@@ -66,12 +85,37 @@ export function InterfaceSection() {
         title={t('app.interface.overviewTitle')}
         subtitle={t('app.interface.overviewDesc')}
       >
-        <OverviewLayoutPreview highlightedKey={hoveredKey} />
+        <OverviewLayoutPreview highlightedKey={hoveredOverviewKey} />
         {OVERVIEW_TOGGLES.map((key, index) => (
           <div
             key={key}
-            onMouseEnter={() => setHoveredKey(key)}
-            onMouseLeave={() => setHoveredKey(current => (current === key ? null : current))}
+            onMouseEnter={() => setHoveredOverviewKey(key)}
+            onMouseLeave={() =>
+              setHoveredOverviewKey(current => (current === key ? null : current))
+            }
+          >
+            <SettingsToggleRow
+              label={t(`app.interface.elements.${key}`)}
+              description={t(`app.interface.elements.${key}Desc`)}
+              checked={state[key]}
+              onCheckedChange={v => setVisible(key, v)}
+              divider={index > 0}
+            />
+          </div>
+        ))}
+      </SettingsCard>
+
+      <SettingsCard
+        icon={PanelBottom}
+        title={t('app.interface.playerTitle')}
+        subtitle={t('app.interface.playerDesc')}
+      >
+        <PlayerBarPreview highlightedKey={hoveredPlayerKey} />
+        {PLAYER_TOGGLES.map((key, index) => (
+          <div
+            key={key}
+            onMouseEnter={() => setHoveredPlayerKey(key)}
+            onMouseLeave={() => setHoveredPlayerKey(current => (current === key ? null : current))}
           >
             <SettingsToggleRow
               label={t(`app.interface.elements.${key}`)}
