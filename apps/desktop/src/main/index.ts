@@ -8,6 +8,7 @@ import { cleanupIpcHandlers } from './ipc/register';
 import { initializeAutoUpdater } from './updater';
 import { logger, flushLogs } from './logger';
 import { createTray, destroyTray } from './tray';
+import { initializeSystemBehavior, attachTrayWindowBehavior } from './system-behavior';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
 import { registerAudioProtocol } from './audio-protocol';
@@ -187,6 +188,13 @@ async function bootstrap(): Promise<void> {
     }
 
     try {
+      initializeSystemBehavior();
+      attachTrayWindowBehavior(mainWindow);
+    } catch (error) {
+      logger.warn('Failed to initialize system behavior prefs:', error);
+    }
+
+    try {
       initializeMediaControls(mainWindow);
     } catch (error) {
       logger.warn('Failed to initialize media controls:', error);
@@ -247,6 +255,7 @@ app.on('activate', async () => {
     if (!isE2E) {
       try {
         createTray(mainWindow);
+        attachTrayWindowBehavior(mainWindow);
       } catch (error) {
         logger.warn('Failed to create system tray on activate:', error);
       }

@@ -53,6 +53,13 @@ export interface StoreSchema {
   'app.performanceMonitoringEnabled': boolean;
   'metadata-enrich.skippedIds': string[];
 
+  // System behavior prefs. Renderer-writable (settings UI); the main process
+  // reads them in window/login-item handlers (system-behavior.ts). All default
+  // to implicit `undefined` → off, preserving pre-feature behavior.
+  'system.launchAtStartup': boolean;
+  'system.minimizeToTray': boolean;
+  'system.closeToTray': boolean;
+
   // Main-only (downloader.ts).
   'downloads.location': string;
   'downloads.toolStatusCache': ToolStatusCache;

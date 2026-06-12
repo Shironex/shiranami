@@ -24,6 +24,9 @@ const RENDERER_STORE_KEYS = [
   'app.telemetryEnabled',
   'app.performanceMonitoringEnabled',
   'metadata-enrich.skippedIds',
+  'system.launchAtStartup',
+  'system.minimizeToTray',
+  'system.closeToTray',
 ] as const;
 
 // Compile-time guarantee: every entry is a StoreSchema key.

@@ -20,6 +20,7 @@
     "interface": "Pokaż lub ukryj elementy interfejsu",
     "sidebar": "Widoczność głównej nawigacji",
     "weather": "Pogoda na zegarze w Przeglądzie",
+    "system": "Uruchamianie i zachowanie w zasobniku",
     "scrobble": "Scrobblowanie do Last.fm i ListenBrainz",
     "discord": "Ustawienia integracji Discord",
     "updates": "Kanał aktualizacji aplikacji",
@@ -41,6 +42,7 @@
   "interface": "Interfejs",
   "sidebar": "Panel boczny",
   "weather": "Pogoda",
+  "system": "System",
   "scrobble": "Scrobblowanie",
   "discord": "Discord",
   "updates": "Aktualizacje",
@@ -647,5 +649,16 @@
     "pending_many": "{{count}} odtworzeń oczekuje na wysłanie",
     "pending_other": "{{count}} odtworzeń oczekuje na wysłanie",
     "note": "Twój klucz sesji i token są przechowywane lokalnie i nie opuszczają urządzenia poza scrobblowaniem. Scrobblowanie nigdy nie blokuje odtwarzania."
+  },
+  "sys": {
+    "behaviorTitle": "Zachowanie systemowe",
+    "behaviorDesc": "Jak Shiranami uruchamia się i działa w tle",
+    "launchAtStartup": "Uruchamiaj przy starcie",
+    "launchAtStartupDesc": "Uruchamiaj Shiranami automatycznie po zalogowaniu do komputera",
+    "minimizeToTray": "Minimalizuj do zasobnika",
+    "minimizeToTrayDesc": "Minimalizacja ukrywa okno; muzyka gra dalej, a ikona w zasobniku przywraca okno",
+    "closeToTray": "Zamykaj do zasobnika",
+    "closeToTrayDesc": "Zamknięcie okna pozostawia Shiranami działające w zasobniku zamiast kończyć aplikację",
+    "macTrayNote": "Na macOS ukryte okno można otworzyć ponownie z ikony na pasku menu lub z Docka. Aby całkowicie zakończyć, użyj Zakończ na pasku menu."
   }
 }

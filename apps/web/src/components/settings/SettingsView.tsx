@@ -21,6 +21,7 @@ import {
   Radio,
   ShieldCheck,
   CloudSun,
+  MonitorCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
@@ -44,6 +45,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
 import { WeatherSection } from '@/components/settings/WeatherSection';
 import { ScrobbleSection } from '@/components/settings/ScrobbleSection';
+import { SystemSection } from '@/components/settings/SystemSection';
 
 type SettingsSection =
   | 'folders'
@@ -60,6 +62,7 @@ type SettingsSection =
   | 'interface'
   | 'sidebar'
   | 'weather'
+  | 'system'
   | 'scrobble'
   | 'discord'
   | 'updates'
@@ -184,6 +187,13 @@ const SECTIONS: {
     group: 'appearance',
   },
   {
+    id: 'system',
+    labelKey: 'system',
+    subtitleKey: 'subtitles.system',
+    Icon: MonitorCog,
+    group: 'system',
+  },
+  {
     id: 'scrobble',
     labelKey: 'scrobble',
     subtitleKey: 'subtitles.scrobble',
@@ -236,6 +246,7 @@ const SECTION_PANEL: Record<SettingsSection, ComponentType> = {
   interface: InterfaceSection,
   sidebar: SidebarSection,
   weather: WeatherSection,
+  system: SystemSection,
   scrobble: ScrobbleSection,
   discord: DiscordSection,
   updates: UpdatesSection,
