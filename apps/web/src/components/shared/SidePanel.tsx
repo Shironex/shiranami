@@ -33,6 +33,10 @@ export function SidePanel({ side }: SidePanelProps) {
   const resetRightPanelWidth = usePanelSizeStore(s => s.resetRightPanelWidth);
   const setSidePanelSide = useLayoutStore(s => s.setSidePanelSide);
 
+  // App.tsx already gates rendering on rightPanel, but stay self-sufficient:
+  // bail before mounting the panel chrome when there is nothing to show.
+  if (rightPanel !== 'lyrics' && rightPanel !== 'queue') return null;
+
   const flipTo: SidePanelSide = side === 'right' ? 'left' : 'right';
   const flipLabel = t(flipTo === 'left' ? 'movePanelLeft' : 'movePanelRight');
   const FlipIcon = flipTo === 'left' ? PanelLeft : PanelRight;

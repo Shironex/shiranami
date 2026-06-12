@@ -171,4 +171,12 @@ describe('SidePanel', () => {
       })
     );
   });
+
+  // 7. Self-sufficiency guard: no chrome when there is nothing to show
+  it('renders nothing when rightPanel is empty', () => {
+    setStoreState({ rightPanel: null });
+    const { container } = render(<SidePanel side="right" />);
+
+    expect(container.firstElementChild).toBeNull();
+  });
 });
