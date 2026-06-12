@@ -1,7 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import {
+  SettingsCard,
+  SettingsToggleRow,
+  SettingsSelectRow,
+} from '@/components/settings/SettingsCard';
 import { AudioLines } from 'lucide-react';
 import { useUIStore } from '@/stores/useUIStore';
+import { useLayoutStore, type VisualizerPosition } from '@/stores/useLayoutStore';
 import { VisualizerStyleGrid } from '@/components/settings/VisualizerStyleGrid';
 import { VisualizerStylePreview } from '@/components/settings/VisualizerStylePreview';
 
@@ -11,6 +16,9 @@ export function VisualizerSection() {
   const setVisualizerStyle = useUIStore(s => s.setVisualizerStyle);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
+  const setVisualizerPosition = useLayoutStore(s => s.setVisualizerPosition);
 
   return (
     <SettingsCard icon={AudioLines} title={t('vis.title')} subtitle={t('vis.subtitle')}>
@@ -24,6 +32,20 @@ export function VisualizerSection() {
 
         {showVisualizer && (
           <>
+            <SettingsSelectRow
+              label={t('vis.position')}
+              description={
+                lowPerformanceMode ? t('vis.positionDescLowPerf') : t('vis.positionDesc')
+              }
+              value={visualizerPosition}
+              onValueChange={v => setVisualizerPosition(v as VisualizerPosition)}
+              disabled={lowPerformanceMode}
+              options={[
+                { value: 'top', label: t('vis.positionTop') },
+                { value: 'bottom', label: t('vis.positionBottom') },
+              ]}
+            />
+
             <VisualizerStylePreview />
 
             <div className="px-3">

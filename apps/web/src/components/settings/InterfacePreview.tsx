@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useInterfaceStore, type InterfaceElementKey } from '@/stores/useInterfaceStore';
+import { useLayoutStore } from '@/stores/useLayoutStore';
 
 interface TopBarPreviewProps {
   /** Whether the language switcher chip group is shown. */
@@ -53,6 +54,68 @@ export function TopBarPreview({ enabled }: TopBarPreviewProps) {
             <div className="size-1.5 rounded-full bg-muted-foreground/30" />
             <div className="size-1.5 rounded-full bg-muted-foreground/30" />
             <div className="size-1.5 rounded-full bg-muted-foreground/30" />
+          </div>
+        </div>
+      </div>
+    </SettingsPreview>
+  );
+}
+
+/**
+ * Scaled mock of the app shell reading the real layout store: the side panel
+ * and visualizer strip (tinted primary — the movable pieces) jump to their
+ * docked slot live as the position settings change.
+ */
+export function LayoutPreview() {
+  const { t } = useTranslation('settings');
+  const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
+  const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
+
+  const sidePanelMock = (
+    <div className="w-9 shrink-0 space-y-1 rounded-md border border-primary/30 bg-primary/15 p-1.5">
+      <div className="h-1 w-6 rounded-full bg-primary/40" />
+      <div className="h-1 w-5 rounded-full bg-primary/25" />
+      <div className="h-1 w-6 rounded-full bg-primary/25" />
+    </div>
+  );
+
+  const visualizerMock = (
+    <div className="flex h-3.5 shrink-0 items-end justify-center gap-0.5 rounded-md border border-primary/30 bg-primary/15 px-1.5 py-0.5">
+      {[40, 70, 100, 55, 85, 60, 95, 45, 75].map((h, i) => (
+        <div key={i} className="w-1 rounded-sm bg-primary/45" style={{ height: `${h}%` }} />
+      ))}
+    </div>
+  );
+
+  return (
+    <SettingsPreview title={t('app.interface.layoutPreview')}>
+      <div
+        className="rounded-xl border border-border/30 bg-background/40 p-3"
+        role="img"
+        aria-label={t('app.interface.layoutPreview')}
+      >
+        <div className="mx-auto flex h-32 max-w-[360px] gap-1.5 rounded-xl border border-border/25 bg-surface/60 p-2">
+          {/* Sidebar — not movable in v1 */}
+          <div className="w-8 shrink-0 space-y-1 rounded-md border border-border/25 bg-muted/20 p-1.5">
+            <div className="h-1 w-4 rounded-full bg-foreground/25" />
+            <div className="h-1 w-5 rounded-full bg-muted-foreground/25" />
+            <div className="h-1 w-4 rounded-full bg-muted-foreground/25" />
+          </div>
+
+          {/* Player column: top bar / [viz] / content+panel / [viz] / player bar */}
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="h-2.5 shrink-0 rounded-md bg-muted/25" />
+            {visualizerPosition === 'top' && visualizerMock}
+            <div className="flex min-h-0 flex-1 gap-1.5">
+              {sidePanelSide === 'left' && sidePanelMock}
+              <div className="min-w-0 flex-1 rounded-md border border-border/25 bg-muted/15" />
+              {sidePanelSide === 'right' && sidePanelMock}
+            </div>
+            {visualizerPosition === 'bottom' && visualizerMock}
+            <div className="flex h-3.5 shrink-0 items-center justify-center gap-1 rounded-md bg-muted/25">
+              <div className="size-1.5 rounded-full bg-foreground/30" />
+              <div className="h-1 w-16 rounded-full bg-muted-foreground/30" />
+            </div>
           </div>
         </div>
       </div>
