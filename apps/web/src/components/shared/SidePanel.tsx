@@ -26,7 +26,7 @@ interface SidePanelProps {
  * lives in useLayoutStore; its one shared width lives in usePanelSizeStore.
  */
 export function SidePanel({ side }: SidePanelProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('common');
   const rightPanel = useViewStore(s => s.rightPanel);
   const rightPanelWidth = usePanelSizeStore(s => s.rightPanelWidth);
   const setRightPanelWidth = usePanelSizeStore(s => s.setRightPanelWidth);
@@ -34,7 +34,7 @@ export function SidePanel({ side }: SidePanelProps) {
   const setSidePanelSide = useLayoutStore(s => s.setSidePanelSide);
 
   const flipTo: SidePanelSide = side === 'right' ? 'left' : 'right';
-  const flipLabel = t(flipTo === 'left' ? 'movePanelLeft' : 'movePanelRight', { ns: 'common' });
+  const flipLabel = t(flipTo === 'left' ? 'movePanelLeft' : 'movePanelRight');
   const FlipIcon = flipTo === 'left' ? PanelLeft : PanelRight;
   const flipButton = (
     <Tooltip>
@@ -67,7 +67,7 @@ export function SidePanel({ side }: SidePanelProps) {
         max={RIGHT_PANEL_WIDTH_MAX}
         onChange={setRightPanelWidth}
         onReset={resetRightPanelWidth}
-        aria-label={t('resizeRightPanel', { ns: 'common' })}
+        aria-label={t('resizeRightPanel')}
         aria-controls="player-side-panel"
       />
       <ErrorBoundary viewName="RightPanel">
