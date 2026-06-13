@@ -9,6 +9,8 @@ release/
 .env.local
 .DS_Store
 Thumbs.db
+# Editor-generated, machine-specific config (absolute paths, per-extension).
+.vscode/
 *.tsbuildinfo
 .claude
 .mcp.json

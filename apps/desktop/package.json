@@ -8,8 +8,17 @@
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
+    "native:build": "node scripts/native-build.mjs",
+    "native:clean": "node-gyp clean",
+    "native:ide": "node scripts/gen-compile-commands.mjs",
+    "native:format": "node scripts/native-format.mjs",
+    "native:format:check": "node scripts/native-format.mjs --check",
+    "native:lint": "node scripts/native-lint.mjs",
+    "predev": "node scripts/native-build.mjs",
     "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
+    "predev:inspect": "node scripts/native-build.mjs",
     "dev:inspect": "node esbuild.config.mjs && cross-env NODE_ENV=development electron . --remote-debugging-port=9222 --remote-allow-origins=*",
+    "prebuild": "node scripts/native-build.mjs",
     "build": "node esbuild.config.mjs && node scripts/copy-renderer.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.contract.json",
     "test": "vitest run --project desktop",
@@ -62,6 +71,7 @@
     "cross-env": "^10.1.0",
     "electron": "^41.7.0",
     "electron-builder": "^26.8.1",
-    "esbuild": "^0.28.0"
+    "esbuild": "^0.28.0",
+    "node-gyp": "^12.3.0"
   }
 }
