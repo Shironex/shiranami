@@ -210,6 +210,12 @@ export const IPC_CHANNELS = {
     cancel: 'loudness:cancel',
     progress: 'loudness:progress',
   },
+  waveform: {
+    // Decode a local audio file (.wav/.flac/.mp3) to fixed-length peak
+    // amplitudes for the player's waveform seekbar, via the native addon.
+    // Cached on disk content-addressed by path + mtime + size.
+    getPeaks: 'waveform:get-peaks',
+  },
   recommendations: {
     // Renderer-facing reads. `get` returns both shelves from the cache;
     // `refresh` runs the background job (affinity + yt-dlp RD-mix) and returns
