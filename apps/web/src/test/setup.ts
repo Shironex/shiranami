@@ -139,6 +139,9 @@ function createElectronAPIMock(): ElectronAPI {
       cancel: asyncFn(undefined),
       onProgress: vi.fn(() => noopUnsub()),
     },
+    waveform: {
+      getPeaks: asyncFn(null),
+    },
     media: {
       onCommand: vi.fn(() => noopUnsub()),
       sendPlaybackState: vi.fn(),

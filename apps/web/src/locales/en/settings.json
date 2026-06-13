@@ -494,6 +494,8 @@
         "playerFavoriteDesc": "Heart toggle next to the track info",
         "playerTimeLabels": "Time labels",
         "playerTimeLabelsDesc": "Elapsed and total time around the seek bar",
+        "playerWaveformSeekbar": "Waveform seek bar",
+        "playerWaveformSeekbarDesc": "Show the track's waveform instead of a plain progress bar",
         "playerSleepTimer": "Sleep timer",
         "playerSleepTimerDesc": "Moon button that fades music out after a delay",
         "playerEqualizer": "Equalizer button",

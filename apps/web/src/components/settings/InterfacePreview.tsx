@@ -318,6 +318,11 @@ interface PlayerBarPreviewProps {
   highlightedKey?: PlayerElementKey | null;
 }
 
+/** Fixed bar heights (%) for the mini waveform seek mock. */
+const PREVIEW_WAVE_BARS = [
+  30, 55, 40, 70, 50, 85, 45, 65, 90, 50, 60, 40, 75, 55, 95, 45, 70, 50, 80, 40, 60, 35, 50, 30,
+];
+
 interface ElProps {
   visible: boolean;
   highlighted: boolean;
@@ -413,9 +418,36 @@ export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProp
               >
                 <span className="text-[8px] tabular-nums text-muted-foreground/70">1:24</span>
               </El>
-              <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/35">
-                <div className="h-full w-[38%] rounded-full bg-primary/55" />
-              </div>
+              {s.playerWaveformSeekbar ? (
+                <div
+                  className={cn(
+                    'flex h-4 min-w-0 flex-1 items-center gap-px rounded-md px-0.5 transition-all duration-300',
+                    spotlight('playerWaveformSeekbar') && 'bg-primary/10 ring-1 ring-primary/40'
+                  )}
+                >
+                  {PREVIEW_WAVE_BARS.map((h, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex-1 rounded-full',
+                        i / PREVIEW_WAVE_BARS.length < 0.38
+                          ? 'bg-primary/60'
+                          : 'bg-muted-foreground/35'
+                      )}
+                      style={{ height: `${h}%` }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    'h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-muted/35 transition-all duration-300',
+                    spotlight('playerWaveformSeekbar') && 'ring-1 ring-primary/40'
+                  )}
+                >
+                  <div className="h-full w-[38%] rounded-full bg-primary/55" />
+                </div>
+              )}
               <El
                 visible={s.playerTimeLabels}
                 highlighted={spotlight('playerTimeLabels')}

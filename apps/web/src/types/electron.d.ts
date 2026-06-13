@@ -128,6 +128,9 @@ export interface ElectronAPI {
     cancel: () => Promise<void>;
     onProgress: (callback: (data: LoudnessProgress) => void) => () => void;
   };
+  waveform: {
+    getPeaks: (filePath: string) => Promise<{ peaks: number[] } | null>;
+  };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;
     sendPlaybackState: (state: {
