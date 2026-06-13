@@ -1,0 +1,5 @@
+# Vendored third-party decoders (dr_libs) — never reformat.
+# Keeps upstream diffs clean and stops format-on-save from rewriting thousands
+# of lines we don't own.
+DisableFormat: true
+SortIncludes: Never

@@ -1,0 +1,14 @@
+# clang-format ≈ Prettier for C++.
+#
+# The hand-written addon already follows Google style (2-space indent, left-
+# aligned pointers `float* p`, 80-col, Egyptian braces), so this just pins it.
+#
+# Editors with the clangd extension format-on-save from this file with NO extra
+# install. The CLI (`pnpm native:format`) needs `brew install clang-format`.
+#
+# Vendored code under vendor/ has its own .clang-format (DisableFormat) so the
+# third-party dr_libs sources are never rewritten.
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: c++17
