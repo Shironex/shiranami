@@ -12,7 +12,7 @@ unchanged inside Electron.
 
 ## Layout
 
-```
+```text
 src/native/
 ├── addon.cpp            # loader: the single NODE_API_MODULE; calls each module's Register()
 ├── core/                # pure C++ — no napi.h, reusable & unit-testable
@@ -92,7 +92,7 @@ present, so they never break a build.
 
 ## How JS reaches it (the waveform path)
 
-```
+```text
 renderer  →  IPC waveform:get-peaks  →  main  →  worker_threads  →  shiranami_native.waveform.fromFile()
 ```
 
