@@ -24,7 +24,11 @@ export async function readCachedPeaks(dir: string, hash: string): Promise<number
   try {
     const raw = await fs.promises.readFile(path.join(dir, `${hash}.json`), 'utf-8');
     const parsed = JSON.parse(raw) as { peaks?: unknown };
-    return Array.isArray(parsed.peaks) ? (parsed.peaks as number[]) : null;
+    // Guard against a corrupted/tampered file: Array.isArray alone would let a
+    // string array through typed as number[] and break canvas rendering.
+    if (!Array.isArray(parsed.peaks)) return null;
+    if (!parsed.peaks.every((p): p is number => typeof p === 'number')) return null;
+    return parsed.peaks;
   } catch {
     return null;
   }
