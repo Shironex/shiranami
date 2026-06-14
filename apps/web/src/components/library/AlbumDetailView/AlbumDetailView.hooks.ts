@@ -7,6 +7,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import type { Track } from '@/stores/types';
 import { sortAlbumTracks, albumKeyOf } from '@/lib/albumSort';
+import { shuffle } from '@/lib/shuffle';
 import type { IAlbumDiscBlock, IAlbumDetailViewView } from './AlbumDetailView.types';
 
 function mostFrequent<T>(values: Array<T | null | undefined>): T | undefined {
@@ -117,12 +118,7 @@ export function useAlbumDetailView(): IAlbumDetailViewView {
 
   const onShuffle = useCallback(() => {
     if (albumTracks.length === 0) return;
-    const shuffled = [...albumTracks];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    setQueue(shuffled, 0);
+    setQueue(shuffle(albumTracks), 0);
   }, [albumTracks, setQueue]);
 
   const onPlayTrack = useCallback(
