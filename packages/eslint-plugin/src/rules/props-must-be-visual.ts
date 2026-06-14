@@ -83,17 +83,32 @@ export const propsMustBeVisualRule = createRule<RuleOptions, MessageIds>({
       return patterns.some(pattern => pattern.test(name));
     }
 
+    function checkMembers(members: readonly TSESTree.TypeElement[]): void {
+      for (const member of members) {
+        const name = propertyName(member);
+        if (name !== null && isDenied(name)) {
+          context.report({ node: member, messageId: 'nonVisualProp', data: { prop: name } });
+        }
+      }
+    }
+
     return {
       TSInterfaceDeclaration(node): void {
         if (!isPropsInterface(node.id.name)) {
           return;
         }
-        for (const member of node.body.body) {
-          const name = propertyName(member);
-          if (name !== null && isDenied(name)) {
-            context.report({ node: member, messageId: 'nonVisualProp', data: { prop: name } });
-          }
+        checkMembers(node.body.body);
+      },
+      // `type XProps = { ... }` — an object type literal alias is a props surface
+      // just like an interface.
+      TSTypeAliasDeclaration(node): void {
+        if (
+          !isPropsInterface(node.id.name) ||
+          node.typeAnnotation.type !== AST_NODE_TYPES.TSTypeLiteral
+        ) {
+          return;
         }
+        checkMembers(node.typeAnnotation.members);
       },
     };
   },

@@ -20,6 +20,16 @@ ruleTester.run('props-must-be-visual', propsMustBeVisualRule, {
       code: `interface ThingProps { token: string; }`,
       filename: 'apps/web/src/lib/auth-types.ts',
     },
+    // Visual props expressed as a type-alias object literal.
+    {
+      code: `type LoginFormProps = { label: string; disabled?: boolean; };`,
+      filename: FILE,
+    },
+    // A non-Props type alias is not a props surface.
+    {
+      code: `type AuthState = { userId: string; token: string; };`,
+      filename: FILE,
+    },
   ],
   invalid: [
     {
@@ -34,6 +44,17 @@ ruleTester.run('props-must-be-visual', propsMustBeVisualRule, {
     },
     {
       code: `interface LoginFormProps { currentUser: unknown; }`,
+      filename: FILE,
+      errors: [{ messageId: 'nonVisualProp' }],
+    },
+    // Type-alias object-literal props are checked just like interfaces.
+    {
+      code: `type LoginFormProps = { userId: string; };`,
+      filename: FILE,
+      errors: [{ messageId: 'nonVisualProp' }],
+    },
+    {
+      code: `type LoginFormProps = { resetToken: string; };`,
       filename: FILE,
       errors: [{ messageId: 'nonVisualProp' }],
     },
