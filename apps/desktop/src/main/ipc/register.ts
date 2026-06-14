@@ -89,6 +89,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerDiscordRpcHandlers();
   registerLyricsHandlers();
   registerWeatherHandlers();
+  // Subfolder convention: an IPC domain earns its own subfolder (like `database/`)
+  // once it exceeds ~3 handler files; smaller domains stay flat in this folder.
   registerDatabaseHandlers(mainWindow);
   registerShellHandlers();
   registerDownloaderHandlers();

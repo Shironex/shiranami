@@ -1,6 +1,6 @@
 import { app, ipcMain, shell } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { getLogsDir } from '../logger';
+import { getLogsDir } from '../app/logger';
 import { handle } from './with-ipc-handler';
 import { appGetVersionArgs, appOpenLogsFolderArgs, appGetLocaleCountryArgs } from './schemas/app';
 

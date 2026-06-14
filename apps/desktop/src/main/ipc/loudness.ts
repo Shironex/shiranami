@@ -7,9 +7,9 @@ import type {
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { tracks, eq } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { sendToRenderer } from '../utils/window';
-import { measureLoudness } from '../loudness-service';
+import { measureLoudness } from '../services/loudness-service';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { loudnessAnalyzeArgs, loudnessCancelArgs } from './schemas/loudness';

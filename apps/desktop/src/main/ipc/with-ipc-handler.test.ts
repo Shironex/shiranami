@@ -5,7 +5,7 @@ import { ipcHandlers } from '../../../test/setup';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { decodeIpcError, IpcError } from './errors';
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

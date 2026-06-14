@@ -19,7 +19,7 @@
 
 import { app, ipcMain } from 'electron';
 import { IPC_CHANNELS, type MainMetricsSnapshot } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { getMainWindow, sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import { debugStartArgs, debugStopArgs } from './schemas/debug';

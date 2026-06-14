@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { fetchLyrics, type LyricsResult } from '../lyrics-service';
+import { fetchLyrics, type LyricsResult } from '../services/lyrics-service';
 import { handle } from './with-ipc-handler';
 import { lyricsFetchArgs } from './schemas/lyrics';
 

@@ -3,28 +3,28 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { sendToRenderer } from '../utils/window';
 import * as path from 'path';
 import * as fs from 'fs';
-import { logger } from '../logger';
-import { requestJson } from '../http';
+import { logger } from '../app/logger';
+import { requestJson } from '../app/http';
 import {
   getYtDlpPath,
   isYtDlpInstalled,
   getYtDlpVersion,
   getLatestYtDlpVersion,
   downloadYtDlp,
-} from '../ytdlp-manager';
+} from '../downloads/ytdlp-manager';
 import {
   isFFmpegInstalled,
   getFFmpegVersion,
   getLatestFFmpegVersion,
   downloadFFmpeg,
-} from '../ffmpeg-manager';
-import { store } from '../store';
+} from '../downloads/ffmpeg-manager';
+import { store } from '../app/store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';
-import { runYtDlpDownload, type DownloadProgress } from '../yt-dlp-download';
-import { getDownloadQueue } from '../download-queue';
-import { createDownloadQueuePersistence } from '../download-queue-persistence';
+import { runYtDlpDownload, type DownloadProgress } from '../downloads/yt-dlp-download';
+import { getDownloadQueue } from '../downloads/download-queue';
+import { createDownloadQueuePersistence } from '../downloads/download-queue-persistence';
 import type {
   EnqueueDownloadInput,
   ToolInstallResult,

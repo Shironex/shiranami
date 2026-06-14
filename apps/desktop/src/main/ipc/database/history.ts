@@ -5,7 +5,7 @@ import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { handle } from '../with-ipc-handler';
-import { submitPlay } from '../../scrobbler';
+import { submitPlay } from '../../scrobble/scrobbler';
 import {
   historyRecordPlayArgs,
   historyGetRecentArgs,

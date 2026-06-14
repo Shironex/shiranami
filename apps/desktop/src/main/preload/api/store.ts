@@ -1,6 +1,6 @@
 import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import type { StoreSchema } from '../../store';
+import type { StoreSchema } from '../../app/store';
 
 const C = IPC_CHANNELS.store;
 

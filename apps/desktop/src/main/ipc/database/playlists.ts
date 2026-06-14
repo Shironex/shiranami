@@ -14,7 +14,7 @@ import {
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { chunk } from '@shiranami/shared';
-import { logger } from '../../logger';
+import { logger } from '../../app/logger';
 import { handle } from '../with-ipc-handler';
 import {
   playlistsGetAllArgs,

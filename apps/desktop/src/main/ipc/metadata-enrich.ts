@@ -9,13 +9,13 @@ import type {
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { tracks, eq, type NewTrack } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { lookupMetadata, type MetadataLookupResult } from '../metadata-lookup';
-import { logger } from '../logger';
+import { lookupMetadata, type MetadataLookupResult } from '../services/metadata-lookup';
+import { logger } from '../app/logger';
 import { sendToRenderer } from '../utils/window';
-import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
+import { writeMetadataToFile, type WriteMetadataOptions } from '../services/metadata-writer';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
-import { enrichSingleTrack, runEnrichmentBatch } from '../metadata-enrich-batch';
+import { enrichSingleTrack, runEnrichmentBatch } from '../services/metadata-enrich-batch';
 import {
   metadataLookupArgs,
   metadataEnrichTracksArgs,
@@ -27,7 +27,7 @@ import {
 const C = IPC_CHANNELS.metadata;
 
 export type { EnrichTrackInput, EnrichTrackResult, EnrichProgress } from '@shiranami/contracts';
-export { enrichSingleTrack, ENRICH_CONCURRENCY } from '../metadata-enrich-batch';
+export { enrichSingleTrack, ENRICH_CONCURRENCY } from '../services/metadata-enrich-batch';
 
 export const ENRICH_BUSY_ERROR_CODE = 'metadata.enrich_busy';
 

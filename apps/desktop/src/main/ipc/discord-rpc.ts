@@ -6,8 +6,8 @@ import {
   updateDiscordRpcSettings,
   updateDiscordPresence,
   clearDiscordPresence,
-} from '../discord-rpc';
-import type { PlaybackState } from '../media-controls';
+} from '../integrations/discord-rpc';
+import type { PlaybackState } from '../integrations/media-controls';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import {
   discordGetSettingsArgs,

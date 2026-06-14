@@ -16,7 +16,7 @@ const { mockStore } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../store', () => ({
+vi.mock('../app/store', () => ({
   store: mockStore,
 }));
 

@@ -13,7 +13,7 @@ import {
   triggerRefresh,
   markNotInterested,
   undoNotInterested,
-} from '../recommendation-service';
+} from '../services/recommendation-service';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import {
   recommendationsGetArgs,

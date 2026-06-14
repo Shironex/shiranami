@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { store, type StoreSchema } from '../store';
-import { logger } from '../logger';
+import { store, type StoreSchema } from '../app/store';
+import { logger } from '../app/logger';
 import { handle } from './with-ipc-handler';
 import { storeGetArgs, storeSetArgs, storeDeleteArgs } from './schemas/store';
 
@@ -14,7 +14,7 @@ const C = IPC_CHANNELS.store;
  * runs; the key is already guaranteed to be a `keyof StoreSchema` by the
  * time this module sees it.
  *
- * Direct `import { store } from '../store'` in other main-process modules
+ * Direct `import { store } from '../app/store'` in other main-process modules
  * BYPASSES this gate — that is intentional, because the main process is
  * trusted. Use direct imports for keys that should never leave the main
  * process (binary paths, internal caches, etc.).

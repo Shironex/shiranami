@@ -2,29 +2,29 @@ import { join } from 'path';
 import * as os from 'os';
 import { app, BrowserWindow, protocol } from 'electron';
 import * as Sentry from '@sentry/electron/main';
-import { initSentryMain, watchTelemetryConsent } from './sentry';
-import { createMainWindow } from './window';
+import { initSentryMain, watchTelemetryConsent } from './app/sentry';
+import { createMainWindow } from './app/window';
 import { cleanupIpcHandlers } from './ipc/register';
-import { initializeAutoUpdater } from './updater';
-import { logger, flushLogs } from './logger';
-import { createTray, destroyTray } from './tray';
-import { initializeSystemBehavior, attachTrayWindowBehavior } from './system-behavior';
-import { initializeMediaControls, cleanupMediaControls } from './media-controls';
-import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
-import { registerAudioProtocol } from './audio-protocol';
-import { registerRadioProtocol } from './radio-protocol';
-import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
-import { migrateAlbumArtToDisk } from './migrate-album-art';
-import { emitSystemNotice } from './system-notice';
+import { initializeAutoUpdater } from './app/updater';
+import { logger, flushLogs } from './app/logger';
+import { createTray, destroyTray } from './app/tray';
+import { initializeSystemBehavior, attachTrayWindowBehavior } from './app/system-behavior';
+import { initializeMediaControls, cleanupMediaControls } from './integrations/media-controls';
+import { initializeDiscordRpc, cleanupDiscordRpc } from './integrations/discord-rpc';
+import { registerAudioProtocol } from './protocols/audio-protocol';
+import { registerRadioProtocol } from './protocols/radio-protocol';
+import { registerArtProtocol, pruneOrphanedAlbumArt } from './protocols/art-protocol';
+import { migrateAlbumArtToDisk } from './services/migrate-album-art';
+import { emitSystemNotice } from './app/system-notice';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
-import { backupDatabaseOnLaunch } from './db-backup';
+import { backupDatabaseOnLaunch } from './services/db-backup';
 import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
-} from './recommendation-service';
-import { startScrobbler, stopScrobbler } from './scrobbler';
-import { PRIVILEGED_SCHEMES } from './privileged-schemes';
+} from './services/recommendation-service';
+import { startScrobbler, stopScrobbler } from './scrobble/scrobbler';
+import { PRIVILEGED_SCHEMES } from './protocols/privileged-schemes';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 // E2E hatch: when running under @playwright/test we disable noisy bootstrap

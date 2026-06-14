@@ -102,20 +102,20 @@ ERROR: [youtube] 74S4rNnpHUE: Sign in to confirm your age. This video may be ina
 
   it('detects generic unavailability', () => {
     expect(classifyYtDlpFailure('ERROR: Video unavailable')).toBe(
-      YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE,
+      YT_DLP_ERROR_CODES.VIDEO_UNAVAILABLE
     );
   });
 
   it('detects format-not-available', () => {
     expect(classifyYtDlpFailure('ERROR: Requested format is not available')).toBe(
-      YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT,
+      YT_DLP_ERROR_CODES.NO_AUDIO_FORMAT
     );
   });
 
   it('falls back to the tail of the output when no pattern matches', () => {
     const stderr = 'some unknown yt-dlp failure mode\nwith a second line';
     expect(classifyYtDlpFailure(stderr)).toBe(
-      'some unknown yt-dlp failure mode\nwith a second line',
+      'some unknown yt-dlp failure mode\nwith a second line'
     );
   });
 
@@ -138,7 +138,7 @@ const mockStore = {
   delete: vi.fn(),
 };
 
-vi.mock('../store', () => ({
+vi.mock('../app/store', () => ({
   store: {
     get: (...args: unknown[]) => mockStore.get(...args),
     set: (...args: unknown[]) => mockStore.set(...args),
@@ -146,7 +146,7 @@ vi.mock('../store', () => ({
   },
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -185,7 +185,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('../ytdlp-manager', () => ({
+vi.mock('../downloads/ytdlp-manager', () => ({
   getYtDlpPath: vi.fn(() => '/mock/yt-dlp'),
   isYtDlpInstalled: vi.fn(() => true),
   getYtDlpVersion: vi.fn(async () => '2024.01.01'),
@@ -193,7 +193,7 @@ vi.mock('../ytdlp-manager', () => ({
   downloadYtDlp: vi.fn(),
 }));
 
-vi.mock('../ffmpeg-manager', () => ({
+vi.mock('../downloads/ffmpeg-manager', () => ({
   getFFmpegDir: vi.fn(() => '/mock/ffmpeg'),
   isFFmpegInstalled: vi.fn(() => true),
   getFFmpegVersion: vi.fn(async () => '6.1'),
@@ -201,7 +201,7 @@ vi.mock('../ffmpeg-manager', () => ({
   downloadFFmpeg: vi.fn(),
 }));
 
-vi.mock('fs', async (importOriginal) => {
+vi.mock('fs', async importOriginal => {
   const actual = await importOriginal<typeof import('fs')>();
   return {
     ...actual,
@@ -211,20 +211,11 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 // Lazy-import so mocks are established first
-const { registerDownloaderHandlers, cleanupDownloaderHandlers } = await import(
-  './downloader'
-);
-const {
-  isYtDlpInstalled,
-  getYtDlpPath,
-  getYtDlpVersion,
-  getLatestYtDlpVersion,
-} = await import('../ytdlp-manager');
-const {
-  isFFmpegInstalled,
-  getFFmpegVersion,
-  getLatestFFmpegVersion,
-} = await import('../ffmpeg-manager');
+const { registerDownloaderHandlers, cleanupDownloaderHandlers } = await import('./downloader');
+const { isYtDlpInstalled, getYtDlpPath, getYtDlpVersion, getLatestYtDlpVersion } =
+  await import('../downloads/ytdlp-manager');
+const { isFFmpegInstalled, getFFmpegVersion, getLatestFFmpegVersion } =
+  await import('../downloads/ffmpeg-manager');
 const { ipcHandlers } = await import('../../../test/setup');
 
 /** Restore all mock return values that vi.clearAllMocks() wipes. */
@@ -284,10 +275,7 @@ describe('downloader ipc handlers', () => {
 
       const result = await handler(null as never, customPath);
 
-      expect(mockStore.set).toHaveBeenCalledWith(
-        'downloads.location',
-        resolvedCustom,
-      );
+      expect(mockStore.set).toHaveBeenCalledWith('downloads.location', resolvedCustom);
       expect(result).toEqual({
         path: resolvedCustom,
         defaultPath: MOCK_DEFAULT_DIR,
@@ -388,7 +376,7 @@ describe('downloader ipc handlers', () => {
         expect.objectContaining({
           ytdlp: expect.objectContaining({ installed: true }),
           ffmpeg: expect.objectContaining({ installed: true }),
-        }),
+        })
       );
     });
 
@@ -396,9 +384,7 @@ describe('downloader ipc handlers', () => {
       const refreshHandler = ipcHandlers.get('downloader:refresh-tool-status')!;
       const refreshed = await refreshHandler(null as never);
 
-      const getCachedHandler = ipcHandlers.get(
-        'downloader:get-cached-tool-status',
-      )!;
+      const getCachedHandler = ipcHandlers.get('downloader:get-cached-tool-status')!;
       const cached = await getCachedHandler(null as never);
 
       expect(cached).toEqual(refreshed);
