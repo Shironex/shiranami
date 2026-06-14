@@ -90,22 +90,16 @@ export const noDirectProcessEnvRule = createRule<RuleOptions, MessageIds>({
     }
 
     return {
-      // `process.env.X` (read or write) and `process.env[X]`
+      /*
+       * `process.env` is itself a MemberExpression, so a single visitor on the
+       * node catches every usage position: property access (`process.env.X`),
+       * computed access (`process.env[X]`), destructuring (`const { X } =
+       * process.env`), and bare value usage where it is passed as an argument,
+       * returned, or assigned (`log(process.env)`, `return process.env`).
+       */
       MemberExpression(node): void {
-        if (isProcessEnv(node.object)) {
+        if (isProcessEnv(node)) {
           report(node);
-        }
-      },
-      // `const { X, Y } = process.env`
-      VariableDeclarator(node): void {
-        if (node.init !== null && isProcessEnv(node.init)) {
-          report(node.init);
-        }
-      },
-      // `({ X } = process.env)` assignment-pattern destructure
-      AssignmentExpression(node): void {
-        if (node.left.type === AST_NODE_TYPES.ObjectPattern && isProcessEnv(node.right)) {
-          report(node.right);
         }
       },
     };

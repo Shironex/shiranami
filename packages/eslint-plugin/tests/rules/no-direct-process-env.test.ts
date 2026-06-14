@@ -47,5 +47,26 @@ ruleTester.run('no-direct-process-env', noDirectProcessEnvRule, {
       options,
       errors: [{ messageId: 'directProcessEnv' }],
     },
+    // `process.env` passed as a value (argument) must be flagged too.
+    {
+      code: 'log(process.env);',
+      filename: 'apps/web/src/lib/runtime.ts',
+      options,
+      errors: [{ messageId: 'directProcessEnv' }],
+    },
+    // `process.env` returned from a function must be flagged.
+    {
+      code: 'function getEnv() { return process.env; }',
+      filename: 'apps/web/src/lib/runtime.ts',
+      options,
+      errors: [{ messageId: 'directProcessEnv' }],
+    },
+    // `process.env` assigned directly (no destructure) must be flagged.
+    {
+      code: 'const env = process.env;',
+      filename: 'apps/web/src/lib/runtime.ts',
+      options,
+      errors: [{ messageId: 'directProcessEnv' }],
+    },
   ],
 });
