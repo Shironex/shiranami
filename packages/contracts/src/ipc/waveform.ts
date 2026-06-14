@@ -18,6 +18,10 @@ export const WAVEFORM_PEAK_COUNT = 512;
  * the renderer treats `null` as "no waveform" and falls back to a flat bar.
  */
 export interface WaveformPeaksResult {
-  /** `WAVEFORM_PEAK_COUNT` absolute amplitudes in 0..1 (un-normalised). */
+  /**
+   * `WAVEFORM_PEAK_COUNT` peak amplitudes — max |sample| per bucket. Typically
+   * in [0, 1] but unnormalised, so float sources with inter-sample/hot peaks
+   * may exceed 1.0; the renderer scales by the per-track max when drawing.
+   */
   peaks: number[];
 }
