@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
 import { withThemeByClassName } from '@storybook/addon-themes';
@@ -71,22 +73,29 @@ if (typeof window !== 'undefined' && !window.electronAPI) {
   window.electronAPI = createElectronAPIMock();
 }
 
-// A throwaway client per Storybook session: queries never retry and never hit a
-// backend, so component stories render without the app's IPC-backed data layer.
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
-
 // Boot i18n once for the whole Storybook session so stories resolve t() keys
 // (English ships eagerly). Mirrors how main.tsx initializes the shared instance.
 void initI18n();
 
+// Each story render owns a fresh, throwaway QueryClient so cache and query state
+// never leak between stories. Queries never retry and never hit a backend, so
+// component stories render without the app's IPC-backed data layer.
+function StoryProviders({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>{children}</I18nextProvider>
+    </QueryClientProvider>
+  );
+}
+
 const withProviders: Decorator = Story => (
-  <QueryClientProvider client={queryClient}>
-    <I18nextProvider i18n={i18n}>
-      <Story />
-    </I18nextProvider>
-  </QueryClientProvider>
+  <StoryProviders>
+    <Story />
+  </StoryProviders>
 );
 
 const preview: Preview = {
