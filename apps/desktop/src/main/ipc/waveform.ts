@@ -19,7 +19,13 @@ function getPeaksDir(): string {
 
 function ensurePeaksDir(): void {
   const dir = getPeaksDir();
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (err) {
+    // A non-writable userData dir shouldn't crash startup — decode still works,
+    // we just skip caching (read/write are already best-effort below).
+    logger.error('[waveform] failed to create peaks directory:', err);
+  }
 }
 
 /**
