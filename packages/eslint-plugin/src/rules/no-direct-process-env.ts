@@ -1,7 +1,8 @@
-import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils';
+import { type TSESTree } from '@typescript-eslint/utils';
 import type { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
 
 import { isAllowlisted } from '../utils/allowlist';
+import { isStaticMemberAccess } from '../utils/ast';
 import { createRule } from '../utils/createRule';
 
 export const RULE_NAME = 'no-direct-process-env';
@@ -46,15 +47,10 @@ const optionSchema: JSONSchema4 = {
   },
 };
 
+// Matches both `process.env` and `process['env']` so a computed access cannot
+// bypass the rule.
 function isProcessEnv(node: TSESTree.Node): boolean {
-  return (
-    node.type === AST_NODE_TYPES.MemberExpression &&
-    !node.computed &&
-    node.object.type === AST_NODE_TYPES.Identifier &&
-    node.object.name === 'process' &&
-    node.property.type === AST_NODE_TYPES.Identifier &&
-    node.property.name === 'env'
-  );
+  return isStaticMemberAccess(node, 'process', 'env');
 }
 
 export const noDirectProcessEnvRule = createRule<RuleOptions, MessageIds>({

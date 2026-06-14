@@ -33,5 +33,12 @@ ruleTester.run('no-process-exit', noProcessExitRule, {
       options,
       errors: [{ messageId: 'processExit' }],
     },
+    // Computed callee must not bypass the rule.
+    {
+      code: "process['exit'](0);",
+      filename: 'apps/web/src/lib/player.ts',
+      options,
+      errors: [{ messageId: 'processExit' }],
+    },
   ],
 });

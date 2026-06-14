@@ -68,5 +68,19 @@ ruleTester.run('no-direct-process-env', noDirectProcessEnvRule, {
       options,
       errors: [{ messageId: 'directProcessEnv' }],
     },
+    // Computed access `process['env']` must not bypass the rule.
+    {
+      code: "const env = process['env'];",
+      filename: 'apps/web/src/lib/runtime.ts',
+      options,
+      errors: [{ messageId: 'directProcessEnv' }],
+    },
+    // Computed access followed by a property read is still flagged.
+    {
+      code: "const v = process['env'].NODE_ENV;",
+      filename: 'apps/web/src/lib/runtime.ts',
+      options,
+      errors: [{ messageId: 'directProcessEnv' }],
+    },
   ],
 });

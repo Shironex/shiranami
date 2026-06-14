@@ -1,7 +1,8 @@
-import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils';
+import { type TSESTree } from '@typescript-eslint/utils';
 import type { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
 
 import { isAllowlisted } from '../utils/allowlist';
+import { isStaticMemberAccess } from '../utils/ast';
 import { createRule } from '../utils/createRule';
 
 export const RULE_NAME = 'no-process-exit';
@@ -41,16 +42,10 @@ const optionSchema: JSONSchema4 = {
   },
 };
 
+// Matches both `process.exit(...)` and `process['exit'](...)` so a computed
+// callee cannot bypass the rule.
 function isProcessExit(node: TSESTree.CallExpression): boolean {
-  const callee = node.callee;
-  return (
-    callee.type === AST_NODE_TYPES.MemberExpression &&
-    !callee.computed &&
-    callee.object.type === AST_NODE_TYPES.Identifier &&
-    callee.object.name === 'process' &&
-    callee.property.type === AST_NODE_TYPES.Identifier &&
-    callee.property.name === 'exit'
-  );
+  return isStaticMemberAccess(node.callee, 'process', 'exit');
 }
 
 export const noProcessExitRule = createRule<RuleOptions, MessageIds>({
