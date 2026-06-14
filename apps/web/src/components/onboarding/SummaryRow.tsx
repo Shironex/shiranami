@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-interface SummaryRowProps {
-  icon: ReactNode;
-  label: string;
-  value: string;
+interface ISummaryRowProps {
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly value: string;
   /** Tints the value with the accent color (e.g. an enabled integration). */
-  highlight?: boolean;
+  readonly highlight?: boolean;
 }
 
 /**
@@ -14,7 +14,7 @@ interface SummaryRowProps {
  * value). Local to onboarding — single-use, so it lives beside SummaryStep
  * rather than in components/shared. Static: no effects, no rAF.
  */
-export function SummaryRow({ icon, label, value, highlight }: SummaryRowProps) {
+export function SummaryRow({ icon, label, value, highlight }: ISummaryRowProps) {
   return (
     <div
       role="listitem"

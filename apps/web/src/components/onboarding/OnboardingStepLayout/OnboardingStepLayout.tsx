@@ -1,21 +1,6 @@
-import type { ReactNode, RefObject } from 'react';
-import { OnboardingKanji } from './OnboardingKanji';
-
-interface OnboardingStepLayoutProps {
-  /** Per-step kanji watermark glyph. */
-  kanji: string;
-  /** Mono uppercase eyebrow, e.g. "01 · POINT IT AT YOUR FILES". */
-  stepMarker: ReactNode;
-  /** Headline — supports an <em> accent emphasis via <Trans>. */
-  headline: ReactNode;
-  description: ReactNode;
-  /** The real, working control for this step. */
-  children: ReactNode;
-  /** Wires the left-pane heading id so the wizard can move focus to it. */
-  headingId?: string;
-  /** Ref the wizard focuses on each step change for a11y. */
-  headingRef?: RefObject<HTMLHeadingElement | null>;
-}
+import { OnboardingKanji } from '../OnboardingKanji';
+import { useOnboardingStepLayout } from './OnboardingStepLayout.hooks';
+import type { IOnboardingStepLayoutProps } from './OnboardingStepLayout.types';
 
 /**
  * Two-pane magazine split shared by every onboarding step. Left pane carries
@@ -23,15 +8,10 @@ interface OnboardingStepLayoutProps {
  * the real interactive control. A subtle scrim sits behind the left pane so the
  * muted body copy clears WCAG AA over the blurred rainy scene (§7).
  */
-export function OnboardingStepLayout({
-  kanji,
-  stepMarker,
-  headline,
-  description,
-  children,
-  headingId,
-  headingRef,
-}: OnboardingStepLayoutProps) {
+export default function OnboardingStepLayout(props: IOnboardingStepLayoutProps) {
+  const { kanji, stepMarker, headline, description, children, headingId, headingRef } =
+    useOnboardingStepLayout(props);
+
   return (
     <div className="grid h-full w-full gap-8 md:grid-cols-[1.05fr_1fr] md:gap-12">
       {/* Left — narrative. Content block is centered within its pane so the copy

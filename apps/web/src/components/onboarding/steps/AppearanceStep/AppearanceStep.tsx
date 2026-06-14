@@ -1,56 +1,63 @@
-import { useTranslation, Trans } from 'react-i18next';
-import { useThemeStore } from '@/stores/useThemeStore';
-import {
-  useUIStore,
-  UI_SCALE_MIN,
-  UI_SCALE_MAX,
-  UI_SCALE_STEP,
-  UI_SCALE_DEFAULT,
-  UI_SCALE_PRESETS,
-} from '@/stores/useUIStore';
-import {
-  useThemeBgStore,
-  THEME_BG_OPACITY_MIN,
-  THEME_BG_OPACITY_MAX,
-  THEME_BG_OPACITY_STEP,
-  THEME_BG_BLUR_MIN,
-  THEME_BG_BLUR_MAX,
-  THEME_BG_BLUR_STEP,
-  THEME_BG_DIM_MIN,
-  THEME_BG_DIM_MAX,
-  THEME_BG_DIM_STEP,
-} from '@/stores/useThemeBgStore';
+import { Trans } from 'react-i18next';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
-import { OnboardingStepLayout } from '../OnboardingStepLayout';
-import { useOnboardingStepContext } from '../stepContext';
+import { OnboardingStepLayout } from '../../OnboardingStepLayout';
+import { useAppearanceStep } from './AppearanceStep.hooks';
 
-export function AppearanceStep() {
-  const { t } = useTranslation('onboarding');
-  const { kanji, headingId, headingRef } = useOnboardingStepContext();
-  const theme = useThemeStore(s => s.theme);
-  const setTheme = useThemeStore(s => s.setTheme);
+export default function AppearanceStep() {
+  const {
+    t,
+    stepContext,
+    theme,
+    onSelectTheme,
+    showBackgroundAdjust,
+    uiScale,
+    canResetUiScale,
+    uiScaleResetLabel,
+    uiScaleRange,
+    uiScalePresets,
+    onSetUiScale,
+    onResetUiScale,
+    lowPerformanceMode,
+    onSetLowPerformanceMode,
+    bgOpacity,
+    bgOpacityPercent,
+    bgOpacityRange,
+    onSetBgOpacity,
+    bgBlur,
+    bgBlurRange,
+    onSetBgBlur,
+    bgDim,
+    bgDimPercent,
+    bgDimRange,
+    onSetBgDim,
+  } = useAppearanceStep();
 
-  const uiScale = useUIStore(s => s.uiScale);
-  const setUiScale = useUIStore(s => s.setUiScale);
-  const resetUiScale = useUIStore(s => s.resetUiScale);
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-  const setLowPerformanceMode = useUIStore(s => s.setLowPerformanceMode);
-
-  const bgOpacity = useThemeBgStore(s => s.bgOpacity);
-  const setBgOpacity = useThemeBgStore(s => s.setBgOpacity);
-  const bgBlur = useThemeBgStore(s => s.bgBlur);
-  const setBgBlur = useThemeBgStore(s => s.setBgBlur);
-  const bgDim = useThemeBgStore(s => s.bgDim);
-  const setBgDim = useThemeBgStore(s => s.setBgDim);
+  const presetPills = uiScalePresets.map(preset => (
+    <button
+      key={preset.value}
+      type="button"
+      aria-pressed={preset.isActive}
+      onClick={() => onSetUiScale(preset.value)}
+      className={cn(
+        'flex-1 rounded-md py-1.5 text-[11px] font-medium tabular-nums transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        preset.isActive
+          ? 'border border-primary/40 bg-primary/15 text-primary'
+          : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+      )}
+    >
+      {preset.value}%
+    </button>
+  ));
 
   return (
     <OnboardingStepLayout
-      kanji={kanji}
-      headingId={headingId}
-      headingRef={headingRef}
+      kanji={stepContext.kanji}
+      headingId={stepContext.headingId}
+      headingRef={stepContext.headingRef}
       stepMarker={t('appearance.eyebrow')}
       headline={
         <Trans
@@ -64,7 +71,7 @@ export function AppearanceStep() {
       <div className="space-y-4">
         <div className="space-y-3">
           <p className="text-xs font-medium text-foreground">{t('appearance.themeTitle')}</p>
-          <ThemeTileGrid value={theme} onSelect={setTheme} columns={2} />
+          <ThemeTileGrid value={theme} onSelect={onSelectTheme} columns={2} />
           <p className="text-center text-[11px] text-muted-foreground/70">
             {t('appearance.themeHint')}
           </p>
@@ -79,13 +86,13 @@ export function AppearanceStep() {
                 {t('appearance.uiScale')}
               </p>
               <div className="flex items-center gap-2">
-                {uiScale !== UI_SCALE_DEFAULT && (
+                {canResetUiScale && (
                   <button
                     type="button"
-                    onClick={resetUiScale}
+                    onClick={onResetUiScale}
                     className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-primary/80 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    {t('appearance.uiScaleReset', { value: UI_SCALE_DEFAULT })}
+                    {uiScaleResetLabel}
                   </button>
                 )}
                 <span className="text-xs tabular-nums text-muted-foreground">{uiScale}%</span>
@@ -93,31 +100,13 @@ export function AppearanceStep() {
             </div>
             <Slider
               aria-labelledby="onboarding-ui-scale-label"
-              min={UI_SCALE_MIN}
-              max={UI_SCALE_MAX}
-              step={UI_SCALE_STEP}
+              min={uiScaleRange.min}
+              max={uiScaleRange.max}
+              step={uiScaleRange.step}
               value={[uiScale]}
-              onValueChange={([v]) => setUiScale(v)}
+              onValueChange={([v]) => onSetUiScale(v)}
             />
-            <div className="mt-2 flex items-center justify-between gap-1.5">
-              {UI_SCALE_PRESETS.map(preset => (
-                <button
-                  key={preset}
-                  type="button"
-                  aria-pressed={uiScale === preset}
-                  onClick={() => setUiScale(preset)}
-                  className={cn(
-                    'flex-1 rounded-md py-1.5 text-[11px] font-medium tabular-nums transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                    uiScale === preset
-                      ? 'border border-primary/40 bg-primary/15 text-primary'
-                      : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                  )}
-                >
-                  {preset}%
-                </button>
-              ))}
-            </div>
+            <div className="mt-2 flex items-center justify-between gap-1.5">{presetPills}</div>
           </div>
 
           <SettingsToggleRow
@@ -125,11 +114,11 @@ export function AppearanceStep() {
             label={t('appearance.reduceEffects')}
             description={t('appearance.reduceEffectsDesc')}
             checked={lowPerformanceMode}
-            onCheckedChange={setLowPerformanceMode}
+            onCheckedChange={onSetLowPerformanceMode}
           />
         </div>
 
-        {theme !== 'none' && (
+        {showBackgroundAdjust && (
           <div className="space-y-4 border-t border-border/30 pt-4">
             <p className="text-xs font-medium text-foreground">{t('appearance.bgAdjustTitle')}</p>
 
@@ -139,16 +128,16 @@ export function AppearanceStep() {
                   {t('appearance.bgOpacity')}
                 </p>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {Math.round(bgOpacity * 100)}%
+                  {bgOpacityPercent}%
                 </span>
               </div>
               <Slider
                 aria-labelledby="onboarding-bg-opacity-label"
-                min={THEME_BG_OPACITY_MIN}
-                max={THEME_BG_OPACITY_MAX}
-                step={THEME_BG_OPACITY_STEP}
+                min={bgOpacityRange.min}
+                max={bgOpacityRange.max}
+                step={bgOpacityRange.step}
                 value={[bgOpacity]}
-                onValueChange={([v]) => setBgOpacity(v)}
+                onValueChange={([v]) => onSetBgOpacity(v)}
               />
             </div>
 
@@ -161,11 +150,11 @@ export function AppearanceStep() {
               </div>
               <Slider
                 aria-labelledby="onboarding-bg-blur-label"
-                min={THEME_BG_BLUR_MIN}
-                max={THEME_BG_BLUR_MAX}
-                step={THEME_BG_BLUR_STEP}
+                min={bgBlurRange.min}
+                max={bgBlurRange.max}
+                step={bgBlurRange.step}
                 value={[bgBlur]}
-                onValueChange={([v]) => setBgBlur(v)}
+                onValueChange={([v]) => onSetBgBlur(v)}
               />
             </div>
 
@@ -174,17 +163,15 @@ export function AppearanceStep() {
                 <p id="onboarding-bg-dim-label" className="text-sm text-muted-foreground">
                   {t('appearance.bgDim')}
                 </p>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {Math.round(bgDim * 100)}%
-                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgDimPercent}%</span>
               </div>
               <Slider
                 aria-labelledby="onboarding-bg-dim-label"
-                min={THEME_BG_DIM_MIN}
-                max={THEME_BG_DIM_MAX}
-                step={THEME_BG_DIM_STEP}
+                min={bgDimRange.min}
+                max={bgDimRange.max}
+                step={bgDimRange.step}
                 value={[bgDim]}
-                onValueChange={([v]) => setBgDim(v)}
+                onValueChange={([v]) => onSetBgDim(v)}
               />
             </div>
           </div>

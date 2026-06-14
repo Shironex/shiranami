@@ -1,1 +1,2 @@
-export { default as OnboardingWizard } from './OnboardingWizard';
+export { OnboardingStepLayout } from './OnboardingStepLayout';
+export { OnboardingWizard } from './OnboardingWizard';

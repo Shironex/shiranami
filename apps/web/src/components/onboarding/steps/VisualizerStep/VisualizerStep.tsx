@@ -1,21 +1,17 @@
-import { useTranslation, Trans } from 'react-i18next';
-import { useUIStore } from '@/stores/useUIStore';
+import { Trans } from 'react-i18next';
 import { VisualizerStyleGrid } from '@/components/settings/VisualizerStyleGrid';
 import { VisualizerStylePreview } from '@/components/settings/VisualizerStylePreview';
-import { OnboardingStepLayout } from '../OnboardingStepLayout';
-import { useOnboardingStepContext } from '../stepContext';
+import { OnboardingStepLayout } from '../../OnboardingStepLayout';
+import { useVisualizerStep } from './VisualizerStep.hooks';
 
-export function VisualizerStep() {
-  const { t } = useTranslation('onboarding');
-  const { kanji, headingId, headingRef } = useOnboardingStepContext();
-  const visualizerStyle = useUIStore(s => s.visualizerStyle);
-  const setVisualizerStyle = useUIStore(s => s.setVisualizerStyle);
+export default function VisualizerStep() {
+  const { t, stepContext, visualizerStyle, onSelectVisualizerStyle } = useVisualizerStep();
 
   return (
     <OnboardingStepLayout
-      kanji={kanji}
-      headingId={headingId}
-      headingRef={headingRef}
+      kanji={stepContext.kanji}
+      headingId={stepContext.headingId}
+      headingRef={stepContext.headingRef}
       stepMarker={t('visualizer.eyebrow')}
       headline={
         <Trans
@@ -37,7 +33,7 @@ export function VisualizerStep() {
           </div>
           <VisualizerStyleGrid
             value={visualizerStyle}
-            onSelect={setVisualizerStyle}
+            onSelect={onSelectVisualizerStyle}
             columns={3}
             compact
           />

@@ -1,14 +1,5 @@
 import { useMemo } from 'react';
-import { useTranslation, Trans } from 'react-i18next';
-import {
-  Languages,
-  FolderOpen,
-  ArrowDownToLine,
-  Music2,
-  Palette,
-  Waves,
-  ShieldCheck,
-} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { IS_ELECTRON } from '@/lib/platform';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
@@ -21,19 +12,17 @@ import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
 import { THEME_TILES } from '@/components/shared/theme/ThemeTileGrid';
 import { VISUALIZER_STYLES } from '@/components/player/visualizerRegistry';
-import { OnboardingStepLayout } from '../OnboardingStepLayout';
-import { useOnboardingStepContext } from '../stepContext';
-import { SummaryRow } from '../SummaryRow';
+import { useOnboardingStepContext } from '../../stepContext';
+import type { ISummaryStepView } from './SummaryStep.types';
 
 /**
- * Step 06 · Summary. Read-only recap of every choice the wizard touched, read
- * live from the same stores/queries each step writes to. The primary button
- * ("Open library") and fog-out finish live in the wizard chrome — this step
- * adds no actions, no effects.
+ * Read-only recap of every choice the wizard touched, read live from the same
+ * stores/queries each step writes to. The primary button ("Open library") and
+ * fog-out finish live in the wizard chrome — this step adds no actions.
  */
-export function SummaryStep() {
+export function useSummaryStep(): ISummaryStepView {
   const { t, i18n } = useTranslation('onboarding');
-  const { kanji, headingId, headingRef } = useOnboardingStepContext();
+  const stepContext = useOnboardingStepContext();
 
   const { data: folders = [] } = useFoldersQuery();
   const { data: settings } = useSettingsQuery();
@@ -96,57 +85,18 @@ export function SummaryStep() {
     return performanceEnabled ? t('summary.privacy.onPerf') : t('summary.privacy.on');
   }, [telemetryEnabled, performanceEnabled, t]);
 
-  return (
-    <OnboardingStepLayout
-      kanji={kanji}
-      headingId={headingId}
-      headingRef={headingRef}
-      stepMarker={t('summary.eyebrow')}
-      headline={
-        <Trans
-          t={t}
-          i18nKey="summary.headline"
-          components={{ 1: <em className="not-italic text-primary" /> }}
-        />
-      }
-      description={t('summary.description')}
-    >
-      <div className="space-y-3">
-        <p className="text-xs font-medium text-foreground">{t('summary.intro')}</p>
-        <div role="list" aria-label={t('summary.listAria')} className="flex flex-col gap-2">
-          <SummaryRow
-            icon={<Languages />}
-            label={t('summary.row.language')}
-            value={languageValue}
-          />
-          <SummaryRow
-            icon={<FolderOpen />}
-            label={t('summary.row.folders')}
-            value={t('summary.folders', { count: folders.length })}
-            highlight={folders.length > 0}
-          />
-          {IS_ELECTRON && (
-            <SummaryRow
-              icon={<ArrowDownToLine />}
-              label={t('summary.row.tools')}
-              value={toolsValue}
-            />
-          )}
-          <SummaryRow icon={<Music2 />} label={t('summary.row.playback')} value={playbackValue} />
-          <SummaryRow icon={<Palette />} label={t('summary.row.theme')} value={themeValue} />
-          <SummaryRow
-            icon={<Waves />}
-            label={t('summary.row.visualizer')}
-            value={visualizerValue}
-          />
-          <SummaryRow
-            icon={<ShieldCheck />}
-            label={t('summary.row.privacy')}
-            value={privacyValue}
-            highlight={telemetryEnabled}
-          />
-        </div>
-      </div>
-    </OnboardingStepLayout>
-  );
+  return {
+    t,
+    stepContext,
+    showTools: IS_ELECTRON,
+    languageValue,
+    foldersValue: t('summary.folders', { count: folders.length }),
+    hasFolders: folders.length > 0,
+    toolsValue,
+    playbackValue,
+    themeValue,
+    visualizerValue,
+    privacyValue,
+    telemetryEnabled,
+  };
 }

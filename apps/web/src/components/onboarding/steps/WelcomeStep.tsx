@@ -15,6 +15,26 @@ export function WelcomeStep() {
     persistLanguage(lang);
   }
 
+  // Build the language pills above the return so the `.map` stays out of JSX
+  // render position (declarative-JSX rule).
+  const languageButtons = SUPPORTED_LANGUAGES.map(lang => (
+    <button
+      key={lang.code}
+      type="button"
+      aria-pressed={i18n.language === lang.code}
+      onClick={() => handleLanguageChange(lang.code)}
+      className={cn(
+        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        i18n.language === lang.code
+          ? 'border border-primary/40 bg-primary/15 text-primary'
+          : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+      )}
+    >
+      {lang.label}
+    </button>
+  ));
+
   return (
     <OnboardingStepLayout
       kanji={kanji}
@@ -68,25 +88,7 @@ export function WelcomeStep() {
         {/* Language switch */}
         <div className="flex w-full flex-col items-center gap-2 border-t border-border/30 pt-5">
           <p className="text-xs font-medium text-foreground">{t('welcome.language.label')}</p>
-          <div className="flex items-center gap-1.5">
-            {SUPPORTED_LANGUAGES.map(lang => (
-              <button
-                key={lang.code}
-                type="button"
-                aria-pressed={i18n.language === lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={cn(
-                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-                  i18n.language === lang.code
-                    ? 'border border-primary/40 bg-primary/15 text-primary'
-                    : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                )}
-              >
-                {lang.label}
-              </button>
-            ))}
-          </div>
+          <div className="flex items-center gap-1.5">{languageButtons}</div>
           <p className="max-w-[18rem] text-[11px] leading-snug text-muted-foreground/70">
             {t('welcome.language.hint')}
           </p>
