@@ -15,6 +15,8 @@ export function useWaveformPeaks(filePath: string | null | undefined): Float32Ar
   useEffect(() => {
     setPeaks(null);
     if (!filePath || isRadioTrack(filePath)) return;
+    // No preload bridge in a plain browser (web build) — fall back to a flat bar.
+    if (!window.electronAPI?.waveform) return;
 
     let cancelled = false;
     window.electronAPI.waveform
