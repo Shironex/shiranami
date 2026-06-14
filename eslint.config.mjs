@@ -100,6 +100,25 @@ export default defineConfig(
       'react-hooks/exhaustive-deps': 'off',
     },
   },
+  // Component-architecture rules (Tier C), scoped to migrated feature folders.
+  // The glob widens one feature per migration PR; today only downloads conforms.
+  {
+    files: ['apps/web/src/components/downloads/**/*.{ts,tsx}'],
+    ignores: [
+      'apps/web/src/components/downloads/**/*.stories.{ts,tsx}',
+      'apps/web/src/components/downloads/**/*.test.{ts,tsx}',
+    ],
+    rules: {
+      'shiranami/component-folder-structure': 'error',
+      'shiranami/index-must-reexport-default': 'error',
+      'shiranami/no-state-in-component-body': 'error',
+      'shiranami/no-jsx-computation': 'error',
+      // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir).
+      'shiranami/no-cross-feature-imports': ['error', { sharedFeatures: ['shared', 'ui'] }],
+      'shiranami/max-hooks-per-file': 'error',
+      'shiranami/interface-prefix-i': 'error',
+    },
+  },
   {
     ignores: [
       '**/node_modules/**',
