@@ -131,6 +131,10 @@ function main(): void {
     fail('usage: pnpm new:component <feature>/<Name>   (e.g. downloads/DownloadRow)');
   }
 
+  if (arg.split('/').length !== 2) {
+    fail('argument must have exactly one slash: <feature>/<Name>');
+  }
+
   const slash = arg.indexOf('/');
   const feature = arg.slice(0, slash);
   const name = arg.slice(slash + 1);
