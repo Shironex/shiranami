@@ -76,7 +76,7 @@ DecodedAudio decodeAudioFile(const std::string& path) {
       break;
     }
     case Codec::Mp3: {
-      drmp3_config cfg;
+      drmp3_config cfg{};  // zero-init: dr_mp3 leaves it untouched on failure
       drmp3_uint64 frames = 0;
       out.samples = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &cfg,
                                                             &frames, nullptr);
