@@ -32,6 +32,7 @@ import type {
   Track,
   RadioStationInput,
   RadioFavorite,
+  WaveformPeaksResult,
 } from '@shiranami/contracts';
 import type {
   SHARE_ERROR_CODES,
@@ -129,7 +130,7 @@ export interface ElectronAPI {
     onProgress: (callback: (data: LoudnessProgress) => void) => () => void;
   };
   waveform: {
-    getPeaks: (filePath: string) => Promise<{ peaks: number[] } | null>;
+    getPeaks: (filePath: string) => Promise<WaveformPeaksResult | null>;
   };
   media: {
     onCommand: (callback: (command: string) => void) => () => void;
