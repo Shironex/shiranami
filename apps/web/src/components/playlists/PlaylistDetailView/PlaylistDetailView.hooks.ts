@@ -1,13 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useViewStore } from '@/stores/useViewStore';
-import { useLibraryStore } from '@/stores/useLibraryStore';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useSelectionStore } from '@/stores/useSelectionStore';
-import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
-import { usePlaylistCover } from '@/hooks/usePlaylistCover';
-import { usePlaylistDetailQuery, useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
-import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   PointerSensor,
   KeyboardSensor,
@@ -17,13 +9,17 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
-import { BulkActionBar } from '@/components/shared/BulkActionBar';
-import { PlaylistDetailHeader } from './PlaylistDetailHeader';
-import { PlaylistTrackList } from './PlaylistTrackList';
+import { useViewStore } from '@/stores/useViewStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
+import { usePlaylistMutations } from '@/hooks/usePlaylistMutations';
+import { usePlaylistCover } from '@/hooks/usePlaylistCover';
+import { usePlaylistDetailQuery, useReorderPlaylistMutation } from '@/hooks/queries/usePlaylists';
+import { useClickOutside } from '@/hooks/useClickOutside';
+import type { IPlaylistDetailViewView } from './PlaylistDetailView.types';
 
-export function PlaylistDetailView() {
+export function usePlaylistDetailView(): IPlaylistDetailViewView {
   const { t } = useTranslation('playlists');
   const { t: tCommon } = useTranslation('common');
   const selectedPlaylistId = useViewStore(s => s.selectedPlaylistId);
@@ -49,12 +45,12 @@ export function PlaylistDetailView() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const sortableIds = useMemo(() => displayTracks.map(t => t.id), [displayTracks]);
+  const sortableIds = useMemo(() => displayTracks.map(track => track.id), [displayTracks]);
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const activeTrack = useMemo(
-    () => (activeId ? (displayTracks.find(t => t.id === activeId) ?? null) : null),
+    () => (activeId ? (displayTracks.find(track => track.id === activeId) ?? null) : null),
     [activeId, displayTracks]
   );
 
@@ -84,14 +80,17 @@ export function PlaylistDetailView() {
   }, []);
 
   // Computed stats
-  const totalDuration = useMemo(() => tracks.reduce((sum, t) => sum + t.duration, 0), [tracks]);
+  const totalDuration = useMemo(
+    () => tracks.reduce((sum, track) => sum + track.duration, 0),
+    [tracks]
+  );
 
   // Cover art
   const suggestedCoverArt = tracks.find(track => track.albumArt)?.albumArt;
   const cover = usePlaylistCover({ playlistId: selectedPlaylistId, suggestedCoverArt });
-  const { showCoverMenu, setShowCoverMenu, coverMenuRef } = cover;
+  const { showCoverMenu, setShowCoverMenu } = cover;
 
-  useClickOutside(coverMenuRef, () => setShowCoverMenu(false), showCoverMenu);
+  useClickOutside(cover.coverMenuRef, () => setShowCoverMenu(false), showCoverMenu);
 
   // Inline editing
   const [isEditing, setIsEditing] = useState(false);
@@ -134,89 +133,47 @@ export function PlaylistDetailView() {
     [handleSaveNameSubmit]
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <ViewEmptyState
-        variant="error"
-        title={t('errorTitle')}
-        subtitle={t('errorSubtitle')}
-        icon={AlertCircle}
-        action={{
-          label: tCommon('retry'),
-          onClick: () => {
-            void refetch();
-          },
-        }}
-      />
-    );
-  }
-
-  if (!playlist) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-        <p className="text-sm text-muted-foreground">{t('notFound')}</p>
-        <button onClick={handleBack} className="text-xs text-primary hover:underline">
-          {t('goBack')}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <PlaylistDetailHeader
-        playlist={playlist}
-        selectedPlaylistId={selectedPlaylistId}
-        trackCount={tracks.length}
-        totalDuration={totalDuration}
-        hasTracks={tracks.length > 0}
-        suggestedCoverArt={suggestedCoverArt}
-        cover={cover}
-        isEditing={isEditing}
-        editName={editName}
-        setEditName={setEditName}
-        nameInputRef={nameInputRef}
-        showDeleteConfirm={showDeleteConfirm}
-        setShowDeleteConfirm={setShowDeleteConfirm}
-        onBack={handleBack}
-        onPlayAll={handlePlayAll}
-        onDelete={handleDelete}
-        onStartEdit={handleStartEdit}
-        onSaveName={handleSaveNameSubmit}
-        onNameKeyDown={handleNameKeyDown}
-      />
-
-      <PlaylistTrackList
-        displayTracks={displayTracks}
-        sortableIds={sortableIds}
-        activeTrack={activeTrack}
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-        onPlayTrack={handlePlayTrack}
-        onToggleFavorite={toggleFavorite}
-        onRemoveTrack={handleRemoveTrack}
-      />
-
-      {hasSelection && (
-        <BulkActionBar
-          trackList={displayTracks}
-          onRemoveFromPlaylist={handleBulkRemoveFromPlaylist}
-        />
-      )}
-    </div>
-  );
+  return {
+    t,
+    tCommon,
+    isLoading,
+    isError,
+    notFound: !isLoading && !isError && !playlist,
+    playlist,
+    selectedPlaylistId,
+    displayTracks,
+    sortableIds,
+    activeTrack,
+    currentTrack,
+    isPlaying,
+    trackCount: tracks.length,
+    hasTracks: tracks.length > 0,
+    totalDuration,
+    suggestedCoverArt,
+    cover,
+    sensors,
+    hasSelection,
+    isEditing,
+    editName,
+    setEditName,
+    nameInputRef,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    onRetry: () => {
+      void refetch();
+    },
+    onBack: handleBack,
+    onPlayAll: handlePlayAll,
+    onPlayTrack: handlePlayTrack,
+    onToggleFavorite: toggleFavorite,
+    onRemoveTrack: handleRemoveTrack,
+    onDelete: handleDelete,
+    onBulkRemoveFromPlaylist: handleBulkRemoveFromPlaylist,
+    onStartEdit: handleStartEdit,
+    onSaveName: handleSaveNameSubmit,
+    onNameKeyDown: handleNameKeyDown,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    onDragCancel: handleDragCancel,
+  };
 }
-
-export default PlaylistDetailView;

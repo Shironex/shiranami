@@ -1,6 +1,3 @@
-import { useTranslation } from 'react-i18next';
-import { IS_ELECTRON } from '@/lib/platform';
-import { DIALOG_EVENTS } from '@/lib/dialogEvents';
 import {
   ArrowLeft,
   Play,
@@ -12,58 +9,37 @@ import {
   Sparkles,
   XCircle,
 } from 'lucide-react';
-import { formatDuration } from '@shiranami/shared';
 import { motion, AnimatePresence } from 'motion/react';
-import type { Playlist } from '@/types/electron';
-import type { usePlaylistCover } from '@/hooks/usePlaylistCover';
+import { usePlaylistDetailHeader } from './PlaylistDetailHeader.hooks';
+import type { IPlaylistDetailHeaderProps } from './PlaylistDetailHeader.types';
 
-type PlaylistCover = ReturnType<typeof usePlaylistCover>;
-
-interface PlaylistDetailHeaderProps {
-  playlist: Playlist;
-  selectedPlaylistId: string | null;
-  trackCount: number;
-  totalDuration: number;
-  hasTracks: boolean;
-  suggestedCoverArt?: string;
-  cover: PlaylistCover;
-  isEditing: boolean;
-  editName: string;
-  setEditName: (name: string) => void;
-  nameInputRef: React.RefObject<HTMLInputElement | null>;
-  showDeleteConfirm: boolean;
-  setShowDeleteConfirm: (show: boolean) => void;
-  onBack: () => void;
-  onPlayAll: () => void;
-  onDelete: () => void;
-  onStartEdit: () => void;
-  onSaveName: () => void;
-  onNameKeyDown: (e: React.KeyboardEvent) => void;
-}
-
-export function PlaylistDetailHeader({
-  playlist,
-  selectedPlaylistId,
-  trackCount,
-  totalDuration,
-  hasTracks,
-  suggestedCoverArt,
-  cover,
-  isEditing,
-  editName,
-  setEditName,
-  nameInputRef,
-  showDeleteConfirm,
-  setShowDeleteConfirm,
-  onBack,
-  onPlayAll,
-  onDelete,
-  onStartEdit,
-  onSaveName,
-  onNameKeyDown,
-}: PlaylistDetailHeaderProps) {
-  const { t } = useTranslation('playlists');
+export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) {
   const {
+    playlist,
+    trackCount,
+    hasTracks,
+    suggestedCoverArt,
+    isEditing,
+    editName,
+    setEditName,
+    nameInputRef,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    onBack,
+    onPlayAll,
+    onDelete,
+    onStartEdit,
+    onSaveName,
+    onNameKeyDown,
+  } = props;
+  const {
+    t,
+    tShare,
+    tCommon,
+    showDuration,
+    durationLabel,
+    showShareButton,
+    onShare,
     showCoverMenu,
     setShowCoverMenu,
     isUpdatingCover,
@@ -73,7 +49,7 @@ export function PlaylistDetailHeader({
     handlePickCustomCover,
     handleUseSuggestedCover,
     handleClearCover,
-  } = cover;
+  } = usePlaylistDetailHeader(props);
 
   return (
     <div className="px-6 pt-2 pb-4 shrink-0 space-y-3">
@@ -100,18 +76,12 @@ export function PlaylistDetailHeader({
           {t('playAll')}
         </motion.button>
 
-        {IS_ELECTRON && selectedPlaylistId && (
+        {showShareButton && (
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent(DIALOG_EVENTS.openShare, {
-                  detail: { type: 'playlist', id: selectedPlaylistId },
-                })
-              );
-            }}
+            onClick={onShare}
             className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors"
-            aria-label={t('share', { ns: 'share' })}
+            aria-label={tShare('share')}
           >
             <Share2 className="w-3.5 h-3.5" />
           </motion.button>
@@ -142,13 +112,13 @@ export function PlaylistDetailHeader({
                     onClick={onDelete}
                     className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
                   >
-                    {t('delete', { ns: 'common' })}
+                    {tCommon('delete')}
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
-                    {t('cancel', { ns: 'common' })}
+                    {tCommon('cancel')}
                   </button>
                 </div>
               </motion.div>
@@ -257,7 +227,7 @@ export function PlaylistDetailHeader({
           )}
           <p className="text-xs text-muted-foreground/50 mt-0.5">
             {t('trackCount', { count: trackCount })}
-            {totalDuration > 0 && ` · ${formatDuration(totalDuration)}`}
+            {showDuration && ` · ${durationLabel}`}
           </p>
         </div>
       </div>

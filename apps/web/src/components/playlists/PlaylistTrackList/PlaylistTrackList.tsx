@@ -1,70 +1,21 @@
-import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { ListMusic } from 'lucide-react';
 import { List } from 'react-window';
-import type { Track } from '@/stores/types';
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  type DragStartEvent,
-  type DragEndEvent,
-  type SensorDescriptor,
-  type SensorOptions,
-} from '@dnd-kit/core';
+import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { VirtualSortableTrackRow } from './VirtualSortableTrackRow';
+import { VirtualSortableTrackRow } from '../VirtualSortableTrackRow';
 import { DragOverlayContent } from './DragOverlayContent';
+import { usePlaylistTrackList } from './PlaylistTrackList.hooks';
+import type { IPlaylistTrackListProps } from './PlaylistTrackList.types';
 
 /** Matches TrackRowContent's fixed h-[48px] compact row. */
 const ROW_HEIGHT = 48;
 
-interface PlaylistTrackListProps {
-  displayTracks: Track[];
-  sortableIds: string[];
-  activeTrack: Track | null;
-  currentTrack: Track | null;
-  isPlaying: boolean;
-  sensors: SensorDescriptor<SensorOptions>[];
-  onDragStart: (event: DragStartEvent) => void;
-  onDragEnd: (event: DragEndEvent) => void;
-  onDragCancel: () => void;
-  onPlayTrack: (index: number) => void;
-  onToggleFavorite: (trackId: string) => void;
-  onRemoveTrack: (trackId: string) => void;
-}
+export default function PlaylistTrackList(props: IPlaylistTrackListProps) {
+  const { displayTracks, sortableIds, activeTrack, sensors, onDragStart, onDragEnd, onDragCancel } =
+    props;
+  const { t, isEmpty, rowProps } = usePlaylistTrackList(props);
 
-export function PlaylistTrackList({
-  displayTracks,
-  sortableIds,
-  activeTrack,
-  currentTrack,
-  isPlaying,
-  sensors,
-  onDragStart,
-  onDragEnd,
-  onDragCancel,
-  onPlayTrack,
-  onToggleFavorite,
-  onRemoveTrack,
-}: PlaylistTrackListProps) {
-  const { t } = useTranslation('playlists');
-
-  // Row props are passed once to react-window; it re-renders rows when any of
-  // these change. The row reads its own track via `index` from `tracks`.
-  const rowProps = useMemo(
-    () => ({
-      tracks: displayTracks,
-      currentTrack,
-      isPlaying,
-      onPlayTrack,
-      onToggleFavorite,
-      onRemoveTrack,
-    }),
-    [displayTracks, currentTrack, isPlaying, onPlayTrack, onToggleFavorite, onRemoveTrack]
-  );
-
-  if (displayTracks.length === 0) {
+  if (isEmpty) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
         <ListMusic className="w-16 h-16 text-muted-foreground/20" strokeWidth={1.5} />
