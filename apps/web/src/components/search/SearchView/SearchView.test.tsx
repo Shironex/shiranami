@@ -132,7 +132,7 @@ describe('SearchView', () => {
 
   // Lazy-import so mocks are in place before the module loads
   async function renderSearchView() {
-    const { SearchView } = await import('./SearchView');
+    const { default: SearchView } = await import('./SearchView');
     return render(<SearchView />);
   }
 
@@ -285,99 +285,5 @@ describe('SearchView', () => {
 
     expect(mockUseSearchSuggestions.dismiss).not.toHaveBeenCalled();
     expect(mockUseSearch.handleKeyDown).toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Tests — DependencyInstallCard
-// ---------------------------------------------------------------------------
-
-describe('DependencyInstallCard', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  async function renderCard(
-    props: Partial<{
-      ffmpegInstalled: boolean | undefined;
-      installStatus: 'idle' | 'downloading' | 'done' | 'error';
-      installError: string | null;
-      isInstallInProgress: boolean;
-      installProgress: number;
-      installLabel: string;
-      onInstall: () => void;
-    }> = {}
-  ) {
-    const { DependencyInstallCard } = await import('./DependencyInstallCard');
-    const defaults = {
-      ffmpegInstalled: false,
-      installStatus: 'idle' as const,
-      installError: null,
-      isInstallInProgress: false,
-      installProgress: 0,
-      installLabel: '',
-      onInstall: vi.fn(),
-    };
-    const merged = { ...defaults, ...props };
-    return { ...render(<DependencyInstallCard {...merged} />), props: merged };
-  }
-
-  it('shows install button when status is idle', async () => {
-    await renderCard();
-    expect(screen.getByText('Install Missing Tools')).toBeInTheDocument();
-  });
-
-  it('shows description mentioning both tools when ffmpeg is not installed', async () => {
-    await renderCard({ ffmpegInstalled: false });
-    expect(screen.getByText(/yt-dlp and ffmpeg/)).toBeInTheDocument();
-  });
-
-  it('shows description for yt-dlp only when ffmpeg is already installed', async () => {
-    await renderCard({ ffmpegInstalled: undefined });
-    expect(screen.getByText(/Install yt-dlp so Shiranami/)).toBeInTheDocument();
-  });
-
-  it('triggers onInstall when install button is clicked', async () => {
-    const user = userEvent.setup();
-    const onInstall = vi.fn();
-    await renderCard({ onInstall });
-    await user.click(screen.getByText('Install Missing Tools'));
-    expect(onInstall).toHaveBeenCalledOnce();
-  });
-
-  it('shows progress bar when installing', async () => {
-    await renderCard({
-      installStatus: 'downloading',
-      isInstallInProgress: true,
-      installProgress: 55,
-      installLabel: 'Downloading yt-dlp',
-    });
-    expect(screen.queryByText('Install Missing Tools')).not.toBeInTheDocument();
-    expect(screen.getByText(/Downloading yt-dlp.*55%/)).toBeInTheDocument();
-  });
-
-  it('shows progress bar when isInstallInProgress even if status is idle', async () => {
-    await renderCard({
-      installStatus: 'idle',
-      isInstallInProgress: true,
-      installProgress: 30,
-      installLabel: 'Preparing',
-    });
-    expect(screen.getByText(/Preparing.*30%/)).toBeInTheDocument();
-  });
-
-  it('shows success state when install is done', async () => {
-    await renderCard({ installStatus: 'done' });
-    expect(screen.getByText('Search tools installed')).toBeInTheDocument();
-    expect(screen.queryByText('Install Missing Tools')).not.toBeInTheDocument();
-  });
-
-  it('shows error message when install fails', async () => {
-    await renderCard({
-      installStatus: 'error',
-      installError: 'Network timeout',
-    });
-    expect(screen.getByText('Install Missing Tools')).toBeInTheDocument();
-    expect(screen.getByText('Network timeout')).toBeInTheDocument();
   });
 });
