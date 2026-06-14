@@ -162,8 +162,13 @@ function requestBufferRaw(url: string, options: RawRequestOptions = {}): Promise
 
   return new Promise<Buffer>((resolve, reject) => {
     let settled = false;
-    // eslint-disable-next-line prefer-const
-    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // Bail before allocating any request/timer when the caller has already aborted.
+    if (signal?.aborted) {
+      reject(new DOMException('The operation was aborted', 'AbortError'));
+      return;
+    }
+
     // Use the bare-URL form for implicit GETs (the common path) and the options
     // form whenever the caller specifies a method or body, so existing implicit
     // GET callers are byte-for-byte unchanged.
@@ -172,24 +177,7 @@ function requestBufferRaw(url: string, options: RawRequestOptions = {}): Promise
         ? net.request(url)
         : net.request({ url, method });
 
-    const onAbort = () => {
-      if (!settled) {
-        settled = true;
-        if (timer) clearTimeout(timer);
-        request.abort();
-        reject(new DOMException('The operation was aborted', 'AbortError'));
-      }
-    };
-
-    if (signal) {
-      if (signal.aborted) {
-        reject(new DOMException('The operation was aborted', 'AbortError'));
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-    }
-
-    timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
         request.abort();
@@ -198,6 +186,17 @@ function requestBufferRaw(url: string, options: RawRequestOptions = {}): Promise
         reject(new Error(`Request timed out after ${timeout}ms: ${url}`));
       }
     }, timeout);
+
+    const onAbort = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        request.abort();
+        reject(new DOMException('The operation was aborted', 'AbortError'));
+      }
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
 
     for (const [key, value] of Object.entries(options.headers ?? {})) {
       request.setHeader(key, value);
