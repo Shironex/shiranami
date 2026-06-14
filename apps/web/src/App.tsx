@@ -27,8 +27,12 @@ const SearchView = lazy(() => import('@/components/search/SearchView'));
 const HistoryView = lazy(() => import('@/components/history/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
 const MixesView = lazy(() => import('@/components/mixes/MixesView'));
-const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
-const SmartPlaylistsView = lazy(() => import('@/components/smart-playlists/SmartPlaylistsView'));
+const PlaylistImportView = lazy(
+  () => import('@/components/playlist-import/PlaylistImportView/PlaylistImportView')
+);
+const SmartPlaylistsView = lazy(
+  () => import('@/components/smart-playlists/SmartPlaylistsView/SmartPlaylistsView')
+);
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
