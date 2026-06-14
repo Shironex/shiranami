@@ -168,7 +168,7 @@ vi.mock('electron', async importOriginal => {
   };
 });
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

@@ -1,6 +1,6 @@
 import Store from 'electron-store';
 import type { DiscordRpcSettings } from '@shiranami/shared';
-import type { ToolStatusCache } from './ipc/downloader';
+import type { ToolStatusCache } from '../ipc/downloader';
 
 /**
  * StoreSchema — the typed shape of the persistent electron-store.

@@ -19,7 +19,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('./logger', () => ({
   },
 }));
 
-vi.mock('./http', () => ({
+vi.mock('./app/http', () => ({
   requestJson: vi.fn(),
   requestText: vi.fn(),
 }));

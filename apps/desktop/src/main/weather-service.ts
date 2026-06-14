@@ -5,7 +5,7 @@ import {
   type WeatherCondition,
   type WeatherCurrent,
 } from '@shiranami/contracts';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /**
  * Keyless Open-Meteo weather, ported from lunofi-studio's `WeatherService`.

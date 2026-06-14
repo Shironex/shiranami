@@ -59,7 +59,7 @@ import {
   type SmartMixResult,
 } from '@shiranami/contracts';
 import { chunk, mapWithConcurrency } from '@shiranami/shared';
-import { logger } from './logger';
+import { logger } from './app/logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from './utils/ytdlp-spawn';
 import { isYtDlpInstalled } from './ytdlp-manager';
 

@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
-import { sendToRenderer } from './utils/window';
-import type { PlaybackState } from './media-controls';
+import { sendToRenderer } from '../utils/window';
+import type { PlaybackState } from '../media-controls';
 
 let tray: Tray | null = null;
 let mainWindowRef: BrowserWindow | null = null;

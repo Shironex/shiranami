@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import type { WaveformPeaksResult } from '@shiranami/contracts';
 import { IPC_CHANNELS, WAVEFORM_PEAK_COUNT } from '@shiranami/contracts';
 import { handle } from './with-ipc-handler';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { hashTrackKey, readCachedPeaks, writeCachedPeaks } from '../shared/waveform-cache';
 import { decodeWaveformPeaks, shutdownWaveformWorker } from '../waveform-host';
 import { waveformGetPeaksArgs } from './schemas/waveform';

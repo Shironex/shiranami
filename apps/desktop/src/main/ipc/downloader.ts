@@ -3,8 +3,8 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { sendToRenderer } from '../utils/window';
 import * as path from 'path';
 import * as fs from 'fs';
-import { logger } from '../logger';
-import { requestJson } from '../http';
+import { logger } from '../app/logger';
+import { requestJson } from '../app/http';
 import {
   getYtDlpPath,
   isYtDlpInstalled,
@@ -18,7 +18,7 @@ import {
   getLatestFFmpegVersion,
   downloadFFmpeg,
 } from '../ffmpeg-manager';
-import { store } from '../store';
+import { store } from '../app/store';
 import { handle, handleWithFallback } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { invalidate as invalidateFoldersCache } from '../shared/folders-cache';

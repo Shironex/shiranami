@@ -1,8 +1,8 @@
 import { getDatabase } from '@shiranami/database/client';
 import { downloadQueue, asc, eq, inArray } from '@shiranami/database';
 import type { DownloadQueueItem } from '@shiranami/contracts';
-import { store } from './store';
-import { logger } from './logger';
+import { store } from './app/store';
+import { logger } from './app/logger';
 
 /** electron-store key for the persisted queue-paused flag (main-only). */
 const PAUSED_KEY = 'downloads.queuePaused';

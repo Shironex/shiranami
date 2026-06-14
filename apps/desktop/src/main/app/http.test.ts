@@ -82,12 +82,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-import {
-  parseRetryAfter,
-  HttpError,
-  requestText,
-  __resetGatesForTests,
-} from './http';
+import { parseRetryAfter, HttpError, requestText, __resetGatesForTests } from './http';
 
 /* ---------------------------------------------------------------- */
 /*  Helper: advance fake timers until `netCalls` reaches a target    */
@@ -170,12 +165,7 @@ describe('parseRetryAfter', () => {
 
 describe('HttpError', () => {
   it('preserves status and retryAfterMs', () => {
-    const err = new HttpError(
-      'https://example.com',
-      429,
-      { 'retry-after': '3' },
-      3_000,
-    );
+    const err = new HttpError('https://example.com', 429, { 'retry-after': '3' }, 3_000);
     expect(err.name).toBe('HttpError');
     expect(err.status).toBe(429);
     expect(err.url).toBe('https://example.com');
@@ -231,7 +221,7 @@ describe('requestText gate integration', () => {
     // Drive the first call to rejection.
     await vi.advanceTimersByTimeAsync(50);
     await expect(p1).rejects.toBeInstanceOf(HttpError);
-    await expect(p1.catch((e) => e)).resolves.toMatchObject({ status: 429 });
+    await expect(p1.catch(e => e)).resolves.toMatchObject({ status: 429 });
 
     // Second call should now be gated by ~3000 ms.
     await waitForNetCalls(2);

@@ -1,6 +1,6 @@
 import { net } from 'electron';
 import { logger } from './logger';
-import { MinIntervalGate } from './utils/min-interval-gate';
+import { MinIntervalGate } from '../utils/min-interval-gate';
 
 type RequestOptions = {
   headers?: Record<string, string>;

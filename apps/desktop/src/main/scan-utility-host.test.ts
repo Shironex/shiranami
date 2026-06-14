@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -308,7 +308,7 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
 
   it("forwards utility log messages to main's logger by level", async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
-    const { logger } = await import('./logger');
+    const { logger } = await import('./app/logger');
     const client = forkScanUtility();
     fake.emitMessage({ type: 'utility-ready' });
     await client.ready;
@@ -342,7 +342,7 @@ describe('forkScanUtility (Phase 1 plumbing)', () => {
 
   it('falls back to info when an unknown log level arrives', async () => {
     const { forkScanUtility } = await import('./scan-utility-host');
-    const { logger } = await import('./logger');
+    const { logger } = await import('./app/logger');
     const client = forkScanUtility();
     fake.emitMessage({ type: 'utility-ready' });
     await client.ready;

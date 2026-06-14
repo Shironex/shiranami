@@ -12,7 +12,7 @@
 import * as path from 'path';
 import { utilityProcess, type UtilityProcess } from 'electron';
 import type { TrackMetadata } from '@shiranami/contracts';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /**
  * Resolved path to the bundled utility entry. esbuild emits this alongside

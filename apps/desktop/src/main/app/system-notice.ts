@@ -1,6 +1,6 @@
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import type { SystemNotice } from '@shiranami/contracts';
-import { sendToRenderer } from './utils/window';
+import { sendToRenderer } from '../utils/window';
 
 /**
  * Surface a swallowed subsystem failure to the renderer as a structured

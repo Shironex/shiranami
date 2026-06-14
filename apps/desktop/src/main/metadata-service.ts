@@ -1,7 +1,7 @@
 import * as path from 'path';
 import type { TrackMetadata } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
-import { logger } from './logger';
+import { logger } from './app/logger';
 import { saveAlbumArt } from './art-protocol';
 import { isAudioExtension } from './shared/media-types';
 

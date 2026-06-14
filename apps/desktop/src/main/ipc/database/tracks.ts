@@ -4,10 +4,10 @@ import { tracks, eq, desc, inArray, sql, type NewTrack } from '@shiranami/databa
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { chunk } from '@shiranami/shared';
-import { logger } from '../../logger';
+import { logger } from '../../app/logger';
 import { handle } from '../with-ipc-handler';
 import { pruneOrphanedAlbumArt } from '../../art-protocol';
-import { emitSystemNotice } from '../../system-notice';
+import { emitSystemNotice } from '../../app/system-notice';
 import {
   tracksGetAllArgs,
   tracksAddArgs,

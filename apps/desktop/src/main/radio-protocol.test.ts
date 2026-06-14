@@ -24,7 +24,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: (...args: unknown[]) => loggerMock.info(...args),
     warn: (...args: unknown[]) => loggerMock.warn(...args),

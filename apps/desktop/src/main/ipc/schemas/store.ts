@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { StoreSchema } from '../../store';
+import type { StoreSchema } from '../../app/store';
 
 /**
  * Renderer-accessible store keys. This list MUST stay in sync with the

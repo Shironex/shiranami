@@ -1,6 +1,6 @@
 import { UNKNOWN_ALBUM } from '@shiranami/shared';
-import { getLrclibGate } from './http';
-import { logger } from './logger';
+import { getLrclibGate } from './app/http';
+import { logger } from './app/logger';
 
 export interface LyricLine {
   time: number; // seconds

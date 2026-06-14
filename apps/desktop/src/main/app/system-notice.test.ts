@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const sendToRenderer = vi.fn();
-vi.mock('./utils/window', () => ({
+vi.mock('../utils/window', () => ({
   sendToRenderer: (...args: unknown[]) => sendToRenderer(...args),
 }));
 

@@ -22,8 +22,8 @@ import type {
   LastfmConnectResult,
   ListenBrainzConnectResult,
 } from '@shiranami/contracts';
-import { store } from './store';
-import { logger } from './logger';
+import { store } from './app/store';
+import { logger } from './app/logger';
 import {
   lastfmSignatureBase,
   lastfmScrobbleParams,

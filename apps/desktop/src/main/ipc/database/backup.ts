@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { join } from 'path';
 import { IPC_CHANNELS, type DbExportResult, type DbImportResult } from '@shiranami/contracts';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
-import { logger } from '../../logger';
+import { logger } from '../../app/logger';
 import { handle } from '../with-ipc-handler';
 import { exportDatabase, importDatabase } from '../../db-backup';
 import { dbBackupExportArgs, dbBackupImportArgs } from '../schemas/db-backup';

@@ -9,8 +9,8 @@ import {
   type CreateShareDto,
 } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST, chunk } from '@shiranami/shared';
-import { logger } from '../logger';
-import { HttpError, requestJson } from '../http';
+import { logger } from '../app/logger';
+import { HttpError, requestJson } from '../app/http';
 import { IpcError, SHARE_ERROR_CODES, VALIDATION_ERROR_CODES } from './errors';
 import { spawnYtDlp } from '../utils/ytdlp-spawn';
 import { handle } from './with-ipc-handler';

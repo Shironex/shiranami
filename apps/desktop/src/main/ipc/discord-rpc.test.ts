@@ -9,7 +9,7 @@ const mockService = vi.hoisted(() => ({
 }));
 vi.mock('../discord-rpc', () => mockService);
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 

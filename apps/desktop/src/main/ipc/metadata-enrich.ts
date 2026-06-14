@@ -10,7 +10,7 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { tracks, eq, type NewTrack } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { lookupMetadata, type MetadataLookupResult } from '../metadata-lookup';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { sendToRenderer } from '../utils/window';
 import { writeMetadataToFile, type WriteMetadataOptions } from '../metadata-writer';
 import { handle } from './with-ipc-handler';

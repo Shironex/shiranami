@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater';
+import { checkForUpdates, downloadUpdate, quitAndInstall } from '../app/updater';
 import { handle } from './with-ipc-handler';
 import {
   updaterCheckForUpdatesArgs,

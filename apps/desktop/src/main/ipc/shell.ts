@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { isPathAllowed } from '../shared/folders-cache';
 import { handle } from './with-ipc-handler';
 import { IpcError, VALIDATION_ERROR_CODES } from './errors';

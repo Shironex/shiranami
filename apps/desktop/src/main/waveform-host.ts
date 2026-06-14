@@ -11,7 +11,7 @@
 import { app } from 'electron';
 import * as path from 'node:path';
 import { Worker } from 'node:worker_threads';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /** Resolve the compiled addon. Mirrors shiroani's getAddonPath dev/packaged
  *  split; the packaged path requires the electron-builder extraResources copy. */

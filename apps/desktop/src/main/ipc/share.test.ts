@@ -4,7 +4,7 @@ import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/datab
 import { tracks, playlists, playlistTracks, youtubeMappings, eq } from '@shiranami/database';
 import { ipcHandlers, makeTempDir, cleanupTempDir, expectIpcErrorCode } from '../../../test/setup';
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

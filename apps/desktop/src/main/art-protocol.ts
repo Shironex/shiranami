@@ -2,7 +2,7 @@ import { app, protocol, nativeImage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { logger } from './logger';
+import { logger } from './app/logger';
 import { tracks, playlists } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { artUrlFor } from './shared/album-art-image';

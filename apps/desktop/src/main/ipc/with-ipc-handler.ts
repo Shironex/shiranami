@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import * as Sentry from '@sentry/electron/main';
 import type { ZodType } from 'zod';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { IpcError, encodeIpcError } from './errors';
 
 /**

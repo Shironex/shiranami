@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, session } from 'electron';
 import * as path from 'path';
-import { registerIpcHandlers } from './ipc/register';
+import { registerIpcHandlers } from '../ipc/register';
 import { VITE_DEV_PORT } from '@shiranami/shared';
 import { logger } from './logger';
 import { routeRendererConsoleMessage } from './renderer-console-route';

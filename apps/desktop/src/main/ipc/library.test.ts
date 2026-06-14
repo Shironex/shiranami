@@ -21,7 +21,7 @@ import type {
   ScanProgressListener,
 } from '../scan-utility-host';
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -775,7 +775,7 @@ describe('library ipc handlers', () => {
     });
 
     it('logs scan-end + utility-exit telemetry with the expected shape', async () => {
-      const { logger: mockLogger } = await import('../logger');
+      const { logger: mockLogger } = await import('../app/logger');
       const fake = makeFakeScanUtility();
       _setForkOverrideForTest(() => fake.client);
       cleanupLibraryHandlers();
@@ -810,7 +810,7 @@ describe('library ipc handlers', () => {
 
     it('logs telemetry once on cancel (recordEnd is idempotent)', async () => {
       const { logger: mockLogger, ScanCancelledError } = {
-        ...(await import('../logger')),
+        ...(await import('../app/logger')),
         ...(await import('../scan-utility-host')),
       };
       const fake = makeFakeScanUtility(async () => {

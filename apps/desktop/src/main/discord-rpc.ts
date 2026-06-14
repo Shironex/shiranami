@@ -5,9 +5,9 @@ import {
   type DiscordRpcSettings,
   type DiscordMusicPresenceActivity,
 } from '@shiranami/shared';
-import { logger } from './logger';
-import { store } from './store';
-import { emitSystemNotice, resetSystemNotice } from './system-notice';
+import { logger } from './app/logger';
+import { store } from './app/store';
+import { emitSystemNotice, resetSystemNotice } from './app/system-notice';
 import type { PlaybackState } from './media-controls';
 import { buildPresence } from './discord-presence-builder';
 

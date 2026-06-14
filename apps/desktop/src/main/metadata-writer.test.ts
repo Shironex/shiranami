@@ -44,7 +44,7 @@ vi.mock('fs', async () => {
   };
 });
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock('./logger', () => ({
 // ── Import under test (after mocks) ─────────────────────────────────────────
 
 import { writeMetadataToFile } from './metadata-writer';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

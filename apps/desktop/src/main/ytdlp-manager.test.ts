@@ -19,7 +19,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('./logger', () => ({
   },
 }));
 
-vi.mock('./http', () => ({
+vi.mock('./app/http', () => ({
   requestJson: vi.fn(),
   requestText: vi.fn(),
 }));
@@ -139,7 +139,7 @@ describe('ytdlp-manager', () => {
   describe('getLatestYtDlpVersion', () => {
     it('returns trimmed tag_name from GitHub releases API', async () => {
       vi.resetModules();
-      vi.doMock('./http', () => ({
+      vi.doMock('./app/http', () => ({
         requestJson: vi.fn().mockResolvedValue({ tag_name: '2024.12.31 ' }),
         requestText: vi.fn(),
       }));
@@ -150,7 +150,7 @@ describe('ytdlp-manager', () => {
 
     it('returns null when tag_name is missing', async () => {
       vi.resetModules();
-      vi.doMock('./http', () => ({
+      vi.doMock('./app/http', () => ({
         requestJson: vi.fn().mockResolvedValue({}),
         requestText: vi.fn(),
       }));
@@ -161,7 +161,7 @@ describe('ytdlp-manager', () => {
 
     it('returns null on request error', async () => {
       vi.resetModules();
-      vi.doMock('./http', () => ({
+      vi.doMock('./app/http', () => ({
         requestJson: vi.fn().mockRejectedValue(new Error('network down')),
         requestText: vi.fn(),
       }));

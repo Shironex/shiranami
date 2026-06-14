@@ -4,7 +4,7 @@ import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/sh
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import {
   forkScanUtility,
   ScanCancelledError,

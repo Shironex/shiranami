@@ -30,7 +30,7 @@ const mockStore = {
   set: vi.fn(),
   delete: vi.fn(),
 };
-vi.mock('../store', () => ({
+vi.mock('../app/store', () => ({
   store: {
     get: (...args: unknown[]) => mockStore.get(args[0] as string),
     set: (...args: unknown[]) => mockStore.set(...args),
@@ -38,7 +38,7 @@ vi.mock('../store', () => ({
   },
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

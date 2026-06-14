@@ -12,16 +12,17 @@ vi.mock('./art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://fake'),
 }));
 
-vi.mock('./logger', () => ({
+vi.mock('./app/logger', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
 describe('isAudioFile', () => {
-  it.each([
-    '.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a', '.opus', '.wma', '.weba', '.webm',
-  ])('returns true for %s', (ext) => {
-    expect(isAudioFile(`track${ext}`)).toBe(true);
-  });
+  it.each(['.mp3', '.flac', '.wav', '.ogg', '.aac', '.m4a', '.opus', '.wma', '.weba', '.webm'])(
+    'returns true for %s',
+    ext => {
+      expect(isAudioFile(`track${ext}`)).toBe(true);
+    }
+  );
 
   it('is case insensitive', () => {
     expect(isAudioFile('track.MP3')).toBe(true);

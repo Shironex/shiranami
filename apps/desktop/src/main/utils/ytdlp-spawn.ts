@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import type { SearchResult } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { getYtDlpPath } from '../ytdlp-manager';
 import { isHttpUrl } from '../shared/url-safety';
 

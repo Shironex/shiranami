@@ -1,6 +1,6 @@
 import { ipcMain, net } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { handle } from './with-ipc-handler';
 import { IpcError, PLAYLIST_ERROR_CODES } from './errors';
 import { playlistExtractArgs, playlistCancelArgs } from './schemas/playlist';

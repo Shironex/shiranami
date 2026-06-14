@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain, screen, type Rectangle } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { handle } from './with-ipc-handler';
-import { store } from '../store';
+import { store } from '../app/store';
 import {
   windowMinimizeArgs,
   windowMaximizeArgs,

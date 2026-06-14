@@ -1,5 +1,5 @@
 import { net, protocol } from 'electron';
-import { logger } from './logger';
+import { logger } from './app/logger';
 import { isStreamUrlAllowed } from './shared/url-safety';
 import { userAgent } from './shared/user-agent';
 import { DEFAULT_AUDIO_MIME } from './shared/media-types';

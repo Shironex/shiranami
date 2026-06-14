@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execFile, execFileSync } from 'child_process';
 import { Worker } from 'node:worker_threads';
-import { logger } from './logger';
-import { requestJson, requestText } from './http';
+import { logger } from './app/logger';
+import { requestJson, requestText } from './app/http';
 import { getBinDir } from './utils/bin-paths';
 import { downloadFile } from './utils/net-download';
 
@@ -37,23 +37,18 @@ export function isFFmpegInstalled(): boolean {
 export async function getFFmpegVersion(): Promise<string | null> {
   if (!isFFmpegInstalled()) return null;
   try {
-    return new Promise((resolve) => {
-      const child = execFile(
-        getFFmpegPath(),
-        ['-version'],
-        { timeout: 10000 },
-        (err, stdout) => {
-          if (err) {
-            logger.error('[ffmpeg-manager] Failed to get version:', err.message);
-            resolve(null);
-          } else {
-            // Parse first line: "ffmpeg version N-xxxxx-g... Copyright ..."
-            const firstLine = stdout.split('\n')[0] ?? '';
-            const match = firstLine.match(/ffmpeg version\s+(\S+)/);
-            resolve(match ? match[1] : firstLine.trim() || null);
-          }
+    return new Promise(resolve => {
+      const child = execFile(getFFmpegPath(), ['-version'], { timeout: 10000 }, (err, stdout) => {
+        if (err) {
+          logger.error('[ffmpeg-manager] Failed to get version:', err.message);
+          resolve(null);
+        } else {
+          // Parse first line: "ffmpeg version N-xxxxx-g... Copyright ..."
+          const firstLine = stdout.split('\n')[0] ?? '';
+          const match = firstLine.match(/ffmpeg version\s+(\S+)/);
+          resolve(match ? match[1] : firstLine.trim() || null);
         }
-      );
+      });
       child.on('error', () => resolve(null));
     });
   } catch (err) {
@@ -81,9 +76,7 @@ export async function getLatestFFmpegVersion(): Promise<string | null> {
   }
 }
 
-export async function downloadFFmpeg(
-  onProgress?: (percent: number) => void
-): Promise<void> {
+export async function downloadFFmpeg(onProgress?: (percent: number) => void): Promise<void> {
   const binDir = getBinDir();
   fs.mkdirSync(binDir, { recursive: true });
 
@@ -108,7 +101,7 @@ async function downloadFFmpegMac(
   try {
     // Download ffmpeg (0-45%)
     logger.info(`[ffmpeg-manager] Downloading ffmpeg from ${ffmpegUrl}`);
-    await downloadFile(ffmpegUrl, ffmpegZipPath, (pct) => {
+    await downloadFile(ffmpegUrl, ffmpegZipPath, pct => {
       onProgress?.(Math.round(pct * 0.45));
     });
 
@@ -121,7 +114,7 @@ async function downloadFFmpegMac(
 
     // Download ffprobe (50-95%)
     logger.info(`[ffmpeg-manager] Downloading ffprobe from ${ffprobeUrl}`);
-    await downloadFile(ffprobeUrl, ffprobeZipPath, (pct) => {
+    await downloadFile(ffprobeUrl, ffprobeZipPath, pct => {
       onProgress?.(50 + Math.round(pct * 0.45));
     });
 
@@ -149,7 +142,11 @@ async function downloadFFmpegMac(
     logger.info(`[ffmpeg-manager] ffmpeg and ffprobe installed to ${binDir}`);
   } catch (err) {
     for (const zipPath of [ffmpegZipPath, ffprobeZipPath]) {
-      try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
+      try {
+        fs.unlinkSync(zipPath);
+      } catch {
+        /* ignore */
+      }
     }
     throw err;
   }
@@ -177,8 +174,18 @@ function extractZipWin(zipPath: string, destDir: string): Promise<void> {
     logger.info(`[ffmpeg-manager] Spawning extract worker: ${workerPath}`);
 
     let settled = false;
-    const safeResolve = () => { if (!settled) { settled = true; resolve(); } };
-    const safeReject = (err: Error) => { if (!settled) { settled = true; reject(err); } };
+    const safeResolve = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+    const safeReject = (err: Error) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    };
 
     const worker = new Worker(workerPath, {
       workerData: { zipPath, destDir },
@@ -198,7 +205,7 @@ function extractZipWin(zipPath: string, destDir: string): Promise<void> {
       safeReject(err);
     });
 
-    worker.on('exit', (code) => {
+    worker.on('exit', code => {
       if (code !== 0) {
         safeReject(new Error(`Extract worker exited with code ${code}`));
       }
@@ -218,7 +225,7 @@ async function downloadFFmpegWin(
   try {
     // Download zip (0-90%)
     logger.info(`[ffmpeg-manager] Downloading ffmpeg from ${zipUrl}`);
-    await downloadFile(zipUrl, zipPath, (pct) => {
+    await downloadFile(zipUrl, zipPath, pct => {
       onProgress?.(Math.round(pct * 0.9));
     });
 
@@ -249,8 +256,16 @@ async function downloadFFmpegWin(
     onProgress?.(100);
     logger.info(`[ffmpeg-manager] ffmpeg and ffprobe installed to ${binDir}`);
   } catch (err) {
-    try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
-    try { fs.rmSync(extractDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(zipPath);
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.rmSync(extractDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
     throw err;
   }
 }
@@ -269,4 +284,3 @@ function findFileRecursive(dir: string, filename: string): string | null {
   }
   return null;
 }
-

@@ -15,7 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import Database from 'better-sqlite3';
 import { assertNotDowngrade } from '@shiranami/database/client';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /** How many launch snapshots to retain. */
 export const MAX_BACKUPS = 5;

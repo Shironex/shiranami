@@ -7,7 +7,7 @@ import type {
 import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from './metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from './metadata-writer';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /** Number of tracks enriched concurrently in a bulk run. The per-host gates in
  *  http.ts already serialize the actual iTunes / cover-art requests, so this

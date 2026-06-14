@@ -11,7 +11,7 @@
 import * as fs from 'fs';
 import { execFile } from 'child_process';
 import { getFFmpegPath, isFFmpegInstalled } from './ffmpeg-manager';
-import { logger } from './logger';
+import { logger } from './app/logger';
 
 /** Max time a single loudnorm pass may run before being abandoned (ms). */
 const ANALYZE_TIMEOUT_MS = 120000;

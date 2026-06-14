@@ -3,7 +3,7 @@ import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo as ElectronUpdateInfo, ProgressInfo } from 'electron-updater';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
-import { sendToRenderer } from './utils/window';
+import { sendToRenderer } from '../utils/window';
 
 const U = IPC_CHANNELS.updater;
 

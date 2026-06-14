@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IPC_CHANNELS, type DiskUsageResult, type VolumeUsage } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { handle } from './with-ipc-handler';
 import { getUsageArgs } from './schemas/storage';
 

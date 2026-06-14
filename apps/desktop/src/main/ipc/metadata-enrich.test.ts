@@ -29,7 +29,7 @@ vi.mock('../art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://hash'),
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
