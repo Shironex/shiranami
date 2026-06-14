@@ -64,7 +64,7 @@ vi.mock('@/components/shared/ErrorBoundary', () => ({
 
 // Render the headerAction so the flip button is reachable in the DOM, the
 // same way the real panels mount it in their header strip.
-vi.mock('@/components/lyrics/LyricsPanel', () => ({
+vi.mock('@/components/lyrics/LyricsPanel/LyricsPanel', () => ({
   default: ({ headerAction }: { headerAction?: ReactNode }) => (
     <div data-testid="lyrics-panel">{headerAction}</div>
   ),

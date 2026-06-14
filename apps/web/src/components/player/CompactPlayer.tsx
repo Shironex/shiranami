@@ -30,7 +30,7 @@ import { AnimatePresence, motion } from 'motion/react';
 // bundle. App.tsx already lazy-imports this module; a static import here would
 // win and pull it back in eagerly, which is the [INEFFECTIVE_DYNAMIC_IMPORT]
 // the build used to warn about. It only renders when the user opens lyrics.
-const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel'));
+const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel/LyricsPanel'));
 
 export function CompactPlayer() {
   const { t } = useTranslation('compact');
