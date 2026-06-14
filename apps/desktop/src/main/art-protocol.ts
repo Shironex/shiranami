@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 import { logger } from './logger';
 import { tracks, playlists } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { artUrlFor } from './lib/album-art-image';
+import { artUrlFor } from './shared/album-art-image';
 import { IMAGE_EXTENSIONS, imageMime } from './shared/media-types';
 
 /** Directory where extracted album art images are stored */
