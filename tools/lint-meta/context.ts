@@ -1,7 +1,21 @@
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, type Stats } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 
 import type { IMetaContext } from './types';
+
+/*
+ * Like statSync but returns null when the entry cannot be stat'd. A directory
+ * listing is a snapshot: an entry can be removed or become unreadable between
+ * the readdirSync and the statSync (TOCTOU), so skip it rather than letting the
+ * whole scan throw — mirroring the existing readdirSync guards.
+ */
+function safeStat(path: string): Stats | null {
+  try {
+    return statSync(path);
+  } catch {
+    return null;
+  }
+}
 
 export const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 
@@ -32,7 +46,10 @@ export function collectSourceFiles(dir: string): string[] {
 
   for (const entry of entries) {
     const full = join(dir, entry);
-    const stat = statSync(full);
+    const stat = safeStat(full);
+    if (stat === null) {
+      continue;
+    }
 
     if (stat.isDirectory()) {
       if (SKIP_DIRS.has(entry)) {
@@ -68,7 +85,7 @@ function listWorkspaces(root: string): string[] {
         continue;
       }
       const full = join(groupDir, entry);
-      if (statSync(full).isDirectory()) {
+      if (safeStat(full)?.isDirectory() === true) {
         workspaces.push(full);
       }
     }
@@ -89,7 +106,7 @@ export function findWorkflows(dir: string): string[] {
 
   for (const entry of entries) {
     const full = join(dir, entry);
-    if (statSync(full).isFile() && (entry.endsWith('.yml') || entry.endsWith('.yaml'))) {
+    if (safeStat(full)?.isFile() === true && (entry.endsWith('.yml') || entry.endsWith('.yaml'))) {
       out.push(full);
     }
   }
