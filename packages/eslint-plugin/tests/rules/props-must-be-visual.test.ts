@@ -1,4 +1,6 @@
-import { propsMustBeVisualRule } from '../../src/rules/props-must-be-visual';
+import { describe, expect, it } from 'vitest';
+
+import { compileDenyPatterns, propsMustBeVisualRule } from '../../src/rules/props-must-be-visual';
 import { ruleTester } from '../test-utils/ruleTester';
 
 const FILE = 'apps/web/src/components/auth/LoginForm.tsx';
@@ -59,4 +61,17 @@ ruleTester.run('props-must-be-visual', propsMustBeVisualRule, {
       errors: [{ messageId: 'nonVisualProp' }],
     },
   ],
+});
+
+describe('compileDenyPatterns', () => {
+  it('compiles valid patterns', () => {
+    const patterns = compileDenyPatterns(['^userId$', 'token']);
+    expect(patterns).toHaveLength(2);
+    expect(patterns[0]?.test('userId')).toBe(true);
+  });
+
+  it('throws an actionable error naming the malformed pattern', () => {
+    expect(() => compileDenyPatterns(['^valid$', '(['])).toThrow(/\(\[/);
+    expect(() => compileDenyPatterns(['(['])).toThrow(/Invalid `denyPatterns` entry/);
+  });
 });

@@ -56,6 +56,25 @@ function propertyName(member: TSESTree.TypeElement): string | null {
   return null;
 }
 
+/**
+ * Compile each `denyPatterns` source into a case-insensitive RegExp, turning a
+ * malformed entry into a controlled, actionable config error (naming the bad
+ * pattern) instead of an opaque SyntaxError that aborts the whole lint run.
+ */
+export function compileDenyPatterns(sources: readonly string[]): RegExp[] {
+  return sources.map(source => {
+    try {
+      return new RegExp(source, 'i');
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Invalid \`denyPatterns\` entry for ${RULE_NAME}: ${JSON.stringify(source)} is not a valid regular expression (${reason}).`,
+        { cause: error }
+      );
+    }
+  });
+}
+
 export const propsMustBeVisualRule = createRule<RuleOptions, MessageIds>({
   name: RULE_NAME,
   meta: {
@@ -75,9 +94,7 @@ export const propsMustBeVisualRule = createRule<RuleOptions, MessageIds>({
     if (!isComponentFileName(context.filename)) {
       return {};
     }
-    const patterns = (options.denyPatterns ?? DEFAULT_DENY_PATTERNS).map(
-      source => new RegExp(source, 'i')
-    );
+    const patterns = compileDenyPatterns(options.denyPatterns ?? DEFAULT_DENY_PATTERNS);
 
     function isDenied(name: string): boolean {
       return patterns.some(pattern => pattern.test(name));
