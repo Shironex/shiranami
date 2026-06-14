@@ -62,7 +62,7 @@ export const propsMustBeVisualRule = createRule<RuleOptions, MessageIds>({
     type: 'problem',
     docs: {
       description:
-        'Component props must be visual. Auth/business-identity and credential prop names (`userId`, `currentUser`, `*token*`, `*jwt*`, `password`, ...) are disallowed.',
+        'Component props must be visual. Auth/business-identity and credential prop names (`userId`, `currentUser`, `*token*`, `*jwt*`, `*secret*`, `apiKey`, ...) are disallowed. A live `password` input is a legitimate visual concern and is intentionally allowed.',
     },
     schema: [optionSchema],
     messages: {
