@@ -45,6 +45,7 @@
     "package:mac": "pnpm build && pnpm --filter @shiranami/desktop package:mac",
     "lint": "pnpm --filter @shiranami/eslint-plugin build && eslint .",
     "lint:meta": "tsx tools/lint-meta/cli.ts",
+    "new:component": "tsx tools/codegen/new-component.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:landing": "pnpm --filter @shiranami/landing check",
