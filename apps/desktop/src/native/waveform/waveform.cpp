@@ -24,7 +24,15 @@ Napi::Value ComputePeaks(const Napi::CallbackInfo& info) {
     return env.Null();
   }
 
-  Napi::Float32Array samples = info[0].As<Napi::Float32Array>();
+  // IsTypedArray() above accepts any element type; reject non-Float32 here so
+  // the cast below can't reinterpret e.g. an Int16Array's bytes as floats.
+  Napi::TypedArray input = info[0].As<Napi::TypedArray>();
+  if (input.TypedArrayType() != napi_float32_array) {
+    Napi::TypeError::New(env, "Expected Float32Array for samples")
+        .ThrowAsJavaScriptException();
+    return env.Null();
+  }
+  Napi::Float32Array samples = input.As<Napi::Float32Array>();
   int buckets = info[1].As<Napi::Number>().Int32Value();
   if (buckets <= 0) {
     Napi::RangeError::New(env, "buckets must be > 0")
