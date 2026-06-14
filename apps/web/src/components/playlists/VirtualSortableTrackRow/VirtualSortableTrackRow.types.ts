@@ -23,8 +23,12 @@ export interface IVirtualSortableTrackRowProps {
 }
 
 export interface IVirtualSortableTrackRowView {
-  /** The track this row renders, resolved from `tracks[index]`. */
-  readonly track: Track;
+  /**
+   * The track this row renders, resolved from `tracks[index]`. May be
+   * `undefined` for the frame where react-window renders a stale row index
+   * during a list mutation; the shell guards on it.
+   */
+  readonly track: Track | undefined;
   /** The full queue, forwarded to the shared row content. */
   readonly tracks: Track[];
   /** react-window's row index. */

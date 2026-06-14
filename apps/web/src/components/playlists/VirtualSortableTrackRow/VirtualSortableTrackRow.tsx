@@ -31,6 +31,14 @@ export default function VirtualSortableTrackRow(
     onRemoveTrack,
   } = useVirtualSortableTrackRow(props);
 
+  // react-window can briefly render a row whose index is past the end of the
+  // list during a mutation (e.g. a removed track) before it reconciles its
+  // rowCount; `track` is undefined for that frame, so render an empty
+  // placeholder rather than crash on the track's fields.
+  if (!track) {
+    return <div style={style} />;
+  }
+
   const dragHandle = (
     <button
       {...listeners}

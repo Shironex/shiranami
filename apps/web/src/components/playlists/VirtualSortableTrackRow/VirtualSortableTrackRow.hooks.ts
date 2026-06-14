@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { RowComponentProps } from 'react-window';
+import type { Track } from '@/stores/types';
 import type {
   IVirtualSortableTrackRowProps,
   IVirtualSortableTrackRowView,
@@ -23,10 +24,10 @@ export function useVirtualSortableTrackRow(
     onRemoveTrack,
   } = props;
 
-  const track = tracks[index];
+  const track: Track | undefined = tracks[index];
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: track.id,
+    id: track?.id ?? `empty-${index}`,
   });
 
   // react-window positions each row with its own `transform: translateY(...)`
