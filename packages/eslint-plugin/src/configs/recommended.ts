@@ -23,4 +23,11 @@ export const recommendedRules = {
   'shiranami/interface-prefix-i': 'off',
   'shiranami/no-direct-process-env': 'off',
   'shiranami/no-bare-date-now': 'off',
+  // Component architecture (ship 'off'; wired scoped in a later commit).
+  'shiranami/component-folder-structure': 'off',
+  'shiranami/index-must-reexport-default': 'off',
+  'shiranami/no-state-in-component-body': 'off',
+  'shiranami/no-jsx-computation': 'off',
+  'shiranami/no-cross-feature-imports': 'off',
+  'shiranami/max-hooks-per-file': 'off',
 } as const;
