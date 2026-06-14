@@ -1,99 +1,61 @@
-import { useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useUIStore, type NowPlayingPanel } from '@/stores/useUIStore';
-import { useLyricsAppearanceStore, type LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
-import { useViewStore } from '@/stores/useViewStore';
-import { useInterfaceStore } from '@/stores/useInterfaceStore';
-import { useLyricsView } from '@/hooks/useLyricsView';
+import { Music, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '@/lib/utils';
 import { LyricsBody } from '@/components/lyrics/LyricsBody';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { EqualizerPanel } from '@/components/player/EqualizerPanel';
-import { cn } from '@/lib/utils';
-import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
 import { WaveformSeekbar } from '@/components/player/WaveformSeekbar';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
-import { Music, ArrowLeft, Mic2, ListMusic, SlidersVertical } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
-import type { LucideIcon } from 'lucide-react';
+import { useNowPlayingView } from './NowPlayingView.hooks';
 
-const NP_PLAIN_SIZE_CLASS: Record<LyricsFontSize, string> = {
-  sm: 'text-xs @5xl:text-sm @7xl:text-base',
-  base: 'text-sm @5xl:text-base @7xl:text-lg',
-  lg: 'text-base @5xl:text-lg @7xl:text-xl',
-  xl: 'text-lg @5xl:text-xl @7xl:text-2xl',
-};
+export default function NowPlayingView() {
+  const {
+    t,
+    hasTrack,
+    currentTrack,
+    durationLabel,
+    showWaveformSeekbar,
+    panel,
+    panelVisible,
+    panelButtons,
+    panelGroupLabel,
+    lowPerformanceMode,
+    lyricsClasses,
+    lyrics,
+    lyricsPlainOpacity,
+    lyricsSyncedDimOpacity,
+    onTogglePanel,
+    onExit,
+  } = useNowPlayingView();
 
-const NP_SYNCED_BASE_SIZE_CLASS: Record<LyricsFontSize, string> = {
-  sm: 'text-sm @5xl:text-base @7xl:text-lg',
-  base: 'text-base @5xl:text-lg @7xl:text-xl',
-  lg: 'text-lg @5xl:text-xl @7xl:text-2xl',
-  xl: 'text-xl @5xl:text-2xl @7xl:text-3xl',
-};
+  // Build the panel-toggle buttons above the return — `.map` here is not in JSX
+  // render position, so the declarative-JSX rule stays satisfied.
+  const panelToggles = panelButtons.map(({ id, icon: Icon, label, isActive }) => (
+    <Tooltip key={id}>
+      <TooltipTrigger asChild>
+        <IconButton
+          onClick={() => onTogglePanel(id)}
+          className={cn(
+            isActive
+              ? 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+              : 'text-muted-foreground/60 hover:bg-accent/40'
+          )}
+          aria-label={label}
+          aria-pressed={isActive}
+        >
+          <Icon />
+        </IconButton>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  ));
 
-const NP_SYNCED_ACTIVE_SIZE_CLASS: Record<LyricsFontSize, string> = {
-  sm: 'text-lg @5xl:!text-xl @7xl:!text-2xl',
-  base: 'text-xl @5xl:!text-2xl @7xl:!text-3xl',
-  lg: 'text-2xl @5xl:!text-3xl @7xl:!text-4xl',
-  xl: 'text-3xl @5xl:!text-4xl @7xl:!text-4xl',
-};
-
-const NP_BASE_SHARED =
-  'block w-full text-left leading-relaxed font-medium cursor-pointer transition-all duration-500 rounded-md px-1 -mx-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40';
-
-const NP_IDLE = 'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:opacity-100';
-const NP_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
-
-type ActivePanel = Exclude<NowPlayingPanel, null>;
-
-const PANEL_ORDER: ActivePanel[] = ['lyrics', 'queue', 'eq'];
-
-const PANEL_META: Record<
-  ActivePanel,
-  { icon: LucideIcon; labelKey: string; showKey: string; hideKey: string }
-> = {
-  lyrics: { icon: Mic2, labelKey: 'lyrics', showKey: 'showLyrics', hideKey: 'hideLyrics' },
-  queue: { icon: ListMusic, labelKey: 'queue', showKey: 'showQueue', hideKey: 'hideQueue' },
-  eq: { icon: SlidersVertical, labelKey: 'eq', showKey: 'showEq', hideKey: 'hideEq' },
-};
-
-export function NowPlayingView() {
-  const { t } = useTranslation('nowPlaying');
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const duration = usePlaybackStore(s => s.duration);
-  const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
-  const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
-  const panel = useUIStore(s => s.nowPlayingPanel);
-  const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-  const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
-  const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
-  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
-  const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
-
-  const npBase = cn(NP_BASE_SHARED, NP_SYNCED_BASE_SIZE_CLASS[lyricsSyncedFontSize]);
-  const npActive = cn(
-    'text-foreground font-semibold',
-    NP_SYNCED_ACTIVE_SIZE_CLASS[lyricsSyncedFontSize]
-  );
-
-  const { synced, plain, activeLine, isLoading: lyricsLoading, handleLineClick } = useLyricsView();
-
-  const panelVisible = panel !== null;
-
-  // Exit if no track is playing
-  useEffect(() => {
-    if (!currentTrack) {
-      exitNowPlaying();
-    }
-  }, [currentTrack, exitNowPlaying]);
-
-  if (!currentTrack) return null;
+  if (!hasTrack || !currentTrack) return null;
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
@@ -103,7 +65,7 @@ export function NowPlayingView() {
       <div className="relative px-6 @3xl:px-10 pt-4 pb-2 shrink-0 flex items-center justify-between">
         <motion.button
           whileTap={{ scale: 0.9 }}
-          onClick={exitNowPlaying}
+          onClick={onExit}
           // glass-subtle backing matches the panel-toggle group on the right and
           // keeps the icon legible: this button sits over the bare theme image,
           // so a transparent background washes out on bright themes (summer).
@@ -115,34 +77,10 @@ export function NowPlayingView() {
 
         <div
           role="group"
-          aria-label={t('panelGroup')}
+          aria-label={panelGroupLabel}
           className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1"
         >
-          {PANEL_ORDER.map(id => {
-            const meta = PANEL_META[id];
-            const Icon = meta.icon;
-            const isActive = panel === id;
-            const label = isActive ? t(meta.hideKey) : t(meta.showKey);
-            return (
-              <Tooltip key={id}>
-                <TooltipTrigger asChild>
-                  <IconButton
-                    onClick={() => togglePanel(id)}
-                    className={cn(
-                      isActive
-                        ? 'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
-                        : 'text-muted-foreground/60 hover:bg-accent/40'
-                    )}
-                    aria-label={label}
-                    aria-pressed={isActive}
-                  >
-                    <Icon />
-                  </IconButton>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{label}</TooltipContent>
-              </Tooltip>
-            );
-          })}
+          {panelToggles}
         </div>
       </div>
 
@@ -238,7 +176,7 @@ export function NowPlayingView() {
                 <TimeDisplay />
               </span>
               <span className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums font-medium">
-                {formatDuration(duration)}
+                {durationLabel}
               </span>
             </div>
           </div>
@@ -271,11 +209,11 @@ export function NowPlayingView() {
                       </h2>
                     </div>
                     <LyricsBody
-                      synced={synced}
-                      plain={plain}
-                      activeLine={activeLine}
-                      isLoading={lyricsLoading}
-                      onLineClick={handleLineClick}
+                      synced={lyrics.synced}
+                      plain={lyrics.plain}
+                      activeLine={lyrics.activeLine}
+                      isLoading={lyrics.isLoading}
+                      onLineClick={lyrics.handleLineClick}
                       loadingLabel={t('findingLyrics')}
                       emptyLabel={t('noLyrics')}
                       syncedDimOpacity={lyricsSyncedDimOpacity}
@@ -284,15 +222,12 @@ export function NowPlayingView() {
                       syncedContainerClassName="pr-2 @3xl:pr-4"
                       syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
                       syncedBottomSpacerClassName="h-[40vh]"
-                      syncedBaseClassName={npBase}
-                      syncedActiveClassName={npActive}
-                      syncedPastClassName={NP_PAST}
-                      syncedIdleClassName={NP_IDLE}
+                      syncedBaseClassName={lyricsClasses.syncedBase}
+                      syncedActiveClassName={lyricsClasses.syncedActive}
+                      syncedPastClassName={lyricsClasses.syncedPast}
+                      syncedIdleClassName={lyricsClasses.syncedIdle}
                       plainContainerClassName="pr-2 @3xl:pr-4"
-                      plainTextClassName={cn(
-                        'text-foreground whitespace-pre-wrap font-sans font-medium tracking-[0.005em] leading-relaxed',
-                        NP_PLAIN_SIZE_CLASS[lyricsPlainFontSize]
-                      )}
+                      plainTextClassName={lyricsClasses.plainText}
                       emptyClassName="text-muted-foreground/25"
                     />
                   </>
@@ -317,5 +252,3 @@ export function NowPlayingView() {
     </div>
   );
 }
-
-export default NowPlayingView;
