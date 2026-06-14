@@ -4,9 +4,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Initialise i18n before RadioView imports — RadioView reads translations via
 // the useTranslation hook and does not import @/lib/i18n itself.
 import '@/lib/i18n';
-import type { RadioFilters } from './buildStationQuery';
+import type { RadioFilters } from '../buildStationQuery';
 import type { RadioMode } from '@/stores/useRadioStore';
-import { RadioView } from './RadioView';
+import RadioView from './RadioView';
 
 const loadTopStations = vi.fn();
 const loadFavorites = vi.fn();
@@ -53,7 +53,7 @@ vi.mock('@/stores/useRadioStore', () => ({
     }),
 }));
 
-vi.mock('./useRadioCatalog', () => ({
+vi.mock('../useRadioCatalog', () => ({
   useRadioCatalog: () => ({ countries: [], languages: [], tags: [] }),
 }));
 

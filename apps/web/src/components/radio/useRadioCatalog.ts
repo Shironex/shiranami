@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logger } from '@/lib/logger';
 import { loadCatalog, type CatalogEntry } from './radioCatalog';
-import type { FilterOption } from './FilterPopover';
+import type { IFilterOption } from './FilterPopover';
 import { countryNameFromCode, isoCodeToFlag, titleCase } from './radioUtils';
 
 interface RadioCatalog {
-  countries: FilterOption[];
-  languages: FilterOption[];
-  tags: FilterOption[];
+  countries: IFilterOption[];
+  languages: IFilterOption[];
+  tags: IFilterOption[];
 }
 
 const EMPTY: RadioCatalog = { countries: [], languages: [], tags: [] };
@@ -56,7 +56,7 @@ export function useRadioCatalog(): RadioCatalog {
     if (raw.countries.length === 0 && raw.languages.length === 0 && raw.tags.length === 0) {
       return EMPTY;
     }
-    const countries: FilterOption[] = raw.countries
+    const countries: IFilterOption[] = raw.countries
       .map(entry => ({
         value: entry.value.toUpperCase(),
         label: countryNameFromCode(entry.value, language),
@@ -65,11 +65,11 @@ export function useRadioCatalog(): RadioCatalog {
       }))
       .sort((a, b) => a.label.localeCompare(b.label, language));
 
-    const languages: FilterOption[] = raw.languages
+    const languages: IFilterOption[] = raw.languages
       .map(entry => ({ value: entry.value, label: titleCase(entry.value), count: entry.count }))
       .sort((a, b) => a.label.localeCompare(b.label, language));
 
-    const tags: FilterOption[] = raw.tags.map(entry => ({
+    const tags: IFilterOption[] = raw.tags.map(entry => ({
       value: entry.value,
       label: titleCase(entry.value),
       count: entry.count,
