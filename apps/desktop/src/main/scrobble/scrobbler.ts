@@ -22,8 +22,8 @@ import type {
   LastfmConnectResult,
   ListenBrainzConnectResult,
 } from '@shiranami/contracts';
-import { store } from './app/store';
-import { logger } from './app/logger';
+import { store } from '../app/store';
+import { logger } from '../app/logger';
 import {
   lastfmSignatureBase,
   lastfmScrobbleParams,
@@ -32,7 +32,7 @@ import {
   listenBrainzBody,
   playStartTimestamp,
   type ScrobblePlay,
-} from './scrobble/scrobble-payload';
+} from './scrobble-payload';
 import {
   enqueue,
   dueItems,
@@ -40,7 +40,7 @@ import {
   remove,
   type QueuedScrobble,
   type ScrobbleTarget,
-} from './scrobble/scrobble-queue';
+} from './scrobble-queue';
 
 const LASTFM_ENDPOINT = 'https://ws.audioscrobbler.com/2.0/';
 const LISTENBRAINZ_ENDPOINT = 'https://api.listenbrainz.org/1/submit-listens';

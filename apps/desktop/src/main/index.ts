@@ -23,7 +23,7 @@ import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
 } from './services/recommendation-service';
-import { startScrobbler, stopScrobbler } from './scrobbler';
+import { startScrobbler, stopScrobbler } from './scrobble/scrobbler';
 import { PRIVILEGED_SCHEMES } from './protocols/privileged-schemes';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 

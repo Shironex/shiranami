@@ -13,7 +13,7 @@ import {
   disconnectLastfm,
   connectListenBrainz,
   disconnectListenBrainz,
-} from '../scrobbler';
+} from '../scrobble/scrobbler';
 import { handle } from './with-ipc-handler';
 import {
   scrobbleGetStatusArgs,
