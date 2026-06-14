@@ -45,9 +45,10 @@ export function usePlaylistImportView(): IPlaylistImportViewView {
     ? tracks.filter(track => selectedTrackIds.has(track.id) && track.status === 'pending').length
     : 0;
 
-  const extractProgressPercent = extractProgress
-    ? Math.round((extractProgress.current / extractProgress.total) * 100)
-    : 0;
+  const extractProgressPercent =
+    extractProgress && extractProgress.total > 0
+      ? Math.round((extractProgress.current / extractProgress.total) * 100)
+      : 0;
 
   const handleDownloadTrack = useCallback(
     (id: string) => {
