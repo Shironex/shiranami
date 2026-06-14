@@ -20,6 +20,21 @@ const PROCESS_EXIT_ALLOWLIST = [
   'tools/**',
 ];
 
+// Feature folders migrated to the per-component (folder-per-component) convention.
+// The Tier C architecture rules apply as `error` only to these; add one entry per
+// migration PR to widen the scope. Everything else keeps the recommended `off`.
+const MIGRATED_COMPONENT_FEATURES = [
+  'downloads',
+  'debug',
+  'favorites',
+  'lyrics',
+  'playlist-import',
+  'smart-playlists',
+];
+const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/{${MIGRATED_COMPONENT_FEATURES.join(
+  ','
+)}}/**`;
+
 export default defineConfig(
   eslint.configs.recommended,
   tseslint.configs.recommended,
@@ -101,13 +116,10 @@ export default defineConfig(
     },
   },
   // Component-architecture rules (Tier C), scoped to migrated feature folders.
-  // The glob widens one feature per migration PR; today only downloads conforms.
+  // The glob widens one feature per migration PR — see MIGRATED_COMPONENT_FEATURES.
   {
-    files: ['apps/web/src/components/downloads/**/*.{ts,tsx}'],
-    ignores: [
-      'apps/web/src/components/downloads/**/*.stories.{ts,tsx}',
-      'apps/web/src/components/downloads/**/*.test.{ts,tsx}',
-    ],
+    files: [`${MIGRATED_COMPONENTS_GLOB}/*.{ts,tsx}`],
+    ignores: [`${MIGRATED_COMPONENTS_GLOB}/*.{stories,test}.{ts,tsx}`],
     rules: {
       'shiranami/component-folder-structure': 'error',
       'shiranami/index-must-reexport-default': 'error',
