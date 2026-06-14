@@ -30,7 +30,7 @@ const MixesView = lazy(() => import('@/components/mixes/MixesView'));
 const PlaylistImportView = lazy(() => import('@/components/playlist-import/PlaylistImportView'));
 const SmartPlaylistsView = lazy(() => import('@/components/smart-playlists/SmartPlaylistsView'));
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
-const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView'));
+const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
 const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
 // Dev-only: the import expression is dead code in prod (the ternary collapses
 // to `null`), so Rollup never emits the chunk for a production build.

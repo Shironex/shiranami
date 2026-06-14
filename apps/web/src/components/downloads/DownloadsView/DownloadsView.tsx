@@ -1,93 +1,29 @@
-import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { DownloadCloud, Trash2, Pause, Play, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { IS_ELECTRON } from '@/lib/platform';
-import i18n from '@/lib/i18n';
-import { logger } from '@/lib/logger';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
-import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import { DownloadQueueRow } from '@/components/downloads/DownloadQueueRow';
-import type { DownloadQueueItem } from '@shiranami/contracts';
-
-function cancel(id: string) {
-  if (!IS_ELECTRON) return;
-  // Explicit user action — surface failures instead of dropping them silently.
-  window.electronAPI.downloader.cancelDownload(id).catch((err: unknown) => {
-    logger.error('[downloads] cancel failed', err);
-    toast.error(i18n.t('error.cancelFailed', { ns: 'downloads' }));
-  });
-}
-
-function clearCompleted() {
-  if (!IS_ELECTRON) return;
-  window.electronAPI.downloader.clearCompletedDownloads().catch((err: unknown) => {
-    logger.error('[downloads] clear completed failed', err);
-    toast.error(i18n.t('error.clearFailed', { ns: 'downloads' }));
-  });
-}
-
-function pauseQueue() {
-  if (!IS_ELECTRON) return;
-  window.electronAPI.downloader.pauseDownloadQueue().catch((err: unknown) => {
-    logger.error('[downloads] pause failed', err);
-    toast.error(i18n.t('error.pauseFailed', { ns: 'downloads' }));
-  });
-}
-
-function resumeQueue() {
-  if (!IS_ELECTRON) return;
-  window.electronAPI.downloader.resumeDownloadQueue().catch((err: unknown) => {
-    logger.error('[downloads] resume failed', err);
-    toast.error(i18n.t('error.resumeFailed', { ns: 'downloads' }));
-  });
-}
-
-function cancelAll() {
-  if (!IS_ELECTRON) return;
-  window.electronAPI.downloader.cancelAllDownloads().catch((err: unknown) => {
-    logger.error('[downloads] cancel all failed', err);
-    toast.error(i18n.t('error.cancelAllFailed', { ns: 'downloads' }));
-  });
-}
-
-interface Section {
-  key: 'active' | 'queued' | 'completed';
-  items: DownloadQueueItem[];
-}
+import { useDownloadsView } from './DownloadsView.hooks';
 
 export default function DownloadsView() {
-  const { t } = useTranslation('downloads');
-  const items = useDownloadQueueStore(s => s.items);
-  const paused = useDownloadQueueStore(s => s.paused);
-  const hydrated = useDownloadQueueStore(s => s.hydrated);
-  const [showCancelAllConfirm, setShowCancelAllConfirm] = useState(false);
+  const {
+    t,
+    sections,
+    paused,
+    isEmpty,
+    hydrated,
+    hasPendingWork,
+    hasCompleted,
+    showCancelAllConfirm,
+    setShowCancelAllConfirm,
+    onCancelItem,
+    onClearCompleted,
+    onPauseQueue,
+    onResumeQueue,
+    onConfirmCancelAll,
+  } = useDownloadsView();
 
-  const sections = useMemo<Section[]>(() => {
-    const active: DownloadQueueItem[] = [];
-    const queued: DownloadQueueItem[] = [];
-    const completed: DownloadQueueItem[] = [];
-    for (const item of items) {
-      if (item.status === 'active' || item.status === 'converting') active.push(item);
-      else if (item.status === 'queued') queued.push(item);
-      else completed.push(item);
-    }
-    return [
-      { key: 'active', items: active },
-      { key: 'queued', items: queued },
-      { key: 'completed', items: completed },
-    ];
-  }, [items]);
-
-  const hasCompleted = sections.find(s => s.key === 'completed')!.items.length > 0;
-  // There is in-flight or pending work to pause / cancel.
-  const hasPendingWork =
-    sections.find(s => s.key === 'active')!.items.length > 0 ||
-    sections.find(s => s.key === 'queued')!.items.length > 0;
-
-  if (items.length === 0) {
+  if (isEmpty) {
     // Hold a blank frame until the first snapshot lands so a persisted queue
     // doesn't flash "No downloads yet" on launch before it hydrates.
     if (!hydrated) {
@@ -110,6 +46,22 @@ export default function DownloadsView() {
     );
   }
 
+  const sectionBlocks = sections.map(section => {
+    if (section.items.length === 0) return null;
+    const rows = section.items.map(item => (
+      <DownloadQueueRow key={item.id} item={item} onCancel={onCancelItem} />
+    ));
+    const heading = `${t(`section.${section.key}`)} · ${section.items.length}`;
+    return (
+      <section key={section.key} className="flex flex-col gap-1.5">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground/60 px-1">
+          {heading}
+        </h2>
+        {rows}
+      </section>
+    );
+  });
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto px-6 py-6">
       <header className="flex items-start justify-between gap-4 mb-5">
@@ -122,7 +74,7 @@ export default function DownloadsView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={resumeQueue}
+              onClick={onResumeQueue}
               aria-label={t('a11y.resumeQueue')}
               className="rounded-xl"
             >
@@ -133,7 +85,7 @@ export default function DownloadsView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={pauseQueue}
+              onClick={onPauseQueue}
               disabled={!hasPendingWork}
               aria-label={t('a11y.pauseQueue')}
               className="rounded-xl"
@@ -160,10 +112,7 @@ export default function DownloadsView() {
               <p className="text-xs text-foreground/80 mb-2">{t('action.cancelAllConfirm')}</p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    setShowCancelAllConfirm(false);
-                    cancelAll();
-                  }}
+                  onClick={onConfirmCancelAll}
                   className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {t('action.cancelAllConfirmAction')}
@@ -181,7 +130,7 @@ export default function DownloadsView() {
           <Button
             variant="outline"
             size="sm"
-            onClick={clearCompleted}
+            onClick={onClearCompleted}
             disabled={!hasCompleted}
             className="rounded-xl"
           >
@@ -197,20 +146,7 @@ export default function DownloadsView() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
-        {sections.map(section =>
-          section.items.length === 0 ? null : (
-            <section key={section.key} className="flex flex-col gap-1.5">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground/60 px-1">
-                {t(`section.${section.key}`)} · {section.items.length}
-              </h2>
-              {section.items.map(item => (
-                <DownloadQueueRow key={item.id} item={item} onCancel={cancel} />
-              ))}
-            </section>
-          )
-        )}
-      </div>
+      <div className="flex flex-col gap-6">{sectionBlocks}</div>
     </div>
   );
 }
