@@ -19,6 +19,21 @@ const FOCUSABLE_RUNNERS = new Set(['it', 'describe', 'test']);
  */
 const FOCUSED_CALL_NAMES = new Set(['fdescribe', 'fit', 'ddescribe']);
 
+/**
+ * Walk a non-computed MemberExpression's object chain down to its root and
+ * return the leading identifier's name, or null. This lets `.only` be detected
+ * on chained modifiers like `test.concurrent.only` / `describe.concurrent.only`
+ * by resolving them back to the `test` / `describe` runner, not just direct
+ * `test.only`.
+ */
+function rootRunnerName(node: TSESTree.Expression): string | null {
+  let current: TSESTree.Expression = node;
+  while (current.type === AST_NODE_TYPES.MemberExpression && !current.computed) {
+    current = current.object;
+  }
+  return current.type === AST_NODE_TYPES.Identifier ? current.name : null;
+}
+
 export const noFocusedTestsRule = createRule<[], MessageIds>({
   name: RULE_NAME,
   meta: {
@@ -39,16 +54,17 @@ export const noFocusedTestsRule = createRule<[], MessageIds>({
   create(context) {
     return {
       MemberExpression(node: TSESTree.MemberExpression): void {
-        if (
-          node.property.type === AST_NODE_TYPES.Identifier &&
-          node.property.name === 'only' &&
-          node.object.type === AST_NODE_TYPES.Identifier &&
-          FOCUSABLE_RUNNERS.has(node.object.name)
-        ) {
+        if (node.property.type !== AST_NODE_TYPES.Identifier || node.property.name !== 'only') {
+          return;
+        }
+        // Resolve `test.only` and chained `test.concurrent.only` alike back to
+        // the root `test`/`describe`/`it` runner.
+        const runner = rootRunnerName(node.object);
+        if (runner !== null && FOCUSABLE_RUNNERS.has(runner)) {
           context.report({
             node: node.property,
             messageId: 'focused',
-            data: { runner: node.object.name },
+            data: { runner },
           });
         }
       },

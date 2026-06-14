@@ -10,6 +10,8 @@ ruleTester.run('no-focused-tests', noFocusedTestsRule, {
     { code: 'const only = true;' },
     // `.only` on something that is not a test runner is out of scope.
     { code: "queue.only('ignored');" },
+    // A chained modifier whose root is not a runner is out of scope.
+    { code: "db.batch.only('ignored');" },
     // A method named `fit` on some object is not the focused-test global.
     { code: "layout.fit('contain');" },
   ],
@@ -24,6 +26,19 @@ ruleTester.run('no-focused-tests', noFocusedTestsRule, {
     },
     {
       code: "test.only('case', () => {});",
+      errors: [{ messageId: 'focused' }],
+    },
+    // Chained modifiers (vitest concurrent) still resolve to the root runner.
+    {
+      code: "test.concurrent.only('case', () => {});",
+      errors: [{ messageId: 'focused' }],
+    },
+    {
+      code: "describe.concurrent.only('suite', () => {});",
+      errors: [{ messageId: 'focused' }],
+    },
+    {
+      code: "it.concurrent.only('runs', () => {});",
       errors: [{ messageId: 'focused' }],
     },
     {
