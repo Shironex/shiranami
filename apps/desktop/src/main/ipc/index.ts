@@ -17,6 +17,7 @@ export { registerPlaylistHandlers, cleanupPlaylistHandlers } from './playlist';
 export { registerShareHandlers, cleanupShareHandlers } from './share';
 export { registerMetadataEnrichHandlers, cleanupMetadataEnrichHandlers } from './metadata-enrich';
 export { registerLoudnessHandlers, cleanupLoudnessHandlers } from './loudness';
+export { registerWaveformHandlers, cleanupWaveformHandlers } from './waveform';
 export { registerRecommendationsHandlers, cleanupRecommendationsHandlers } from './recommendations';
 export { registerScrobbleHandlers, cleanupScrobbleHandlers } from './scrobble';
 export { registerStorageHandlers, cleanupStorageHandlers } from './storage';

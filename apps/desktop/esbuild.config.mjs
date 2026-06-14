@@ -83,6 +83,7 @@ await Promise.all([
       'src/main/index.ts',
       'src/main/extract-worker.ts',
       'src/main/scan-utility.ts',
+      'src/main/waveform-worker.ts',
     ],
     external: mainExternal,
     plugins: sentryPlugins,

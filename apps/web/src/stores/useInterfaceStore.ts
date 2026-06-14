@@ -21,6 +21,7 @@ interface PersistedInterfaceState {
   playerAlbumArt: boolean;
   playerFavorite: boolean;
   playerTimeLabels: boolean;
+  playerWaveformSeekbar: boolean;
   playerSleepTimer: boolean;
   playerEqualizer: boolean;
   playerCompactButton: boolean;
@@ -42,6 +43,7 @@ export const INTERFACE_DEFAULTS: PersistedInterfaceState = {
   playerAlbumArt: true,
   playerFavorite: true,
   playerTimeLabels: true,
+  playerWaveformSeekbar: true,
   playerSleepTimer: true,
   playerEqualizer: true,
   playerCompactButton: true,

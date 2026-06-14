@@ -36,6 +36,7 @@ const PLAYER_TOGGLES: PlayerElementKey[] = [
   'playerAlbumArt',
   'playerFavorite',
   'playerTimeLabels',
+  'playerWaveformSeekbar',
   'playerSleepTimer',
   'playerEqualizer',
   'playerCompactButton',

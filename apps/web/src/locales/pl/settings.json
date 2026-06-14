@@ -510,6 +510,8 @@
         "playerFavoriteDesc": "Serduszko obok informacji o utworze",
         "playerTimeLabels": "Etykiety czasu",
         "playerTimeLabelsDesc": "Czas odtwarzania i całkowity wokół paska przewijania",
+        "playerWaveformSeekbar": "Pasek przewijania z falą dźwięku",
+        "playerWaveformSeekbarDesc": "Pokazuje falę dźwięku utworu zamiast zwykłego paska postępu",
         "playerSleepTimer": "Wyłącznik czasowy",
         "playerSleepTimerDesc": "Przycisk księżyca wyciszający muzykę po określonym czasie",
         "playerEqualizer": "Przycisk korektora",

@@ -11,6 +11,7 @@ import { PLAYER_BAR_HEIGHT } from '@/lib/layout';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from './PlayerControls';
 import { SeekBar } from './SeekBar';
+import { WaveformSeekbar } from './WaveformSeekbar';
 import { VolumeControl } from './VolumeControl';
 import { SleepTimer } from './SleepTimer';
 import { EqualizerPanel } from './EqualizerPanel';
@@ -57,6 +58,7 @@ export function PlayerBar() {
   const showLyricsButton = useInterfaceStore(s => s.playerLyricsButton);
   const showQueueButton = useInterfaceStore(s => s.playerQueueButton);
   const showVolume = useInterfaceStore(s => s.playerVolume);
+  const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
 
   const hasUtilityButtons =
     showSleepTimer || showEqualizer || showCompactButton || showVisualizerButton;
@@ -173,7 +175,7 @@ export function PlayerBar() {
                     <TimeDisplay />
                   </span>
                 )}
-                <SeekBar />
+                {showWaveformSeekbar ? <WaveformSeekbar /> : <SeekBar />}
                 {showTimeLabels && (
                   <span className="text-[10px] text-muted-foreground/70 tabular-nums w-9 font-medium">
                     {formatDuration(duration)}

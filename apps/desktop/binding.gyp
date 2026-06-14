@@ -1,0 +1,34 @@
+{
+  "comment": "One binary hosts all of Shiranami's native addons. addon.cpp is the loader (NODE_API_MODULE); each module lives in its own folder with a thin N-API glue file over the pure C++ in core/. dr_libs (vendored, public-domain) decode wav/flac/mp3. Pure C++ + headers, so it builds identically on macOS, Windows, and Linux.",
+  "targets": [
+    {
+      "target_name": "shiranami_native",
+      "sources": [
+        "src/native/addon.cpp",
+        "src/native/core/peaks.cpp",
+        "src/native/core/audio_decoder.cpp",
+        "src/native/waveform/waveform.cpp",
+        "src/native/vendor/dr_libs/dr_libs_impl.cpp"
+      ],
+      "include_dirs": [
+        "<!@(node -p \"require('node-addon-api').include\")",
+        "src/native"
+      ],
+      "defines": ["NAPI_VERSION=8"],
+      "cflags!": ["-fno-exceptions"],
+      "cflags_cc!": ["-fno-exceptions"],
+      "xcode_settings": {
+        "GCC_ENABLE_CPP_EXCEPTIONS": "YES",
+        "CLANG_CXX_LIBRARY": "libc++",
+        "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+        "MACOSX_DEPLOYMENT_TARGET": "11.0"
+      },
+      "msvs_settings": {
+        "VCCLCompilerTool": {
+          "ExceptionHandling": 1,
+          "AdditionalOptions": ["/std:c++17"]
+        }
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore, type NowPlayingPanel } from '@/stores/useUIStore';
 import { useLyricsAppearanceStore, type LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
+import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsView } from '@/hooks/useLyricsView';
 import { LyricsBody } from '@/components/lyrics/LyricsBody';
 import { QueuePanel } from '@/components/player/QueuePanel';
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { formatDuration } from '@shiranami/shared';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
+import { WaveformSeekbar } from '@/components/player/WaveformSeekbar';
 import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
 import { Music, ArrowLeft, Mic2, ListMusic, SlidersVertical } from 'lucide-react';
@@ -64,6 +66,7 @@ export function NowPlayingView() {
   const { t } = useTranslation('nowPlaying');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const duration = usePlaybackStore(s => s.duration);
+  const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
   const exitNowPlaying = useViewStore(s => s.exitNowPlaying);
   const panel = useUIStore(s => s.nowPlayingPanel);
   const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
@@ -225,7 +228,11 @@ export function NowPlayingView() {
 
           {/* Seek bar + time */}
           <div className="w-full max-w-[340px] @5xl:max-w-[400px] @7xl:max-w-[460px] px-2">
-            <SeekBar />
+            {showWaveformSeekbar ? (
+              <WaveformSeekbar canvasClassName="h-12 @5xl:h-16" />
+            ) : (
+              <SeekBar />
+            )}
             <div className="flex items-center justify-between mt-1.5">
               <span className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums font-medium">
                 <TimeDisplay />
