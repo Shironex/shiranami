@@ -84,9 +84,9 @@ export const maxHooksPerFileRule = createRule<RuleOptions, MessageIds>({
         for (const specifier of node.specifiers) {
           if (
             specifier.type === AST_NODE_TYPES.ExportSpecifier &&
-            specifier.exported.type === AST_NODE_TYPES.Identifier
+            specifier.local.type === AST_NODE_TYPES.Identifier
           ) {
-            record(specifier.exported.name);
+            record(specifier.local.name);
           }
         }
       },
