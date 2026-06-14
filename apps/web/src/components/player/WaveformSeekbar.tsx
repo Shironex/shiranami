@@ -171,19 +171,29 @@ export function WaveformSeekbar({ canvasClassName = 'h-7' }: WaveformSeekbarProp
         if (!isDraggingRef.current) return;
         setScrubTime(getValueFromPointer(ev.clientX));
       };
-      const onPointerUp = (ev: PointerEvent) => {
-        if (isDraggingRef.current) {
-          seek(getValueFromPointer(ev.clientX));
-          setScrubTime(null);
-          isDraggingRef.current = false;
-        }
-        target.releasePointerCapture(ev.pointerId);
+      // Cleanup must run for every way a drag can end — not just pointerup. If
+      // capture is lost (system dialog, window switch) pointerup never fires, so
+      // without this the scrub state stays stuck and the RAF loop never resumes.
+      const cleanup = (pointerId: number) => {
+        isDraggingRef.current = false;
+        setScrubTime(null);
+        if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
         target.removeEventListener('pointermove', onPointerMove);
         target.removeEventListener('pointerup', onPointerUp);
+        target.removeEventListener('pointercancel', onPointerCancel);
+        target.removeEventListener('lostpointercapture', onLostPointerCapture);
       };
+      const onPointerUp = (ev: PointerEvent) => {
+        if (isDraggingRef.current) seek(getValueFromPointer(ev.clientX));
+        cleanup(ev.pointerId);
+      };
+      const onPointerCancel = (ev: PointerEvent) => cleanup(ev.pointerId);
+      const onLostPointerCapture = (ev: PointerEvent) => cleanup(ev.pointerId);
 
       target.addEventListener('pointermove', onPointerMove);
       target.addEventListener('pointerup', onPointerUp);
+      target.addEventListener('pointercancel', onPointerCancel);
+      target.addEventListener('lostpointercapture', onLostPointerCapture);
     },
     [getValueFromPointer, setScrubTime, seek]
   );
