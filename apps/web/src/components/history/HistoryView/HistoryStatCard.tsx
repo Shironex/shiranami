@@ -1,13 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
 
-type HistoryStatCardProps = {
-  label: string;
-  value: string;
-  hint: string;
-  icon: LucideIcon;
-};
+interface IHistoryStatCardProps {
+  readonly label: string;
+  readonly value: string;
+  readonly hint: string;
+  readonly icon: LucideIcon;
+}
 
-export function HistoryStatCard({ label, value, hint, icon: Icon }: HistoryStatCardProps) {
+export function HistoryStatCard({ label, value, hint, icon: Icon }: IHistoryStatCardProps) {
   return (
     <div className="rounded-2xl border border-border/25 glass-subtle p-4">
       <div className="flex items-center justify-between gap-3">
