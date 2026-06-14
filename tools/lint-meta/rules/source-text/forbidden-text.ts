@@ -9,10 +9,13 @@ import type { IMetaContext, IMetaRule, IViolation } from '../../types';
  * only to hand-written source.
  */
 function isGenerated(file: string): boolean {
+  // Normalize Windows backslashes to forward slashes so the directory checks
+  // are path-separator agnostic (a `\generated\` segment is exempt too).
+  const normalized = file.replace(/\\/gu, '/');
   return (
     /\.gen\.tsx?$/u.test(basename(file)) ||
-    file.includes('/@generated/') ||
-    file.includes('/generated/')
+    normalized.includes('/@generated/') ||
+    normalized.includes('/generated/')
   );
 }
 
