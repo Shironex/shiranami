@@ -15,6 +15,24 @@ const fiveHooks = `${fourHooks}
 export function useE() { return 5; }
 `;
 
+// Hooks declared without inline `export`, then surfaced via a specifier list.
+const fourHooksViaSpecifiers = `
+function useA() { return 1; }
+function useB() { return 2; }
+const useC = () => 3;
+const useD = () => 4;
+export { useA, useB, useC, useD };
+`;
+
+const fiveHooksViaSpecifiers = `
+function useA() { return 1; }
+function useB() { return 2; }
+const useC = () => 3;
+const useD = () => 4;
+function useE() { return 5; }
+export { useA, useB, useC, useD, useE };
+`;
+
 ruleTester.run('max-hooks-per-file', maxHooksPerFileRule, {
   valid: [
     // Exactly the max is fine.
@@ -33,6 +51,8 @@ ruleTester.run('max-hooks-per-file', maxHooksPerFileRule, {
     },
     // A raised `max` permits more hooks.
     { code: fiveHooks, filename: QUERIES, options: [{ max: 5 }] },
+    // Re-exported hooks via a specifier list, within the limit.
+    { code: fourHooksViaSpecifiers, filename: QUERIES },
   ],
   invalid: [
     { code: fiveHooks, filename: QUERIES, errors: [{ messageId: 'tooManyHooks' }] },
@@ -42,6 +62,12 @@ ruleTester.run('max-hooks-per-file', maxHooksPerFileRule, {
       code: fourHooks,
       filename: QUERIES,
       options: [{ max: 3 }],
+      errors: [{ messageId: 'tooManyHooks' }],
+    },
+    // Hooks re-exported via a single specifier list must also be counted.
+    {
+      code: fiveHooksViaSpecifiers,
+      filename: QUERIES,
       errors: [{ messageId: 'tooManyHooks' }],
     },
   ],

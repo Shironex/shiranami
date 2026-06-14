@@ -81,6 +81,14 @@ export const maxHooksPerFileRule = createRule<RuleOptions, MessageIds>({
     return {
       ExportNamedDeclaration(node): void {
         handleExport(node.declaration);
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === AST_NODE_TYPES.ExportSpecifier &&
+            specifier.exported.type === AST_NODE_TYPES.Identifier
+          ) {
+            record(specifier.exported.name);
+          }
+        }
       },
       'Program:exit'(node): void {
         if (exportedHooks.size > max) {
