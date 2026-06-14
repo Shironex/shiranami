@@ -30,10 +30,18 @@ const MIGRATED_COMPONENT_FEATURES = [
   'lyrics',
   'playlist-import',
   'smart-playlists',
+  'mixes',
+  'library',
+  'playlists',
+  'search',
+  'history',
 ];
-const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/{${MIGRATED_COMPONENT_FEATURES.join(
-  ','
-)}}/**`;
+const MIGRATED_FEATURES_BRACE = `{${MIGRATED_COMPONENT_FEATURES.join(',')}}`;
+const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/**`;
+// Feature-root shared modules (data/util .ts like mixDefinitions, historyUtils,
+// and the feature barrel index.ts) are not components — the Tier C arch rules,
+// e.g. interface-prefix-i, target component contracts, not domain models.
+const MIGRATED_FEATURE_ROOT_FILES = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/*.ts`;
 
 export default defineConfig(
   eslint.configs.recommended,
@@ -119,7 +127,7 @@ export default defineConfig(
   // The glob widens one feature per migration PR — see MIGRATED_COMPONENT_FEATURES.
   {
     files: [`${MIGRATED_COMPONENTS_GLOB}/*.{ts,tsx}`],
-    ignores: [`${MIGRATED_COMPONENTS_GLOB}/*.{stories,test}.{ts,tsx}`],
+    ignores: [`${MIGRATED_COMPONENTS_GLOB}/*.{stories,test}.{ts,tsx}`, MIGRATED_FEATURE_ROOT_FILES],
     rules: {
       'shiranami/component-folder-structure': 'error',
       'shiranami/index-must-reexport-default': 'error',

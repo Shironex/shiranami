@@ -23,10 +23,10 @@ import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
-const SearchView = lazy(() => import('@/components/search/SearchView'));
-const HistoryView = lazy(() => import('@/components/history/HistoryView'));
+const SearchView = lazy(() => import('@/components/search/SearchView/SearchView'));
+const HistoryView = lazy(() => import('@/components/history/HistoryView/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView'));
-const MixesView = lazy(() => import('@/components/mixes/MixesView'));
+const MixesView = lazy(() => import('@/components/mixes/MixesView/MixesView'));
 const PlaylistImportView = lazy(
   () => import('@/components/playlist-import/PlaylistImportView/PlaylistImportView')
 );
@@ -35,7 +35,9 @@ const SmartPlaylistsView = lazy(
 );
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
-const PlaylistDetailView = lazy(() => import('@/components/playlists/PlaylistDetailView'));
+const PlaylistDetailView = lazy(
+  () => import('@/components/playlists/PlaylistDetailView/PlaylistDetailView')
+);
 // Dev-only: the import expression is dead code in prod (the ternary collapses
 // to `null`), so Rollup never emits the chunk for a production build.
 const DebugOverlay = import.meta.env.DEV
