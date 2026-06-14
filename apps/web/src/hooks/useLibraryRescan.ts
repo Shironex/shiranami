@@ -88,7 +88,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
         }
       }
 
-      // Validate existing tracks — remove any whose files no longer exist on disk
+      // Validate existing tracks — remove any whose files are missing from disk
       let totalRemoved = 0;
       const currentLibrary = useLibraryStore.getState().library;
       if (currentLibrary.length > 0) {

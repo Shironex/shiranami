@@ -69,7 +69,7 @@ test.describe('EQ store', () => {
     expect(after.dirty.preampDb).toBe(-3);
     expect(after.dirty.band0).toBe(4);
     expect(after.dirty.band1).toBe(2);
-    // After setBandGain the preset transitions to 'custom' (gains no longer match any named preset).
+    // After setBandGain the preset transitions to 'custom' (gains match no named preset).
     expect(after.dirty.preset).toBe('custom');
 
     // reset() returns to flat / 0 dB.

@@ -4,13 +4,12 @@ import { createSilentAudioFiles } from './helpers/audio-fixtures';
 import { rmSync } from 'node:fs';
 
 test.describe('album grouping', () => {
-  // Regression guard for #269. An untagged various-artists compilation — same
-  // album title, different track artists, no album-artist tag — must render as
-  // ONE album, not fragment into one album per artist. v0.22.0 keyed grouping
-  // on (albumArtist || artist, album); for untagged comps the `|| artist`
-  // fallback resolved per track and split the album. The fix keys untagged
-  // albums on the title alone, so the three tracks collapse into one card.
-  test('untagged various-artists album stays one album (#269)', async ({ page }) => {
+  // Regression guard: an untagged various-artists compilation — same album
+  // title, different track artists, no album-artist tag — must render as ONE
+  // album, not fragment into one album per artist. Grouping keys untagged
+  // albums on the title alone (not albumArtist || artist), so the three tracks
+  // collapse into one card.
+  test('untagged various-artists album stays one album', async ({ page }) => {
     const { dir, files } = createSilentAudioFiles(3);
     try {
       // Three tracks, one album title, three distinct artists, NO albumArtist.

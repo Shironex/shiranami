@@ -158,8 +158,8 @@ interface PersistedUIState {
 }
 
 // Legacy fields that may still live in the persisted bucket from older
-// versions but are no longer part of the current persisted shape. Read-only
-// during sanitize so we can migrate them forward, then drop them.
+// versions but are absent from the current persisted shape. Read-only during
+// sanitize so we can migrate them forward, then drop them.
 type LegacyPersistedUIState = Partial<PersistedUIState> & {
   nowPlayingLyricsVisible?: boolean;
 };
@@ -269,8 +269,8 @@ function importLegacyUIStore() {
 
   // Relaxed shape — we also copy `compactAlwaysOnTop` through so the
   // useCompactStore one-shot importer (which reads this same combined
-  // bucket) can pick it up on next load. The field is no longer on
-  // PersistedUIState since compact moved to its own store.
+  // bucket) can pick it up on next load. The field lives in useCompactStore,
+  // not PersistedUIState.
   const state: Partial<PersistedUIState> & { compactAlwaysOnTop?: boolean } = {};
 
   const sidebarCollapsed = ls.getItem(LEGACY_KEYS.sidebarCollapsed);

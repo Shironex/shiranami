@@ -1,7 +1,7 @@
 /**
  * IPC handler registration.
  *
- * Error-handling contract (resolves #70):
+ * Error-handling contract:
  *  - Handlers THROW on failure. ipcMain.handle propagates thrown errors as a
  *    rejected promise on the renderer — no { success, error } envelope.
  *  - Use `IpcError(code, message)` from `./errors` for any failure the renderer
@@ -13,7 +13,7 @@
  *    (YT_DLP_ERROR_CODES, SHARE_ERROR_CODES, PLAYLIST_ERROR_CODES), all
  *    re-exported through the preload.
  *
- * Channel naming convention (resolves #75):
+ * Channel naming convention:
  *  - Default shape is two-segment: `<namespace>:<action-name>`
  *    (e.g. `library:scan-folder`, `window:set-compact-mode`).
  *  - Three-segment `<namespace>:<entity>:<action>` is allowed — and preferred —

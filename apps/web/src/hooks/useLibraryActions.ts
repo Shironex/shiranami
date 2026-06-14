@@ -40,7 +40,8 @@ export function useLibraryActions() {
     try {
       // Delegate scan + dedup + persist to the shared helper. It uses the
       // grouped scan, a batched existsMany (no per-file N+1), and carries the
-      // albumArtist tag through — restoring the #269/#270 fix this path lost.
+      // albumArtist tag through so untagged various-artists albums group
+      // correctly.
       const result = await scanAndPersistFolder(dirPath);
 
       if (result.empty) {

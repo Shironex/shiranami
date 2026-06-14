@@ -6,8 +6,8 @@ export interface AlbumData {
    * Stable composite identity for this album: `albumArtist \u0000 album`. Two
    * albums with the same title but different album artists stay separate.
    * Untagged albums have no album-artist tag and are keyed on the title alone,
-   * so an untagged various-artists compilation stays one album (#269). Use this
-   * (not `name`) to select/filter an album.
+   * so an untagged various-artists compilation stays one album. Use this (not
+   * `name`) to select/filter an album.
    */
   key: string;
   name: string;
@@ -35,10 +35,9 @@ export function albumArtistOf(track: Track): string {
  *
  * Keyed on the album-artist tag when present, so identically-titled albums by
  * different artists stay separate. Without an album-artist tag we key on the
- * album title alone — keying on the track artist (as 0.22.0 did) fragments an
- * untagged various-artists compilation into one album per track artist (#269).
- * The NUL separator can't appear in a tag string, so the two key shapes can't
- * collide.
+ * album title alone — keying on the track artist would fragment an untagged
+ * various-artists compilation into one album per track artist. The NUL
+ * separator can't appear in a tag string, so the two key shapes can't collide.
  */
 export function albumKeyOf(track: Track): string {
   const albumArtist = track.albumArtist?.trim();
@@ -51,7 +50,7 @@ export function albumKeyOf(track: Track): string {
  * Albums are keyed by `albumKeyOf` (album-artist tag when present, else the
  * album title alone) — not by the track artist — so identically-named albums by
  * different artists do not merge while an untagged compilation's varied track
- * artists do not fragment one album (#269). Each album's displayed `artist` is
+ * artists do not fragment one album. Each album's displayed `artist` is
  * still derived from the distinct track artists (e.g. "Artist A, Artist B" for
  * compilations). The album's year is taken from the first track encountered for
  * that album.

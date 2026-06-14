@@ -36,7 +36,7 @@ function getValidCompactPosition(width: number, height: number): { x: number; y:
   // The window is considered onscreen if at least 80px of it lands within
   // some display's work area on each axis. That tolerance keeps a slightly
   // off-edge window restoreable while still rejecting one that's mostly on a
-  // monitor that's no longer connected.
+  // disconnected monitor.
   const VISIBLE_PX = 80;
   const visible = displays.some(d => {
     const wa = d.workArea;

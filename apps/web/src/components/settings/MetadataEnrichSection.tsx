@@ -32,7 +32,7 @@ export function MetadataEnrichSection() {
   const confirmYesRef = useRef<HTMLButtonElement>(null);
 
   const [onlyMissing, setOnlyMissing] = useState(true);
-  // Default OFF — writing to files is irreversible, so it must be an explicit opt-in (issue #37).
+  // Default OFF — writing to files is irreversible, so it must be an explicit opt-in.
   const [writeToFile, setWriteToFile] = useState(false);
   const [includeSkipped, setIncludeSkipped] = useState(false);
   const [confirmWrite, setConfirmWrite] = useState(false);
@@ -137,7 +137,7 @@ export function MetadataEnrichSection() {
             </span>
           </div>
 
-          {/* Manual-only reassurance: the issue #37 user feared background auto-modification. */}
+          {/* Manual-only reassurance: enrichment never modifies files in the background. */}
           <SettingsInfoCallout icon={Info}>{t('lib.enrichManualNotice')}</SettingsInfoCallout>
 
           {/* Options */}

@@ -1,1 +1,4 @@
+# lint-staged runs `eslint --fix`, which imports the built @shiranami/eslint-plugin.
+# Build it first so the custom rules resolve on a fresh checkout.
+pnpm --filter @shiranami/eslint-plugin build
 pnpm exec lint-staged

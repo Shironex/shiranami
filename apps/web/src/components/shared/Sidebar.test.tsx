@@ -71,14 +71,15 @@ vi.mock('motion/react', () => ({
     {
       get: (_target, prop) => {
         if (typeof prop === 'string') {
-          // Return a component that renders the HTML element
-          return ({
+          const MotionMock = ({
             children,
             className,
           }: React.HTMLAttributes<HTMLElement> & { layoutId?: string; transition?: unknown }) => {
             const Element = prop as keyof React.JSX.IntrinsicElements;
             return <Element className={className}>{children}</Element>;
           };
+          MotionMock.displayName = `motion.${prop}`;
+          return MotionMock;
         }
         return undefined;
       },
