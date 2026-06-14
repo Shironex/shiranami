@@ -3,10 +3,10 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { randomUUID } from 'crypto';
-import { logger } from './app/logger';
+import { logger } from '../app/logger';
 import { getYtDlpPath } from './ytdlp-manager';
 import { getFFmpegDir, isFFmpegInstalled } from './ffmpeg-manager';
-import { classifyYtDlpFailure, tailOutput, appendUrlArg } from './utils/ytdlp-spawn';
+import { classifyYtDlpFailure, tailOutput, appendUrlArg } from '../utils/ytdlp-spawn';
 
 export interface DownloadProgress {
   url: string;

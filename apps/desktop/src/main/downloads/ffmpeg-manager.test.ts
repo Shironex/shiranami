@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as path from 'path';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
 // Mock electron — app and net are needed by ffmpeg-manager
 const mockUserDataPath = '/mock/userData';
 vi.mock('electron', async () => {
-  const setup = await import('../../test/setup');
+  const setup = await import('../../../test/setup');
   return {
     ...setup,
     app: {
@@ -19,7 +19,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('./app/logger', () => ({
   },
 }));
 
-vi.mock('./app/http', () => ({
+vi.mock('../app/http', () => ({
   requestJson: vi.fn(),
   requestText: vi.fn(),
 }));
@@ -375,7 +375,7 @@ describe('ffmpeg-manager', () => {
           onProgress?.(100);
         }
       );
-      vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
+      vi.doMock('../utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       return mockDownloadFile;
     }
 

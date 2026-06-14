@@ -3,10 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execFile, execFileSync } from 'child_process';
 import { Worker } from 'node:worker_threads';
-import { logger } from './app/logger';
-import { requestJson, requestText } from './app/http';
-import { getBinDir } from './utils/bin-paths';
-import { downloadFile } from './utils/net-download';
+import { logger } from '../app/logger';
+import { requestJson, requestText } from '../app/http';
+import { getBinDir } from '../utils/bin-paths';
+import { downloadFile } from '../utils/net-download';
 
 const FFMPEG_WINDOWS_VERSION_URL =
   'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip.ver';

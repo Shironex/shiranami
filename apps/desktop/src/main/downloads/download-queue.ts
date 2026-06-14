@@ -5,8 +5,8 @@ import type {
   DownloadQueueSnapshot,
   EnqueueDownloadInput,
 } from '@shiranami/contracts';
-import { logger } from './app/logger';
-import { sendToRenderer } from './utils/window';
+import { logger } from '../app/logger';
+import { sendToRenderer } from '../utils/window';
 import { runYtDlpDownload, type DownloadProgress } from './yt-dlp-download';
 import type { DownloadQueuePersistence } from './download-queue-persistence';
 

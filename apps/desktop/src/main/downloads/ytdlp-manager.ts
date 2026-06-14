@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFile, execFileSync } from 'child_process';
-import { logger } from './app/logger';
-import { requestJson } from './app/http';
-import { getBinDir } from './utils/bin-paths';
-import { downloadFile } from './utils/net-download';
-import { userAgent } from './shared/user-agent';
+import { logger } from '../app/logger';
+import { requestJson } from '../app/http';
+import { getBinDir } from '../utils/bin-paths';
+import { downloadFile } from '../utils/net-download';
+import { userAgent } from '../shared/user-agent';
 
 const GITHUB_RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download';
 const GITHUB_RELEASE_API = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest';

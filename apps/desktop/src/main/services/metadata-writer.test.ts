@@ -14,7 +14,7 @@ vi.mock('flac-tagger', () => ({
 
 const mockIsFFmpegInstalled = vi.fn(() => true);
 const mockGetFFmpegPath = vi.fn(() => '/mock/ffmpeg/bin/ffmpeg');
-vi.mock('../ffmpeg-manager', () => ({
+vi.mock('../downloads/ffmpeg-manager', () => ({
   isFFmpegInstalled: (...args: unknown[]) => mockIsFFmpegInstalled(...args),
   getFFmpegPath: (...args: unknown[]) => mockGetFFmpegPath(...args),
 }));

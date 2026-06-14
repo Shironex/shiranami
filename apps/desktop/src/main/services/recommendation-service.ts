@@ -61,7 +61,7 @@ import {
 import { chunk, mapWithConcurrency } from '@shiranami/shared';
 import { logger } from '../app/logger';
 import { spawnYtDlp, appendUrlArg, parseYtDlpJsonLines } from '../utils/ytdlp-spawn';
-import { isYtDlpInstalled } from '../ytdlp-manager';
+import { isYtDlpInstalled } from '../downloads/ytdlp-manager';
 
 /** How many top-affinity tracks seed the discover shelf. One RD mix already
  *  yields ~25 candidates, so a couple of seeds covers a shelf. */

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
 const mockUserDataPath = '/mock/userData';
 
 vi.mock('electron', async () => {
-  const setup = await import('../../test/setup');
+  const setup = await import('../../../test/setup');
   return {
     ...setup,
     app: {
@@ -19,7 +19,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock('./app/logger', () => ({
   },
 }));
 
-vi.mock('./app/http', () => ({
+vi.mock('../app/http', () => ({
   requestJson: vi.fn(),
   requestText: vi.fn(),
 }));
@@ -139,7 +139,7 @@ describe('ytdlp-manager', () => {
   describe('getLatestYtDlpVersion', () => {
     it('returns trimmed tag_name from GitHub releases API', async () => {
       vi.resetModules();
-      vi.doMock('./app/http', () => ({
+      vi.doMock('../app/http', () => ({
         requestJson: vi.fn().mockResolvedValue({ tag_name: '2024.12.31 ' }),
         requestText: vi.fn(),
       }));
@@ -150,7 +150,7 @@ describe('ytdlp-manager', () => {
 
     it('returns null when tag_name is missing', async () => {
       vi.resetModules();
-      vi.doMock('./app/http', () => ({
+      vi.doMock('../app/http', () => ({
         requestJson: vi.fn().mockResolvedValue({}),
         requestText: vi.fn(),
       }));
@@ -161,7 +161,7 @@ describe('ytdlp-manager', () => {
 
     it('returns null on request error', async () => {
       vi.resetModules();
-      vi.doMock('./app/http', () => ({
+      vi.doMock('../app/http', () => ({
         requestJson: vi.fn().mockRejectedValue(new Error('network down')),
         requestText: vi.fn(),
       }));
@@ -198,7 +198,7 @@ describe('ytdlp-manager', () => {
       const mockMkdirSync = vi.fn();
       const mockUnlinkSync = vi.fn();
 
-      vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
+      vi.doMock('../utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       vi.doMock('child_process', () => ({
         execFileSync: vi.fn(),
         execFile: vi.fn(),
@@ -234,7 +234,7 @@ describe('ytdlp-manager', () => {
       const mockChmodSync = vi.fn();
       const mockRenameSync = vi.fn();
 
-      vi.doMock('./utils/net-download', () => ({ downloadFile: mockDownloadFile }));
+      vi.doMock('../utils/net-download', () => ({ downloadFile: mockDownloadFile }));
       vi.doMock('child_process', () => ({
         execFileSync: vi.fn(),
         execFile: vi.fn(),
@@ -263,7 +263,7 @@ describe('ytdlp-manager', () => {
       vi.resetModules();
 
       const mockUnlinkSync = vi.fn();
-      vi.doMock('./utils/net-download', () => ({
+      vi.doMock('../utils/net-download', () => ({
         downloadFile: vi.fn().mockRejectedValue(new Error('download failed')),
       }));
       vi.doMock('child_process', () => ({

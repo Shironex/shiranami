@@ -1,7 +1,7 @@
 import type { MetadataLookupResult } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST } from '@shiranami/shared';
 import { requestBuffer, requestJson } from '../app/http';
-import { isYtDlpInstalled } from '../ytdlp-manager';
+import { isYtDlpInstalled } from '../downloads/ytdlp-manager';
 import { spawnYtDlp } from '../utils/ytdlp-spawn';
 import { isStreamUrlAllowed } from '../shared/url-safety';
 import { logger } from '../app/logger';

@@ -185,7 +185,7 @@ vi.mock('electron', async () => {
   };
 });
 
-vi.mock('../ytdlp-manager', () => ({
+vi.mock('../downloads/ytdlp-manager', () => ({
   getYtDlpPath: vi.fn(() => '/mock/yt-dlp'),
   isYtDlpInstalled: vi.fn(() => true),
   getYtDlpVersion: vi.fn(async () => '2024.01.01'),
@@ -193,7 +193,7 @@ vi.mock('../ytdlp-manager', () => ({
   downloadYtDlp: vi.fn(),
 }));
 
-vi.mock('../ffmpeg-manager', () => ({
+vi.mock('../downloads/ffmpeg-manager', () => ({
   getFFmpegDir: vi.fn(() => '/mock/ffmpeg'),
   isFFmpegInstalled: vi.fn(() => true),
   getFFmpegVersion: vi.fn(async () => '6.1'),
@@ -213,9 +213,9 @@ vi.mock('fs', async importOriginal => {
 // Lazy-import so mocks are established first
 const { registerDownloaderHandlers, cleanupDownloaderHandlers } = await import('./downloader');
 const { isYtDlpInstalled, getYtDlpPath, getYtDlpVersion, getLatestYtDlpVersion } =
-  await import('../ytdlp-manager');
+  await import('../downloads/ytdlp-manager');
 const { isFFmpegInstalled, getFFmpegVersion, getLatestFFmpegVersion } =
-  await import('../ffmpeg-manager');
+  await import('../downloads/ffmpeg-manager');
 const { ipcHandlers } = await import('../../../test/setup');
 
 /** Restore all mock return values that vi.clearAllMocks() wipes. */

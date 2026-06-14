@@ -10,7 +10,7 @@
 
 import * as fs from 'fs';
 import { execFile } from 'child_process';
-import { getFFmpegPath, isFFmpegInstalled } from '../ffmpeg-manager';
+import { getFFmpegPath, isFFmpegInstalled } from '../downloads/ffmpeg-manager';
 import { logger } from '../app/logger';
 
 /** Max time a single loudnorm pass may run before being abandoned (ms). */
