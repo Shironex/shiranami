@@ -4,7 +4,7 @@ import * as path from 'path';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from './logger';
 import { sendToRenderer } from '../utils/window';
-import type { PlaybackState } from '../media-controls';
+import type { PlaybackState } from '../integrations/media-controls';
 
 let tray: Tray | null = null;
 let mainWindowRef: BrowserWindow | null = null;

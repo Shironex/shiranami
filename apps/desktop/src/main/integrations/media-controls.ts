@@ -1,7 +1,7 @@
 import { globalShortcut, BrowserWindow } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
-import { logger } from './app/logger';
-import { sendToRenderer } from './utils/window';
+import { logger } from '../app/logger';
+import { sendToRenderer } from '../utils/window';
 
 export interface PlaybackState {
   isPlaying: boolean;

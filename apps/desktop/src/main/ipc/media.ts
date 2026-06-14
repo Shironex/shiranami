@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import { updateTrayWithPlaybackState } from '../app/tray';
-import { updateDiscordPresence } from '../discord-rpc';
+import { updateDiscordPresence } from '../integrations/discord-rpc';
 import { getMainWindow } from '../utils/window';
-import type { PlaybackState } from '../media-controls';
+import type { PlaybackState } from '../integrations/media-controls';
 import { handle } from './with-ipc-handler';
 import { mediaPlaybackStateArgs, mediaClearStateArgs } from './schemas/media';
 

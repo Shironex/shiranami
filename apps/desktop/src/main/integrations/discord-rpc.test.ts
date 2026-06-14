@@ -3,7 +3,7 @@ import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
 
 // --- Mock electron-store ---
 const storeData = new Map<string, unknown>();
-vi.mock('./app/store', () => ({
+vi.mock('../app/store', () => ({
   store: {
     get: vi.fn((key: string) => storeData.get(key)),
     set: vi.fn((key: string, value: unknown) => {
@@ -12,7 +12,7 @@ vi.mock('./app/store', () => ({
   },
 }));
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
