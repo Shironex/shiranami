@@ -8,7 +8,7 @@ const mockStore = {
   delete: vi.fn(),
 };
 
-vi.mock('../store', () => ({
+vi.mock('../app/store', () => ({
   store: {
     get: (...args: unknown[]) => mockStore.get(...args),
     set: (...args: unknown[]) => mockStore.set(...args),
@@ -16,7 +16,7 @@ vi.mock('../store', () => ({
   },
 }));
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

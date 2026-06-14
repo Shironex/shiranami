@@ -25,7 +25,7 @@ import type {
   SmartPlaylistRule,
   SmartPlaylistMatchType,
 } from '@shiranami/contracts';
-import { logger } from '../../logger';
+import { logger } from '../../app/logger';
 import { handle } from '../with-ipc-handler';
 import { z } from 'zod';
 import {

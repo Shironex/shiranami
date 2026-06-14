@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { folders, tracks, eq } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { logger } from '../logger';
-import { store } from '../store';
+import { logger } from '../app/logger';
+import { store } from '../app/store';
 import { isPathWithinAny, normalizePathForCompare } from './path-safety';
 
 /**

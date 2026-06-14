@@ -79,12 +79,16 @@ const sharedOptions = {
 await Promise.all([
   build({
     ...sharedOptions,
-    entryPoints: [
-      'src/main/index.ts',
-      'src/main/extract-worker.ts',
-      'src/main/scan-utility.ts',
-      'src/main/waveform-worker.ts',
-    ],
+    // Keyed-object form: output names stay flat at dist/main/<key>.js regardless
+    // of source nesting. The worker scripts now live under src/main/workers/ but
+    // must still emit to dist/main/<name>.js because they are spawned at runtime
+    // via path.join(__dirname, '<name>.js') from dist/main.
+    entryPoints: {
+      index: 'src/main/index.ts',
+      'extract-worker': 'src/main/workers/extract-worker.ts',
+      'scan-utility': 'src/main/workers/scan-utility.ts',
+      'waveform-worker': 'src/main/workers/waveform-worker.ts',
+    },
     external: mainExternal,
     plugins: sentryPlugins,
   }),

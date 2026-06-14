@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { radioFavorites, eq, desc, type NewRadioFavorite } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 import { IPC_CHANNELS, type RadioFavorite } from '@shiranami/contracts';
-import { logger } from '../logger';
+import { logger } from '../app/logger';
 import { handle } from './with-ipc-handler';
 import {
   radioFavoritesGetAllArgs,

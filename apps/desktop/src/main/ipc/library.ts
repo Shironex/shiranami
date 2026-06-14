@@ -3,14 +3,14 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
-import { logger } from '../logger';
+import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../services/metadata-service';
+import { logger } from '../app/logger';
 import {
   forkScanUtility,
   ScanCancelledError,
   type ScanUtilityClient,
   type ScanProgressEvent,
-} from '../scan-utility-host';
+} from '../workers/scan-utility-host';
 import { sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {

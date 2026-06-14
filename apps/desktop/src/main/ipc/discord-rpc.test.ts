@@ -7,9 +7,9 @@ const mockService = vi.hoisted(() => ({
   updateDiscordPresence: vi.fn(),
   clearDiscordPresence: vi.fn(),
 }));
-vi.mock('../discord-rpc', () => mockService);
+vi.mock('../integrations/discord-rpc', () => mockService);
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 

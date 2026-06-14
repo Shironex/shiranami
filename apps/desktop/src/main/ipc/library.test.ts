@@ -19,9 +19,9 @@ import type {
   ParseResult,
   ScanProgressEvent,
   ScanProgressListener,
-} from '../scan-utility-host';
+} from '../workers/scan-utility-host';
 
-vi.mock('../logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -49,7 +49,7 @@ const REAL_AUDIO_EXTENSIONS = [
   '.webm',
 ];
 
-vi.mock('../metadata-service', () => ({
+vi.mock('../services/metadata-service', () => ({
   parseAudioMetadata: (...args: unknown[]) => mockParseAudioMetadata(...(args as [string])),
   isAudioFile: vi.fn((filePath: string) =>
     REAL_AUDIO_EXTENSIONS.includes(path.extname(filePath).toLowerCase())
@@ -741,7 +741,7 @@ describe('library ipc handlers', () => {
 
     it('returns ScanCancelledError to an empty result on cancel', async () => {
       // Fake parse rejects with ScanCancelledError to simulate a real cancel.
-      const { ScanCancelledError } = await import('../scan-utility-host');
+      const { ScanCancelledError } = await import('../workers/scan-utility-host');
       const fake = makeFakeScanUtility(async () => {
         throw new ScanCancelledError();
       });
@@ -775,7 +775,7 @@ describe('library ipc handlers', () => {
     });
 
     it('logs scan-end + utility-exit telemetry with the expected shape', async () => {
-      const { logger: mockLogger } = await import('../logger');
+      const { logger: mockLogger } = await import('../app/logger');
       const fake = makeFakeScanUtility();
       _setForkOverrideForTest(() => fake.client);
       cleanupLibraryHandlers();
@@ -810,8 +810,8 @@ describe('library ipc handlers', () => {
 
     it('logs telemetry once on cancel (recordEnd is idempotent)', async () => {
       const { logger: mockLogger, ScanCancelledError } = {
-        ...(await import('../logger')),
-        ...(await import('../scan-utility-host')),
+        ...(await import('../app/logger')),
+        ...(await import('../workers/scan-utility-host')),
       };
       const fake = makeFakeScanUtility(async () => {
         throw new ScanCancelledError();
