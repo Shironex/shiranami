@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import type { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
@@ -8,7 +9,6 @@ import {
   getFeatureName,
   isComponentEntryFile,
   isIgnoredPath,
-  siblingExists,
 } from '../utils/component-architecture';
 
 export const RULE_NAME = 'component-folder-structure';
@@ -78,7 +78,18 @@ export const componentFolderStructureRule = createRule<RuleOptions, MessageIds>(
     const name = getComponentName(filename);
     const dir = path.dirname(filename);
     const required = options.requiredSiblings ?? defaultRequiredSiblings(name);
-    const missing = required.filter(sibling => !siblingExists(dir, sibling));
+
+    // Read the component directory once and test against the resulting set,
+    // rather than a synchronous `existsSync` per required sibling. A
+    // missing/unreadable dir yields an empty set, so every sibling is reported
+    // missing — matching the per-file `existsSync` behavior.
+    let present: ReadonlySet<string>;
+    try {
+      present = new Set(readdirSync(dir));
+    } catch {
+      present = new Set();
+    }
+    const missing = required.filter(sibling => !present.has(sibling));
 
     return {
       Program(node): void {
