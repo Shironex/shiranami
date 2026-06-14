@@ -2,7 +2,7 @@ import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ISearchSuggestionsProps {
-  readonly suggestions: string[];
+  readonly suggestions: readonly string[];
   readonly highlightedIndex: number;
   readonly setHighlightedIndex: (index: number) => void;
   readonly onSelect: (suggestion: string) => void;

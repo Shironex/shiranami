@@ -121,7 +121,7 @@ export default function SearchView() {
 
           {showSuggestions && (
             <SearchSuggestions
-              suggestions={[...suggestions]}
+              suggestions={suggestions}
               highlightedIndex={highlightedIndex}
               setHighlightedIndex={setHighlightedIndex}
               onSelect={onSelectSuggestion}
