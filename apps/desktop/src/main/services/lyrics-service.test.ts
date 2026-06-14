@@ -30,7 +30,7 @@ describe('parseLrc', () => {
   it('sorts lines by time', () => {
     const lrc = '[02:00.00]Second\n[01:00.00]First\n[03:00.00]Third';
     const result = parseLrc(lrc);
-    expect(result.map((l) => l.text)).toEqual(['First', 'Second', 'Third']);
+    expect(result.map(l => l.text)).toEqual(['First', 'Second', 'Third']);
   });
 
   it('skips lines with empty text', () => {
@@ -59,7 +59,7 @@ describe('buildSearchQueries', () => {
 
   it('deduplicates queries', () => {
     const queries = buildSearchQueries('Song', 'Song');
-    const lower = queries.map((q) => q.toLowerCase());
+    const lower = queries.map(q => q.toLowerCase());
     const unique = new Set(lower);
     expect(lower.length).toBe(unique.size);
   });

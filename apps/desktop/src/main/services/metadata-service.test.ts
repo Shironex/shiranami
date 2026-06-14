@@ -8,11 +8,11 @@ vi.mock('music-metadata', () => ({
   parseFile: (...args: unknown[]) => parseFileMock(...args),
 }));
 
-vi.mock('./art-protocol', () => ({
+vi.mock('../art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://fake'),
 }));
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: { warn: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 

@@ -1,13 +1,13 @@
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { closeDatabase, initializeDatabase } from '@shiranami/database/client';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
-vi.mock('./art-protocol', () => ({
+vi.mock('../art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://migrated-hash'),
 }));
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('./app/logger', () => ({
   },
 }));
 
-vi.mock('./app/store', () => ({
+vi.mock('../app/store', () => ({
   store: {
     get: vi.fn(() => false),
     set: vi.fn(),
@@ -24,9 +24,9 @@ vi.mock('./app/store', () => ({
 }));
 
 import { migrateAlbumArtToDisk } from './migrate-album-art';
-import { saveAlbumArt } from './art-protocol';
-import { logger } from './app/logger';
-import { store } from './app/store';
+import { saveAlbumArt } from '../art-protocol';
+import { logger } from '../app/logger';
+import { store } from '../app/store';
 import { tracks, eq } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
 

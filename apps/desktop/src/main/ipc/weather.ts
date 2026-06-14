@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS, WEATHER_UNAVAILABLE, type GeocodeResult } from '@shiranami/contracts';
-import { geocodeCity, getCurrentWeather } from '../weather-service';
+import { geocodeCity, getCurrentWeather } from '../services/weather-service';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { weatherGeocodeArgs, weatherGetCurrentArgs } from './schemas/weather';

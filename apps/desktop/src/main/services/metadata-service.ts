@@ -1,9 +1,9 @@
 import * as path from 'path';
 import type { TrackMetadata } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
-import { logger } from './app/logger';
-import { saveAlbumArt } from './art-protocol';
-import { isAudioExtension } from './shared/media-types';
+import { logger } from '../app/logger';
+import { saveAlbumArt } from '../art-protocol';
+import { isAudioExtension } from '../shared/media-types';
 
 export type { TrackMetadata };
 
@@ -74,7 +74,7 @@ export async function parseAudioMetadata(filePath: string): Promise<TrackMetadat
 }
 
 /** Audio extensions we support. Re-exported from the shared media-types map. */
-export { AUDIO_EXTENSIONS } from './shared/media-types';
+export { AUDIO_EXTENSIONS } from '../shared/media-types';
 
 /** Check if a file path has a supported audio extension */
 export function isAudioFile(filePath: string): boolean {

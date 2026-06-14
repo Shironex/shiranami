@@ -7,7 +7,7 @@ import type {
 import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { lookupMetadata, downloadImage, type MetadataLookupResult } from './metadata-lookup';
 import { writeMetadataToFile, type WriteMetadataOptions } from './metadata-writer';
-import { logger } from './app/logger';
+import { logger } from '../app/logger';
 
 /** Number of tracks enriched concurrently in a bulk run. The per-host gates in
  *  http.ts already serialize the actual iTunes / cover-art requests, so this
@@ -133,7 +133,7 @@ export async function enrichSingleTrack(
     // Either preview mode or apply-without-file-write: cache the cover so the
     // renderer can display + commit it via DB-only update. Orphaned cache
     // entries (preview-then-discard) are harmless and dedupe by content hash.
-    const { saveAlbumArt } = await import('./art-protocol');
+    const { saveAlbumArt } = await import('../art-protocol');
     const albumArtUrl = await saveAlbumArt(coverImageBuffer, coverImageMime);
     if (albumArtUrl) {
       updatedFields.albumArt = albumArtUrl;

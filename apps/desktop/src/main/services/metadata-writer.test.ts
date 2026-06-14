@@ -14,13 +14,13 @@ vi.mock('flac-tagger', () => ({
 
 const mockIsFFmpegInstalled = vi.fn(() => true);
 const mockGetFFmpegPath = vi.fn(() => '/mock/ffmpeg/bin/ffmpeg');
-vi.mock('./ffmpeg-manager', () => ({
+vi.mock('../ffmpeg-manager', () => ({
   isFFmpegInstalled: (...args: unknown[]) => mockIsFFmpegInstalled(...args),
   getFFmpegPath: (...args: unknown[]) => mockGetFFmpegPath(...args),
 }));
 
 const mockSaveAlbumArt = vi.fn(async () => 'shiranami-art://art/testhash.jpg');
-vi.mock('./art-protocol', () => ({
+vi.mock('../art-protocol', () => ({
   saveAlbumArt: (...args: unknown[]) => mockSaveAlbumArt(...args),
 }));
 
@@ -44,7 +44,7 @@ vi.mock('fs', async () => {
   };
 });
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock('./app/logger', () => ({
 // ── Import under test (after mocks) ─────────────────────────────────────────
 
 import { writeMetadataToFile } from './metadata-writer';
-import { logger } from './app/logger';
+import { logger } from '../app/logger';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

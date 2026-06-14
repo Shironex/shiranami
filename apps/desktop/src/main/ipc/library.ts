@@ -3,7 +3,7 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { mapWithConcurrency, UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../metadata-service';
+import { parseAudioMetadata, isAudioFile, type TrackMetadata } from '../services/metadata-service';
 import { logger } from '../app/logger';
 import {
   forkScanUtility,

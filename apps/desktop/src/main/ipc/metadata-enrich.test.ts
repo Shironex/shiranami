@@ -14,14 +14,14 @@ import {
   type EnrichTrackInput,
   type EnrichTrackResult,
 } from './metadata-enrich';
-import type { MetadataLookupResult } from '../metadata-lookup';
+import type { MetadataLookupResult } from '../services/metadata-lookup';
 
-vi.mock('../metadata-lookup', () => ({
+vi.mock('../services/metadata-lookup', () => ({
   lookupMetadata: vi.fn(),
   downloadImage: vi.fn(),
 }));
 
-vi.mock('../metadata-writer', () => ({
+vi.mock('../services/metadata-writer', () => ({
   writeMetadataToFile: vi.fn(async () => null),
 }));
 
@@ -39,8 +39,8 @@ vi.mock('../app/logger', () => ({
 }));
 
 // Import mocked modules so we can configure return values per test
-import { lookupMetadata, downloadImage } from '../metadata-lookup';
-import { writeMetadataToFile } from '../metadata-writer';
+import { lookupMetadata, downloadImage } from '../services/metadata-lookup';
+import { writeMetadataToFile } from '../services/metadata-writer';
 import { saveAlbumArt } from '../art-protocol';
 
 const mockedLookup = vi.mocked(lookupMetadata);

@@ -14,15 +14,15 @@ import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
 import { registerAudioProtocol } from './audio-protocol';
 import { registerRadioProtocol } from './radio-protocol';
 import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
-import { migrateAlbumArtToDisk } from './migrate-album-art';
+import { migrateAlbumArtToDisk } from './services/migrate-album-art';
 import { emitSystemNotice } from './app/system-notice';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
 import { initializeDatabase, closeDatabase } from '@shiranami/database/client';
-import { backupDatabaseOnLaunch } from './db-backup';
+import { backupDatabaseOnLaunch } from './services/db-backup';
 import {
   scheduleRecommendationRefresh,
   cancelRecommendationRefresh,
-} from './recommendation-service';
+} from './services/recommendation-service';
 import { startScrobbler, stopScrobbler } from './scrobbler';
 import { PRIVILEGED_SCHEMES } from './privileged-schemes';
 import { IPC_CHANNELS } from '@shiranami/contracts';

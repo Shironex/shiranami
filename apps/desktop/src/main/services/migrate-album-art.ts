@@ -1,8 +1,8 @@
 import { tracks, eq, like } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { saveAlbumArt } from './art-protocol';
-import { logger } from './app/logger';
-import { store } from './app/store';
+import { saveAlbumArt } from '../art-protocol';
+import { logger } from '../app/logger';
+import { store } from '../app/store';
 
 const BATCH_SIZE = 50;
 

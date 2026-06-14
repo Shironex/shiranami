@@ -49,7 +49,7 @@ const REAL_AUDIO_EXTENSIONS = [
   '.webm',
 ];
 
-vi.mock('../metadata-service', () => ({
+vi.mock('../services/metadata-service', () => ({
   parseAudioMetadata: (...args: unknown[]) => mockParseAudioMetadata(...(args as [string])),
   isAudioFile: vi.fn((filePath: string) =>
     REAL_AUDIO_EXTENSIONS.includes(path.extname(filePath).toLowerCase())
