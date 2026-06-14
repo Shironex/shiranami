@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { execFile } from 'child_process';
 import { getFFmpegPath, isFFmpegInstalled } from '../ffmpeg-manager';
-import { saveAlbumArt } from '../art-protocol';
+import { saveAlbumArt } from '../protocols/art-protocol';
 import { logger } from '../app/logger';
 
 export interface WriteMetadataOptions {

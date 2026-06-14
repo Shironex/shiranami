@@ -1,8 +1,8 @@
 import { net, protocol } from 'electron';
-import { logger } from './app/logger';
-import { isStreamUrlAllowed } from './shared/url-safety';
-import { userAgent } from './shared/user-agent';
-import { DEFAULT_AUDIO_MIME } from './shared/media-types';
+import { logger } from '../app/logger';
+import { isStreamUrlAllowed } from '../shared/url-safety';
+import { userAgent } from '../shared/user-agent';
+import { DEFAULT_AUDIO_MIME } from '../shared/media-types';
 
 /**
  * Maximum redirect hops we will follow before giving up. Each hop's

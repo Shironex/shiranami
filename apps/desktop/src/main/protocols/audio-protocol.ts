@@ -1,9 +1,9 @@
 import { protocol } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from './app/logger';
-import { isPathAllowed } from './shared/folders-cache';
-import { AUDIO_EXTENSIONS, audioMime } from './shared/media-types';
+import { logger } from '../app/logger';
+import { isPathAllowed } from '../shared/folders-cache';
+import { AUDIO_EXTENSIONS, audioMime } from '../shared/media-types';
 
 /**
  * Register the shiranami-audio: protocol for streaming local audio files.

@@ -1,6 +1,6 @@
 import { tracks, eq, like } from '@shiranami/database';
 import { getDatabase } from '@shiranami/database/client';
-import { saveAlbumArt } from '../art-protocol';
+import { saveAlbumArt } from '../protocols/art-protocol';
 import { logger } from '../app/logger';
 import { store } from '../app/store';
 

@@ -11,9 +11,9 @@ import { createTray, destroyTray } from './app/tray';
 import { initializeSystemBehavior, attachTrayWindowBehavior } from './app/system-behavior';
 import { initializeMediaControls, cleanupMediaControls } from './media-controls';
 import { initializeDiscordRpc, cleanupDiscordRpc } from './discord-rpc';
-import { registerAudioProtocol } from './audio-protocol';
-import { registerRadioProtocol } from './radio-protocol';
-import { registerArtProtocol, pruneOrphanedAlbumArt } from './art-protocol';
+import { registerAudioProtocol } from './protocols/audio-protocol';
+import { registerRadioProtocol } from './protocols/radio-protocol';
+import { registerArtProtocol, pruneOrphanedAlbumArt } from './protocols/art-protocol';
 import { migrateAlbumArtToDisk } from './services/migrate-album-art';
 import { emitSystemNotice } from './app/system-notice';
 import { prewarm as prewarmFoldersCache } from './shared/folders-cache';
@@ -24,7 +24,7 @@ import {
   cancelRecommendationRefresh,
 } from './services/recommendation-service';
 import { startScrobbler, stopScrobbler } from './scrobbler';
-import { PRIVILEGED_SCHEMES } from './privileged-schemes';
+import { PRIVILEGED_SCHEMES } from './protocols/privileged-schemes';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 
 // E2E hatch: when running under @playwright/test we disable noisy bootstrap

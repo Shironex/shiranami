@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
 /** Captured protocol handler (set when registerAudioProtocol() runs). */
 let capturedHandler: ((req: Request) => Promise<Response>) | null = null;
@@ -14,7 +14,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('./app/logger', () => ({
 }));
 
 const mockIsPathAllowed = vi.fn<(p: string) => Promise<boolean>>();
-vi.mock('./shared/folders-cache', () => ({
+vi.mock('../shared/folders-cache', () => ({
   isPathAllowed: (p: string) => mockIsPathAllowed(p),
 }));
 

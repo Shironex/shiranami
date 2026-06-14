@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { closeDatabase, initializeDatabase } from '@shiranami/database/client';
 import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
-vi.mock('../art-protocol', () => ({
+vi.mock('../protocols/art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://migrated-hash'),
 }));
 
@@ -24,7 +24,7 @@ vi.mock('../app/store', () => ({
 }));
 
 import { migrateAlbumArtToDisk } from './migrate-album-art';
-import { saveAlbumArt } from '../art-protocol';
+import { saveAlbumArt } from '../protocols/art-protocol';
 import { logger } from '../app/logger';
 import { store } from '../app/store';
 import { tracks, eq } from '@shiranami/database';

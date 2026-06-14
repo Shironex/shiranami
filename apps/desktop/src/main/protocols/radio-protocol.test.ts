@@ -24,7 +24,7 @@ vi.mock('electron', () => ({
   },
 }));
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: (...args: unknown[]) => loggerMock.info(...args),
     warn: (...args: unknown[]) => loggerMock.warn(...args),
@@ -33,7 +33,7 @@ vi.mock('./app/logger', () => ({
   },
 }));
 
-vi.mock('./shared/url-safety', () => ({
+vi.mock('../shared/url-safety', () => ({
   isStreamUrlAllowed: (...args: unknown[]) => mockIsStreamUrlAllowed(...args),
 }));
 

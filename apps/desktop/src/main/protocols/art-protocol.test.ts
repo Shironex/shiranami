@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { join } from 'node:path';
 import { closeDatabase, initializeDatabase, getDatabase } from '@shiranami/database/client';
 import { tracks, playlists } from '@shiranami/database';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 import { extToMime, toArtUrl } from './art-protocol';
 
 describe('extToMime', () => {
@@ -168,7 +168,7 @@ vi.mock('electron', async importOriginal => {
   };
 });
 
-vi.mock('./app/logger', () => ({
+vi.mock('../app/logger', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),

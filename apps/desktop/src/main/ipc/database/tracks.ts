@@ -6,7 +6,7 @@ import { IPC_CHANNELS } from '@shiranami/contracts';
 import { chunk } from '@shiranami/shared';
 import { logger } from '../../app/logger';
 import { handle } from '../with-ipc-handler';
-import { pruneOrphanedAlbumArt } from '../../art-protocol';
+import { pruneOrphanedAlbumArt } from '../../protocols/art-protocol';
 import { emitSystemNotice } from '../../app/system-notice';
 import {
   tracksGetAllArgs,

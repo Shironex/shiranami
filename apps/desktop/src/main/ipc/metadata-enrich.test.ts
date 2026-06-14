@@ -25,7 +25,7 @@ vi.mock('../services/metadata-writer', () => ({
   writeMetadataToFile: vi.fn(async () => null),
 }));
 
-vi.mock('../art-protocol', () => ({
+vi.mock('../protocols/art-protocol', () => ({
   saveAlbumArt: vi.fn(async () => 'shiranami-art://hash'),
 }));
 
@@ -41,7 +41,7 @@ vi.mock('../app/logger', () => ({
 // Import mocked modules so we can configure return values per test
 import { lookupMetadata, downloadImage } from '../services/metadata-lookup';
 import { writeMetadataToFile } from '../services/metadata-writer';
-import { saveAlbumArt } from '../art-protocol';
+import { saveAlbumArt } from '../protocols/art-protocol';
 
 const mockedLookup = vi.mocked(lookupMetadata);
 const mockedDownloadImage = vi.mocked(downloadImage);

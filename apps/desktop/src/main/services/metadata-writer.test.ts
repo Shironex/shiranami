@@ -20,7 +20,7 @@ vi.mock('../ffmpeg-manager', () => ({
 }));
 
 const mockSaveAlbumArt = vi.fn(async () => 'shiranami-art://art/testhash.jpg');
-vi.mock('../art-protocol', () => ({
+vi.mock('../protocols/art-protocol', () => ({
   saveAlbumArt: (...args: unknown[]) => mockSaveAlbumArt(...args),
 }));
 
