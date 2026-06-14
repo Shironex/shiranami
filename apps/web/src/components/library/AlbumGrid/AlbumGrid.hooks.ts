@@ -1,31 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getScrollbarSize, type GridImperativeAPI } from 'react-window';
 import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
-import { type Track } from '@/stores/types';
-import { Disc3, Search } from 'lucide-react';
-import { motion } from 'motion/react';
-import {
-  Grid,
-  getScrollbarSize,
-  type CellComponentProps,
-  type GridImperativeAPI,
-} from 'react-window';
-import { groupTracksByAlbum, type AlbumData } from '@/lib/albumSort';
-import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
-import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
-
-interface AlbumGridProps {
-  library: Track[];
-  searchQuery: string;
-}
-
-type GridSize = 'small' | 'medium' | 'large';
+import { groupTracksByAlbum } from '@/lib/albumSort';
+import type { AlbumGridSize, IAlbumGridProps, IAlbumGridView } from './AlbumGrid.types';
 
 // Tailwind breakpoint columns mirrored in JS so Grid can compute layout. The
 // non-virtualized version delegated to CSS grid, but Grid needs an explicit
 // columnCount.
-const COLUMN_COUNTS: Record<GridSize, ReadonlyArray<readonly [number, number]>> = {
+const COLUMN_COUNTS: Record<AlbumGridSize, ReadonlyArray<readonly [number, number]>> = {
   // [minViewportWidthPx, columns]
   small: [
     [1536, 8],
@@ -49,7 +33,7 @@ const COLUMN_COUNTS: Record<GridSize, ReadonlyArray<readonly [number, number]>> 
   ],
 };
 
-function columnsFor(size: GridSize, viewportWidth: number): number {
+function columnsFor(size: AlbumGridSize, viewportWidth: number): number {
   const table = COLUMN_COUNTS[size];
   for (const [minWidth, cols] of table) {
     if (viewportWidth >= minWidth) return cols;
@@ -61,86 +45,15 @@ function columnsFor(size: GridSize, viewportWidth: number): number {
 // Image height = (cellWidth - 2*padding). Total = imgHeight + textBlock + p*2.
 // Padding: small=p-3 (12), medium/large=p-4 (16). Mb-3 between img and text.
 // Text block: title 20 + mt-0.5 2 + artist 16 + mt-1.5 6 + count 14 = 58px + 6px safety = 64px.
-const ROW_HEIGHT_TEXT_BLOCK = 64;
+export const ROW_HEIGHT_TEXT_BLOCK = 64;
 // Tailwind mb-3 between the cover image and the text block — the button is
 // flex flex-col so this margin takes real vertical space and must be in the
 // row-height math, otherwise the text overflows past the visible card edge.
 const IMG_TEXT_GAP_PX = 12;
-const GAP_PX: Record<GridSize, number> = { small: 8, medium: 12, large: 16 };
-const PADDING_PX: Record<GridSize, number> = { small: 12, medium: 16, large: 16 };
+const GAP_PX: Record<AlbumGridSize, number> = { small: 8, medium: 12, large: 16 };
+const PADDING_PX: Record<AlbumGridSize, number> = { small: 12, medium: 16, large: 16 };
 
-interface CellProps {
-  albums: AlbumData[];
-  columnCount: number;
-  gap: number;
-  onAlbumClick: (key: string) => void;
-  cardPaddingClass: string;
-  imgPx: number;
-  trackCountLabel: (count: number) => string;
-}
-
-function AlbumCell({
-  columnIndex,
-  rowIndex,
-  style,
-  albums,
-  columnCount,
-  gap,
-  onAlbumClick,
-  cardPaddingClass,
-  imgPx,
-  trackCountLabel,
-}: CellComponentProps<CellProps>) {
-  const index = rowIndex * columnCount + columnIndex;
-  const album = albums[index];
-  const halfGap = gap / 2;
-  const insetStyle: React.CSSProperties = {
-    ...style,
-    paddingLeft: columnIndex === 0 ? 0 : halfGap,
-    paddingRight: columnIndex === columnCount - 1 ? 0 : halfGap,
-    paddingTop: rowIndex === 0 ? 0 : halfGap,
-    paddingBottom: halfGap,
-  };
-  if (!album) {
-    return <div style={insetStyle} aria-hidden="true" />;
-  }
-  return (
-    <div style={insetStyle}>
-      <button
-        onClick={() => onAlbumClick(album.key)}
-        className={`text-left ${cardPaddingClass} rounded-2xl bg-card/70 border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col`}
-      >
-        <div
-          className="w-full rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden"
-          style={{ height: imgPx, flexShrink: 0 }}
-        >
-          <TrackThumbnail
-            fill
-            albumArt={album.albumArt}
-            alt={album.name}
-            fallback={
-              <Disc3 className="w-10 h-10 text-muted-foreground/20 group-hover:text-muted-foreground/30 transition-colors" />
-            }
-          />
-        </div>
-        <div
-          style={{ height: ROW_HEIGHT_TEXT_BLOCK }}
-          className="flex flex-col justify-start min-w-0"
-        >
-          <p className="font-display text-sm font-semibold text-foreground truncate">
-            {album.name}
-          </p>
-          <p className="text-xs text-muted-foreground/50 truncate mt-0.5">{album.artist}</p>
-          <p className="text-xs text-muted-foreground/40 mt-1.5 truncate">
-            {trackCountLabel(album.trackCount)}
-          </p>
-        </div>
-      </button>
-    </div>
-  );
-}
-
-export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
+export function useAlbumGrid({ library, searchQuery }: IAlbumGridProps): IAlbumGridView {
   const { t } = useTranslation('library');
   const selectAlbum = useViewStore(s => s.selectAlbum);
   const albumGridScrollTop = useViewStore(s => s.albumGridScrollTop);
@@ -176,7 +89,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
       setAlbumGridScrollTop(offset);
       selectAlbum(albumKey);
     },
-    [selectAlbum, setAlbumGridScrollTop, gridRef]
+    [selectAlbum, setAlbumGridScrollTop]
   );
 
   const albums = useMemo(
@@ -235,7 +148,7 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
       el.scrollTop = savedScrollTop.current;
       didRestoreScroll.current = true;
     }
-  }, [containerWidth, gridRef]);
+  }, [containerWidth]);
 
   const cellProps = useMemo(
     () => ({
@@ -250,46 +163,23 @@ export function AlbumGrid({ library, searchQuery }: AlbumGridProps) {
     [filteredAlbums, columnCount, gap, handleAlbumClick, cardPaddingClass, imgPx, trackCountLabel]
   );
 
-  if (filteredAlbums.length === 0) {
-    return (
-      <ViewEmptyState
-        compact
-        icon={Search}
-        title={t('noMatchesTitle')}
-        subtitle={t('noMatchesSubtitle')}
-      />
-    );
-  }
-
-  return (
-    <div ref={containerRef} className="flex-1 overflow-hidden px-6 pb-4 flex flex-col">
-      {searchQuery.trim() && (
-        <p className="text-xs text-muted-foreground/50 mb-3 px-1 shrink-0">
-          {t('albumFilterCount', { filtered: filteredAlbums.length, total: albums.length })}
-        </p>
-      )}
-      <motion.div
-        className="flex-1 min-h-0 scrollbar-thin"
-        initial={isReturning.current ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        style={{ height: '100%' }}
-      >
-        {columnCount > 0 && containerWidth > 0 && (
-          <Grid
-            gridRef={gridRef as React.RefObject<GridImperativeAPI>}
-            cellComponent={AlbumCell}
-            cellProps={cellProps}
-            columnCount={columnCount}
-            columnWidth={columnWidthPx}
-            rowCount={rowCount}
-            rowHeight={cellOuterHeight}
-            overscanCount={2}
-            className="scrollbar-thin"
-            style={{ height: '100%' }}
-          />
-        )}
-      </motion.div>
-    </div>
-  );
+  return {
+    containerRef,
+    gridRef,
+    isEmpty: filteredAlbums.length === 0,
+    isReturning: isReturning.current,
+    showFilterCount: searchQuery.trim().length > 0,
+    filterCountLabel: t('albumFilterCount', {
+      filtered: filteredAlbums.length,
+      total: albums.length,
+    }),
+    emptyTitle: t('noMatchesTitle'),
+    emptySubtitle: t('noMatchesSubtitle'),
+    columnCount,
+    rowCount,
+    columnWidthPx,
+    cellOuterHeight,
+    showGrid: columnCount > 0 && containerWidth > 0,
+    cellProps,
+  };
 }
