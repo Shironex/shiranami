@@ -42,13 +42,11 @@ export async function checkEslintConfigNoWarn(root: string): Promise<IViolation[
   const eslint = new ESLint({ cwd: root, errorOnUnmatchedPattern: false });
 
   const warnRules = new Set<string>();
-  let resolvedAny = false;
-  let lastError: unknown;
+  const failedProbes: { probe: string; error: unknown }[] = [];
 
   for (const probe of PROBE_RELATIVE_PATHS) {
     try {
       const config = await eslint.calculateConfigForFile(join(root, probe));
-      resolvedAny = true;
       const rules = config.rules ?? {};
       for (const [ruleId, value] of Object.entries(rules)) {
         if (severityToNumber(value) === 1) {
@@ -56,27 +54,28 @@ export async function checkEslintConfigNoWarn(root: string): Promise<IViolation[
         }
       }
     } catch (error) {
-      lastError = error;
+      failedProbes.push({ probe, error });
     }
   }
 
-  // Fail closed: if the config could not be resolved at all, report it rather
-  // than silently pass (a silent pass is the false-negative this check kills).
-  if (!resolvedAny) {
-    return [
-      {
-        file: join(root, CONFIG_BASENAME),
-        rule: RULE_ID,
-        message: `Could not resolve the effective ESLint config (run \`pnpm --filter @shiranami/eslint-plugin build\` so the plugin dist exists): ${String(lastError)}`,
-      },
-    ];
-  }
+  // Fail closed: surface EVERY probe that failed to resolve, not only the case
+  // where all of them failed. Each probe covers a distinct file shape (test
+  // files, the react renderer, etc.), so a single failed probe means any "warn"
+  // scoped to that shape would be silently missed — exactly the false negative
+  // this check exists to prevent.
+  const failures: IViolation[] = failedProbes.map(({ probe, error }) => ({
+    file: join(root, CONFIG_BASENAME),
+    rule: RULE_ID,
+    message: `Could not resolve the effective ESLint config for the "${probe}" file shape (run \`pnpm --filter @shiranami/eslint-plugin build\` so the plugin dist exists): ${String(error)}`,
+  }));
 
-  return [...warnRules].sort().map(ruleId => ({
+  const warnings: IViolation[] = [...warnRules].sort().map(ruleId => ({
     file: join(root, CONFIG_BASENAME),
     rule: RULE_ID,
     message: `Rule "${ruleId}" resolves to "warn". ESLint severities must be "error" or "off", never "warn" (this is the RESOLVED severity, so it may come from a spread preset, not a literal in the config file). Override it explicitly.`,
   }));
+
+  return [...failures, ...warnings];
 }
 
 /**
