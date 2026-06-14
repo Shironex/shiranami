@@ -6,6 +6,7 @@ namespace shiranami::audio {
 
 void reducePeaks(const float* frames, std::size_t frameCount,
                  std::uint32_t channels, int buckets, float* out) {
+  if (buckets <= 0 || out == nullptr) return;  // core stays safe if called directly
   if (frameCount == 0 || channels == 0) {
     for (int b = 0; b < buckets; b++) out[b] = 0.0f;
     return;
