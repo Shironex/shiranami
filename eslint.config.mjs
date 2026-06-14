@@ -57,11 +57,8 @@ export default defineConfig(
       'shiranami/no-template-trim-empty-ternary': 'error',
       'shiranami/props-must-be-visual': 'error',
       'shiranami/no-process-exit': ['error', { allowedFiles: PROCESS_EXIT_ALLOWLIST }],
-      // Backlog: too many pre-existing violations to fix in this chunk
-      // (no-historical-comments ~20, no-pr-reference-comments ~23). Shipped off
-      // until the comment debt is burned down; flip to error then.
-      'shiranami/no-historical-comments': 'off',
-      'shiranami/no-pr-reference-comments': 'off',
+      'shiranami/no-historical-comments': 'error',
+      'shiranami/no-pr-reference-comments': 'error',
       // Dormant rules (present but disabled — high churn or missing prerequisite).
       'shiranami/prefer-early-return': 'off',
       'shiranami/interface-prefix-i': 'off',
