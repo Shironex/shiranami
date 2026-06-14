@@ -78,7 +78,15 @@ export function decodeWaveformPeaks(filePath: string, buckets: number): Promise<
   const id = nextId++;
   return new Promise<number[] | null>(resolve => {
     pending.set(id, resolve);
-    w.postMessage({ id, filePath, buckets });
+    try {
+      w.postMessage({ id, filePath, buckets });
+    } catch (error) {
+      // Worker died between ensureWorker() and postMessage — honour the
+      // never-rejects contract instead of leaking a pending resolver.
+      pending.delete(id);
+      logger.warn('[waveform] failed to post decode job:', error);
+      resolve(null);
+    }
   });
 }
 
