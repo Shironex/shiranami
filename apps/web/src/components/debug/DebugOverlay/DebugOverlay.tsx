@@ -3,12 +3,13 @@
 // heap, React commit attribution, the active timer registry, per-store update
 // Hz, and a long-task feed.
 //
-// Reads `useDebugStore` with narrow selectors so the panel itself re-renders
-// minimally. Only mounted while `open` is true (see App.tsx), so when closed it
-// adds zero cost. The main sampler is driven by `useDebugInstrumentation`.
+// All store reads live in `useDebugOverlay`; the shell only formats the
+// snapshot into rows. Only mounted while `open` is true (see App.tsx), so when
+// closed it adds zero cost. The main sampler is driven by
+// `useDebugInstrumentation`.
 
-import { useDebugStore } from '@/stores/useDebugStore';
 import { cn } from '@/lib/utils';
+import { useDebugOverlay } from './DebugOverlay.hooks';
 
 function formatKb(kb: number): string {
   if (kb >= 1024 * 1024) return `${(kb / 1024 / 1024).toFixed(1)} GB`;
@@ -43,11 +44,58 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
   );
 }
 
-export function DebugOverlay() {
-  const main = useDebugStore(s => s.main);
-  const renderer = useDebugStore(s => s.renderer);
-  const longTasks = useDebugStore(s => s.longTasks);
-  const close = useDebugStore(s => s.close);
+export default function DebugOverlay() {
+  const { main, renderer, longTasks, close } = useDebugOverlay();
+
+  const procRows = main?.procs.map(p => (
+    <tr
+      key={p.pid}
+      className={cn(p.type === 'GPU' && 'text-cyan-300', p.cpu >= 25 && 'text-amber-400')}
+    >
+      <td className="text-left">{p.type}</td>
+      <td className="text-right">{p.pid}</td>
+      <td className="text-right">{p.cpu.toFixed(1)}</td>
+      <td className="text-right">{formatKb(p.mem)}</td>
+    </tr>
+  ));
+
+  const commitRows = renderer.renderStats.map(s => (
+    <tr key={s.id} className={cn(s.commits >= 30 && 'text-amber-400')}>
+      <td className="text-left">{s.id}</td>
+      <td className="text-right">{s.commits}</td>
+      <td className="text-right">{s.totalDuration.toFixed(1)}</td>
+    </tr>
+  ));
+
+  const rafOriginItems = renderer.timers?.rafOrigins.map(o => (
+    <li key={o.id} className="truncate">
+      ↳ {o.origin}
+    </li>
+  ));
+  const hasRafOrigins = Boolean(renderer.timers && renderer.timers.rafOrigins.length > 0);
+
+  const storeHzItems = Object.entries(renderer.storeHz).map(([name, hz]) => (
+    <Stat key={name} label={name} value={`${hz}`} warn={hz >= 10} />
+  ));
+  const hasStoreHz = storeHzItems.length > 0;
+
+  const longTaskItems = longTasks.map((t, i) => (
+    <li
+      key={`${t.ts}-${i}`}
+      className={cn(
+        'flex justify-between gap-2',
+        t.duration >= 100 ? 'text-red-400' : 'text-amber-400'
+      )}
+    >
+      <span className="truncate">
+        {t.kind}
+        {t.name ? `: ${t.name}` : ''}
+      </span>
+      <span className="tabular-nums">{t.duration} ms</span>
+    </li>
+  ));
+
+  const fpsWarn = renderer.fps > 0 && renderer.fps < 50;
 
   return (
     <div
@@ -79,22 +127,7 @@ export function DebugOverlay() {
                   <th className="text-right font-normal">mem</th>
                 </tr>
               </thead>
-              <tbody>
-                {main.procs.map(p => (
-                  <tr
-                    key={p.pid}
-                    className={cn(
-                      p.type === 'GPU' && 'text-cyan-300',
-                      p.cpu >= 25 && 'text-amber-400'
-                    )}
-                  >
-                    <td className="text-left">{p.type}</td>
-                    <td className="text-right">{p.pid}</td>
-                    <td className="text-right">{p.cpu.toFixed(1)}</td>
-                    <td className="text-right">{formatKb(p.mem)}</td>
-                  </tr>
-                ))}
-              </tbody>
+              <tbody>{procRows}</tbody>
             </table>
           ) : (
             <div className="text-white/40">waiting for samples…</div>
@@ -113,11 +146,7 @@ export function DebugOverlay() {
         )}
 
         <Section title="Renderer">
-          <Stat
-            label="fps"
-            value={`${renderer.fps}`}
-            warn={renderer.fps > 0 && renderer.fps < 50}
-          />
+          <Stat label="fps" value={`${renderer.fps}`} warn={fpsWarn} />
           <Stat
             label="frame p95"
             value={`${renderer.frameP95.toFixed(1)} ms`}
@@ -136,15 +165,7 @@ export function DebugOverlay() {
                   <th className="text-right font-normal">ms</th>
                 </tr>
               </thead>
-              <tbody>
-                {renderer.renderStats.map(s => (
-                  <tr key={s.id} className={cn(s.commits >= 30 && 'text-amber-400')}>
-                    <td className="text-left">{s.id}</td>
-                    <td className="text-right">{s.commits}</td>
-                    <td className="text-right">{s.totalDuration.toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
+              <tbody>{commitRows}</tbody>
             </table>
           ) : (
             <div className="text-white/40">no commits in window</div>
@@ -157,13 +178,9 @@ export function DebugOverlay() {
               <Stat label="active rAF" value={`${renderer.timers.activeRaf}`} />
               <Stat label="active intervals" value={`${renderer.timers.activeIntervals}`} />
               <Stat label="active timeouts" value={`${renderer.timers.activeTimeouts}`} />
-              {renderer.timers.rafOrigins.length > 0 && (
+              {hasRafOrigins && (
                 <ul className="mt-1 space-y-0.5 font-mono text-[10px] text-white/50">
-                  {renderer.timers.rafOrigins.map(o => (
-                    <li key={o.id} className="truncate">
-                      ↳ {o.origin}
-                    </li>
-                  ))}
+                  {rafOriginItems}
                 </ul>
               )}
             </>
@@ -173,12 +190,8 @@ export function DebugOverlay() {
         </Section>
 
         <Section title="Store updates (Hz)">
-          {Object.keys(renderer.storeHz).length > 0 ? (
-            <div className="space-y-0.5">
-              {Object.entries(renderer.storeHz).map(([name, hz]) => (
-                <Stat key={name} label={name} value={`${hz}`} warn={hz >= 10} />
-              ))}
-            </div>
+          {hasStoreHz ? (
+            <div className="space-y-0.5">{storeHzItems}</div>
           ) : (
             <div className="text-white/40">no tracked updates</div>
           )}
@@ -186,23 +199,7 @@ export function DebugOverlay() {
 
         <Section title="Long tasks / slow events">
           {longTasks.length > 0 ? (
-            <ul className="space-y-0.5 font-mono text-[10px]">
-              {longTasks.map((t, i) => (
-                <li
-                  key={`${t.ts}-${i}`}
-                  className={cn(
-                    'flex justify-between gap-2',
-                    t.duration >= 100 ? 'text-red-400' : 'text-amber-400'
-                  )}
-                >
-                  <span className="truncate">
-                    {t.kind}
-                    {t.name ? `: ${t.name}` : ''}
-                  </span>
-                  <span className="tabular-nums">{t.duration} ms</span>
-                </li>
-              ))}
-            </ul>
+            <ul className="space-y-0.5 font-mono text-[10px]">{longTaskItems}</ul>
           ) : (
             <div className="text-white/40">none over 50 ms</div>
           )}
