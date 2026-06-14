@@ -19,7 +19,7 @@ import type {
   ParseResult,
   ScanProgressEvent,
   ScanProgressListener,
-} from '../scan-utility-host';
+} from '../workers/scan-utility-host';
 
 vi.mock('../app/logger', () => ({
   logger: {
@@ -741,7 +741,7 @@ describe('library ipc handlers', () => {
 
     it('returns ScanCancelledError to an empty result on cancel', async () => {
       // Fake parse rejects with ScanCancelledError to simulate a real cancel.
-      const { ScanCancelledError } = await import('../scan-utility-host');
+      const { ScanCancelledError } = await import('../workers/scan-utility-host');
       const fake = makeFakeScanUtility(async () => {
         throw new ScanCancelledError();
       });
@@ -811,7 +811,7 @@ describe('library ipc handlers', () => {
     it('logs telemetry once on cancel (recordEnd is idempotent)', async () => {
       const { logger: mockLogger, ScanCancelledError } = {
         ...(await import('../app/logger')),
-        ...(await import('../scan-utility-host')),
+        ...(await import('../workers/scan-utility-host')),
       };
       const fake = makeFakeScanUtility(async () => {
         throw new ScanCancelledError();

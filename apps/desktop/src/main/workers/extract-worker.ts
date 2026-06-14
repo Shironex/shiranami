@@ -34,16 +34,20 @@ function extractZip(zipPath: string, destDir: string): { method: string } {
 
   // 3. PowerShell Expand-Archive — last resort
   try {
-    execFileSync('powershell', [
-      '-NoProfile',
-      '-Command',
-      'Expand-Archive',
-      '-Path',
-      zipPath,
-      '-DestinationPath',
-      destDir,
-      '-Force',
-    ], { timeout: 120000 });
+    execFileSync(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        'Expand-Archive',
+        '-Path',
+        zipPath,
+        '-DestinationPath',
+        destDir,
+        '-Force',
+      ],
+      { timeout: 120000 }
+    );
     return { method: 'powershell' };
   } catch (e) {
     errors.push(`powershell: ${e instanceof Error ? e.message : String(e)}`);

@@ -20,7 +20,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { TrackMetadata } from '@shiranami/contracts';
 import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
-import { artUrlFor, downscaleAndHash } from './shared/album-art-image';
+import { artUrlFor, downscaleAndHash } from '../shared/album-art-image';
 
 interface ParentPortMessageEvent {
   data: unknown;

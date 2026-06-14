@@ -10,7 +10,7 @@ import {
   ScanCancelledError,
   type ScanUtilityClient,
   type ScanProgressEvent,
-} from '../scan-utility-host';
+} from '../workers/scan-utility-host';
 import { sendToRenderer } from '../utils/window';
 import { handle } from './with-ipc-handler';
 import {

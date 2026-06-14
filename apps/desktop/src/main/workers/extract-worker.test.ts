@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { makeTempDir, cleanupTempDir } from '../../test/setup';
+import { makeTempDir, cleanupTempDir } from '../../../test/setup';
 
 /**
  * extract-worker.ts is a Node worker script: when imported, it synchronously
