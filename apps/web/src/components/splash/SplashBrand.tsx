@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { SplashMessageKey, SplashVariant } from '@/hooks/useSplashScreen';
 
-interface SplashBrandProps {
+interface ISplashBrandProps {
   showStatus: boolean;
   variant: SplashVariant;
   messageKey: SplashMessageKey;
@@ -37,7 +37,7 @@ export function SplashBrand({
   messageKey,
   error,
   reducedMotion,
-}: SplashBrandProps) {
+}: ISplashBrandProps) {
   const { t } = useTranslation('splash');
 
   const ledAnimation = reducedMotion ? undefined : 'splash-led-pulse 1.6s ease-in-out infinite';

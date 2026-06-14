@@ -1,4 +1,4 @@
-interface SplashWordmarkProps {
+interface ISplashWordmarkProps {
   reducedMotion: boolean;
 }
 
@@ -24,7 +24,7 @@ interface SplashWordmarkProps {
  * Mock literal mapping: reflection color `oklch(0.85 0.14 295 / 0.06)` ->
  * `--foreground` at low alpha (cool glass reflection, not violet).
  */
-export function SplashWordmark({ reducedMotion }: SplashWordmarkProps) {
+export function SplashWordmark({ reducedMotion }: ISplashWordmarkProps) {
   const animation = reducedMotion
     ? 'shiranami-wordmark-fade 300ms ease-out 220ms both'
     : 'shiranami-wordmark-etch 600ms ease-out 220ms both';

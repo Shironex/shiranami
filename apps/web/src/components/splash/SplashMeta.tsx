@@ -1,4 +1,4 @@
-interface SplashMetaProps {
+interface ISplashMetaProps {
   /** App version string from useAppVersionQuery. */
   version: string;
   /** Locale-formatted current time. */
@@ -15,7 +15,7 @@ interface SplashMetaProps {
  *
  * Mock literal mapping: clock accent `oklch(0.85 0.14 295 / 0.8)` -> `--primary`.
  */
-export function SplashMeta({ version, clock }: SplashMetaProps) {
+export function SplashMeta({ version, clock }: ISplashMetaProps) {
   return (
     <div
       className="absolute right-[30px] top-[26px] z-30 select-none text-right font-mono text-[9px] uppercase tracking-[0.22em]"

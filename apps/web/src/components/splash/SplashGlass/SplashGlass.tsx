@@ -1,3 +1,5 @@
+import { useSplashGlass } from './SplashGlass.hooks';
+
 /**
  * Glass-surface cues — the wet pane between the viewer and the night scene.
  *
@@ -17,7 +19,9 @@
  * perceptible — present enough to read as glass, restrained enough to keep the
  * canvas near-monochrome charcoal.
  */
-export function SplashGlass() {
+export default function SplashGlass() {
+  useSplashGlass();
+
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
       {/* Condensation film haze + edge vignette */}

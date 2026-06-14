@@ -1,7 +1,5 @@
-interface SplashSceneProps {
-  /** When true, light flicker is suppressed (reduced-motion or low-perf). */
-  reducedMotion: boolean;
-}
+import { useSplashScene } from './SplashScene.hooks';
+import type { ISplashSceneProps } from './SplashScene.types';
 
 /**
  * Night-scene base behind the wet glass — the view out the cafe window.
@@ -18,33 +16,34 @@ interface SplashSceneProps {
  * opacity. The `reducedMotion` prop additionally drops the inline animation so
  * the freeze holds even before the stylesheet guard resolves. Everything else
  * here is static.
- *
- * Mock literal mapping: violet `oklch(0.32 0.14 305)` sky glow → `--primary`;
- * warm `oklch(0.85 0.12 80/75)` moon + lights → `--favorite`; dark scene base
- * `oklch(0.03–0.07 …)` → `--background`.
  */
+export default function SplashScene(props: ISplashSceneProps) {
+  const { reducedMotion, lights } = useSplashScene(props);
 
-// Distant warm window lights — percentage positions mirror the mock's spread
-// across the lower-third skyline band. `big` marks the two taller windows.
-const LIGHTS: { left: string; top: string; big?: boolean; even?: boolean }[] = [
-  { left: '8%', top: '62%' },
-  { left: '14%', top: '66%', even: true },
-  { left: '18%', top: '60%' },
-  { left: '24%', top: '64%', even: true },
-  { left: '31%', top: '58%' },
-  { left: '36%', top: '62%', big: true, even: true },
-  { left: '42%', top: '65%' },
-  { left: '48%', top: '63%', even: true },
-  { left: '56%', top: '67%' },
-  { left: '62%', top: '60%', even: true },
-  { left: '68%', top: '64%' },
-  { left: '73%', top: '58%', even: true },
-  { left: '79%', top: '62%', big: true },
-  { left: '86%', top: '66%', even: true },
-  { left: '92%', top: '60%' },
-];
+  // Build the lights above the return so the `.map` is not in JSX render
+  // position (keeps the declarative-JSX rule satisfied).
+  const lightDots = lights.map((light, i) => (
+    <span
+      key={i}
+      className="splash-light absolute"
+      style={{
+        left: light.left,
+        top: light.top,
+        width: '3px',
+        height: light.big ? '4px' : '3px',
+        borderRadius: '1px',
+        background: 'oklch(from var(--favorite) l c h / 1)',
+        boxShadow: '0 0 6px oklch(from var(--favorite) l c h / 0.6)',
+        opacity: 0.7,
+        animation: reducedMotion
+          ? undefined
+          : light.even
+            ? 'flicker 6.2s 0.8s ease-in-out infinite'
+            : 'flicker 4s ease-in-out infinite',
+      }}
+    />
+  ));
 
-export function SplashScene({ reducedMotion }: SplashSceneProps) {
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
       {/* Base night gradient + violet sky glow + far-building wash */}
@@ -89,29 +88,7 @@ export function SplashScene({ reducedMotion }: SplashSceneProps) {
       />
 
       {/* Distant warm window lights — flicker, degrade to static */}
-      <div className="absolute inset-0">
-        {LIGHTS.map((light, i) => (
-          <span
-            key={i}
-            className="splash-light absolute"
-            style={{
-              left: light.left,
-              top: light.top,
-              width: '3px',
-              height: light.big ? '4px' : '3px',
-              borderRadius: '1px',
-              background: 'oklch(from var(--favorite) l c h / 1)',
-              boxShadow: '0 0 6px oklch(from var(--favorite) l c h / 0.6)',
-              opacity: 0.7,
-              animation: reducedMotion
-                ? undefined
-                : light.even
-                  ? 'flicker 6.2s 0.8s ease-in-out infinite'
-                  : 'flicker 4s ease-in-out infinite',
-            }}
-          />
-        ))}
-      </div>
+      <div className="absolute inset-0">{lightDots}</div>
     </div>
   );
 }

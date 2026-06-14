@@ -1,28 +1,15 @@
-import { cn } from '@/lib/utils';
-import { IS_ELECTRON } from '@/lib/platform';
-import { useUIStore } from '@/stores/useUIStore';
-import { useSplashScreen } from '@/hooks/useSplashScreen';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { SplashScene } from './SplashScene';
-import { SplashLamp } from './SplashLamp';
-import { SplashGlass } from './SplashGlass';
-import { SplashWordmark } from './SplashWordmark';
-import { SplashDroplets } from './SplashDroplets';
-import { SplashRain } from './SplashRain';
-import { SplashSteam } from './SplashSteam';
-import { SplashCup } from './SplashCup';
-import { SplashBrand } from './SplashBrand';
-import { SplashMeta } from './SplashMeta';
-
-interface SplashScreenProps {
-  /** Library sync is still running — splash stays mounted until false. */
-  isLoading: boolean;
-  /** Library sync errored — switches to the error variant. */
-  isError: boolean;
-  /** Error message to display in the error variant. */
-  error?: string | null;
-  onDismissed?: () => void;
-}
+import { SplashScene } from '../SplashScene';
+import { SplashGlass } from '../SplashGlass';
+import { SplashDroplets } from '../SplashDroplets';
+import { SplashLamp } from '../SplashLamp';
+import { SplashWordmark } from '../SplashWordmark';
+import { SplashRain } from '../SplashRain';
+import { SplashSteam } from '../SplashSteam';
+import { SplashCup } from '../SplashCup';
+import { SplashBrand } from '../SplashBrand';
+import { SplashMeta } from '../SplashMeta';
+import { useSplashScreen } from './SplashScreen.hooks';
+import type { ISplashScreenProps } from './SplashScreen.types';
 
 /**
  * Shiranami splash — "Cafe Window / Rain on Glass at night".
@@ -49,37 +36,30 @@ interface SplashScreenProps {
  * sweep go static, steam + streaks hide, rain freezes one frame, lamp stops
  * breathing, and backdrop-filter is dropped (see globals.css guards).
  */
-export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashScreenProps) {
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-
-  // Cached at mount — doesn't change during a 2.5s splash.
-  const reducedMotion = useReducedMotion();
-
-  const { isVisible, isDismissing, showStatus, variant, messageKey, version, clock } =
-    useSplashScreen({
-      isLoading,
-      isError,
-      onDismissed,
-    });
+export default function SplashScreen(props: ISplashScreenProps) {
+  const {
+    isVisible,
+    wrapperClassName,
+    wrapperStyle,
+    showDragRegion,
+    disableBreathLoop,
+    reducedMotion,
+    lowPerformanceMode,
+    rainPaused,
+    showStatus,
+    variant,
+    messageKey,
+    version,
+    clock,
+    error,
+  } = useSplashScreen(props);
 
   if (!isVisible) return null;
 
-  const disableBreathLoop = reducedMotion || lowPerformanceMode;
-
   return (
-    <div
-      className={cn(
-        'fixed inset-0 z-[9999] overflow-hidden bg-background',
-        IS_ELECTRON && 'rounded-t-[10px]'
-      )}
-      style={{
-        transition: isDismissing ? 'opacity 540ms ease-out, filter 540ms ease-out' : undefined,
-        opacity: isDismissing ? 0 : 1,
-        filter: isDismissing ? (disableBreathLoop ? 'blur(0px)' : 'blur(8px)') : 'blur(0px)',
-      }}
-    >
+    <div className={wrapperClassName} style={wrapperStyle}>
       {/* Drag region — keeps the frameless window movable during boot */}
-      {IS_ELECTRON && <div className="absolute inset-x-0 top-0 h-8 drag" />}
+      {showDragRegion && <div className="absolute inset-x-0 top-0 h-8 drag" />}
 
       {/* z1 — night scene base */}
       <div className="absolute inset-0 z-[1]">
@@ -104,7 +84,7 @@ export function SplashScreen({ isLoading, isError, error, onDismissed }: SplashS
       {/* z5 — rAF canvas rain (above the reflection) */}
       <div className="absolute inset-0 z-[5]">
         <SplashRain
-          paused={variant === 'error'}
+          paused={rainPaused}
           lowPerformanceMode={lowPerformanceMode}
           reducedMotion={reducedMotion}
         />
