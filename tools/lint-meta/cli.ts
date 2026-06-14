@@ -18,10 +18,12 @@ import type { IViolation } from './types';
 
 const ROOT = resolve(process.cwd());
 
-function printViolations(violations: readonly IViolation[]): void {
+type Writer = (line: string) => void;
+
+function printViolations(violations: readonly IViolation[], write: Writer): void {
   for (const v of violations) {
-    console.error(`  ${v.file}`);
-    console.error(`    ${v.rule}: ${v.message}\n`);
+    write(`  ${v.file}`);
+    write(`    ${v.rule}: ${v.message}\n`);
   }
 }
 
@@ -43,8 +45,12 @@ async function main(): Promise<void> {
   const backlog = violations.filter(v => backlogRuleIds.has(v.rule));
 
   if (backlog.length > 0) {
-    console.warn(`[lint:meta] ${String(backlog.length)} backlog violation(s) (non-blocking):\n`);
-    printViolations(backlog);
+    // Backlog is informational, not an error: write it to stdout so stderr is
+    // reserved for actual blocking failures.
+    console.log(`[lint:meta] ${String(backlog.length)} backlog violation(s) (non-blocking):\n`);
+    printViolations(backlog, line => {
+      console.log(line);
+    });
   }
 
   if (blocking.length === 0) {
@@ -53,7 +59,9 @@ async function main(): Promise<void> {
   }
 
   console.error(`[lint:meta] ${String(blocking.length)} blocking violation(s):\n`);
-  printViolations(blocking);
+  printViolations(blocking, line => {
+    console.error(line);
+  });
 
   process.exit(1);
 }
