@@ -3,7 +3,7 @@
  *
  * Pure C++ + the header-only dr_libs decoder — no platform APIs — so it builds
  * identically on every OS. The compiled binary lands at
- * build/Release/waveform.node and is loaded by src/main/waveform/.
+ * build/Release/shiranami_native.node and is loaded by src/main/waveform-host.ts.
  *
  * Because it's a pure N-API addon (NAPI_VERSION=8), the binary is ABI-stable:
  * built once against the local Node, it loads unchanged in Electron's runtime.
