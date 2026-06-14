@@ -182,7 +182,7 @@ export const useMetadataEnrichStore = create<MetadataEnrichState & MetadataEnric
       try {
         const stored = await window.electronAPI.store.get<string[]>(SKIPPED_IDS_STORE_KEY);
         if (Array.isArray(stored) && stored.length > 0) {
-          // Prune IDs for tracks that no longer exist in the library
+          // Prune IDs for tracks absent from the current library
           const libraryIds = new Set(useLibraryStore.getState().library.map(t => t.id));
           const pruned = stored.filter(id => libraryIds.has(id));
           const prunedSet = new Set(pruned);

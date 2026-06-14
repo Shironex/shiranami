@@ -85,8 +85,8 @@ export function usePlaylistDetailQuery(playlistId: string | null) {
 
   // Resolve isFavorite for each playlist track via the overlay first
   // (freshest, in-session toggles), then falling back to the library's seed
-  // value. The library array reference no longer mutates on toggleFavorite,
-  // so the previous "favMap from library" approach went stale.
+  // value. The library array reference is stable across toggleFavorite, so the
+  // overlay — not the library — is the source of truth for in-session toggles.
   const displayTracks = useMemo(() => {
     void overlayVersion;
     const overlays = useTrackOverlayStore.getState().overlays;

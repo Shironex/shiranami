@@ -15,8 +15,8 @@ import ipaddr from 'ipaddr.js';
  * (cloud metadata), and so on, exfiltrating internal services through the
  * Electron app.
  *
- * Design choices (locked in — see issue #88)
- * ------------------------------------------
+ * Design choices (locked in)
+ * --------------------------
  * - **No allowlist.** radio-browser is worldwide and yt-dlp googlevideo URLs
  *   are dynamic; an allowlist is infeasible without breaking real usage.
  * - **No localhost / dev-mode override.** Security wins over dev convenience;

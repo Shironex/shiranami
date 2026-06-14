@@ -36,7 +36,7 @@ export function WaveformVisualizer({ source, active }: WaveformVisualizerProps =
     const maxBarH = h * 0.4;
     const minBarH = 2;
 
-    // Hoist theme color once per frame — was ~120 CSS-var lookups/frame (issue #49).
+    // Hoist theme color once per frame to avoid ~120 CSS-var lookups/frame.
     const [pr, pg, pb] = rgb;
 
     for (let i = 0; i < barCount; i++) {

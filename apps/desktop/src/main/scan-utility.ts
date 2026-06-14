@@ -244,8 +244,8 @@ async function parseFile(s: UtilityState, filePath: string): Promise<ParseSucces
       artist: common.artist || UNKNOWN_ARTIST,
       // Only the dedicated albumartist tag — do NOT fall back to the track
       // artist, or an untagged various-artists album gets a per-track album
-      // artist and fragments at grouping time (#269). Null means "untagged",
-      // which the grouping layer keys on the album title alone.
+      // artist and fragments at grouping time. Null means "untagged", which
+      // the grouping layer keys on the album title alone.
       albumArtist: common.albumartist?.trim() || null,
       album: common.album || UNKNOWN_ALBUM,
       duration: format.duration || 0,

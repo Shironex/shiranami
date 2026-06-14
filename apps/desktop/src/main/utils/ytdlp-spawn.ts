@@ -130,7 +130,7 @@ export const YT_DLP_ERROR_CODES = {
 /**
  * Classify a yt-dlp failure from its captured stdout+stderr and return a
  * stable error code (translated in the renderer) or a raw output tail for
- * unknown cases. Age-restriction is the #1 cause of per-video failures in
+ * unknown cases. Age-restriction is the top cause of per-video failures in
  * 2026 — YouTube will not hand out stream URLs or formats without sign-in
  * cookies for videos flagged by the content classifier.
  */

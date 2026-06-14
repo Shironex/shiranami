@@ -16,8 +16,8 @@ const plugin: ShiranamiPlugin = {
   configs: {},
 };
 
-// Short name `shiranami` so rules read `shiranami/no-historical-comments` in
-// flat config.
+// Short name `shiranami` so rules read like `shiranami/<rule-name>` in flat
+// config.
 plugin.configs.recommended = {
   plugins: {
     shiranami: plugin,

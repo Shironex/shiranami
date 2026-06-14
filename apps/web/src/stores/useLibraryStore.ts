@@ -178,7 +178,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     // carries the new value until the next full library refetch (rescan /
     // import) reseeds canonical state. Skipping the reallocation here is
     // the entire point of the overlay store: AlbumGrid's groupTracksByAlbum
-    // memo no longer invalidates on a favorite toggle.
+    // memo does not invalidate on a favorite toggle.
     overlayStore.setOverlay(trackId, { isFavorite: nextFavorite });
     syncPlaybackTrack(trackId, t => ({ ...t, isFavorite: nextFavorite }));
 
@@ -219,7 +219,7 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     // carries the new count until the next full library refetch (rescan /
     // import) reseeds canonical state and `clearAll()` drops the session
     // deltas. Skipping the reallocation here is the entire point: AlbumGrid's
-    // groupTracksByAlbum memo and LibraryView's filteredLibrary memo no longer
+    // groupTracksByAlbum memo and LibraryView's filteredLibrary memo do not
     // invalidate on a recorded play.
     overlayStore.setOverlay(trackId, { playCount: nextCount });
     syncPlaybackTrack(trackId, t => ({ ...t, playCount: nextCount }));

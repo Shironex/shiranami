@@ -63,10 +63,10 @@ describe('useKeyboardShortcuts', () => {
   });
 
   // Vitest 4 returns the same spy instance when vi.spyOn is called twice on
-  // the same target, and `restoreAllMocks` no longer clears spy call history
-  // — restore and clear are now independent. We need both: restore so the
-  // store method is back to its original, and clear so any spy that vitest
-  // still tracks for that target starts fresh.
+  // the same target, and `restoreAllMocks` does not clear spy call history —
+  // restore and clear are independent. We need both: restore so the store
+  // method is back to its original, and clear so any spy that vitest still
+  // tracks for that target starts fresh.
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();

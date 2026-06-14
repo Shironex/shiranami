@@ -700,7 +700,7 @@ export function useAudioEngine() {
           // already runs `updateTime`, which self-perpetuates while playing.
           // Spawning a second loop overwrites animationFrameRef.current,
           // double-executes updateTime per frame, and leaks a loop that
-          // cancelAnimationFrame can no longer reach.
+          // cancelAnimationFrame can never cancel (its handle is overwritten).
         }
       }
       _setIsLoading(false);

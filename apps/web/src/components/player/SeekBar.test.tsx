@@ -72,13 +72,12 @@ describe('SeekBar', () => {
       coords: { clientX: 150, clientY: 4 },
     });
     expect(playbackState.seek).toHaveBeenCalledWith(75);
-    // SeekBar now clears scrubTime explicitly on commit (used to live in the
-    // store's seek() action in the pre-split monolith).
+    // SeekBar clears scrubTime explicitly on commit.
     expect(uiState.setScrubTime).toHaveBeenCalledWith(null);
   });
 
-  // Regression: the slider role used to be keyboard-dead (only onPointerDown),
-  // so keyboard / switch users could not seek the playing track at all.
+  // The slider must be keyboard-operable — not pointer-only — so keyboard /
+  // switch users can seek the playing track.
   describe('keyboard operability', () => {
     beforeEach(() => {
       playbackState.currentTime = 50;

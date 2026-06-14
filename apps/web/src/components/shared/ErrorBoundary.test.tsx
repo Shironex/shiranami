@@ -70,7 +70,7 @@ describe('ErrorBoundary', () => {
     // Fallback is visible
     expect(screen.getByText('title')).toBeInTheDocument();
 
-    // Flip parent state so children no longer throw
+    // Flip parent state so children stop throwing
     await user.click(screen.getByTestId('stop'));
 
     // Click the reloadView button to reset the boundary

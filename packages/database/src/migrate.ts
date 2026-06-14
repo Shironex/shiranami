@@ -204,19 +204,19 @@ const MIGRATIONS: EmbeddedMigration[] = [
     ],
   },
   {
-    // #269: earlier builds baked the track artist into album_artist for files
-    // with no albumartist tag, so untagged various-artists albums fragmented at
-    // grouping time. Un-bake it: where album_artist merely mirrors the track
-    // artist, reset it to NULL ("untagged") so the grouping layer falls back to
-    // the album title alone. Idempotent: once nulled, `album_artist = artist`
-    // no longer matches (NULL = artist is NULL).
+    // Un-bake the track artist from album_artist: where album_artist merely
+    // mirrors the track artist (a fallback baked in for files with no
+    // albumartist tag), reset it to NULL ("untagged") so the grouping layer
+    // falls back to the album title alone and untagged various-artists albums
+    // stay one album. Idempotent: once nulled, `album_artist = artist` stops
+    // matching (NULL = artist is NULL).
     //
     // Tradeoff (accepted): the WHERE cannot tell a baked fallback from a genuine
     // albumartist tag that legitimately equals the artist (a solo album). It
-    // nulls both, so two same-titled solo albums by different artists now MERGE
-    // (they key on the title alone) — same behavior as <=0.21.0, and rare. The
-    // on-disk tag is untouched: a genuine albumartist==artist tag re-populates
-    // on the next rescan (the scan layer no longer bakes), restoring separation.
+    // nulls both, so two same-titled solo albums by different artists MERGE
+    // (they key on the title alone) — rare. The on-disk tag is untouched: the
+    // scan layer never bakes the fallback, so a genuine albumartist==artist tag
+    // re-populates on the next rescan, restoring separation.
     name: '20260101000006_unbake_album_artist',
     statements: ['UPDATE `tracks` SET `album_artist` = NULL WHERE `album_artist` = `artist`'],
   },

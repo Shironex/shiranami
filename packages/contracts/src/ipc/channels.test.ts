@@ -29,7 +29,7 @@ describe('IPC_CHANNELS manifest', () => {
     expect(Object.isFrozen(ALL_IPC_CHANNELS)).toBe(true);
   });
 
-  // Channel naming convention (apps/desktop/src/main/ipc/register.ts, #75):
+  // Channel naming convention (see apps/desktop/src/main/ipc/register.ts):
   //  - two-segment `<namespace>:<action>` by default,
   //  - three-segment `<namespace>:<entity>:<action>` when a sub-feature is shared,
   //  - every segment lowercase kebab-case; sub-namespaces use a colon, not a hyphen.

@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-// Ensure i18n is initialised before RadioView imports (RadioView no longer
-// imports @/lib/i18n directly — it uses the useTranslation hook).
+// Initialise i18n before RadioView imports — RadioView reads translations via
+// the useTranslation hook and does not import @/lib/i18n itself.
 import '@/lib/i18n';
 import type { RadioFilters } from './buildStationQuery';
 import type { RadioMode } from '@/stores/useRadioStore';

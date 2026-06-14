@@ -11,9 +11,7 @@ export interface CanvasSize {
   dprRef: MutableRefObject<number>;
 }
 
-export function useCanvasSize(
-  canvasRef: RefObject<HTMLCanvasElement | null>,
-): CanvasSize {
+export function useCanvasSize(canvasRef: RefObject<HTMLCanvasElement | null>): CanvasSize {
   const widthRef = useRef(0);
   const heightRef = useRef(0);
   const dprRef = useRef(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
@@ -28,7 +26,7 @@ export function useCanvasSize(
     heightRef.current = rect.height;
     dprRef.current = window.devicePixelRatio || 1;
 
-    const observer = new ResizeObserver((entries) => {
+    const observer = new ResizeObserver(entries => {
       const entry = entries[0];
       if (!entry) return;
       widthRef.current = entry.contentRect.width;
@@ -36,8 +34,8 @@ export function useCanvasSize(
     });
     observer.observe(canvas);
 
-    // Track DPR changes (monitor switch, zoom). matchMedia fires once when
-    // the current resolution no longer matches; we re-bind each time.
+    // Track DPR changes (monitor switch, zoom). matchMedia fires once when the
+    // current resolution stops matching; we re-bind each time.
     let mql: MediaQueryList | null = null;
     const onDprChange = () => {
       dprRef.current = window.devicePixelRatio || 1;

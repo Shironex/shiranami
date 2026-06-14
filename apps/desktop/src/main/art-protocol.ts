@@ -151,8 +151,8 @@ export function _resetArtLruForTest(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Orphan pruning — diff DB-referenced files vs disk; delete files no longer
-// referenced. Never deletes a file still referenced by a track's albumArt or a
+// Orphan pruning — diff DB-referenced files vs disk; delete any file the DB
+// does not reference. Never deletes a file still referenced by a track's albumArt or a
 // playlist's coverArt (a "use suggested cover" copies a track's art URL into
 // playlists.cover_art, so the file outlives the originating track).
 // ---------------------------------------------------------------------------

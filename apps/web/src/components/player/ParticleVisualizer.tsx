@@ -18,8 +18,8 @@ export function ParticleVisualizer({ source, active }: ParticleVisualizerProps =
   const smoothedRef = useRef<Float32Array<ArrayBuffer> | null>(null);
 
   // Cached gradients for drawWaveFill. Invalidated when centerY, primary-rgb,
-  // or the canvas context changes — see issue #50. Pre-cache avoids allocating
-  // two CanvasGradient objects every frame (120/sec during playback).
+  // or the canvas context changes. Pre-cache avoids allocating two
+  // CanvasGradient objects every frame (120/sec during playback).
   const gradientCacheRef = useRef<{
     grad: CanvasGradient | null;
     key: string;
