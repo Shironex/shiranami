@@ -67,5 +67,8 @@ async function main(): Promise<void> {
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  void main();
+  main().catch((error: unknown) => {
+    console.error('[lint:meta] Unexpected failure:', error);
+    process.exit(1);
+  });
 }
