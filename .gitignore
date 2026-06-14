@@ -27,3 +27,5 @@ playwright-report/
 test-results/
 apps/desktop/e2e/.tmp/
 /design/
+# Storybook static build output
+apps/web/storybook-static/
