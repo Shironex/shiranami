@@ -14,7 +14,7 @@ import {
 import { useLayoutStore, type SidePanelSide } from '@/stores/useLayoutStore';
 
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel/LyricsPanel'));
-const QueuePanel = lazy(() => import('@/components/player/QueuePanel'));
+const QueuePanel = lazy(() => import('@/components/player/QueuePanel/QueuePanel'));
 
 interface SidePanelProps {
   side: SidePanelSide;

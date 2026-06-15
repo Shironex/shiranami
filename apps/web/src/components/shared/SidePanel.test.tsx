@@ -70,7 +70,7 @@ vi.mock('@/components/lyrics/LyricsPanel/LyricsPanel', () => ({
   ),
 }));
 
-vi.mock('@/components/player/QueuePanel', () => ({
+vi.mock('@/components/player/QueuePanel/QueuePanel', () => ({
   default: ({ headerAction }: { headerAction?: ReactNode }) => (
     <div data-testid="queue-panel">{headerAction}</div>
   ),

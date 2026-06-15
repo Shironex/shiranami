@@ -21,18 +21,18 @@ export const VISUALIZER_COMPONENTS: Record<
   VisualizerStyle,
   LazyExoticComponent<ComponentType<VisualizerComponentProps>>
 > = {
-  bars: lazy(() => import('./AudioVisualizer')),
-  waveform: lazy(() => import('./WaveformVisualizer')),
-  circle: lazy(() => import('./CircleVisualizer')),
-  particles: lazy(() => import('./ParticleVisualizer')),
-  mirror: lazy(() => import('./MirrorVisualizer')),
-  mountain: lazy(() => import('./MountainVisualizer')),
-  rings: lazy(() => import('./RingsVisualizer')),
-  vinyl: lazy(() => import('./VinylVisualizer')),
-  liquid: lazy(() => import('./LiquidVisualizer')),
-  constellation: lazy(() => import('./ConstellationVisualizer')),
-  vu: lazy(() => import('./VuVisualizer')),
-  kanji: lazy(() => import('./KanjiVisualizer')),
+  bars: lazy(() => import('./AudioVisualizer/AudioVisualizer')),
+  waveform: lazy(() => import('./WaveformVisualizer/WaveformVisualizer')),
+  circle: lazy(() => import('./CircleVisualizer/CircleVisualizer')),
+  particles: lazy(() => import('./ParticleVisualizer/ParticleVisualizer')),
+  mirror: lazy(() => import('./MirrorVisualizer/MirrorVisualizer')),
+  mountain: lazy(() => import('./MountainVisualizer/MountainVisualizer')),
+  rings: lazy(() => import('./RingsVisualizer/RingsVisualizer')),
+  vinyl: lazy(() => import('./VinylVisualizer/VinylVisualizer')),
+  liquid: lazy(() => import('./LiquidVisualizer/LiquidVisualizer')),
+  constellation: lazy(() => import('./ConstellationVisualizer/ConstellationVisualizer')),
+  vu: lazy(() => import('./VuVisualizer/VuVisualizer')),
+  kanji: lazy(() => import('./KanjiVisualizer/KanjiVisualizer')),
 };
 
 export interface VisualizerStyleMeta {
