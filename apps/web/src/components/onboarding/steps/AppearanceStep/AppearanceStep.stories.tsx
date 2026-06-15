@@ -4,12 +4,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within, userEvent, expect, waitFor } from 'storybook/test';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useUIStore, UI_SCALE_DEFAULT } from '@/stores/useUIStore';
-import {
-  useThemeBgStore,
-  THEME_BG_OPACITY_DEFAULT,
-  THEME_BG_BLUR_DEFAULT,
-  THEME_BG_DIM_DEFAULT,
-} from '@/stores/useThemeBgStore';
 import { OnboardingStepContext } from '../../stepContext';
 
 import AppearanceStep from './AppearanceStep';
@@ -55,18 +49,9 @@ const meta: Meta<typeof AppearanceStep> = {
     ),
   ],
   beforeEach: () => {
-    // Use the store action (not setState) so the data-theme attribute on <html>
-    // is reset too — selecting a theme in a play test mutates the shared
-    // document, and the returned teardown clears it so the global <html> never
-    // bleeds the picked theme into the next story's axe contrast run.
-    useThemeStore.getState().setTheme('none');
+    // Seed the interface-size state this step reads at entry. Theme + background
+    // reset between stories is handled centrally in `.storybook/preview.tsx`.
     useUIStore.setState({ uiScale: UI_SCALE_DEFAULT, lowPerformanceMode: false });
-    useThemeBgStore.setState({
-      bgOpacity: THEME_BG_OPACITY_DEFAULT,
-      bgBlur: THEME_BG_BLUR_DEFAULT,
-      bgDim: THEME_BG_DIM_DEFAULT,
-    });
-    return () => useThemeStore.getState().setTheme('none');
   },
 };
 
@@ -104,7 +89,9 @@ export const SelectsTheme: Story = {
 /** A photo theme exposes the opacity/blur/dim background sliders. */
 export const WithBackgroundAdjust: Story = {
   beforeEach: () => {
-    useThemeStore.setState({ theme: 'snow' });
+    // setTheme (the action, not setState) writes <html data-theme="snow"> so the
+    // a11y run actually executes under the photo-theme styles, not the default.
+    useThemeStore.getState().setTheme('snow');
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

@@ -32,15 +32,25 @@ export default defineConfig({
   // monorepo root, so the addon's injected setup file (and other hoisted deps)
   // must be within fs.allow or the browser fails to fetch them.
   server: { fs: { allow: [resolve(root, '../..')] } },
+  // Pre-bundle the story-test runtime deps so Vite never discovers them mid-run.
+  // The setup file imports @storybook/react-vite (setProjectAnnotations) and the
+  // stories import storybook/test; if these are optimized lazily on a cold run,
+  // Vite reloads and the in-flight browser suites lose the Vitest runner
+  // ("failed to find the runner"). Including them up front keeps cold starts (CI)
+  // deterministic.
+  optimizeDeps: { include: ['@storybook/react-vite', 'storybook/test'] },
   test: {
     name: 'storybook',
+    // Apply the preview's project annotations — crucially its global `beforeEach`
+    // theme/background reset, which addon-vitest does NOT reliably run on its own
+    // in the browser run (intermittent cross-story theme bleed → axe contrast
+    // flakes without this). See .storybook/vitest.setup.ts.
+    setupFiles: ['./.storybook/vitest.setup.ts'],
     browser: {
       enabled: true,
       provider: playwright(),
       headless: true,
       instances: [{ browser: 'chromium' }],
     },
-    // @storybook/addon-vitest auto-applies the preview annotations (decorators +
-    // a11y config) since Storybook 10.3 — no setup file needed.
   },
 });

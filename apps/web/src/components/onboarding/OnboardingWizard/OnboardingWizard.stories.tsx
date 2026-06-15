@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within, userEvent, expect, fn, waitFor } from 'storybook/test';
 import { useUIStore } from '@/stores/useUIStore';
-import { useThemeStore } from '@/stores/useThemeStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useTelemetryStore } from '@/stores/useTelemetryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -38,18 +37,14 @@ const meta: Meta<typeof OnboardingWizard> = {
     },
   },
   beforeEach: () => {
-    // Skip the entrance/exit motion so finishing completes synchronously.
+    // Seed every store the flow reads at entry so the wizard renders from a known
+    // state regardless of run order; cross-story theme/background isolation is
+    // handled centrally in `.storybook/preview.tsx`. lowPerformanceMode skips the
+    // entrance/exit motion so finishing completes synchronously.
     useUIStore.setState({ lowPerformanceMode: true });
-    // setTheme (not setState) so the data-theme attribute on <html> is reset,
-    // keeping the shared document clean for axe across stories.
-    useThemeStore.getState().setTheme('none');
     usePlaybackStore.setState({ crossfadeEnabled: false });
     useTelemetryStore.setState({ enabled: false, performanceEnabled: false });
     useOnboardingStore.setState({ hasCompletedOnboarding: false });
-    return () => {
-      useThemeStore.getState().setTheme('none');
-      useUIStore.setState({ lowPerformanceMode: false });
-    };
   },
 };
 
