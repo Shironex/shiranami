@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ITopAlbumRow, ITopAlbumsProps, ITopAlbumsView } from './TopAlbums.types';
 
@@ -12,13 +13,17 @@ export function useTopAlbums({ albums }: ITopAlbumsProps): ITopAlbumsView {
 
   const maxPlays = albums.reduce((max, album) => Math.max(max, album.playCount), 0);
 
-  const rows: ITopAlbumRow[] = albums.map(album => ({
-    key: `${album.album}-${album.artist}`,
-    album: album.album,
-    artist: album.artist || tCommon('unknownArtist'),
-    width: maxPlays > 0 ? Math.max(6, Math.round((album.playCount / maxPlays) * 100)) : 0,
-    playsLabel: t('albumPlays', { count: album.playCount }),
-  }));
+  const rows = useMemo<ITopAlbumRow[]>(
+    () =>
+      albums.map(album => ({
+        key: `${album.album}-${album.artist}`,
+        album: album.album,
+        artist: album.artist || tCommon('unknownArtist'),
+        width: maxPlays > 0 ? Math.max(6, Math.round((album.playCount / maxPlays) * 100)) : 0,
+        playsLabel: t('albumPlays', { count: album.playCount }),
+      })),
+    [albums, maxPlays, t, tCommon]
+  );
 
   return {
     title: t('topAlbums', { em: t('topAlbumsEm') }),
