@@ -22,35 +22,41 @@ export default function FilterPopover(props: IFilterPopoverProps) {
   const { open, setOpen, selected, triggerLabel, onCommandSelect } = useFilterPopover(props);
 
   // Build the option rows above the return so the JSX child stays declarative
-  // (no `.map`/arithmetic in render position).
-  const optionItems = options.map(option => {
-    const countLabel = typeof option.count === 'number' ? formatCount(option.count) : null;
-    return (
-      <CommandItem
-        key={option.value}
-        value={option.value}
-        keywords={[option.label]}
-        onSelect={onCommandSelect}
-        className="justify-between gap-2"
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          {option.prefix && <span className="shrink-0">{option.prefix}</span>}
-          <span className="truncate">{option.label}</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-2">
-          {countLabel && (
-            <span className="text-[10px] tabular-nums text-muted-foreground/50">{countLabel}</span>
-          )}
-          <Check
-            className={cn(
-              'h-3.5 w-3.5 text-primary',
-              option.value === value ? 'opacity-100' : 'opacity-0'
-            )}
-          />
-        </span>
-      </CommandItem>
-    );
-  });
+  // (no `.map`/arithmetic in render position). Only map when the popover is open —
+  // radix unmounts the content while closed, so mapping (potentially hundreds of
+  // options) on every render would be wasted work.
+  const optionItems = open
+    ? options.map(option => {
+        const countLabel = typeof option.count === 'number' ? formatCount(option.count) : null;
+        return (
+          <CommandItem
+            key={option.value}
+            value={option.value}
+            keywords={[option.label]}
+            onSelect={onCommandSelect}
+            className="justify-between gap-2"
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              {option.prefix && <span className="shrink-0">{option.prefix}</span>}
+              <span className="truncate">{option.label}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              {countLabel && (
+                <span className="text-[10px] tabular-nums text-muted-foreground/50">
+                  {countLabel}
+                </span>
+              )}
+              <Check
+                className={cn(
+                  'h-3.5 w-3.5 text-primary',
+                  option.value === value ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+            </span>
+          </CommandItem>
+        );
+      })
+    : null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
