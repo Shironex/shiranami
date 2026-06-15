@@ -1,18 +1,19 @@
-import { memo, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { IS_ELECTRON } from '@/lib/platform';
+import type { IMediaSessionSyncView } from './MediaSessionSync.types';
 
 /**
- * Isolated leaf that owns the currentTime-dependent media-session side-effects
- * (OS overlay position state + throttled playback-state IPC to the main process).
+ * Owns the currentTime-dependent media-session side-effects (OS overlay position
+ * state + throttled playback-state IPC to the main process).
  *
  * currentTime is written to the store every 250ms during playback. Subscribing
- * to it here — in a component that renders null — keeps the re-render contained
- * to this leaf instead of the root App tree (mirrors the TimeDisplay pattern).
- * The action handlers / metadata / playbackState live in useMediaSession, which
- * no longer touches currentTime.
+ * to it here — in a hook backing a component that renders null — keeps the
+ * re-render contained to this leaf instead of the root App tree (mirrors the
+ * TimeDisplay pattern). The action handlers / metadata / playbackState live in
+ * useMediaSession, which no longer touches currentTime.
  */
-export const MediaSessionSync = memo(function MediaSessionSync() {
+export function useMediaSessionSync(): IMediaSessionSyncView {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const isPlaying = usePlaybackStore(s => s.isPlaying);
   const currentTime = usePlaybackStore(s => s.currentTime);
@@ -59,5 +60,5 @@ export const MediaSessionSync = memo(function MediaSessionSync() {
     });
   }, [currentTrack, isPlaying, currentTime, duration]);
 
-  return null;
-});
+  return {};
+}

@@ -1,40 +1,30 @@
-import { useTranslation } from 'react-i18next';
 import { MoreHorizontal, Minimize2, AudioLines } from 'lucide-react';
-import { useUIStore } from '@/stores/useUIStore';
-import { useInterfaceStore } from '@/stores/useInterfaceStore';
-import { useCompactStore } from '@/stores/useCompactStore';
-import { useEqStore } from '@/stores/useEqStore';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
-import { SleepTimer } from './SleepTimer';
-import { EqualizerPanel } from './EqualizerPanel';
-
-const MOD = navigator.platform.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl';
+import { SleepTimer } from '../SleepTimer';
+import { EqualizerPanel } from '../EqualizerPanel';
+import { usePlayerOverflowMenu } from './PlayerOverflowMenu.hooks';
 
 /**
  * Secondary player controls (sleep timer, EQ, compact mode, visualizer) collapsed
  * into a single "more" popover at narrow widths. Preserves each child's own
  * popover and active state.
  */
-export function PlayerOverflowMenu() {
-  const { t } = useTranslation('player');
-  const showVisualizer = useUIStore(s => s.showVisualizer);
-  const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
-  const setCompactMode = useCompactStore(s => s.setCompactMode);
-  const eqEnabled = useEqStore(s => s.enabled);
-  const eqPreset = useEqStore(s => s.preset);
-  // Mirror the PlayerBar element toggles so a hidden control stays hidden in
-  // the narrow-width overflow too. The parent renders this menu only when at
-  // least one of the four is visible.
-  const showSleepTimer = useInterfaceStore(s => s.playerSleepTimer);
-  const showEqualizer = useInterfaceStore(s => s.playerEqualizer);
-  const showCompactButton = useInterfaceStore(s => s.playerCompactButton);
-  const showVisualizerButton = useInterfaceStore(s => s.playerVisualizerButton);
-
-  const hasActive =
-    (showVisualizerButton && showVisualizer) || (showEqualizer && eqEnabled && eqPreset !== 'flat');
+export default function PlayerOverflowMenu() {
+  const {
+    t,
+    hasActive,
+    showVisualizer,
+    showSleepTimer,
+    showEqualizer,
+    showCompactButton,
+    showVisualizerButton,
+    compactTooltip,
+    onEnterCompact,
+    onToggleVisualizer,
+  } = usePlayerOverflowMenu();
 
   return (
     <Popover>
@@ -59,20 +49,18 @@ export function PlayerOverflowMenu() {
           {showCompactButton && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <IconButton onClick={() => void setCompactMode(true)} aria-label={t('compactMode')}>
+                <IconButton onClick={onEnterCompact} aria-label={t('compactMode')}>
                   <Minimize2 />
                 </IconButton>
               </TooltipTrigger>
-              <TooltipContent side="top">
-                {t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` })}
-              </TooltipContent>
+              <TooltipContent side="top">{compactTooltip}</TooltipContent>
             </Tooltip>
           )}
           {showVisualizerButton && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <IconButton
-                  onClick={toggleVisualizer}
+                  onClick={onToggleVisualizer}
                   className={cn(
                     showVisualizer &&
                       'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
