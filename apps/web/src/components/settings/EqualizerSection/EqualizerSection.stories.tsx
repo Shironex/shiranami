@@ -93,10 +93,14 @@ export const Disabled: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('switch')).not.toBeChecked();
-    // The band sliders are disabled while the EQ is off — Radix marks the thumb
-    // (role="slider") with data-disabled and drops it from the tab order.
+    // The band sliders (and the preamp) are disabled while the EQ is off — Radix
+    // marks each thumb (role="slider") with data-disabled and drops it from the
+    // tab order. Assert every slider, not just the first.
     const sliders = canvas.getAllByRole('slider');
-    await expect(sliders[0]).toHaveAttribute('data-disabled');
-    await expect(sliders[0]).not.toHaveAttribute('tabindex');
+    await expect(sliders.length).toBeGreaterThan(0);
+    for (const slider of sliders) {
+      await expect(slider).toHaveAttribute('data-disabled');
+      await expect(slider).not.toHaveAttribute('tabindex');
+    }
   },
 };
