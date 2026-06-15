@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SeekBar } from './SeekBar';
+import { SeekBar } from './index';
 
 const playbackState = vi.hoisted(() => ({
   duration: 100,

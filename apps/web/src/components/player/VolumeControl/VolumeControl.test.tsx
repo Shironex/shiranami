@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { VolumeControl } from './VolumeControl';
+import { VolumeControl } from './index';
 
 const mockState = vi.hoisted(() => ({
   volume: 0.75,

@@ -7,6 +7,7 @@ import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
 import { useWaveformPeaks } from '@/hooks/useWaveformPeaks';
 import { formatDuration, clamp01 } from '@shiranami/shared';
+import type { IWaveformSeekbarView } from './WaveformSeekbar.types';
 
 /** Seconds the seek position moves per Arrow key (PageUp/Down move 2x). */
 const SEEK_KEY_STEP_SECONDS = 5;
@@ -17,19 +18,13 @@ const BAR_GAP = 1;
 const MIN_BAR_RATIO = 0.08;
 
 /**
- * SoundCloud-style waveform seekbar. Draws per-track peaks (decoded natively in
- * the main process) to a canvas, splitting played/unplayed at the playhead, and
- * seeks on click/drag/keyboard exactly like the plain SeekBar. When peaks are
- * unavailable (loading, radio, or an undecodable format) it draws a flat bar so
- * it stays a functional scrubber.
+ * SoundCloud-style waveform seekbar logic. Draws per-track peaks (decoded
+ * natively in the main process) to a canvas, splitting played/unplayed at the
+ * playhead, and seeks on click/drag/keyboard exactly like the plain SeekBar.
+ * When peaks are unavailable (loading, radio, or an undecodable format) it
+ * draws a flat bar so it stays a functional scrubber.
  */
-interface WaveformSeekbarProps {
-  /** Tailwind height class for the canvas. Defaults to the compact player-bar
-   *  size; the full-screen Now Playing view passes a taller one. */
-  canvasClassName?: string;
-}
-
-export function WaveformSeekbar({ canvasClassName = 'h-7' }: WaveformSeekbarProps = {}) {
+export function useWaveformSeekbar(): IWaveformSeekbarView {
   const { t } = useTranslation('player');
   const duration = usePlaybackStore(s => s.duration);
   const isPlaying = usePlaybackStore(s => s.isPlaying);
@@ -158,7 +153,7 @@ export function WaveformSeekbar({ canvasClassName = 'h-7' }: WaveformSeekbarProp
     return () => observer.disconnect();
   }, [paint]);
 
-  const handlePointerDown = useCallback(
+  const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
       isDraggingRef.current = true;
@@ -198,7 +193,7 @@ export function WaveformSeekbar({ canvasClassName = 'h-7' }: WaveformSeekbarProp
     [getValueFromPointer, setScrubTime, seek]
   );
 
-  const handleKeyDown = useCallback(
+  const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (!duration) return;
       const current =
@@ -234,21 +229,15 @@ export function WaveformSeekbar({ canvasClassName = 'h-7' }: WaveformSeekbarProp
     [duration, seek]
   );
 
-  return (
-    <div
-      ref={trackRef}
-      onPointerDown={handlePointerDown}
-      onKeyDown={handleKeyDown}
-      className="group relative flex min-w-0 flex-1 touch-none cursor-pointer select-none items-center"
-      role="slider"
-      aria-label={t('seek')}
-      aria-valuemin={0}
-      aria-valuemax={duration || 100}
-      aria-valuenow={displayTime}
-      aria-valuetext={`${formatDuration(displayTime)} of ${formatDuration(duration)}`}
-      tabIndex={0}
-    >
-      <canvas ref={canvasRef} className={`${canvasClassName} w-full`} />
-    </div>
-  );
+  return {
+    label: t('seek'),
+    valueMin: 0,
+    valueMax: duration || 100,
+    valueNow: displayTime,
+    valueText: `${formatDuration(displayTime)} of ${formatDuration(duration)}`,
+    trackRef,
+    canvasRef,
+    onPointerDown,
+    onKeyDown,
+  };
 }

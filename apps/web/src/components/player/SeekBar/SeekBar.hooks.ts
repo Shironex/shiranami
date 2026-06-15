@@ -4,6 +4,10 @@ import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { formatDuration, clamp01 } from '@shiranami/shared';
+import type { ISeekBarView } from './SeekBar.types';
+
+/** Seconds the seek position moves per Arrow key press (PageUp/Down move 2x). */
+const SEEK_KEY_STEP_SECONDS = 5;
 
 /** Apply a 0..1 progress ratio to the fill (scaleX) and thumb (left + translateX).
  *  The fill is a compositor-only transform — no layout/paint per frame. The thumb
@@ -12,9 +16,6 @@ import { formatDuration, clamp01 } from '@shiranami/shared';
  *  centered on the progress point regardless of the thumb's own (hover-animated)
  *  width. The percentage `left` resolves against the live track width on every
  *  layout, so this is a one-time layout on value change (not per-frame). */
-/** Seconds the seek position moves per Arrow key press (PageUp/Down move 2x). */
-const SEEK_KEY_STEP_SECONDS = 5;
-
 function applyProgress(ratio: number, fill: HTMLDivElement | null, thumb: HTMLDivElement | null) {
   const clamped = clamp01(ratio);
   if (fill) fill.style.transform = `scaleX(${clamped})`;
@@ -24,7 +25,7 @@ function applyProgress(ratio: number, fill: HTMLDivElement | null, thumb: HTMLDi
   }
 }
 
-export function SeekBar() {
+export function useSeekBar(): ISeekBarView {
   const { t } = useTranslation('player');
   const duration = usePlaybackStore(s => s.duration);
   const scrubTime = usePlayerUIStore(s => s.scrubTime);
@@ -48,7 +49,7 @@ export function SeekBar() {
     [duration]
   );
 
-  const handlePointerDown = useCallback(
+  const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
       isDraggingRef.current = true;
@@ -106,7 +107,7 @@ export function SeekBar() {
   // Keyboard operability for the slider role: Arrow keys seek by a small step,
   // PageUp/Down by a larger one, Home/End jump to the ends. Without this the
   // primary transport control is unusable by keyboard and switch users.
-  const handleKeyDown = useCallback(
+  const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (!duration) return;
       // Read the freshest time from the stores at keypress time rather than
@@ -150,33 +151,16 @@ export function SeekBar() {
     applyProgress(staticRatio, fillRef.current, thumbRef.current);
   }, [needsStaticStyle, staticRatio]);
 
-  return (
-    <div
-      ref={trackRef}
-      onPointerDown={handlePointerDown}
-      onKeyDown={handleKeyDown}
-      className="group relative flex min-w-0 flex-1 touch-none cursor-pointer select-none items-center py-1"
-      role="slider"
-      aria-label={t('seek')}
-      aria-valuemin={0}
-      aria-valuemax={duration || 100}
-      aria-valuenow={displayTime}
-      aria-valuetext={`${formatDuration(displayTime)} of ${formatDuration(duration)}`}
-      tabIndex={0}
-    >
-      {/* Track */}
-      <div className="relative h-1 w-full grow overflow-hidden rounded-full bg-foreground/[0.06] group-hover:h-[5px] transition-all duration-200">
-        {/* Range fill — full width, scaled along X (compositor-only). */}
-        <div
-          ref={fillRef}
-          className="absolute h-full w-full origin-left bg-primary/80 group-hover:bg-primary rounded-full transition-colors duration-200 group-hover:shadow-[0_0_8px_0_rgba(var(--primary-rgb),0.5)]"
-        />
-      </div>
-      {/* Thumb — positioned via translateX (compositor-only). */}
-      <div
-        ref={thumbRef}
-        className="absolute left-0 h-0 w-0 rounded-full bg-primary shadow-[0_0_10px_0_rgba(var(--primary-rgb),0.6)] transition-[width,height,background-color,box-shadow] duration-200 group-hover:h-3 group-hover:w-3"
-      />
-    </div>
-  );
+  return {
+    label: t('seek'),
+    valueMin: 0,
+    valueMax: duration || 100,
+    valueNow: displayTime,
+    valueText: `${formatDuration(displayTime)} of ${formatDuration(duration)}`,
+    trackRef,
+    fillRef,
+    thumbRef,
+    onPointerDown,
+    onKeyDown,
+  };
 }
