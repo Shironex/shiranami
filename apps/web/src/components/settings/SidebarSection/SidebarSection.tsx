@@ -1,21 +1,6 @@
-import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { GripVertical, PanelLeft } from 'lucide-react';
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -30,17 +15,10 @@ import {
   SettingsToggleRow,
 } from '@/components/settings/SettingsCard';
 import { SidebarPreview } from '@/components/settings/SidebarPreview';
-import {
-  ALWAYS_VISIBLE_SIDEBAR_ITEMS,
-  DEFAULT_SIDEBAR_ORDER,
-  EXPERIMENTAL_SIDEBAR_ITEMS,
-  SIDEBAR_ITEM_BY_ID,
-  type SidebarNavItem,
-} from '@/lib/sidebar-items';
-import { useUIStore, type LandingView } from '@/stores/useUIStore';
 import type { AppView } from '@/stores/useViewStore';
+import { useSidebarSection } from './SidebarSection.hooks';
 
-interface SortableSidebarRowProps {
+interface ISortableSidebarRowProps {
   id: AppView;
   Icon: LucideIcon;
   label: string;
@@ -66,7 +44,7 @@ function SortableSidebarRow({
   experimentalLabel,
   onToggle,
   onHover,
-}: SortableSidebarRowProps) {
+}: ISortableSidebarRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
@@ -140,41 +118,42 @@ function SortableSidebarRow({
   );
 }
 
-export function SidebarSection() {
-  const { t } = useTranslation('settings');
-  const { t: ts } = useTranslation('sidebar');
-  const sidebarHiddenItems = useUIStore(s => s.sidebarHiddenItems);
-  const sidebarOrder = useUIStore(s => s.sidebarOrder);
-  const toggleSidebarItem = useUIStore(s => s.toggleSidebarItem);
-  const reorderSidebarItem = useUIStore(s => s.reorderSidebarItem);
-  const resetSidebar = useUIStore(s => s.resetSidebar);
-  const sidebarPlaylistsVisible = useUIStore(s => s.sidebarPlaylistsVisible);
-  const setSidebarPlaylistsVisible = useUIStore(s => s.setSidebarPlaylistsVisible);
-  const landingView = useUIStore(s => s.landingView);
-  const setLandingView = useUIStore(s => s.setLandingView);
-  const [hoveredId, setHoveredId] = useState<AppView | null>(null);
+export default function SidebarSection() {
+  const {
+    t,
+    sensors,
+    rows,
+    orderedIds,
+    alwaysOnLabel,
+    experimentalLabel,
+    landingView,
+    landingOptions,
+    onSelectLandingView,
+    playlistsVisible,
+    onSetPlaylistsVisible,
+    onToggleItem,
+    onHoverItem,
+    onDragEnd,
+    onReset,
+    hoveredId,
+  } = useSidebarSection();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  // Render rows in the user-chosen order; fall back to the default for any id
-  // not yet present (fresh install). Always a complete, deduped list.
-  const orderedItems = useMemo<SidebarNavItem[]>(() => {
-    const order = sidebarOrder?.length ? sidebarOrder : DEFAULT_SIDEBAR_ORDER;
-    return order
-      .map(id => SIDEBAR_ITEM_BY_ID.get(id))
-      .filter((item): item is SidebarNavItem => item != null);
-  }, [sidebarOrder]);
-  const orderedIds = useMemo(() => orderedItems.map(item => item.id), [orderedItems]);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      reorderSidebarItem(active.id as AppView, over.id as AppView);
-    }
-  };
+  const sortableRows = rows.map(row => (
+    <SortableSidebarRow
+      key={row.id}
+      id={row.id}
+      Icon={row.Icon}
+      label={row.label}
+      alwaysOn={row.alwaysOn}
+      visible={row.visible}
+      experimental={row.experimental}
+      dragHandleLabel={row.dragHandleLabel}
+      alwaysOnLabel={alwaysOnLabel}
+      experimentalLabel={experimentalLabel}
+      onToggle={() => onToggleItem(row.id)}
+      onHover={hovering => onHoverItem(row.id, hovering)}
+    />
+  ));
 
   return (
     <SettingsCard icon={PanelLeft} title={t('app.sidebarTitle')} subtitle={t('app.sidebarDesc')}>
@@ -185,48 +164,17 @@ export function SidebarSection() {
           label={t('app.landingViewLabel')}
           description={t('app.landingViewDesc')}
           value={landingView}
-          onValueChange={value => setLandingView(value as LandingView)}
-          options={[
-            { value: 'overview', label: ts('overview') },
-            { value: 'library', label: ts('library') },
-          ]}
+          onValueChange={value => onSelectLandingView(value as typeof landingView)}
+          options={landingOptions}
         />
 
         <div className="mt-3.5 space-y-2.5 border-t border-border/30 pt-3.5">
           <p className="text-xs leading-snug text-muted-foreground">
             {t('app.sidebarReorderHint')}
           </p>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-              <div className="flex flex-col gap-2">
-                {orderedItems.map(item => {
-                  const alwaysOn = ALWAYS_VISIBLE_SIDEBAR_ITEMS.has(item.id);
-                  const visible = alwaysOn || !sidebarHiddenItems.includes(item.id);
-                  const label = ts(item.key);
-                  return (
-                    <SortableSidebarRow
-                      key={item.id}
-                      id={item.id}
-                      Icon={item.Icon}
-                      label={label}
-                      alwaysOn={alwaysOn}
-                      visible={visible}
-                      experimental={EXPERIMENTAL_SIDEBAR_ITEMS.has(item.id)}
-                      dragHandleLabel={t('app.sidebarDragHandle', { label })}
-                      alwaysOnLabel={t('app.sidebarAlwaysOn')}
-                      experimentalLabel={t('app.sidebarExperimental')}
-                      onToggle={() => toggleSidebarItem(item.id)}
-                      onHover={hovering =>
-                        setHoveredId(prev => (hovering ? item.id : prev === item.id ? null : prev))
-                      }
-                    />
-                  );
-                })}
-              </div>
+              <div className="flex flex-col gap-2">{sortableRows}</div>
             </SortableContext>
           </DndContext>
         </div>
@@ -234,8 +182,8 @@ export function SidebarSection() {
         <SettingsToggleRow
           label={t('app.sidebarPlaylists')}
           description={t('app.sidebarPlaylistsDesc')}
-          checked={sidebarPlaylistsVisible}
-          onCheckedChange={setSidebarPlaylistsVisible}
+          checked={playlistsVisible}
+          onCheckedChange={onSetPlaylistsVisible}
           divider
         />
 
@@ -244,7 +192,7 @@ export function SidebarSection() {
             label={t('app.sidebarResetTitle')}
             description={t('app.sidebarResetDesc')}
           />
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={resetSidebar}>
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={onReset}>
             {t('app.sidebarReset')}
           </Button>
         </SettingsRow>

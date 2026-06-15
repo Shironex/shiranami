@@ -1,20 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
-import { UI_SCALE_DEFAULT } from '@/stores/useUIStore';
-
-interface UiScalePreviewProps {
-  /** Current interface scale percentage from the slider. */
-  scale: number;
-}
-
-interface SampleTileProps {
-  label: string;
-  factor: number;
-  title: string;
-  subtitle: string;
-  active?: boolean;
-}
+import { useUiScalePreview } from './UiScalePreview.hooks';
+import type { IUiScalePreviewProps, IUiScaleSampleTileProps } from './UiScalePreview.types';
 
 /**
  * One sample card rendered at a fixed pixel base × `factor`. Inline px sizing
@@ -22,7 +9,7 @@ interface SampleTileProps {
  * rem-based classes inside the settings page already follow it — a px-based
  * mock is the only stable reference point for a side-by-side comparison.
  */
-function SampleTile({ label, factor, title, subtitle, active }: SampleTileProps) {
+function SampleTile({ label, factor, title, subtitle, active }: IUiScaleSampleTileProps) {
   return (
     <div className="min-w-0 flex-1">
       <div
@@ -71,30 +58,24 @@ function SampleTile({ label, factor, title, subtitle, active }: SampleTileProps)
 }
 
 /** Side-by-side default-vs-chosen sample so the slider's effect stays legible. */
-export function UiScalePreview({ scale }: UiScalePreviewProps) {
-  const { t } = useTranslation('settings');
-  const title = t('app.scaleSampleTitle');
-  const subtitle = t('app.scaleSampleSubtitle');
+export default function UiScalePreview({ scale }: IUiScalePreviewProps) {
+  const { title, sampleTitle, sampleSubtitle, baseLabel, currentLabel, currentFactor } =
+    useUiScalePreview({ scale });
 
   return (
-    <SettingsPreview title={t('app.scalePreview')}>
+    <SettingsPreview title={title}>
       <div
         className="rounded-xl border border-border/30 bg-background/40 p-3"
         role="img"
-        aria-label={t('app.scalePreview')}
+        aria-label={title}
       >
         <div className="mx-auto flex max-w-[340px] items-start gap-3">
+          <SampleTile label={baseLabel} factor={1} title={sampleTitle} subtitle={sampleSubtitle} />
           <SampleTile
-            label={t('app.scalePreviewBase', { value: UI_SCALE_DEFAULT })}
-            factor={1}
-            title={title}
-            subtitle={subtitle}
-          />
-          <SampleTile
-            label={t('app.scalePreviewCurrent', { value: scale })}
-            factor={scale / 100}
-            title={title}
-            subtitle={subtitle}
+            label={currentLabel}
+            factor={currentFactor}
+            title={sampleTitle}
+            subtitle={sampleSubtitle}
             active
           />
         </div>

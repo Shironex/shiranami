@@ -1,48 +1,38 @@
-import { useTranslation } from 'react-i18next';
 import { Music2, Heart, Mic2, Play, SkipBack, SkipForward } from 'lucide-react';
-import {
-  useCompactStore,
-  CMP_TITLE_CLASS,
-  CMP_ARTIST_CLASS,
-  CMP_ALBUM_CLASS,
-  type CompactSize,
-} from '@/stores/useCompactStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { cn } from '@/lib/utils';
+import { useCompactModePreview } from './CompactModePreview.hooks';
 
-const SIZE_WIDTH: Record<CompactSize, number> = {
-  sm: 210,
-  md: 250,
-  lg: 300,
-};
-
-export function CompactModePreview() {
-  const { t } = useTranslation('settings');
-
-  const compactSize = useCompactStore(s => s.compactSize);
-  const compactFontSize = useCompactStore(s => s.compactFontSize);
-  const compactShowAlbumArt = useCompactStore(s => s.compactShowAlbumArt);
-  const compactShowAlbum = useCompactStore(s => s.compactShowAlbum);
-  const compactShowSeek = useCompactStore(s => s.compactShowSeek);
-  const compactShowVolume = useCompactStore(s => s.compactShowVolume);
-  const compactShowFavorite = useCompactStore(s => s.compactShowFavorite);
-  const compactShowLyrics = useCompactStore(s => s.compactShowLyrics);
-
-  const cardWidth = SIZE_WIDTH[compactSize];
-  const titleClass = CMP_TITLE_CLASS[compactFontSize];
-  const artistClass = CMP_ARTIST_CLASS[compactFontSize];
-  const albumClass = CMP_ALBUM_CLASS[compactFontSize];
-
-  const artSize = compactSize === 'sm' ? 36 : compactSize === 'lg' ? 52 : 44;
-  const padding = compactSize === 'sm' ? 'p-2' : compactSize === 'lg' ? 'p-3.5' : 'p-3';
-  const controlSize = compactSize === 'sm' ? 10 : compactSize === 'lg' ? 14 : 12;
+export default function CompactModePreview() {
+  const {
+    title,
+    disclaimer,
+    trackTitle,
+    artist,
+    album,
+    cardWidth,
+    titleClass,
+    artistClass,
+    albumClass,
+    artSize,
+    artIconSize,
+    padding,
+    controlSize,
+    showAlbumArt,
+    showAlbum,
+    showSeek,
+    showVolume,
+    showFavorite,
+    showLyrics,
+    showGlyphCluster,
+  } = useCompactModePreview();
 
   return (
-    <SettingsPreview title={t('cmp.preview')}>
+    <SettingsPreview title={title}>
       <div
         className="bg-background/40 border border-border/30 rounded-xl p-4 flex flex-col items-center justify-center gap-0"
         role="img"
-        aria-label={t('cmp.preview')}
+        aria-label={title}
       >
         {/* Mock mini-player card */}
         <div
@@ -54,43 +44,33 @@ export function CompactModePreview() {
         >
           {/* Top row: art + text + favorite */}
           <div className="flex items-center gap-2">
-            {compactShowAlbumArt && (
+            {showAlbumArt && (
               <div
                 className="shrink-0 rounded-md bg-muted/50 border border-border/20 flex items-center justify-center text-muted-foreground/40"
                 style={{ width: artSize, height: artSize }}
               >
-                <Music2 size={artSize * 0.45} />
+                <Music2 size={artIconSize} />
               </div>
             )}
 
             <div className="flex-1 min-w-0">
-              <p className={cn('truncate text-foreground', titleClass)}>
-                {t('cmp.previewTrackTitle')}
-              </p>
-              <p className={cn('truncate text-muted-foreground', artistClass)}>
-                {t('cmp.previewArtist')}
-              </p>
-              {compactShowAlbum && (
-                <p className={cn('truncate text-muted-foreground/60', albumClass)}>
-                  {t('cmp.previewAlbum')}
-                </p>
+              <p className={cn('truncate text-foreground', titleClass)}>{trackTitle}</p>
+              <p className={cn('truncate text-muted-foreground', artistClass)}>{artist}</p>
+              {showAlbum && (
+                <p className={cn('truncate text-muted-foreground/60', albumClass)}>{album}</p>
               )}
             </div>
 
-            {(compactShowFavorite || compactShowLyrics) && (
+            {showGlyphCluster && (
               <div className="flex shrink-0 items-center gap-1">
-                {compactShowFavorite && (
-                  <Heart size={controlSize} className="text-muted-foreground/50" />
-                )}
-                {compactShowLyrics && (
-                  <Mic2 size={controlSize} className="text-muted-foreground/50" />
-                )}
+                {showFavorite && <Heart size={controlSize} className="text-muted-foreground/50" />}
+                {showLyrics && <Mic2 size={controlSize} className="text-muted-foreground/50" />}
               </div>
             )}
           </div>
 
           {/* Seek bar */}
-          {compactShowSeek && (
+          {showSeek && (
             <div className="flex items-center gap-1.5">
               <span className="text-[8px] tabular-nums text-muted-foreground/50 shrink-0">
                 1:23
@@ -112,7 +92,7 @@ export function CompactModePreview() {
               <SkipForward size={controlSize} className="text-muted-foreground/60" />
             </div>
 
-            {compactShowVolume && (
+            {showVolume && (
               <div className="flex items-center gap-1">
                 <div className="w-10 h-0.5 rounded-full bg-muted/40 relative overflow-hidden">
                   <div className="absolute inset-y-0 left-0 w-3/4 rounded-full bg-muted-foreground/30" />
@@ -122,9 +102,7 @@ export function CompactModePreview() {
           </div>
         </div>
 
-        <p className="text-[10px] text-muted-foreground/60 text-center mt-2">
-          {t('cmp.previewDisclaimer')}
-        </p>
+        <p className="text-[10px] text-muted-foreground/60 text-center mt-2">{disclaimer}</p>
       </div>
     </SettingsPreview>
   );
