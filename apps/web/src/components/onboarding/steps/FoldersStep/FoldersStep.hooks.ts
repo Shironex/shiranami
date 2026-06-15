@@ -6,13 +6,18 @@ import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import { useLibraryFolders } from '@/hooks/useLibraryFolders';
 import { useSubfolderPlaylistConfirm } from '@/hooks/useSubfolderPlaylistConfirm';
 import { useOnboardingStepContext } from '../../stepContext';
+import type { WatchedFolder } from '@/components/settings/MusicFoldersSection';
 import type { IFoldersStepView } from './FoldersStep.types';
+
+// Stable empty default so `folders` keeps a constant reference while the query
+// is loading — a fresh `[]` each render would break downstream dependency arrays.
+const EMPTY_FOLDERS: WatchedFolder[] = [];
 
 export function useFoldersStep(): IFoldersStepView {
   const { t } = useTranslation('onboarding');
   const stepContext = useOnboardingStepContext();
 
-  const { data: folders = [] } = useFoldersQuery();
+  const { data: folders = EMPTY_FOLDERS } = useFoldersQuery();
   const {
     isScanning,
     addFolder,
