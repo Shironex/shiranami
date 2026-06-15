@@ -47,6 +47,7 @@ export const Default: Story = {
     // External CTAs open in a new tab and must be reverse-tabnabbing safe.
     await expect(coffee).toHaveAttribute('target', '_blank');
     await expect(coffee).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(sponsor).toHaveAttribute('target', '_blank');
     await expect(sponsor).toHaveAttribute('rel', 'noopener noreferrer');
   },
 };
