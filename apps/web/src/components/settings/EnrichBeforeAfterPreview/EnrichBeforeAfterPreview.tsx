@@ -1,20 +1,17 @@
-import { useTranslation } from 'react-i18next';
 import { ImageOff, Music, ArrowRight } from 'lucide-react';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
 import { cn } from '@/lib/utils';
+import { useEnrichBeforeAfterPreview } from './EnrichBeforeAfterPreview.hooks';
+import type { EnrichTagCardVariant } from './EnrichBeforeAfterPreview.types';
 
-// Illustrative confidence for the enriched sample — a "strong match" so the
-// badge demonstrates the high tier the user will most often see.
-const SAMPLE_CONFIDENCE = 0.92;
-
-interface TrackTagCardProps {
-  variant: 'before' | 'after';
-  title: string;
-  artist: string;
-  album: string;
+interface ITrackTagCardProps {
+  readonly variant: EnrichTagCardVariant;
+  readonly title: string;
+  readonly artist: string;
+  readonly album: string;
 }
 
-function TrackTagCard({ variant, title, artist, album }: TrackTagCardProps) {
+function TrackTagCard({ variant, title, artist, album }: ITrackTagCardProps) {
   const isBefore = variant === 'before';
   const detailClassName = cn(
     'truncate text-[11px]',
@@ -46,8 +43,8 @@ function TrackTagCard({ variant, title, artist, album }: TrackTagCardProps) {
  * and album with a confidence pill. Makes the feature's value legible *before*
  * the user commits — especially important for the irreversible file-write path.
  */
-export function EnrichBeforeAfterPreview() {
-  const { t } = useTranslation('settings');
+export default function EnrichBeforeAfterPreview() {
+  const { t, sampleConfidence } = useEnrichBeforeAfterPreview();
 
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -70,7 +67,7 @@ export function EnrichBeforeAfterPreview() {
           <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
             {t('enr.afterLabel')}
           </p>
-          <EnrichConfidenceBadge confidence={SAMPLE_CONFIDENCE} />
+          <EnrichConfidenceBadge confidence={sampleConfidence} />
         </div>
         <TrackTagCard
           variant="after"

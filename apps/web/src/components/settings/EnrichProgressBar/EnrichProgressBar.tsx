@@ -1,23 +1,16 @@
-import { useTranslation } from 'react-i18next';
-import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { Loader2, Check, X, Ban } from 'lucide-react';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
+import { useEnrichProgressBar } from './EnrichProgressBar.hooks';
 
 /**
  * Isolated subscriber for high-frequency progress state.
  * Extracted so MetadataEnrichSection does not re-render on every per-track event.
- * Only mounts when isEnriching is true (parent gates rendering).
+ * Only renders when a run is active (the hook gates visibility).
  */
-export function EnrichProgressBar() {
-  const { t } = useTranslation('settings');
-  const progress = useMetadataEnrichStore(s => s.progress);
-  const isEnriching = useMetadataEnrichStore(s => s.isEnriching);
-  const isCancelling = useMetadataEnrichStore(s => s.isCancelling);
+export default function EnrichProgressBar() {
+  const { t, visible, progress, progressPercent, isCancelling } = useEnrichProgressBar();
 
-  if (!isEnriching || !progress) return null;
-
-  const progressPercent =
-    progress.total > 0 ? Math.min(100, Math.max(0, (progress.current / progress.total) * 100)) : 0;
+  if (!visible || !progress) return null;
 
   return (
     <div
