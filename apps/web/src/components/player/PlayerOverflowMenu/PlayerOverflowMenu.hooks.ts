@@ -4,9 +4,10 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
+import { IS_MAC } from '@/lib/platform';
 import type { IPlayerOverflowMenuView } from './PlayerOverflowMenu.types';
 
-const MOD = navigator.platform.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl';
+const MOD = IS_MAC ? '⌘' : 'Ctrl';
 
 export function usePlayerOverflowMenu(): IPlayerOverflowMenuView {
   const { t } = useTranslation('player');
