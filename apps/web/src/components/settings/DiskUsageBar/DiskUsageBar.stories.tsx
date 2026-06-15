@@ -63,7 +63,9 @@ export const Default: Story = {
 /** Nearly full — a high music/low free split still renders the same chrome. */
 export const NearlyFull: Story = {
   args: {
-    volume: { ...volume, musicBytes: 380 * GB, freeBytes: 20 * GB },
+    // Keep the payload internally consistent: used = total - free, and music
+    // stays within used (free 20 + used 480 = total 500; music 380 ≤ used 480).
+    volume: { ...volume, musicBytes: 380 * GB, freeBytes: 20 * GB, usedBytes: 480 * GB },
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
