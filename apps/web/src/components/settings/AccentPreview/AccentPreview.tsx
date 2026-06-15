@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
 import { Heart, Music2, Play } from 'lucide-react';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { useAccentPreview } from './AccentPreview.hooks';
 
 /**
  * Sample chrome rendered entirely from the accent tokens (`bg-primary`,
@@ -8,15 +8,15 @@ import { SettingsPreview } from '@/components/settings/SettingsPreview';
  * picks a swatch — including the computed foreground, which is the part a
  * bare color chip can't show.
  */
-export function AccentPreview() {
-  const { t } = useTranslation('settings');
+export default function AccentPreview() {
+  const { title } = useAccentPreview();
 
   return (
-    <SettingsPreview title={t('app.accent.previewTitle')}>
+    <SettingsPreview title={title}>
       <div
         className="rounded-xl border border-border/30 bg-background/40 p-3"
         role="img"
-        aria-label={t('app.accent.previewTitle')}
+        aria-label={title}
       >
         <div className="mx-auto max-w-[340px] rounded-xl border border-border/25 bg-surface/60 p-3">
           {/* Fake track row: icon tile + title bars + favorite */}

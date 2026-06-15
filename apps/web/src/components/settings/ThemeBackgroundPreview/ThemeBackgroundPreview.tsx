@@ -1,7 +1,5 @@
-import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
-import { useThemeStore } from '@/stores/useThemeStore';
-import { useThemeBgStore } from '@/stores/useThemeBgStore';
+import { useThemeBackgroundPreview } from './ThemeBackgroundPreview.hooks';
 
 /**
  * Contained sample of the live theme background, scaled into a settings tile.
@@ -18,14 +16,18 @@ import { useThemeBgStore } from '@/stores/useThemeBgStore';
  * Mirrors `.theme-bg-image` / `.theme-bg-scrim` (globals.css) for fidelity and
  * resolves the WebP the same document-relative way as `ThemeBackground`.
  */
-export function ThemeBackgroundPreview() {
-  const { t } = useTranslation('settings');
-  const theme = useThemeStore(s => s.theme);
-  const bgOpacity = useThemeBgStore(s => s.bgOpacity);
-  const bgBlur = useThemeBgStore(s => s.bgBlur);
-  const bgDim = useThemeBgStore(s => s.bgDim);
+export default function ThemeBackgroundPreview() {
+  const {
+    hasBackground,
+    backgroundImage,
+    bgOpacity,
+    blurFilter,
+    bgDim,
+    previewTrack,
+    previewArtist,
+  } = useThemeBackgroundPreview();
 
-  if (theme === 'none') return null;
+  if (!hasBackground) return null;
 
   return (
     <div className="relative h-[148px] overflow-hidden rounded-xl border border-border/30 bg-background">
@@ -34,9 +36,9 @@ export function ThemeBackgroundPreview() {
       <div
         className="theme-bg-image absolute inset-0"
         style={{
-          backgroundImage: `url(./themes/${theme}.webp)`,
+          backgroundImage,
           opacity: bgOpacity,
-          filter: `blur(${bgBlur}px)`,
+          filter: blurFilter,
         }}
         aria-hidden="true"
       />
@@ -55,12 +57,8 @@ export function ThemeBackgroundPreview() {
             <Play className="size-3.5 fill-current" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-foreground">
-              {t('app.bgAdjust.previewTrack')}
-            </p>
-            <p className="truncate text-[11px] text-muted-foreground">
-              {t('app.bgAdjust.previewArtist')}
-            </p>
+            <p className="truncate text-xs font-medium text-foreground">{previewTrack}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{previewArtist}</p>
           </div>
         </div>
       </div>

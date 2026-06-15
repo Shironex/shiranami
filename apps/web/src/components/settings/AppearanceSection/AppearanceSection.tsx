@@ -1,68 +1,84 @@
-import { useTranslation } from 'react-i18next';
 import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
-import {
-  useUIStore,
-  UI_SCALE_MIN,
-  UI_SCALE_MAX,
-  UI_SCALE_STEP,
-  UI_SCALE_DEFAULT,
-  UI_SCALE_PRESETS,
-} from '@/stores/useUIStore';
-import { useThemeStore } from '@/stores/useThemeStore';
-import {
-  useThemeBgStore,
-  THEME_BG_OPACITY_MIN,
-  THEME_BG_OPACITY_MAX,
-  THEME_BG_OPACITY_STEP,
-  THEME_BG_OPACITY_DEFAULT,
-  THEME_BG_BLUR_MIN,
-  THEME_BG_BLUR_MAX,
-  THEME_BG_BLUR_STEP,
-  THEME_BG_BLUR_DEFAULT,
-  THEME_BG_DIM_MIN,
-  THEME_BG_DIM_MAX,
-  THEME_BG_DIM_STEP,
-  THEME_BG_DIM_DEFAULT,
-} from '@/stores/useThemeBgStore';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
 import { AccentPreview } from '@/components/settings/AccentPreview';
 import { UiScalePreview } from '@/components/settings/UiScalePreview';
-import { useAccentStore } from '@/stores/useAccentStore';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
-import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
+import { useAppearanceSection } from './AppearanceSection.hooks';
 
-export function AppearanceSection() {
-  const { t, i18n } = useTranslation('settings');
-  const { t: tc } = useTranslation('common');
-  const uiScale = useUIStore(s => s.uiScale);
-  const setUiScale = useUIStore(s => s.setUiScale);
-  const resetUiScale = useUIStore(s => s.resetUiScale);
-  const theme = useThemeStore(s => s.theme);
-  const setTheme = useThemeStore(s => s.setTheme);
-  const bgOpacity = useThemeBgStore(s => s.bgOpacity);
-  const setBgOpacity = useThemeBgStore(s => s.setBgOpacity);
-  const bgBlur = useThemeBgStore(s => s.bgBlur);
-  const setBgBlur = useThemeBgStore(s => s.setBgBlur);
-  const bgDim = useThemeBgStore(s => s.bgDim);
-  const setBgDim = useThemeBgStore(s => s.setBgDim);
-  const resetBg = useThemeBgStore(s => s.resetBg);
-  const accentColor = useAccentStore(s => s.accentColor);
-  const resetAccent = useAccentStore(s => s.resetAccent);
+export default function AppearanceSection() {
+  const {
+    t,
+    resetLabel,
+    languageOptions,
+    onSelectLanguage,
+    uiScale,
+    uiScaleMin,
+    uiScaleMax,
+    uiScaleStep,
+    isScaleModified,
+    scalePresets,
+    onSetUiScale,
+    onResetUiScale,
+    theme,
+    hasThemeBackground,
+    onSelectTheme,
+    isBgModified,
+    bgOpacity,
+    bgOpacityPercent,
+    bgOpacityMin,
+    bgOpacityMax,
+    bgOpacityStep,
+    bgBlur,
+    bgBlurMin,
+    bgBlurMax,
+    bgBlurStep,
+    bgDim,
+    bgDimPercent,
+    bgDimMin,
+    bgDimMax,
+    bgDimStep,
+    onSetBgOpacity,
+    onSetBgBlur,
+    onSetBgDim,
+    onResetBg,
+    hasAccentOverride,
+    onResetAccent,
+  } = useAppearanceSection();
 
-  const isBgModified =
-    bgOpacity !== THEME_BG_OPACITY_DEFAULT ||
-    bgBlur !== THEME_BG_BLUR_DEFAULT ||
-    bgDim !== THEME_BG_DIM_DEFAULT;
+  const languageButtons = languageOptions.map(lang => (
+    <button
+      key={lang.code}
+      onClick={() => onSelectLanguage(lang.code)}
+      className={cn(
+        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        lang.isActive
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {lang.label}
+    </button>
+  ));
 
-  function handleLanguageChange(lang: SupportedLanguage) {
-    i18n.changeLanguage(lang);
-    persistLanguage(lang);
-  }
+  const scalePresetButtons = scalePresets.map(preset => (
+    <button
+      key={preset.value}
+      onClick={() => onSetUiScale(preset.value)}
+      className={cn(
+        'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+        preset.isActive
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {preset.value}%
+    </button>
+  ));
 
   return (
     <div className="space-y-4">
@@ -73,22 +89,7 @@ export function AppearanceSection() {
           <div className="px-3">
             <p className="text-sm font-medium text-foreground mb-1">{t('app.languageTitle')}</p>
             <p className="text-xs text-muted-foreground mb-3">{t('app.languageDesc')}</p>
-            <div className="flex items-center gap-1.5">
-              {SUPPORTED_LANGUAGES.map(lang => (
-                <button
-                  key={lang.code}
-                  onClick={() => handleLanguageChange(lang.code)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-                    i18n.language === lang.code
-                      ? 'bg-primary/15 text-primary border border-primary/40'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
-                  )}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
+            <div className="flex items-center gap-1.5">{languageButtons}</div>
           </div>
 
           {/* Interface scale */}
@@ -100,37 +101,22 @@ export function AppearanceSection() {
             <p className="text-xs text-muted-foreground mb-4">{t('app.scaleDesc')}</p>
 
             <Slider
-              min={UI_SCALE_MIN}
-              max={UI_SCALE_MAX}
-              step={UI_SCALE_STEP}
+              min={uiScaleMin}
+              max={uiScaleMax}
+              step={uiScaleStep}
               value={[uiScale]}
-              onValueChange={([v]) => setUiScale(v)}
+              onValueChange={([v]) => onSetUiScale(v)}
             />
 
             <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-1.5">
-                {UI_SCALE_PRESETS.map(preset => (
-                  <button
-                    key={preset}
-                    onClick={() => setUiScale(preset)}
-                    className={cn(
-                      'px-2 py-1 rounded-md text-xs font-medium transition-colors',
-                      uiScale === preset
-                        ? 'bg-primary/15 text-primary border border-primary/40'
-                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
-                    )}
-                  >
-                    {preset}%
-                  </button>
-                ))}
-              </div>
+              <div className="flex items-center gap-1.5">{scalePresetButtons}</div>
 
-              {uiScale !== UI_SCALE_DEFAULT && (
+              {isScaleModified && (
                 <button
-                  onClick={resetUiScale}
+                  onClick={onResetUiScale}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {tc('reset')}
+                  {resetLabel}
                 </button>
               )}
             </div>
@@ -144,15 +130,15 @@ export function AppearanceSection() {
 
       {/* Card 2 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
-        <ThemeTileGrid value={theme} onSelect={setTheme} />
+        <ThemeTileGrid value={theme} onSelect={onSelectTheme} />
 
-        {theme !== 'none' && (
+        {hasThemeBackground && (
           <div className="px-3 pt-4 border-t border-border/40 space-y-5">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.title')}</p>
               {isBgModified && (
                 <button
-                  onClick={resetBg}
+                  onClick={onResetBg}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t('app.bgAdjust.reset')}
                 >
@@ -167,16 +153,16 @@ export function AppearanceSection() {
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.opacity')}</p>
                 <span className="text-xs tabular-nums text-muted-foreground">
-                  {Math.round(bgOpacity * 100)}%
+                  {bgOpacityPercent}%
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.opacityDesc')}</p>
               <Slider
-                min={THEME_BG_OPACITY_MIN}
-                max={THEME_BG_OPACITY_MAX}
-                step={THEME_BG_OPACITY_STEP}
+                min={bgOpacityMin}
+                max={bgOpacityMax}
+                step={bgOpacityStep}
                 value={[bgOpacity]}
-                onValueChange={([v]) => setBgOpacity(v)}
+                onValueChange={([v]) => onSetBgOpacity(v)}
               />
             </div>
 
@@ -188,11 +174,11 @@ export function AppearanceSection() {
               </div>
               <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.blurDesc')}</p>
               <Slider
-                min={THEME_BG_BLUR_MIN}
-                max={THEME_BG_BLUR_MAX}
-                step={THEME_BG_BLUR_STEP}
+                min={bgBlurMin}
+                max={bgBlurMax}
+                step={bgBlurStep}
                 value={[bgBlur]}
-                onValueChange={([v]) => setBgBlur(v)}
+                onValueChange={([v]) => onSetBgBlur(v)}
               />
             </div>
 
@@ -200,17 +186,15 @@ export function AppearanceSection() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.dim')}</p>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {Math.round(bgDim * 100)}%
-                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgDimPercent}%</span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.dimDesc')}</p>
               <Slider
-                min={THEME_BG_DIM_MIN}
-                max={THEME_BG_DIM_MAX}
-                step={THEME_BG_DIM_STEP}
+                min={bgDimMin}
+                max={bgDimMax}
+                step={bgDimStep}
                 value={[bgDim]}
-                onValueChange={([v]) => setBgDim(v)}
+                onValueChange={([v]) => onSetBgDim(v)}
               />
             </div>
 
@@ -232,9 +216,9 @@ export function AppearanceSection() {
         title={t('app.accent.title')}
         subtitle={t('app.accent.desc')}
         headerRight={
-          accentColor !== null ? (
+          hasAccentOverride ? (
             <button
-              onClick={resetAccent}
+              onClick={onResetAccent}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t('app.accent.reset')}
             >

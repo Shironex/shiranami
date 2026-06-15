@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 
-interface EffectPreviewProps {
+interface IEffectPreviewProps {
   enabled: boolean;
 }
 
-export function NowPlayingViewPreview({ enabled }: EffectPreviewProps) {
+/** Fixed bar heights (px) for the low-performance equalizer mock. */
+const LOW_PERF_BAR_HEIGHTS = [32, 58, 42, 76, 48, 68, 38, 56] as const;
+
+export function NowPlayingViewPreview({ enabled }: IEffectPreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -55,7 +58,7 @@ export function NowPlayingViewPreview({ enabled }: EffectPreviewProps) {
   );
 }
 
-export function LibraryBannerPreview({ enabled }: EffectPreviewProps) {
+export function LibraryBannerPreview({ enabled }: IEffectPreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -89,8 +92,12 @@ export function LibraryBannerPreview({ enabled }: EffectPreviewProps) {
   );
 }
 
-export function LowPerformancePreview({ enabled }: EffectPreviewProps) {
+export function LowPerformancePreview({ enabled }: IEffectPreviewProps) {
   const { t } = useTranslation('settings');
+
+  const bars = LOW_PERF_BAR_HEIGHTS.map((height, index) => (
+    <div key={`${height}-${index}`} className="rounded-t bg-primary/45" style={{ height }} />
+  ));
 
   return (
     <SettingsPreview title={t('app.effectPreview.performance')}>
@@ -124,13 +131,7 @@ export function LowPerformancePreview({ enabled }: EffectPreviewProps) {
               enabled && 'opacity-35'
             )}
           >
-            {[32, 58, 42, 76, 48, 68, 38, 56].map((height, index) => (
-              <div
-                key={`${height}-${index}`}
-                className="rounded-t bg-primary/45"
-                style={{ height }}
-              />
-            ))}
+            {bars}
           </div>
         </div>
       </div>
@@ -138,7 +139,7 @@ export function LowPerformancePreview({ enabled }: EffectPreviewProps) {
   );
 }
 
-export function NoiseOverlayPreview({ enabled }: EffectPreviewProps) {
+export function NoiseOverlayPreview({ enabled }: IEffectPreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
