@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { pad2 } from '@shiranami/shared';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -34,10 +34,15 @@ export function useClockCard({ glyph }: IClockCardProps): IClockCardView {
   // Locale-aware hour (12h for en-US, 24h for pl, …) split into hour + minute
   // parts so the blinking colon sits between them. `formatToParts` keeps the
   // hour cycle correct without string-surgery on a formatted time.
-  const parts = new Intl.DateTimeFormat(locale, {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).formatToParts(now);
+  const formatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    [locale]
+  );
+  const parts = formatter.formatToParts(now);
   const hourPart = parts.find(p => p.type === 'hour')?.value ?? String(now.getHours());
   const minutePart = parts.find(p => p.type === 'minute')?.value ?? pad2(now.getMinutes());
   const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value;
