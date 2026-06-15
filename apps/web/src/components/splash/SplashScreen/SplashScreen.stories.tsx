@@ -64,10 +64,13 @@ export const Error: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Could not read your music library.')).toBeInTheDocument();
-    // The status block fades in on a timer, so query the retry by its text and
-    // confirm it's a real button rather than relying on its (initially hidden) role.
-    const retry = canvas.getByText('Try again');
-    await expect(retry.closest('button')).not.toBeNull();
+    await expect(await canvas.findByText('Could not read your music library.')).toBeInTheDocument();
+    // The error + retry block is mounted but aria-hidden behind a 600ms spinner
+    // delay, then fades in. Await the retry BY ROLE so the assertion reflects the
+    // shown, accessible state (the button entering the a11y tree) rather than a
+    // structural check against a still-hidden element.
+    await expect(
+      await canvas.findByRole('button', { name: 'Try again' }, { timeout: 2000 })
+    ).toBeInTheDocument();
   },
 };
