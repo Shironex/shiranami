@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RowComponentProps } from 'react-window';
 import { isoCodeToFlag } from '../radioUtils';
@@ -18,11 +19,21 @@ export function useStationRow(props: RowComponentProps<IStationRowProps>): IStat
   const bitrateSuffix = station && station.bitrate > 0 ? ` ${station.bitrate}k` : '';
   const codecLabel = station?.codec ? `${station.codec}${bitrateSuffix}` : '';
 
-  const onFaviconError = (event: React.SyntheticEvent<HTMLImageElement>): void => {
+  const onFaviconError = useCallback((event: React.SyntheticEvent<HTMLImageElement>): void => {
     const img = event.target as HTMLImageElement;
     img.style.display = 'none';
     img.nextElementSibling?.classList.remove('hidden');
-  };
+  }, []);
+
+  const onPlayClick = useCallback(() => onPlay(index), [onPlay, index]);
+
+  const onFavoriteClick = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      if (station) onToggleFavorite(station);
+    },
+    [station, onToggleFavorite]
+  );
 
   return {
     station,
@@ -36,11 +47,8 @@ export function useStationRow(props: RowComponentProps<IStationRowProps>): IStat
     codecLabel,
     favoriteAriaLabel: isFav ? t('removeFavorite') : t('addFavorite'),
     nowPlayingLabel: tCommon('nowPlaying'),
-    onPlayClick: () => onPlay(index),
-    onFavoriteClick: (event: React.MouseEvent) => {
-      event.stopPropagation();
-      if (station) onToggleFavorite(station);
-    },
+    onPlayClick,
+    onFavoriteClick,
     onFaviconError,
   };
 }
