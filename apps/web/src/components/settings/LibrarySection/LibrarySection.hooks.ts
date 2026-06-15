@@ -103,8 +103,8 @@ export function useLibrarySection(): ILibrarySectionView {
     isExporting: exporting,
     isImporting: importing,
     isBackupBusy: exporting || importing,
-    onExport,
-    onImport,
+    onExport: () => void onExport(),
+    onImport: () => void onImport(),
 
     subfolderDialogOpen,
     detectedSubfolders,
