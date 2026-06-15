@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { SlidersHorizontal } from 'lucide-react';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
@@ -9,43 +7,10 @@ import { EqCurvePreview } from '@/components/settings/EqCurvePreview';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { EQ_BANDS } from '@/lib/audioAnalyser';
 import { formatEqFrequencyTick } from '@/lib/eqLabels';
-import { formatGain } from '@/lib/eqFormat';
-import {
-  useEqStore,
-  EQ_MIN_DB,
-  EQ_MAX_DB,
-  PREAMP_MIN_DB,
-  PREAMP_MAX_DB,
-  type NamedEqPresetId,
-} from '@/stores/useEqStore';
+import { useEqualizerSection, EQ_BAND_BOUNDS } from './EqualizerSection.hooks';
 
-const PREAMP_STEP = 0.5;
-const BAND_STEP = 0.5;
-
-const ORDERED_PRESETS: NamedEqPresetId[] = [
-  'flat',
-  'rock',
-  'pop',
-  'jazz',
-  'classical',
-  'electronic',
-  'dance',
-  'hiphop',
-  'acoustic',
-  'vocal',
-  'bassboost',
-  'trebleboost',
-  'loudness',
-];
-
-function formatBandLabel(t: (key: string, opts?: Record<string, unknown>) => string, freq: number) {
-  if (freq >= 1000) return t('bandLabelKhz', { freq: freq / 1000 });
-  return t('bandLabel', { freq });
-}
-
-interface VerticalBandSliderProps {
+interface IVerticalBandSliderProps {
   freq: number;
   value: number;
   onChange: (db: number) => void;
@@ -63,7 +28,7 @@ function VerticalBandSlider({
   label,
   bandName,
   gainLabel,
-}: VerticalBandSliderProps) {
+}: IVerticalBandSliderProps) {
   return (
     <div className="flex flex-col items-center gap-2 min-w-0">
       <Tooltip>
@@ -71,9 +36,9 @@ function VerticalBandSlider({
           <div className="flex items-center justify-center shrink-0 h-64">
             <SliderPrimitive.Root
               orientation="vertical"
-              min={EQ_MIN_DB}
-              max={EQ_MAX_DB}
-              step={BAND_STEP}
+              min={EQ_BAND_BOUNDS.min}
+              max={EQ_BAND_BOUNDS.max}
+              step={EQ_BAND_BOUNDS.step}
               value={[value]}
               onValueChange={([v]) => onChange(v)}
               disabled={disabled}
@@ -107,64 +72,92 @@ function VerticalBandSlider({
   );
 }
 
-export function EqualizerSection() {
-  const { t } = useTranslation('equalizer');
+export default function EqualizerSection() {
+  const {
+    title,
+    subtitle,
+    enabled,
+    onSetEnabled,
+    enableLabel,
+    enableDescription,
+    presetLabel,
+    presetTiles,
+    isCustomPreset,
+    customPresetLabel,
+    onApplyPreset,
+    curvePreviewTitle,
+    gains,
+    preampDb,
+    bands,
+    bassZoneLabel,
+    midsZoneLabel,
+    trebleZoneLabel,
+    onSetBandGain,
+    preampLabel,
+    preampDescription,
+    preampGainLabel,
+    preampMinLabel,
+    preampMaxLabel,
+    preampMin,
+    preampMax,
+    preampStep,
+    onSetPreampDb,
+    resetLabel,
+    onReset,
+  } = useEqualizerSection();
 
-  const enabled = useEqStore(s => s.enabled);
-  const preset = useEqStore(s => s.preset);
-  const gains = useEqStore(s => s.gains);
-  const preampDb = useEqStore(s => s.preampDb);
-  const setEnabled = useEqStore(s => s.setEnabled);
-  const setBandGain = useEqStore(s => s.setBandGain);
-  const setPreampDb = useEqStore(s => s.setPreampDb);
-  const applyPreset = useEqStore(s => s.applyPreset);
-  const reset = useEqStore(s => s.reset);
+  const presetButtons = presetTiles.map(tile => (
+    <button
+      key={tile.id}
+      type="button"
+      onClick={() => onApplyPreset(tile.id)}
+      className={cn(
+        'px-3 py-2 rounded-lg border text-center text-xs font-medium transition-all',
+        tile.selected
+          ? 'border-primary/40 bg-primary/10 text-foreground'
+          : 'border-border/30 text-muted-foreground hover:border-border/50 hover:bg-accent/30 hover:text-foreground/80'
+      )}
+    >
+      {tile.label}
+    </button>
+  ));
 
-  const presetTiles = useMemo(
-    () => ORDERED_PRESETS.map(id => ({ id, label: t(`preset.${id}`) })),
-    [t]
-  );
+  const bandSliders = bands.map(band => (
+    <VerticalBandSlider
+      key={band.freq}
+      freq={band.freq}
+      value={band.value}
+      onChange={db => onSetBandGain(band.index, db)}
+      disabled={!enabled}
+      label={band.label}
+      bandName={band.bandName}
+      gainLabel={band.gainLabel}
+    />
+  ));
 
   return (
-    <SettingsCard icon={SlidersHorizontal} title={t('title')} subtitle={t('subtitle')}>
+    <SettingsCard icon={SlidersHorizontal} title={title} subtitle={subtitle}>
       <div className="space-y-5">
         {/* Enable switch */}
         <div className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-accent/30 transition-colors">
           <div>
-            <p className="text-sm font-medium text-foreground">{t('enable')}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{t('enableDesc')}</p>
+            <p className="text-sm font-medium text-foreground">{enableLabel}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{enableDescription}</p>
           </div>
-          <Switch checked={enabled} onCheckedChange={setEnabled} />
+          <Switch checked={enabled} onCheckedChange={onSetEnabled} />
         </div>
 
         {/* Preset tiles */}
         <div className="px-3">
-          <p className="text-xs text-muted-foreground mb-3">{t('preset')}</p>
+          <p className="text-xs text-muted-foreground mb-3">{presetLabel}</p>
           <div className="grid grid-cols-3 gap-2">
-            {presetTiles.map(tile => {
-              const selected = preset === tile.id;
-              return (
-                <button
-                  key={tile.id}
-                  type="button"
-                  onClick={() => applyPreset(tile.id)}
-                  className={cn(
-                    'px-3 py-2 rounded-lg border text-center text-xs font-medium transition-all',
-                    selected
-                      ? 'border-primary/40 bg-primary/10 text-foreground'
-                      : 'border-border/30 text-muted-foreground hover:border-border/50 hover:bg-accent/30 hover:text-foreground/80'
-                  )}
-                >
-                  {tile.label}
-                </button>
-              );
-            })}
-            {preset === 'custom' && (
+            {presetButtons}
+            {isCustomPreset && (
               <div
                 className="px-3 py-2 rounded-lg border border-primary/40 bg-primary/10 text-center text-xs font-medium text-foreground"
                 aria-live="polite"
               >
-                {t('customPreset')}
+                {customPresetLabel}
               </div>
             )}
           </div>
@@ -175,7 +168,7 @@ export function EqualizerSection() {
             tone="info" marks it as a reflection rather than a control. */}
         <div className="px-3">
           <SettingsCard tone="info" className="!p-3">
-            <SettingsPreview title={t('curvePreview.title')}>
+            <SettingsPreview title={curvePreviewTitle}>
               <EqCurvePreview gains={gains} preampDb={preampDb} disabled={!enabled} />
             </SettingsPreview>
           </SettingsCard>
@@ -183,29 +176,16 @@ export function EqualizerSection() {
 
         {/* Band strip with zone labels */}
         <div className={cn('px-3', !enabled && 'opacity-60')}>
-          <div className="grid grid-cols-10 gap-2">
-            {EQ_BANDS.map((freq, i) => (
-              <VerticalBandSlider
-                key={freq}
-                freq={freq}
-                value={gains[i] ?? 0}
-                onChange={db => setBandGain(i, db)}
-                disabled={!enabled}
-                label={formatBandLabel(t, freq)}
-                bandName={t(`bandName.${freq}`)}
-                gainLabel={t('gainLabel', { gain: formatGain(gains[i] ?? 0) })}
-              />
-            ))}
-          </div>
+          <div className="grid grid-cols-10 gap-2">{bandSliders}</div>
           <div className="grid grid-cols-10 mt-2.5">
             <span className="col-span-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5">
-              {t('zone.bass')}
+              {bassZoneLabel}
             </span>
             <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5 mx-1">
-              {t('zone.mids')}
+              {midsZoneLabel}
             </span>
             <span className="col-span-3 text-center text-[10px] uppercase tracking-widest text-muted-foreground border-t border-border/30 pt-1.5">
-              {t('zone.treble')}
+              {trebleZoneLabel}
             </span>
           </div>
         </div>
@@ -214,29 +194,23 @@ export function EqualizerSection() {
         <div className={cn('px-3 py-3 rounded-xl', !enabled && 'opacity-60')}>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-sm font-medium text-foreground">{t('preamp')}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t('preampDesc')}</p>
+              <p className="text-sm font-medium text-foreground">{preampLabel}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{preampDescription}</p>
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground">
-              {t('gainLabel', { gain: formatGain(preampDb) })}
-            </span>
+            <span className="text-xs tabular-nums text-muted-foreground">{preampGainLabel}</span>
           </div>
           <Slider
-            min={PREAMP_MIN_DB}
-            max={PREAMP_MAX_DB}
-            step={PREAMP_STEP}
+            min={preampMin}
+            max={preampMax}
+            step={preampStep}
             value={[preampDb]}
-            onValueChange={([v]) => setPreampDb(v)}
+            onValueChange={([v]) => onSetPreampDb(v)}
             disabled={!enabled}
-            aria-label={t('preamp')}
+            aria-label={preampLabel}
           />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground">
-              {t('gainLabel', { gain: PREAMP_MIN_DB })}
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              {t('gainLabel', { gain: `+${PREAMP_MAX_DB}` })}
-            </span>
+            <span className="text-[10px] text-muted-foreground">{preampMinLabel}</span>
+            <span className="text-[10px] text-muted-foreground">{preampMaxLabel}</span>
           </div>
         </div>
 
@@ -244,10 +218,10 @@ export function EqualizerSection() {
         <div className="px-3 flex justify-end">
           <button
             type="button"
-            onClick={reset}
+            onClick={onReset}
             className="text-xs px-3 py-1.5 rounded-lg border border-border/30 text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border/50 transition-colors"
           >
-            {t('reset')}
+            {resetLabel}
           </button>
         </div>
       </div>

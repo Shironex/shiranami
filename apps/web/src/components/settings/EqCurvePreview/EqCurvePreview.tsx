@@ -1,19 +1,8 @@
-import { useId } from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { EQ_BANDS } from '@/lib/audioAnalyser';
-import { formatEqFrequencyTick } from '@/lib/eqLabels';
-import { useEqResponseCurve } from '@/hooks/useEqResponseCurve';
+import { useEqCurvePreview, EQ_CURVE_VIEWBOX } from './EqCurvePreview.hooks';
+import type { IEqCurvePreviewProps } from './EqCurvePreview.types';
 
-const VIEW_W = 320;
-const VIEW_H = 96;
-
-interface EqCurvePreviewProps {
-  gains: number[];
-  preampDb: number;
-  /** Dims the curve when the EQ is disabled, mirroring the band strip. */
-  disabled?: boolean;
-}
+const { width: VIEW_W, height: VIEW_H } = EQ_CURVE_VIEWBOX;
 
 /**
  * Live frequency-response curve for the equalizer — a hand-rolled SVG line
@@ -22,15 +11,11 @@ interface EqCurvePreviewProps {
  * heights. Pure SVG, no charting dependency; recomputes on every band/preamp
  * change via useEqResponseCurve.
  */
-export function EqCurvePreview({ gains, preampDb, disabled }: EqCurvePreviewProps) {
-  const { t } = useTranslation('equalizer');
-  const gradientId = useId();
-  const { linePath, areaPath, zeroY } = useEqResponseCurve({
-    gains,
-    preampDb,
-    width: VIEW_W,
-    height: VIEW_H,
-  });
+export default function EqCurvePreview(props: IEqCurvePreviewProps) {
+  const { ariaLabel, gradientId, linePath, areaPath, zeroY, disabled, ticks } =
+    useEqCurvePreview(props);
+
+  const tickLabels = ticks.map(tick => <span key={tick.freq}>{tick.label}</span>);
 
   return (
     <div
@@ -44,7 +29,7 @@ export function EqCurvePreview({ gains, preampDb, disabled }: EqCurvePreviewProp
         preserveAspectRatio="none"
         className="block h-24 w-full"
         role="img"
-        aria-label={t('curvePreview.ariaLabel')}
+        aria-label={ariaLabel}
       >
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -78,9 +63,7 @@ export function EqCurvePreview({ gains, preampDb, disabled }: EqCurvePreviewProp
 
       {/* Frequency axis ticks — bass → treble, matching the band strip order. */}
       <div className="flex justify-between px-2 pb-1.5 text-[9px] tabular-nums text-muted-foreground/60">
-        {EQ_BANDS.map(freq => (
-          <span key={freq}>{formatEqFrequencyTick(freq)}</span>
-        ))}
+        {tickLabels}
       </div>
     </div>
   );

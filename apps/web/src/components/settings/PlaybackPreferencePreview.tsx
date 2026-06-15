@@ -7,22 +7,22 @@ import {
   SLEEP_FADE_MAX_SECONDS,
 } from '@/stores/usePlaybackStore';
 
-interface ResumePreviewProps {
+interface IResumePreviewProps {
   enabled: boolean;
 }
 
-interface CrossfadePreviewProps {
+interface ICrossfadePreviewProps {
   enabled: boolean;
   duration: number;
 }
 
-interface LoudnessPreviewProps {
+interface ILoudnessPreviewProps {
   enabled: boolean;
   /** Current target LUFS from the slider; drives the target line position. */
   target: number;
 }
 
-export function ResumePreview({ enabled }: ResumePreviewProps) {
+export function ResumePreview({ enabled }: IResumePreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -57,7 +57,7 @@ export function ResumePreview({ enabled }: ResumePreviewProps) {
   );
 }
 
-export function CrossfadePreview({ enabled, duration }: CrossfadePreviewProps) {
+export function CrossfadePreview({ enabled, duration }: ICrossfadePreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -110,7 +110,7 @@ export function CrossfadePreview({ enabled, duration }: CrossfadePreviewProps) {
 // ON they converge toward the shared target line.
 const LOUDNESS_BARS = [0.34, 0.86, 0.52, 0.95, 0.68] as const;
 
-export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
+export function LoudnessPreview({ enabled, target }: ILoudnessPreviewProps) {
   const { t } = useTranslation('settings');
 
   // Map the target LUFS onto the bar's 0..1 height (louder target = taller).
@@ -118,6 +118,14 @@ export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
     (target - LOUDNESS_TARGET_MIN_LUFS) / (LOUDNESS_TARGET_MAX_LUFS - LOUDNESS_TARGET_MIN_LUFS);
   // Converge each bar toward the target line when leveling is on.
   const levelFor = (raw: number) => (enabled ? targetFrac : raw);
+
+  const bars = LOUDNESS_BARS.map((raw, i) => (
+    <div
+      key={i}
+      className="w-full rounded-full bg-primary/45 transition-[height] duration-300"
+      style={{ height: `${Math.max(0.1, levelFor(raw)) * 3.5}rem` }}
+    />
+  ));
 
   return (
     <SettingsPreview title={t('play.loudnessPreview')}>
@@ -134,15 +142,7 @@ export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
           </div>
 
           {/* Track level bars */}
-          <div className="flex h-full items-end justify-between gap-2">
-            {LOUDNESS_BARS.map((raw, i) => (
-              <div
-                key={i}
-                className="w-full rounded-full bg-primary/45 transition-[height] duration-300"
-                style={{ height: `${Math.max(0.1, levelFor(raw)) * 3.5}rem` }}
-              />
-            ))}
-          </div>
+          <div className="flex h-full items-end justify-between gap-2">{bars}</div>
         </div>
 
         <p className="mt-2 text-[10px] text-muted-foreground">
@@ -153,14 +153,14 @@ export function LoudnessPreview({ enabled, target }: LoudnessPreviewProps) {
   );
 }
 
-interface SleepFadePreviewProps {
+interface ISleepFadePreviewProps {
   /** Current fade-out duration in seconds; drives the ramp slope. */
   duration: number;
 }
 
 const SLEEP_FADE_BARS = 14;
 
-export function SleepFadePreview({ duration }: SleepFadePreviewProps) {
+export function SleepFadePreview({ duration }: ISleepFadePreviewProps) {
   const { t } = useTranslation('settings');
 
   // The tail of the bar row ramps to silence; a longer fade claims more bars,
