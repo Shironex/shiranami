@@ -29,6 +29,13 @@ function seedDefaults(): void {
 const meta: Meta<typeof LyricsSection> = {
   title: 'settings/LyricsSection',
   component: LyricsSection,
+  // Reset the appearance store to defaults before every story so a thrown
+  // assertion (or a story that seeds custom values) can never leak state into a
+  // later story. Stories that need custom values override these via a decorator,
+  // which runs after this seed-on-entry reset.
+  beforeEach: () => {
+    seedDefaults();
+  },
   // a11y stays at the global 'todo' default: the live previews render lyric text
   // at an intentionally reduced opacity (dim/synced-past lines), which makes the
   // foreground/background contrast non-deterministic for axe's color-contrast
@@ -50,12 +57,6 @@ type Story = StoryObj<typeof LyricsSection>;
 
 /** Default — both subsections render; the plain-text size chip drives the store. */
 export const Default: Story = {
-  decorators: [
-    Story => {
-      seedDefaults();
-      return <Story />;
-    },
-  ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
 
@@ -66,13 +67,11 @@ export const Default: Story = {
     // the first (plain text).
     await expect(canvas.getAllByRole('slider')).toHaveLength(2);
     const [plainSizeGroup] = canvas.getAllByRole('radiogroup', { name: 'Font size' });
-    const sizeChips = within(plainSizeGroup).getAllByRole('radio');
 
-    // Clicking the third chip ("Large") writes 'lg' to the plain-text font size.
-    await userEvent.click(sizeChips[2]);
+    // Clicking the "Large" chip writes 'lg' to the plain-text font size — query
+    // it by its accessible name rather than array position.
+    await userEvent.click(within(plainSizeGroup).getByRole('radio', { name: 'Large' }));
     await waitFor(() => expect(useLyricsAppearanceStore.getState().lyricsPlainFontSize).toBe('lg'));
-
-    seedDefaults();
   },
 };
 
@@ -97,7 +96,5 @@ export const Customized: Story = {
       'aria-checked',
       'true'
     );
-
-    seedDefaults();
   },
 };
