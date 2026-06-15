@@ -75,7 +75,9 @@ export const Running: Story = {
     // The trigger keeps its "Sleep timer" accessible name even while active.
     await userEvent.click(canvas.getByRole('button', { name: 'Sleep timer' }));
     await expect(await screen.findByRole('button', { name: 'Cancel timer' })).toBeInTheDocument();
-    // 1800s remaining formats to "30:00" in the minutes-only display.
-    await expect(screen.getByText('30:00')).toBeInTheDocument();
+    // 1800s remaining formats to "30:00", but the timer ticks down via Date.now()
+    // so the exact second is flaky — match the mm:ss shape (29/30 minutes) instead
+    // of pinning the literal string.
+    await expect(screen.getByText(/^(29|30):\d{2}$/)).toBeInTheDocument();
   },
 };
