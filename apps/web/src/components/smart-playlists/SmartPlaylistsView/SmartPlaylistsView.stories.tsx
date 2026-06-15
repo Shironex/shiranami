@@ -80,8 +80,9 @@ export const Default: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('heading', { name: 'Smart Playlists' })).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: 'New Smart Playlist' })).toBeInTheDocument();
-    // Each playlist is a card button; names sort alphabetically.
+    // Every seeded playlist renders as its own card button.
     await expect(canvas.getByRole('button', { name: /Late-night focus/ })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: /Rainy day cafe/ })).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: /Morning warm-up/ })).toBeInTheDocument();
   },
 };
