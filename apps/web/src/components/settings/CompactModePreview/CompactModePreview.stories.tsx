@@ -56,10 +56,15 @@ export const Default: Story = {
 export const LargeWithLyrics: Story = {
   decorators: [
     Story => {
+      // Seed every preview-relevant key so residual values from an earlier story
+      // can't leak in — the preview reads all eight of these.
       useCompactStore.setState({
         compactSize: 'lg',
         compactFontSize: 'lg',
+        compactShowAlbumArt: true,
         compactShowAlbum: true,
+        compactShowSeek: true,
+        compactShowVolume: true,
         compactShowFavorite: true,
         compactShowLyrics: true,
       });
