@@ -1,0 +1,1 @@
+export { NowPlayingView } from './NowPlayingView';

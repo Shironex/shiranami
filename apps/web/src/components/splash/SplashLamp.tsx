@@ -1,4 +1,4 @@
-interface SplashLampProps {
+interface ISplashLampProps {
   /** When true the breathe loop is suppressed (reduced-motion or low-perf). */
   disabled?: boolean;
 }
@@ -14,7 +14,7 @@ interface SplashLampProps {
  * The breathe loop is 9s ease-in-out so it reads as a steady lamp modulated
  * by rain on the bulb, not a pulse.
  */
-export function SplashLamp({ disabled = false }: SplashLampProps) {
+export function SplashLamp({ disabled = false }: ISplashLampProps) {
   return (
     <div
       className="absolute inset-0 pointer-events-none"

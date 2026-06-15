@@ -1,4 +1,4 @@
-interface SplashSteamProps {
+interface ISplashSteamProps {
   reducedMotion: boolean;
 }
 
@@ -16,7 +16,7 @@ interface SplashSteamProps {
  * Mock literal mapping: stroke `oklch(0.92 0.04 295 / 0.35)` -> `--foreground`
  * at low alpha (cool vapor highlight, not violet).
  */
-export function SplashSteam({ reducedMotion }: SplashSteamProps) {
+export function SplashSteam({ reducedMotion }: ISplashSteamProps) {
   const baseStroke = 'oklch(from var(--foreground) l c h / 0.3)';
 
   return (

@@ -1,6 +1,6 @@
-interface OnboardingKanjiProps {
+interface IOnboardingKanjiProps {
   /** Per-step glyph, e.g. 白波 / 蔵 / 夜 / 波. Not translated — it's brand art. */
-  glyph: string;
+  readonly glyph: string;
 }
 
 /**
@@ -8,7 +8,7 @@ interface OnboardingKanjiProps {
  * derived from --primary at very low alpha so it reads as a textural wash, not
  * legible copy. Mirrors the splash wordmark's role without any animation.
  */
-export function OnboardingKanji({ glyph }: OnboardingKanjiProps) {
+export function OnboardingKanji({ glyph }: IOnboardingKanjiProps) {
   return (
     <span
       aria-hidden="true"

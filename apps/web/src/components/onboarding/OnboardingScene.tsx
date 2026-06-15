@@ -2,9 +2,9 @@ import { SplashScene } from '@/components/splash/SplashScene';
 import { SplashGlass } from '@/components/splash/SplashGlass';
 import { SplashDroplets } from '@/components/splash/SplashDroplets';
 
-interface OnboardingSceneProps {
+interface IOnboardingSceneProps {
   /** When true, the scene's only animated sub-layer (window flicker) is frozen. */
-  reducedMotion: boolean;
+  readonly reducedMotion: boolean;
 }
 
 /**
@@ -15,7 +15,7 @@ interface OnboardingSceneProps {
  * splash, so we keep it cheap. The droplets' running streaks self-degrade to
  * static under reduced-motion / low-perf via their globals.css class guards.
  */
-export function OnboardingScene({ reducedMotion }: OnboardingSceneProps) {
+export function OnboardingScene({ reducedMotion }: IOnboardingSceneProps) {
   return (
     <div className="absolute inset-0 overflow-hidden bg-background" aria-hidden="true">
       <div className="absolute inset-0 z-[1]">

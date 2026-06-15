@@ -35,6 +35,11 @@ const MIGRATED_COMPONENT_FEATURES = [
   'playlists',
   'search',
   'history',
+  'radio',
+  'splash',
+  'now-playing',
+  'overview',
+  'onboarding',
 ];
 const MIGRATED_FEATURES_BRACE = `{${MIGRATED_COMPONENT_FEATURES.join(',')}}`;
 const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/**`;
@@ -42,6 +47,15 @@ const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/${MIGRATED_FEATURES_BR
 // and the feature barrel index.ts) are not components — the Tier C arch rules,
 // e.g. interface-prefix-i, target component contracts, not domain models.
 const MIGRATED_FEATURE_ROOT_FILES = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/*.ts`;
+
+// Composition-root features assemble sibling features by design — a view that
+// renders the player, lyrics panel, settings cards, splash scene, etc. Every
+// Tier C rule applies to them EXCEPT no-cross-feature-imports, which exists to
+// keep *leaf* features decoupled; applying it here would wrongly forbid the
+// app's view-assembly layer from composing the features it exists to compose.
+const COMPOSITION_ROOT_FEATURES = ['now-playing', 'overview', 'onboarding'];
+const COMPOSITION_ROOTS_BRACE = `{${COMPOSITION_ROOT_FEATURES.join(',')}}`;
+const COMPOSITION_ROOTS_GLOB = `apps/web/src/components/${COMPOSITION_ROOTS_BRACE}/**`;
 
 export default defineConfig(
   eslint.configs.recommended,
@@ -137,6 +151,13 @@ export default defineConfig(
       'shiranami/no-cross-feature-imports': ['error', { sharedFeatures: ['shared', 'ui'] }],
       'shiranami/max-hooks-per-file': 'error',
       'shiranami/interface-prefix-i': 'error',
+    },
+  },
+  // Composition roots keep every Tier C rule above except no-cross-feature-imports.
+  {
+    files: [`${COMPOSITION_ROOTS_GLOB}/*.{ts,tsx}`],
+    rules: {
+      'shiranami/no-cross-feature-imports': 'off',
     },
   },
   {

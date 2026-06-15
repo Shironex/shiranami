@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useSplashRain } from '@/hooks/useSplashRain';
 
-interface SplashRainProps {
+interface ISplashRainProps {
   /** Freeze the rain field (error variant — rain pauses but does not disappear). */
   paused: boolean;
   lowPerformanceMode: boolean;
@@ -19,7 +19,7 @@ interface SplashRainProps {
  * The canvas is sized in device pixels (window.devicePixelRatio) and scaled
  * via CSS to fill the overlay, so streaks stay sharp on HiDPI displays.
  */
-export function SplashRain({ paused, lowPerformanceMode, reducedMotion }: SplashRainProps) {
+export function SplashRain({ paused, lowPerformanceMode, reducedMotion }: ISplashRainProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Sync canvas dimensions to device pixel ratio on mount + resize.

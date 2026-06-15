@@ -21,11 +21,11 @@ import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
-const OverviewView = lazy(() => import('@/components/overview/OverviewView'));
+const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView/SearchView'));
 const HistoryView = lazy(() => import('@/components/history/HistoryView/HistoryView'));
-const RadioView = lazy(() => import('@/components/radio/RadioView'));
+const RadioView = lazy(() => import('@/components/radio/RadioView/RadioView'));
 const MixesView = lazy(() => import('@/components/mixes/MixesView/MixesView'));
 const PlaylistImportView = lazy(
   () => import('@/components/playlist-import/PlaylistImportView/PlaylistImportView')
@@ -33,7 +33,7 @@ const PlaylistImportView = lazy(
 const SmartPlaylistsView = lazy(
   () => import('@/components/smart-playlists/SmartPlaylistsView/SmartPlaylistsView')
 );
-const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView'));
+const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView/NowPlayingView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
 const PlaylistDetailView = lazy(
   () => import('@/components/playlists/PlaylistDetailView/PlaylistDetailView')
@@ -47,7 +47,9 @@ const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardSho
 const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
 const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
 const EditTagsDialogManager = lazy(() => import('@/components/shared/EditTagsDialogManager'));
-const OnboardingWizard = lazy(() => import('@/components/onboarding/OnboardingWizard'));
+const OnboardingWizard = lazy(
+  () => import('@/components/onboarding/OnboardingWizard/OnboardingWizard')
+);
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
