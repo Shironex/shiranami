@@ -28,7 +28,7 @@ export function useDiscordSection(): IDiscordSectionView {
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    window.electronAPI.discord.getSettings().then(s => {
+    void window.electronAPI.discord.getSettings().then(s => {
       if (!mountedRef.current || !s) return;
       setSettings({
         ...s,
