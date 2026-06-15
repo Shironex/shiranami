@@ -10,9 +10,10 @@ import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { isRadioTrack } from '@/lib/utils';
+import { IS_MAC } from '@/lib/platform';
 import type { IPlayerBarView } from './PlayerBar.types';
 
-const MOD = navigator.platform.toUpperCase().includes('MAC') ? '⌘' : 'Ctrl';
+const MOD = IS_MAC ? '⌘' : 'Ctrl';
 
 export function usePlayerBar(): IPlayerBarView {
   const { t } = useTranslation('player');
