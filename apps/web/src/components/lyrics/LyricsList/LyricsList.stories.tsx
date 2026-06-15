@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { within, userEvent, expect, fn } from 'storybook/test';
 import type { LyricLine } from '@/hooks/queries/useLyrics';
 
 import LyricsList from './LyricsList';
@@ -18,13 +19,24 @@ const SIZED_CLASSES = {
   idleClassName: 'text-foreground/30',
 };
 
+/**
+ * lyrics · LyricsList. The scrollable synced-lyrics column: one seekable
+ * `<button>` per line (named by its text), styled past / active / idle off
+ * `activeIndex`, with the active line scrolled into view. Clicking a line calls
+ * `onLineClick` with that line's timestamp. Stories render a short line list and
+ * drive a click.
+ */
 const meta: Meta<typeof LyricsList> = {
   title: 'lyrics/LyricsList',
   component: LyricsList,
+  parameters: {
+    // Each line is a real <button> named by its lyric text — axe passes clean.
+    a11y: { test: 'error' },
+  },
   args: {
     lines: LINES,
     activeIndex: 2,
-    onLineClick: () => {},
+    onLineClick: fn(),
     spacingClassName: 'space-y-4',
     ...SIZED_CLASSES,
   },
@@ -41,4 +53,15 @@ export default meta;
 
 type Story = StoryObj<typeof LyricsList>;
 
-export const Default: Story = {};
+/** Default — clicking a line seeks to its timestamp. */
+export const Default: Story = {
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole('button', { name: 'Coffee going cold again' })
+    ).toBeInTheDocument();
+
+    await userEvent.click(canvas.getByRole('button', { name: 'A quiet morning hum' }));
+    await expect(args.onLineClick).toHaveBeenCalledWith(4);
+  },
+};
