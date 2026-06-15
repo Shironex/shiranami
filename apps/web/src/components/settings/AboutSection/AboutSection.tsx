@@ -1,17 +1,11 @@
-import { Trans, useTranslation } from 'react-i18next';
+import { Trans } from 'react-i18next';
 import { Globe, BookOpen, FolderOpen, Music2, Sparkles } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
-import { useAppVersion } from '@/hooks/useAppVersion';
-import { useAbout } from '@/hooks/useAbout';
-import { useOnboardingStore } from '@/stores/useOnboardingStore';
+import { useAboutSection } from './AboutSection.hooks';
 
-export function AboutSection() {
-  const { t } = useTranslation('settings');
-  const version = useAppVersion();
-  const { openLogsFolder } = useAbout();
-  const resetOnboarding = useOnboardingStore(s => s.resetOnboarding);
+export default function AboutSection() {
+  const { t, versionLabel, showLogsCard, onOpenLogs, onReplayOnboarding } = useAboutSection();
 
   const heroIcon = (
     <div className="w-[42px] h-[42px] rounded-xl bg-primary/10 border border-border/30 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -27,7 +21,7 @@ export function AboutSection() {
   const heroSubtitle = (
     <span className="inline-flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10.5px] font-mono font-medium text-primary tabular-nums">
-        v{version ?? '…'}
+        v{versionLabel}
       </span>
       <span className="text-[11.5px] text-muted-foreground">
         {'白波 · '}
@@ -92,14 +86,9 @@ export function AboutSection() {
       </SettingsCard>
 
       {/* Card 3: Logs */}
-      {IS_ELECTRON && (
+      {showLogsCard && (
         <SettingsCard icon={FolderOpen} title={t('abt.logsTitle')} subtitle={t('abt.logsSubtitle')}>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-border/40"
-            onClick={() => openLogsFolder.mutate()}
-          >
+          <Button variant="outline" size="sm" className="border-border/40" onClick={onOpenLogs}>
             <FolderOpen className="w-3.5 h-3.5" />
             {t('abt.openLogs')}
           </Button>
@@ -112,7 +101,7 @@ export function AboutSection() {
           variant="outline"
           size="sm"
           className="border-border/40"
-          onClick={() => resetOnboarding()}
+          onClick={onReplayOnboarding}
         >
           <Sparkles className="w-3.5 h-3.5" />
           {t('abt.replayButton')}

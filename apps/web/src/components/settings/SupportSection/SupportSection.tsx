@@ -1,13 +1,11 @@
-import { Trans, useTranslation } from 'react-i18next';
+import { Trans } from 'react-i18next';
 import { Heart, Coffee, HeartHandshake } from 'lucide-react';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { Button } from '@/components/ui/button';
-import { BUY_ME_A_COFFEE_URL, GITHUB_SPONSORS_URL } from '@/lib/constants';
-import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
+import { useSupportSection } from './SupportSection.hooks';
 
-export function SupportSection() {
-  const { t } = useTranslation('settings');
-  const setSeen = useSupportBannerStore(s => s.setSeen);
+export default function SupportSection() {
+  const { t, buyMeACoffeeUrl, githubSponsorsUrl, onMarkSeen } = useSupportSection();
 
   return (
     <div className="space-y-4">
@@ -37,14 +35,14 @@ export function SupportSection() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" asChild onClick={setSeen}>
-            <a href={BUY_ME_A_COFFEE_URL} target="_blank" rel="noopener noreferrer">
+          <Button size="sm" asChild onClick={onMarkSeen}>
+            <a href={buyMeACoffeeUrl} target="_blank" rel="noopener noreferrer">
               <Coffee className="w-3.5 h-3.5" />
               {t('sup.action')}
             </a>
           </Button>
-          <Button size="sm" variant="outline" asChild onClick={setSeen}>
-            <a href={GITHUB_SPONSORS_URL} target="_blank" rel="noopener noreferrer">
+          <Button size="sm" variant="outline" asChild onClick={onMarkSeen}>
+            <a href={githubSponsorsUrl} target="_blank" rel="noopener noreferrer">
               <HeartHandshake className="w-3.5 h-3.5" />
               {t('sup.sponsor')}
             </a>
