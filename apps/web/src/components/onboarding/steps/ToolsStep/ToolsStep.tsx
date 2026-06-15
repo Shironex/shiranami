@@ -14,28 +14,8 @@ export default function ToolsStep() {
   const { t, stepContext, isDesktop, isChecking, hasMissingTools, statusRows, installAffordance } =
     useToolsStep();
 
-  const statusRowEls = statusRows.map(row => (
-    <ToolStatusRow
-      key={row.installedTitle}
-      installed={row.installed}
-      installedTitle={row.installedTitle}
-      notInstalledTitle={row.notInstalledTitle}
-      updateAvailable={row.updateAvailable}
-      notInstalledRight={row.notInstalledRight}
-    />
-  ));
-
-  const skeletonRows = SKELETON_ROWS.map(i => (
-    <div
-      key={i}
-      className="flex items-center gap-3 rounded-xl border border-border/20 bg-background/50 px-3 py-2.5"
-    >
-      <Download aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-      <Skeleton className="h-4 w-32" />
-      <Skeleton className="ml-auto h-3 w-16" />
-    </div>
-  ));
-
+  // Each render-list is built inside the branch that uses it — the two are
+  // mutually exclusive, so building both unconditionally wasted a map per render.
   let body: React.ReactNode;
   if (!isDesktop) {
     body = (
@@ -44,6 +24,16 @@ export default function ToolsStep() {
       </p>
     );
   } else if (isChecking) {
+    const skeletonRows = SKELETON_ROWS.map(i => (
+      <div
+        key={i}
+        className="flex items-center gap-3 rounded-xl border border-border/20 bg-background/50 px-3 py-2.5"
+      >
+        <Download aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="ml-auto h-3 w-16" />
+      </div>
+    ));
     body = (
       <div className="space-y-3" role="status" aria-live="polite">
         {skeletonRows}
@@ -51,6 +41,16 @@ export default function ToolsStep() {
       </div>
     );
   } else {
+    const statusRowEls = statusRows.map(row => (
+      <ToolStatusRow
+        key={row.installedTitle}
+        installed={row.installed}
+        installedTitle={row.installedTitle}
+        notInstalledTitle={row.notInstalledTitle}
+        updateAvailable={row.updateAvailable}
+        notInstalledRight={row.notInstalledRight}
+      />
+    ));
     body = (
       <>
         {statusRowEls}
