@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EQ_BANDS } from '@/lib/audioAnalyser';
 import { formatGain } from '@/lib/eqFormat';
@@ -115,16 +115,19 @@ export function useEqualizerPanel(props: IEqualizerPanelProps = {}): IEqualizerP
       ? t('customPreset')
       : t(`preset.${preset}`);
 
-  const onPresetChange = (value: string) => {
-    if (value.startsWith('custom:')) {
-      applyCustomPreset(value.slice('custom:'.length));
-      return;
-    }
-    if (value === 'custom') return;
-    applyPreset(value as EqPresetId);
-  };
+  const onPresetChange = useCallback(
+    (value: string) => {
+      if (value.startsWith('custom:')) {
+        applyCustomPreset(value.slice('custom:'.length));
+        return;
+      }
+      if (value === 'custom') return;
+      applyPreset(value as EqPresetId);
+    },
+    [applyCustomPreset, applyPreset]
+  );
 
-  const onSubmitNameDialog = () => {
+  const onSubmitNameDialog = useCallback(() => {
     if (!nameDialog) return;
     const trimmed = nameDialog.value.trim();
     if (!trimmed) return;
@@ -134,20 +137,20 @@ export function useEqualizerPanel(props: IEqualizerPanelProps = {}): IEqualizerP
       renameCustomPreset(nameDialog.targetId, trimmed);
     }
     setNameDialog(null);
-  };
+  }, [nameDialog, saveCustomPreset, renameCustomPreset]);
 
-  const onOpenRenameDialog = () => {
+  const onOpenRenameDialog = useCallback(() => {
     setNameDialog({ mode: 'rename', targetId: activeCustomId, value: activeCustom?.name ?? '' });
-  };
+  }, [activeCustomId, activeCustom]);
 
-  const onOpenDeleteDialog = () => {
+  const onOpenDeleteDialog = useCallback(() => {
     if (activeCustom) setDeleteTarget({ id: activeCustom.id, name: activeCustom.name });
-  };
+  }, [activeCustom]);
 
-  const onConfirmDelete = () => {
+  const onConfirmDelete = useCallback(() => {
     if (deleteTarget) deleteCustomPreset(deleteTarget.id);
     setDeleteTarget(null);
-  };
+  }, [deleteTarget, deleteCustomPreset]);
 
   return {
     t,
