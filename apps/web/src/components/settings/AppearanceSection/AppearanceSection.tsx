@@ -1,0 +1,241 @@
+import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
+import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
+import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
+import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { AccentPreview } from '@/components/settings/AccentPreview';
+import { UiScalePreview } from '@/components/settings/UiScalePreview';
+import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { ThemeBackgroundPreview } from '@/components/settings/ThemeBackgroundPreview';
+import { useAppearanceSection } from './AppearanceSection.hooks';
+
+export default function AppearanceSection() {
+  const {
+    t,
+    resetLabel,
+    languageOptions,
+    onSelectLanguage,
+    uiScale,
+    uiScaleMin,
+    uiScaleMax,
+    uiScaleStep,
+    isScaleModified,
+    scalePresets,
+    onSetUiScale,
+    onResetUiScale,
+    theme,
+    hasThemeBackground,
+    onSelectTheme,
+    isBgModified,
+    bgOpacity,
+    bgOpacityPercent,
+    bgOpacityMin,
+    bgOpacityMax,
+    bgOpacityStep,
+    bgBlur,
+    bgBlurMin,
+    bgBlurMax,
+    bgBlurStep,
+    bgDim,
+    bgDimPercent,
+    bgDimMin,
+    bgDimMax,
+    bgDimStep,
+    onSetBgOpacity,
+    onSetBgBlur,
+    onSetBgDim,
+    onResetBg,
+    hasAccentOverride,
+    onResetAccent,
+  } = useAppearanceSection();
+
+  const languageButtons = languageOptions.map(lang => (
+    <button
+      key={lang.code}
+      onClick={() => onSelectLanguage(lang.code)}
+      className={cn(
+        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        lang.isActive
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {lang.label}
+    </button>
+  ));
+
+  const scalePresetButtons = scalePresets.map(preset => (
+    <button
+      key={preset.value}
+      onClick={() => onSetUiScale(preset.value)}
+      className={cn(
+        'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+        preset.isActive
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {preset.value}%
+    </button>
+  ));
+
+  return (
+    <div className="space-y-4">
+      {/* Card 1 — Language & scale */}
+      <SettingsCard icon={Languages} title={t('app.languageScaleTitle')}>
+        <div className="space-y-6">
+          {/* Language picker */}
+          <div className="px-3">
+            <p className="text-sm font-medium text-foreground mb-1">{t('app.languageTitle')}</p>
+            <p className="text-xs text-muted-foreground mb-3">{t('app.languageDesc')}</p>
+            <div className="flex items-center gap-1.5">{languageButtons}</div>
+          </div>
+
+          {/* Interface scale */}
+          <div className="px-3">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-medium text-foreground">{t('app.interfaceScale')}</p>
+              <span className="text-xs tabular-nums text-muted-foreground">{uiScale}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">{t('app.scaleDesc')}</p>
+
+            <Slider
+              min={uiScaleMin}
+              max={uiScaleMax}
+              step={uiScaleStep}
+              value={[uiScale]}
+              onValueChange={([v]) => onSetUiScale(v)}
+            />
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-1.5">{scalePresetButtons}</div>
+
+              {isScaleModified && (
+                <button
+                  onClick={onResetUiScale}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {resetLabel}
+                </button>
+              )}
+            </div>
+
+            <SettingsCard tone="info" className="!p-3 mt-4">
+              <UiScalePreview scale={uiScale} />
+            </SettingsCard>
+          </div>
+        </div>
+      </SettingsCard>
+
+      {/* Card 2 — Theme */}
+      <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
+        <ThemeTileGrid value={theme} onSelect={onSelectTheme} />
+
+        {hasThemeBackground && (
+          <div className="px-3 pt-4 border-t border-border/40 space-y-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.title')}</p>
+              {isBgModified && (
+                <button
+                  onClick={onResetBg}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={t('app.bgAdjust.reset')}
+                >
+                  <RotateCcw className="size-3" />
+                  {t('app.bgAdjust.reset')}
+                </button>
+              )}
+            </div>
+
+            {/* Opacity */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.opacity')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {bgOpacityPercent}%
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.opacityDesc')}</p>
+              <Slider
+                min={bgOpacityMin}
+                max={bgOpacityMax}
+                step={bgOpacityStep}
+                value={[bgOpacity]}
+                onValueChange={([v]) => onSetBgOpacity(v)}
+              />
+            </div>
+
+            {/* Blur */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.blur')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgBlur}px</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.blurDesc')}</p>
+              <Slider
+                min={bgBlurMin}
+                max={bgBlurMax}
+                step={bgBlurStep}
+                value={[bgBlur]}
+                onValueChange={([v]) => onSetBgBlur(v)}
+              />
+            </div>
+
+            {/* Dim */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-foreground">{t('app.bgAdjust.dim')}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">{bgDimPercent}%</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.dimDesc')}</p>
+              <Slider
+                min={bgDimMin}
+                max={bgDimMax}
+                step={bgDimStep}
+                value={[bgDim]}
+                onValueChange={([v]) => onSetBgDim(v)}
+              />
+            </div>
+
+            {/* Contained preview — the settings glass panel covers most of the
+                live canvas, so a scaled sample is the only honest way to judge
+                blur/dim while dragging. tone="info" reads as a reflection. */}
+            <SettingsCard tone="info" className="!p-3">
+              <SettingsPreview title={t('app.bgAdjust.previewTitle')}>
+                <ThemeBackgroundPreview />
+              </SettingsPreview>
+            </SettingsCard>
+          </div>
+        )}
+      </SettingsCard>
+
+      {/* Card 3 — Accent color */}
+      <SettingsCard
+        icon={Paintbrush}
+        title={t('app.accent.title')}
+        subtitle={t('app.accent.desc')}
+        headerRight={
+          hasAccentOverride ? (
+            <button
+              onClick={onResetAccent}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={t('app.accent.reset')}
+            >
+              <RotateCcw className="size-3" />
+              {t('app.accent.reset')}
+            </button>
+          ) : undefined
+        }
+      >
+        <div className="px-3 pb-1">
+          <AccentColorPicker />
+        </div>
+
+        <SettingsCard tone="info" className="!p-3">
+          <AccentPreview />
+        </SettingsCard>
+      </SettingsCard>
+    </div>
+  );
+}

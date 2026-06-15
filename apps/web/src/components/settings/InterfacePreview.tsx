@@ -17,13 +17,13 @@ import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useInterfaceStore, type InterfaceElementKey } from '@/stores/useInterfaceStore';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 
-interface TopBarPreviewProps {
+interface ITopBarPreviewProps {
   /** Whether the language switcher chip group is shown. */
   enabled: boolean;
 }
 
 /** Mini top bar: page title, add button, and the collapsible language chips. */
-export function TopBarPreview({ enabled }: TopBarPreviewProps) {
+export function TopBarPreview({ enabled }: ITopBarPreviewProps) {
   const { t } = useTranslation('settings');
 
   return (
@@ -61,6 +61,9 @@ export function TopBarPreview({ enabled }: TopBarPreviewProps) {
   );
 }
 
+/** Fixed bar heights (%) for the layout-mock visualizer strip. */
+const LAYOUT_VIZ_BARS = [40, 70, 100, 55, 85, 60, 95, 45, 75];
+
 /**
  * Scaled mock of the app shell reading the real layout store: the side panel
  * and visualizer strip (tinted primary — the movable pieces) jump to their
@@ -79,11 +82,13 @@ export function LayoutPreview() {
     </div>
   );
 
+  const vizBars = LAYOUT_VIZ_BARS.map((h, i) => (
+    <div key={i} className="w-1 rounded-sm bg-primary/45" style={{ height: `${h}%` }} />
+  ));
+
   const visualizerMock = (
     <div className="flex h-3.5 shrink-0 items-end justify-center gap-0.5 rounded-md border border-primary/30 bg-primary/15 px-1.5 py-0.5">
-      {[40, 70, 100, 55, 85, 60, 95, 45, 75].map((h, i) => (
-        <div key={i} className="w-1 rounded-sm bg-primary/45" style={{ height: `${h}%` }} />
-      ))}
+      {vizBars}
     </div>
   );
 
@@ -126,12 +131,12 @@ export function LayoutPreview() {
 type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`>;
 type PlayerElementKey = Extract<InterfaceElementKey, `player${string}`>;
 
-interface OverviewLayoutPreviewProps {
+interface IOverviewLayoutPreviewProps {
   /** Widget to spotlight in the mock (mirrors the row hovered in settings). */
   highlightedKey?: OverviewWidgetKey | null;
 }
 
-interface BlockProps {
+interface IBlockProps {
   visible: boolean;
   highlighted: boolean;
   /** max-h-* class for the expanded state (collapse animates via max-height). */
@@ -141,7 +146,7 @@ interface BlockProps {
 }
 
 /** Collapsible mock block: fades + folds away when its toggle is off. */
-function Block({ visible, highlighted, expandedClass, children, className }: BlockProps) {
+function Block({ visible, highlighted, expandedClass, children, className }: IBlockProps) {
   return (
     <div
       className={cn(
@@ -156,12 +161,20 @@ function Block({ visible, highlighted, expandedClass, children, className }: Blo
   );
 }
 
+const OVERVIEW_STATS_TILES = [0, 1, 2, 3];
+const OVERVIEW_TOP_WEEK_ROWS = [24, 20, 16];
+const OVERVIEW_CLOCK_BARS = [30, 55, 80, 45, 95, 60, 35];
+const OVERVIEW_ALBUM_TILES = [0, 1, 2];
+const OVERVIEW_MIX_TILES = [0, 1, 2, 3];
+const OVERVIEW_REC_TILES = [0, 1, 2, 3, 4];
+const OVERVIEW_RECENT_ROWS = [28, 20];
+
 /**
  * Scaled mock of the Overview page that reads the real interface store, so
  * widgets fold away live as the toggles flip. Mirrors SidebarPreview's
  * hover-spotlight wiring: the hovered settings row highlights its block.
  */
-export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutPreviewProps) {
+export function OverviewLayoutPreview({ highlightedKey = null }: IOverviewLayoutPreviewProps) {
   const { t } = useTranslation('settings');
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
@@ -173,6 +186,44 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
 
   const spotlight = (key: OverviewWidgetKey) => highlightedKey === key;
   const showRightColumn = showClock || showTopAlbums;
+  const showWeekGrid = showTopWeek || showRightColumn;
+
+  const statsTiles = OVERVIEW_STATS_TILES.map(i => (
+    <div key={i} className="h-6 rounded-md border border-border/25 bg-muted/20" />
+  ));
+
+  const topWeekRows = OVERVIEW_TOP_WEEK_ROWS.map(w => (
+    <div key={w} className="flex items-center gap-1.5">
+      <div className="size-3.5 rounded bg-primary/20" />
+      <div className="h-1.5 rounded-full bg-foreground/20" style={{ width: `${w * 4}px` }} />
+    </div>
+  ));
+
+  const clockBars = OVERVIEW_CLOCK_BARS.map((h, i) => (
+    <div key={i} className="w-full rounded-sm bg-primary/35" style={{ height: `${h}%` }} />
+  ));
+
+  const albumTiles = OVERVIEW_ALBUM_TILES.map(i => (
+    <div key={i} className="size-6 rounded-md bg-primary/20" />
+  ));
+
+  const mixTiles = OVERVIEW_MIX_TILES.map(i => (
+    <div
+      key={i}
+      className="h-8 w-12 rounded-md border border-border/25 bg-gradient-to-br from-primary/20 to-muted/20"
+    />
+  ));
+
+  const recTiles = OVERVIEW_REC_TILES.map(i => (
+    <div key={i} className="size-7 rounded-md border border-border/25 bg-muted/25" />
+  ));
+
+  const recentRows = OVERVIEW_RECENT_ROWS.map(w => (
+    <div key={w} className="flex items-center gap-1.5">
+      <div className="size-4 rounded bg-muted/35" />
+      <div className="h-1.5 rounded-full bg-muted-foreground/25" style={{ width: `${w * 4}px` }} />
+    </div>
+  ));
 
   return (
     <SettingsPreview title={t('app.interface.overviewPreview')}>
@@ -197,15 +248,11 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
             highlighted={spotlight('overviewStats')}
             expandedClass="max-h-8"
           >
-            <div className="grid grid-cols-4 gap-1.5 p-0.5">
-              {[0, 1, 2, 3].map(i => (
-                <div key={i} className="h-6 rounded-md border border-border/25 bg-muted/20" />
-              ))}
-            </div>
+            <div className="grid grid-cols-4 gap-1.5 p-0.5">{statsTiles}</div>
           </Block>
 
           {/* Week grid: top tracks + clock/albums column */}
-          {(showTopWeek || showRightColumn) && (
+          {showWeekGrid && (
             <div className="flex gap-1.5">
               <Block
                 visible={showTopWeek}
@@ -213,17 +260,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
                 expandedClass="max-h-24"
                 className="flex-[1.3] border border-border/25 bg-muted/15"
               >
-                <div className="space-y-1.5 p-2">
-                  {[24, 20, 16].map(w => (
-                    <div key={w} className="flex items-center gap-1.5">
-                      <div className="size-3.5 rounded bg-primary/20" />
-                      <div
-                        className="h-1.5 rounded-full bg-foreground/20"
-                        style={{ width: `${w * 4}px` }}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <div className="space-y-1.5 p-2">{topWeekRows}</div>
               </Block>
               {showRightColumn && (
                 <div className="flex flex-1 flex-col gap-1.5">
@@ -234,13 +271,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
                     className="border border-border/25 bg-muted/15"
                   >
                     <div className="flex h-10 items-end justify-between gap-0.5 px-2 pb-1.5 pt-2">
-                      {[30, 55, 80, 45, 95, 60, 35].map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-full rounded-sm bg-primary/35"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
+                      {clockBars}
                     </div>
                   </Block>
                   <Block
@@ -249,11 +280,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
                     expandedClass="max-h-11"
                     className="border border-border/25 bg-muted/15"
                   >
-                    <div className="flex gap-1.5 p-2">
-                      {[0, 1, 2].map(i => (
-                        <div key={i} className="size-6 rounded-md bg-primary/20" />
-                      ))}
-                    </div>
+                    <div className="flex gap-1.5 p-2">{albumTiles}</div>
                   </Block>
                 </div>
               )}
@@ -266,14 +293,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
             highlighted={spotlight('overviewMixes')}
             expandedClass="max-h-10"
           >
-            <div className="flex gap-1.5 p-0.5">
-              {[0, 1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="h-8 w-12 rounded-md border border-border/25 bg-gradient-to-br from-primary/20 to-muted/20"
-                />
-              ))}
-            </div>
+            <div className="flex gap-1.5 p-0.5">{mixTiles}</div>
           </Block>
 
           {/* Recommendations shelf */}
@@ -282,11 +302,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
             highlighted={spotlight('overviewRecommendations')}
             expandedClass="max-h-9"
           >
-            <div className="flex gap-1.5 p-0.5">
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} className="size-7 rounded-md border border-border/25 bg-muted/25" />
-              ))}
-            </div>
+            <div className="flex gap-1.5 p-0.5">{recTiles}</div>
           </Block>
 
           {/* Recently added rows */}
@@ -295,17 +311,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
             highlighted={spotlight('overviewRecentlyAdded')}
             expandedClass="max-h-12"
           >
-            <div className="space-y-1.5 p-0.5">
-              {[28, 20].map(w => (
-                <div key={w} className="flex items-center gap-1.5">
-                  <div className="size-4 rounded bg-muted/35" />
-                  <div
-                    className="h-1.5 rounded-full bg-muted-foreground/25"
-                    style={{ width: `${w * 4}px` }}
-                  />
-                </div>
-              ))}
-            </div>
+            <div className="space-y-1.5 p-0.5">{recentRows}</div>
           </Block>
         </div>
       </div>
@@ -313,7 +319,7 @@ export function OverviewLayoutPreview({ highlightedKey = null }: OverviewLayoutP
   );
 }
 
-interface PlayerBarPreviewProps {
+interface IPlayerBarPreviewProps {
   /** Element to spotlight in the mock (mirrors the row hovered in settings). */
   highlightedKey?: PlayerElementKey | null;
 }
@@ -323,7 +329,19 @@ const PREVIEW_WAVE_BARS = [
   30, 55, 40, 70, 50, 85, 45, 65, 90, 50, 60, 40, 75, 55, 95, 45, 70, 50, 80, 40, 60, 35, 50, 30,
 ];
 
-interface ElProps {
+/** Fraction of the waveform that reads as "played" (tinted primary). */
+const WAVE_PLAYED_FRACTION = 0.38;
+
+const PLAYER_UTILITY_ICONS: Array<{ key: PlayerElementKey; Icon: typeof Moon }> = [
+  { key: 'playerSleepTimer', Icon: Moon },
+  { key: 'playerEqualizer', Icon: SlidersHorizontal },
+  { key: 'playerCompactButton', Icon: Minimize2 },
+  { key: 'playerVisualizerButton', Icon: AudioLines },
+  { key: 'playerLyricsButton', Icon: Mic2 },
+  { key: 'playerQueueButton', Icon: ListMusic },
+];
+
+interface IElProps {
   visible: boolean;
   highlighted: boolean;
   /** max-w-* class for the expanded state (collapse animates via max-width). */
@@ -333,7 +351,7 @@ interface ElProps {
 }
 
 /** Horizontally-collapsible mock element (the player-bar analog of Block). */
-function El({ visible, highlighted, expandedClass, children, className }: ElProps) {
+function El({ visible, highlighted, expandedClass, children, className }: IElProps) {
   return (
     <div
       className={cn(
@@ -354,19 +372,35 @@ function El({ visible, highlighted, expandedClass, children, className }: ElProp
  * Core controls (prev/play/next, seek) render unconditionally, matching the
  * real bar.
  */
-export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProps) {
+export function PlayerBarPreview({ highlightedKey = null }: IPlayerBarPreviewProps) {
   const { t } = useTranslation('settings');
   const s = useInterfaceStore();
   const spotlight = (key: PlayerElementKey) => highlightedKey === key;
 
-  const utilityIcons: Array<{ key: PlayerElementKey; Icon: typeof Moon }> = [
-    { key: 'playerSleepTimer', Icon: Moon },
-    { key: 'playerEqualizer', Icon: SlidersHorizontal },
-    { key: 'playerCompactButton', Icon: Minimize2 },
-    { key: 'playerVisualizerButton', Icon: AudioLines },
-    { key: 'playerLyricsButton', Icon: Mic2 },
-    { key: 'playerQueueButton', Icon: ListMusic },
-  ];
+  const waveBars = PREVIEW_WAVE_BARS.map((h, i) => (
+    <div
+      key={i}
+      className={cn(
+        'flex-1 rounded-full',
+        i / PREVIEW_WAVE_BARS.length < WAVE_PLAYED_FRACTION
+          ? 'bg-primary/60'
+          : 'bg-muted-foreground/35'
+      )}
+      style={{ height: `${h}%` }}
+    />
+  ));
+
+  const utilityButtons = PLAYER_UTILITY_ICONS.map(({ key, Icon }) => (
+    <El
+      key={key}
+      visible={s[key]}
+      highlighted={spotlight(key)}
+      expandedClass="max-w-6"
+      className="p-1"
+    >
+      <Icon className="size-3 text-muted-foreground/70" />
+    </El>
+  ));
 
   return (
     <SettingsPreview title={t('app.interface.playerPreview')}>
@@ -425,18 +459,7 @@ export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProp
                     spotlight('playerWaveformSeekbar') && 'bg-primary/10 ring-1 ring-primary/40'
                   )}
                 >
-                  {PREVIEW_WAVE_BARS.map((h, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex-1 rounded-full',
-                        i / PREVIEW_WAVE_BARS.length < 0.38
-                          ? 'bg-primary/60'
-                          : 'bg-muted-foreground/35'
-                      )}
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
+                  {waveBars}
                 </div>
               ) : (
                 <div
@@ -461,17 +484,7 @@ export function PlayerBarPreview({ highlightedKey = null }: PlayerBarPreviewProp
 
           {/* Right: utility buttons + volume */}
           <div className="flex items-center gap-0.5">
-            {utilityIcons.map(({ key, Icon }) => (
-              <El
-                key={key}
-                visible={s[key]}
-                highlighted={spotlight(key)}
-                expandedClass="max-w-6"
-                className="p-1"
-              >
-                <Icon className="size-3 text-muted-foreground/70" />
-              </El>
-            ))}
+            {utilityButtons}
             <El
               visible={s.playerVolume}
               highlighted={spotlight('playerVolume')}

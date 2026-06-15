@@ -22,7 +22,7 @@ import { SupportBanner } from '@/components/shared/SupportBanner';
 import ErrorBoundary from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
-const SettingsView = lazy(() => import('@/components/settings/SettingsView'));
+const SettingsView = lazy(() => import('@/components/settings/SettingsView/SettingsView'));
 const SearchView = lazy(() => import('@/components/search/SearchView/SearchView'));
 const HistoryView = lazy(() => import('@/components/history/HistoryView/HistoryView'));
 const RadioView = lazy(() => import('@/components/radio/RadioView/RadioView'));
