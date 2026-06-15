@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { within, expect } from 'storybook/test';
 import type { Station } from 'radio-browser-api';
 import { useRadioStore } from '@/stores/useRadioStore';
 
@@ -55,9 +56,25 @@ function seedRadio(state: Partial<Parameters<typeof useRadioStore.setState>[0]>)
   });
 }
 
+/**
+ * radio · RadioView. The Radio screen: a "Radio" page header, a labelled search
+ * box, browse/favorites mode tabs, country/language/tag `FilterPopover`s, genre
+ * pills, active-filter chips, and a virtualized list of `StationRow`s — with
+ * loading skeletons, an empty state, and an error+retry card. Reads
+ * `useRadioStore`; on mount it kicks off a top-stations fetch, so the result
+ * region is non-deterministic under the headless browser run — `play` asserts
+ * the stable page chrome (header + search), while the seeded states drive the
+ * visual variants for docs.
+ */
 const meta: Meta<typeof RadioView> = {
   title: 'radio/RadioView',
   component: RadioView,
+  parameters: {
+    // The page title is a real <h1>, the search input is aria-labelled, mode
+    // tabs / pills are real buttons, and the mascot art is aria-hidden — the
+    // persistent chrome axe sees is clean.
+    a11y: { test: 'error' },
+  },
   decorators: [
     Story => (
       <div className="flex h-[40rem] flex-col">
@@ -71,38 +88,49 @@ export default meta;
 
 type Story = StoryObj<typeof RadioView>;
 
+/** Seeded with stations — the page chrome (header + search) renders. */
 export const Default: Story = {
-  decorators: [
-    Story => {
-      seedRadio({ stations });
-      return <Story />;
-    },
-  ],
+  beforeEach: () => {
+    seedRadio({ stations });
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Radio' })).toBeInTheDocument();
+    await expect(
+      canvas.getByRole('textbox', { name: 'Search radio stations...' })
+    ).toBeInTheDocument();
+  },
 };
 
+/** Loading — skeleton rows fill the result region while a fetch is in flight. */
 export const Loading: Story = {
-  decorators: [
-    Story => {
-      seedRadio({ isLoading: true });
-      return <Story />;
-    },
-  ],
+  beforeEach: () => {
+    seedRadio({ isLoading: true });
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Radio' })).toBeInTheDocument();
+  },
 };
 
+/** Empty — no stations and no active filters fall back to the empty state. */
 export const Empty: Story = {
-  decorators: [
-    Story => {
-      seedRadio({ stations: [] });
-      return <Story />;
-    },
-  ],
+  beforeEach: () => {
+    seedRadio({ stations: [] });
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Radio' })).toBeInTheDocument();
+  },
 };
 
+/** Error — the directory failed to load, offering a retry. */
 export const Error: Story = {
-  decorators: [
-    Story => {
-      seedRadio({ error: 'Could not reach the radio directory.' });
-      return <Story />;
-    },
-  ],
+  beforeEach: () => {
+    seedRadio({ error: 'Could not reach the radio directory.' });
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Radio' })).toBeInTheDocument();
+  },
 };
