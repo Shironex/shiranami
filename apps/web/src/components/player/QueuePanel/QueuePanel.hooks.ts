@@ -12,8 +12,8 @@ import {
 import type { IQueuePanelProps, IQueuePanelView, IQueueUpNextRow } from './QueuePanel.types';
 
 /** Parse the absolute queue index out of a `queue-<n>` sortable id. */
-function indexOfSortableId(id: string): number {
-  return parseInt(id.replace('queue-', ''), 10);
+function indexOfSortableId(id: string | number): number {
+  return parseInt(String(id).replace('queue-', ''), 10);
 }
 
 export function useQueuePanel(props: IQueuePanelProps = {}): IQueuePanelView {
@@ -92,7 +92,7 @@ export function useQueuePanel(props: IQueuePanelProps = {}): IQueuePanelView {
       const { active, over } = event;
       setActiveId(null);
       if (!over || active.id === over.id) return;
-      reorderQueue(indexOfSortableId(active.id as string), indexOfSortableId(over.id as string));
+      reorderQueue(indexOfSortableId(active.id), indexOfSortableId(over.id));
     },
     [reorderQueue]
   );
