@@ -1,23 +1,16 @@
-import { useTranslation } from 'react-i18next';
 import { Music2 } from 'lucide-react';
-
-interface DiscordPreviewProps {
-  details: string;
-  state: string;
-  showTimestamp: boolean;
-  showLargeImage: boolean;
-  showButton: boolean;
-}
+import { useDiscordPreview } from './DiscordPreview.hooks';
+import type { IDiscordPreviewProps } from './DiscordPreview.types';
 
 /** Discord-style presence preview card, adapted for the music now-playing context. */
-export function DiscordPreview({
+export default function DiscordPreview({
   details,
   state,
   showTimestamp,
   showLargeImage,
   showButton,
-}: DiscordPreviewProps) {
-  const { t } = useTranslation('settings');
+}: IDiscordPreviewProps) {
+  const { t } = useDiscordPreview();
 
   return (
     <div className="rounded-lg bg-[#2b2d31] p-3 font-sans text-white/90">

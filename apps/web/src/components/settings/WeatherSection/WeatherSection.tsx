@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { CloudSun, Info, Loader2, MapPin, Search, X } from 'lucide-react';
-import { IS_ELECTRON } from '@/lib/platform';
-import { useWeatherStore } from '@/stores/useWeatherStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,36 +6,20 @@ import {
   SettingsInfoCallout,
   SettingsToggleRow,
 } from '@/components/settings/SettingsCard';
+import { useWeatherSection } from './WeatherSection.hooks';
 
-type LookupState = 'idle' | 'searching' | 'no-match' | 'error';
-
-export function WeatherSection() {
-  const { t } = useTranslation('overview');
-  const enabled = useWeatherStore(s => s.enabled);
-  const setEnabled = useWeatherStore(s => s.setEnabled);
-  const coords = useWeatherStore(s => s.coords);
-  const setCoords = useWeatherStore(s => s.setCoords);
-
-  const [query, setQuery] = useState('');
-  const [lookup, setLookup] = useState<LookupState>('idle');
-
-  async function searchCity() {
-    const trimmed = query.trim();
-    if (!trimmed || !IS_ELECTRON) return;
-    setLookup('searching');
-    try {
-      const result = await window.electronAPI.weather.geocode(trimmed);
-      if (!result) {
-        setLookup('no-match');
-        return;
-      }
-      setCoords({ lat: result.lat, lon: result.lon, label: result.label });
-      setQuery('');
-      setLookup('idle');
-    } catch {
-      setLookup('error');
-    }
-  }
+export default function WeatherSection() {
+  const {
+    t,
+    enabled,
+    coords,
+    query,
+    lookup,
+    onToggleEnabled,
+    onClearCity,
+    onQueryChange,
+    onSearchCity,
+  } = useWeatherSection();
 
   return (
     <div className="space-y-4">
@@ -52,7 +32,7 @@ export function WeatherSection() {
           label={t('weatherSettings.toggleLabel')}
           description={t('weatherSettings.toggleDesc')}
           checked={enabled}
-          onCheckedChange={setEnabled}
+          onCheckedChange={onToggleEnabled}
         />
 
         {enabled && (
@@ -66,7 +46,7 @@ export function WeatherSection() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCoords(null)}
+                  onClick={onClearCity}
                   aria-label={t('weatherSettings.clearCity')}
                   className="size-7 shrink-0 p-0"
                 >
@@ -79,15 +59,12 @@ export function WeatherSection() {
               className="flex items-center gap-2"
               onSubmit={e => {
                 e.preventDefault();
-                void searchCity();
+                onSearchCity();
               }}
             >
               <Input
                 value={query}
-                onChange={e => {
-                  setQuery(e.target.value);
-                  if (lookup !== 'idle') setLookup('idle');
-                }}
+                onChange={e => onQueryChange(e.target.value)}
                 placeholder={t('weatherSettings.cityPlaceholder')}
                 aria-label={t('weatherSettings.cityLabel')}
                 className="flex-1"

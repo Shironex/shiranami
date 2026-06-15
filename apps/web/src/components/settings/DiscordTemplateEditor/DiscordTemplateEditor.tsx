@@ -1,5 +1,4 @@
 import { Clock, Image, ExternalLink, MessageCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -11,33 +10,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SettingsCard } from '@/components/settings/SettingsCard';
-import type { DiscordMusicActivityType, DiscordPresenceTemplate } from '@shiranami/shared';
-import { DISCORD_ACTIVITY_TYPES, DISCORD_TEMPLATE_VARIABLES } from '@shiranami/shared';
-
-interface DiscordTemplateEditorProps {
-  selectedActivity: DiscordMusicActivityType;
-  onActivityChange: (activity: DiscordMusicActivityType) => void;
-  currentTemplate: DiscordPresenceTemplate;
-  onTemplateChange: (
-    type: DiscordMusicActivityType,
-    field: keyof DiscordPresenceTemplate,
-    value: string | boolean
-  ) => void;
-  onReset: () => void;
-}
+import type { DiscordMusicActivityType } from '@shiranami/shared';
+import { useDiscordTemplateEditor } from './DiscordTemplateEditor.hooks';
+import type { IDiscordTemplateEditorProps } from './DiscordTemplateEditor.types';
 
 /** Small toggle row for template options. */
-function TemplateToggle({
-  icon: Icon,
-  label,
-  checked,
-  onChange,
-}: {
+interface ITemplateToggleProps {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   checked: boolean;
   onChange: (value: boolean) => void;
-}) {
+}
+
+function TemplateToggle({ icon: Icon, label, checked, onChange }: ITemplateToggleProps) {
   return (
     <div className="flex items-center justify-between py-1">
       <div className="flex items-center gap-2">
@@ -49,14 +34,27 @@ function TemplateToggle({
   );
 }
 
-export function DiscordTemplateEditor({
+export default function DiscordTemplateEditor({
   selectedActivity,
   onActivityChange,
   currentTemplate,
   onTemplateChange,
   onReset,
-}: DiscordTemplateEditorProps) {
-  const { t } = useTranslation('settings');
+}: IDiscordTemplateEditorProps) {
+  const { t, activityOptions, variableHints } = useDiscordTemplateEditor();
+
+  const activityItems = activityOptions.map(option => (
+    <SelectItem key={option.value} value={option.value}>
+      {option.label}
+    </SelectItem>
+  ));
+
+  const variableChips = variableHints.map(hint => (
+    <span key={hint.key} className="text-xs text-muted-foreground">
+      <code className="rounded bg-primary/5 px-1 text-[10px] text-primary/80">{hint.key}</code> ·{' '}
+      {hint.description}
+    </span>
+  ));
 
   return (
     <SettingsCard
@@ -79,13 +77,7 @@ export function DiscordTemplateEditor({
           <SelectTrigger id="discord-activity-type" className="h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
-            {DISCORD_ACTIVITY_TYPES.map(type => (
-              <SelectItem key={type} value={type}>
-                {t(`dsc.activityLabel.${type}`)}
-              </SelectItem>
-            ))}
-          </SelectContent>
+          <SelectContent>{activityItems}</SelectContent>
         </Select>
       </div>
 
@@ -146,14 +138,7 @@ export function DiscordTemplateEditor({
         <p className="text-xs font-medium text-muted-foreground">
           {t('dsc.editor.variablesLabel')}
         </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          {DISCORD_TEMPLATE_VARIABLES.map(v => (
-            <span key={v.key} className="text-xs text-muted-foreground">
-              <code className="rounded bg-primary/5 px-1 text-[10px] text-primary/80">{v.key}</code>{' '}
-              · {t(v.descriptionKey)}
-            </span>
-          ))}
-        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">{variableChips}</div>
       </div>
 
       {/* Reset button */}

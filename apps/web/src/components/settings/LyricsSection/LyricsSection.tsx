@@ -1,50 +1,40 @@
-import { useTranslation } from 'react-i18next';
 import { Captions } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { SettingsCard } from '@/components/settings/SettingsCard';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { Slider } from '@/components/ui/slider';
 import {
-  useLyricsAppearanceStore,
-  LYRICS_PLAIN_OPACITY_MIN,
-  LYRICS_PLAIN_OPACITY_MAX,
-  LYRICS_PLAIN_OPACITY_STEP,
-  LYRICS_PLAIN_OPACITY_DEFAULT,
-  LYRICS_PLAIN_FONT_SIZE_DEFAULT,
-  LYRICS_SYNCED_DIM_OPACITY_MIN,
-  LYRICS_SYNCED_DIM_OPACITY_MAX,
-  LYRICS_SYNCED_DIM_OPACITY_STEP,
-  LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
-  LYRICS_SYNCED_FONT_SIZE_DEFAULT,
-  LYRICS_SYNCED_PAST_RATIO,
   LYR_SIZE_CLASS,
+  LYRICS_SYNCED_PAST_RATIO,
   nextLyricsFontSize,
   type LyricsFontSize,
 } from '@/stores/useLyricsAppearanceStore';
 import { cn } from '@/lib/utils';
+import { useLyricsSection } from './LyricsSection.hooks';
 
 const FONT_SIZES: LyricsFontSize[] = ['sm', 'base', 'lg', 'xl'];
 
-export function LyricsSection() {
-  const { t } = useTranslation('settings');
-  const { t: tc } = useTranslation('common');
-
-  const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
-  const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
-  const setLyricsPlainOpacity = useLyricsAppearanceStore(s => s.setLyricsPlainOpacity);
-  const setLyricsPlainFontSize = useLyricsAppearanceStore(s => s.setLyricsPlainFontSize);
-
-  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
-  const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
-  const setLyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.setLyricsSyncedDimOpacity);
-  const setLyricsSyncedFontSize = useLyricsAppearanceStore(s => s.setLyricsSyncedFontSize);
-
-  const resetLyricsAppearance = useLyricsAppearanceStore(s => s.resetLyricsAppearance);
-
-  const isModified =
-    lyricsPlainOpacity !== LYRICS_PLAIN_OPACITY_DEFAULT ||
-    lyricsPlainFontSize !== LYRICS_PLAIN_FONT_SIZE_DEFAULT ||
-    lyricsSyncedDimOpacity !== LYRICS_SYNCED_DIM_OPACITY_DEFAULT ||
-    lyricsSyncedFontSize !== LYRICS_SYNCED_FONT_SIZE_DEFAULT;
+export default function LyricsSection() {
+  const {
+    t,
+    resetLabel,
+    lyricsPlainOpacity,
+    lyricsPlainFontSize,
+    onSetPlainOpacity,
+    onSetPlainFontSize,
+    plainOpacityMin,
+    plainOpacityMax,
+    plainOpacityStep,
+    lyricsSyncedDimOpacity,
+    lyricsSyncedFontSize,
+    onSetSyncedDimOpacity,
+    onSetSyncedFontSize,
+    syncedDimOpacityMin,
+    syncedDimOpacityMax,
+    syncedDimOpacityStep,
+    isModified,
+    onReset,
+  } = useLyricsSection();
 
   return (
     <SettingsCard icon={Captions} title={t('lyr.title')} subtitle={t('lyr.subtitle')}>
@@ -55,16 +45,16 @@ export function LyricsSection() {
             title={t('lyr.plain.opacityTitle')}
             description={t('lyr.plain.opacityDesc')}
             value={lyricsPlainOpacity}
-            min={LYRICS_PLAIN_OPACITY_MIN}
-            max={LYRICS_PLAIN_OPACITY_MAX}
-            step={LYRICS_PLAIN_OPACITY_STEP}
-            onChange={setLyricsPlainOpacity}
+            min={plainOpacityMin}
+            max={plainOpacityMax}
+            step={plainOpacityStep}
+            onChange={onSetPlainOpacity}
           />
           <FontSizeControl
             title={t('lyr.plain.fontSizeTitle')}
             description={t('lyr.plain.fontSizeDesc')}
             value={lyricsPlainFontSize}
-            onChange={setLyricsPlainFontSize}
+            onChange={onSetPlainFontSize}
           />
           <SettingsPreview title={t('lyr.previewTitle')}>
             <PlainPreview opacity={lyricsPlainOpacity} fontSize={lyricsPlainFontSize} />
@@ -77,16 +67,16 @@ export function LyricsSection() {
             title={t('lyr.synced.opacityTitle')}
             description={t('lyr.synced.opacityDesc')}
             value={lyricsSyncedDimOpacity}
-            min={LYRICS_SYNCED_DIM_OPACITY_MIN}
-            max={LYRICS_SYNCED_DIM_OPACITY_MAX}
-            step={LYRICS_SYNCED_DIM_OPACITY_STEP}
-            onChange={setLyricsSyncedDimOpacity}
+            min={syncedDimOpacityMin}
+            max={syncedDimOpacityMax}
+            step={syncedDimOpacityStep}
+            onChange={onSetSyncedDimOpacity}
           />
           <FontSizeControl
             title={t('lyr.synced.fontSizeTitle')}
             description={t('lyr.synced.fontSizeDesc')}
             value={lyricsSyncedFontSize}
-            onChange={setLyricsSyncedFontSize}
+            onChange={onSetSyncedFontSize}
           />
           <SettingsPreview title={t('lyr.previewTitle')}>
             <SyncedPreview dimOpacity={lyricsSyncedDimOpacity} fontSize={lyricsSyncedFontSize} />
@@ -97,10 +87,10 @@ export function LyricsSection() {
         {isModified && (
           <div className="px-3">
             <button
-              onClick={resetLyricsAppearance}
+              onClick={onReset}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              {tc('reset')}
+              {resetLabel}
             </button>
           </div>
         )}
@@ -109,13 +99,13 @@ export function LyricsSection() {
   );
 }
 
-interface SubsectionProps {
+interface ISubsectionProps {
   title: string;
   subtitle: string;
   children: React.ReactNode;
 }
 
-function Subsection({ title, subtitle, children }: SubsectionProps) {
+function Subsection({ title, subtitle, children }: ISubsectionProps) {
   return (
     <div className="space-y-5">
       <div className="px-3">
@@ -129,7 +119,7 @@ function Subsection({ title, subtitle, children }: SubsectionProps) {
   );
 }
 
-interface OpacityControlProps {
+interface IOpacityControlProps {
   title: string;
   description: string;
   value: number;
@@ -147,7 +137,7 @@ function OpacityControl({
   max,
   step,
   onChange,
-}: OpacityControlProps) {
+}: IOpacityControlProps) {
   const percent = Math.round(value * 100);
   return (
     <div className="px-3">
@@ -168,49 +158,51 @@ function OpacityControl({
   );
 }
 
-interface FontSizeControlProps {
+interface IFontSizeControlProps {
   title: string;
   description: string;
   value: LyricsFontSize;
   onChange: (size: LyricsFontSize) => void;
 }
 
-function FontSizeControl({ title, description, value, onChange }: FontSizeControlProps) {
+function FontSizeControl({ title, description, value, onChange }: IFontSizeControlProps) {
   const { t } = useTranslation('settings');
+  const sizeButtons = FONT_SIZES.map(size => (
+    <button
+      key={size}
+      type="button"
+      role="radio"
+      aria-checked={value === size}
+      onClick={() => onChange(size)}
+      className={cn(
+        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        value === size
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {t(`lyr.size.${size}`)}
+    </button>
+  ));
   return (
     <div className="px-3">
       <p className="text-sm font-medium text-foreground mb-1">{title}</p>
       <p className="text-xs text-muted-foreground mb-3">{description}</p>
       <div className="flex items-center gap-1.5" role="radiogroup" aria-label={title}>
-        {FONT_SIZES.map(size => (
-          <button
-            key={size}
-            type="button"
-            role="radio"
-            aria-checked={value === size}
-            onClick={() => onChange(size)}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              value === size
-                ? 'bg-primary/15 text-primary border border-primary/40'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
-            )}
-          >
-            {t(`lyr.size.${size}`)}
-          </button>
-        ))}
+        {sizeButtons}
       </div>
     </div>
   );
 }
 
-interface PlainPreviewProps {
+interface IPlainPreviewProps {
   opacity: number;
   fontSize: LyricsFontSize;
 }
 
-function PlainPreview({ opacity, fontSize }: PlainPreviewProps) {
+function PlainPreview({ opacity, fontSize }: IPlainPreviewProps) {
   const { t } = useTranslation('settings');
+  const previewText = `${t('lyr.previewLine1')}\n${t('lyr.previewLine2')}\n${t('lyr.previewLine3')}\n${t('lyr.previewLine4')}`;
   return (
     <div className="bg-surface/40 border border-border/30 rounded-xl px-4 py-4">
       <pre
@@ -220,18 +212,18 @@ function PlainPreview({ opacity, fontSize }: PlainPreviewProps) {
         )}
         style={{ opacity }}
       >
-        {`${t('lyr.previewLine1')}\n${t('lyr.previewLine2')}\n${t('lyr.previewLine3')}\n${t('lyr.previewLine4')}`}
+        {previewText}
       </pre>
     </div>
   );
 }
 
-interface SyncedPreviewProps {
+interface ISyncedPreviewProps {
   dimOpacity: number;
   fontSize: LyricsFontSize;
 }
 
-function SyncedPreview({ dimOpacity, fontSize }: SyncedPreviewProps) {
+function SyncedPreview({ dimOpacity, fontSize }: ISyncedPreviewProps) {
   const { t } = useTranslation('settings');
   const baseClass = LYR_SIZE_CLASS[fontSize];
   const activeClass = LYR_SIZE_CLASS[nextLyricsFontSize(fontSize)];
