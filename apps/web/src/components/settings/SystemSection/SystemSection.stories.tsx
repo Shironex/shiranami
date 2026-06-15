@@ -58,10 +58,11 @@ export const Default: Story = {
 
     await expect(canvas.getByRole('heading', { name: 'System behavior' })).toBeInTheDocument();
 
-    const [launch, minimize, close] = canvas.getAllByRole('switch');
-    await expect(launch).toBeChecked();
-    await expect(minimize).not.toBeChecked();
-    await expect(close).not.toBeChecked();
+    // Query each switch by its accessible name (from aria-labelledby) rather than
+    // array position, so the assertions don't depend on render order.
+    await expect(canvas.getByRole('switch', { name: 'Launch at startup' })).toBeChecked();
+    await expect(canvas.getByRole('switch', { name: 'Minimize to tray' })).not.toBeChecked();
+    await expect(canvas.getByRole('switch', { name: 'Close to tray' })).not.toBeChecked();
   },
 };
 
