@@ -53,10 +53,12 @@ export const Default: Story = {
       within(dialog).getByRole('heading', { name: 'New Smart Playlist' })
     ).toBeInTheDocument();
 
-    // Type into the name field (bound to its <label>) and confirm it sticks.
+    // Type into the name field (bound to its <label>) and confirm it sticks. A
+    // value distinct from the Edit story's seeded name keeps this assertion from
+    // passing on leaked cross-story state.
     const name = within(dialog).getByLabelText('Name');
-    await userEvent.type(name, 'Late-night focus');
-    await waitFor(() => expect(name).toHaveValue('Late-night focus'));
+    await userEvent.type(name, 'Deep work sprint');
+    await waitFor(() => expect(name).toHaveValue('Deep work sprint'));
 
     // Adding a rule appends a second field/operator row.
     await expect(within(dialog).getAllByRole('combobox', { name: 'Field' })).toHaveLength(1);
