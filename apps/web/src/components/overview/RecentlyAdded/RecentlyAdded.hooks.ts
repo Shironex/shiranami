@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatRelativeTime } from '../overviewUtils';
 import type {
@@ -10,18 +11,22 @@ export function useRecentlyAdded({ tracks }: IRecentlyAddedProps): IRecentlyAdde
   const { t, i18n } = useTranslation('overview');
   const { t: tCommon } = useTranslation('common');
 
-  const rows: IRecentlyAddedRow[] = tracks.map(track => {
-    const relative = formatRelativeTime(track.createdAt, i18n.language);
-    const artist = track.artist || tCommon('unknownArtist');
-    return {
-      id: track.id,
-      title: track.title,
-      subtitle: relative ? `${artist} · ${relative}` : artist,
-      albumArt: track.albumArt,
-      coverSeed: track.album || track.artist,
-      playAria: t('playAria', { title: track.title }),
-    };
-  });
+  const rows = useMemo<IRecentlyAddedRow[]>(
+    () =>
+      tracks.map(track => {
+        const relative = formatRelativeTime(track.createdAt, i18n.language);
+        const artist = track.artist || tCommon('unknownArtist');
+        return {
+          id: track.id,
+          title: track.title,
+          subtitle: relative ? `${artist} · ${relative}` : artist,
+          albumArt: track.albumArt,
+          coverSeed: track.album || track.artist,
+          playAria: t('playAria', { title: track.title }),
+        };
+      }),
+    [tracks, i18n.language, t, tCommon]
+  );
 
   return {
     title: t('recentlyAdded', { em: t('recentlyAddedEm') }),
