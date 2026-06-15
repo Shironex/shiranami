@@ -40,6 +40,7 @@ const MIGRATED_COMPONENT_FEATURES = [
   'now-playing',
   'overview',
   'onboarding',
+  'player',
 ];
 const MIGRATED_FEATURES_BRACE = `{${MIGRATED_COMPONENT_FEATURES.join(',')}}`;
 const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/**`;
