@@ -89,26 +89,28 @@ export default function RadioView() {
     </button>
   ));
 
-  const chipElements = activeChips.map(chip => (
-    <span
-      key={chip.key}
-      className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
-    >
-      {chip.prefix && <span>{chip.prefix}</span>}
-      {chip.label}
-      <button
-        onClick={chip.onRemove}
-        aria-label={chip.removeLabel}
-        className="rounded-full p-0.5 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </span>
-  ));
+  const chipElements = showFilterBar
+    ? activeChips.map(chip => (
+        <span
+          key={chip.key}
+          className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
+        >
+          {chip.prefix && <span>{chip.prefix}</span>}
+          {chip.label}
+          <button
+            onClick={chip.onRemove}
+            aria-label={chip.removeLabel}
+            className="rounded-full p-0.5 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      ))
+    : null;
 
-  const skeletonElements = Array.from({ length: skeletonRows }, (_, index) => (
-    <StationRowSkeleton key={index} />
-  ));
+  const skeletonElements = isLoading
+    ? Array.from({ length: skeletonRows }, (_, index) => <StationRowSkeleton key={index} />)
+    : null;
 
   let emptyStateCard;
   if (isFavoritesMode) {
