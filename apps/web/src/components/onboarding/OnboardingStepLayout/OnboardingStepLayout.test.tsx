@@ -35,9 +35,30 @@ describe('OnboardingStepLayout', () => {
       </OnboardingStepLayout>
     );
 
-    expect(screen.getByRole('heading', { name: 'Heading' })).toHaveAttribute(
-      'id',
-      'onboarding-step-heading'
+    const heading = screen.getByRole('heading', { name: 'Heading' });
+    expect(heading).toHaveAttribute('id', 'onboarding-step-heading');
+    // The heading is programmatically focusable so the wizard can move focus to
+    // it on each step change without it being a tab stop.
+    expect(heading).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('renders an emphasised headline as a single accessible name', () => {
+    render(
+      <OnboardingStepLayout
+        kanji="蔵"
+        stepMarker="01"
+        headline={
+          <>
+            Point at your <em className="not-italic">music</em>
+          </>
+        }
+        description="Body"
+      >
+        <span>control</span>
+      </OnboardingStepLayout>
     );
+
+    // The <em> accent must not split the heading's accessible name.
+    expect(screen.getByRole('heading', { name: 'Point at your music' })).toBeInTheDocument();
   });
 });

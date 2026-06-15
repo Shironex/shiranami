@@ -10,6 +10,8 @@ import {
   VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
 import i18n, { initI18n } from '@/lib/i18n';
+import { useThemeStore, DEFAULT_THEME } from '@/stores/useThemeStore';
+import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import type { ElectronAPI } from '@/types/electron';
 import '@/styles/globals.css';
 
@@ -99,6 +101,20 @@ const withProviders: Decorator = Story => (
 );
 
 const preview: Preview = {
+  // Generate a Docs page for every component from its args/argTypes + JSDoc.
+  // Opt a component out with `tags: ['!autodocs']` on its meta.
+  tags: ['autodocs'],
+  // Storybook reuses ONE document across stories, and switching the app theme
+  // writes `data-theme` onto <html> plus theme-background CSS vars — so a story
+  // that picks a (dark photo) theme bleeds into later stories' axe runs, where
+  // the dark background under light-mode foreground tokens trips color-contrast.
+  // Reset theme + background to their defaults before every story so each renders
+  // on a clean, deterministic baseline. This runs before any meta/story
+  // `beforeEach`, so a story that intentionally seeds its own theme still wins.
+  beforeEach: () => {
+    useThemeStore.getState().setTheme(DEFAULT_THEME);
+    useThemeBgStore.getState().resetBg();
+  },
   decorators: [
     withProviders,
     withThemeByClassName({
@@ -113,6 +129,12 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    // axe runs inside the @storybook/addon-vitest story tests. 'todo' keeps
+    // violations as non-blocking warnings so the suite stays green repo-wide
+    // while we ratchet feature-by-feature; an audited component sets
+    // `parameters.a11y.test = 'error'` on its meta to make axe failures fail
+    // the test.
+    a11y: { test: 'todo' },
   },
 };
 

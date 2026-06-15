@@ -45,9 +45,19 @@ describe('FoldersStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('exposes the add-folder control', () => {
+  it('exposes an enabled add-folder control under the Electron test mock', () => {
     renderStep();
 
-    expect(screen.getByRole('button', { name: 'Add folder' })).toBeInTheDocument();
+    // The test setup mocks window.electronAPI, so IS_ELECTRON is true and the
+    // OS folder picker is live (not the disabled desktop-only fallback).
+    const addButton = screen.getByRole('button', { name: 'Add folder' });
+    expect(addButton).toBeInTheDocument();
+    expect(addButton).toBeEnabled();
+  });
+
+  it('shows no folder rows for an empty library', () => {
+    renderStep();
+
+    expect(screen.queryByRole('button', { name: 'Remove folder' })).not.toBeInTheDocument();
   });
 });
