@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { within, expect } from 'storybook/test';
 import type { Track } from '@/stores/types';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useViewStore } from '@/stores/useViewStore';
@@ -30,9 +31,22 @@ function seedAlbum(tracks: Track[]): void {
   useViewStore.setState({ selectedAlbumKey: albumKeyOf(tracks[0]) });
 }
 
+/**
+ * library · AlbumDetailView. The detail page for a selected album: a header with
+ * back / play-all / shuffle actions, the album metadata, and the album's track
+ * rows (each a play `<button>` named "title artist"). Multi-disc albums render
+ * "Disc N" subheaders. It reads the library + selected album from the stores.
+ * Stories seed an album and assert the header actions and the first track row.
+ */
 const meta: Meta<typeof AlbumDetailView> = {
   title: 'library/AlbumDetailView',
   component: AlbumDetailView,
+  parameters: {
+    // Back action is an aria-labelled icon button; play-all / shuffle and each
+    // track row are text-labelled buttons; cover fallback icons are decorative —
+    // axe passes clean.
+    a11y: { test: 'error' },
+  },
   decorators: [
     Story => (
       <div className="flex h-[36rem] flex-col">
@@ -46,6 +60,7 @@ export default meta;
 
 type Story = StoryObj<typeof AlbumDetailView>;
 
+/** A three-track single-disc album — header actions and the first track row. */
 export const Default: Story = {
   decorators: [
     Story => {
@@ -53,8 +68,17 @@ export const Default: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Back to albums' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Play all' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Shuffle' })).toBeInTheDocument();
+    // Track rows expose a play button whose name is "title artist".
+    await expect(canvas.getByRole('button', { name: /Intro\s+Idealism/ })).toBeInTheDocument();
+  },
 };
 
+/** A multi-disc album — the "Disc 1" / "Disc 2" subheaders appear. */
 export const MultiDisc: Story = {
   decorators: [
     Story => {
@@ -66,4 +90,12 @@ export const MultiDisc: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Disc 1')).toBeInTheDocument();
+    await expect(canvas.getByText('Disc 2')).toBeInTheDocument();
+    await expect(
+      canvas.getByRole('button', { name: /Disc two opener\s+Idealism/ })
+    ).toBeInTheDocument();
+  },
 };

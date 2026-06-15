@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { within, expect } from 'storybook/test';
 import type { Track } from '@/stores/types';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -31,9 +32,21 @@ function seed(tracks: Track[], mode: 'tracks' | 'albums' = 'tracks'): void {
   useViewStore.setState({ selectedAlbumKey: null });
 }
 
+/**
+ * library · LibraryView. The top-level library page: an `<h1>` title, a search
+ * box, a Tracks/Albums view toggle, and either the virtualized track list, the
+ * album grid, or an empty state. It reads tracks + view mode from the stores.
+ * Stories seed each mode and assert the page chrome (heading, search, toggle)
+ * plus the mode-specific body.
+ */
 const meta: Meta<typeof LibraryView> = {
   title: 'library/LibraryView',
   component: LibraryView,
+  parameters: {
+    // The page title is a real <h1>, the search input is aria-labelled, and the
+    // view-toggle buttons carry aria-labels (decorative icons) — axe clean.
+    a11y: { test: 'error' },
+  },
   decorators: [
     Story => (
       <div className="flex h-[40rem] flex-col">
@@ -47,6 +60,7 @@ export default meta;
 
 type Story = StoryObj<typeof LibraryView>;
 
+/** Tracks mode — heading, search, toggle, and a rendered track row. */
 export const Default: Story = {
   decorators: [
     Story => {
@@ -54,8 +68,22 @@ export const Default: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Your library' })).toBeInTheDocument();
+    await expect(canvas.getByRole('textbox', { name: 'Search tracks...' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Tracks', pressed: true })).toBeInTheDocument();
+    await expect(
+      canvas.getByRole('button', { name: 'Albums', pressed: false })
+    ).toBeInTheDocument();
+    // The virtualized list mounts rows after measuring — wait for the first.
+    await expect(
+      await canvas.findByRole('button', { name: /Intro\s+Idealism/ })
+    ).toBeInTheDocument();
+  },
 };
 
+/** Albums mode — the Albums toggle reads as pressed and the album grid renders. */
 export const Albums: Story = {
   decorators: [
     Story => {
@@ -63,8 +91,15 @@ export const Albums: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('textbox', { name: 'Search albums...' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Albums', pressed: true })).toBeInTheDocument();
+    await expect(await canvas.findByRole('button', { name: /Midnight Tapes/ })).toBeInTheDocument();
+  },
 };
 
+/** No tracks — the full empty state with onboarding hints. */
 export const Empty: Story = {
   decorators: [
     Story => {
@@ -72,4 +107,11 @@ export const Empty: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { name: 'Your library' })).toBeInTheDocument();
+    await expect(canvas.getByText('No tracks yet')).toBeInTheDocument();
+    // The search box is hidden when the library is empty.
+    await expect(canvas.queryByRole('textbox')).not.toBeInTheDocument();
+  },
 };
