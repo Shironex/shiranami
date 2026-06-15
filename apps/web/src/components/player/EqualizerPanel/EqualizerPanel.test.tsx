@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { EqualizerPanel } from './EqualizerPanel';
+import EqualizerPanel from './EqualizerPanel';
 
 const mockState = vi.hoisted(() => ({
   enabled: false,

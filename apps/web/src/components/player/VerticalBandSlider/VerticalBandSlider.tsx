@@ -1,32 +1,25 @@
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { EQ_MIN_DB, EQ_MAX_DB } from '@/stores/useEqStore';
-
-const BAND_STEP = 0.5;
-
-interface VerticalBandSliderProps {
-  freq: number;
-  value: number;
-  onChange: (db: number) => void;
-  disabled?: boolean;
-  label: string;
-  bandName: string;
-  gainLabel: string;
-  heightClass?: string;
-}
+import { useVerticalBandSlider } from './VerticalBandSlider.hooks';
+import type { IVerticalBandSliderProps } from './VerticalBandSlider.types';
 
 /** A single graphic-EQ band: a vertical gain slider with a tooltip + frequency label. */
-export function VerticalBandSlider({
-  freq,
-  value,
-  onChange,
-  disabled,
-  label,
-  bandName,
-  gainLabel,
-  heightClass = 'h-56',
-}: VerticalBandSliderProps) {
+export default function VerticalBandSlider(props: IVerticalBandSliderProps) {
+  const {
+    min,
+    max,
+    step,
+    value,
+    disabled,
+    label,
+    bandName,
+    gainLabel,
+    heightClass,
+    freqLabel,
+    onValueChange,
+  } = useVerticalBandSlider(props);
+
   return (
     <div className="flex flex-col items-center gap-1.5 min-w-0">
       <Tooltip>
@@ -34,11 +27,11 @@ export function VerticalBandSlider({
           <div className={cn('flex items-center justify-center shrink-0', heightClass)}>
             <SliderPrimitive.Root
               orientation="vertical"
-              min={EQ_MIN_DB}
-              max={EQ_MAX_DB}
-              step={BAND_STEP}
-              value={[value]}
-              onValueChange={([v]) => onChange(v)}
+              min={min}
+              max={max}
+              step={step}
+              value={value}
+              onValueChange={onValueChange}
               disabled={disabled}
               aria-label={label}
               className={cn(
@@ -65,9 +58,7 @@ export function VerticalBandSlider({
           </div>
         </TooltipContent>
       </Tooltip>
-      <span className="text-[10px] text-muted-foreground/80 tabular-nums">
-        {freq >= 1000 ? `${freq / 1000}k` : freq}
-      </span>
+      <span className="text-[10px] text-muted-foreground/80 tabular-nums">{freqLabel}</span>
     </div>
   );
 }
