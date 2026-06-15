@@ -62,7 +62,7 @@ export function useAppearanceSection(): IAppearanceSectionView {
     bgDim !== THEME_BG_DIM_DEFAULT;
 
   function onSelectLanguage(lang: SupportedLanguage): void {
-    i18n.changeLanguage(lang);
+    void i18n.changeLanguage(lang);
     persistLanguage(lang);
   }
 
