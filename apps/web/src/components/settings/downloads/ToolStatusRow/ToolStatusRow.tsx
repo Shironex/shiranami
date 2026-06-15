@@ -1,23 +1,17 @@
-import { useTranslation } from 'react-i18next';
 import { Check, Download } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useToolStatusRow } from './ToolStatusRow.hooks';
+import type { IToolStatusRowProps } from './ToolStatusRow.types';
 
-type ToolStatusRowProps = {
-  installed: boolean;
-  installedTitle: string;
-  notInstalledTitle: string;
-  updateAvailable: boolean;
-  notInstalledRight?: ReactNode;
-};
-
-export function ToolStatusRow({
-  installed,
-  installedTitle,
-  notInstalledTitle,
-  updateAvailable,
-  notInstalledRight,
-}: ToolStatusRowProps) {
-  const { t } = useTranslation('settings');
+export default function ToolStatusRow(props: IToolStatusRowProps) {
+  const {
+    installed,
+    installedTitle,
+    notInstalledTitle,
+    updateAvailable,
+    notInstalledRight,
+    updateAvailableLabel,
+    upToDateLabel,
+  } = useToolStatusRow(props);
 
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
@@ -27,11 +21,11 @@ export function ToolStatusRow({
           <span className="text-sm text-foreground">{installedTitle}</span>
           {updateAvailable ? (
             <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-amber-300">
-              {t('dl.updateAvailable')}
+              {updateAvailableLabel}
             </span>
           ) : (
             <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-              {t('dl.upToDate')}
+              {upToDateLabel}
             </span>
           )}
         </>
