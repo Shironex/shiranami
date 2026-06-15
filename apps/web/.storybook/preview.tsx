@@ -99,6 +99,9 @@ const withProviders: Decorator = Story => (
 );
 
 const preview: Preview = {
+  // Generate a Docs page for every component from its args/argTypes + JSDoc.
+  // Opt a component out with `tags: ['!autodocs']` on its meta.
+  tags: ['autodocs'],
   decorators: [
     withProviders,
     withThemeByClassName({
@@ -113,6 +116,12 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
+    // axe runs inside the @storybook/addon-vitest story tests. 'todo' keeps
+    // violations as non-blocking warnings so the suite stays green repo-wide
+    // while we ratchet feature-by-feature; an audited component sets
+    // `parameters.a11y.test = 'error'` on its meta to make axe failures fail
+    // the test.
+    a11y: { test: 'todo' },
   },
 };
 

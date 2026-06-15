@@ -118,6 +118,30 @@ jobs:
       - name: Test
         run: pnpm test
 
+  test-storybook:
+    name: Storybook Tests
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      # Stories run as real-browser tests (render smoke + play interactions +
+      # axe a11y) via @storybook/addon-vitest + Playwright Chromium, so the
+      # browser and its OS deps must be installed before the test command.
+      - name: Install Chromium
+        run: pnpm --filter @shiranami/web exec playwright install chromium --with-deps
+
+      - name: Run Storybook tests
+        run: pnpm --filter @shiranami/web test:storybook
+
   size:
     name: Bundle Size
     needs: [changes]
@@ -245,7 +269,7 @@ jobs:
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, size, e2e, landing]
+    needs: [lint, typecheck, test, test-storybook, size, e2e, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome
