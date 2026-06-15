@@ -33,8 +33,11 @@ export default function NowPlayingView() {
     onExit,
   } = useNowPlayingView();
 
-  // Build the panel-toggle buttons above the return — `.map` here is not in JSX
-  // render position, so the declarative-JSX rule stays satisfied.
+  if (!hasTrack || !currentTrack) return null;
+
+  // Build the panel-toggle buttons below the early return — `.map` here is not in
+  // JSX render position (declarative-JSX rule stays satisfied), and it is skipped
+  // entirely when there is no active track.
   const panelToggles = panelButtons.map(({ id, icon: Icon, label, isActive }) => (
     <Tooltip key={id}>
       <TooltipTrigger asChild>
@@ -54,8 +57,6 @@ export default function NowPlayingView() {
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
   ));
-
-  if (!hasTrack || !currentTrack) return null;
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
