@@ -49,4 +49,12 @@ describe('ToolsStep', () => {
       screen.getByText('Optional. Only needed for downloading and importing.')
     ).toBeInTheDocument();
   });
+
+  it('holds a polite checking status region while tool status resolves', () => {
+    // The test electronAPI mock returns no cached/fresh tool status, so the step
+    // stays in its checking state and surfaces a live region for screen readers.
+    renderStep();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Checking for helpers…');
+  });
 });
