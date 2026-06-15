@@ -46,10 +46,12 @@ export const Loading: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // The wordmark + polite status region are always mounted (they sit outside
+    // the timer-gated loader block), but use async queries so the assertions are
+    // resilient regardless of mount/animation timing.
     // The wordmark renders "Shira" + an <em>nami</em>, so match the leading text.
-    await expect(canvas.getByText('Shira')).toBeInTheDocument();
-    // The brand block exposes its polite status region while loading.
-    await expect(canvas.getByRole('status')).toBeInTheDocument();
+    await expect(await canvas.findByText('Shira')).toBeInTheDocument();
+    await expect(await canvas.findByRole('status')).toBeInTheDocument();
   },
 };
 
