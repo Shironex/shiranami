@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { pad2 } from '@shiranami/shared';
 import type { ITopThisWeekProps, ITopThisWeekRow, ITopThisWeekView } from './TopThisWeek.types';
@@ -8,20 +9,24 @@ export function useTopThisWeek({ tracks }: ITopThisWeekProps): ITopThisWeekView 
 
   const maxPlays = tracks.reduce((max, track) => Math.max(max, track.playCount), 0);
 
-  const rows: ITopThisWeekRow[] = tracks.map((track, index) => {
-    const artist = track.artist || tCommon('unknownArtist');
-    return {
-      trackId: track.trackId,
-      rankLabel: pad2(index + 1),
-      title: track.title,
-      subtitle: track.album ? `${artist} · ${track.album}` : artist,
-      albumArt: track.albumArt,
-      coverSeed: track.album || track.artist,
-      width: maxPlays > 0 ? Math.max(8, Math.round((track.playCount / maxPlays) * 100)) : 0,
-      playCount: track.playCount,
-      playAria: t('playAria', { title: track.title }),
-    };
-  });
+  const rows = useMemo<ITopThisWeekRow[]>(
+    () =>
+      tracks.map((track, index) => {
+        const artist = track.artist || tCommon('unknownArtist');
+        return {
+          trackId: track.trackId,
+          rankLabel: pad2(index + 1),
+          title: track.title,
+          subtitle: track.album ? `${artist} · ${track.album}` : artist,
+          albumArt: track.albumArt,
+          coverSeed: track.album || track.artist,
+          width: maxPlays > 0 ? Math.max(8, Math.round((track.playCount / maxPlays) * 100)) : 0,
+          playCount: track.playCount,
+          playAria: t('playAria', { title: track.title }),
+        };
+      }),
+    [tracks, maxPlays, t, tCommon]
+  );
 
   return {
     title: t('topThisWeek', { em: t('topThisWeekEm') }),
