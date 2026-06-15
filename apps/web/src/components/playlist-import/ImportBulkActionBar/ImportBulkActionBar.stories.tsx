@@ -79,11 +79,13 @@ export const AllSelected: Story = {
   decorators: [withSelection(['a', 'b', 'c'])],
   play: async () => {
     await screen.findByRole('toolbar', { name: 'Bulk actions' });
-    // Two buttons share this label (the toggle + the trailing clear button);
-    // finding at least one confirms the all-selected relabel.
-    await expect(screen.getAllByRole('button', { name: 'Clear Selection' }).length).toBeGreaterThan(
-      0
-    );
+    // With everything selected the select-all toggle relabels from "Select All"
+    // to "Clear Selection" — so it now matches the trailing clear button, and
+    // exactly two controls carry that name (1 → 2). Asserting both the absence of
+    // "Select All" and the count of 2 pins the relabel down: the trailing clear
+    // button alone (always present) can't satisfy either check.
+    await expect(screen.queryByRole('button', { name: 'Select All' })).not.toBeInTheDocument();
+    await expect(screen.getAllByRole('button', { name: 'Clear Selection' })).toHaveLength(2);
   },
 };
 
