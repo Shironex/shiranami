@@ -1,0 +1,52 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs Overview/Accessibility" />
+
+# Accessibility
+
+Accessibility is checked automatically on every story. The
+`@storybook/addon-a11y` addon runs [axe](https://github.com/dequelabs/axe-core)
+against the rendered story — visible per story in the **Accessibility** tab — and
+the same scan runs headless as part of the Storybook test suite (see **Testing**).
+
+## The ratchet
+
+Enforcement is rolled out feature-by-feature rather than flipped on all at once:
+
+- **Default — `a11y.test: 'todo'`.** Violations surface as non-blocking warnings.
+  This keeps the suite green repo-wide while features are brought up to standard
+  one at a time. It's the global default set in `.storybook/preview.tsx`.
+- **Audited — `a11y.test: 'error'`.** Once a feature is clean, its stories set
+  `parameters.a11y.test = 'error'` at the meta level, which makes any new
+  violation **fail** the story test. This locks in the win — a regression can't
+  slip back.
+
+So the bar only ever moves forward: a component that's been audited stays
+audited, and unaudited ones still get a visible report without blocking everyone.
+
+## Decorative elements
+
+Shiranami keeps purely decorative art out of the accessibility tree at the
+element level rather than excluding it with a global axe selector. Two patterns
+are used:
+
+- **`aria-hidden` glyphs and icons** — Lucide status glyphs, the arrow in the
+  enrich before/after preview, and similar decoration are marked `aria-hidden`
+  (or rendered as `alt=""` images), so assistive tech skips them and they carry
+  no role for axe to flag.
+- **CSS generated content** — the faint onboarding kanji watermark
+  (`OnboardingKanji`) is painted as `::before` generated content
+  (`content: attr(data-kanji)`) and additionally `aria-hidden`, so the glyph
+  never enters the accessibility tree at all. axe's color-contrast rule still
+  measures `aria-hidden` *text nodes*, so rendering the wash as CSS content
+  (not a text node) is what stops it from flagging the intentional 5%-alpha
+  wash as a contrast failure.
+
+For view stories whose translucent surfaces would otherwise resolve against the
+bare Storybook canvas, the `withAppSurface` decorator restores the opaque themed
+surface so axe measures contrast as it is in-app (see **Theming**).
+
+## Checking a component
+
+Open any story and select the **Accessibility** tab to see violations, passes,
+and incomplete checks, with the offending node highlighted in the canvas.

@@ -1,0 +1,64 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs Overview/Theming" />
+
+# Theming & tokens
+
+Shiranami is fully themeable, and Storybook renders every story under the real
+token system so what you see here matches the app.
+
+## The token system
+
+The palette is expressed as **oklch** CSS custom properties on `:root` in
+`src/styles/globals.css`. A component never hard-codes a color — it references a
+token (`bg-background`, `text-foreground`, `border-border`, `bg-primary`, …) that
+resolves against the active palette.
+
+The default **Midnight Lofi Cafe** palette (the app's `:root`) is a violet-tinted
+midnight at hue 280:
+
+- `--background: oklch(0.08 0.02 280)` — the deep midnight window surface
+- `--foreground: oklch(0.93 0.01 280)` — near-white text
+- `--primary: oklch(0.72 0.12 280)` — the signature violet accent
+  (also exposed as the sRGB triplet `--primary-rgb: 155, 125, 235` for the
+  `<canvas>` visualizers and inline glows that read a raw triplet)
+
+Working in oklch means lightness, chroma, and hue are independent, so derived
+tokens (hover states, glows) are computed with `oklch(from …)` rather than
+hand-picked.
+
+## Image themes
+
+On top of the default palette, the app ships four **image themes** selected via a
+`[data-theme=…]` attribute on `<html>` — each pairs a backdrop photo with its own
+accent, redefining only the tokens that change and inheriting everything else
+from `:root`:
+
+- **snow** — cool blue twilight
+- **summer** — bright lake daytime, cyan-blue accent
+- **sunset** — warm orange
+- **wisteria** — purple/pink spring dusk
+
+The default state is **"none"** (rendered from `:root` only, byte-identical to the
+base Midnight Lofi Cafe palette); "Lofi Night" is that same palette presented as a
+backdrop photo, accent unchanged. The backdrop image is applied at runtime by
+`ThemeBackground` (an inline document-relative `url()`), not as a CSS token.
+
+## How the Storybook theme toolbar works
+
+The **Theme** toolbar uses `withThemeByClassName` (from `@storybook/addon-themes`)
+and toggles only **light** ↔ **dark** — `dark` adds the bare `dark` class that
+Tailwind's `dark:` variant keys off; `light` clears it. The toolbar does **not**
+switch image themes; to exercise an image theme, a story seeds the app's theme
+store directly. The preview's global `beforeEach` resets the theme + background to
+their defaults before every story so each renders on a clean, deterministic
+baseline (preventing cross-story theme bleed into axe's color-contrast scan).
+
+## A note on story surfaces
+
+View-level stories can wrap in a `withAppSurface` decorator (from
+`.storybook/decorators.tsx`) that paints the opaque `--background` /
+`--foreground` surface. In the app these views sit inside the themed shell;
+isolated in Storybook they'd resolve translucent surfaces (`bg-card/40`,
+accent-tinted pills) against a bare canvas, which makes axe report false
+low-contrast failures. The decorator restores the in-app contrast context.
