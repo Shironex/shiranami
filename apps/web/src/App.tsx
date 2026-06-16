@@ -19,7 +19,7 @@ import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SidePanel } from '@/components/shared/SidePanel';
 import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
-import ErrorBoundary from '@/components/shared/ErrorBoundary';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView/SettingsView'));
@@ -43,10 +43,18 @@ const PlaylistDetailView = lazy(
 const DebugOverlay = import.meta.env.DEV
   ? lazy(() => import('@/components/debug/DebugOverlay').then(m => ({ default: m.DebugOverlay })))
   : null;
-const KeyboardShortcutsHelp = lazy(() => import('@/components/shared/KeyboardShortcutsHelp'));
-const ShareDialogManager = lazy(() => import('@/components/shared/ShareDialogManager'));
-const TrackEnrichDialogManager = lazy(() => import('@/components/shared/TrackEnrichDialogManager'));
-const EditTagsDialogManager = lazy(() => import('@/components/shared/EditTagsDialogManager'));
+const KeyboardShortcutsHelp = lazy(
+  () => import('@/components/shared/KeyboardShortcutsHelp/KeyboardShortcutsHelp')
+);
+const ShareDialogManager = lazy(
+  () => import('@/components/shared/ShareDialogManager/ShareDialogManager')
+);
+const TrackEnrichDialogManager = lazy(
+  () => import('@/components/shared/TrackEnrichDialogManager/TrackEnrichDialogManager')
+);
+const EditTagsDialogManager = lazy(
+  () => import('@/components/shared/EditTagsDialogManager/EditTagsDialogManager')
+);
 const OnboardingWizard = lazy(
   () => import('@/components/onboarding/OnboardingWizard/OnboardingWizard')
 );
