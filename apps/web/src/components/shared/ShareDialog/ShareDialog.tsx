@@ -1,55 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Share2, Copy, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { useShareLink } from '@/hooks/useShareLink';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useShareDialog } from './ShareDialog.hooks';
+import type { IShareDialogProps } from './ShareDialog.types';
 
-interface ShareDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  type: 'track' | 'playlist';
-  id: string;
-}
+export default function ShareDialog(props: IShareDialogProps) {
+  const { open, onOpenChange, type } = props;
+  const { t, state, shareUrl, copied, displayError, minutesLeft, qrSrc, generateLink, handleCopy } =
+    useShareDialog(props);
 
-export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) {
-  const { t } = useTranslation('share');
-  const { state, shareUrl, expiresAt, error, shareTrack, sharePlaylist, reset } = useShareLink();
-  const [copied, setCopied] = useState(false);
-
-  const generateLink = useCallback(() => {
-    setCopied(false);
-    if (type === 'track') {
-      void shareTrack(id);
-    } else {
-      void sharePlaylist(id);
-    }
-  }, [type, id, shareTrack, sharePlaylist]);
-
-  useEffect(() => {
-    if (!open) return;
-    generateLink();
-    return () => {
-      reset();
-    };
-  }, [open, generateLink, reset]);
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error(t('copyFailed'));
-    }
-  }, [shareUrl, t]);
-
-  const displayError = error || t('shareError');
-
-  const minutesLeft = expiresAt
-    ? Math.max(0, Math.ceil((expiresAt.getTime() - Date.now()) / 60000))
-    : 0;
+  const isLoadingOrIdle = state === 'loading' || state === 'idle';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,7 +21,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
           </DialogTitle>
         </DialogHeader>
 
-        {(state === 'loading' || state === 'idle') && (
+        {isLoadingOrIdle && (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <p className="text-sm text-muted-foreground">{t('creating')}</p>
@@ -99,7 +59,7 @@ export function ShareDialog({ open, onOpenChange, type, id }: ShareDialogProps) 
             <div className="flex justify-center">
               <div className="p-4 bg-white rounded-2xl">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}&bgcolor=ffffff&color=0c0a14`}
+                  src={qrSrc}
                   alt="QR code for sharing"
                   width={180}
                   height={180}

@@ -1,10 +1,5 @@
-import { EditTagsDialog } from './EditTagsDialog';
-import { useDialogEventBridge } from '@/hooks/useDialogEventBridge';
-import { DIALOG_EVENTS } from '@/lib/dialogEvents';
-
-interface EditTagsRequest {
-  trackId: string;
-}
+import { EditTagsDialog } from '@/components/shared/EditTagsDialog';
+import { useEditTagsDialogManager } from './EditTagsDialogManager.hooks';
 
 /**
  * Singleton mounted at the app root. Listens for `open-edit-tags-dialog` custom
@@ -12,9 +7,7 @@ interface EditTagsRequest {
  * state. Mirrors `TrackEnrichDialogManager`.
  */
 export default function EditTagsDialogManager() {
-  const { open, setOpen, request } = useDialogEventBridge<EditTagsRequest>(
-    DIALOG_EVENTS.openEditTags
-  );
+  const { open, setOpen, request } = useEditTagsDialogManager();
 
   if (!request) return null;
 

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TrackEnrichDialog } from './TrackEnrichDialog';
+import TrackEnrichDialog from './TrackEnrichDialog';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 

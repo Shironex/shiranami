@@ -1,10 +1,5 @@
-import { TrackEnrichDialog } from './TrackEnrichDialog';
-import { useDialogEventBridge } from '@/hooks/useDialogEventBridge';
-import { DIALOG_EVENTS } from '@/lib/dialogEvents';
-
-interface TrackEnrichRequest {
-  trackId: string;
-}
+import { TrackEnrichDialog } from '@/components/shared/TrackEnrichDialog';
+import { useTrackEnrichDialogManager } from './TrackEnrichDialogManager.hooks';
 
 /**
  * Singleton mounted at the app root. Listens for `open-track-enrich-dialog`
@@ -14,9 +9,7 @@ interface TrackEnrichRequest {
  * `useDialogEventBridge`.
  */
 export default function TrackEnrichDialogManager() {
-  const { open, setOpen, request } = useDialogEventBridge<TrackEnrichRequest>(
-    DIALOG_EVENTS.openTrackEnrich
-  );
+  const { open, setOpen, request } = useTrackEnrichDialogManager();
 
   if (!request) return null;
 

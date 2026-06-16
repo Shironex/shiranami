@@ -1,30 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Pencil, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { WriteTagsInput } from '@shiranami/contracts';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { mapDbTrackToTrack } from '@/lib/trackMapper';
-
-interface EditTagsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  trackId: string;
-}
-
-interface FormState {
-  title: string;
-  artist: string;
-  albumArtist: string;
-  album: string;
-  genre: string;
-  year: string;
-  trackNumber: string;
-  discNumber: string;
-}
+import type {
+  IEditTagsDialogProps,
+  IEditTagsDialogView,
+  IEditTagsField,
+  IEditTagsFormState,
+} from './EditTagsDialog.types';
 
 /** Parse a numeric form field. Empty string clears the value (null). */
 function parseNumberField(value: string): number | null {
@@ -34,11 +19,15 @@ function parseNumberField(value: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-export function EditTagsDialog({ open, onOpenChange, trackId }: EditTagsDialogProps) {
+export function useEditTagsDialog({
+  open,
+  onOpenChange,
+  trackId,
+}: IEditTagsDialogProps): IEditTagsDialogView {
   const { t } = useTranslation('editTags');
   const track = useLibraryStore(s => s.library.find(tr => tr.id === trackId));
 
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm] = useState<IEditTagsFormState | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Seed the form from the current track each time the dialog opens.
@@ -57,7 +46,7 @@ export function EditTagsDialog({ open, onOpenChange, trackId }: EditTagsDialogPr
     });
   }, [open, track]);
 
-  const setField = useCallback((key: keyof FormState, value: string) => {
+  const setField = useCallback((key: keyof IEditTagsFormState, value: string) => {
     setForm(prev => (prev ? { ...prev, [key]: value } : prev));
   }, []);
 
@@ -124,9 +113,7 @@ export function EditTagsDialog({ open, onOpenChange, trackId }: EditTagsDialogPr
     }
   }, [form, track, onOpenChange, t]);
 
-  if (!track || !form) return null;
-
-  const textFields: Array<{ key: keyof FormState; label: string }> = [
+  const textFields: IEditTagsField[] = [
     { key: 'title', label: t('field.title') },
     { key: 'artist', label: t('field.artist') },
     { key: 'albumArtist', label: t('field.albumArtist') },
@@ -134,83 +121,23 @@ export function EditTagsDialog({ open, onOpenChange, trackId }: EditTagsDialogPr
     { key: 'genre', label: t('field.genre') },
   ];
 
-  const numberFields: Array<{ key: keyof FormState; label: string }> = [
+  const numberFields: IEditTagsField[] = [
     { key: 'year', label: t('field.year') },
     { key: 'trackNumber', label: t('field.trackNumber') },
     { key: 'discNumber', label: t('field.discNumber') },
   ];
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Pencil className="h-5 w-5" />
-            {t('title')}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form
-          className="space-y-3"
-          onSubmit={e => {
-            e.preventDefault();
-            if (!saving) void handleSave();
-          }}
-        >
-          {textFields.map(({ key, label }) => (
-            <label key={key} className="block space-y-1">
-              <span className="text-xs font-medium text-muted-foreground/70">{label}</span>
-              <Input
-                value={form[key]}
-                onChange={e => setField(key, e.target.value)}
-                disabled={saving}
-              />
-            </label>
-          ))}
-
-          <div className="grid grid-cols-3 gap-3">
-            {numberFields.map(({ key, label }) => (
-              <label key={key} className="block space-y-1">
-                <span className="text-xs font-medium text-muted-foreground/70">{label}</span>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={form[key]}
-                  onChange={e => setField(key, e.target.value)}
-                  disabled={saving}
-                />
-              </label>
-            ))}
-          </div>
-
-          <p className="text-xs text-muted-foreground">{t('writeWarning')}</p>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-              className="rounded-lg"
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              aria-busy={saving}
-              className="rounded-lg gap-2 [&_svg]:size-3.5"
-            >
-              {saving ? (
-                <Loader2 className="animate-spin" aria-hidden="true" />
-              ) : (
-                <Check aria-hidden="true" />
-              )}
-              {saving ? t('saving') : t('save')}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+  return {
+    t,
+    ready: Boolean(track && form),
+    form,
+    saving,
+    textFields,
+    numberFields,
+    setField,
+    handleSave: () => {
+      void handleSave();
+    },
+    onClose: () => onOpenChange(false),
+  };
 }

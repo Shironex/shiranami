@@ -1,20 +1,14 @@
-import { useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
-import { useShareImport } from '@/hooks/useShareImport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useImportDialog } from './ImportDialog.hooks';
+import type { IImportDialogProps } from './ImportDialog.types';
 
-interface ImportDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  code: string;
-}
-
-export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
-  const { t } = useTranslation('share');
+export default function ImportDialog(props: IImportDialogProps) {
+  const { open, onOpenChange } = props;
   const {
+    t,
     state,
     data,
     progress,
@@ -22,21 +16,73 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
     playlistName,
     setPlaylistName,
     error,
-    loadShare,
+    tracks,
+    progressWidth,
     startImport,
-  } = useShareImport();
+  } = useImportDialog(props);
 
-  useEffect(() => {
-    if (!open) return;
-    return loadShare(code);
-  }, [open, code, loadShare]);
+  const trackCountLabel = `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'}`;
 
-  const tracks =
-    data?.type === 'PLAYLIST'
-      ? data.payload.tracks
-      : data
-        ? [{ title: data.payload.title, artist: data.payload.artist, ytId: data.payload.ytId }]
-        : [];
+  const isLoadingOrIdle = state === 'loading' || state === 'idle';
+  const isResultState = state === 'ready' || state === 'downloading' || state === 'done';
+  // Narrow `data` to non-null only when a result state is active, so the result
+  // block can be guarded by a single (non-chained) `{resultData && ...}`.
+  const resultData = isResultState ? data : null;
+  // Narrowed playlist payload for the done-state confirmation row. Non-null here
+  // already implies it is a playlist, so the JSX guard stays a single `&&`.
+  const playlistData = resultData?.type === 'PLAYLIST' ? resultData : null;
+
+  const trackRows = tracks.map((track, i) => {
+    const isCompleted = (state === 'downloading' && i < progress) || state === 'done';
+    const isActive = state === 'downloading' && i === progress;
+    const isPending = state === 'downloading' && i > progress;
+
+    return (
+      <div
+        key={i}
+        className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-300 ${
+          isActive
+            ? 'bg-primary/10 border border-primary/20'
+            : isCompleted
+              ? 'bg-green-500/5'
+              : 'bg-accent/30'
+        }`}
+      >
+        <span
+          className={`text-xs w-5 text-center shrink-0 transition-colors duration-300 ${
+            isCompleted ? 'text-green-400' : isActive ? 'text-primary' : 'text-muted-foreground/50'
+          }`}
+        >
+          {isCompleted ? (
+            <Check className="w-3.5 h-3.5 mx-auto" />
+          ) : isActive ? (
+            <Loader2 className="w-3.5 h-3.5 mx-auto animate-spin" />
+          ) : (
+            i + 1
+          )}
+        </span>
+        <Music
+          className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
+            isCompleted
+              ? 'text-green-400/50'
+              : isActive
+                ? 'text-primary/60'
+                : 'text-muted-foreground/40'
+          }`}
+        />
+        <div className="min-w-0 overflow-hidden flex-1">
+          <p
+            className={`text-sm truncate transition-colors duration-300 ${
+              isPending ? 'text-muted-foreground/60' : 'text-foreground'
+            }`}
+          >
+            {track.title}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+        </div>
+      </div>
+    );
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,7 +95,7 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
         </DialogHeader>
 
         <div className="overflow-y-auto overflow-x-hidden scrollbar-thin max-h-[calc(80vh-5rem)]">
-          {(state === 'loading' || state === 'idle') && (
+          {isLoadingOrIdle && (
             <div className="flex flex-col items-center gap-3 py-8">
               <Loader2 className="w-6 h-6 text-primary animate-spin" />
               <p className="text-sm text-muted-foreground">{t('loadingShare')}</p>
@@ -63,10 +109,10 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
             </div>
           )}
 
-          {(state === 'ready' || state === 'downloading' || state === 'done') && data && (
+          {resultData && (
             <div className="space-y-4 mt-2">
               {/* Playlist name */}
-              {data.type === 'PLAYLIST' && (
+              {resultData.type === 'PLAYLIST' && (
                 <div className="space-y-1.5">
                   <label htmlFor="playlist-name" className="text-xs text-muted-foreground">
                     {t('playlistName')}
@@ -78,71 +124,15 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
                     onChange={e => setPlaylistName(e.target.value)}
                     disabled={state !== 'ready'}
                     className="h-auto w-full px-3 py-2 rounded-xl bg-muted border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus-visible:ring-primary/40 focus-visible:border-primary/40 shadow-none"
-                    placeholder={data.payload.name ?? ''}
+                    placeholder={resultData.payload.name ?? ''}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{trackCountLabel}</p>
                 </div>
               )}
 
               {/* Track list */}
               <div className="space-y-1 max-h-[280px] overflow-y-auto scrollbar-thin">
-                {tracks.map((track, i) => {
-                  const isCompleted = (state === 'downloading' && i < progress) || state === 'done';
-                  const isActive = state === 'downloading' && i === progress;
-                  const isPending = state === 'downloading' && i > progress;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-300 ${
-                        isActive
-                          ? 'bg-primary/10 border border-primary/20'
-                          : isCompleted
-                            ? 'bg-green-500/5'
-                            : 'bg-accent/30'
-                      }`}
-                    >
-                      <span
-                        className={`text-xs w-5 text-center shrink-0 transition-colors duration-300 ${
-                          isCompleted
-                            ? 'text-green-400'
-                            : isActive
-                              ? 'text-primary'
-                              : 'text-muted-foreground/50'
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <Check className="w-3.5 h-3.5 mx-auto" />
-                        ) : isActive ? (
-                          <Loader2 className="w-3.5 h-3.5 mx-auto animate-spin" />
-                        ) : (
-                          i + 1
-                        )}
-                      </span>
-                      <Music
-                        className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
-                          isCompleted
-                            ? 'text-green-400/50'
-                            : isActive
-                              ? 'text-primary/60'
-                              : 'text-muted-foreground/40'
-                        }`}
-                      />
-                      <div className="min-w-0 overflow-hidden flex-1">
-                        <p
-                          className={`text-sm truncate transition-colors duration-300 ${
-                            isPending ? 'text-muted-foreground/60' : 'text-foreground'
-                          }`}
-                        >
-                          {track.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {trackRows}
               </div>
 
               {/* Progress bar */}
@@ -151,7 +141,7 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
                   <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${(progress / total) * 100}%` }}
+                      style={{ width: progressWidth }}
                     />
                   </div>
                   <p className="text-center text-xs text-muted-foreground">
@@ -174,9 +164,11 @@ export function ImportDialog({ open, onOpenChange, code }: ImportDialogProps) {
                     <Check className="w-5 h-5 text-green-400" />
                   </div>
                   <p className="text-sm text-green-400 font-medium">{t('downloadComplete')}</p>
-                  {data.type === 'PLAYLIST' && (
+                  {playlistData && (
                     <p className="text-xs text-muted-foreground">
-                      {t('playlistCreated', { name: playlistName.trim() || data.payload.name })}
+                      {t('playlistCreated', {
+                        name: playlistName.trim() || playlistData.payload.name,
+                      })}
                     </p>
                   )}
                 </div>
