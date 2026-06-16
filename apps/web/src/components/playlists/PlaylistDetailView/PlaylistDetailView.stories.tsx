@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { within, expect } from 'storybook/test';
 import type { Playlist } from '@/types/electron';
 import type { Track } from '@/stores/types';
 import { useViewStore } from '@/stores/useViewStore';
@@ -44,9 +45,22 @@ function seededClient(playlist: Playlist, tracks: Track[]): QueryClient {
   return client;
 }
 
+/**
+ * playlists · PlaylistDetailView. The full playlist detail page: it composes the
+ * detail header (back / play-all / rename / delete) with the reorderable track
+ * list. It reads the selected playlist id from the view store and fetches the
+ * playlist + tracks via React Query. Stories seed the query client + view store
+ * so the page renders without IPC, asserting the header chrome and the track
+ * list (or its empty state).
+ */
 const meta: Meta<typeof PlaylistDetailView> = {
   title: 'playlists/PlaylistDetailView',
   component: PlaylistDetailView,
+  parameters: {
+    // Back action is an aria-labelled icon button, play-all/name are labelled
+    // buttons, and each track row is a labelled button — axe passes clean.
+    a11y: { test: 'error' },
+  },
   decorators: [
     Story => (
       <div className="flex h-[40rem] w-[48rem] flex-col">
@@ -60,6 +74,7 @@ export default meta;
 
 type Story = StoryObj<typeof PlaylistDetailView>;
 
+/** A playlist with three tracks — header chrome and a rendered track row. */
 export const Default: Story = {
   decorators: [
     Story => {
@@ -76,8 +91,22 @@ export const Default: Story = {
       );
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Back to playlists' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Late-night focus' })).toBeInTheDocument();
+    await expect(canvas.getByText('3 tracks · 10:45')).toBeInTheDocument();
+    // The virtualized track list mounts rows after measuring — wait for the first.
+    // Each row's dnd-kit sortable wrapper is also a `role="button"` echoing the
+    // row text, so two elements match the name; target the real play <button>.
+    const rowMatches = await canvas.findAllByRole('button', {
+      name: /Midnight study session\s+Lofi Girl/,
+    });
+    await expect(rowMatches.find(el => el.tagName === 'BUTTON')).toBeInTheDocument();
+  },
 };
 
+/** An empty playlist — the header still renders and the list shows its empty state. */
 export const Empty: Story = {
   decorators: [
     Story => {
@@ -90,4 +119,10 @@ export const Empty: Story = {
       );
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Fresh start' })).toBeInTheDocument();
+    await expect(canvas.getByText('0 tracks')).toBeInTheDocument();
+    await expect(canvas.getByText('No tracks yet')).toBeInTheDocument();
+  },
 };

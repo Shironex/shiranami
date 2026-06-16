@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { within, expect } from 'storybook/test';
 import type { Track } from '@/stores/types';
 
 import AlbumGrid from './AlbumGrid';
@@ -24,9 +25,22 @@ const library: Track[] = [
   makeTrack({ id: 'c1', title: 'Coffee', album: 'Slow Morning', artist: 'Kupla' }),
 ];
 
+/**
+ * library · AlbumGrid. The virtualized album grid for the library's albums view:
+ * tracks are grouped into albums and rendered as `react-window` cells, each a
+ * labelled `<button>` (album name + artist + track count) that opens the album.
+ * A live filter count appears while searching and a compact empty state shows on
+ * no matches. Stories assert a representative rendered card, the filter-count
+ * chrome, and the empty state.
+ */
 const meta: Meta<typeof AlbumGrid> = {
   title: 'library/AlbumGrid',
   component: AlbumGrid,
+  parameters: {
+    // Each album cell is a labelled <button>, the cover fallback icon is a
+    // decorative SVG, and the empty state is plain text — axe passes clean.
+    a11y: { test: 'error' },
+  },
   args: {
     library,
     searchQuery: '',
@@ -44,16 +58,36 @@ export default meta;
 
 type Story = StoryObj<typeof AlbumGrid>;
 
-export const Default: Story = {};
+/** All three albums — assert a representative card button renders. */
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Grid cells mount only after the container is measured, so wait for the
+    // first card; its accessible name is album + artist + track count.
+    await expect(await canvas.findByRole('button', { name: /Midnight Tapes/ })).toBeInTheDocument();
+  },
+};
 
+/** Filtered to "rainy" — the filter-count chrome and the matching album card. */
 export const Filtered: Story = {
   args: {
     searchQuery: 'rainy',
   },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('1 of 3 albums')).toBeInTheDocument();
+    await expect(await canvas.findByRole('button', { name: /Rainy Day/ })).toBeInTheDocument();
+  },
 };
 
+/** No matches — the compact empty state. */
 export const NoMatches: Story = {
   args: {
     searchQuery: 'zzz-no-such-album',
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('No matching tracks')).toBeInTheDocument();
+    await expect(canvas.queryByRole('button', { name: /Midnight Tapes/ })).not.toBeInTheDocument();
   },
 };

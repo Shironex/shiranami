@@ -1,9 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { within, expect } from 'storybook/test';
 import type { HistoryData } from '@/hooks/queries/useHistory';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import type { Track } from '@/stores/types';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useWeatherStore } from '@/stores/useWeatherStore';
 
 import OverviewView from './OverviewView';
 
@@ -55,22 +58,46 @@ const historyData: HistoryData = {
 
 function seededClient(): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  useLibraryStore.setState({ library, libraryLoaded: true });
+  // hasHistory is derived from the summary's totalPlays, so seeding the 7d
+  // history query is enough to flip Overview from the empty section to the full
+  // data layout; the hourly/insights/recommendations sub-queries fall back to
+  // their defaults.
   client.setQueryData(historyKeys.data('7d'), historyData);
   return client;
 }
 
+/**
+ * overview · OverviewView. The landing dashboard — the composition root that
+ * assembles the greeting hero, stat strip, top-this-week, listening clock, top
+ * albums, smart mixes, recommendations, and the recently-added rail, all gated
+ * by interface-store toggles (all on by default) and the data branches
+ * (loading / error / first-run / populated). The leaf sections are tested in
+ * their own stories, so here the populated story asserts the greeting hero plus
+ * the section headings, and the first-run story asserts the welcome empty state.
+ * The playback + weather stores are seeded to the baseline so the hero is
+ * deterministic.
+ */
 const meta: Meta<typeof OverviewView> = {
   title: 'overview/OverviewView',
   component: OverviewView,
+  // a11y stays at the global 'todo' default rather than ratcheting to 'error':
+  // this composition root mounts RecommendationsShelf, whose discover section
+  // async-swaps in the out-of-scope DependencyInstallCard under the Storybook
+  // IPC mock. The leaf overview components are individually ratcheted to 'error'
+  // in their own stories; here `play` asserts the composed structure.
+  parameters: {},
   decorators: [
-    Story => (
-      <QueryClientProvider client={seededClient()}>
-        <div className="flex h-[48rem] flex-col">
-          <Story />
-        </div>
-      </QueryClientProvider>
-    ),
+    Story => {
+      useWeatherStore.setState({ enabled: false, coords: null });
+      usePlaybackStore.setState({ currentTrack: null });
+      return (
+        <QueryClientProvider client={seededClient()}>
+          <div className="flex h-[48rem] flex-col">
+            <Story />
+          </div>
+        </QueryClientProvider>
+      );
+    },
   ],
 };
 
@@ -78,8 +105,27 @@ export default meta;
 
 type Story = StoryObj<typeof OverviewView>;
 
-export const Populated: Story = {};
+/** A library with listening history — the hero plus every data section heading. */
+export const Populated: Story = {
+  decorators: [
+    Story => {
+      useLibraryStore.setState({ library, libraryLoaded: true });
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Greeting hero (eyebrow + heading) anchors the top of the dashboard.
+    await expect(await canvas.findByText('Your sanctuary')).toBeInTheDocument();
+    // The stat strip + week sections render once history exists.
+    await expect(canvas.getByText('Listened this week')).toBeInTheDocument();
+    await expect(canvas.getByRole('heading', { name: 'Top this week' })).toBeInTheDocument();
+    await expect(canvas.getByRole('heading', { name: 'Listening clock' })).toBeInTheDocument();
+    await expect(canvas.getByRole('heading', { name: 'Top albums this week' })).toBeInTheDocument();
+  },
+};
 
+/** No library at all — the single welcoming first-run empty state with its CTA. */
 export const FirstRun: Story = {
   decorators: [
     Story => {
@@ -87,4 +133,11 @@ export const FirstRun: Story = {
       return <Story />;
     },
   ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('Your sanctuary starts here')).toBeInTheDocument();
+    // The empty state offers a single create CTA; the data sections stay hidden.
+    await expect(canvas.getByRole('button', { name: 'Add a music folder' })).toBeInTheDocument();
+    await expect(canvas.queryByText('Listened this week')).not.toBeInTheDocument();
+  },
 };
