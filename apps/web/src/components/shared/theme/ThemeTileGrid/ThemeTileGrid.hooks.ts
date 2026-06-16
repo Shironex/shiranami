@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { THEME_TILES } from './ThemeTileGrid';
+import { THEME_TILES } from './ThemeTileGrid.constants';
 import type { IThemeTileGridProps, IThemeTileGridView } from './ThemeTileGrid.types';
 
 /**

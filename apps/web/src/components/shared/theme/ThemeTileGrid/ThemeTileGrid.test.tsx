@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import ThemeTileGrid, { THEME_TILES } from './ThemeTileGrid';
+import ThemeTileGrid from './ThemeTileGrid';
+import { THEME_TILES } from './ThemeTileGrid.constants';
 
 describe('ThemeTileGrid', () => {
   it('renders a radiogroup with a radio per theme tile and marks the active one', () => {

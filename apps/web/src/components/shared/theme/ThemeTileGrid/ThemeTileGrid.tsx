@@ -1,20 +1,8 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ThemeId } from '@/stores/useThemeStore';
 import { useThemeTileGrid } from './ThemeTileGrid.hooks';
+import { THEME_TILES } from './ThemeTileGrid.constants';
 import type { IThemeTileGridProps } from './ThemeTileGrid.types';
-
-// Drives the theme picker grid. `thumb` reuses the same committed WebP the
-// background uses, downscaled by CSS object-fit. The "none" tile has no thumb
-// and renders a solid swatch so the default reads as "no photo".
-export const THEME_TILES: Array<{ id: ThemeId; nameKey: string; thumb?: string }> = [
-  { id: 'none', nameKey: 'none' },
-  { id: 'lofi-night', nameKey: 'lofiNight', thumb: './themes/lofi-night.webp' },
-  { id: 'snow', nameKey: 'snow', thumb: './themes/snow.webp' },
-  { id: 'summer', nameKey: 'summer', thumb: './themes/summer.webp' },
-  { id: 'sunset', nameKey: 'sunset', thumb: './themes/sunset.webp' },
-  { id: 'wisteria', nameKey: 'wisteria', thumb: './themes/wisteria.webp' },
-];
 
 /**
  * Presentational theme picker grid shared by Settings · Appearance and the
