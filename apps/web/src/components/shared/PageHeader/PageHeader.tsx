@@ -1,13 +1,9 @@
-import type { LucideIcon } from 'lucide-react';
+import { usePageHeader } from './PageHeader.hooks';
+import type { IPageHeaderProps } from './PageHeader.types';
 
-interface PageHeaderProps {
-  title: string;
-  icon?: LucideIcon;
-  subtitle?: string;
-  variant?: 'page' | 'section';
-}
+export default function PageHeader(props: IPageHeaderProps) {
+  const { title, icon: Icon, subtitle, variant } = usePageHeader(props);
 
-export function PageHeader({ title, icon: Icon, subtitle, variant = 'page' }: PageHeaderProps) {
   if (variant === 'section') {
     return (
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border/30 shrink-0">

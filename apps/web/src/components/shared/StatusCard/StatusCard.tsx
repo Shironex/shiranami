@@ -1,19 +1,7 @@
-import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface StatusCardProps {
-  title: string;
-  description?: string;
-  /** Badge icon shown over the mascot. Ignored while `loading` (spinner wins). */
-  badgeIcon?: LucideIcon;
-  /** `'destructive'` tints the mascot frame + badge red for error states. */
-  variant?: 'default' | 'destructive';
-  /** Shows a spinner badge instead of `badgeIcon`. */
-  loading?: boolean;
-  children?: ReactNode;
-}
+import { useStatusCard } from './StatusCard.hooks';
+import type { IStatusCardProps } from './StatusCard.types';
 
 /**
  * Centered mascot status card with an optional icon badge and a destructive
@@ -21,16 +9,16 @@ interface StatusCardProps {
  * searching/error cards in SearchView + RadioView. Promoted from
  * search/SearchStateCard so those inline blocks can collapse onto it.
  */
-export function StatusCard({
-  title,
-  description,
-  badgeIcon: BadgeIcon,
-  variant = 'default',
-  loading = false,
-  children,
-}: StatusCardProps) {
-  const isError = variant === 'destructive';
-  const showBadge = loading || !!BadgeIcon;
+export default function StatusCard(props: IStatusCardProps) {
+  const {
+    title,
+    description,
+    badgeIcon: BadgeIcon,
+    loading,
+    children,
+    isError,
+    showBadge,
+  } = useStatusCard(props);
 
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-10">

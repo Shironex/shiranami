@@ -1,36 +1,10 @@
-import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useViewEmptyState } from './ViewEmptyState.hooks';
+import type { IViewEmptyStateProps } from './ViewEmptyState.types';
 
-interface ViewEmptyStateAction {
-  label: string;
-  onClick: () => void;
-}
-
-interface ViewEmptyStateProps {
-  title: string;
-  subtitle: string;
-  icon: LucideIcon;
-  hints?: { icon: LucideIcon; label: string }[];
-  variant?: 'empty' | 'error';
-  action?: ViewEmptyStateAction;
-  /**
-   * Lighter inline layout (single muted icon + title + subtitle, no mascot
-   * frame or glass panel) for in-view "no matches" / "empty mix" states.
-   */
-  compact?: boolean;
-}
-
-export function ViewEmptyState({
-  title,
-  subtitle,
-  icon: Icon,
-  hints,
-  variant = 'empty',
-  action,
-  compact = false,
-}: ViewEmptyStateProps) {
-  const isError = variant === 'error';
+export default function ViewEmptyState(props: IViewEmptyStateProps) {
+  const { title, subtitle, icon: Icon, hints, action, compact, isError } = useViewEmptyState(props);
 
   if (compact) {
     return (
@@ -52,6 +26,21 @@ export function ViewEmptyState({
       </div>
     );
   }
+
+  const hasHints = !!hints && hints.length > 0;
+  const hintChips = hints?.map(hint => (
+    <div
+      key={hint.label}
+      className={cn(
+        'flex items-center gap-2 px-3.5 py-2 rounded-xl',
+        'bg-muted/40 border border-border/20',
+        'text-xs text-muted-foreground/60'
+      )}
+    >
+      <hint.icon className="w-3.5 h-3.5 shrink-0" />
+      <span>{hint.label}</span>
+    </div>
+  ));
 
   return (
     <div className="flex-1 min-h-full flex items-center justify-center">
@@ -89,23 +78,7 @@ export function ViewEmptyState({
         </div>
 
         {/* Contextual hints */}
-        {hints && hints.length > 0 && (
-          <div className="flex items-center gap-3">
-            {hints.map(hint => (
-              <div
-                key={hint.label}
-                className={cn(
-                  'flex items-center gap-2 px-3.5 py-2 rounded-xl',
-                  'bg-muted/40 border border-border/20',
-                  'text-xs text-muted-foreground/60'
-                )}
-              >
-                <hint.icon className="w-3.5 h-3.5 shrink-0" />
-                <span>{hint.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {hasHints && <div className="flex items-center gap-3">{hintChips}</div>}
 
         {action && (
           <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
