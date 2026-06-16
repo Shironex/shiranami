@@ -1,6 +1,6 @@
 import type { useTranslation } from 'react-i18next';
 import type { Track } from '@/stores/types';
-import type { TrackRowProps } from '@/components/shared/TrackRow';
+import type { ITrackRowProps } from '@/components/shared/TrackRow';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
@@ -18,5 +18,5 @@ export interface IFavoritesViewView {
   /** Whether any tracks are selected — toggles the bulk action bar. */
   readonly hasSelection: boolean;
   /** Props passed to each virtualized `TrackRow` via react-window's `rowProps`. */
-  readonly rowProps: TrackRowProps;
+  readonly rowProps: ITrackRowProps;
 }

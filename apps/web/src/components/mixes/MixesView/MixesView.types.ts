@@ -1,6 +1,6 @@
 import type { useTranslation } from 'react-i18next';
 import type { Track } from '@/stores/types';
-import type { TrackRowProps } from '@/components/shared/TrackRow';
+import type { ITrackRowProps } from '@/components/shared/TrackRow';
 import type { MixDefinition, MixId } from '../mixDefinitions';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
@@ -64,7 +64,7 @@ export interface IMixesViewView {
   /** Full merged library, passed to the decorative art collage. */
   readonly library: Track[];
   /** Props passed to each virtualized `TrackRow` in the detail view. */
-  readonly rowProps: TrackRowProps;
+  readonly rowProps: ITrackRowProps;
   /** Returns to the mix-grid overview from a detail view. */
   readonly onBack: () => void;
   /** Plays every track in the selected mix from the top. */

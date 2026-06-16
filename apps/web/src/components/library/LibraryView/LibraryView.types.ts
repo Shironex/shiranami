@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import type { useTranslation } from 'react-i18next';
 import type { Track } from '@/stores/types';
-import type { TrackRowProps } from '@/components/shared/TrackRow';
+import type { ITrackRowProps } from '@/components/shared/TrackRow';
 import type {
   AlbumGridSize,
   AlbumSortMode,
@@ -68,7 +68,7 @@ export interface ILibraryViewView {
   /** Localized "{{filtered}} of {{total}} tracks" line. */
   readonly trackFilterCountLabel: string;
   /** Props passed to each virtualized `TrackRow` via react-window's `rowProps`. */
-  readonly rowProps: TrackRowProps;
+  readonly rowProps: ITrackRowProps;
   /** Album grid size for the toggle control. */
   readonly albumGridSize: AlbumGridSize;
   /** Album sort mode for the sort control. */

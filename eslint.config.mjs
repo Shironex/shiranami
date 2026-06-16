@@ -42,6 +42,7 @@ const MIGRATED_COMPONENT_FEATURES = [
   'onboarding',
   'player',
   'settings',
+  'shared',
 ];
 const MIGRATED_FEATURES_BRACE = `{${MIGRATED_COMPONENT_FEATURES.join(',')}}`;
 const MIGRATED_COMPONENTS_GLOB = `apps/web/src/components/${MIGRATED_FEATURES_BRACE}/**`;
@@ -55,7 +56,7 @@ const MIGRATED_FEATURE_ROOT_FILES = `apps/web/src/components/${MIGRATED_FEATURES
 // Tier C rule applies to them EXCEPT no-cross-feature-imports, which exists to
 // keep *leaf* features decoupled; applying it here would wrongly forbid the
 // app's view-assembly layer from composing the features it exists to compose.
-const COMPOSITION_ROOT_FEATURES = ['now-playing', 'overview', 'onboarding', 'settings'];
+const COMPOSITION_ROOT_FEATURES = ['now-playing', 'overview', 'onboarding', 'settings', 'shared'];
 const COMPOSITION_ROOTS_BRACE = `{${COMPOSITION_ROOT_FEATURES.join(',')}}`;
 const COMPOSITION_ROOTS_GLOB = `apps/web/src/components/${COMPOSITION_ROOTS_BRACE}/**`;
 
