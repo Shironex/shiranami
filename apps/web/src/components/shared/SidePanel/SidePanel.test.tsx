@@ -58,8 +58,8 @@ vi.mock('@/components/ui/tooltip', () => ({
   TooltipContent: () => null,
 }));
 
-vi.mock('@/components/shared/ErrorBoundary/ErrorBoundary', () => ({
-  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+vi.mock('@/components/shared/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 // Render the headerAction so the flip button is reachable in the DOM, the

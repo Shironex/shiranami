@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
-import ErrorBoundary from '@/components/shared/ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { RIGHT_PANEL_WIDTH_MIN, RIGHT_PANEL_WIDTH_MAX } from '@/stores/usePanelSizeStore';
 import { useSidePanel } from './SidePanel.hooks';
 import type { ISidePanelProps } from './SidePanel.types';
