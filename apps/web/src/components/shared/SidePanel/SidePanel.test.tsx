@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
-import { SidePanel } from './SidePanel';
+import SidePanel from './SidePanel';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 
 // ── Shared spies ──
@@ -58,7 +58,7 @@ vi.mock('@/components/ui/tooltip', () => ({
   TooltipContent: () => null,
 }));
 
-vi.mock('@/components/shared/ErrorBoundary', () => ({
+vi.mock('@/components/shared/ErrorBoundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

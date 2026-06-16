@@ -1,12 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
-import { TopBar } from './TopBar';
+import TopBar from './TopBar';
 import type { AppView } from '@/stores/useViewStore';
 
 let activeView: AppView = 'library';
 
 vi.mock('@/stores/useViewStore', () => ({
   useViewStore: <T,>(selector: (s: Record<string, unknown>) => T) => selector({ activeView }),
+}));
+vi.mock('@/stores/useInterfaceStore', () => ({
+  useInterfaceStore: <T,>(selector: (s: Record<string, unknown>) => T) =>
+    selector({ topBarLanguageSwitcher: true }),
 }));
 vi.mock('react-i18next', () => ({
   // Echo the requested key so we can assert which translation key the header used.

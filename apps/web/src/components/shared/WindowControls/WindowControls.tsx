@@ -1,13 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import { Minus, Square, Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
-import { useWindowControls } from '@/hooks/useWindowControls';
-
-interface WindowControlsProps {
-  /** Extra classes for the wrapper (e.g. corner padding per host). */
-  className?: string;
-}
+import { useWindowControlsView } from './WindowControls.hooks';
+import type { IWindowControlsProps } from './WindowControls.types';
 
 /**
  * Windows-only minimize / maximize / close cluster for the frameless window.
@@ -16,11 +10,10 @@ interface WindowControlsProps {
  * window chrome at all. Renders nothing on macOS (native traffic lights) or in
  * the browser. Close maps to `window.close()` (quits), matching the shell.
  */
-export function WindowControls({ className }: WindowControlsProps) {
-  const { t } = useTranslation('topbar');
-  const { isMaximized, minimize, maximize, close } = useWindowControls();
+export default function WindowControls({ className }: IWindowControlsProps) {
+  const { t, visible, isMaximized, minimize, maximize, close } = useWindowControlsView();
 
-  if (!IS_ELECTRON || IS_MAC) return null;
+  if (!visible) return null;
 
   return (
     <div className={cn('no-drag flex h-full items-center gap-1', className)}>

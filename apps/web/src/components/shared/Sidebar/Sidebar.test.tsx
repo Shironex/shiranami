@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { Sidebar } from './Sidebar';
+import Sidebar from './Sidebar';
 import type { AppView } from '@/stores/useViewStore';
 
 // ── Shared spies ──
@@ -60,7 +60,7 @@ vi.mock('@/hooks/queries/usePlaylists', () => ({
   usePlaylistsQuery: () => playlistQueryResult,
 }));
 
-vi.mock('./PlaylistContextMenu', () => ({
+vi.mock('@/components/shared/PlaylistContextMenu', () => ({
   PlaylistContextMenu: () => null,
 }));
 

@@ -1,15 +1,7 @@
 import { ListMusic } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Playlist } from '@/types/electron';
-import type { ContextMenuPosition } from '@/hooks/useContextMenuDismiss';
-
-interface SidebarPlaylistButtonProps {
-  playlist: Playlist;
-  collapsed: boolean;
-  isActive: boolean;
-  onNavigate: (id: string) => void;
-  onContextMenu: (playlist: Playlist, position: ContextMenuPosition) => void;
-}
+import { useSidebarPlaylistButton } from './SidebarPlaylistButton.hooks';
+import type { ISidebarPlaylistButtonProps } from './SidebarPlaylistButton.types';
 
 /**
  * A single playlist row in the sidebar. Collapses the two near-identical
@@ -20,21 +12,15 @@ interface SidebarPlaylistButtonProps {
  * Playlist rows keep the flat `bg-accent` active treatment on purpose — the
  * accent glow is reserved for the active top-level nav item.
  */
-export function SidebarPlaylistButton({
-  playlist,
-  collapsed,
-  isActive,
-  onNavigate,
-  onContextMenu,
-}: SidebarPlaylistButtonProps) {
+export default function SidebarPlaylistButton(props: ISidebarPlaylistButtonProps) {
+  const { playlist, collapsed, isActive, onNavigate, onContextMenu } =
+    useSidebarPlaylistButton(props);
+
   return (
     <button
       type="button"
       onClick={() => onNavigate(playlist.id)}
-      onContextMenu={event => {
-        event.preventDefault();
-        onContextMenu(playlist, { x: event.clientX, y: event.clientY });
-      }}
+      onContextMenu={onContextMenu}
       title={collapsed ? playlist.name : undefined}
       aria-label={collapsed ? playlist.name : undefined}
       className={cn(
