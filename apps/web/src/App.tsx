@@ -19,7 +19,7 @@ import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SidePanel } from '@/components/shared/SidePanel';
 import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
-import ErrorBoundary from '@/components/shared/ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
 const SettingsView = lazy(() => import('@/components/settings/SettingsView/SettingsView'));
