@@ -15,13 +15,14 @@ RUN pnpm install --frozen-lockfile --filter @shiranami/web...
 FROM base AS build
 # Storybook builds a large bundle (every story + the docs pages); give Node room.
 ENV NODE_OPTIONS=--max-old-space-size=4096
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+# Bring the whole installed workspace from deps — the root package.json,
+# pnpm-lock.yaml and pnpm-workspace.yaml included — so `pnpm --filter` can
+# resolve the workspace; node_modules (incl. the package symlinks) come along.
+COPY --from=deps /app ./
 # vite.config resolves @shiranami/contracts and @shiranami/shared to their `src`
 # (see apps/web/vite.config.ts aliases), so the source is enough — no package
-# build step. Copy the rarely-changing packages first for better layer caching.
+# build step. Overlay the real source over the package.json stubs from deps;
+# copy the rarely-changing packages first for better layer caching.
 COPY tsconfig.base.json ./
 COPY packages/contracts/ packages/contracts/
 COPY packages/shared/ packages/shared/
@@ -37,4 +38,9 @@ COPY --from=build /app/apps/web/storybook-static /app
 # serve drops its index fallback, so the root would otherwise show a dir listing.
 COPY apps/web/.storybook/serve.json /app/serve.json
 EXPOSE 3000
+# Drop to the image's built-in unprivileged user — the static server needs no root.
+USER node
+# Let Coolify/Traefik (and any orchestrator) detect a wedged server.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -q -O- http://localhost:3000/index.html || exit 1
 CMD ["serve", "/app", "-l", "3000"]
