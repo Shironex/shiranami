@@ -111,15 +111,19 @@ export function usePlaylistPickerContent({
     setNewName('');
   }, []);
 
+  const isMember = useCallback((playlistId: string) => memberSet.has(playlistId), [memberSet]);
+
+  const onShowNewForm = useCallback(() => setShowNewForm(true), []);
+
   return {
     tCommon,
     isLoading,
     playlists,
-    isMember: useCallback((playlistId: string) => memberSet.has(playlistId), [memberSet]),
+    isMember,
     isMutating,
     onToggle,
     showNewForm,
-    onShowNewForm: useCallback(() => setShowNewForm(true), []),
+    onShowNewForm,
     onCancelNewForm,
     newName,
     onNewNameChange: setNewName,
