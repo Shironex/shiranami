@@ -57,6 +57,7 @@
     "@sentry/vite-plugin": "5.3.0",
     "@size-limit/file": "^12.1.0",
     "@storybook/addon-a11y": "^10.4.5",
+    "@storybook/addon-docs": "^10.4.5",
     "@storybook/addon-themes": "^10.4.5",
     "@storybook/addon-vitest": "^10.4.5",
     "@storybook/react-vite": "^10.4.5",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -9,10 +9,11 @@ import {
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
-import i18n, { initI18n } from '@/lib/i18n';
+import i18n, { initI18n, SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useThemeStore, DEFAULT_THEME } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import type { ElectronAPI } from '@/types/electron';
+import { shiranamiTheme } from './shiranami-theme';
 import '@/styles/globals.css';
 
 // ---------------------------------------------------------------------------
@@ -81,11 +82,17 @@ void initI18n();
 
 // Each story render owns a fresh, throwaway QueryClient so cache and query state
 // never leak between stories. Queries never retry and never hit a backend, so
-// component stories render without the app's IPC-backed data layer.
-function StoryProviders({ children }: { children: ReactNode }) {
+// component stories render without the app's IPC-backed data layer. The active
+// locale is driven by the toolbar global so stories render the shipped
+// English/Polski copy rather than raw i18n keys.
+function StoryProviders({ locale, children }: { locale: string; children: ReactNode }) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
   );
+
+  useEffect(() => {
+    void i18n.changeLanguage(locale);
+  }, [locale]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -94,8 +101,8 @@ function StoryProviders({ children }: { children: ReactNode }) {
   );
 }
 
-const withProviders: Decorator = Story => (
-  <StoryProviders>
+const withProviders: Decorator = (Story, context) => (
+  <StoryProviders locale={(context.globals.locale as string) ?? 'en'}>
     <Story />
   </StoryProviders>
 );
@@ -104,6 +111,17 @@ const preview: Preview = {
   // Generate a Docs page for every component from its args/argTypes + JSDoc.
   // Opt a component out with `tags: ['!autodocs']` on its meta.
   tags: ['autodocs'],
+  initialGlobals: { locale: 'en' },
+  globalTypes: {
+    locale: {
+      description: 'Language',
+      toolbar: {
+        icon: 'globe',
+        dynamicTitle: true,
+        items: SUPPORTED_LANGUAGES.map(l => ({ value: l.code, title: l.label })),
+      },
+    },
+  },
   // Storybook reuses ONE document across stories, and switching the app theme
   // writes `data-theme` onto <html> plus theme-background CSS vars — so a story
   // that picks a (dark photo) theme bleeds into later stories' axe runs, where
@@ -123,6 +141,19 @@ const preview: Preview = {
     }),
   ],
   parameters: {
+    // Brand the Docs pages with the same "Midnight Lofi Cafe" violet theme as the
+    // manager chrome (see .storybook/manager.ts) so autodocs match the dark app
+    // surface.
+    docs: {
+      theme: shiranamiTheme,
+    },
+    // Float the standalone MDX "Docs Overview" section to the top of the sidebar
+    // (so its Intro is the landing page); everything else stays alphabetical.
+    options: {
+      storySort: {
+        order: ['Docs Overview', ['Intro', 'Theming', 'Accessibility', 'Testing'], '*'],
+      },
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,
