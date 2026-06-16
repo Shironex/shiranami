@@ -1,38 +1,15 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { AlertCircle, RefreshCw, ClipboardCopy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { captureException } from '@/lib/sentry';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  viewName?: string;
-  root?: boolean;
-  /**
-   * Render a minimal inline fallback instead of the full-page error card.
-   * Use for small chrome surfaces (top bar, player bar, sidebar) where the
-   * large card would blow out the layout if that surface crashes.
-   */
-  compact?: boolean;
-  onReset?: () => void;
-}
-
-interface ErrorBoundaryState {
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
-}
-
-interface ErrorBoundaryFallbackProps {
-  error: Error;
-  errorInfo: ErrorInfo | null;
-  viewName?: string;
-  root?: boolean;
-  compact?: boolean;
-  onReset: () => void;
-}
+import { useErrorBoundary } from './ErrorBoundary.hooks';
+import type {
+  IErrorBoundaryFallbackProps,
+  IErrorBoundaryProps,
+  IErrorBoundaryState,
+} from './ErrorBoundary.types';
 
 function ErrorBoundaryFallback({
   error,
@@ -41,23 +18,13 @@ function ErrorBoundaryFallback({
   root,
   compact,
   onReset,
-}: ErrorBoundaryFallbackProps) {
-  const { t } = useTranslation('errorBoundary');
-
-  const handleReport = async () => {
-    const payload = [
-      `View: ${viewName ?? 'unknown'}`,
-      `Message: ${error.message}`,
-      `Stack: ${error.stack ?? '(no stack)'}`,
-      `Component stack: ${errorInfo?.componentStack ?? '(none)'}`,
-    ].join('\n');
-    try {
-      await navigator.clipboard.writeText(payload);
-      toast.success(t('reportCopied'));
-    } catch {
-      toast.error(t('reportFailed'));
-    }
-  };
+}: IErrorBoundaryFallbackProps) {
+  const { compactTitle, title, message, primaryLabel, reportLabel, onReport } = useErrorBoundary({
+    error,
+    errorInfo,
+    viewName,
+    root,
+  });
 
   const handlePrimary = () => {
     if (root) {
@@ -66,10 +33,6 @@ function ErrorBoundaryFallback({
       onReset();
     }
   };
-
-  const title = root ? t('rootTitle') : t('title');
-  const message = root ? t('rootMessage') : error.message || t('messageFallback');
-  const primaryLabel = root ? t('reloadApp') : t('reloadView');
 
   // Compact inline variant for chrome surfaces (top bar, player bar, sidebar):
   // a single self-sized strip that won't blow out the surrounding layout.
@@ -80,7 +43,7 @@ function ErrorBoundaryFallback({
         className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground"
       >
         <AlertCircle className="size-3.5 shrink-0 text-destructive" aria-hidden="true" />
-        <span className="truncate">{t('title')}</span>
+        <span className="truncate">{compactTitle}</span>
         <button
           type="button"
           onClick={onReset}
@@ -91,10 +54,10 @@ function ErrorBoundaryFallback({
         </button>
         <button
           type="button"
-          onClick={handleReport}
+          onClick={onReport}
           className="shrink-0 rounded-md p-0.5 text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={t('report')}
-          title={t('report')}
+          aria-label={reportLabel}
+          title={reportLabel}
         >
           <ClipboardCopy className="size-3" />
         </button>
@@ -126,8 +89,8 @@ function ErrorBoundaryFallback({
           <Button size="sm" onClick={handlePrimary}>
             <RefreshCw /> {primaryLabel}
           </Button>
-          <Button size="sm" variant="outline" onClick={handleReport}>
-            <ClipboardCopy /> {t('report')}
+          <Button size="sm" variant="outline" onClick={onReport}>
+            <ClipboardCopy /> {reportLabel}
           </Button>
         </div>
       </div>
@@ -135,10 +98,10 @@ function ErrorBoundaryFallback({
   );
 }
 
-export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { error: null, errorInfo: null };
+export default class ErrorBoundary extends Component<IErrorBoundaryProps, IErrorBoundaryState> {
+  state: IErrorBoundaryState = { error: null, errorInfo: null };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): IErrorBoundaryState {
     return { error, errorInfo: null };
   }
 

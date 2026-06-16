@@ -1,88 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
-import { DIALOG_EVENTS } from '@/lib/dialogEvents';
-
-const isMac = navigator.platform.toUpperCase().includes('MAC');
-const MOD = isMac ? '\u2318' : 'Ctrl';
+import { useKeyboardShortcutsHelp } from './KeyboardShortcutsHelp.hooks';
+import type { IShortcut, IShortcutCategory } from './KeyboardShortcutsHelp.types';
 
 // Static film grain backdrop. Hoisted out of the JSX so the structural
 // markup stays scannable; this string never changes per render.
 const FILM_GRAIN_SVG =
   "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
-interface Shortcut {
-  keys: string[];
-  actionKey: string;
-}
-
-interface ShortcutCategory {
-  titleKey: string;
-  glyph: string;
-  shortcuts: Shortcut[];
-}
-
-// Returned as a keyed record (not an array) so consumers can destructure
-// by name without depending on positional order. Adding or reordering
-// categories here is now a compile-error if any consumer is missed.
-interface ShortcutCategories {
-  playback: ShortcutCategory;
-  navigation: ShortcutCategory;
-  panelsUi: ShortcutCategory;
-}
-
-function getShortcutCategories(): ShortcutCategories {
-  return {
-    playback: {
-      titleKey: 'playback',
-      glyph: '01',
-      shortcuts: [
-        { keys: ['Space'], actionKey: 'playPause' },
-        { keys: ['N'], actionKey: 'nextTrack' },
-        { keys: ['P'], actionKey: 'previousTrack' },
-        { keys: ['\u2190'], actionKey: 'seekBack5s' },
-        { keys: ['\u2192'], actionKey: 'seekForward5s' },
-        { keys: ['Shift', '\u2190'], actionKey: 'seekBack10s' },
-        { keys: ['Shift', '\u2192'], actionKey: 'seekForward10s' },
-        { keys: ['\u2191'], actionKey: 'volumeUp' },
-        { keys: ['\u2193'], actionKey: 'volumeDown' },
-        { keys: ['M'], actionKey: 'muteUnmute' },
-        { keys: ['S'], actionKey: 'toggleShuffle' },
-        { keys: ['R'], actionKey: 'cycleRepeat' },
-        { keys: ['L'], actionKey: 'favoriteTrack' },
-      ],
-    },
-    navigation: {
-      titleKey: 'navigation',
-      glyph: '02',
-      // Numeric nav entries are derived from NAV_VIEWS so the help dialog
-      // can never drift out of sync with the keyboard handler again.
-      shortcuts: [
-        ...NAV_VIEWS.map((entry, i) => ({
-          keys: [String(i + 1)],
-          actionKey: entry.labelKey,
-        })),
-        { keys: [MOD, 'K'], actionKey: 'commandPalette' },
-      ],
-    },
-    panelsUi: {
-      titleKey: 'panelsUi',
-      glyph: '03',
-      shortcuts: [
-        { keys: [MOD, 'B'], actionKey: 'toggleSidebar' },
-        { keys: [MOD, 'L'], actionKey: 'toggleLyrics' },
-        { keys: [MOD, 'Q'], actionKey: 'toggleQueue' },
-        { keys: [MOD, 'Shift', 'M'], actionKey: 'compactMode' },
-        { keys: [MOD, 'Shift', 'T'], actionKey: 'toggleAlwaysOnTop' },
-        { keys: [MOD, 'Shift', 'P'], actionKey: 'toggleNowPlaying' },
-        { keys: ['V'], actionKey: 'toggleVisualizer' },
-        { keys: ['?'], actionKey: 'showHelp' },
-        { keys: ['Esc'], actionKey: 'closePanel' },
-      ],
-    },
-  };
-}
 
 function Kbd({ children }: { children: string }) {
   return (
@@ -103,7 +26,14 @@ function Kbd({ children }: { children: string }) {
   );
 }
 
-function ShortcutRow({ shortcut, t }: { shortcut: Shortcut; t: (key: string) => string }) {
+function ShortcutRow({ shortcut, t }: { shortcut: IShortcut; t: (key: string) => string }) {
+  const keys = shortcut.keys.map((key, i) => (
+    <span key={i} className="flex items-center gap-1">
+      {i > 0 && <span className="text-muted-foreground/40 text-[0.65rem] select-none">+</span>}
+      <Kbd>{key}</Kbd>
+    </span>
+  ));
+
   return (
     <div
       className="
@@ -116,16 +46,7 @@ function ShortcutRow({ shortcut, t }: { shortcut: Shortcut; t: (key: string) => 
       <span className="text-[0.78rem] text-foreground/65 group-hover:text-foreground/95 transition-colors duration-200">
         {t(shortcut.actionKey)}
       </span>
-      <span className="flex items-center gap-1 shrink-0">
-        {shortcut.keys.map((key, i) => (
-          <span key={i} className="flex items-center gap-1">
-            {i > 0 && (
-              <span className="text-muted-foreground/40 text-[0.65rem] select-none">+</span>
-            )}
-            <Kbd>{key}</Kbd>
-          </span>
-        ))}
-      </span>
+      <span className="flex items-center gap-1 shrink-0">{keys}</span>
     </div>
   );
 }
@@ -134,9 +55,13 @@ function CategorySection({
   category,
   t,
 }: {
-  category: ShortcutCategory;
+  category: IShortcutCategory;
   t: (key: string) => string;
 }) {
+  const rows = category.shortcuts.map((shortcut, i) => (
+    <ShortcutRow key={i} shortcut={shortcut} t={t} />
+  ));
+
   return (
     <section className="relative">
       <header className="flex items-baseline gap-3 mb-3.5">
@@ -151,25 +76,14 @@ function CategorySection({
           className="flex-1 h-px bg-gradient-to-r from-border/60 via-border/25 to-transparent"
         />
       </header>
-      <div>
-        {category.shortcuts.map((shortcut, i) => (
-          <ShortcutRow key={i} shortcut={shortcut} t={t} />
-        ))}
-      </div>
+      <div>{rows}</div>
     </section>
   );
 }
 
-function KeyboardShortcutsHelp() {
-  const { t } = useTranslation('shortcuts');
-  const [open, setOpen] = useState(false);
-  const { playback, navigation, panelsUi } = useMemo(() => getShortcutCategories(), []);
-
-  useEffect(() => {
-    const handler = () => setOpen(true);
-    window.addEventListener(DIALOG_EVENTS.openShortcutHelp, handler);
-    return () => window.removeEventListener(DIALOG_EVENTS.openShortcutHelp, handler);
-  }, []);
+export default function KeyboardShortcutsHelp() {
+  const { t, open, setOpen, categories } = useKeyboardShortcutsHelp();
+  const { playback, navigation, panelsUi } = categories;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -229,5 +143,3 @@ function KeyboardShortcutsHelp() {
     </Dialog>
   );
 }
-
-export default KeyboardShortcutsHelp;

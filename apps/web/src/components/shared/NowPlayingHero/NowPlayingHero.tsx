@@ -1,32 +1,17 @@
-import { useTranslation } from 'react-i18next';
 import { Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import type { Track } from '@/stores/types';
-import { useUIStore } from '@/stores/useUIStore';
-import { useViewStore } from '@/stores/useViewStore';
-import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { cn } from '@/lib/utils';
+import { useNowPlayingHero } from './NowPlayingHero.hooks';
+import type { INowPlayingHeroProps } from './NowPlayingHero.types';
 
-interface NowPlayingHeroProps {
-  /** Only render when this returns true for the current track. Defaults to always showing. */
-  show?: (track: Track) => boolean;
-}
-
-export function NowPlayingHero({ show }: NowPlayingHeroProps) {
-  const { t } = useTranslation('common');
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const ambientColor = useAmbientColor();
-  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
-  const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-
-  const visible = currentTrack && (!show || show(currentTrack));
+export default function NowPlayingHero(props: INowPlayingHeroProps) {
+  const { t, track, heroStyle, showBlurBackdrop, nowPlayingViewEnabled, onEnterNowPlaying } =
+    useNowPlayingHero(props);
 
   return (
     <AnimatePresence>
-      {visible && currentTrack && (
+      {track && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -36,9 +21,7 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
         >
           <div
             className="now-playing-hero relative rounded-2xl overflow-hidden p-5 flex items-center gap-5"
-            style={{
-              background: `linear-gradient(135deg, rgba(${ambientColor.rgb}, 0.15) 0%, rgba(${ambientColor.rgb}, 0.05) 100%)`,
-            }}
+            style={heroStyle}
           >
             {/* Frosted base — invisible on the solid default background, but a
                 legible glass surface under image themes so the hero text never
@@ -49,13 +32,13 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
               className="now-playing-hero-surface absolute inset-0 pointer-events-none"
             />
 
-            {currentTrack.albumArt && !lowPerformanceMode && (
+            {showBlurBackdrop && (
               // Render the blurred backdrop as a positioned <img> rather than
               // background-image: this lets Chromium share the decoded bitmap
               // with the foreground <img> below (CSS background-image lives in
               // a separate cache, doubling decoded RAM per render).
               <img
-                src={currentTrack.albumArt}
+                src={track.albumArt}
                 alt=""
                 aria-hidden="true"
                 loading="eager"
@@ -67,12 +50,12 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
 
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentTrack.id}
+                key={track.id}
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 transition={{ type: 'spring', damping: 20, stiffness: 250 }}
-                onDoubleClick={nowPlayingViewEnabled ? enterNowPlaying : undefined}
+                onDoubleClick={nowPlayingViewEnabled ? onEnterNowPlaying : undefined}
                 className={cn(
                   'w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center',
                   nowPlayingViewEnabled && 'cursor-pointer transition-transform hover:scale-[1.02]'
@@ -80,8 +63,8 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
               >
                 <TrackThumbnail
                   fill
-                  albumArt={currentTrack.albumArt}
-                  alt={currentTrack.title}
+                  albumArt={track.albumArt}
+                  alt={track.title}
                   fallback={<Music className="w-8 h-8 text-muted-foreground/40" />}
                 />
               </motion.div>
@@ -93,17 +76,17 @@ export function NowPlayingHero({ show }: NowPlayingHeroProps) {
               </p>
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={currentTrack.id}
+                  key={track.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
                   <h2 className="font-serif italic text-2xl text-foreground truncate">
-                    {currentTrack.title}
+                    {track.title}
                   </h2>
                   <p className="text-sm text-muted-foreground truncate mt-0.5">
-                    {currentTrack.artist} · {currentTrack.album}
+                    {track.artist} · {track.album}
                   </p>
                 </motion.div>
               </AnimatePresence>

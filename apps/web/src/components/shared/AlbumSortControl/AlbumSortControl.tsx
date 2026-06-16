@@ -1,45 +1,26 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import type { AlbumSortMode } from '@/stores/useUIStore';
+import { useAlbumSortControl } from './AlbumSortControl.hooks';
+import type { IAlbumSortControlProps } from './AlbumSortControl.types';
 
-export interface AlbumSortControlProps {
-  mode: AlbumSortMode;
-  order: 'asc' | 'desc';
-  onModeChange: (mode: AlbumSortMode) => void;
-  onOrderChange: (order: 'asc' | 'desc') => void;
-  labels: {
-    button: string;
-    modeName: string;
-    modeArtist: string;
-    modeYear: string;
-    modeRecentlyAdded: string;
-    orderAsc: string;
-    orderDesc: string;
-  };
-}
+export default function AlbumSortControl(props: IAlbumSortControlProps) {
+  const { order, onModeChange, onOrderChange, labels } = props;
+  const { currentModeLabel, modeOptions } = useAlbumSortControl(props);
 
-function modeLabel(mode: AlbumSortMode, labels: AlbumSortControlProps['labels']): string {
-  switch (mode) {
-    case 'artist':
-      return labels.modeArtist;
-    case 'year':
-      return labels.modeYear;
-    case 'recentlyAdded':
-      return labels.modeRecentlyAdded;
-    case 'name':
-    default:
-      return labels.modeName;
-  }
-}
+  const modeButtons = modeOptions.map(option => (
+    <button
+      key={option.mode}
+      onClick={() => onModeChange(option.mode)}
+      className={cn(
+        'text-left px-2 py-1.5 rounded-md text-xs transition-colors',
+        option.active ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-accent'
+      )}
+    >
+      {option.label}
+    </button>
+  ));
 
-export function AlbumSortControl({
-  mode,
-  order,
-  onModeChange,
-  onOrderChange,
-  labels,
-}: AlbumSortControlProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -49,7 +30,7 @@ export function AlbumSortControl({
           title={labels.button}
         >
           <ArrowUpDown className="w-4 h-4" />
-          <span className="hidden sm:inline">{modeLabel(mode, labels)}</span>
+          <span className="hidden sm:inline">{currentModeLabel}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-52">
@@ -57,20 +38,7 @@ export function AlbumSortControl({
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 px-1">
             {labels.button}
           </p>
-          <div className="flex flex-col gap-0.5">
-            {(['name', 'artist', 'year', 'recentlyAdded'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => onModeChange(m)}
-                className={cn(
-                  'text-left px-2 py-1.5 rounded-md text-xs transition-colors',
-                  mode === m ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-accent'
-                )}
-              >
-                {modeLabel(m, labels)}
-              </button>
-            ))}
-          </div>
+          <div className="flex flex-col gap-0.5">{modeButtons}</div>
           <div className="h-px bg-border/40 my-1" />
           <div className="flex items-center gap-1">
             <button

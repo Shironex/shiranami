@@ -1,7 +1,6 @@
 import { Coffee, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { BUY_ME_A_COFFEE_URL, GITHUB_SPONSORS_URL } from '@/lib/constants';
-import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
+import { useSupportBanner } from './SupportBanner.hooks';
 
 /**
  * Thin, dismissible top-strip launch banner pointing to Buy Me a Coffee.
@@ -10,10 +9,8 @@ import { useSupportBannerStore } from '@/stores/useSupportBannerStore';
  * users who have finished the wizard. Acting on the link or dismissing both
  * mark it seen so it never returns.
  */
-export function SupportBanner() {
-  const { t } = useTranslation('settings');
-  const seen = useSupportBannerStore(s => s.seen);
-  const setSeen = useSupportBannerStore(s => s.setSeen);
+export default function SupportBanner() {
+  const { t, seen, onSeen } = useSupportBanner();
 
   if (seen) return null;
 
@@ -29,7 +26,7 @@ export function SupportBanner() {
         href={BUY_ME_A_COFFEE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={setSeen}
+        onClick={onSeen}
         className="ml-1 rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {t('supportBanner.action')}
@@ -41,14 +38,14 @@ export function SupportBanner() {
         href={GITHUB_SPONSORS_URL}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={setSeen}
+        onClick={onSeen}
         className="rounded px-1.5 py-0.5 font-medium text-primary underline underline-offset-2 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {t('supportBanner.sponsor')}
       </a>
       <button
         type="button"
-        onClick={setSeen}
+        onClick={onSeen}
         aria-label={t('supportBanner.dismiss')}
         className="ml-1 grid place-items-center rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
