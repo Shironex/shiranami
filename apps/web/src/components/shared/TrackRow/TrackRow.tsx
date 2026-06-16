@@ -1,16 +1,7 @@
-import { type Track } from '@/stores/types';
 import { type RowComponentProps } from 'react-window';
-import { TrackRowContent } from './TrackRowContent';
-
-export interface TrackRowProps {
-  queue: Track[];
-  currentTrack: Track | null;
-  isPlaying: boolean;
-  handlePlayTrack: (index: number) => void;
-  onToggleFavorite?: (trackId: string) => void;
-  onRemoveFromPlaylist?: (trackId: string) => void;
-  showAddToPlaylist?: boolean;
-}
+import { TrackRowContent } from '@/components/shared/TrackRowContent';
+import { useTrackRow } from './TrackRow.hooks';
+import type { ITrackRowProps } from './TrackRow.types';
 
 /**
  * Row adapter for `react-window`'s `List`. Renders a positioned wrapper and
@@ -23,7 +14,9 @@ export interface TrackRowProps {
  * benefit. `memo(TrackRowContent)` one level down is what prevents the content
  * subtree from re-rendering when only the wrapper's positional props change.
  */
-export function TrackRow(props: RowComponentProps<TrackRowProps>) {
+export default function TrackRow(props: RowComponentProps<ITrackRowProps>) {
+  const { track } = useTrackRow(props);
+
   const {
     index,
     style,
@@ -34,9 +27,8 @@ export function TrackRow(props: RowComponentProps<TrackRowProps>) {
     onToggleFavorite,
     onRemoveFromPlaylist,
     showAddToPlaylist,
-  } = props as RowComponentProps<TrackRowProps> & TrackRowProps;
+  } = props as RowComponentProps<ITrackRowProps> & ITrackRowProps;
 
-  const track = queue[index];
   if (!track) return null;
 
   return (

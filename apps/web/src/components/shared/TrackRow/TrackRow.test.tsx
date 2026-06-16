@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { type Track } from '@/stores/types';
-import { TrackRowContent } from './TrackRowContent';
-import { TrackRow } from './TrackRow';
+import TrackRowContent from '@/components/shared/TrackRowContent/TrackRowContent';
+import TrackRow from './TrackRow';
 
 // ---- mocks ----
 
