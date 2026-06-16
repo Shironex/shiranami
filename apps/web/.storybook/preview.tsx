@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -83,16 +83,12 @@ void initI18n();
 // Each story render owns a fresh, throwaway QueryClient so cache and query state
 // never leak between stories. Queries never retry and never hit a backend, so
 // component stories render without the app's IPC-backed data layer. The active
-// locale is driven by the toolbar global so stories render the shipped
-// English/Polski copy rather than raw i18n keys.
-function StoryProviders({ locale, children }: { locale: string; children: ReactNode }) {
+// language is applied by the `locale` loader below (before the story mounts), so
+// stories render the shipped English/Polski copy from the first frame.
+function StoryProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
   );
-
-  useEffect(() => {
-    void i18n.changeLanguage(locale);
-  }, [locale]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -101,8 +97,8 @@ function StoryProviders({ locale, children }: { locale: string; children: ReactN
   );
 }
 
-const withProviders: Decorator = (Story, context) => (
-  <StoryProviders locale={(context.globals.locale as string) ?? 'en'}>
+const withProviders: Decorator = Story => (
+  <StoryProviders>
     <Story />
   </StoryProviders>
 );
@@ -111,6 +107,14 @@ const preview: Preview = {
   // Generate a Docs page for every component from its args/argTypes + JSDoc.
   // Opt a component out with `tags: ['!autodocs']` on its meta.
   tags: ['autodocs'],
+  // Apply the toolbar's language BEFORE the story renders (not in a useEffect),
+  // so the first frame is already localized — avoids a flash of the previous
+  // language and keeps the browser-mode story tests deterministic.
+  loaders: [
+    async context => {
+      await i18n.changeLanguage((context.globals.locale as string) ?? 'en');
+    },
+  ],
   initialGlobals: { locale: 'en' },
   globalTypes: {
     locale: {
