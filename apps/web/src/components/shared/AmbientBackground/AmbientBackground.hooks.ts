@@ -1,40 +1,34 @@
+import { useReducedMotion } from 'motion/react';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import type { IAmbientBackgroundView } from './AmbientBackground.types';
 
-export function AmbientBackground() {
+/**
+ * Owns the ambient-glow state: the currently-playing track gate, the extracted
+ * album-art color, the noise-overlay/low-perf UI toggles, and the reduced-motion
+ * preference. Builds the radial-gradient string and cross-fade duration so the
+ * shell only renders.
+ */
+export function useAmbientBackground(): IAmbientBackgroundView {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const ambientColor = useAmbientColor();
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
   const prefersReducedMotion = useReducedMotion();
 
-  if (lowPerformanceMode) return null;
-
-  return (
-    <>
-      {noiseOverlayEnabled && <div className="noise" />}
-
-      <AnimatePresence>
-        {currentTrack && (
-          <motion.div
-            key={ambientColor.hex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 2 }}
-            className="fixed inset-0 pointer-events-none z-0"
-            style={{
-              background: `
+  const glowBackground = `
                 radial-gradient(ellipse at 10% 20%, rgba(${ambientColor.rgb}, 0.1) 0%, transparent 60%),
                 radial-gradient(ellipse at 90% 80%, rgba(${ambientColor.rgb}, 0.06) 0%, transparent 50%),
                 radial-gradient(ellipse at 50% 50%, rgba(${ambientColor.rgb}, 0.03) 0%, transparent 70%)
-              `,
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </>
-  );
+              `;
+
+  return {
+    enabled: !lowPerformanceMode,
+    showNoiseOverlay: noiseOverlayEnabled,
+    showGlow: Boolean(currentTrack),
+    glowKey: ambientColor.hex,
+    glowBackground,
+    transitionDuration: prefersReducedMotion ? 0 : 2,
+  };
 }

@@ -1,5 +1,4 @@
-import { useThemeStore } from '@/stores/useThemeStore';
-import { useThemeBgStore } from '@/stores/useThemeBgStore';
+import { useThemeBackground } from './ThemeBackground.hooks';
 
 /**
  * Full-bleed theme image + contrast scrim painted at z-0, beneath the ambient
@@ -19,20 +18,16 @@ import { useThemeBgStore } from '@/stores/useThemeBgStore';
  * prefers-reduced-transparency: the image is a single static bitmap with no
  * animation or blur, so it carries the theme identity at near-zero cost.
  */
-export function ThemeBackground() {
-  const theme = useThemeStore(s => s.theme);
-  // No-op selector: keep the store import alive (so its onRehydrate applies
-  // --theme-bg-opacity / --theme-bg-blur / --theme-bg-dim to the DOM) WITHOUT
-  // subscribing this full-bleed layer to state. The values are consumed purely
-  // as CSS variables, so re-rendering on every slider tick would be wasted work.
-  useThemeBgStore(() => null);
-  if (theme === 'none') return null;
+export default function ThemeBackground() {
+  const { hasThemeImage, imageUrl } = useThemeBackground();
+
+  if (!hasThemeImage) return null;
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <div
         className="theme-bg-image absolute inset-0"
-        style={{ backgroundImage: `url(./themes/${theme}.webp)` }}
+        style={{ backgroundImage: `url(${imageUrl})` }}
       />
       <div className="theme-bg-scrim absolute inset-0" />
       <div
