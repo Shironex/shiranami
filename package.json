@@ -22,7 +22,18 @@
       "react": "^19.2.6",
       "react-dom": "^19.2.6",
       "uuid": ">=11.1.1",
-      "tmp": "0.2.7"
+      "tmp": "0.2.7",
+      "shell-quote": "1.8.4",
+      "form-data": "4.0.6",
+      "ws": "8.21.0",
+      "tar": "7.5.16",
+      "js-yaml": "4.2.0",
+      "@opentelemetry/core": "2.8.0",
+      "@vitest/browser": ">=4.1.9",
+      "vitest": ">=4.1.9",
+      "esbuild": ">=0.28.1",
+      "vite": ">=7.3.5",
+      "@babel/core": ">=7.29.6"
     },
     "onlyBuiltDependencies": [
       "electron",
@@ -80,7 +91,7 @@
     "@shiranami/eslint-plugin": "workspace:*",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.9",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.4.0",
@@ -98,7 +109,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.4",
-    "vitest": "^4.1.7",
+    "vitest": "^4.1.9",
     "wait-on": "^9.0.10"
   }
 }
