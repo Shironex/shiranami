@@ -1,0 +1,40 @@
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.9.0 --activate
+WORKDIR /app
+
+# Install dependencies — only @shiranami/web and the workspace packages it
+# depends on (`...` pulls in @shiranami/contracts + @shiranami/shared).
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/
+COPY packages/contracts/package.json packages/contracts/
+COPY packages/shared/package.json packages/shared/
+RUN pnpm install --frozen-lockfile --filter @shiranami/web...
+
+# Build the static Storybook
+FROM base AS build
+# Storybook builds a large bundle (every story + the docs pages); give Node room.
+ENV NODE_OPTIONS=--max-old-space-size=4096
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+# vite.config resolves @shiranami/contracts and @shiranami/shared to their `src`
+# (see apps/web/vite.config.ts aliases), so the source is enough — no package
+# build step. Copy the rarely-changing packages first for better layer caching.
+COPY tsconfig.base.json ./
+COPY packages/contracts/ packages/contracts/
+COPY packages/shared/ packages/shared/
+COPY apps/web/ apps/web/
+RUN pnpm --filter @shiranami/web run build-storybook
+
+# Serve the static output — Coolify/Traefik handles TLS + routing
+FROM node:22-alpine AS production
+RUN npm install -g serve@14
+COPY --from=build /app/apps/web/storybook-static /app
+# serve reads /app/serve.json: long-cache hashed assets, serve iframe.html
+# directly (cleanUrls off), and rewrite / -> /index.html — with cleanUrls off,
+# serve drops its index fallback, so the root would otherwise show a dir listing.
+COPY apps/web/.storybook/serve.json /app/serve.json
+EXPOSE 3000
+CMD ["serve", "/app", "-l", "3000"]
