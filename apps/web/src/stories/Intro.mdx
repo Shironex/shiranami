@@ -1,0 +1,42 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs Overview/Intro" />
+
+# Shiranami Component Library
+
+This is the living component library for **Shiranami** — the lofi music player
+(desktop app + web renderer). Every UI piece the app ships is documented here in
+isolation: rendered, interactive, themeable, and tested. Use it to explore what
+exists before building something new, to check a component's props and states,
+and to verify behavior without booting the whole Electron app.
+
+## How to navigate
+
+- **Sidebar** — components are grouped by feature area (`player`, `library`,
+  `playlists`, `radio`, `search`, `history`, `now-playing`, `lyrics`, `mixes`,
+  `overview`, `settings`, `downloads`, `onboarding`, `smart-playlists`, `splash`,
+  `ui`, …). This **Docs Overview** section collects the cross-cutting guides.
+- **Docs page** — each component has an auto-generated Docs page: a description,
+  a live preview of every story, and a props table (derived from its TypeScript
+  types + JSDoc).
+- **Stories** — the named variants under each component (`Default`, `Empty`,
+  `Loading`, `Playing`, …). Each opens in the Canvas.
+- **Addon tabs** — under a story you get **Controls** (tweak props live),
+  **Actions** (logged callbacks), **Interactions** (the play-function steps),
+  and **Accessibility** (the axe report).
+
+## Toolbar
+
+- **Theme** — toggle the preview between **light** and **dark** mode. The app's
+  default surface is the **Midnight Lofi Cafe** dark palette (a violet hue-280
+  midnight), so dark is the realistic baseline for most stories.
+- **Language** — switch the UI copy between **English** and **Polski**; stories
+  render the real shipped translations, not raw i18n keys.
+
+## Quality bar
+
+There are **353 stories** across **177 story files** (covering 200+ components),
+and every story is a real in-browser test — it must render without error, its
+play-function interactions must pass, and axe runs an accessibility scan on it.
+See **Testing** and **Accessibility** for how that works, and **Theming** for the
+token system.

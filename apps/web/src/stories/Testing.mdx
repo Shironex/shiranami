@@ -1,0 +1,64 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Docs Overview/Testing" />
+
+# Testing & stories
+
+Stories aren't just documentation here — they're a test suite. The same story
+that documents a component also verifies it.
+
+## Two separate suites
+
+Shiranami runs two Vitest suites from two dedicated config files, kept apart so
+the fast unit run stays jsdom-only:
+
+- **Unit** (`vitest.config.ts`, the `web` project) — the fast jsdom + Testing
+  Library suite for behavior-level tests. Run with
+  `pnpm --filter @shiranami/web test`.
+- **Storybook** (`vitest.storybook.config.ts`) — every story executed as a
+  real-browser test through `@storybook/addon-vitest` + Playwright Chromium. Run
+  with `pnpm --filter @shiranami/web test:storybook`.
+
+The storybook suite is intentionally a **standalone config**, not a second
+project bolted onto `vitest.config.ts`, so the everyday `pnpm test` aggregate
+stays jsdom-fast and the slow browser run is opt-in.
+
+## What a story test covers
+
+For each of the **353 stories** across **177 story files**, the storybook suite:
+
+1. **Render smoke test** — mounts the story in a real browser; any render error
+   fails it.
+2. **Play function** — if the story defines a `play`, its interaction steps run
+   (`userEvent` clicks/typing + `expect` assertions), exactly as in the
+   **Interactions** tab.
+3. **Accessibility** — axe scans the rendered story; whether a violation blocks
+   depends on the feature's `a11y.test` level (see **Accessibility**).
+
+## Keeping the canvas and the test runner in sync
+
+`.storybook/vitest.setup.ts` calls `setProjectAnnotations([preview])`, so the
+browser run applies the preview's decorators, parameters, theme, i18n, and —
+crucially — its global `beforeEach` theme/background reset. Without that explicit
+wiring, addon-vitest does not reliably run the preview-level `beforeEach` in the
+browser, and a story that switches the app theme would bleed `data-theme` into
+later stories' axe runs (dark background under light-mode foreground tokens →
+intermittent color-contrast flakes depending on file order).
+
+The storybook config also pre-bundles the story-test runtime deps
+(`optimizeDeps.include: ['@storybook/react-vite', 'storybook/test']`) so a cold
+CI run never discovers them mid-suite and loses the Vitest runner, and it widens
+`server.fs.allow` to the monorepo root so browser mode can fetch the hoisted,
+pnpm-virtual-store deps and the addon's injected setup file.
+
+## Writing a good story
+
+- Seed state directly (props, or a `beforeEach` that sets a Zustand store) —
+  stories never reach the backend (a recursive `window.electronAPI` mock answers
+  every IPC call with a resolved no-op, and each story gets a throwaway
+  `QueryClient`).
+- Add a `play` for anything interactive; assert the user-visible outcome.
+- Give the component meta a clear JSDoc description — it becomes the Docs page
+  intro and the props-table context.
+- Once the component passes axe cleanly, set `parameters.a11y.test = 'error'` to
+  lock it in.

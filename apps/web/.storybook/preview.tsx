@@ -9,10 +9,11 @@ import {
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
-import i18n, { initI18n } from '@/lib/i18n';
+import i18n, { initI18n, SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useThemeStore, DEFAULT_THEME } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import type { ElectronAPI } from '@/types/electron';
+import { shiranamiTheme } from './shiranami-theme';
 import '@/styles/globals.css';
 
 // ---------------------------------------------------------------------------
@@ -81,7 +82,9 @@ void initI18n();
 
 // Each story render owns a fresh, throwaway QueryClient so cache and query state
 // never leak between stories. Queries never retry and never hit a backend, so
-// component stories render without the app's IPC-backed data layer.
+// component stories render without the app's IPC-backed data layer. The active
+// language is applied by the `locale` loader below (before the story mounts), so
+// stories render the shipped English/Polski copy from the first frame.
 function StoryProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -104,6 +107,25 @@ const preview: Preview = {
   // Generate a Docs page for every component from its args/argTypes + JSDoc.
   // Opt a component out with `tags: ['!autodocs']` on its meta.
   tags: ['autodocs'],
+  // Apply the toolbar's language BEFORE the story renders (not in a useEffect),
+  // so the first frame is already localized — avoids a flash of the previous
+  // language and keeps the browser-mode story tests deterministic.
+  loaders: [
+    async context => {
+      await i18n.changeLanguage((context.globals.locale as string) ?? 'en');
+    },
+  ],
+  initialGlobals: { locale: 'en' },
+  globalTypes: {
+    locale: {
+      description: 'Language',
+      toolbar: {
+        icon: 'globe',
+        dynamicTitle: true,
+        items: SUPPORTED_LANGUAGES.map(l => ({ value: l.code, title: l.label })),
+      },
+    },
+  },
   // Storybook reuses ONE document across stories, and switching the app theme
   // writes `data-theme` onto <html> plus theme-background CSS vars — so a story
   // that picks a (dark photo) theme bleeds into later stories' axe runs, where
@@ -123,6 +145,19 @@ const preview: Preview = {
     }),
   ],
   parameters: {
+    // Brand the Docs pages with the same "Midnight Lofi Cafe" violet theme as the
+    // manager chrome (see .storybook/manager.ts) so autodocs match the dark app
+    // surface.
+    docs: {
+      theme: shiranamiTheme,
+    },
+    // Float the standalone MDX "Docs Overview" section to the top of the sidebar
+    // (so its Intro is the landing page); everything else stays alphabetical.
+    options: {
+      storySort: {
+        order: ['Docs Overview', ['Intro', 'Theming', 'Accessibility', 'Testing'], '*'],
+      },
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,

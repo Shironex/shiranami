@@ -1,0 +1,5 @@
+# Keep the Docker build context lean — these are reinstalled/regenerated inside
+# the image and only bloat the build context (and bust layer caching) if shipped.
+**/node_modules
+**/dist
+**/storybook-static
