@@ -18,7 +18,7 @@
     "@nestjs/common": "^11.1.23",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.23",
-    "@nestjs/platform-fastify": "^11.1.23",
+    "@nestjs/platform-fastify": "^11.1.24",
     "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "^11.4.4",
     "@nestjs/throttler": "^6.5.0",
