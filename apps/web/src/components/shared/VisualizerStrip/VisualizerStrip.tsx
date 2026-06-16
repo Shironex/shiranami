@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import ErrorBoundary from '@/components/shared/ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { useVisualizerStrip } from './VisualizerStrip.hooks';
 

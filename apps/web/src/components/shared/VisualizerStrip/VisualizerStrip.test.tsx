@@ -11,9 +11,9 @@ vi.mock('@/components/player/visualizerRegistry', () => ({
   },
 }));
 
-// ErrorBoundary is imported via its deep default path; pass children through.
-vi.mock('@/components/shared/ErrorBoundary/ErrorBoundary', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+// ErrorBoundary is imported via its folder barrel (named export); pass children through.
+vi.mock('@/components/shared/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 import VisualizerStrip from './VisualizerStrip';
