@@ -1,0 +1,212 @@
+{
+  "projectId": "019e080e-f887-72ca-bf75-32d4e717aec4",
+  "shape": "storybook",
+  "pkg": "@shiranami/web",
+  "globalName": "ShiranamiWeb",
+  "storybookConfigDir": "apps/web/.storybook",
+  "storybookStatic": ".design-sync/sb-reference",
+  "entry": "apps/web/ds-entry.generated.ts",
+  "tsconfig": "tsconfig.dssync.json",
+  "provider": {
+    "component": "DsPreviewRoot"
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "storyImports": {
+    "shim": ["/stores/", "/onboarding/stepContext"]
+  },
+  "libOverrides": {
+    "preview-gen-storybook.mjs": "run story beforeEach in compose() so Zustand/query-seeded components render populated (stores exposed on the global by gen-entry.mjs + redirected via storyImports.shim)"
+  },
+  "overrides": {
+    "CommandPalette": {
+      "skip": ["shared-commandpalette--default"]
+    },
+    "KeyboardShortcutsHelp": {
+      "skip": ["shared-keyboardshortcutshelp--open"]
+    },
+    "SubfolderPlaylistDialog": {
+      "skip": [
+        "settings-subfolderplaylistdialog--default",
+        "settings-subfolderplaylistdialog--some-already-exist"
+      ]
+    },
+    "MediaSessionSync": {
+      "skip": ["player-mediasessionsync--default"]
+    },
+    "BulkActionBar": {
+      "skip": ["shared-bulkactionbar--default", "shared-bulkactionbar--in-playlist"]
+    },
+    "EditTagsDialog": {
+      "skip": ["shared-edittagsdialog--default"]
+    },
+    "ImportDialog": {
+      "skip": ["shared-importdialog--default"]
+    },
+    "NowPlayingHero": {
+      "skip": ["shared-nowplayinghero--idle"]
+    },
+    "PlaylistContextMenu": {
+      "skip": ["shared-playlistcontextmenu--default"]
+    },
+    "ShareDialog": {
+      "skip": ["shared-sharedialog--default", "shared-sharedialog--playlist"]
+    },
+    "TrackContextMenu": {
+      "skip": ["shared-trackcontextmenu--default", "shared-trackcontextmenu--bulk"]
+    },
+    "TrackEnrichDialog": {
+      "skip": ["shared-trackenrichdialog--default"]
+    },
+    "WindowControls": {
+      "skip": ["shared-windowcontrols--default"]
+    },
+    "SmartPlaylistFormDialog": {
+      "skip": [
+        "smart-playlists-smartplaylistformdialog--default",
+        "smart-playlists-smartplaylistformdialog--edit"
+      ]
+    },
+    "ImportBulkActionBar": {
+      "skip": [
+        "playlist-import-importbulkactionbar--default",
+        "playlist-import-importbulkactionbar--all-selected",
+        "playlist-import-importbulkactionbar--importing"
+      ]
+    },
+    "SupportBanner": {
+      "skip": ["shared-supportbanner--seen"]
+    },
+    "QueueRow": {
+      "skip": ["player-queuerow--now-playing", "player-queuerow--overlay"]
+    },
+    "SettingsCard": {
+      "skip": ["settings-settingscard--default"]
+    },
+    "ScrobbleSection": {
+      "skip": ["settings-scrobblesection--default", "settings-scrobblesection--not-connected"]
+    },
+    "AppearanceSection": {
+      "cardMode": "column"
+    },
+    "ArtCollage": {
+      "cardMode": "column"
+    },
+    "CompactPlayer": {
+      "cardMode": "column"
+    },
+    "DownloadProgressBar": {
+      "cardMode": "column"
+    },
+    "DownloadQueueRow": {
+      "cardMode": "column"
+    },
+    "EqualizerPanel": {
+      "cardMode": "column"
+    },
+    "ErrorBoundary": {
+      "cardMode": "column"
+    },
+    "GreetingHero": {
+      "cardMode": "column"
+    },
+    "HistoryActivityGraph": {
+      "cardMode": "column"
+    },
+    "HistoryHeroSection": {
+      "cardMode": "column"
+    },
+    "HistoryTopArtistRow": {
+      "cardMode": "column"
+    },
+    "InstallProgressBar": {
+      "cardMode": "column"
+    },
+    "InterfaceSection": {
+      "cardMode": "column"
+    },
+    "ListeningClock": {
+      "cardMode": "column"
+    },
+    "LyricsBody": {
+      "cardMode": "column"
+    },
+    "LyricsPanel": {
+      "cardMode": "column"
+    },
+    "LyricsSection": {
+      "cardMode": "column"
+    },
+    "MountainVisualizer": {
+      "cardMode": "column"
+    },
+    "ParticleVisualizer": {
+      "cardMode": "column"
+    },
+    "PlayerBar": {
+      "cardMode": "column"
+    },
+    "PlaylistDetailHeader": {
+      "cardMode": "column"
+    },
+    "PlaylistDetailView": {
+      "cardMode": "column"
+    },
+    "PlaylistRow": {
+      "cardMode": "column"
+    },
+    "PlaylistTrackList": {
+      "cardMode": "column"
+    },
+    "RecommendationsShelf": {
+      "cardMode": "column"
+    },
+    "RingsVisualizer": {
+      "cardMode": "column"
+    },
+    "SearchResultRow": {
+      "cardMode": "column"
+    },
+    "StatStrip": {
+      "cardMode": "column"
+    },
+    "StationRow": {
+      "cardMode": "column"
+    },
+    "ThemeTileGrid": {
+      "cardMode": "column"
+    },
+    "ToolStatusRow": {
+      "cardMode": "column"
+    },
+    "ToolVersionBlock": {
+      "cardMode": "column"
+    },
+    "TopThisWeek": {
+      "cardMode": "column"
+    },
+    "TrackRowContent": {
+      "cardMode": "column"
+    },
+    "VinylVisualizer": {
+      "cardMode": "column"
+    },
+    "VirtualSortableTrackRow": {
+      "cardMode": "column"
+    },
+    "VuVisualizer": {
+      "cardMode": "column"
+    },
+    "WaveformSeekbar": {
+      "cardMode": "column"
+    },
+    "WaveformVisualizer": {
+      "cardMode": "column"
+    },
+    "AmbientBackground": {
+      "cardMode": "single"
+    },
+    "ThemeBackground": {
+      "cardMode": "single"
+    }
+  }
+}

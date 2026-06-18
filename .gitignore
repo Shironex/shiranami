@@ -29,3 +29,16 @@ apps/desktop/e2e/.tmp/
 /design/
 # Storybook static build output
 apps/web/storybook-static/
+# design-sync (claude.ai/design) — transient/scratch state
+.design-sync/sb-reference/
+.design-sync/learnings/
+.design-sync/.cache/
+.design-sync/node_modules
+.design-sync/old-project-backup/
+.design-sync/config.json.bak
+.ds-sync/
+ds-bundle/
+
+# generated DS bundle barrel (design-sync) — outputs, not the generator
+apps/web/ds-entry.generated.ts
+apps/web/index.d.ts
