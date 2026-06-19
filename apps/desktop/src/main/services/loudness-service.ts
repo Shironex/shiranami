@@ -48,6 +48,11 @@ export async function measureLoudness(
   }
 
   const native = await measureLoudnessNative(filePath);
+  // The native measurement runs to completion off-thread; if the batch was
+  // aborted while it ran, drop the result rather than return it or spawn ffmpeg.
+  if (signal?.aborted) {
+    return null;
+  }
   if (native.status === 'ok') {
     return native.lufs;
   }
