@@ -88,6 +88,30 @@ brew install llvm           # adds clang-tidy
 Each script **skips gracefully with an install hint** if the binary isn't
 present, so they never break a build.
 
+## Testing
+
+Two layers, both run by `pnpm native:test`:
+
+1. **C++ unit tests** (`test/`, [doctest](https://github.com/doctest/doctest))
+   exercise the pure `core/` algorithms directly — no JS engine. They link
+   `core/` + the vendored decoders into a standalone `shiranami_native_tests`
+   executable. That target is **gated** behind the `build_native_tests` gyp
+   variable (default off) so `predev` / `prebuild` only ever build the addon;
+   `native:test` flips it on with `-Dbuild_native_tests=true`. Fixture audio
+   lives in `test/fixtures/` and is located at runtime via the
+   `SHIRANAMI_FIXTURE_DIR` env var (the runner sets it).
+2. **JS integration tests** (`src/main/workers/native-addon.test.ts`, vitest)
+   load the built `.node` the way the app does and assert the N-API surface
+   against the same fixtures. The suite `skipIf`s itself when the addon isn't
+   built, so a plain `pnpm test` stays green without a native build.
+
+| command            | what it does                                           |
+| ------------------ | ------------------------------------------------------ |
+| `pnpm native:test` | build gated test target → run C++ tests → run JS tests |
+
+When adding a new `core/` algorithm, add a `test/test_<name>.cpp` and list it in
+the `shiranami_native_tests` target's `sources` in `binding.gyp`.
+
 ## Adding a new addon (Rung 3 = bpm)
 
 1. Create `src/native/<name>/<name>.{hpp,cpp}` with a
