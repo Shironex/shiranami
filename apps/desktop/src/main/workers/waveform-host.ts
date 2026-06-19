@@ -8,20 +8,10 @@
  * instead of surfacing an error.
  */
 
-import { app } from 'electron';
 import * as path from 'node:path';
 import { Worker } from 'node:worker_threads';
 import { logger } from '../app/logger';
-
-/** Resolve the compiled addon. Mirrors shiroani's getAddonPath dev/packaged
- *  split; the packaged path requires the electron-builder extraResources copy. */
-function getAddonPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'native', 'shiranami_native.node');
-  }
-  // __dirname is dist/main in dev; the addon lives at apps/desktop/build/Release.
-  return path.join(__dirname, '../../build/Release/shiranami_native.node');
-}
+import { getNativeAddonPath } from '../shared/native-addon';
 
 interface WorkerReply {
   id: number;
@@ -44,7 +34,7 @@ function ensureWorker(): Worker | null {
   if (worker) return worker;
   try {
     worker = new Worker(path.join(__dirname, 'waveform-worker.js'), {
-      workerData: { addonPath: getAddonPath() },
+      workerData: { addonPath: getNativeAddonPath() },
     });
     worker.on('message', (msg: WorkerReply) => {
       const resolve = pending.get(msg.id);
