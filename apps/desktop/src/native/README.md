@@ -17,12 +17,19 @@ src/native/
 ├── addon.cpp            # loader: the single NODE_API_MODULE; calls each module's Register()
 ├── core/                # pure C++ — no napi.h, reusable & unit-testable
 │   ├── peaks.{hpp,cpp}           # reducePeaks(): frames → N bar heights
-│   └── audio_decoder.{hpp,cpp}   # decodeAudioFile(): wav/flac/mp3 → float samples (RAII buffer)
+│   ├── audio_decoder.{hpp,cpp}   # decodeAudioFile(): wav/flac/mp3 → float samples (RAII buffer)
+│   └── loudness.{hpp,cpp}        # measureIntegratedLoudness(): file → EBU R128 LUFS (reuses audio_decoder)
 ├── waveform/            # thin N-API glue over core/ — exports.waveform.{computePeaks,fromFile}
 │   └── waveform.{hpp,cpp}
-└── vendor/dr_libs/      # vendored public-domain decoders (never edited, never formatted)
-    ├── dr_{wav,flac,mp3}.h
-    └── dr_libs_impl.cpp          # the one *_IMPLEMENTATION translation unit
+├── loudness/            # thin N-API glue over core/ — exports.loudness.fromFile
+│   └── loudness.{hpp,cpp}
+└── vendor/              # vendored third-party code (never edited, never formatted)
+    ├── dr_libs/                  # public-domain wav/flac/mp3 decoders
+    │   ├── dr_{wav,flac,mp3}.h
+    │   └── dr_libs_impl.cpp          # the one *_IMPLEMENTATION translation unit
+    └── libebur128/               # MIT EBU R128 loudness (jiixyj/libebur128 v1.2.6)
+        ├── ebur128.{c,h}
+        └── compat/sys/queue.h        # BSD sys/queue.h — Windows-only include (MSVC lacks it)
 ```
 
 **Two layers on purpose:**
@@ -81,7 +88,7 @@ brew install llvm           # adds clang-tidy
 Each script **skips gracefully with an install hint** if the binary isn't
 present, so they never break a build.
 
-## Adding a new addon (Rung 2 = loudness, Rung 3 = bpm)
+## Adding a new addon (Rung 3 = bpm)
 
 1. Create `src/native/<name>/<name>.{hpp,cpp}` with a
    `void Register(Napi::Env, Napi::Object exports)` that sets `exports.<name>`.
@@ -100,3 +107,17 @@ Decode runs **off the main thread**; results are content-addressed (keyed on
 path, mtime, and size) and cached on disk, so each track is decoded once. See
 `src/main/waveform-host.ts`, `src/main/waveform-worker.ts`, and
 `src/main/ipc/waveform.ts`.
+
+## The loudness path
+
+```text
+renderer  →  IPC loudness:analyze  →  main  →  worker_threads  →  shiranami_native.loudness.fromFile()
+```
+
+`loudness.fromFile` returns a discriminated `{ status: 'ok' | 'silent' |
+'undecodable' }`. The native addon (libebur128) handles the formats dr_libs
+decodes (mp3/flac/wav); `undecodable` formats (m4a/opus/ogg) — and the case
+where the addon is unavailable — fall back to the ffmpeg `loudnorm` subprocess.
+The measured LUFS is persisted on the track row. See
+`src/main/workers/loudness-host.ts`, `src/main/workers/loudness-worker.ts`,
+`src/main/services/loudness-service.ts`, and `src/main/ipc/loudness.ts`.
