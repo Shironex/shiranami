@@ -38,6 +38,10 @@ const pending = new Map<number, (result: NativeLoudnessResult) => void>();
 /** Resolve every in-flight request as undecodable (→ ffmpeg fallback) and drop
  *  the worker so the next call respawns it. Used on worker error/exit. */
 function failAllPending(): void {
+  // Terminate before dropping the reference: on an 'error' event the thread may
+  // still be alive (or wedged), and losing the handle would leak it. terminate()
+  // is a harmless no-op when the worker has already exited.
+  if (worker) void worker.terminate();
   for (const resolve of pending.values()) resolve(UNDECODABLE);
   pending.clear();
   worker = null;
