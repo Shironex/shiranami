@@ -173,6 +173,7 @@ export default defineConfig(
       '**/coverage/**',
       '**/generated/**',
       'packages/eslint-plugin/dist/**',
+      '.design-sync/**',
       '**/*.js',
     ],
   }

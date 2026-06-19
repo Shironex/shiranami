@@ -1,17 +1,20 @@
 /**
- * Loudness analysis (EBU R128 / ReplayGain-style) via ffmpeg `loudnorm`.
+ * Loudness analysis (EBU R128 / ReplayGain-style).
  *
- * Runs `loudnorm` in measurement mode (`print_format=json`) and parses the
- * integrated loudness (`input_i`, in LUFS) from the JSON object ffmpeg prints
- * to stderr. The measured value is persisted on the track row; the renderer
- * derives the playback gain at apply time (target LUFS − measured LUFS), so
- * changing the target re-levels instantly without re-analysis.
+ * Measures the integrated loudness (`input_i`-equivalent, in LUFS) of a track.
+ * The native libebur128 addon handles the formats dr_libs can decode
+ * (mp3/flac/wav) off the main thread; anything it can't decode (m4a/opus/ogg)
+ * falls back to the ffmpeg `loudnorm` subprocess. The measured value is
+ * persisted on the track row; the renderer derives the playback gain at apply
+ * time (target LUFS − measured LUFS), so changing the target re-levels
+ * instantly without re-analysis.
  */
 
 import * as fs from 'fs';
 import { execFile } from 'child_process';
 import { getFFmpegPath, isFFmpegInstalled } from '../downloads/ffmpeg-manager';
 import { logger } from '../app/logger';
+import { measureLoudnessNative } from '../workers/loudness-host';
 
 /** Max time a single loudnorm pass may run before being abandoned (ms). */
 const ANALYZE_TIMEOUT_MS = 120000;
@@ -23,19 +26,62 @@ interface LoudnormJson {
 /**
  * Measure the integrated loudness (LUFS) of a single audio file.
  *
- * Returns the finite LUFS value, or `null` when the measurement is unusable
- * (ffmpeg missing, file missing, non-finite loudness such as a silent track,
- * or a parse/spawn failure). A `null` result is treated as "skip" by callers.
+ * Tries the native libebur128 addon first; for formats it can't decode (or when
+ * the addon is unavailable) falls back to ffmpeg. Returns the finite LUFS
+ * value, or `null` when the measurement is unusable (file missing, aborted,
+ * non-finite loudness such as a silent track, or ffmpeg missing on a format the
+ * addon couldn't handle). A `null` result is treated as "skip" by callers.
+ *
+ * Abort granularity is between-track: a native measurement is sub-second and
+ * runs to completion, so we honour the signal before dispatching and let the
+ * batch loop handle cancellation; the ffmpeg fallback still aborts mid-pass.
  */
 export async function measureLoudness(
   filePath: string,
   signal?: AbortSignal
 ): Promise<number | null> {
-  if (!isFFmpegInstalled()) {
-    logger.warn('[loudness] ffmpeg not installed — skipping analysis');
+  if (signal?.aborted) {
     return null;
   }
   if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const native = await measureLoudnessNative(filePath);
+  // The native measurement runs to completion off-thread; if the batch was
+  // aborted while it ran, drop the result rather than return it or spawn ffmpeg.
+  if (signal?.aborted) {
+    return null;
+  }
+  if (native.status === 'ok') {
+    return native.lufs;
+  }
+  if (native.status === 'silent') {
+    // Decoded but non-finite (digital silence) — nothing to measure. ffmpeg
+    // would return -inf here too, so skip the subprocess.
+    return null;
+  }
+
+  // 'undecodable' (format dr_libs can't read, or addon unavailable) → ffmpeg.
+  return measureLoudnessFfmpeg(filePath, signal);
+}
+
+/**
+ * Fallback path: measure integrated loudness with ffmpeg's `loudnorm` filter.
+ * Used for formats the native addon can't decode (m4a/opus/ogg) and when the
+ * native addon is unavailable. Returns `null` on any failure.
+ */
+async function measureLoudnessFfmpeg(
+  filePath: string,
+  signal?: AbortSignal
+): Promise<number | null> {
+  // Re-check the signal: the native attempt may have spanned an abort (e.g. a
+  // teardown that aborted the batch), and we don't want to spawn ffmpeg after.
+  if (signal?.aborted) {
+    return null;
+  }
+  if (!isFFmpegInstalled()) {
+    logger.warn('[loudness] ffmpeg not installed — skipping analysis');
     return null;
   }
 

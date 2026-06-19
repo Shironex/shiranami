@@ -14,14 +14,14 @@
 #include <napi.h>
 
 #include "waveform/waveform.hpp"
-// #include "loudness/loudness.hpp"   // Rung 2
+#include "loudness/loudness.hpp"  // Rung 2
 // #include "bpm/bpm.hpp"             // Rung 3
 
 namespace {
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
   shiranami::waveform::Register(env, exports);
-  // shiranami::loudness::Register(env, exports);
+  shiranami::loudness::Register(env, exports);
   // shiranami::bpm::Register(env, exports);
   return exports;
 }

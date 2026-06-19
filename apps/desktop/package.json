@@ -14,6 +14,7 @@
     "native:format": "node scripts/native-format.mjs",
     "native:format:check": "node scripts/native-format.mjs --check",
     "native:lint": "node scripts/native-lint.mjs",
+    "native:test": "node scripts/native-test.mjs",
     "predev": "node scripts/native-build.mjs",
     "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
     "predev:inspect": "node scripts/native-build.mjs",

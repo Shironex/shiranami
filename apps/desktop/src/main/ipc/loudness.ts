@@ -10,6 +10,7 @@ import { getDatabase } from '@shiranami/database/client';
 import { logger } from '../app/logger';
 import { sendToRenderer } from '../utils/window';
 import { measureLoudness } from '../services/loudness-service';
+import { shutdownLoudnessWorker } from '../workers/loudness-host';
 import { handle } from './with-ipc-handler';
 import { IpcError } from './errors';
 import { loudnessAnalyzeArgs, loudnessCancelArgs } from './schemas/loudness';
@@ -87,6 +88,9 @@ export function registerLoudnessHandlers(): void {
 
           // Skip tracks already analysed — re-reading the row keeps the run
           // idempotent even if the renderer passes a stale "needs analysis" set.
+          // The read-here / write-below (line ~145) is not transactional, but the
+          // single-batch `activeAbort` guard above means no other writer races
+          // this row within the process, so the skip stays correct.
           const existing = db
             .select({ loudnessLufs: tracks.loudnessLufs })
             .from(tracks)
@@ -178,4 +182,10 @@ export function registerLoudnessHandlers(): void {
 export function cleanupLoudnessHandlers(): void {
   ipcMain.removeHandler(C.analyze);
   ipcMain.removeHandler(C.cancel);
+  // Abort an in-flight batch BEFORE terminating the worker. Otherwise the
+  // worker's in-flight measurement resolves `undecodable` on terminate, and the
+  // service would fall through to spawning the ffmpeg fallback during teardown.
+  // Aborting first makes measureLoudness short-circuit to null instead.
+  activeAbort?.abort('shutdown');
+  shutdownLoudnessWorker();
 }
