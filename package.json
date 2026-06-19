@@ -87,7 +87,7 @@
     ]
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.1",
+    "@commitlint/cli": "^21.0.2",
     "@shiranami/eslint-plugin": "workspace:*",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
