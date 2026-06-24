@@ -210,6 +210,13 @@ export const IPC_CHANNELS = {
     cancel: 'loudness:cancel',
     progress: 'loudness:progress',
   },
+  analysis: {
+    // Batch musical analysis (tempo + key) via the native analysis addon.
+    // Estimates BPM and musical key per track and persists them on the DB row.
+    analyze: 'analysis:analyze',
+    cancel: 'analysis:cancel',
+    progress: 'analysis:progress',
+  },
   waveform: {
     // Decode a local audio file (.wav/.flac/.mp3) to fixed-length peak
     // amplitudes for the player's waveform seekbar, via the native addon.

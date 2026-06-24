@@ -13,6 +13,7 @@ export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';
 export * from './ipc/loudness';
+export * from './ipc/analysis';
 export * from './ipc/waveform';
 export * from './ipc/database';
 export * from './ipc/error-codes';
