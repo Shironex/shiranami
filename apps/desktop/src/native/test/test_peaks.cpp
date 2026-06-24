@@ -54,7 +54,9 @@ TEST_CASE("reducePeaks: peak is the loudest across interleaved channels") {
   std::vector<float> frames = {0.2f, 0.7f, 0.3f, 0.1f};
   std::vector<float> out(1, 0.0f);
 
-  reducePeaks(frames.data(), frames.size(), /*channels=*/2, /*buckets=*/1,
+  // 4 interleaved samples / 2 channels = 2 frames. Passing the sample count as
+  // the frame count would walk the loop past the buffer.
+  reducePeaks(frames.data(), frames.size() / 2, /*channels=*/2, /*buckets=*/1,
               out.data());
 
   CHECK(out[0] == doctest::Approx(0.7f));
