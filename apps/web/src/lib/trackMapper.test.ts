@@ -29,6 +29,8 @@ const fullRecord: DbTrackRecord = {
   isFavorite: true,
   playCount: 42,
   loudnessLufs: -16.5,
+  bpm: 128,
+  musicalKey: 'A minor',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-02-01T00:00:00Z',
 };
@@ -53,6 +55,8 @@ describe('mapDbTrackToTrack', () => {
       isFavorite: true,
       playCount: 42,
       loudnessLufs: -16.5,
+      bpm: 128,
+      musicalKey: 'A minor',
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-02-01T00:00:00Z',
     });

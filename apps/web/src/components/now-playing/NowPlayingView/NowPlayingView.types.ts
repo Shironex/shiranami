@@ -49,6 +49,8 @@ export interface INowPlayingViewView {
   readonly currentTrack: Track | null;
   /** Formatted total-duration label for the track. */
   readonly durationLabel: string;
+  /** Tempo + key line (e.g. `'128 BPM · A minor'`); empty when both unknown. */
+  readonly metadataLine: string;
   /** Whether the waveform seekbar is shown instead of the plain seek bar. */
   readonly showWaveformSeekbar: boolean;
   /** The active right-column panel, or null when the panel is hidden. */

@@ -5,6 +5,9 @@ import type {
   LoudnessAnalyzeInput,
   LoudnessAnalyzeResult,
   LoudnessProgress,
+  AnalysisAnalyzeInput,
+  AnalysisAnalyzeResult,
+  AnalysisProgress,
   MetadataLookupResult,
   WriteTagsInput,
   WriteTagsResult,
@@ -128,6 +131,11 @@ export interface ElectronAPI {
     analyze: (tracks: LoudnessAnalyzeInput[]) => Promise<LoudnessAnalyzeResult>;
     cancel: () => Promise<void>;
     onProgress: (callback: (data: LoudnessProgress) => void) => () => void;
+  };
+  analysis: {
+    analyze: (tracks: AnalysisAnalyzeInput[]) => Promise<AnalysisAnalyzeResult>;
+    cancel: () => Promise<void>;
+    onProgress: (callback: (data: AnalysisProgress) => void) => () => void;
   };
   waveform: {
     getPeaks: (filePath: string) => Promise<WaveformPeaksResult | null>;

@@ -33,6 +33,8 @@ export function mapDbTrackToTrack(t: DbTrackRecord): Track {
     isFavorite: t.isFavorite ?? false,
     playCount: t.playCount ?? 0,
     loudnessLufs: t.loudnessLufs ?? null,
+    bpm: t.bpm ?? null,
+    musicalKey: t.musicalKey ?? null,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };

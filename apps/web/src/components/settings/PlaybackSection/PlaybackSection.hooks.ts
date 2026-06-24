@@ -7,6 +7,7 @@ import {
   LOUDNESS_TARGET_MAX_LUFS,
 } from '@/stores/usePlaybackStore';
 import { useLoudnessAnalysis } from '@/hooks/useLoudnessAnalysis';
+import { useBpmKeyAnalysis } from '@/hooks/useBpmKeyAnalysis';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
 import type { IPlaybackSectionView } from './PlaybackSection.types';
 
@@ -33,10 +34,15 @@ export function usePlaybackSection(): IPlaybackSectionView {
   const setLoudnessEnabled = usePlaybackStore(s => s.setLoudnessEnabled);
   const setLoudnessTargetLufs = usePlaybackStore(s => s.setLoudnessTargetLufs);
   const loudness = useLoudnessAnalysis();
+  const analysis = useBpmKeyAnalysis();
 
   const loudnessAnalysisStatus = loudness.running
     ? t('play.loudnessAnalyzing', { current: loudness.current, total: loudness.total })
     : t('play.loudnessAnalyzeDesc');
+
+  const analysisStatus = analysis.running
+    ? t('play.analysisAnalyzing', { current: analysis.current, total: analysis.total })
+    : t('play.analysisAnalyzeDesc');
 
   return {
     title: t('play.title'),
@@ -73,6 +79,15 @@ export function usePlaybackSection(): IPlaybackSectionView {
     loudnessCancelLabel: t('play.loudnessCancel'),
     onStartLoudnessAnalysis: () => void loudness.start(),
     onCancelLoudnessAnalysis: loudness.cancel,
+
+    analysisLabel: t('play.analysis'),
+    analysisDescription: t('play.analysisDesc'),
+    analysisRunning: analysis.running,
+    analysisStatus,
+    analysisAnalyzeLabel: t('play.analysisAnalyze'),
+    analysisCancelLabel: t('play.analysisCancel'),
+    onStartAnalysis: () => void analysis.start(),
+    onCancelAnalysis: analysis.cancel,
 
     sleepFadeLabel: t('play.sleepFade'),
     sleepFadeDescription: t('play.sleepFadeDesc'),

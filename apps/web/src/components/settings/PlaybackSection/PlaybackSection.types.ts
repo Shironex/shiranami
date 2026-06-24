@@ -64,6 +64,23 @@ export interface IPlaybackSectionView {
   /** Cancel the in-progress loudness analysis run. */
   readonly onCancelLoudnessAnalysis: () => void;
 
+  /** Localized "tempo & key" row label. */
+  readonly analysisLabel: string;
+  /** Localized "tempo & key" row description. */
+  readonly analysisDescription: string;
+  /** Whether a library-wide tempo + key analysis run is in progress. */
+  readonly analysisRunning: boolean;
+  /** Localized analysis status line (progress or call-to-action). */
+  readonly analysisStatus: string;
+  /** Localized "Analyze" button label. */
+  readonly analysisAnalyzeLabel: string;
+  /** Localized "Cancel" button label. */
+  readonly analysisCancelLabel: string;
+  /** Start a library-wide tempo + key analysis run. */
+  readonly onStartAnalysis: () => void;
+  /** Cancel the in-progress tempo + key analysis run. */
+  readonly onCancelAnalysis: () => void;
+
   /** Localized "sleep fade" row label. */
   readonly sleepFadeLabel: string;
   /** Localized "sleep fade" row description. */

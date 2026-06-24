@@ -18,6 +18,7 @@ export default function NowPlayingView() {
     t,
     hasTrack,
     currentTrack,
+    metadataLine,
     durationLabel,
     showWaveformSeekbar,
     panel,
@@ -162,6 +163,11 @@ export default function NowPlayingView() {
               <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
                 {currentTrack.artist} · {currentTrack.album}
               </p>
+              {metadataLine && (
+                <p className="text-[10px] @5xl:text-xs text-muted-foreground/70 mt-1 tabular-nums truncate">
+                  {metadataLine}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
 

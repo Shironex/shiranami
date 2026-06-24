@@ -139,6 +139,11 @@ function createElectronAPIMock(): ElectronAPI {
       cancel: asyncFn(undefined),
       onProgress: vi.fn(() => noopUnsub()),
     },
+    analysis: {
+      analyze: asyncFn({ analyzed: 0, skipped: 0, failed: 0 }),
+      cancel: asyncFn(undefined),
+      onProgress: vi.fn(() => noopUnsub()),
+    },
     waveform: {
       getPeaks: asyncFn(null),
     },

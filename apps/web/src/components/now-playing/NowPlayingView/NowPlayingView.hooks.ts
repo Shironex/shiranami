@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic2, ListMusic, SlidersVertical, type LucideIcon } from 'lucide-react';
-import { formatDuration } from '@shiranami/shared';
+import { formatDuration, formatBpm, formatMusicalKey } from '@shiranami/shared';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
@@ -101,6 +101,16 @@ export function useNowPlayingView(): INowPlayingViewView {
 
   const durationLabel = useMemo(() => formatDuration(duration), [duration]);
 
+  // Tempo + key line shown under the artist/album. Each part is omitted when
+  // unanalysed/undetectable; the whole line is empty when neither is known.
+  const metadataLine = useMemo(
+    () =>
+      [formatBpm(currentTrack?.bpm), formatMusicalKey(currentTrack?.musicalKey)]
+        .filter(Boolean)
+        .join(' · '),
+    [currentTrack?.bpm, currentTrack?.musicalKey]
+  );
+
   // Exit if no track is playing.
   useEffect(() => {
     if (!currentTrack) {
@@ -113,6 +123,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     hasTrack: Boolean(currentTrack),
     currentTrack,
     durationLabel,
+    metadataLine,
     showWaveformSeekbar,
     panel,
     panelVisible: panel !== null,

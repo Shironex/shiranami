@@ -19,6 +19,10 @@ export interface Track {
   albumArt: string | null;
   /** Integrated loudness (LUFS) measured by ffmpeg loudnorm; null = unanalysed. */
   loudnessLufs: number | null;
+  /** Tempo (BPM) from the native analysis addon; null = unanalysed. */
+  bpm: number | null;
+  /** Musical key (e.g. 'A minor') from the native analysis addon; null = unanalysed. */
+  musicalKey: string | null;
   isFavorite: boolean | null;
   playCount: number | null;
   createdAt: string;
@@ -44,6 +48,8 @@ export interface NewTrack {
   discNumber?: number | null;
   albumArt?: string | null;
   loudnessLufs?: number | null;
+  bpm?: number | null;
+  musicalKey?: string | null;
   isFavorite?: boolean | null;
   playCount?: number | null;
   createdAt?: string;
@@ -85,6 +91,10 @@ export interface DisplayTrack {
   playCount?: number;
   /** Integrated loudness (LUFS) for loudness leveling; absent = unanalysed. */
   loudnessLufs?: number | null;
+  /** Tempo in BPM (e.g. 128); absent/null = unanalysed or no detectable beat. */
+  bpm?: number | null;
+  /** Musical key (e.g. 'A minor'); absent/null = unanalysed or no tonal centre. */
+  musicalKey?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

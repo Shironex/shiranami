@@ -109,3 +109,23 @@ export function formatDuration(seconds: number): string {
   }
   return `${m}:${sPad}`;
 }
+
+/**
+ * Format an estimated tempo for display, e.g. `128.4` -> `"128 BPM"`. Rounds to
+ * a whole number — sub-BPM precision is noise to a listener. Returns `null` for
+ * an unanalysed/undetectable tempo so callers can omit the field entirely.
+ */
+export function formatBpm(bpm: number | null | undefined): string | null {
+  if (bpm == null || !isFinite(bpm) || bpm <= 0) return null;
+  return `${Math.round(bpm)} BPM`;
+}
+
+/**
+ * Format a musical key for display. The native addon already produces a
+ * display-ready string (e.g. `'A minor'`); this just normalises an
+ * empty/unanalysed value to `null` so callers can omit the field.
+ */
+export function formatMusicalKey(key: string | null | undefined): string | null {
+  const trimmed = key?.trim();
+  return trimmed ? trimmed : null;
+}

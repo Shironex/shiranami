@@ -42,6 +42,14 @@ export default function PlaybackSection() {
     loudnessCancelLabel,
     onStartLoudnessAnalysis,
     onCancelLoudnessAnalysis,
+    analysisLabel,
+    analysisDescription,
+    analysisRunning,
+    analysisStatus,
+    analysisAnalyzeLabel,
+    analysisCancelLabel,
+    onStartAnalysis,
+    onCancelAnalysis,
     sleepFadeLabel,
     sleepFadeDescription,
     sleepFadeDurationLabel,
@@ -136,6 +144,25 @@ export default function PlaybackSection() {
             </div>
           </div>
         )}
+
+        <div className="px-3 pt-3 pb-1 border-t border-border/40 mt-1">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm text-foreground">{analysisLabel}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{analysisDescription}</p>
+              <p className="text-xs text-muted-foreground mt-1">{analysisStatus}</p>
+            </div>
+            {analysisRunning ? (
+              <Button variant="ghost" size="sm" onClick={onCancelAnalysis}>
+                {analysisCancelLabel}
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={onStartAnalysis}>
+                {analysisAnalyzeLabel}
+              </Button>
+            )}
+          </div>
+        </div>
 
         <div className="px-3 pt-3 pb-1 border-t border-border/40 mt-1">
           <div className="flex items-center justify-between">
