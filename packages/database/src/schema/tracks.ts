@@ -26,6 +26,17 @@ export const tracks = sqliteTable('tracks', {
    * LUFS without re-analysing every track. `null` = not yet analysed.
    */
   loudnessLufs: real('loudness_lufs'),
+  /**
+   * Tempo in beats per minute, estimated by the native analysis addon
+   * (core/tempo). Stored as `real` because the estimate is fractional. `null` =
+   * not yet analysed (or no detectable beat).
+   */
+  bpm: real('bpm'),
+  /**
+   * Estimated musical key, e.g. `'C major'` / `'A minor'`, from the native
+   * analysis addon (core/key). `null` = not yet analysed (or no tonal centre).
+   */
+  musicalKey: text('musical_key'),
   isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
   playCount: integer('play_count').default(0),
   createdAt: text('created_at')

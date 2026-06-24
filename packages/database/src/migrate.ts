@@ -33,7 +33,7 @@ export const BASELINE_NAME = '20260101000000_baseline';
  * Bump this whenever a migration is added so the downgrade guard can refuse to
  * open a database created by a newer build.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
@@ -326,6 +326,16 @@ const MIGRATIONS: EmbeddedMigration[] = [
       'CREATE INDEX IF NOT EXISTS `idx_play_history_track_id` ON `play_history`(`track_id`)',
       'CREATE INDEX IF NOT EXISTS `idx_play_history_played_at` ON `play_history`(`played_at`)',
       'CREATE INDEX IF NOT EXISTS `idx_youtube_mappings_track_id` ON `youtube_mappings`(`track_id`)',
+    ],
+  },
+  {
+    // Tempo (BPM) + musical key, estimated by the native analysis addon
+    // (Rung 3). Both nullable, no backfill: existing rows read null until the
+    // user runs analysis, exactly like the loudness_lufs column.
+    name: '20260101000008_track_bpm_key',
+    statements: [
+      'ALTER TABLE `tracks` ADD `bpm` real',
+      'ALTER TABLE `tracks` ADD `musical_key` text',
     ],
   },
 ];

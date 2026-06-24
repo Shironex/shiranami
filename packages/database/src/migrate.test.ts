@@ -206,7 +206,21 @@ describe('runMigrations', () => {
     expect(db.prepare(`SELECT title FROM tracks WHERE id='v7'`).get() as { title: string }).toEqual(
       { title: 'V7 Song' }
     );
-    expect(ledgerRows(db).map(r => r.name)).toEqual(__embeddedMigrationsForTest.map(m => m.name));
+    // Compare as sets: deleting then re-applying the heal migration re-inserts
+    // its ledger row at the end (by row id), so insertion order legitimately
+    // differs from folder order once a migration exists after heal. What matters
+    // is that every migration is recorded, not the row-id order.
+    expect(
+      ledgerRows(db)
+        .map(r => r.name)
+        .slice()
+        .sort()
+    ).toEqual(
+      __embeddedMigrationsForTest
+        .map(m => m.name)
+        .slice()
+        .sort()
+    );
     expect(userVersion(db)).toBe(SCHEMA_VERSION);
 
     db.close();
