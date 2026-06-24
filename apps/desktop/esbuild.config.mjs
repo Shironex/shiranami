@@ -89,6 +89,7 @@ await Promise.all([
       'scan-utility': 'src/main/workers/scan-utility.ts',
       'waveform-worker': 'src/main/workers/waveform-worker.ts',
       'loudness-worker': 'src/main/workers/loudness-worker.ts',
+      'analysis-worker': 'src/main/workers/analysis-worker.ts',
     },
     external: mainExternal,
     plugins: sentryPlugins,

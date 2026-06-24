@@ -68,6 +68,8 @@ import {
   cleanupMetadataEnrichHandlers,
   registerLoudnessHandlers,
   cleanupLoudnessHandlers,
+  registerAnalysisHandlers,
+  cleanupAnalysisHandlers,
   registerWaveformHandlers,
   cleanupWaveformHandlers,
   registerRecommendationsHandlers,
@@ -100,6 +102,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   registerShareHandlers();
   registerMetadataEnrichHandlers();
   registerLoudnessHandlers();
+  registerAnalysisHandlers();
   registerWaveformHandlers();
   registerRecommendationsHandlers();
   registerScrobbleHandlers();
@@ -126,6 +129,7 @@ export function cleanupIpcHandlers(): void {
   cleanupShareHandlers();
   cleanupMetadataEnrichHandlers();
   cleanupLoudnessHandlers();
+  cleanupAnalysisHandlers();
   cleanupWaveformHandlers();
   cleanupRecommendationsHandlers();
   cleanupScrobbleHandlers();

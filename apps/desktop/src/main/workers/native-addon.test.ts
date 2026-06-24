@@ -32,6 +32,11 @@ interface NativeAddon {
       path: string
     ) => { status: 'ok'; lufs: number } | { status: 'silent' } | { status: 'undecodable' };
   };
+  analysis: {
+    fromFile: (
+      path: string
+    ) => { status: 'ok'; bpm: number; key: string } | { status: 'unanalyzable' };
+  };
 }
 
 const addon = existsSync(addonPath) ? (createRequire(__filename)(addonPath) as NativeAddon) : null;
@@ -71,6 +76,24 @@ describe.skipIf(addon === null)('native addon N-API surface', () => {
 
     it('reports undecodable for a format dr_libs cannot decode', () => {
       expect(native().loudness.fromFile(fixture('undecodable.m4a')).status).toBe('undecodable');
+    });
+  });
+
+  describe('analysis.fromFile', () => {
+    it('returns ok with a numeric bpm and string key for a decodable file', () => {
+      // The sine fixture has no beat, so bpm may be 0 (no tempo); we assert the
+      // N-API surface shape here — the C++ doctest suite pins the DSP accuracy.
+      const result = native().analysis.fromFile(fixture('sine.wav'));
+      expect(result.status).toBe('ok');
+      if (result.status === 'ok') {
+        expect(typeof result.bpm).toBe('number');
+        expect(result.bpm).toBeGreaterThanOrEqual(0);
+        expect(typeof result.key).toBe('string');
+      }
+    });
+
+    it('reports unanalyzable for a format dr_libs cannot decode', () => {
+      expect(native().analysis.fromFile(fixture('undecodable.m4a')).status).toBe('unanalyzable');
     });
   });
 });
