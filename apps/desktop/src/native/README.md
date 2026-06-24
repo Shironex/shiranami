@@ -18,11 +18,17 @@ src/native/
 ├── core/                # pure C++ — no napi.h, reusable & unit-testable
 │   ├── peaks.{hpp,cpp}           # reducePeaks(): frames → N bar heights
 │   ├── audio_decoder.{hpp,cpp}   # decodeAudioFile(): wav/flac/mp3 → float samples (RAII buffer)
-│   └── loudness.{hpp,cpp}        # measureIntegratedLoudness(): file → EBU R128 LUFS (reuses audio_decoder)
+│   ├── loudness.{hpp,cpp}        # measureIntegratedLoudness(): file → EBU R128 LUFS (reuses audio_decoder)
+│   ├── fft.{hpp,cpp}             # hand-rolled radix-2 FFT + magnitudeSpectrum() (used by key)
+│   ├── tempo.{hpp,cpp}           # estimateBpm(): energy onset envelope → autocorrelation (no FFT)
+│   ├── key.{hpp,cpp}             # detectKey(): FFT chromagram → Krumhansl–Schmuckler key profiles
+│   └── analysis.{hpp,cpp}        # analyzeAudioFile(): decode once → tempo + key together
 ├── waveform/            # thin N-API glue over core/ — exports.waveform.{computePeaks,fromFile}
 │   └── waveform.{hpp,cpp}
 ├── loudness/            # thin N-API glue over core/ — exports.loudness.fromFile
 │   └── loudness.{hpp,cpp}
+├── analysis/            # thin N-API glue over core/ — exports.analysis.fromFile (BPM + key)
+│   └── analysis.{hpp,cpp}
 └── vendor/              # vendored third-party code (never edited, never formatted)
     ├── dr_libs/                  # public-domain wav/flac/mp3 decoders
     │   ├── dr_{wav,flac,mp3}.h
@@ -112,12 +118,16 @@ Two layers, both run by `pnpm native:test`:
 When adding a new `core/` algorithm, add a `test/test_<name>.cpp` and list it in
 the `shiranami_native_tests` target's `sources` in `binding.gyp`.
 
-## Adding a new addon (Rung 3 = bpm)
+## Adding a new addon
+
+The three planned addons (waveform, loudness, analysis = BPM + key) all ship.
+To add another:
 
 1. Create `src/native/<name>/<name>.{hpp,cpp}` with a
    `void Register(Napi::Env, Napi::Object exports)` that sets `exports.<name>`.
 2. Put the real algorithm in `src/native/core/` (pure C++) and call it from the glue.
-3. List the new `.cpp` files in `binding.gyp` → `sources`.
+3. List the new `.cpp` files in `binding.gyp` → `sources` (both the addon target
+   and the `shiranami_native_tests` target if it has unit tests).
 4. In `addon.cpp`: `#include "<name>/<name>.hpp"` and add one `Register()` line.
 5. `pnpm native:build`, then `pnpm native:ide` to refresh include data.
 
@@ -145,3 +155,21 @@ where the addon is unavailable — fall back to the ffmpeg `loudnorm` subprocess
 The measured LUFS is persisted on the track row. See
 `src/main/workers/loudness-host.ts`, `src/main/workers/loudness-worker.ts`,
 `src/main/services/loudness-service.ts`, and `src/main/ipc/loudness.ts`.
+
+## The analysis path (tempo + key)
+
+```text
+renderer  →  IPC analysis:analyze  →  main  →  worker_threads  →  shiranami_native.analysis.fromFile()
+```
+
+`analysis.fromFile` returns a discriminated `{ status: 'ok', bpm, key } |
+{ status: 'unanalyzable' }`. It decodes the file once and runs two estimators:
+tempo via an energy onset envelope + autocorrelation (no FFT), and musical key
+via an FFT chromagram correlated against the Krumhansl–Schmuckler key profiles.
+Both are pure C++ in `core/` and operate on already-decoded PCM, so the doctest
+suite exercises them with synthesised signals (a click track, a chord). Unlike
+loudness there is **no ffmpeg fallback** — an undecodable format is simply left
+unanalysed. The estimated `bpm` + `musicalKey` are persisted on the track row
+and shown in the now-playing view. See `src/main/workers/analysis-host.ts`,
+`src/main/workers/analysis-worker.ts`, `src/main/services/analysis-service.ts`,
+and `src/main/ipc/analysis.ts`.
