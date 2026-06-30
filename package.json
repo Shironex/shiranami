@@ -5,42 +5,6 @@
   "description": "Shiranami - Your personal music sanctuary",
   "license": "SEE LICENSE IN LICENSE",
   "packageManager": "pnpm@10.9.0",
-  "pnpm": {
-    "overrides": {
-      "h3": "1.15.9",
-      "undici": "6.24.1",
-      "jsdom": "^27.4.0",
-      "path-to-regexp": "8.4.0",
-      "fastify": "5.8.5",
-      "axios": "1.16.1",
-      "fast-uri": "3.1.2",
-      "devalue": "5.8.1",
-      "yaml": "2.8.4",
-      "postcss": "8.5.14",
-      "lodash": "4.18.1",
-      "lucide-react": "^1.16.0",
-      "react": "^19.2.6",
-      "react-dom": "^19.2.6",
-      "uuid": ">=11.1.1",
-      "tmp": "0.2.7",
-      "shell-quote": "1.8.4",
-      "form-data": "4.0.6",
-      "ws": "8.21.0",
-      "tar": "7.5.16",
-      "js-yaml": "4.2.0",
-      "@opentelemetry/core": "2.8.0",
-      "@vitest/browser": ">=4.1.9",
-      "vitest": ">=4.1.9",
-      "esbuild": ">=0.28.1",
-      "vite": ">=7.3.5",
-      "@babel/core": ">=7.29.6"
-    },
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "better-sqlite3"
-    ]
-  },
   "scripts": {
     "dev": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev\"",
     "dev:inspect": "pnpm build:packages && concurrently -k -n web,desktop -c cyan,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @shiranami/desktop dev:inspect\"",
