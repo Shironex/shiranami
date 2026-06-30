@@ -42,3 +42,6 @@ ds-bundle/
 # generated DS bundle barrel (design-sync) — outputs, not the generator
 apps/web/ds-entry.generated.ts
 apps/web/index.d.ts
+
+# per-release Discord announcement scratch file (overwritten each release)
+docs/release-announcement.md
