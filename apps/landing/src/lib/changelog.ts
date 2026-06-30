@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.23.0': '彩', // "coloring / hue" — custom accent color, dockable panels, the customization pass
   '0.22.1': '揃', // "to be gathered / in order" — various-artists albums regrouped into one
   '0.22.0': '録', // "record / log" — scrobbling, persistent download queue, library backups
   '0.21.0': '堅', // "sturdy / solid" — stability + security hardening, reorderable sidebar
@@ -134,6 +135,80 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.23.0',
+    date: '2026-06-30',
+    title: l(
+      'Make Shiranami yours: dockable panels, accent colors, and a waveform seekbar',
+      'Dostosuj Shiranami do siebie: dokowalne panele, kolory akcentu i fala na pasku przewijania'
+    ),
+    description: l(
+      'A customization release. The lyrics and queue panel can dock to either side, the visualizer can sit at the top or bottom, and the sidebar and side panel resize to your taste. Pick your own accent color, hide the parts of the interface you do not use, and watch the shape of the track on a new waveform seek bar. Under it all, the app is lighter and smoother, and volume leveling now measures loudness with a built-in analyzer.',
+      'Aktualizacja pełna personalizacji. Panel tekstu i kolejki możesz zadokować po dowolnej stronie, wizualizacja może być na górze lub na dole, a pasek boczny i panel zmieniają rozmiar według Twojego uznania. Wybierz własny kolor akcentu, ukryj nieużywane elementy interfejsu i obserwuj kształt utworu na nowym pasku przewijania z falą. Pod spodem aplikacja jest lżejsza i płynniejsza, a wyrównywanie głośności mierzy teraz głośność wbudowanym analizatorem.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Dockable, resizable layout: dock the lyrics/queue panel to the left or right, move the visualizer strip to the top or bottom, and resize the sidebar and side panel',
+            'Dokowalny, skalowalny układ: zadokuj panel tekstu/kolejki po lewej lub prawej, przenieś pasek wizualizacji na górę lub dół, a także zmień rozmiar paska bocznego i panelu'
+          ),
+          l(
+            'A custom accent color picker, with live previews for accent, interface, sleep fade, and UI scale',
+            'Wybór własnego koloru akcentu, z podglądem na żywo dla akcentu, interfejsu, wyciszania usypiania i skali interfejsu'
+          ),
+          l(
+            'Hide the top bar and choose which Overview widgets and player-bar elements are shown',
+            'Ukryj górny pasek i wybierz, które widżety ekranu głównego oraz elementy paska odtwarzacza są widoczne'
+          ),
+          l(
+            'A waveform seek bar that shows the shape of the current track; turn it on in settings',
+            'Pasek przewijania z falą, pokazujący kształt bieżącego utworu; włącz go w ustawieniach'
+          ),
+          l(
+            'Launch Shiranami at system startup and control how it behaves in the tray',
+            'Uruchamiaj Shiranami przy starcie systemu i decyduj, jak zachowuje się w zasobniku'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'The app is a smaller download and uses less memory, and long lists scroll more smoothly',
+            'Aplikacja zajmuje mniej miejsca i pamięci, a długie listy przewijają się płynniej'
+          ),
+          l(
+            'Volume leveling now measures loudness with a built-in analyzer, so it is faster and needs no extra tools',
+            'Wyrównywanie głośności mierzy teraz głośność wbudowanym analizatorem, więc działa szybciej i nie wymaga dodatkowych narzędzi'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'More background failures now show a calm message instead of failing silently, including copying a share link, installing an update, reordering a playlist, and saving a smart playlist',
+            'Więcej błędów w tle pokazuje teraz spokojne powiadomienie zamiast milczeć, w tym kopiowanie linku do udostępniania, instalacja aktualizacji, zmiana kolejności playlisty i zapis inteligentnej playlisty'
+          ),
+          l(
+            'Older libraries missing some data are repaired automatically, playlist cover art is kept during cleanup, and scrubbing the seek bar is steadier',
+            'Starsze biblioteki z brakującymi danymi są naprawiane automatycznie, okładki playlist są zachowywane podczas porządkowania, a przewijanie paska jest stabilniejsze'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'An updated app engine and refreshed dependencies for better stability and security, plus extensive new automated testing',
+            'Zaktualizowany silnik aplikacji i odświeżone zależności dla lepszej stabilności i bezpieczeństwa, a także rozległe nowe testy automatyczne'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.22.1',
     date: '2026-06-08',
