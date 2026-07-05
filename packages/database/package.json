@@ -35,7 +35,7 @@
   "dependencies": {
     "@shiranami/shared": "workspace:*",
     "better-sqlite3": "^12.10.0",
-    "drizzle-orm": "1.0.0-rc.2"
+    "drizzle-orm": "1.0.0-rc.4"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
