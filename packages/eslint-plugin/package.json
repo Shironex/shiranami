@@ -27,8 +27,8 @@
   "devDependencies": {
     "@types/micromatch": "^4.0.9",
     "@types/node": "^24.0.0",
-    "@typescript-eslint/parser": "8.59.4",
-    "@typescript-eslint/rule-tester": "8.59.4",
+    "@typescript-eslint/parser": "8.63.0",
+    "@typescript-eslint/rule-tester": "8.63.0",
     "eslint": "^10.4.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
