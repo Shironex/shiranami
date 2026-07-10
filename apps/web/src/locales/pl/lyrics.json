@@ -1,5 +1,9 @@
 {
   "title": "Tekst piosenki",
   "finding": "Szukam tekstu...",
-  "notFound": "Nie znaleziono tekstu"
+  "notFound": "Nie znaleziono tekstu",
+  "sourceLocal": "Lokalny",
+  "sourceEmbedded": "Osadzony",
+  "sourceLrclib": "LRCLIB",
+  "sourceTooltip": "Źródło tekstu"
 }

@@ -1,6 +1,7 @@
 // Typed contracts for Shiranami: domain types, IPC channel manifest, and
 // shared API DTOs.
 export * from './domain/track';
+export * from './domain/lyrics';
 export * from './domain/media';
 export * from './domain/weather';
 export * from './domain/recommendation';

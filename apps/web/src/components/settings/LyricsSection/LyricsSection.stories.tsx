@@ -1,5 +1,8 @@
+import type { ReactElement } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { within, userEvent, expect, waitFor } from 'storybook/test';
+import { lyricsPrefKeys } from '@/hooks/queries/useLyrics';
 import {
   useLyricsAppearanceStore,
   LYRICS_PLAIN_OPACITY_DEFAULT,
@@ -9,6 +12,19 @@ import {
 } from '@/stores/useLyricsAppearanceStore';
 
 import LyricsSection from './LyricsSection';
+
+/** Seed the source-preference query cache so the toggle renders a known state. */
+function withSeededPreferSynced(value: boolean) {
+  return function Decorator(Story: () => ReactElement) {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData<boolean>(lyricsPrefKeys.preferSynced, value);
+    return (
+      <QueryClientProvider client={client}>
+        <Story />
+      </QueryClientProvider>
+    );
+  };
+}
 
 function seedDefaults(): void {
   useLyricsAppearanceStore.setState({
@@ -72,6 +88,36 @@ export const Default: Story = {
     // it by its accessible name rather than array position.
     await userEvent.click(within(plainSizeGroup).getByRole('radio', { name: 'Large' }));
     await waitFor(() => expect(useLyricsAppearanceStore.getState().lyricsPlainFontSize).toBe('lg'));
+  },
+};
+
+/**
+ * Sources — the LRCLIB source-preference toggle renders its seeded state. As in
+ * SystemSection: in the Storybook browser run `IS_ELECTRON` is false (module
+ * constant captured before the preview installs the electronAPI mock), so the
+ * toggle stays `disabled` and this story asserts that gated contract; the
+ * interactive optimistic flip is covered by LyricsSection.test.tsx under jsdom.
+ */
+export const Sources: Story = {
+  decorators: [withSeededPreferSynced(false)],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    const toggle = canvas.getByRole('switch', { name: 'Prefer synced lyrics from LRCLIB' });
+    await expect(toggle).not.toBeChecked();
+    await expect(toggle).toBeDisabled();
+  },
+};
+
+/** Sources with the preference on — the seeded checked state renders. */
+export const SourcesPreferSynced: Story = {
+  decorators: [withSeededPreferSynced(true)],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(
+      canvas.getByRole('switch', { name: 'Prefer synced lyrics from LRCLIB' })
+    ).toBeChecked();
   },
 };
 

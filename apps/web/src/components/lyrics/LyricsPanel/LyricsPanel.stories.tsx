@@ -1,9 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { within, expect } from 'storybook/test';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { lyricsKeys, type LyricLine } from '@/hooks/queries/useLyrics';
+import { lyricsKeys, type LyricLine, type LyricsSource } from '@/hooks/queries/useLyrics';
 
 import LyricsPanel from './LyricsPanel';
 
@@ -29,11 +30,25 @@ const SYNCED: LyricLine[] = [
 /**
  * Pre-seed a client with the current track's lyrics so the panel renders its
  * synced lines without IPC (and the query never resolves to `undefined`).
- * Mirrors how SmartPlaylistsView seeds its query client.
+ * Mirrors how SmartPlaylistsView seeds its query client. Refetching is
+ * disabled at the client level — the lyrics query is stale-on-mount in the
+ * app (fresh local-file checks), which would overwrite the seed here.
  */
-function seededClient(synced: LyricLine[] | null, plain: string | null): QueryClient {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(lyricsKeys.track('track-1'), { synced, plain, source: 'test' });
+function seededClient(
+  synced: LyricLine[] | null,
+  plain: string | null,
+  source: LyricsSource = 'lrclib'
+): QueryClient {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnMount: false, refetchOnWindowFocus: false },
+    },
+  });
+  client.setQueryData(lyricsKeys.track('track-1', '/music/midnight.mp3'), {
+    synced,
+    plain,
+    source,
+  });
   return client;
 }
 
@@ -54,9 +69,11 @@ const meta: Meta<typeof LyricsPanel> = {
   },
   decorators: [
     Story => (
-      <div className="flex h-[32rem] w-[22rem] flex-col">
-        <Story />
-      </div>
+      <TooltipProvider>
+        <div className="flex h-[32rem] w-[22rem] flex-col">
+          <Story />
+        </div>
+      </TooltipProvider>
     ),
   ],
   beforeEach: () => {
@@ -68,7 +85,7 @@ export default meta;
 
 type Story = StoryObj<typeof LyricsPanel>;
 
-/** Default — the "Lyrics" header over the seeded synced lines. */
+/** Default — the "Lyrics" header (with LRCLIB source badge) over the seeded synced lines. */
 export const Default: Story = {
   decorators: [
     Story => (
@@ -80,6 +97,25 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('heading', { name: 'Lyrics' })).toBeInTheDocument();
+    await expect(canvas.getByText('LRCLIB')).toBeInTheDocument();
+    await expect(
+      canvas.getByRole('button', { name: 'Soft rain against the glass' })
+    ).toBeInTheDocument();
+  },
+};
+
+/** Lyrics resolved from a local .lrc file — the header badge reads "Local". */
+export const LocalSource: Story = {
+  decorators: [
+    Story => (
+      <QueryClientProvider client={seededClient(SYNCED, null, 'local-lrc')}>
+        <Story />
+      </QueryClientProvider>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Local')).toBeInTheDocument();
     await expect(
       canvas.getByRole('button', { name: 'Soft rain against the glass' })
     ).toBeInTheDocument();

@@ -6,6 +6,7 @@ import { IPC_CHANNELS, WAVEFORM_PEAK_COUNT } from '@shiranami/contracts';
 import { handle } from './with-ipc-handler';
 import { logger } from '../app/logger';
 import { hashTrackKey, readCachedPeaks, writeCachedPeaks } from '../shared/waveform-cache';
+import { coalesce } from '../utils/coalesce';
 import { decodeWaveformPeaks, shutdownWaveformWorker } from '../workers/waveform-host';
 import { waveformGetPeaksArgs } from './schemas/waveform';
 
@@ -57,20 +58,14 @@ export function registerWaveformHandlers(): void {
       const cached = await readCachedPeaks(getPeaksDir(), hash);
       if (cached) return { peaks: cached };
 
-      const existing = inFlight.get(hash);
-      if (existing) return existing;
-
-      const job = (async (): Promise<WaveformPeaksResult | null> => {
+      return coalesce(inFlight, hash, async (): Promise<WaveformPeaksResult | null> => {
         const peaks = await decodeWaveformPeaks(filePath, WAVEFORM_PEAK_COUNT);
         if (!peaks) return null; // unsupported format or decode failure
         await writeCachedPeaks(getPeaksDir(), hash, peaks).catch(err =>
           logger.warn('[waveform] cache write failed:', err)
         );
         return { peaks };
-      })().finally(() => inFlight.delete(hash));
-
-      inFlight.set(hash, job);
-      return job;
+      });
     },
     { schema: waveformGetPeaksArgs }
   );

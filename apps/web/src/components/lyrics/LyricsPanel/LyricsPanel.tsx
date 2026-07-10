@@ -1,3 +1,4 @@
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { LyricsBody } from '../LyricsBody';
 import { useLyricsPanel } from './LyricsPanel.hooks';
 import type { ILyricsPanelProps } from './LyricsPanel.types';
@@ -10,6 +11,7 @@ export default function LyricsPanel({ headerAction }: ILyricsPanelProps) {
     plain,
     activeLine,
     isLoading,
+    sourceLabel,
     onLineClick,
     syncedDimOpacity,
     plainOpacity,
@@ -25,9 +27,22 @@ export default function LyricsPanel({ headerAction }: ILyricsPanelProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          {t('title')}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            {t('title')}
+          </h2>
+          {sourceLabel && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full border border-border/30 bg-muted/20 text-[9px] font-semibold uppercase tracking-[0.1em] leading-none text-muted-foreground/70">
+                  <span className="sr-only">{t('sourceTooltip')}: </span>
+                  <span>{sourceLabel}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t('sourceTooltip')}</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         {headerAction}
       </div>
       <LyricsBody

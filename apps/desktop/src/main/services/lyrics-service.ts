@@ -1,19 +1,25 @@
 import { UNKNOWN_ALBUM } from '@shiranami/shared';
 import { getLrclibGate } from '../app/http';
 import { logger } from '../app/logger';
+import { store } from '../app/store';
+import { isPathAllowed } from '../shared/folders-cache';
+import { coalesce } from '../utils/coalesce';
+import { readEmbeddedLyrics } from './embedded-lyrics';
+import { loadLocalLyrics } from './local-lyrics';
+import {
+  hasPlainLyrics,
+  hasSyncedLyrics,
+  parseLrc,
+  type LyricLine,
+  type LyricsResult,
+} from './lyrics-parse';
 
-export interface LyricLine {
-  time: number; // seconds
-  text: string;
-}
+export { parseLrc };
+export type { LyricLine, LyricsResult };
 
-export interface LyricsResult {
-  synced: LyricLine[] | null; // Timestamped lyrics
-  plain: string | null; // Plain text lyrics
-  source: 'lrclib' | 'cache' | null;
-}
-
-// In-memory cache for current session
+// In-memory cache for current session. Only network (LRCLIB) results are
+// cached — local/embedded sources are re-read from disk on every fetch so
+// newly added or edited lyric files show up without a restart.
 const lyricsCache = new Map<string, LyricsResult>();
 const LYRICS_CACHE_MAX = 200;
 
@@ -39,31 +45,6 @@ function cacheSet(key: string, value: LyricsResult): void {
     if (oldest !== undefined) lyricsCache.delete(oldest);
   }
   lyricsCache.set(key, value);
-}
-
-/**
- * Parse LRC format string into array of timed lyric lines.
- * Format: [mm:ss.xx]Lyric text
- */
-export function parseLrc(lrc: string): LyricLine[] {
-  const lines: LyricLine[] = [];
-  const regex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)/;
-
-  for (const rawLine of lrc.split('\n')) {
-    const match = rawLine.match(regex);
-    if (match) {
-      const minutes = parseInt(match[1], 10);
-      const seconds = parseInt(match[2], 10);
-      const ms = match[3].length === 2 ? parseInt(match[3], 10) * 10 : parseInt(match[3], 10);
-      const time = minutes * 60 + seconds + ms / 1000;
-      const text = match[4].trim();
-      if (text) {
-        lines.push({ time, text });
-      }
-    }
-  }
-
-  return lines.sort((a, b) => a.time - b.time);
 }
 
 /**
@@ -117,26 +98,22 @@ export function buildSearchQueries(title: string, artist: string): string[] {
   return queries;
 }
 
+const EMPTY_RESULT: LyricsResult = { synced: null, plain: null, source: null };
+
 /**
- * Fetch lyrics for a track from LRCLIB.
- * Returns synced (timestamped) lyrics if available, otherwise plain text.
+ * Fetch lyrics from LRCLIB. Returns the result on a hit, EMPTY_RESULT when
+ * LRCLIB definitively has nothing (cacheable), or null on failure (not
+ * cacheable, so a transient network error doesn't stick for the session).
  */
-export async function fetchLyrics(
+async function fetchFromLrclib(
   title: string,
   artist: string,
   album?: string,
   duration?: number
-): Promise<LyricsResult> {
-  const key = getCacheKey(title, artist);
-
-  // Check memory cache
-  const cached = cacheGet(key);
-  if (cached) {
-    return { ...cached, source: 'cache' };
-  }
-
+): Promise<LyricsResult | null> {
   try {
-    const { Client } = require('lrclib-api');
+    // Lazy import — keeps the dependency off the startup path (and mockable).
+    const { Client } = await import('lrclib-api');
     const client = new Client();
 
     const query = {
@@ -170,14 +147,12 @@ export async function fetchLyrics(
           );
           if (searchResults && searchResults.length > 0) {
             const best = searchResults[0];
-            const lyricsResult: LyricsResult = {
+            logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
+            return {
               synced: best.syncedLyrics ? parseLrc(best.syncedLyrics) : null,
               plain: best.plainLyrics || null,
               source: 'lrclib',
             };
-            cacheSet(key, lyricsResult);
-            logger.info(`[lyrics] Found lyrics via search "${sq}" for: ${title} - ${artist}`);
-            return lyricsResult;
           }
         } catch (err) {
           // This search variant failed, try next
@@ -186,9 +161,7 @@ export async function fetchLyrics(
       }
 
       logger.debug(`[lyrics] No lyrics found for: ${title} - ${artist}`);
-      const empty: LyricsResult = { synced: null, plain: null, source: null };
-      cacheSet(key, empty);
-      return empty;
+      return EMPTY_RESULT;
     }
 
     const lyricsResult: LyricsResult = {
@@ -196,14 +169,145 @@ export async function fetchLyrics(
       plain: result.plainLyrics || null,
       source: 'lrclib',
     };
-
-    cacheSet(key, lyricsResult);
     logger.info(
-      `[lyrics] Found ${lyricsResult.synced ? 'synced' : 'plain'} lyrics for: ${title} - ${artist}`
+      `[lyrics] Found ${lyricsResult.synced ? 'synced' : 'plain'} lyrics via lrclib for: ${title} - ${artist}`
     );
     return lyricsResult;
   } catch (error) {
     logger.warn(`[lyrics] Failed to fetch lyrics for: ${title} - ${artist}`, error);
-    return { synced: null, plain: null, source: null };
+    return null;
   }
+}
+
+function getPreferSyncedFromLrclib(): boolean {
+  return store.get('lyrics.preferSyncedFromLrclib') === true;
+}
+
+/**
+ * Containment gate shared with the audio-protocol and shell handlers: only
+ * paths inside the library roots / userData / the tracks table may be probed,
+ * so a compromised renderer can't use this channel to read arbitrary
+ * .lrc/.txt files. Non-file inputs (radio-stream pseudo-paths) are denied
+ * here too and fall through to the LRCLIB path.
+ */
+async function isLocalResolutionAllowed(filePath: string): Promise<boolean> {
+  try {
+    if (await isPathAllowed(filePath)) return true;
+    logger.debug(`[lyrics] Local lyric resolution skipped (path not allowed): ${filePath}`);
+  } catch (error) {
+    logger.warn('[lyrics] isPathAllowed threw for:', filePath, error);
+  }
+  return false;
+}
+
+// In-flight network fetches keyed like the cache, so concurrent requests for
+// the same track (e.g. a settings invalidation racing a panel mount) share
+// one LRCLIB chain instead of double-occupying the rate-limit gate.
+const inflightLrclib = new Map<string, Promise<LyricsResult | null>>();
+
+/** LRCLIB with session memoization: LRU for results, in-flight dedup for concurrent calls. */
+async function getCachedLrclib(
+  title: string,
+  artist: string,
+  album?: string,
+  duration?: number
+): Promise<LyricsResult | null> {
+  const key = getCacheKey(title, artist);
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const result = await coalesce(inflightLrclib, key, () =>
+    fetchFromLrclib(title, artist, album, duration)
+  );
+  if (result) cacheSet(key, result);
+  return result;
+}
+
+/**
+ * Fetch lyrics for a track. When `filePath` is provided, local sources are
+ * checked first — sidecar .lrc/.txt, a Lyrics/ subfolder, then embedded tags.
+ *
+ * Precedence with `lyrics.preferSyncedFromLrclib` OFF (default):
+ *   local(synced) → embedded(synced) → local(plain) → embedded(plain) →
+ *   lrclib(synced) → lrclib(plain)
+ *   — any local/embedded hit skips the network call entirely.
+ *
+ * Precedence with the setting ON:
+ *   local(synced) → embedded(synced) → lrclib(synced) →
+ *   local(plain) → embedded(plain) → lrclib(plain)
+ *
+ * Without `filePath`, behaves as before: LRCLIB only.
+ */
+export async function fetchLyrics(
+  title: string,
+  artist: string,
+  album?: string,
+  duration?: number,
+  filePath?: string
+): Promise<LyricsResult> {
+  let local: LyricsResult | null = null;
+  let embedded: LyricsResult | null = null;
+
+  if (filePath && (await isLocalResolutionAllowed(filePath))) {
+    try {
+      local = await loadLocalLyrics(filePath);
+    } catch (error) {
+      // The resolver handles its own expected failures — reaching here is a
+      // bug, and it silently degrades the track to network-only lyrics.
+      logger.warn('[lyrics] loadLocalLyrics threw for:', filePath, error);
+    }
+
+    // A synced local file always wins — skip the (relatively expensive)
+    // embedded tag parse and the network entirely.
+    if (hasSyncedLyrics(local)) {
+      logger.info(`[lyrics] Using local synced lyrics for: ${title} - ${artist}`);
+      return local;
+    }
+
+    try {
+      embedded = await readEmbeddedLyrics(filePath);
+    } catch (error) {
+      logger.warn('[lyrics] readEmbeddedLyrics threw for:', filePath, error);
+    }
+
+    // Embedded synced lyrics outrank LRCLIB in both toggle states.
+    if (hasSyncedLyrics(embedded)) {
+      logger.info(`[lyrics] Using embedded synced lyrics for: ${title} - ${artist}`);
+      return embedded;
+    }
+  }
+
+  const preferSyncedFromLrclib = getPreferSyncedFromLrclib();
+
+  // Default (setting OFF): any local/embedded content beats LRCLIB, so a
+  // plain local hit also skips the network call.
+  if (!preferSyncedFromLrclib) {
+    const winner = hasPlainLyrics(local) ? local : hasPlainLyrics(embedded) ? embedded : null;
+    if (winner) {
+      logger.info(`[lyrics] Using ${winner.source} lyrics for: ${title} - ${artist}`);
+      return winner;
+    }
+  }
+
+  // LRCLIB is needed to complete the decision (memory-cached per session).
+  const lrclib = await getCachedLrclib(title, artist, album, duration);
+
+  const orderedCandidates: Array<LyricsResult | null> = preferSyncedFromLrclib
+    ? [
+        hasSyncedLyrics(lrclib) ? lrclib : null,
+        hasPlainLyrics(local) ? local : null,
+        hasPlainLyrics(embedded) ? embedded : null,
+        hasPlainLyrics(lrclib) ? lrclib : null,
+      ]
+    : [hasSyncedLyrics(lrclib) ? lrclib : null, hasPlainLyrics(lrclib) ? lrclib : null];
+
+  const winner = orderedCandidates.find((c): c is LyricsResult => c !== null);
+  if (winner) {
+    logger.info(
+      `[lyrics] Using ${winner.source} ${winner.synced ? 'synced' : 'plain'} lyrics for: ${title} - ${artist}`
+    );
+    return winner;
+  }
+
+  return EMPTY_RESULT;
 }

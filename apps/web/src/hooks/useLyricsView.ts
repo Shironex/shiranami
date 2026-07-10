@@ -2,12 +2,14 @@ import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useLyricsQuery, type LyricLine } from '@/hooks/queries/useLyrics';
+import { useLyricsQuery, type LyricLine, type LyricsSource } from '@/hooks/queries/useLyrics';
 import { useActiveLineIndex } from '@/lib/lyrics';
 
 interface UseLyricsViewResult {
   synced: LyricLine[] | null;
   plain: string | null;
+  /** Where the lyrics were resolved from (local file, embedded tag, LRCLIB). */
+  source: LyricsSource;
   /** Index of the active synced line, or -1. */
   activeLine: number;
   isLoading: boolean;
@@ -35,7 +37,8 @@ export function useLyricsView(): UseLyricsViewResult {
     currentTrack?.title ?? '',
     currentTrack?.artist ?? '',
     currentTrack?.album,
-    currentTrack?.duration
+    currentTrack?.duration,
+    currentTrack?.filePath
   );
 
   useEffect(() => {
@@ -46,9 +49,10 @@ export function useLyricsView(): UseLyricsViewResult {
 
   const synced = data?.synced ?? null;
   const plain = data?.plain ?? null;
+  const source = data?.source ?? null;
   const activeLine = useActiveLineIndex(synced);
 
   const handleLineClick = useCallback((time: number) => seek(time), [seek]);
 
-  return { synced, plain, activeLine, isLoading, isError, handleLineClick };
+  return { synced, plain, source, activeLine, isLoading, isError, handleLineClick };
 }

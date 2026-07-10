@@ -287,7 +287,13 @@
   },
   "lyr": {
     "title": "Lyrics",
-    "subtitle": "Appearance of lyrics in the lyrics panel",
+    "subtitle": "Sources and appearance of lyrics in the lyrics panel",
+    "sources": {
+      "title": "Sources",
+      "subtitle": "Where lyrics are looked up for your tracks",
+      "preferSyncedTitle": "Prefer synced lyrics from LRCLIB",
+      "preferSyncedDesc": "When a track only has a plain-text lyrics file, fetch synced lyrics from LRCLIB instead. Local and embedded synced lyrics always win."
+    },
     "plain": {
       "title": "Plain text",
       "subtitle": "Lyrics shown when no synced timing is available",

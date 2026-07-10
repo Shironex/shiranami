@@ -33,6 +33,7 @@ import type {
   RadioStationInput,
   RadioFavorite,
   WaveformPeaksResult,
+  LyricsResult,
 } from '@shiranami/contracts';
 import type {
   SHARE_ERROR_CODES,
@@ -156,12 +157,9 @@ export interface ElectronAPI {
       title: string,
       artist: string,
       album?: string,
-      duration?: number
-    ) => Promise<{
-      synced: Array<{ time: number; text: string }> | null;
-      plain: string | null;
-      source: 'lrclib' | 'cache' | null;
-    }>;
+      duration?: number,
+      filePath?: string
+    ) => Promise<LyricsResult>;
   };
   weather: {
     geocode: (query: string) => Promise<GeocodeResult | null>;
