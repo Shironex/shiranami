@@ -80,6 +80,18 @@ describe('loadLocalLyrics', () => {
     expect(result).toEqual({ synced: null, plain: content, source: 'local-lrc' });
   });
 
+  it('prefers a .txt over a timestampless .lrc', async () => {
+    writeFileSync(path.join(dir, 'Song.lrc'), 'Just plain text\nNo timestamps here');
+    writeFileSync(path.join(dir, 'Song.txt'), 'Proper plain lyrics');
+
+    const result = await loadLocalLyrics(audioPath);
+    expect(result).toEqual({
+      synced: null,
+      plain: 'Proper plain lyrics',
+      source: 'local-txt',
+    });
+  });
+
   it('finds lyrics in a Lyrics/ subfolder', async () => {
     mkdirSync(path.join(dir, 'Lyrics'));
     writeFileSync(path.join(dir, 'Lyrics', 'Song.lrc'), '[00:05.00]From subfolder');

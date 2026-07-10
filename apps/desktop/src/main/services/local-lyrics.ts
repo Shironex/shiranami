@@ -71,6 +71,10 @@ function buildCandidatePaths(audioFilePath: string): string[] {
  */
 export async function loadLocalLyrics(audioFilePath: string): Promise<LocalLyricsResult | null> {
   const candidates = buildCandidatePaths(audioFilePath);
+  // Raw content of the first timestampless .lrc we hit, kept as a last resort
+  // so a later candidate (a synced .lrc or a .txt) can still win.
+  let lrcPlainFallback: string | null = null;
+
   for (const candidate of candidates) {
     let raw: string;
     try {
@@ -94,14 +98,24 @@ export async function loadLocalLyrics(audioFilePath: string): Promise<LocalLyric
         logger.debug(`[local-lyrics] Loaded synced lyrics: ${candidate}`);
         return { synced, plain: null, source: 'local-lrc' };
       }
-      // Fallback: show raw text so something is visible
-      logger.debug(`[local-lyrics] .lrc had no timestamps, using plain fallback: ${candidate}`);
-      return { synced: null, plain: content, source: 'local-lrc' };
+      // No timestamps: remember the raw text as a last resort, but keep
+      // looking — another candidate may have proper timestamps or be a .txt.
+      if (lrcPlainFallback === null) {
+        logger.debug(`[local-lyrics] .lrc had no timestamps, keeping as fallback: ${candidate}`);
+        lrcPlainFallback = content;
+      }
+      continue;
     }
 
     const stripped = stripLyricsHeader(content);
     logger.debug(`[local-lyrics] Loaded plain lyrics: ${candidate}`);
     return { synced: null, plain: stripped, source: 'local-txt' };
+  }
+
+  if (lrcPlainFallback !== null) {
+    // Nothing better turned up; show the timestampless .lrc as plain text.
+    logger.debug('[local-lyrics] Using timestampless .lrc as plain fallback');
+    return { synced: null, plain: lrcPlainFallback, source: 'local-lrc' };
   }
 
   logger.debug('[local-lyrics] No lyric file found, checked:', candidates);
