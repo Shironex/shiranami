@@ -10,8 +10,8 @@ export type { LyricLine, LyricsResult, LyricsSource } from '@shiranami/contracts
  */
 export function parseLrc(lrc: string): LyricLine[] {
   const lines: LyricLine[] = [];
-  const lineRegex = /^\s*((?:\[\d{2}:\d{2}[.:]\d{2,3}\])+)\s*(.*)/;
-  const timestampRegex = /\[(\d{2}):(\d{2})[.:](\d{2,3})\]/g;
+  const lineRegex = /^\s*((?:\[\d{1,2}:\d{2}[.:]\d{2,3}\])+)\s*(.*)/;
+  const timestampRegex = /\[(\d{1,2}):(\d{2})[.:](\d{2,3})\]/g;
 
   for (const rawLine of lrc.split('\n')) {
     const match = rawLine.match(lineRegex);

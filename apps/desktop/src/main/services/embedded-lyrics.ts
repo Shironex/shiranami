@@ -21,7 +21,7 @@ interface LyricsTagEntry {
   language?: string;
 }
 
-const LRC_TIMESTAMP_RE = /\[\d{2}:\d{2}[.:]/;
+const LRC_TIMESTAMP_RE = /\[\d{1,2}:\d{2}[.:]/;
 
 function looksLikeLrc(text: string): boolean {
   return LRC_TIMESTAMP_RE.test(text);

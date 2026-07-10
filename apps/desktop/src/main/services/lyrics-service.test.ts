@@ -90,6 +90,12 @@ describe('parseLrc', () => {
     const result = parseLrc(lrc);
     expect(result).toEqual([{ time: 5.12, text: 'Colon separator' }]);
   });
+
+  it('accepts single-digit minutes', () => {
+    const lrc = '[1:30.00]Single digit';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 90, text: 'Single digit' }]);
+  });
 });
 
 describe('buildSearchQueries', () => {
