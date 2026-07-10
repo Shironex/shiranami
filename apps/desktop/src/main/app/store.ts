@@ -60,6 +60,11 @@ export interface StoreSchema {
   'system.minimizeToTray': boolean;
   'system.closeToTray': boolean;
 
+  // Renderer-writable (settings UI); read by lyrics-service.ts when resolving
+  // lyric sources. When true, LRCLIB synced lyrics outrank local plain-text
+  // files. Default implicit `undefined` → false (local-first).
+  'lyrics.preferSyncedFromLrclib': boolean;
+
   // Main-only (downloader.ts).
   'downloads.location': string;
   'downloads.toolStatusCache': ToolStatusCache;
