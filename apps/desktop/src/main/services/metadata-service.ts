@@ -4,25 +4,16 @@ import { UNKNOWN_ARTIST, UNKNOWN_ALBUM } from '@shiranami/shared';
 import { logger } from '../app/logger';
 import { saveAlbumArt } from '../protocols/art-protocol';
 import { isAudioExtension } from '../shared/media-types';
+import { getMusicMetadata } from '../shared/music-metadata';
 
 export type { TrackMetadata };
-
-// Cache the dynamic import
-let mmModule: typeof import('music-metadata') | null = null;
-
-async function getModule() {
-  if (!mmModule) {
-    mmModule = await import('music-metadata');
-  }
-  return mmModule;
-}
 
 /**
  * Parse metadata from an audio file.
  * Returns structured metadata with album art saved to disk (shiranami-art:// URL).
  */
 export async function parseAudioMetadata(filePath: string): Promise<TrackMetadata> {
-  const mm = await getModule();
+  const mm = await getMusicMetadata();
 
   try {
     const metadata = await mm.parseFile(filePath, { skipCovers: false });
