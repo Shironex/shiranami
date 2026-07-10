@@ -75,6 +75,21 @@ describe('parseLrc', () => {
     const result = parseLrc(lrc);
     expect(result).toEqual([{ time: 120, text: 'Has text' }]);
   });
+
+  it('emits one entry per timestamp on multi-timestamp lines, sorted by time', () => {
+    const lrc = '[02:03.04][01:02.03]Repeated line';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([
+      { time: 62.03, text: 'Repeated line' },
+      { time: 123.04, text: 'Repeated line' },
+    ]);
+  });
+
+  it('accepts a colon as the millisecond separator', () => {
+    const lrc = '[00:05:12]Colon separator';
+    const result = parseLrc(lrc);
+    expect(result).toEqual([{ time: 5.12, text: 'Colon separator' }]);
+  });
 });
 
 describe('buildSearchQueries', () => {
