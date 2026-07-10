@@ -1,11 +1,11 @@
 // music-metadata is ESM-only and heavy, so it's loaded lazily once and the
-// module promise result is shared by every consumer (metadata parsing,
-// embedded lyrics).
-let mmModule: typeof import('music-metadata') | null = null;
+// import promise is shared by every consumer (metadata parsing, embedded
+// lyrics), which also avoids redundant imports on concurrent first calls.
+let mmPromise: Promise<typeof import('music-metadata')> | null = null;
 
-export async function getMusicMetadata(): Promise<typeof import('music-metadata')> {
-  if (!mmModule) {
-    mmModule = await import('music-metadata');
+export function getMusicMetadata(): Promise<typeof import('music-metadata')> {
+  if (!mmPromise) {
+    mmPromise = import('music-metadata');
   }
-  return mmModule;
+  return mmPromise;
 }
