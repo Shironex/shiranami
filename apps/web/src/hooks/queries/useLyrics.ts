@@ -69,13 +69,19 @@ export function useUpdatePreferSyncedFromLrclibMutation() {
       if (!IS_ELECTRON) return;
       await window.electronAPI.store.set(PREFER_SYNCED_STORE_KEY, value);
     },
-    // Optimistic flip so the switch tracks the click; rolled back by the
-    // invalidate below if the write fails.
+    // Optimistic flip so the switch tracks the click; on failure the previous
+    // value is restored synchronously from the onMutate context, then the
+    // invalidate re-syncs with the store as the source of truth.
     onMutate: async value => {
       await queryClient.cancelQueries({ queryKey: lyricsPrefKeys.preferSynced });
+      const previous = queryClient.getQueryData<boolean>(lyricsPrefKeys.preferSynced);
       queryClient.setQueryData<boolean>(lyricsPrefKeys.preferSynced, value);
+      return { previous };
     },
-    onError: () => {
+    onError: (_err, _value, context) => {
+      if (context) {
+        queryClient.setQueryData(lyricsPrefKeys.preferSynced, context.previous);
+      }
       toast.error(i18n.t('failedSaveSettings', { ns: 'toast' }));
       queryClient.invalidateQueries({ queryKey: lyricsPrefKeys.preferSynced });
     },
