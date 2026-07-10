@@ -303,7 +303,13 @@
   },
   "lyr": {
     "title": "Tekst piosenki",
-    "subtitle": "Wygląd tekstu piosenki w panelu",
+    "subtitle": "Źródła i wygląd tekstu piosenki w panelu",
+    "sources": {
+      "title": "Źródła",
+      "subtitle": "Skąd pobierany jest tekst dla Twoich utworów",
+      "preferSyncedTitle": "Preferuj zsynchronizowany tekst z LRCLIB",
+      "preferSyncedDesc": "Gdy utwór ma tylko zwykły plik tekstowy, pobierz zsynchronizowany tekst z LRCLIB. Lokalny i osadzony zsynchronizowany tekst zawsze ma pierwszeństwo."
+    },
     "plain": {
       "title": "Tekst zwykły",
       "subtitle": "Tekst pokazywany, gdy brak zsynchronizowanych znaczników czasu",

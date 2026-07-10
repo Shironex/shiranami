@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { useTranslation } from 'react-i18next';
 import type { LyricLine } from '@/hooks/queries/useLyrics';
 
-type TranslateFn = ReturnType<typeof useTranslation>['t'];
+export type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
 export interface ILyricsPanelProps {
   /** Optional control rendered at the right edge of the panel header. */
@@ -22,6 +22,8 @@ export interface ILyricsPanelView {
   readonly activeLine: number;
   /** Lyrics fetch in flight. */
   readonly isLoading: boolean;
+  /** Translated source-badge label (Local / Embedded / LRCLIB), or null when unresolved. */
+  readonly sourceLabel: string | null;
   /** Seek to a line's timestamp. */
   readonly onLineClick: (time: number) => void;
   /** Idle/past synced-line dim opacity from user prefs. */

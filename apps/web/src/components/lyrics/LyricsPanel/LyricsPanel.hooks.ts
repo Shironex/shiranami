@@ -7,7 +7,8 @@ import {
 import { useLyricsView } from '@/hooks/useLyricsView';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { cn } from '@/lib/utils';
-import type { ILyricsPanelView } from './LyricsPanel.types';
+import type { LyricsSource } from '@/hooks/queries/useLyrics';
+import type { ILyricsPanelView, TranslateFn } from './LyricsPanel.types';
 
 // Common per-line affordances. Size + opacity come from user prefs and are
 // composed below via LYR_SIZE_CLASS + CSS custom properties.
@@ -21,6 +22,21 @@ const PANEL_IDLE = 'text-foreground opacity-[var(--lyrics-idle-opacity)] hover:o
 const PANEL_PAST = 'text-foreground opacity-[var(--lyrics-past-opacity)]';
 const PANEL_ACTIVE_AFFORDANCES = 'text-foreground font-semibold';
 
+/** Human label for where the lyrics came from, or null when unresolved. */
+function sourceToLabel(source: LyricsSource, t: TranslateFn): string | null {
+  switch (source) {
+    case 'local-lrc':
+    case 'local-txt':
+      return t('sourceLocal');
+    case 'embedded':
+      return t('sourceEmbedded');
+    case 'lrclib':
+      return t('sourceLrclib');
+    default:
+      return null;
+  }
+}
+
 export function useLyricsPanel(): ILyricsPanelView {
   const { t } = useTranslation('lyrics');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
@@ -29,7 +45,7 @@ export function useLyricsPanel(): ILyricsPanelView {
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
-  const { synced, plain, activeLine, isLoading, handleLineClick } = useLyricsView();
+  const { synced, plain, source, activeLine, isLoading, handleLineClick } = useLyricsView();
 
   const baseSizeClass = LYR_SIZE_CLASS[lyricsSyncedFontSize];
   const activeSizeClass = LYR_SIZE_CLASS[nextLyricsFontSize(lyricsSyncedFontSize)];
@@ -41,6 +57,7 @@ export function useLyricsPanel(): ILyricsPanelView {
     plain,
     activeLine,
     isLoading,
+    sourceLabel: sourceToLabel(source, t),
     onLineClick: handleLineClick,
     syncedDimOpacity: lyricsSyncedDimOpacity,
     plainOpacity: lyricsPlainOpacity,

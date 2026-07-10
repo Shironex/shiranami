@@ -1,5 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import {
+  usePreferSyncedFromLrclibQuery,
+  useUpdatePreferSyncedFromLrclibMutation,
+} from '@/hooks/queries/useLyrics';
+import { IS_ELECTRON } from '@/lib/platform';
+import {
   useLyricsAppearanceStore,
   LYRICS_PLAIN_OPACITY_MIN,
   LYRICS_PLAIN_OPACITY_MAX,
@@ -16,6 +21,12 @@ import type { ILyricsSectionView } from './LyricsSection.types';
 
 export function useLyricsSection(): ILyricsSectionView {
   const { t: tc } = useTranslation('common');
+
+  // Persisted as an electron-store key (main reads it during lyric
+  // resolution). Query-seeded + optimistic mutation with rollback, matching
+  // the useSystemPrefs pattern for main-consumed settings.
+  const { data: preferSynced } = usePreferSyncedFromLrclibQuery();
+  const updatePreferSynced = useUpdatePreferSyncedFromLrclibMutation();
 
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
@@ -40,6 +51,11 @@ export function useLyricsSection(): ILyricsSectionView {
   return {
     t,
     resetLabel: tc('reset'),
+
+    preferSyncedFromLrclib: preferSynced === true,
+    // Inert until the persisted value has seeded (and outside Electron).
+    preferSyncedDisabled: !IS_ELECTRON || preferSynced === undefined,
+    onSetPreferSyncedFromLrclib: value => updatePreferSynced.mutate(value),
 
     lyricsPlainOpacity,
     lyricsPlainFontSize,

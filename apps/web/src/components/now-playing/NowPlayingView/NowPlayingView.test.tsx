@@ -34,6 +34,7 @@ vi.mock('@/hooks/useLyricsView', () => ({
   useLyricsView: () => ({
     synced: null,
     plain: null,
+    source: null,
     activeLine: -1,
     isLoading: false,
     isError: false,

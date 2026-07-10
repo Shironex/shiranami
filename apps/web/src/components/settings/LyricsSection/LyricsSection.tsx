@@ -1,6 +1,6 @@
 import { Captions } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -18,6 +18,9 @@ export default function LyricsSection() {
   const {
     t,
     resetLabel,
+    preferSyncedFromLrclib,
+    preferSyncedDisabled,
+    onSetPreferSyncedFromLrclib,
     lyricsPlainOpacity,
     lyricsPlainFontSize,
     onSetPlainOpacity,
@@ -39,6 +42,17 @@ export default function LyricsSection() {
   return (
     <SettingsCard icon={Captions} title={t('lyr.title')} subtitle={t('lyr.subtitle')}>
       <div className="space-y-8">
+        {/* Sources subsection */}
+        <Subsection title={t('lyr.sources.title')} subtitle={t('lyr.sources.subtitle')}>
+          <SettingsToggleRow
+            label={t('lyr.sources.preferSyncedTitle')}
+            description={t('lyr.sources.preferSyncedDesc')}
+            checked={preferSyncedFromLrclib}
+            onCheckedChange={onSetPreferSyncedFromLrclib}
+            disabled={preferSyncedDisabled}
+          />
+        </Subsection>
+
         {/* Plain text subsection */}
         <Subsection title={t('lyr.plain.title')} subtitle={t('lyr.plain.subtitle')}>
           <OpacityControl

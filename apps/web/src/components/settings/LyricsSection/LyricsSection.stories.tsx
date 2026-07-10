@@ -75,6 +75,21 @@ export const Default: Story = {
   },
 };
 
+/** Sources — the LRCLIB source-preference toggle flips and persists. */
+export const Sources: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    const toggle = canvas.getByRole('switch', { name: 'Prefer synced lyrics from LRCLIB' });
+    // Disabled until the persisted value has seeded from electron-store.
+    await waitFor(() => expect(toggle).toBeEnabled());
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+  },
+};
+
 /** Customized — non-default opacity + sizes mark the matching size chips active. */
 export const Customized: Story = {
   decorators: [

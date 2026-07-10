@@ -9,6 +9,14 @@ export interface ILyricsSectionView {
   /** Localized "reset" label (from the `common` namespace). */
   readonly resetLabel: string;
 
+  // --- Sources ---
+  /** When true, LRCLIB synced lyrics outrank local plain-text files. */
+  readonly preferSyncedFromLrclib: boolean;
+  /** True until the persisted value has seeded (or outside Electron). */
+  readonly preferSyncedDisabled: boolean;
+  /** Persist the source-precedence toggle and re-resolve current lyrics. */
+  readonly onSetPreferSyncedFromLrclib: (value: boolean) => void;
+
   // --- Plain lyrics ---
   /** Plain-lyrics text opacity (0–1). */
   readonly lyricsPlainOpacity: number;

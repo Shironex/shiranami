@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
@@ -7,6 +9,7 @@ import type { useLyricsView } from '@/hooks/useLyricsView';
 const EMPTY_LYRICS_VIEW: ReturnType<typeof useLyricsView> = {
   synced: null,
   plain: null,
+  source: null,
   activeLine: -1,
   isLoading: false,
   isError: false,
@@ -36,6 +39,11 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 
 function setLyricsView(overrides: Partial<typeof EMPTY_LYRICS_VIEW> = {}): void {
   useLyricsViewMock.mockReturnValue({ ...EMPTY_LYRICS_VIEW, ...overrides });
+}
+
+/** The source badge's Radix tooltip needs a provider in the tree. */
+function renderPanel(ui: ReactElement) {
+  return render(<TooltipProvider>{ui}</TooltipProvider>);
 }
 
 beforeEach(() => {
@@ -95,5 +103,34 @@ describe('LyricsPanel', () => {
 
     expect(screen.getByRole('button', { name: 'Panel synced one' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Panel synced two' })).toBeInTheDocument();
+  });
+
+  it('shows a Local source badge for local lyric files', () => {
+    setLyricsView({ synced: [{ time: 0, text: 'From disk' }], source: 'local-lrc' });
+    renderPanel(<LyricsPanel />);
+
+    expect(screen.getByText('Local')).toBeInTheDocument();
+  });
+
+  it('shows an Embedded source badge for tag-embedded lyrics', () => {
+    setLyricsView({ plain: 'From the tag', source: 'embedded' });
+    renderPanel(<LyricsPanel />);
+
+    expect(screen.getByText('Embedded')).toBeInTheDocument();
+  });
+
+  it('shows an LRCLIB source badge for network lyrics', () => {
+    setLyricsView({ plain: 'From the network', source: 'lrclib' });
+    renderPanel(<LyricsPanel />);
+
+    expect(screen.getByText('LRCLIB')).toBeInTheDocument();
+  });
+
+  it('renders no source badge when lyrics are unresolved', () => {
+    renderPanel(<LyricsPanel />);
+
+    expect(screen.queryByText('Local')).not.toBeInTheDocument();
+    expect(screen.queryByText('Embedded')).not.toBeInTheDocument();
+    expect(screen.queryByText('LRCLIB')).not.toBeInTheDocument();
   });
 });
