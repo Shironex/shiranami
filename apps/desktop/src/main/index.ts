@@ -3,6 +3,7 @@ import * as os from 'os';
 import { app, BrowserWindow, protocol } from 'electron';
 import * as Sentry from '@sentry/electron/main';
 import { initSentryMain, watchTelemetryConsent } from './app/sentry';
+import { reportBootFailure } from './app/boot-failure';
 import { createMainWindow } from './app/window';
 import { cleanupIpcHandlers } from './ipc/register';
 import { initializeAutoUpdater } from './app/updater';
@@ -232,13 +233,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
-app
-  .whenReady()
-  .then(bootstrap)
-  .catch(error => {
-    logger.error('Failed to bootstrap application:', error);
-    Sentry.captureException(error);
-  });
+app.whenReady().then(bootstrap).catch(reportBootFailure);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
