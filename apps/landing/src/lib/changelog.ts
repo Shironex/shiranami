@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '0.24.0': '探', // "search / seek / find" — local-first lyrics resolution
   '0.23.0': '彩', // "coloring / hue" — custom accent color, dockable panels, the customization pass
   '0.22.1': '揃', // "to be gathered / in order" — various-artists albums regrouped into one
   '0.22.0': '録', // "record / log" — scrobbling, persistent download queue, library backups
@@ -135,6 +136,67 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '0.24.0',
+    date: '2026-07-13',
+    title: l(
+      'Local-first lyrics: your own files come before LRCLIB',
+      'Tekst utworów najpierw z Twoich plików, LRCLIB w drugiej kolejności'
+    ),
+    description: l(
+      'Shiranami now looks in your own music files for lyrics before asking LRCLIB online. A matching .lrc or .txt file next to the track, a Lyrics subfolder, or lyrics embedded right in the file’s tags are all checked first, with a small badge showing where the lyrics came from. Prefer synced lyrics from LRCLIB instead? Flip a new toggle in Settings. Alongside that, several lyric file quirks that used to trip up parsing are now handled correctly, and a rare startup failure now shows a clear message instead of leaving the app stuck.',
+      'Shiranami sprawdza teraz Twoje własne pliki muzyczne w poszukiwaniu tekstu, zanim zapyta LRCLIB w sieci. Pasujący plik .lrc lub .txt obok utworu, folder Lyrics oraz tekst osadzony w tagach pliku są sprawdzane jako pierwsze, a mała odznaka pokazuje, skąd pochodzi tekst. Wolisz zsynchronizowany tekst z LRCLIB? Włącz nowy przełącznik w Ustawieniach. Do tego kilka nietypowych formatów plików z tekstem, które wcześniej myliły parser, jest teraz obsługiwanych poprawnie, a rzadka awaria startu pokazuje teraz czytelny komunikat zamiast zawieszać aplikację bez śladu.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Local-first lyrics: Shiranami now checks a matching .lrc or .txt file, a Lyrics folder next to your tracks, or lyrics embedded in the file’s own tags before reaching out to LRCLIB online',
+            'Tekst najpierw z Twoich plików: Shiranami sprawdza teraz pasujący plik .lrc lub .txt, folder Lyrics obok utworów oraz tekst osadzony w tagach pliku, zanim zapyta LRCLIB w sieci'
+          ),
+          l(
+            'A small badge in the lyrics panel shows where the current lyrics came from — your files, embedded tags, or LRCLIB',
+            'Mała odznaka w panelu tekstu pokazuje, skąd pochodzi bieżący tekst — z Twoich plików, tagów czy z LRCLIB'
+          ),
+          l(
+            'Prefer LRCLIB instead? A new toggle in Settings → Lyrics lets you always fetch synced lyrics online first',
+            'Wolisz LRCLIB? Nowy przełącznik w Ustawieniach → Tekst pozwala zawsze najpierw pobierać zsynchronizowany tekst z sieci'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Lyrics files with single-digit minutes, multiple timestamps on one line, or colon-separated milliseconds now parse correctly instead of being skipped',
+            'Pliki z tekstem zawierające jednocyfrowe minuty, kilka znaczników czasu w jednej linii lub milisekundy oddzielone dwukropkiem są teraz poprawnie odczytywane zamiast być pomijane'
+          ),
+          l(
+            'A plain lyrics file with no timing is now kept as a fallback instead of ending the search early',
+            'Zwykły plik z tekstem bez znaczników czasu jest teraz traktowany jako plan awaryjny zamiast przedwcześnie kończyć wyszukiwanie'
+          ),
+          l(
+            'If Shiranami fails to start, you’ll now see a clear message with a button to open the log folder, instead of the app quietly doing nothing',
+            'Jeśli Shiranami nie uruchomi się poprawnie, zobaczysz teraz czytelny komunikat z przyciskiem otwierającym folder z logami, zamiast cichego braku reakcji aplikacji'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'Internal metadata-reading code is now shared and de-duplicated across features for faster, more consistent lookups',
+            'Wewnętrzny kod odczytujący metadane jest teraz współdzielony i zoptymalizowany, co przyspiesza i ujednolica jego działanie'
+          ),
+          l(
+            'Updated the self-hosted server’s database engine for better reliability. If you self-host, this update requires a newer version of Node.js — see the GitHub release notes for the exact version',
+            'Zaktualizowano silnik bazy danych samodzielnie hostowanego serwera dla lepszej niezawodności. Jeśli hostujesz Shiranami samodzielnie, ta aktualizacja wymaga nowszej wersji Node.js — dokładną wersję znajdziesz w informacjach o wydaniu na GitHubie'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.23.0',
     date: '2026-06-30',
