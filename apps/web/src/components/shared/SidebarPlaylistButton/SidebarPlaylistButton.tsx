@@ -25,6 +25,7 @@ export default function SidebarPlaylistButton(props: ISidebarPlaylistButtonProps
       aria-label={collapsed ? playlist.name : undefined}
       className={cn(
         'w-full flex items-center rounded-xl transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         collapsed ? 'justify-center px-0 py-2' : 'gap-2 px-2 py-2 text-left',
         isActive
           ? 'bg-accent text-foreground'
