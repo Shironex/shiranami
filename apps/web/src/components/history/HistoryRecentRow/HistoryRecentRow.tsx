@@ -1,3 +1,5 @@
+import { motion } from 'motion/react';
+import { STAGGER_ITEM } from '@/lib/motion';
 import { HistoryTrackArtwork } from '@/components/history/HistoryTrackArtwork';
 import { useHistoryRecentRow } from './HistoryRecentRow.hooks';
 import type { IHistoryRecentRowProps } from './HistoryRecentRow.types';
@@ -6,8 +8,9 @@ export default function HistoryRecentRow(props: IHistoryRecentRowProps) {
   const { entry, subtitle, playedDuration, playedAt, onPlay } = useHistoryRecentRow(props);
 
   return (
-    <button
+    <motion.button
       type="button"
+      variants={STAGGER_ITEM}
       onClick={onPlay}
       className="flex w-full items-center gap-3 rounded-2xl border border-border/20 bg-background/25 px-3 py-3 text-left transition-colors hover:border-border/35 hover:bg-accent/35"
     >
@@ -20,6 +23,6 @@ export default function HistoryRecentRow(props: IHistoryRecentRowProps) {
         <p className="text-xs font-medium text-foreground">{playedDuration}</p>
         <p className="text-[11px] text-muted-foreground/65">{playedAt}</p>
       </div>
-    </button>
+    </motion.button>
   );
 }

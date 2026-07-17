@@ -1,5 +1,6 @@
 import { Play } from 'lucide-react';
 import { motion } from 'motion/react';
+import { SCALE_CARD } from '@/lib/motion';
 import type { ISmartMixCard } from './MixesView.types';
 
 interface ISmartMixRowProps {
@@ -12,9 +13,9 @@ export function SmartMixRow({ card, countLabel }: ISmartMixRowProps) {
   const Icon = card.icon;
   return (
     <motion.button
-      whileTap={{ scale: 0.99 }}
+      whileTap={SCALE_CARD}
       onClick={card.onPlay}
-      className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-accent/40 transition-colors group text-left"
+      className="w-full flex items-center gap-3.5 px-3 py-3 rounded-xl hover:bg-accent/40 transition-colors group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="w-12 h-12 rounded-lg shrink-0 bg-accent/30 flex items-center justify-center">
         <Icon className="w-5 h-5 text-muted-foreground/50" />

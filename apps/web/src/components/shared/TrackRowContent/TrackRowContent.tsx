@@ -3,6 +3,7 @@ import { Heart, Play, X, Check } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
+import { SCALE_CARD } from '@/lib/motion';
 import { AddToPlaylistButton } from '@/components/shared/AddToPlaylistButton';
 import { EqBars } from '@/components/shared/EqBars';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
@@ -60,7 +61,11 @@ function TrackRowContentImpl(props: ITrackRowContentProps) {
       >
         {dragHandle}
 
-        <button onClick={handleClick} className="flex items-center gap-3 min-w-0 flex-1">
+        <motion.button
+          whileTap={SCALE_CARD}
+          onClick={handleClick}
+          className="flex items-center gap-3 min-w-0 flex-1 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <TrackThumbnail
             albumArt={isSelected ? null : track.albumArt}
             alt={track.title}
@@ -77,7 +82,7 @@ function TrackRowContentImpl(props: ITrackRowContentProps) {
             </p>
             <p className="text-xs text-muted-foreground/60 truncate text-left">{track.artist}</p>
           </div>
-        </button>
+        </motion.button>
 
         <span className="text-[11px] text-muted-foreground/40 tabular-nums shrink-0 font-medium">
           {durationLabel}

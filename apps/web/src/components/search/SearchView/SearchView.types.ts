@@ -73,4 +73,6 @@ export interface ISearchViewView {
 
   /** Show the centered (no-results) search state instead of the result list. */
   readonly showCenteredSearchState: boolean;
+  /** A completed search returned zero results (distinct from a genuine error). */
+  readonly showNoResults: boolean;
 }

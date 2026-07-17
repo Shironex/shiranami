@@ -5,6 +5,8 @@ import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { STAGGER_CONTAINER } from '@/lib/motion';
 import { useMixesView } from './MixesView.hooks';
 import { MixesViewSkeleton } from './MixesViewSkeleton';
 import { MixGridRow } from './MixGridRow';
@@ -13,6 +15,7 @@ import { ArtCollage } from '../ArtCollage';
 
 export default function MixesView() {
   const view = useMixesView();
+  const prefersReducedMotion = useReducedMotion();
 
   if (view.showSkeleton) {
     return <MixesViewSkeleton />;
@@ -80,10 +83,12 @@ export default function MixesView() {
         </div>
 
         {view.mixIsEmpty ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
-            <Icon className="w-12 h-12 text-muted-foreground/20" strokeWidth={1.5} />
-            <p className="text-sm text-muted-foreground/50">{view.t(view.selectedDef.emptyKey)}</p>
-          </div>
+          <ViewEmptyState
+            compact
+            title={view.t('mixEmptyTitle')}
+            subtitle={view.t(view.selectedDef.emptyKey)}
+            icon={Icon}
+          />
         ) : (
           <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
             <div className="h-full px-2 py-1.5">
@@ -149,8 +154,19 @@ export default function MixesView() {
           </div>
         )}
 
-        <div className="rounded-2xl glass-panel border border-border/30 p-2 space-y-1.5">
-          {mixGridRows}
+        <div className="rounded-2xl glass-panel border border-border/30 p-2">
+          {prefersReducedMotion ? (
+            <div className="space-y-1.5">{mixGridRows}</div>
+          ) : (
+            <motion.div
+              className="space-y-1.5"
+              variants={STAGGER_CONTAINER}
+              initial="hidden"
+              animate="visible"
+            >
+              {mixGridRows}
+            </motion.div>
+          )}
         </div>
 
         {/* Subtle divider and track art collage */}

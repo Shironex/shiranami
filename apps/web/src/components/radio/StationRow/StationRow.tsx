@@ -36,7 +36,10 @@ export default function StationRow(props: RowComponentProps<IStationRowProps>) {
         )}
       >
         {/* Station info + play */}
-        <button onClick={onPlayClick} className="flex items-center gap-3 min-w-0 flex-1">
+        <button
+          onClick={onPlayClick}
+          className="flex items-center gap-3 min-w-0 flex-1 rounded-lg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+        >
           <div
             className={cn(
               'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden',
@@ -89,6 +92,7 @@ export default function StationRow(props: RowComponentProps<IStationRowProps>) {
           onClick={onFavoriteClick}
           className={cn(
             'shrink-0 p-1 rounded-md transition-colors duration-150',
+            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:opacity-100',
             isFav
               ? 'text-favorite hover:text-favorite-hover'
               : 'text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60'

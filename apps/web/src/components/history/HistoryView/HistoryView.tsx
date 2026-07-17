@@ -1,4 +1,7 @@
 import { AlertCircle, BarChart3, Clock3, Disc3 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { STAGGER_CONTAINER } from '@/lib/motion';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { HistoryActivityGraph } from '@/components/history/HistoryActivityGraph';
 import { HistoryEmptyState } from '@/components/history/HistoryEmptyState';
@@ -12,6 +15,7 @@ import { useHistoryView } from './HistoryView.hooks';
 
 export default function HistoryView() {
   const view = useHistoryView();
+  const reducedMotion = useReducedMotion();
 
   if (view.isError) {
     return (
@@ -123,11 +127,20 @@ export default function HistoryView() {
               {view.recentTitle}
             </h2>
           </div>
-          <div className="mt-4 space-y-3">
-            {hasRecent ? (
-              recentRows
-            ) : (
+          <div className="mt-4">
+            {!hasRecent ? (
               <HistoryEmptyState title={view.noRecentPlaysTitle} copy={view.noRecentPlaysCopy} />
+            ) : reducedMotion ? (
+              <div className="space-y-3">{recentRows}</div>
+            ) : (
+              <motion.div
+                className="space-y-3"
+                variants={STAGGER_CONTAINER}
+                initial="hidden"
+                animate="visible"
+              >
+                {recentRows}
+              </motion.div>
             )}
           </div>
         </section>

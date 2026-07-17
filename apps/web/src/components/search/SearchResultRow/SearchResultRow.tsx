@@ -1,5 +1,7 @@
 import { Loader2, Music, Play, Pause } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { STAGGER_ITEM } from '@/lib/motion';
 import { DownloadProgressButton } from '@/components/shared/DownloadProgressButton';
 import { DownloadProgressBar } from '@/components/shared/DownloadProgressBar';
 import { useSearchResultRow } from './SearchResultRow.hooks';
@@ -30,7 +32,8 @@ export default function SearchResultRow(props: ISearchResultRowProps) {
   } = useSearchResultRow(props);
 
   return (
-    <div
+    <motion.div
+      variants={STAGGER_ITEM}
       className={cn(
         'group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors relative overflow-hidden',
         isDownloading
@@ -111,6 +114,6 @@ export default function SearchResultRow(props: ISearchResultRowProps) {
           ariaLabel={progressAriaLabel}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
