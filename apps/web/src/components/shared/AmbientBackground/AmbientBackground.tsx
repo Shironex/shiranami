@@ -8,8 +8,16 @@ import { useAmbientBackground } from './AmbientBackground.hooks';
  * color changes (instant under prefers-reduced-motion).
  */
 export default function AmbientBackground() {
-  const { enabled, showNoiseOverlay, showGlow, glowKey, glowBackground, transitionDuration } =
-    useAmbientBackground();
+  const {
+    enabled,
+    showNoiseOverlay,
+    showGlow,
+    glowKey,
+    glowBackground,
+    transitionDuration,
+    bloomKey,
+    showBloom,
+  } = useAmbientBackground();
 
   if (!enabled) return null;
 
@@ -30,6 +38,20 @@ export default function AmbientBackground() {
           />
         )}
       </AnimatePresence>
+
+      {/* Track-change "bloom": a brief opacity/scale pulse over the same glow
+          color. Keyed on the track id so a change remounts it and replays the
+          keyframe. Sits above the steady glow; purely decorative. */}
+      {showBloom && (
+        <motion.div
+          key={`bloom-${bloomKey}`}
+          initial={{ opacity: 0, scale: 1 }}
+          animate={{ opacity: [0, 0.55, 0], scale: [1, 1.06, 1] }}
+          transition={{ duration: 1.1, ease: 'easeOut', times: [0, 0.3, 1] }}
+          className="fixed inset-0 pointer-events-none z-0"
+          style={{ background: glowBackground }}
+        />
+      )}
     </>
   );
 }

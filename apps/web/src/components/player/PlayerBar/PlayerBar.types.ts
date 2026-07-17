@@ -1,7 +1,9 @@
 import type { useTranslation } from 'react-i18next';
+import type { useAnimationControls } from 'motion/react';
 import type { Track } from '@/stores/types';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
+type AnimationControls = ReturnType<typeof useAnimationControls>;
 
 /** RGB triple string for the ambient-glow gradient (e.g. "120, 80, 200"). */
 export interface IPlayerBarAmbient {
@@ -65,6 +67,14 @@ export interface IPlayerBarView {
   readonly lyricsActive: boolean;
   /** Whether the queue panel is the active right panel (active styling). */
   readonly queueActive: boolean;
+
+  // --- Fresh-favorite celebration (heart pop + expanding ring) ---
+  /** Animation controls driving the heart pop; passed to the heart's `animate`. */
+  readonly heartControls: AnimationControls;
+  /** Burst counter — doubles as the ring's remount `key` so each burst replays. */
+  readonly favoriteBurst: number;
+  /** Whether the expanding ring renders (celebration enabled AND a burst fired). */
+  readonly showFavoriteBurst: boolean;
 
   // --- Tooltips (shortcut hints pre-interpolated) ---
   /** Localized compact-mode tooltip. */

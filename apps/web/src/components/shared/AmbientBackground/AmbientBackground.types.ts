@@ -11,4 +11,8 @@ export interface IAmbientBackgroundView {
   readonly glowBackground: string;
   /** Cross-fade duration in seconds (0 under prefers-reduced-motion). */
   readonly transitionDuration: number;
+  /** Current track id the bloom pulse is keyed to — a change replays the pulse. */
+  readonly bloomKey: string | undefined;
+  /** Play the brief track-change glow "bloom" (off under reduced motion). */
+  readonly showBloom: boolean;
 }

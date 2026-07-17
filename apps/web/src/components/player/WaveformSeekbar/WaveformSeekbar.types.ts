@@ -26,4 +26,15 @@ export interface IWaveformSeekbarView {
   readonly onPointerDown: (event: PointerEvent) => void;
   /** Keyboard seeking (arrows / page / home-end). */
   readonly onKeyDown: (event: KeyboardEvent) => void;
+  /** Whether the non-drag hover affordance (playhead line + time bubble) is
+   *  active — off under reduced motion / low-performance mode. */
+  readonly hoverEnabled: boolean;
+  /** Ref for the faint vertical hover-playhead line (positioned imperatively). */
+  readonly hoverLineRef: RefObject<HTMLDivElement | null>;
+  /** Ref for the hovered-timestamp bubble (positioned + labelled imperatively). */
+  readonly hoverBubbleRef: RefObject<HTMLDivElement | null>;
+  /** Track the cursor over the bar while not dragging (hover playhead + bubble). */
+  readonly onPointerMove: (event: PointerEvent) => void;
+  /** Hide the hover playhead + bubble when the cursor leaves the bar. */
+  readonly onPointerLeave: (event: PointerEvent) => void;
 }

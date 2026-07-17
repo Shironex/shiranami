@@ -1,7 +1,9 @@
 import type { useTranslation } from 'react-i18next';
+import type { useAnimationControls } from 'motion/react';
 import type { RepeatMode } from '@/stores/types';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
+type AnimationControls = ReturnType<typeof useAnimationControls>;
 
 export interface IPlayerControlsView {
   /** Bound `player` namespace translator (the shell stays free of `useTranslation`). */
@@ -30,6 +32,17 @@ export interface IPlayerControlsView {
   readonly playPauseLabel: string;
   /** Localized repeat-button `aria-label`. */
   readonly repeatLabel: string;
+
+  // --- Decorative transport motion (gated by reduced-motion + low-performance) ---
+  /** Animation controls for the shuffle glyph's wobble; passed to `animate`. */
+  readonly shuffleControls: AnimationControls;
+  /** Animation controls for the repeat glyph's flip; passed to `animate`. */
+  readonly repeatControls: AnimationControls;
+  /** Glow-pulse counter — doubles as the pulse's remount `key` so it replays. */
+  readonly glowKey: number;
+  /** Whether the play-start glow pulse renders (celebration on AND a pulse fired). */
+  readonly showStartGlow: boolean;
+
   /** Toggle play/pause. */
   readonly onTogglePlay: () => void;
   /** Skip to the next track. */

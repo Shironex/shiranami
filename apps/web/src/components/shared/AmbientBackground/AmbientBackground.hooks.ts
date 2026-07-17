@@ -30,5 +30,9 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     glowKey: ambientColor.hex,
     glowBackground,
     transitionDuration: prefersReducedMotion ? 0 : 2,
+    // Bloom pulse on track change. Low-perf already disables the whole layer via
+    // `enabled`, so only the reduced-motion preference needs gating here.
+    bloomKey: currentTrack?.id,
+    showBloom: Boolean(currentTrack) && !prefersReducedMotion,
   };
 }

@@ -25,6 +25,7 @@ export default function NowPlayingView() {
     panelButtons,
     panelGroupLabel,
     lowPerformanceMode,
+    albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
     lyricsPlainOpacity,
@@ -109,13 +110,25 @@ export default function NowPlayingView() {
               : 'w-full max-w-[520px] @5xl:max-w-[580px] @7xl:max-w-[640px] py-6 @5xl:py-10'
           )}
         >
-          {/* Album art — scales dramatically with container */}
+          {/* Album art — scales dramatically with container. On track change it
+              mirrors the PlayerBar's ±3° tilt spring (decorative: skipped under
+              reduced motion / low-performance mode). */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentTrack.id}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={
+                albumArtTiltEnabled
+                  ? { scale: 0.9, opacity: 0, rotate: -3 }
+                  : { scale: 0.9, opacity: 0 }
+              }
+              animate={
+                albumArtTiltEnabled ? { scale: 1, opacity: 1, rotate: 0 } : { scale: 1, opacity: 1 }
+              }
+              exit={
+                albumArtTiltEnabled
+                  ? { scale: 0.9, opacity: 0, rotate: 3 }
+                  : { scale: 0.9, opacity: 0 }
+              }
               transition={{ type: 'spring', damping: 22, stiffness: 250 }}
               className={cn(
                 'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',

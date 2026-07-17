@@ -2,6 +2,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { usePlayerUIStore } from '@/stores/usePlayerUIStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useRafLoop } from '@/hooks/useRafLoop';
 import { useCanvasSize } from '@/hooks/useCanvasSize';
 import { usePrimaryRGB } from '@/hooks/usePrimaryRGB';
@@ -16,6 +17,8 @@ const BAR_WIDTH = 2;
 const BAR_GAP = 1;
 /** Floor so silent sections still render a visible sliver. */
 const MIN_BAR_RATIO = 0.08;
+/** Keep the hover time-bubble this many CSS px clear of either bar edge. */
+const HOVER_BUBBLE_MARGIN = 18;
 
 /**
  * SoundCloud-style waveform seekbar logic. Draws per-track peaks (decoded
@@ -47,9 +50,17 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
 
   const trackRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hoverLineRef = useRef<HTMLDivElement>(null);
+  const hoverBubbleRef = useRef<HTMLDivElement>(null);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef } = usePrimaryRGB();
   const isDraggingRef = useRef(false);
+
+  // The hover playhead + time bubble are a functional readout (the only motion
+  // is a 150ms opacity fade), so they stay available under reduced motion —
+  // only low-performance mode drops them to save the per-move wiring/DOM.
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const hoverEnabled = !lowPerformanceMode;
 
   const getValueFromPointer = useCallback(
     (clientX: number) => {
@@ -61,6 +72,11 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
     },
     [duration]
   );
+
+  const hideHover = useCallback(() => {
+    if (hoverLineRef.current) hoverLineRef.current.style.opacity = '0';
+    if (hoverBubbleRef.current) hoverBubbleRef.current.style.opacity = '0';
+  }, []);
 
   /** Paint the whole waveform with the played/unplayed split at `ratio` (0..1). */
   const paint = useCallback(
@@ -157,6 +173,9 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
     (e: React.PointerEvent) => {
       e.preventDefault();
       isDraggingRef.current = true;
+      // The played/unplayed split follows the pointer during a drag, so the
+      // hover playhead + bubble would be redundant — hide them.
+      hideHover();
       setScrubTime(getValueFromPointer(e.clientX));
 
       const target = e.currentTarget as HTMLElement;
@@ -190,7 +209,35 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
       target.addEventListener('pointercancel', onPointerCancel);
       target.addEventListener('lostpointercapture', onLostPointerCapture);
     },
-    [getValueFromPointer, setScrubTime, seek]
+    [getValueFromPointer, setScrubTime, seek, hideHover]
+  );
+
+  // Plain hover (no drag): paint a faint playhead line at the cursor column and
+  // show a time bubble for the timestamp under it. Positioned imperatively so a
+  // 60fps mousemove never re-renders the canvas. Ignored while dragging.
+  const onHoverMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (isDraggingRef.current) return;
+      const track = trackRef.current;
+      const line = hoverLineRef.current;
+      const bubble = hoverBubbleRef.current;
+      if (!track || !line || !bubble || !duration) return;
+      const rect = track.getBoundingClientRect();
+      if (rect.width === 0) return;
+
+      const ratio = clamp01((e.clientX - rect.left) / rect.width);
+      const x = ratio * rect.width;
+      line.style.transform = `translateX(${x}px)`;
+      line.style.opacity = '1';
+
+      // Clamp the bubble so it never spills past the bar edges (fixed margin
+      // avoids a per-move offsetWidth read / layout thrash).
+      const bubbleX = Math.min(Math.max(x, HOVER_BUBBLE_MARGIN), rect.width - HOVER_BUBBLE_MARGIN);
+      bubble.style.transform = `translateX(${bubbleX}px) translateX(-50%)`;
+      bubble.style.opacity = '1';
+      bubble.textContent = formatDuration(ratio * duration);
+    },
+    [duration]
   );
 
   const onKeyDown = useCallback(
@@ -239,5 +286,10 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
     canvasRef,
     onPointerDown,
     onKeyDown,
+    hoverEnabled,
+    hoverLineRef,
+    hoverBubbleRef,
+    onPointerMove: onHoverMove,
+    onPointerLeave: hideHover,
   };
 }

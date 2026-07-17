@@ -20,8 +20,16 @@ export interface IVolumeControlView {
   readonly buttonTooltip: string;
   /** Localized `aria-label` for the slider. */
   readonly sliderLabel: string;
+  /** Whether the transient percentage readout is shown (hovering or dragging). */
+  readonly showReadout: boolean;
   /** Toggle mute on/off. */
   readonly onToggleMute: () => void;
   /** Commit a slider drag (single-element value array from the primitive). */
   readonly onVolumeChange: (value: number[]) => void;
+  /** Pointer enters the slider track (arms the readout). */
+  readonly onPointerEnter: () => void;
+  /** Pointer leaves the slider track (disarms the hover readout). */
+  readonly onPointerLeave: () => void;
+  /** Pointer pressed on the slider track (begins a drag). */
+  readonly onPointerDown: () => void;
 }

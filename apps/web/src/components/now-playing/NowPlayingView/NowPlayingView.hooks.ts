@@ -8,6 +8,7 @@ import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsView } from '@/hooks/useLyricsView';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import type {
@@ -63,6 +64,7 @@ export function useNowPlayingView(): INowPlayingViewView {
   const panel = useUIStore(s => s.nowPlayingPanel);
   const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const reducedMotion = useReducedMotion();
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
@@ -119,6 +121,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     panelButtons,
     panelGroupLabel: t('panelGroup'),
     lowPerformanceMode,
+    albumArtTiltEnabled: !reducedMotion && !lowPerformanceMode,
     lyricsClasses,
     lyrics,
     lyricsPlainOpacity,

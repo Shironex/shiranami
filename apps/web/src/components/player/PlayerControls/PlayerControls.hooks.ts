@@ -1,5 +1,10 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAnimationControls } from 'motion/react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useUIStore } from '@/stores/useUIStore';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { SPRING_SNAPPY, SPRING_BOUNCE } from '@/lib/motion';
 import type { IPlayerControlsView } from './PlayerControls.types';
 
 export function usePlayerControls(): IPlayerControlsView {
@@ -22,6 +27,48 @@ export function usePlayerControls(): IPlayerControlsView {
   const repeatTooltip =
     repeatMode === 'off' ? t('repeatOff') : repeatMode === 'all' ? t('repeatAll') : t('repeatOne');
 
+  // Decorative transport motion is gated behind both reduced-motion and the
+  // low-performance escape hatch; when either is set the controls fall back to
+  // plain state changes (press/tap feedback still applies).
+  const reducedMotion = useReducedMotion();
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const celebrate = !reducedMotion && !lowPerformanceMode;
+
+  const shuffleControls = useAnimationControls();
+  const repeatControls = useAnimationControls();
+  const prevShuffle = useRef(isShuffled);
+  const prevRepeatMode = useRef(repeatMode);
+  const repeatRotation = useRef(0);
+  const prevPlaying = useRef(isPlaying);
+  const [glowKey, setGlowKey] = useState(0);
+
+  // Quick wobble the moment shuffle turns on.
+  useEffect(() => {
+    const turnedOn = isShuffled && !prevShuffle.current;
+    prevShuffle.current = isShuffled;
+    if (turnedOn && celebrate) {
+      void shuffleControls.start({ rotate: [0, -15, 12, 0], transition: SPRING_BOUNCE });
+    }
+  }, [isShuffled, celebrate, shuffleControls]);
+
+  // Flip the repeat glyph 180° on every mode cycle (accumulated so it never
+  // snaps back to zero between cycles).
+  useEffect(() => {
+    const changed = repeatMode !== prevRepeatMode.current;
+    prevRepeatMode.current = repeatMode;
+    if (changed && celebrate) {
+      repeatRotation.current += 180;
+      void repeatControls.start({ rotate: repeatRotation.current, transition: SPRING_SNAPPY });
+    }
+  }, [repeatMode, celebrate, repeatControls]);
+
+  // One-shot glow pulse when playback starts.
+  useEffect(() => {
+    const started = isPlaying && !prevPlaying.current;
+    prevPlaying.current = isPlaying;
+    if (started && celebrate) setGlowKey(k => k + 1);
+  }, [isPlaying, celebrate]);
+
   return {
     t,
     hasTrack: Boolean(currentTrack),
@@ -36,6 +83,10 @@ export function usePlayerControls(): IPlayerControlsView {
     playPauseTooltip: isPlaying ? t('pauseSpace') : t('playSpace'),
     playPauseLabel: isPlaying ? t('pause') : t('play'),
     repeatLabel: t('repeatAria', { mode: repeatMode }),
+    shuffleControls,
+    repeatControls,
+    glowKey,
+    showStartGlow: celebrate && glowKey > 0,
     onTogglePlay: togglePlay,
     onNext: next,
     onPrevious: previous,

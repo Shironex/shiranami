@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAnimationControls } from 'motion/react';
 import { formatDuration } from '@shiranami/shared';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -9,7 +10,9 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { isRadioTrack } from '@/lib/utils';
+import { SPRING_BOUNCE } from '@/lib/motion';
 import { IS_MAC } from '@/lib/platform';
 import type { IPlayerBarView } from './PlayerBar.types';
 
@@ -67,6 +70,24 @@ export function usePlayerBar(): IPlayerBarView {
   const onToggleLyrics = useCallback(() => toggleRightPanel('lyrics'), [toggleRightPanel]);
   const onToggleQueue = useCallback(() => toggleRightPanel('queue'), [toggleRightPanel]);
 
+  // Celebrate a fresh favorite with a heart pop + expanding ring. Gated behind
+  // reduced-motion and the low-performance escape hatch — otherwise it's just
+  // the color change (press feedback still applies).
+  const reducedMotion = useReducedMotion();
+  const celebrateFavorite = !reducedMotion && !lowPerformanceMode;
+  const heartControls = useAnimationControls();
+  const prevFavorite = useRef(isFavorite);
+  const [favoriteBurst, setFavoriteBurst] = useState(0);
+
+  useEffect(() => {
+    const became = isFavorite && !prevFavorite.current;
+    prevFavorite.current = isFavorite;
+    if (became && celebrateFavorite) {
+      void heartControls.start({ scale: [1, 1.3, 1], transition: SPRING_BOUNCE });
+      setFavoriteBurst(b => b + 1);
+    }
+  }, [isFavorite, celebrateFavorite, heartControls]);
+
   return {
     t,
     currentTrack,
@@ -94,6 +115,9 @@ export function usePlayerBar(): IPlayerBarView {
     showVisualizer,
     lyricsActive: rightPanel === 'lyrics',
     queueActive: rightPanel === 'queue',
+    heartControls,
+    favoriteBurst,
+    showFavoriteBurst: celebrateFavorite && favoriteBurst > 0,
     compactTooltip: t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` }),
     visualizerTooltip: t('visualizerTooltip'),
     lyricsTooltip: t('lyricsTooltip', { shortcut: `${MOD}+L` }),
