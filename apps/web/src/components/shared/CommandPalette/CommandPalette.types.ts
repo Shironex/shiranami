@@ -13,6 +13,8 @@ export interface ICommandPaletteView {
   readonly setOpen: (open: boolean) => void;
   /** The full library — mapped into track rows while open, empty while closed. */
   readonly tracks: readonly Track[];
+  /** Recently-played tracks (resolved to live library entries), for the top group. */
+  readonly recentTracks: readonly Track[];
   /** The currently-playing track id, for the inline "playing" marker. */
   readonly currentTrackId: string | undefined;
   /** Whether the library has any tracks (gates the Tracks group). */
