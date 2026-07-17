@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { MascotIdleNote } from './MascotIdleNote';
 import { useViewEmptyState } from './ViewEmptyState.hooks';
 import type { IViewEmptyStateProps } from './ViewEmptyState.types';
 
@@ -67,6 +68,8 @@ export default function ViewEmptyState(props: IViewEmptyStateProps) {
           <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
             <Icon className={cn('w-4 h-4', isError ? 'text-destructive' : 'text-primary')} />
           </div>
+          {/* Rare idle whimsy — only in the calm empty state, never on errors. */}
+          {!isError && <MascotIdleNote />}
         </div>
 
         {/* Text */}
