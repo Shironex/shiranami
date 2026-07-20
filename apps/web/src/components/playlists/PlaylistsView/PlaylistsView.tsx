@@ -62,7 +62,7 @@ export default function PlaylistsView() {
       whileTap={SCALE_CARD}
       onClick={() => onSelectPlaylist(playlist.id)}
       className={cn(
-        'text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
         cardPaddingClass
       )}
     >

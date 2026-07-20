@@ -52,7 +52,7 @@ export default function Sidebar() {
         data-view={item.id}
         className={cn(
           'group w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative',
-          'active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
           sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2',
           isActive
             ? 'text-foreground'

@@ -61,7 +61,7 @@ export default function RadioView() {
         onClick={tab.onClick}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+          'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary/40',
           tab.isActive
             ? 'bg-primary/15 text-primary'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
