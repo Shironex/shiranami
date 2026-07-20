@@ -55,7 +55,11 @@ export function useVolumeControl(): IVolumeControlView {
     if (!dragging) return;
     const stop = () => setDragging(false);
     window.addEventListener('pointerup', stop);
-    return () => window.removeEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
   }, [dragging]);
 
   const onPointerEnter = useCallback(() => setHovering(true), []);
