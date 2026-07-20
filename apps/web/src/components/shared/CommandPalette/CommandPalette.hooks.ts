@@ -38,7 +38,13 @@ export function useCommandPalette(): ICommandPaletteView {
   // below so nothing runs in the background while the palette is closed.
   const { data: recentEntries } = useQuery({
     queryKey: ['commandPalette', 'recent'],
-    queryFn: () => window.electronAPI.db.history.getRecent({ limit: RECENT_FETCH_LIMIT }),
+    queryFn: () => {
+      // Defensive guard: although `enabled` gates this to Electron, a manual
+      // trigger / prefetch / test path could still invoke the queryFn where
+      // `window.electronAPI` is undefined — reading through it would throw.
+      if (!IS_ELECTRON || !window.electronAPI) return [];
+      return window.electronAPI.db.history.getRecent({ limit: RECENT_FETCH_LIMIT });
+    },
     enabled: open && IS_ELECTRON,
     staleTime: 60_000,
   });
