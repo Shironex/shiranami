@@ -12,8 +12,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { iconButtonVariants } from '@/components/ui/icon-button';
-import { SPRING_SNAPPY } from '@/lib/motion';
+import { MotionIconButton } from '@/components/ui/icon-button';
+import { SPRING_SNAPPY, SCALE_ICON } from '@/lib/motion';
 import { usePlayerControls } from './PlayerControls.hooks';
 
 function PlayerControls() {
@@ -45,12 +45,11 @@ function PlayerControls() {
     <div className="flex items-center gap-2">
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.88 }}
+          <MotionIconButton
+            size="md"
+            whileTap={SCALE_ICON}
             onClick={onToggleShuffle}
             className={cn(
-              iconButtonVariants({ size: 'md' }),
               '[&_svg]:size-3.5',
               isShuffled
                 ? 'text-primary hover:bg-transparent hover:text-primary'
@@ -61,7 +60,7 @@ function PlayerControls() {
             <motion.span animate={shuffleControls} className="inline-flex">
               <Shuffle />
             </motion.span>
-          </motion.button>
+          </MotionIconButton>
         </TooltipTrigger>
         <TooltipContent side="top">{shuffleTooltip}</TooltipContent>
       </Tooltip>
@@ -169,12 +168,11 @@ function PlayerControls() {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.88 }}
+          <MotionIconButton
+            size="md"
+            whileTap={SCALE_ICON}
             onClick={onCycleRepeatMode}
             className={cn(
-              iconButtonVariants({ size: 'md' }),
               '[&_svg]:size-3.5',
               repeatActive
                 ? 'text-primary hover:bg-transparent hover:text-primary'
@@ -185,7 +183,7 @@ function PlayerControls() {
             <motion.span animate={repeatControls} className="inline-flex">
               {repeatOne ? <Repeat1 /> : <Repeat />}
             </motion.span>
-          </motion.button>
+          </MotionIconButton>
         </TooltipTrigger>
         <TooltipContent side="top">{repeatTooltip}</TooltipContent>
       </Tooltip>

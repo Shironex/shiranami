@@ -7,7 +7,7 @@ import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
 import { cn, isRadioTrack } from '@/lib/utils';
 import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { iconButtonVariants } from '@/components/ui/icon-button';
+import { MotionIconButton } from '@/components/ui/icon-button';
 import { Heart } from 'lucide-react';
 import { FavoriteBurst } from '../FavoriteBurst';
 
@@ -40,12 +40,10 @@ export function CompactFavoriteButton() {
     <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.button
-            type="button"
+          <MotionIconButton
             whileTap={SCALE_ICON}
             onClick={() => toggleFavorite(currentTrack.id)}
             className={cn(
-              iconButtonVariants(),
               'relative',
               isFavorite && 'text-favorite hover:bg-favorite/10 hover:text-favorite-hover'
             )}
@@ -55,7 +53,7 @@ export function CompactFavoriteButton() {
             <motion.span animate={heartControls} className="inline-flex">
               <Heart className={cn(isFavorite && 'fill-current')} />
             </motion.span>
-          </motion.button>
+          </MotionIconButton>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {isFavorite ? t('unfavorite') : t('favorite')}

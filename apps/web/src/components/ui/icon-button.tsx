@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 const iconButtonVariants = cva(
@@ -51,4 +52,14 @@ function IconButton({
   );
 }
 
-export { IconButton, iconButtonVariants };
+/**
+ * Motion-enabled IconButton. `motion.create` consumes the motion props
+ * (whileTap, whileHover, animate) and forwards everything else — size, variant,
+ * className, onClick, aria attributes, ref — to IconButton, so call sites get
+ * tap/hover animation without hand-rebuilding the button and losing its
+ * guarantees (default type="button", variants, forwarded ref). Pair whileTap
+ * with a SCALE_* token from '@/lib/motion' instead of a magic literal.
+ */
+const MotionIconButton = motion.create(IconButton);
+
+export { IconButton, MotionIconButton, iconButtonVariants };
