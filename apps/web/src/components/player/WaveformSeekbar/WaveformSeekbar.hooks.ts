@@ -52,6 +52,10 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoverLineRef = useRef<HTMLDivElement>(null);
   const hoverBubbleRef = useRef<HTMLDivElement>(null);
+  // Cached during a hover sequence so the high-frequency onPointerMove reads the
+  // track geometry once instead of forcing a synchronous layout recalc on every
+  // move (its own style writes would otherwise re-trigger layout each frame).
+  const trackRectRef = useRef<DOMRect | null>(null);
   const { widthRef, heightRef, dprRef } = useCanvasSize(canvasRef);
   const { rgbRef } = usePrimaryRGB();
   const isDraggingRef = useRef(false);
@@ -74,6 +78,8 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
   );
 
   const hideHover = useCallback(() => {
+    // Drop the cached rect so the next hover sequence re-measures fresh geometry.
+    trackRectRef.current = null;
     if (hoverLineRef.current) hoverLineRef.current.style.opacity = '0';
     if (hoverBubbleRef.current) hoverBubbleRef.current.style.opacity = '0';
   }, []);
@@ -222,8 +228,16 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
       const line = hoverLineRef.current;
       const bubble = hoverBubbleRef.current;
       if (!track || !line || !bubble || !duration) return;
-      const rect = track.getBoundingClientRect();
-      if (rect.width === 0) return;
+      // Measure once per hover sequence; hideHover clears this on pointer-leave so
+      // the geometry is refreshed on the next hover rather than read every move.
+      // A zero-width (not-yet-laid-out) rect is not cached, so it re-measures next
+      // move just as the direct read did.
+      let rect = trackRectRef.current;
+      if (!rect) {
+        rect = track.getBoundingClientRect();
+        if (rect.width === 0) return;
+        trackRectRef.current = rect;
+      }
 
       const ratio = clamp01((e.clientX - rect.left) / rect.width);
       const x = ratio * rect.width;
