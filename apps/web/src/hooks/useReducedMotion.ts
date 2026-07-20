@@ -1,17 +1,29 @@
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
+
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 /**
- * Reads the user's `prefers-reduced-motion` preference once at mount.
+ * Tracks the user's `prefers-reduced-motion` preference and stays in sync with
+ * mid-session changes.
  *
- * Cached for the component's lifetime (matching the splash + onboarding call
- * sites, which only run for a few seconds and don't need to react to a
- * mid-session preference change). Returns `false` outside the browser.
+ * Attaches a `matchMedia` change listener so long-lived components (App,
+ * Sidebar, PlayerBar) react when the OS-level accessibility setting is toggled
+ * without needing a reload. Returns `false` outside the browser.
  */
 export function useReducedMotion(): boolean {
-  return useMemo(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    []
+  const [reduced, setReduced] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(REDUCED_MOTION_QUERY).matches
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia(REDUCED_MOTION_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches);
+    // Re-sync in case the preference changed between render and effect.
+    setReduced(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  return reduced;
 }
