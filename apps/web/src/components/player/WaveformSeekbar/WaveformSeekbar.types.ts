@@ -27,7 +27,9 @@ export interface IWaveformSeekbarView {
   /** Keyboard seeking (arrows / page / home-end). */
   readonly onKeyDown: (event: KeyboardEvent) => void;
   /** Whether the non-drag hover affordance (playhead line + time bubble) is
-   *  active — off under reduced motion / low-performance mode. */
+   *  active — disabled only under low-performance mode. It is intentionally kept
+   *  under reduced motion: it's a functional readout whose sole motion is a short
+   *  (~150ms) opacity fade, not the kind of movement reduced motion suppresses. */
   readonly hoverEnabled: boolean;
   /** Ref for the faint vertical hover-playhead line (positioned imperatively). */
   readonly hoverLineRef: RefObject<HTMLDivElement | null>;
