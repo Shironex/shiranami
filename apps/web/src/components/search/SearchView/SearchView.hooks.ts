@@ -15,6 +15,7 @@ export function useSearchView(): ISearchViewView {
     results,
     isSearching,
     searchError,
+    noResults,
     handleSearch,
     handleKeyDown: originalHandleKeyDown,
     handleDownload,
@@ -64,10 +65,10 @@ export function useSearchView(): ISearchViewView {
     if (query.trim() === '') setHasSearched(false);
   }, [query]);
 
-  // A completed search that returned nothing (useSearch sets searchError to the
-  // `noResults` copy in that case) — distinct from a genuine search failure.
-  const showNoResults =
-    hasSearched && !isSearching && results.length === 0 && searchError === t('noResults');
+  // A completed search that returned nothing — driven by useSearch's typed
+  // `noResults` flag, kept independent of `searchError` (a genuine failure).
+  // `hasSearched` still gates it so the empty state resets when the query clears.
+  const showNoResults = hasSearched && !isSearching && noResults;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
