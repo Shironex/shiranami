@@ -166,6 +166,9 @@ export function useWaveformSeekbar(): IWaveformSeekbarView {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const observer = new ResizeObserver(() => {
+      // Geometry changed, so the hover rect cached during an active hover is
+      // now stale — drop it so the next move re-measures.
+      trackRectRef.current = null;
       const d = usePlaybackStore.getState().duration;
       const scrub = usePlayerUIStore.getState().scrubTime;
       const time = scrub ?? currentTimeRef.current;
