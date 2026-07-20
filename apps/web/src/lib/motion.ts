@@ -20,6 +20,13 @@ export const SCALE_BUTTON = { scale: 0.9 };
 export const SCALE_ACTION = { scale: 0.92 };
 export const SCALE_CARD = { scale: 0.98 };
 
+/**
+ * whileHover lift token for icon buttons — the subtle grow that pairs with the
+ * SCALE_ICON tap. Kept as a named token so hover scales don't drift into magic
+ * literals like the tap scales above.
+ */
+export const HOVER_ICON = { scale: 1.08 };
+
 export const SPRING_SNAPPY = { type: 'spring' as const, stiffness: 500, damping: 30 };
 export const SPRING_GENTLE = { type: 'spring' as const, stiffness: 250, damping: 20 };
 export const SPRING_BOUNCE = { type: 'spring' as const, stiffness: 300, damping: 25 };

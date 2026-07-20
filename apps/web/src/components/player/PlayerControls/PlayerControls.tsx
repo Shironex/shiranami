@@ -13,7 +13,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { MotionIconButton } from '@/components/ui/icon-button';
-import { SPRING_SNAPPY, SCALE_ICON } from '@/lib/motion';
+import { SPRING_SNAPPY, SCALE_ICON, HOVER_ICON } from '@/lib/motion';
 import { usePlayerControls } from './PlayerControls.hooks';
 
 function PlayerControls() {
@@ -68,8 +68,8 @@ function PlayerControls() {
       <Tooltip>
         <TooltipTrigger asChild>
           <motion.button
-            whileTap={{ scale: 0.88 }}
-            whileHover={{ scale: 1.08 }}
+            whileTap={SCALE_ICON}
+            whileHover={HOVER_ICON}
             onClick={onPrevious}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground/80 hover:text-foreground transition-colors"
             aria-label={t('previous')}
@@ -154,8 +154,8 @@ function PlayerControls() {
       <Tooltip>
         <TooltipTrigger asChild>
           <motion.button
-            whileTap={{ scale: 0.88 }}
-            whileHover={{ scale: 1.08 }}
+            whileTap={SCALE_ICON}
+            whileHover={HOVER_ICON}
             onClick={onNext}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-foreground/80 hover:text-foreground transition-colors"
             aria-label={t('next')}
