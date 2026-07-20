@@ -70,6 +70,12 @@ vi.mock('motion/react', () => ({
     {},
     {
       get: (_target, prop) => {
+        // motion.create(Component) is invoked at module load (e.g. IconButton's
+        // MotionIconButton) — return the component untouched so no JSX renders
+        // before the test module's imports finish initializing.
+        if (prop === 'create') {
+          return (Component: React.ElementType) => Component;
+        }
         if (typeof prop === 'string') {
           const MotionMock = ({
             children,
