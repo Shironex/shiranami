@@ -117,7 +117,7 @@ function App() {
   const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
 
   const { t } = useTranslation();
-  const reduceMotion = useReducedMotion();
+  const reducedMotion = useReducedMotion();
 
   useAudioEngine();
   useMediaSession();
@@ -402,9 +402,9 @@ function App() {
                         <motion.div
                           key={activeView}
                           className="flex-1 min-w-0 min-h-0 flex flex-col"
-                          initial={reduceMotion ? false : VIEW_TRANSITION.initial}
-                          animate={reduceMotion ? undefined : VIEW_TRANSITION.animate}
-                          exit={reduceMotion ? undefined : VIEW_TRANSITION.exit}
+                          initial={reducedMotion ? false : VIEW_TRANSITION.initial}
+                          animate={reducedMotion ? undefined : VIEW_TRANSITION.animate}
+                          exit={reducedMotion ? undefined : VIEW_TRANSITION.exit}
                           transition={VIEW_TRANSITION.transition}
                         >
                           {activeView === 'overview' && (
