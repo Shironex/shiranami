@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnimationControls } from 'motion/react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useUIStore } from '@/stores/useUIStore';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
 import { SPRING_SNAPPY, SPRING_BOUNCE } from '@/lib/motion';
 import type { IPlayerControlsView } from './PlayerControls.types';
 
@@ -27,12 +26,9 @@ export function usePlayerControls(): IPlayerControlsView {
   const repeatTooltip =
     repeatMode === 'off' ? t('repeatOff') : repeatMode === 'all' ? t('repeatAll') : t('repeatOne');
 
-  // Decorative transport motion is gated behind both reduced-motion and the
-  // low-performance escape hatch; when either is set the controls fall back to
-  // plain state changes (press/tap feedback still applies).
-  const reducedMotion = useReducedMotion();
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-  const celebrate = !reducedMotion && !lowPerformanceMode;
+  // Decorative transport motion falls back to plain state changes when
+  // decorative motion is gated off (press/tap feedback still applies).
+  const celebrate = useDecorativeMotion();
 
   const shuffleControls = useAnimationControls();
   const repeatControls = useAnimationControls();
