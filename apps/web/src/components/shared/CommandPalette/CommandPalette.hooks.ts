@@ -75,12 +75,14 @@ export function useCommandPalette(): ICommandPaletteView {
     // Gated on `open` alongside the library below — no full-library iteration
     // happens while the palette is closed.
     if (!open || !recentEntries?.length || library.length === 0) return [];
-    const byId = new Map(library.map(track => [track.id, track]));
     const seen = new Set<string>();
     const result: Track[] = [];
     for (const entry of recentEntries) {
       if (seen.has(entry.trackId)) continue;
-      const track = byId.get(entry.trackId);
+      // `recentEntries` is capped at RECENT_FETCH_LIMIT, so a handful of linear
+      // scans is cheaper than allocating a Map over the entire library (which
+      // can be tens of thousands of tracks) on every palette open.
+      const track = library.find(t => t.id === entry.trackId);
       if (!track) continue;
       seen.add(entry.trackId);
       result.push(track);
