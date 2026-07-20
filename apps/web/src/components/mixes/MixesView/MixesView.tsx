@@ -5,8 +5,7 @@ import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { BulkActionBar } from '@/components/shared/BulkActionBar';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { STAGGER_CONTAINER } from '@/lib/motion';
+import { StaggerList } from '@/components/shared/StaggerList';
 import { useMixesView } from './MixesView.hooks';
 import { MixesViewSkeleton } from './MixesViewSkeleton';
 import { MixGridRow } from './MixGridRow';
@@ -15,7 +14,6 @@ import { ArtCollage } from '../ArtCollage';
 
 export default function MixesView() {
   const view = useMixesView();
-  const prefersReducedMotion = useReducedMotion();
 
   if (view.showSkeleton) {
     return <MixesViewSkeleton />;
@@ -155,18 +153,7 @@ export default function MixesView() {
         )}
 
         <div className="rounded-2xl glass-panel border border-border/30 p-2">
-          {prefersReducedMotion ? (
-            <div className="space-y-1.5">{mixGridRows}</div>
-          ) : (
-            <motion.div
-              className="space-y-1.5"
-              variants={STAGGER_CONTAINER}
-              initial="hidden"
-              animate="visible"
-            >
-              {mixGridRows}
-            </motion.div>
-          )}
+          <StaggerList className="space-y-1.5">{mixGridRows}</StaggerList>
         </div>
 
         {/* Subtle divider and track art collage */}

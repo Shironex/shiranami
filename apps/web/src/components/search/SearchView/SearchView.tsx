@@ -1,9 +1,7 @@
 import { Search, SearchX, Loader2, X, Keyboard } from 'lucide-react';
-import { motion } from 'motion/react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { STAGGER_CONTAINER } from '@/lib/motion';
+import { StaggerList } from '@/components/shared/StaggerList';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -49,8 +47,6 @@ export default function SearchView() {
     showCenteredSearchState,
     showNoResults,
   } = useSearchView();
-
-  const prefersReducedMotion = useReducedMotion();
 
   if (dependencyState === 'checking') {
     return <SearchStateCard title={t('preparing')} description={t('preparingDesc')} loading />;
@@ -176,18 +172,7 @@ export default function SearchView() {
           )
         ) : (
           <div className="mx-0 mb-0 rounded-2xl glass-panel border border-border/30 overflow-hidden px-2 py-1">
-            {prefersReducedMotion ? (
-              <div className="space-y-1">{resultRows}</div>
-            ) : (
-              <motion.div
-                className="space-y-1"
-                variants={STAGGER_CONTAINER}
-                initial="hidden"
-                animate="visible"
-              >
-                {resultRows}
-              </motion.div>
-            )}
+            <StaggerList className="space-y-1">{resultRows}</StaggerList>
           </div>
         )}
       </div>
