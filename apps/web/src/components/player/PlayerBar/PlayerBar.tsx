@@ -6,6 +6,7 @@ import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { FavoriteBurst } from '../FavoriteBurst';
 import { PlayerControls } from '../PlayerControls';
 import { SeekBar } from '../SeekBar';
 import { WaveformSeekbar } from '../WaveformSeekbar';
@@ -149,16 +150,7 @@ export default function PlayerBar() {
                     )}
                     aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                   >
-                    {showFavoriteBurst && (
-                      <motion.span
-                        key={favoriteBurst}
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-full bg-favorite/25"
-                        initial={{ scale: 0.5, opacity: 0.6 }}
-                        animate={{ scale: 1.9, opacity: 0 }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
-                      />
-                    )}
+                    {showFavoriteBurst && <FavoriteBurst burstKey={favoriteBurst} />}
                     <motion.span animate={heartControls} className="inline-flex">
                       <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
                     </motion.span>

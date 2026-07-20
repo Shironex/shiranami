@@ -1,16 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, useAnimationControls } from 'motion/react';
+import { motion } from 'motion/react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useUIStore } from '@/stores/useUIStore';
 import { useTrack } from '@/hooks/useTrack';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
 import { cn, isRadioTrack } from '@/lib/utils';
-import { SCALE_ICON, SPRING_BOUNCE } from '@/lib/motion';
+import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { iconButtonVariants } from '@/components/ui/icon-button';
 import { Heart } from 'lucide-react';
+import { FavoriteBurst } from '../FavoriteBurst';
 
 /**
  * Compact-mode favorite button. Lives in the title bar so the user can heart
@@ -27,27 +26,15 @@ export function CompactFavoriteButton() {
   const mergedTrack = useTrack(currentTrack?.id, currentTrack);
   const isFavorite = mergedTrack?.isFavorite ?? currentTrack?.isFavorite ?? false;
 
-  // Same fresh-favorite celebration as the main player bar: heart pop +
-  // expanding ring, gated behind reduced-motion and the low-performance mode.
-  const reducedMotion = useReducedMotion();
-  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
-  const celebrateFavorite = !reducedMotion && !lowPerformanceMode;
-  const heartControls = useAnimationControls();
-  const prevFavorite = useRef(isFavorite);
-  const [favoriteBurst, setFavoriteBurst] = useState(0);
-
-  useEffect(() => {
-    const became = isFavorite && !prevFavorite.current;
-    prevFavorite.current = isFavorite;
-    if (became && celebrateFavorite) {
-      void heartControls.start({ scale: [1, 1.3, 1], transition: SPRING_BOUNCE });
-      setFavoriteBurst(b => b + 1);
-    }
-  }, [isFavorite, celebrateFavorite, heartControls]);
+  // Same fresh-favorite celebration as the main player bar (heart pop +
+  // expanding ring), scoped to the current track so skipping onto an
+  // already-favorited track never misfires.
+  const { heartControls, favoriteBurst, showFavoriteBurst } = useFavoriteCelebration(
+    isFavorite,
+    currentTrack?.id
+  );
 
   if (!currentTrack || isRadioTrack(currentTrack.filePath)) return null;
-
-  const showFavoriteBurst = celebrateFavorite && favoriteBurst > 0;
 
   return (
     <div className="flex items-center rounded-xl border border-border/20 bg-background/35 p-0.5 shadow-sm shadow-black/10">
@@ -64,16 +51,7 @@ export function CompactFavoriteButton() {
             )}
             aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
           >
-            {showFavoriteBurst && (
-              <motion.span
-                key={favoriteBurst}
-                aria-hidden
-                className="pointer-events-none absolute inset-0 rounded-full bg-favorite/25"
-                initial={{ scale: 0.5, opacity: 0.6 }}
-                animate={{ scale: 1.9, opacity: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              />
-            )}
+            {showFavoriteBurst && <FavoriteBurst burstKey={favoriteBurst} />}
             <motion.span animate={heartControls} className="inline-flex">
               <Heart className={cn(isFavorite && 'fill-current')} />
             </motion.span>
