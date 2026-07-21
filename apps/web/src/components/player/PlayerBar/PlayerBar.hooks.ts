@@ -9,6 +9,7 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
 import { isRadioTrack } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import type { IPlayerBarView } from './PlayerBar.types';
@@ -67,6 +68,13 @@ export function usePlayerBar(): IPlayerBarView {
   const onToggleLyrics = useCallback(() => toggleRightPanel('lyrics'), [toggleRightPanel]);
   const onToggleQueue = useCallback(() => toggleRightPanel('queue'), [toggleRightPanel]);
 
+  // Celebrate a fresh favorite with a heart pop + expanding ring, scoped to the
+  // current track so skipping onto an already-favorited track never misfires.
+  const { heartControls, favoriteBurst, showFavoriteBurst } = useFavoriteCelebration(
+    isFavorite,
+    currentTrack?.id
+  );
+
   return {
     t,
     currentTrack,
@@ -94,6 +102,9 @@ export function usePlayerBar(): IPlayerBarView {
     showVisualizer,
     lyricsActive: rightPanel === 'lyrics',
     queueActive: rightPanel === 'queue',
+    heartControls,
+    favoriteBurst,
+    showFavoriteBurst,
     compactTooltip: t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` }),
     visualizerTooltip: t('visualizerTooltip'),
     lyricsTooltip: t('lyricsTooltip', { shortcut: `${MOD}+L` }),

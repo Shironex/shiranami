@@ -1,6 +1,7 @@
-import { Search, Loader2, X, Keyboard } from 'lucide-react';
+import { Search, SearchX, Loader2, X, Keyboard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { StaggerList } from '@/components/shared/StaggerList';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ProgressBar } from '@/components/ui/progress-bar';
@@ -44,6 +45,7 @@ export default function SearchView() {
     suggestionsOpen,
     onSelectSuggestion,
     showCenteredSearchState,
+    showNoResults,
   } = useSearchView();
 
   if (dependencyState === 'checking') {
@@ -152,6 +154,12 @@ export default function SearchView() {
         {showCenteredSearchState ? (
           isSearching ? (
             <SearchingCard query={query} />
+          ) : showNoResults ? (
+            <ViewEmptyState
+              title={t('noResultsTitle', { query: query.trim() })}
+              subtitle={t('noResultsSubtitle')}
+              icon={SearchX}
+            />
           ) : searchError ? (
             <SearchErrorCard error={searchError} />
           ) : (
@@ -164,7 +172,7 @@ export default function SearchView() {
           )
         ) : (
           <div className="mx-0 mb-0 rounded-2xl glass-panel border border-border/30 overflow-hidden px-2 py-1">
-            <div className="space-y-1">{resultRows}</div>
+            <StaggerList className="space-y-1">{resultRows}</StaggerList>
           </div>
         )}
       </div>

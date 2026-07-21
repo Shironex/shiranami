@@ -73,7 +73,10 @@ describe('useSearch', () => {
   it('sets isSearching true during fetch, false after', async () => {
     let resolveSearch!: (value: SearchResult[]) => void;
     vi.mocked(window.electronAPI.downloader.search).mockImplementation(
-      () => new Promise((resolve) => { resolveSearch = resolve; })
+      () =>
+        new Promise(resolve => {
+          resolveSearch = resolve;
+        })
     );
 
     const { result } = renderHook(() => useSearch());
@@ -100,9 +103,7 @@ describe('useSearch', () => {
   });
 
   it('handles errors gracefully', async () => {
-    vi.mocked(window.electronAPI.downloader.search).mockRejectedValue(
-      new Error('Network failure')
-    );
+    vi.mocked(window.electronAPI.downloader.search).mockRejectedValue(new Error('Network failure'));
 
     const { result } = renderHook(() => useSearch());
 
@@ -119,7 +120,7 @@ describe('useSearch', () => {
     expect(result.current.results).toEqual([]);
   });
 
-  it('sets searchError when results are empty', async () => {
+  it('sets the noResults flag (not searchError) when results are empty', async () => {
     vi.mocked(window.electronAPI.downloader.search).mockResolvedValue([] as never);
 
     const { result } = renderHook(() => useSearch());
@@ -133,8 +134,9 @@ describe('useSearch', () => {
     });
 
     expect(result.current.results).toEqual([]);
-    // i18n.t returns the key as-is in our mock
-    expect(result.current.searchError).toBe('noResults');
+    // Empty results are a typed status, never a translated error string.
+    expect(result.current.noResults).toBe(true);
+    expect(result.current.searchError).toBeNull();
   });
 
   it('does not search when query is empty or whitespace', async () => {

@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 const iconButtonVariants = cva(
-  'inline-flex items-center justify-center rounded-lg text-muted-foreground/75 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex items-center justify-center rounded-lg text-muted-foreground/75 transition-[background-color,border-color,color,box-shadow,transform] active:scale-95 motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -51,4 +52,14 @@ function IconButton({
   );
 }
 
-export { IconButton, iconButtonVariants };
+/**
+ * Motion-enabled IconButton. `motion.create` consumes the motion props
+ * (whileTap, whileHover, animate) and forwards everything else — size, variant,
+ * className, onClick, aria attributes, ref — to IconButton, so call sites get
+ * tap/hover animation without hand-rebuilding the button and losing its
+ * guarantees (default type="button", variants, forwarded ref). Pair whileTap
+ * with a SCALE_* token from '@/lib/motion' instead of a magic literal.
+ */
+const MotionIconButton = motion.create(IconButton);
+
+export { IconButton, MotionIconButton, iconButtonVariants };

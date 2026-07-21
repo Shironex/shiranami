@@ -15,6 +15,7 @@
   "recentlyPlayedDesc": "Tracks you listened to recently",
   "neverPlayed": "Never Played",
   "neverPlayedDesc": "Undiscovered tracks in your library",
+  "mixEmptyTitle": "This mix is empty",
   "emptyMix": "No tracks match this mix yet",
   "emptyMostPlayed": "Play some tracks to see your most played here",
   "emptyRecentlyPlayed": "Your recently played tracks will appear here",

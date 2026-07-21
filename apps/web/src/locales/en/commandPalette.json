@@ -1,8 +1,11 @@
 {
-  "placeholder": "Search tracks, navigate...",
-  "noResults": "No results found.",
+  "placeholder": "Play something, or jump anywhere…",
+  "noResults": "Nothing matches — try another search.",
+  "recentlyPlayed": "Recently played",
   "navigation": "Navigation",
   "tracks": "Tracks",
   "playing": "Playing",
-  "goTo": "Go to {{view}}"
+  "goTo": "Go to {{view}}",
+  "hintSelect": "Select",
+  "hintClose": "Close"
 }

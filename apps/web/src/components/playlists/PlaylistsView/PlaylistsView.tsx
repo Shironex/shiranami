@@ -1,5 +1,6 @@
-import { ListMusic, Plus, AlertCircle } from 'lucide-react';
+import { ListMusic, Plus, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SCALE_CARD } from '@/lib/motion';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { GridSizeToggle } from '@/components/shared/GridSizeToggle';
@@ -58,10 +59,10 @@ export default function PlaylistsView() {
       }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+      whileTap={SCALE_CARD}
       onClick={() => onSelectPlaylist(playlist.id)}
       className={cn(
-        'text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group',
+        'text-left rounded-2xl bg-surface/60 border border-border/30 hover:border-border/60 hover:bg-surface transition-all duration-200 group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
         cardPaddingClass
       )}
     >
@@ -142,8 +143,9 @@ export default function PlaylistsView() {
                 size="sm"
                 onClick={onCreate}
                 disabled={!canCreate}
-                className="h-7 rounded-lg bg-primary/20 px-3 text-primary shadow-none hover:bg-primary/30"
+                className="h-7 rounded-lg bg-primary/20 px-3 text-primary shadow-none hover:bg-primary/30 [&_svg]:size-3.5"
               >
+                {isCreating && <Loader2 className="animate-spin" />}
                 {isCreating ? t('creating') : t('create')}
               </Button>
               <Button

@@ -9,6 +9,20 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
 }));
 
+// The async `.rejects.toThrow` matcher is broken in this workspace (mismatched
+// @vitest/expect/chai versions unwrap the rejection to `undefined`), so assert
+// rejections by capturing the error and matching its message directly.
+async function expectRejection(promise: Promise<unknown>, match: RegExp) {
+  let error: unknown;
+  try {
+    await promise;
+  } catch (err) {
+    error = err;
+  }
+  expect(error, 'expected the promise to reject').toBeInstanceOf(Error);
+  expect((error as Error).message).toMatch(match);
+}
+
 describe('useMetadataEnrichStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -182,7 +196,8 @@ describe('useMetadataEnrichStore', () => {
     });
 
     it('throws when the track is not in the library', async () => {
-      await expect(useMetadataEnrichStore.getState().previewSingleTrack('missing')).rejects.toThrow(
+      await expectRejection(
+        useMetadataEnrichStore.getState().previewSingleTrack('missing'),
         /not found/
       );
     });
@@ -294,11 +309,12 @@ describe('useMetadataEnrichStore', () => {
     });
 
     it('throws when the track is no longer in the library at apply time', async () => {
-      await expect(
+      await expectRejection(
         useMetadataEnrichStore
           .getState()
-          .applySingleTrack('missing-id', { artist: 'A' }, { writeToFile: false })
-      ).rejects.toThrow(/not found/);
+          .applySingleTrack('missing-id', { artist: 'A' }, { writeToFile: false }),
+        /not found/
+      );
     });
 
     it('throws when writeToFile is true and enrichTracks returns success: false', async () => {
@@ -307,11 +323,12 @@ describe('useMetadataEnrichStore', () => {
         { id: 'id-1', success: false, updatedFields: {}, source: 'none', error: 'Write failed' },
       ]);
 
-      await expect(
+      await expectRejection(
         useMetadataEnrichStore
           .getState()
-          .applySingleTrack('id-1', { artist: 'A' }, { writeToFile: true })
-      ).rejects.toThrow(/Write failed/);
+          .applySingleTrack('id-1', { artist: 'A' }, { writeToFile: true }),
+        /Write failed/
+      );
     });
 
     it('patches usePlaybackStore.currentTrack when the applied track is playing', async () => {

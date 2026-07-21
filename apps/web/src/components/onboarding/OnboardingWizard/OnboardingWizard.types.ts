@@ -46,6 +46,8 @@ export interface IOnboardingWizardView {
   readonly isExiting: boolean;
   /** Whether the entrance fade-in is still pending (initial opacity 0). */
   readonly isEntering: boolean;
+  /** Whether the final-step completion flourish should play (never on skip). */
+  readonly isCelebrating: boolean;
   /** Localized label for the primary advance/finish button. */
   readonly primaryLabel: string;
   /** Advance to the next step, or finish on the last step. */

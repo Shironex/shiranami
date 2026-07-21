@@ -1,6 +1,8 @@
 import { Disc3 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { type CellComponentProps } from 'react-window';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { SCALE_CARD } from '@/lib/motion';
 import { ROW_HEIGHT_TEXT_BLOCK } from './AlbumGrid.hooks';
 import type { IAlbumCellProps } from './AlbumGrid.types';
 
@@ -31,9 +33,10 @@ export function AlbumCell({
   }
   return (
     <div style={insetStyle}>
-      <button
+      <motion.button
+        whileTap={SCALE_CARD}
         onClick={() => onAlbumClick(album.key)}
-        className={`text-left ${cardPaddingClass} rounded-2xl bg-card/70 border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col`}
+        className={`text-left ${cardPaddingClass} rounded-2xl bg-card/70 border border-border/30 hover:border-primary/30 hover:shadow-[0_0_20px_-6px_rgba(var(--primary-rgb),0.4)] transition-all duration-200 group w-full h-full flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
       >
         <div
           className="w-full rounded-xl bg-muted/30 flex items-center justify-center mb-3 overflow-hidden"
@@ -60,7 +63,7 @@ export function AlbumCell({
             {trackCountLabel(album.trackCount)}
           </p>
         </div>
-      </button>
+      </motion.button>
     </div>
   );
 }

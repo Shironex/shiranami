@@ -1,8 +1,11 @@
 {
-  "placeholder": "Szukaj utworów, nawiguj...",
-  "noResults": "Nie znaleziono wyników.",
+  "placeholder": "Zagraj coś albo przejdź gdziekolwiek…",
+  "noResults": "Nic nie pasuje — spróbuj innego wyszukiwania.",
+  "recentlyPlayed": "Ostatnio odtwarzane",
   "navigation": "Nawigacja",
   "tracks": "Utwory",
   "playing": "Odtwarzane",
-  "goTo": "Przejdź do {{view}}"
+  "goTo": "Przejdź do {{view}}",
+  "hintSelect": "Wybierz",
+  "hintClose": "Zamknij"
 }

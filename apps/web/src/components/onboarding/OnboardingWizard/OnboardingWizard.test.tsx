@@ -1,5 +1,5 @@
-import type { ReactElement } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
+import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,29 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
 
 import OnboardingWizard from './OnboardingWizard';
+import { useOnboardingWizard } from './OnboardingWizard.hooks';
+
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const matchMedia = window.matchMedia as unknown as ReturnType<typeof vi.fn>;
+
+/**
+ * Force `prefers-reduced-motion` for the rest of the test. `useReducedMotion`
+ * reads `matchMedia` twice — once for its initial state and again inside an
+ * effect that also attaches a `change` listener — so a one-shot mock is not
+ * enough: the implementation has to answer every call. Reset in `afterEach`.
+ */
+function setPrefersReducedMotion(reduced: boolean): void {
+  matchMedia.mockImplementation((query: string) => ({
+    matches: reduced && query === REDUCED_MOTION_QUERY,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
 
 function renderWizard(onComplete: () => void = () => {}): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -18,9 +41,24 @@ function renderWizard(onComplete: () => void = () => {}): void {
   render(ui);
 }
 
+function renderWizardHook(onComplete: () => void = () => {}) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  return renderHook(() => useOnboardingWizard({ onComplete }), { wrapper });
+}
+
+/** Jump the wizard hook to its final (summary) step, where the CTA finishes. */
+function selectFinalStep(result: { current: ReturnType<typeof useOnboardingWizard> }): void {
+  act(() => result.current.steps[result.current.steps.length - 1].onSelect());
+  expect(result.current.isLast).toBe(true);
+}
+
 afterEach(() => {
   useOnboardingStore.setState({ hasCompletedOnboarding: false });
   useUIStore.setState({ lowPerformanceMode: false });
+  setPrefersReducedMotion(false);
 });
 
 describe('OnboardingWizard', () => {
@@ -87,17 +125,7 @@ describe('OnboardingWizard', () => {
 
   it('completes onboarding when skipped (reduced motion finishes synchronously)', async () => {
     const user = userEvent.setup();
-    const matchMedia = window.matchMedia as unknown as ReturnType<typeof vi.fn>;
-    matchMedia.mockImplementationOnce((query: string) => ({
-      matches: true,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
+    setPrefersReducedMotion(true);
     const onComplete = vi.fn();
     renderWizard(onComplete);
 
@@ -105,5 +133,79 @@ describe('OnboardingWizard', () => {
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(useOnboardingStore.getState().hasCompletedOnboarding).toBe(true);
+  });
+});
+
+describe('OnboardingWizard completion flourish', () => {
+  it('celebrates on the final-step CTA when motion is enabled and defers finish', async () => {
+    // Motion enabled: reduced-motion mock stays false (default) and low-perf off.
+    const onComplete = vi.fn();
+    const { result } = renderWizardHook(onComplete);
+    selectFinalStep(result);
+
+    act(() => result.current.onPrimary());
+
+    // The flourish plays and finish is held behind the exit fog-out — the
+    // CompletionFlourish path is taken and completion is NOT synchronous.
+    expect(result.current.isCelebrating).toBe(true);
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // finish resolves once the exit-animation window elapses.
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(useOnboardingStore.getState().hasCompletedOnboarding).toBe(true);
+  });
+
+  it('does not celebrate on the final-step CTA under low-performance mode', async () => {
+    useUIStore.setState({ lowPerformanceMode: true });
+    const onComplete = vi.fn();
+    const { result } = renderWizardHook(onComplete);
+    selectFinalStep(result);
+
+    act(() => result.current.onPrimary());
+
+    // disableMotion → no flourish and finish runs synchronously.
+    expect(result.current.isCelebrating).toBe(false);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(useOnboardingStore.getState().hasCompletedOnboarding).toBe(true);
+  });
+
+  it('does not celebrate on the final-step CTA under reduced motion', async () => {
+    setPrefersReducedMotion(true);
+    const onComplete = vi.fn();
+    const { result } = renderWizardHook(onComplete);
+    selectFinalStep(result);
+
+    act(() => result.current.onPrimary());
+
+    expect(result.current.isCelebrating).toBe(false);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(useOnboardingStore.getState().hasCompletedOnboarding).toBe(true);
+  });
+
+  it('never celebrates when dismissed via the Skip control, even with motion enabled', async () => {
+    const onComplete = vi.fn();
+    const { result } = renderWizardHook(onComplete);
+    selectFinalStep(result);
+
+    act(() => result.current.onSkip());
+
+    // Skip is the completion path too, but it must never light the flourish.
+    expect(result.current.isCelebrating).toBe(false);
+    expect(onComplete).not.toHaveBeenCalled();
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+  });
+
+  it('never celebrates when dismissed via Esc, even with motion enabled', async () => {
+    const onComplete = vi.fn();
+    const { result } = renderWizardHook(onComplete);
+    selectFinalStep(result);
+
+    // Bubbles up to the window keydown listener the hook installs.
+    act(() => {
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+
+    expect(result.current.isCelebrating).toBe(false);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
   });
 });

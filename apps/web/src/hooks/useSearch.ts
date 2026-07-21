@@ -40,6 +40,10 @@ export function useSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  // Typed signal for "a completed search returned zero results", kept separate
+  // from `searchError` (which is reserved for genuine failures). This avoids
+  // encoding the empty case as a translated string the consumer must match.
+  const [noResults, setNoResults] = useState(false);
   // Synchronous in-flight set keyed by URL so a fast double-trigger enqueues once.
   const downloadInFlightRef = useRef<Set<string>>(new Set());
 
@@ -56,14 +60,13 @@ export function useSearch() {
 
     setIsSearching(true);
     setSearchError(null);
+    setNoResults(false);
     setResults([]);
 
     try {
       const searchResults = await window.electronAPI.downloader.search(trimmed);
       setResults(searchResults);
-      if (searchResults.length === 0) {
-        setSearchError(i18n.t('noResults', { ns: 'search' }));
-      }
+      setNoResults(searchResults.length === 0);
     } catch (err) {
       const msg = err instanceof Error ? err.message : i18n.t('searchFailed', { ns: 'toast' });
       setSearchError(msg);
@@ -126,6 +129,7 @@ export function useSearch() {
     results,
     isSearching,
     searchError,
+    noResults,
     handleSearch,
     handleKeyDown,
     handleDownload,

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearch } from '@/hooks/useSearch';
 import { useSearchDependencies } from '@/hooks/useSearchDependencies';
@@ -15,6 +15,7 @@ export function useSearchView(): ISearchViewView {
     results,
     isSearching,
     searchError,
+    noResults,
     handleSearch,
     handleKeyDown: originalHandleKeyDown,
     handleDownload,
@@ -52,6 +53,22 @@ export function useSearchView(): ISearchViewView {
       handleSearch();
     }
   }, [query, handleSearch]);
+
+  // Track whether the user has run at least one search so a zero-result outcome
+  // can show a distinct "no results" empty instead of the initial pre-search one.
+  // Reset when the query is cleared so the initial empty returns.
+  const [hasSearched, setHasSearched] = useState(false);
+  useEffect(() => {
+    if (isSearching) setHasSearched(true);
+  }, [isSearching]);
+  useEffect(() => {
+    if (query.trim() === '') setHasSearched(false);
+  }, [query]);
+
+  // A completed search that returned nothing — driven by useSearch's typed
+  // `noResults` flag, kept independent of `searchError` (a genuine failure).
+  // `hasSearched` still gates it so the empty state resets when the query clears.
+  const showNoResults = hasSearched && !isSearching && noResults;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -151,5 +168,6 @@ export function useSearchView(): ISearchViewView {
     suggestionsOpen,
     onSelectSuggestion: selectAndSearch,
     showCenteredSearchState: results.length === 0,
+    showNoResults,
   };
 }

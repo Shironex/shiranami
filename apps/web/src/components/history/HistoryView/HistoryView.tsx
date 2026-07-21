@@ -1,4 +1,5 @@
 import { AlertCircle, BarChart3, Clock3, Disc3 } from 'lucide-react';
+import { StaggerList } from '@/components/shared/StaggerList';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { HistoryActivityGraph } from '@/components/history/HistoryActivityGraph';
 import { HistoryEmptyState } from '@/components/history/HistoryEmptyState';
@@ -123,11 +124,11 @@ export default function HistoryView() {
               {view.recentTitle}
             </h2>
           </div>
-          <div className="mt-4 space-y-3">
-            {hasRecent ? (
-              recentRows
-            ) : (
+          <div className="mt-4">
+            {!hasRecent ? (
               <HistoryEmptyState title={view.noRecentPlaysTitle} copy={view.noRecentPlaysCopy} />
+            ) : (
+              <StaggerList className="space-y-3">{recentRows}</StaggerList>
             )}
           </div>
         </section>

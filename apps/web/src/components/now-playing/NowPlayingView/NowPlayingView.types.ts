@@ -61,6 +61,9 @@ export interface INowPlayingViewView {
   readonly panelGroupLabel: string;
   /** Whether low-performance mode is on — softens panel-switch animation. */
   readonly lowPerformanceMode: boolean;
+  /** Whether the album art plays the ±3° track-change tilt (off under reduced
+   *  motion / low-performance mode). */
+  readonly albumArtTiltEnabled: boolean;
   /** Pre-resolved lyrics body class names. */
   readonly lyricsClasses: INowPlayingLyricsClasses;
   /** Lyrics data layer (synced/plain lines, active line, loading, click handler). */

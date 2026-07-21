@@ -70,6 +70,12 @@ vi.mock('motion/react', () => ({
     {},
     {
       get: (_target, prop) => {
+        // motion.create(Component) is invoked at module load (e.g. IconButton's
+        // MotionIconButton) — return the component untouched so no JSX renders
+        // before the test module's imports finish initializing.
+        if (prop === 'create') {
+          return (Component: React.ElementType) => Component;
+        }
         if (typeof prop === 'string') {
           const MotionMock = ({
             children,
@@ -325,14 +331,14 @@ describe('Sidebar', () => {
   });
 
   // 13. Loading state for playlists
-  it('shows loading indicator when playlists are loading', () => {
+  it('shows skeleton rows when playlists are loading', () => {
     playlistQueryResult = { data: [], isLoading: true };
     setStoreState({ sidebarCollapsed: false, sidebarPlaylistsVisible: true });
     const { container } = render(<Sidebar />);
 
-    // Loader2 renders with animate-spin class
-    const spinner = container.querySelector('.animate-spin');
-    expect(spinner).toBeInTheDocument();
+    // The loading branch renders skeleton placeholder rows instead of a spinner
+    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   // 14. Collapsed sidebar shows playlist thumbnails instead of names

@@ -4,9 +4,11 @@ import { SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX } from '@/stores/usePanelSizeStore
 import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
 import { PlaylistContextMenu } from '@/components/shared/PlaylistContextMenu';
 import { SidebarPlaylistButton } from '@/components/shared/SidebarPlaylistButton';
-import { Loader2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import { IconButton } from '@/components/ui/icon-button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { useSidebar } from './Sidebar.hooks';
 
 export default function Sidebar() {
@@ -34,6 +36,8 @@ export default function Sidebar() {
     onCloseContextMenu,
   } = useSidebar();
 
+  const reducedMotion = useReducedMotion();
+
   const navButtons = visibleNavItems.map(item => {
     const isActive = activeView === item.id;
     const Icon = item.Icon;
@@ -47,7 +51,8 @@ export default function Sidebar() {
         aria-current={isActive ? 'page' : undefined}
         data-view={item.id}
         className={cn(
-          'w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative',
+          'group w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative',
+          'active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
           sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2',
           isActive
             ? 'text-foreground'
@@ -61,8 +66,22 @@ export default function Sidebar() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           />
         )}
-        <Icon className="w-4 h-4 relative z-10 shrink-0" />
-        {!sidebarCollapsed && <span className="relative z-10 min-w-0 truncate">{t(item.key)}</span>}
+        <Icon
+          className={cn(
+            'w-4 h-4 relative z-10 shrink-0',
+            !reducedMotion && 'transition-transform duration-200 group-hover:scale-110'
+          )}
+        />
+        <span
+          className={cn(
+            'relative z-10 min-w-0 truncate',
+            !reducedMotion && 'transition-[opacity,transform] duration-200',
+            sidebarCollapsed ? 'w-0 -translate-x-1 opacity-0' : 'w-auto translate-x-0 opacity-100'
+          )}
+          aria-hidden={sidebarCollapsed ? true : undefined}
+        >
+          {t(item.key)}
+        </span>
       </button>
     );
   });
@@ -87,6 +106,19 @@ export default function Sidebar() {
       onNavigate={id => navigateTo('playlists', id)}
       onContextMenu={onPlaylistContextMenu}
     />
+  ));
+
+  const collapsedPlaylistSkeletons = [0, 1, 2, 3].map(n => (
+    <div key={n} className="flex justify-center px-0 py-2">
+      <Skeleton className="w-9 h-9 rounded-lg" />
+    </div>
+  ));
+
+  const expandedPlaylistSkeletons = [0, 1, 2, 3].map(n => (
+    <div key={n} className="flex items-center gap-2 px-2 py-2">
+      <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+      <Skeleton className="h-3 w-24 rounded" />
+    </div>
   ));
 
   return (
@@ -172,18 +204,12 @@ export default function Sidebar() {
           <div className={cn('min-h-0 flex flex-col pb-3', sidebarCollapsed ? 'px-2' : 'px-3')}>
             {sidebarCollapsed ? (
               <div className="min-h-0 overflow-y-auto scrollbar-thin space-y-1 pt-3">
-                {isLoadingPlaylists ? (
-                  <div className="flex items-center justify-center py-4 text-muted-foreground/40">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  </div>
-                ) : (
-                  collapsedPlaylistButtons
-                )}
+                {isLoadingPlaylists ? collapsedPlaylistSkeletons : collapsedPlaylistButtons}
               </div>
             ) : (
               <>
                 <div className="flex items-center justify-between px-2 pt-4 pb-2">
-                  <p className="text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase">
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-muted-foreground">
                     {t('yourPlaylists')}
                   </p>
                   <button
@@ -195,13 +221,7 @@ export default function Sidebar() {
                 </div>
 
                 <div className="min-h-0 overflow-y-auto scrollbar-thin pr-1 space-y-1">
-                  {isLoadingPlaylists ? (
-                    <div className="flex items-center justify-center py-4 text-muted-foreground/40">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    </div>
-                  ) : (
-                    expandedPlaylistButtons
-                  )}
+                  {isLoadingPlaylists ? expandedPlaylistSkeletons : expandedPlaylistButtons}
                 </div>
               </>
             )}
@@ -212,7 +232,7 @@ export default function Sidebar() {
       <div className={cn('py-4 border-t border-border/30', sidebarCollapsed ? 'px-2' : 'px-5')}>
         <p
           className={cn(
-            'text-[10px] text-muted-foreground/40 font-medium tracking-wider uppercase',
+            'font-mono text-[0.65rem] uppercase tracking-[0.18em] tabular-nums text-muted-foreground',
             sidebarCollapsed && 'text-center'
           )}
           title={sidebarCollapsed ? fullVersionLabel : undefined}

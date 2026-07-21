@@ -52,6 +52,9 @@ export function useOnboardingWizard({ onComplete }: IOnboardingWizardProps): IOn
   const [stepIndex, setStepIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [isEntering, setIsEntering] = useState(true);
+  // True only when the wizard finishes via the final-step CTA (not skip/Esc);
+  // drives the gentle note flourish. Never set under reduced-motion / low-perf.
+  const [isCelebrating, setIsCelebrating] = useState(false);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -103,11 +106,13 @@ export function useOnboardingWizard({ onComplete }: IOnboardingWizardProps): IOn
 
   const handlePrimary = useCallback(() => {
     if (isLast) {
+      // Celebrate genuine completion; the flourish overlaps the exit fog-out.
+      if (!disableMotion && !isExiting) setIsCelebrating(true);
       finish();
     } else {
       goNext();
     }
-  }, [isLast, finish, goNext]);
+  }, [isLast, disableMotion, isExiting, finish, goNext]);
 
   const selectStep = useCallback(
     (index: number) => {
@@ -189,6 +194,7 @@ export function useOnboardingWizard({ onComplete }: IOnboardingWizardProps): IOn
     disableMotion,
     isExiting,
     isEntering,
+    isCelebrating,
     primaryLabel,
     onPrimary: handlePrimary,
     onBack: goBack,

@@ -23,6 +23,7 @@ const mockUseSearch = vi.hoisted(() => ({
   }>,
   isSearching: false,
   searchError: null as string | null,
+  noResults: false,
   handleSearch: vi.fn(),
   handleKeyDown: vi.fn(),
   handleDownload: vi.fn(),
@@ -79,6 +80,7 @@ function resetMocks() {
   mockUseSearch.results = [];
   mockUseSearch.isSearching = false;
   mockUseSearch.searchError = null;
+  mockUseSearch.noResults = false;
   mockUseSearch.previewLoadingId = null;
   mockUseSearch.setQuery.mockReset();
   mockUseSearch.handleSearch.mockReset();
@@ -178,6 +180,33 @@ describe('SearchView', () => {
     await renderSearchView();
     expect(screen.getByText(/No results found/)).toBeInTheDocument();
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+  });
+
+  it('shows the no-results empty state (not the error card) after a search returns nothing', async () => {
+    // `useSearchView` only flips its internal `hasSearched` gate once a search
+    // has been in flight, so drive the transition: searching -> completed-empty.
+    const { default: SearchView } = await import('./SearchView');
+
+    mockUseSearch.query = 'obscure track';
+    mockUseSearch.isSearching = true;
+    const { rerender } = render(<SearchView />);
+    expect(screen.getByText('Searching YouTube')).toBeInTheDocument();
+
+    // Search resolves with zero results — signalled by the typed `noResults`
+    // flag, never by a translated error string.
+    mockUseSearch.isSearching = false;
+    mockUseSearch.noResults = true;
+    rerender(<SearchView />);
+
+    // The localized no-results empty state renders...
+    expect(screen.getByText('No results for "obscure track"')).toBeInTheDocument();
+    expect(
+      screen.getByText('Try a different search term or check the spelling.')
+    ).toBeInTheDocument();
+    // ...and the generic error card does NOT (searchError stays null).
+    expect(
+      screen.queryByText('No results found. Try a different search term.')
+    ).not.toBeInTheDocument();
   });
 
   it('renders search results', async () => {

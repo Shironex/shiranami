@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Volume2, Volume1, VolumeX } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -44,6 +44,28 @@ export function useVolumeControl(): IVolumeControlView {
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  // Transient percentage readout shown while the user hovers or drags the
+  // slider. `dragging` is tracked separately so the label survives the pointer
+  // straying off the track mid-drag.
+  const [hovering, setHovering] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const showReadout = hovering || dragging;
+
+  useEffect(() => {
+    if (!dragging) return;
+    const stop = () => setDragging(false);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    return () => {
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+    };
+  }, [dragging]);
+
+  const onPointerEnter = useCallback(() => setHovering(true), []);
+  const onPointerLeave = useCallback(() => setHovering(false), []);
+  const onPointerDown = useCallback(() => setDragging(true), []);
+
   const isSilent = isMuted || volume === 0;
   const VolumeIcon = isSilent ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
@@ -54,7 +76,11 @@ export function useVolumeControl(): IVolumeControlView {
     buttonLabel: isMuted ? t('unmute') : t('mute'),
     buttonTooltip: isMuted ? t('unmuteTooltip') : t('muteTooltip'),
     sliderLabel: t('volume'),
+    showReadout,
     onToggleMute: toggleMute,
     onVolumeChange,
+    onPointerEnter,
+    onPointerLeave,
+    onPointerDown,
   };
 }

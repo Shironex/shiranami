@@ -2,9 +2,11 @@ import { cn, isRadioTrack } from '@/lib/utils';
 import { PLAYER_BAR_HEIGHT } from '@/lib/layout';
 import { Music, Mic2, ListMusic, AudioLines, Minimize2, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { FavoriteBurst } from '../FavoriteBurst';
 import { PlayerControls } from '../PlayerControls';
 import { SeekBar } from '../SeekBar';
 import { WaveformSeekbar } from '../WaveformSeekbar';
@@ -45,6 +47,9 @@ export default function PlayerBar() {
     visualizerTooltip,
     lyricsTooltip,
     queueTooltip,
+    heartControls,
+    favoriteBurst,
+    showFavoriteBurst,
     onToggleFavorite,
     onEnterCompact,
     onToggleVisualizer,
@@ -134,18 +139,22 @@ export default function PlayerBar() {
             {showFavoriteButton && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button
+                  <motion.button
+                    whileTap={SCALE_ICON}
                     onClick={onToggleFavorite}
                     className={cn(
-                      'shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
+                      'relative shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
                       isFavorite
                         ? 'text-favorite hover:text-favorite-hover'
                         : 'text-muted-foreground/40 hover:text-muted-foreground'
                     )}
                     aria-label={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
                   >
-                    <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
-                  </button>
+                    {showFavoriteBurst && <FavoriteBurst burstKey={favoriteBurst} />}
+                    <motion.span animate={heartControls} className="inline-flex">
+                      <Heart className={cn('w-4 h-4', isFavorite && 'fill-current')} />
+                    </motion.span>
+                  </motion.button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
                   {isFavorite ? t('unfavorite') : t('favorite')}

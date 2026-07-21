@@ -4,6 +4,7 @@ import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 import { Button } from '@/components/ui/button';
 import { WindowControls } from '@/components/shared/WindowControls';
 import { OnboardingScene } from '../OnboardingScene';
+import { CompletionFlourish } from '../CompletionFlourish';
 import { OnboardingStepContext } from '../stepContext';
 import { useOnboardingWizard } from './OnboardingWizard.hooks';
 import type { IOnboardingWizardProps } from './OnboardingWizard.types';
@@ -26,6 +27,7 @@ export default function OnboardingWizard({ onComplete }: IOnboardingWizardProps)
     disableMotion,
     isExiting,
     isEntering,
+    isCelebrating,
     primaryLabel,
     onPrimary,
     onBack,
@@ -127,10 +129,13 @@ export default function OnboardingWizard({ onComplete }: IOnboardingWizardProps)
             {progressDots}
           </div>
 
-          <Button type="button" onClick={onPrimary} className="gap-1.5">
-            {primaryLabel}
-            {isLast ? <Play className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
-          </Button>
+          <div className="relative">
+            {isCelebrating && <CompletionFlourish />}
+            <Button type="button" onClick={onPrimary} className="gap-1.5">
+              {primaryLabel}
+              {isLast ? <Play className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+            </Button>
+          </div>
         </footer>
       </div>
     </div>

@@ -15,7 +15,7 @@ export function useAmbientBackground(): IAmbientBackgroundView {
   const ambientColor = useAmbientColor();
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
-  const prefersReducedMotion = useReducedMotion();
+  const reducedMotion = useReducedMotion();
 
   const glowBackground = `
                 radial-gradient(ellipse at 10% 20%, rgba(${ambientColor.rgb}, 0.1) 0%, transparent 60%),
@@ -29,6 +29,10 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     showGlow: Boolean(currentTrack),
     glowKey: ambientColor.hex,
     glowBackground,
-    transitionDuration: prefersReducedMotion ? 0 : 2,
+    transitionDuration: reducedMotion ? 0 : 2,
+    // Bloom pulse on track change. Low-perf already disables the whole layer via
+    // `enabled`, so only the reduced-motion preference needs gating here.
+    bloomKey: currentTrack?.id,
+    showBloom: Boolean(currentTrack) && !reducedMotion,
   };
 }

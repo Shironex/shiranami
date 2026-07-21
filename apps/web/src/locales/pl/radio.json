@@ -33,6 +33,8 @@
   "noFavoriteStationsSubtitle": "Kliknij ikonę serca przy dowolnej stacji, aby ją tutaj zapisać",
   "noStationsTitle": "Nie znaleziono stacji",
   "noStationsSubtitle": "Spróbuj wyszukać po nazwie albo wybierz kraj, język lub gatunek",
+  "errorTitle": "Nie udało się załadować stacji radiowych",
+  "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie.",
   "removeFavorite": "Usuń z ulubionych",
   "addFavorite": "Dodaj do ulubionych"
 }

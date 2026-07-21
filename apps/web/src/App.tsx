@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { VIEW_TRANSITION } from '@/lib/motion';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { logger } from '@/lib/logger';
 import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
@@ -114,6 +117,7 @@ function App() {
   const handleOnboardingComplete = useCallback(() => setOnboardingDone(true), []);
 
   const { t } = useTranslation();
+  const reducedMotion = useReducedMotion();
 
   useAudioEngine();
   useMediaSession();
@@ -394,101 +398,112 @@ function App() {
 
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
-                      {activeView === 'overview' && (
-                        <ErrorBoundary viewName="OverviewView">
-                          <Suspense fallback={null}>
-                            <DevProfiler id="overview">
-                              <OverviewView />
-                            </DevProfiler>
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'library' && (
-                        <ErrorBoundary viewName="LibraryView">
-                          <DevProfiler id="library">
-                            <LibraryView />
-                          </DevProfiler>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'playlists' && (
-                        <ErrorBoundary viewName="PlaylistsView">
-                          {selectedPlaylistId ? (
-                            <Suspense fallback={null}>
-                              <PlaylistDetailView />
-                            </Suspense>
-                          ) : (
-                            <PlaylistsView />
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={activeView}
+                          className="flex-1 min-w-0 min-h-0 flex flex-col"
+                          initial={reducedMotion ? false : VIEW_TRANSITION.initial}
+                          animate={reducedMotion ? undefined : VIEW_TRANSITION.animate}
+                          exit={reducedMotion ? undefined : VIEW_TRANSITION.exit}
+                          transition={VIEW_TRANSITION.transition}
+                        >
+                          {activeView === 'overview' && (
+                            <ErrorBoundary viewName="OverviewView">
+                              <Suspense fallback={null}>
+                                <DevProfiler id="overview">
+                                  <OverviewView />
+                                </DevProfiler>
+                              </Suspense>
+                            </ErrorBoundary>
                           )}
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'favorites' && (
-                        <ErrorBoundary viewName="FavoritesView">
-                          <FavoritesView />
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'history' && (
-                        <ErrorBoundary viewName="HistoryView">
-                          <Suspense fallback={null}>
-                            <HistoryView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'mixes' && (
-                        <ErrorBoundary viewName="MixesView">
-                          <Suspense fallback={null}>
-                            <MixesView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'search' && (
-                        <ErrorBoundary viewName="SearchView">
-                          <Suspense fallback={null}>
-                            <SearchView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'import-playlist' && (
-                        <ErrorBoundary viewName="PlaylistImportView">
-                          <Suspense fallback={null}>
-                            <PlaylistImportView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'smart-playlists' && (
-                        <ErrorBoundary viewName="SmartPlaylistsView">
-                          <Suspense fallback={null}>
-                            <SmartPlaylistsView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'radio' && (
-                        <ErrorBoundary viewName="RadioView">
-                          <Suspense fallback={null}>
-                            <RadioView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'now-playing' && (
-                        <ErrorBoundary viewName="NowPlayingView">
-                          <Suspense fallback={null}>
-                            <NowPlayingView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'downloads' && (
-                        <ErrorBoundary viewName="DownloadsView">
-                          <Suspense fallback={null}>
-                            <DownloadsView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
-                      {activeView === 'settings' && (
-                        <ErrorBoundary viewName="SettingsView">
-                          <Suspense fallback={null}>
-                            <SettingsView />
-                          </Suspense>
-                        </ErrorBoundary>
-                      )}
+                          {activeView === 'library' && (
+                            <ErrorBoundary viewName="LibraryView">
+                              <DevProfiler id="library">
+                                <LibraryView />
+                              </DevProfiler>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'playlists' && (
+                            <ErrorBoundary viewName="PlaylistsView">
+                              {selectedPlaylistId ? (
+                                <Suspense fallback={null}>
+                                  <PlaylistDetailView />
+                                </Suspense>
+                              ) : (
+                                <PlaylistsView />
+                              )}
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'favorites' && (
+                            <ErrorBoundary viewName="FavoritesView">
+                              <FavoritesView />
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'history' && (
+                            <ErrorBoundary viewName="HistoryView">
+                              <Suspense fallback={null}>
+                                <HistoryView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'mixes' && (
+                            <ErrorBoundary viewName="MixesView">
+                              <Suspense fallback={null}>
+                                <MixesView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'search' && (
+                            <ErrorBoundary viewName="SearchView">
+                              <Suspense fallback={null}>
+                                <SearchView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'import-playlist' && (
+                            <ErrorBoundary viewName="PlaylistImportView">
+                              <Suspense fallback={null}>
+                                <PlaylistImportView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'smart-playlists' && (
+                            <ErrorBoundary viewName="SmartPlaylistsView">
+                              <Suspense fallback={null}>
+                                <SmartPlaylistsView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'radio' && (
+                            <ErrorBoundary viewName="RadioView">
+                              <Suspense fallback={null}>
+                                <RadioView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'now-playing' && (
+                            <ErrorBoundary viewName="NowPlayingView">
+                              <Suspense fallback={null}>
+                                <NowPlayingView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'downloads' && (
+                            <ErrorBoundary viewName="DownloadsView">
+                              <Suspense fallback={null}>
+                                <DownloadsView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                          {activeView === 'settings' && (
+                            <ErrorBoundary viewName="SettingsView">
+                              <Suspense fallback={null}>
+                                <SettingsView />
+                              </Suspense>
+                            </ErrorBoundary>
+                          )}
+                        </motion.div>
+                      </AnimatePresence>
                     </div>
 
                     {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}

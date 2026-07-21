@@ -61,6 +61,7 @@ export default function RadioView() {
         onClick={tab.onClick}
         className={cn(
           'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+          'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary/40',
           tab.isActive
             ? 'bg-primary/15 text-primary'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -143,29 +144,14 @@ export default function RadioView() {
   let resultRegion;
   if (error) {
     resultRegion = (
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="w-full max-w-lg flex flex-col items-center gap-6 px-10 py-14 text-center">
-          <div className="relative">
-            <div className="w-28 h-28 rounded-[28px] bg-destructive/8 border border-destructive/10 flex items-center justify-center">
-              <img
-                src="./mascot.png"
-                alt=""
-                aria-hidden="true"
-                className="w-[4.5rem] h-[4.5rem] object-contain opacity-50"
-                draggable={false}
-              />
-            </div>
-            <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
-              <Radio className="w-4 h-4 text-destructive" />
-            </div>
-          </div>
-          <div>
-            <p className="font-display text-base font-semibold text-foreground/85">{error}</p>
-          </div>
-          <Button size="sm" onClick={onRetry} className="rounded-xl px-4 py-2">
-            {t('retry', { ns: 'common' })}
-          </Button>
-        </div>
+      <div className="flex-1 min-h-0 flex">
+        <ViewEmptyState
+          variant="error"
+          title={t('errorTitle')}
+          subtitle={t('errorSubtitle')}
+          icon={Radio}
+          action={{ label: t('retry', { ns: 'common' }), onClick: onRetry }}
+        />
       </div>
     );
   } else if (isLoading) {
