@@ -55,7 +55,7 @@
     "@shiranami/eslint-plugin": "workspace:*",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.4.0",
@@ -68,12 +68,12 @@
     "playwright": "^1.60.0",
     "png-to-ico": "^3.0.1",
     "prettier": "^3.8.3",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "sql.js": "^1.14.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.4",
-    "vitest": "^4.1.9",
+    "vitest": "^4.1.10",
     "wait-on": "^9.0.10"
   }
 }
