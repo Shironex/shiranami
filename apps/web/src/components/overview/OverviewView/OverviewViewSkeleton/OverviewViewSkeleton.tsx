@@ -1,17 +1,30 @@
+import { useOverviewViewSkeleton } from './OverviewViewSkeleton.hooks';
+
 /** Loading placeholder mirroring the Overview layout (hero, stats, two-column row, rail). */
-export function OverviewViewSkeleton() {
+export default function OverviewViewSkeleton() {
+  const { statTileKeys, libraryRowKeys, discoverRowKeys } = useOverviewViewSkeleton();
+
   // Lifted out of JSX (no-jsx-computation): build the placeholder arrays above
   // the return, then render the ready-made nodes.
-  const statTiles = Array.from({ length: 4 }).map((_, i) => (
-    <div key={i} className="h-28 animate-pulse rounded-2xl border border-border/25 glass-subtle" />
+  const statTiles = statTileKeys.map(key => (
+    <div
+      key={key}
+      className="h-28 animate-pulse rounded-2xl border border-border/25 glass-subtle"
+    />
   ));
 
-  const libraryRows = Array.from({ length: 4 }).map((_, i) => (
-    <div key={i} className="h-14 animate-pulse rounded-2xl border border-border/15 glass-subtle" />
+  const libraryRows = libraryRowKeys.map(key => (
+    <div
+      key={key}
+      className="h-14 animate-pulse rounded-2xl border border-border/15 glass-subtle"
+    />
   ));
 
-  const discoverRows = Array.from({ length: 4 }).map((_, i) => (
-    <div key={i} className="h-14 animate-pulse rounded-2xl border border-border/15 glass-subtle" />
+  const discoverRows = discoverRowKeys.map(key => (
+    <div
+      key={key}
+      className="h-14 animate-pulse rounded-2xl border border-border/15 glass-subtle"
+    />
   ));
 
   return (

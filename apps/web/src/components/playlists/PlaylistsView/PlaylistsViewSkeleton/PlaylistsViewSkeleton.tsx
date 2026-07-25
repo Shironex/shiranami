@@ -1,10 +1,14 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePlaylistsViewSkeleton } from './PlaylistsViewSkeleton.hooks';
 
-export function PlaylistsViewSkeleton() {
+/** Loading placeholder mirroring the playlists grid (header row + card grid). */
+export default function PlaylistsViewSkeleton() {
+  const { placeholderKeys } = usePlaylistsViewSkeleton();
+
   // Lifted out of JSX (no-jsx-computation): build the placeholder cards above
   // the return, then render the ready-made array.
-  const placeholderCards = Array.from({ length: 10 }).map((_, i) => (
-    <div key={i} className="rounded-2xl p-4 border border-border/30 bg-surface/60">
+  const placeholderCards = placeholderKeys.map(key => (
+    <div key={key} className="rounded-2xl p-4 border border-border/30 bg-surface/60">
       <Skeleton className="aspect-square w-full rounded-xl mb-3" />
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-3 w-1/2 mt-1" />
