@@ -1,5 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDownloadsSectionSkeleton } from './DownloadsSectionSkeleton.hooks';
 
+/**
+ * Placeholder for one download tool's block — the status row, the binary path
+ * panel, the installed/latest version pair, and the hint line beneath them.
+ */
 function ToolCardSkeleton() {
   return (
     <div className="space-y-3">
@@ -34,6 +39,10 @@ function ToolCardSkeleton() {
   );
 }
 
+/**
+ * Placeholder for the download-location panel — the label/badge line, the
+ * resolved path, and the change/reset button pair.
+ */
 function DownloadLocationSkeleton() {
   return (
     <div className="px-3 py-3 rounded-xl bg-background/50 border border-border/20 space-y-3">
@@ -53,7 +62,9 @@ function DownloadLocationSkeleton() {
   );
 }
 
-export function DownloadsSectionSkeleton() {
+export default function DownloadsSectionSkeleton() {
+  useDownloadsSectionSkeleton();
+
   return (
     <div className="space-y-3">
       {/* yt-dlp card */}

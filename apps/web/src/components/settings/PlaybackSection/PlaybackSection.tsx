@@ -1,11 +1,9 @@
 import { Settings2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
-import {
-  CrossfadePreview,
-  ResumePreview,
-  LoudnessPreview,
-  SleepFadePreview,
-} from '@/components/settings/PlaybackPreferencePreview';
+import { CrossfadePreview } from '@/components/settings/CrossfadePreview';
+import { ResumePreview } from '@/components/settings/ResumePreview';
+import { LoudnessPreview } from '@/components/settings/LoudnessPreview';
+import { SleepFadePreview } from '@/components/settings/SleepFadePreview';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { usePlaybackSection } from './PlaybackSection.hooks';
