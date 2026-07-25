@@ -1,10 +1,12 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMixesViewSkeleton } from './MixesViewSkeleton.hooks';
 
-export function MixesViewSkeleton() {
-  // Lifted out of JSX (no-jsx-computation): build the placeholder rows above
-  // the return, then render the ready-made array.
-  const placeholderRows = Array.from({ length: 6 }).map((_, i) => (
-    <div key={i} className="flex items-center gap-3.5 px-3 py-3 rounded-xl">
+/** Cold-start placeholder for the mixes overview, shown until the library loads. */
+export default function MixesViewSkeleton() {
+  const { rowKeys } = useMixesViewSkeleton();
+
+  const placeholderRows = rowKeys.map(key => (
+    <div key={key} className="flex items-center gap-3.5 px-3 py-3 rounded-xl">
       <Skeleton className="size-12 rounded-lg" />
       <div className="flex-1 space-y-1.5">
         <Skeleton className="h-3.5 w-40" />
