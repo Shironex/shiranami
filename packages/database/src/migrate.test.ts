@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -30,6 +30,19 @@ function columnNames(db: Database.Database, table: string): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>).map(
     r => r.name
   );
+}
+
+function indexNames(db: Database.Database): string[] {
+  return (
+    db.prepare(`SELECT name FROM sqlite_master WHERE type='index'`).all() as Array<{ name: string }>
+  ).map(r => r.name);
+}
+
+/** Flatten `EXPLAIN QUERY PLAN` output into one line for plan assertions. */
+function queryPlan(db: Database.Database, sql: string): string {
+  return (db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as Array<{ detail: string }>)
+    .map(r => r.detail)
+    .join(' | ');
 }
 
 function ledgerRows(db: Database.Database): Array<{ name: string | null }> {
@@ -81,11 +94,7 @@ describe('runMigrations', () => {
     expect(columnNames(db, 'tracks')).toContain('album_artist');
 
     // indexes present
-    const indexes = (
-      db.prepare(`SELECT name FROM sqlite_master WHERE type='index'`).all() as Array<{
-        name: string;
-      }>
-    ).map(r => r.name);
+    const indexes = indexNames(db);
     expect(indexes).toContain('idx_tracks_album');
     expect(indexes).toContain('idx_tracks_album_artist');
 
@@ -180,20 +189,24 @@ describe('runMigrations', () => {
     db.close();
   });
 
-  it('(d) migrates a CURRENT-SHAPE v7 DB to v8 cleanly via IF NOT EXISTS', () => {
+  it('(d) migrates a CURRENT-SHAPE v7 DB up to current cleanly via IF NOT EXISTS', () => {
     // A DB already at the full v7 schema: the heal migration must be a no-op
     // (every CREATE … IF NOT EXISTS finds its object), advancing only the
     // ledger and user_version without touching data or duplicating objects.
     const db = new Database(':memory:');
-    runMigrations(db); // brings the fresh DB fully up to date (v8)
+    runMigrations(db); // brings the fresh DB fully up to date
 
     // Simulate a DB that was last opened by a v7 build: roll the recorded
-    // version back and drop the heal migration from the ledger so the migrator
-    // sees exactly one pending migration (the heal).
+    // version back and drop every ledger row past the 7th (the heal migration
+    // and everything shipped after it) so the migrator sees them as pending.
+    // Drizzle picks pending migrations by comparing against the NEWEST ledger
+    // row, so the tail has to go as a block — deleting only the heal would
+    // leave a newer row behind and silently skip it.
     db.exec('PRAGMA user_version = 7');
-    db.prepare(`DELETE FROM __drizzle_migrations WHERE name = ?`).run(
-      '20260101000007_heal_legacy_tables'
-    );
+    const deleteLedgerRow = db.prepare(`DELETE FROM __drizzle_migrations WHERE name = ?`);
+    for (const m of __embeddedMigrationsForTest.slice(7)) {
+      deleteLedgerRow.run(m.name);
+    }
     db.prepare(
       `INSERT INTO tracks (id, file_path, title, artist, album) VALUES (?, ?, ?, ?, ?)`
     ).run('v7', '/music/v7.mp3', 'V7 Song', 'V7 Artist', 'V7 Album');
@@ -201,7 +214,7 @@ describe('runMigrations', () => {
     const tablesBefore = tableNames(db).length;
     expect(() => runMigrations(db)).not.toThrow();
 
-    // No tables created or dropped; data preserved; version advanced to 8.
+    // No tables created or dropped; data preserved; version advanced to current.
     expect(tableNames(db).length).toBe(tablesBefore);
     expect(db.prepare(`SELECT title FROM tracks WHERE id='v7'`).get() as { title: string }).toEqual(
       { title: 'V7 Song' }
@@ -210,6 +223,41 @@ describe('runMigrations', () => {
     expect(userVersion(db)).toBe(SCHEMA_VERSION);
 
     db.close();
+  });
+
+  it('(e) creates the query indexes on BOTH a fresh and an upgraded legacy DB', () => {
+    const fresh = new Database(':memory:');
+    runMigrations(fresh);
+
+    const legacy = new Database(':memory:');
+    createLegacyTables(legacy); // ships the superseded idx_playlist_tracks_playlist_id
+    runMigrations(legacy);
+
+    for (const db of [fresh, legacy]) {
+      const indexes = indexNames(db);
+      expect(indexes).toContain('idx_tracks_created_at');
+      expect(indexes).toContain('idx_playlist_tracks_playlist_position');
+      // Superseded by the composite (same leftmost column) — migration 008 drops it.
+      expect(indexes).not.toContain('idx_playlist_tracks_playlist_id');
+
+      // The whole point of the indexes: neither hot ordered read sorts at runtime.
+      const libraryPlan = queryPlan(db, `SELECT * FROM tracks ORDER BY created_at DESC`);
+      expect(libraryPlan).toContain('idx_tracks_created_at');
+      expect(libraryPlan).not.toContain('TEMP B-TREE');
+
+      const playlistPlan = queryPlan(
+        db,
+        `SELECT tracks.* FROM tracks
+         INNER JOIN playlist_tracks ON tracks.id = playlist_tracks.track_id
+         WHERE playlist_tracks.playlist_id = 'p1'
+         ORDER BY playlist_tracks.position`
+      );
+      expect(playlistPlan).toContain('idx_playlist_tracks_playlist_position');
+      expect(playlistPlan).not.toContain('TEMP B-TREE');
+    }
+
+    fresh.close();
+    legacy.close();
   });
 
   it('is idempotent on a fresh DB (second run is a no-op)', () => {
@@ -300,6 +348,33 @@ describe('assertNotDowngrade', () => {
 });
 
 describe('embedded migrations stay in lock-step with on-disk drizzle files', () => {
+  it('has exactly one embedded entry per drizzle/ folder, in the same order', () => {
+    // Guards the ship-blocking hole the statement-for-statement check below
+    // cannot see: a migration generated into drizzle/ but never added to the
+    // embedded MIGRATIONS array is what actually runs against user databases,
+    // so it would silently never run. Compare BOTH directions.
+    // Match on the presence of migration.sql rather than on directory-ness:
+    // `pnpm db:generate` also writes a drizzle/meta/ bookkeeping folder, which
+    // would otherwise show up here as a phantom missing migration.
+    const onDisk = readdirSync(drizzleDir, { withFileTypes: true })
+      .filter(
+        entry => entry.isDirectory() && existsSync(join(drizzleDir, entry.name, 'migration.sql'))
+      )
+      .map(entry => entry.name)
+      .sort();
+    const embedded = __embeddedMigrationsForTest.map(m => m.name);
+
+    expect(embedded).toEqual(onDisk);
+    // Names encode apply order, so the embedded array must already be sorted.
+    expect(embedded).toEqual([...embedded].sort());
+  });
+
+  it('keeps SCHEMA_VERSION in lock-step with the migration count', () => {
+    // user_version is the downgrade guard's only signal. If it lags the ledger,
+    // a build that ships a migration cannot tell an older DB from a current one.
+    expect(SCHEMA_VERSION).toBe(__embeddedMigrationsForTest.length);
+  });
+
   it('matches each drizzle/<name>/migration.sql statement-for-statement', () => {
     for (const m of __embeddedMigrationsForTest) {
       const sqlPath = join(drizzleDir, m.name, 'migration.sql');
