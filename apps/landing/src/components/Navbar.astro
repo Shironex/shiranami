@@ -3,8 +3,10 @@ import { LANDING_VERSION } from '../lib/site';
 
 const shortVersion = LANDING_VERSION.split('.').slice(0, 2).join('.');
 
-const currentPath = Astro.url.pathname;
-const isLanding = currentPath === '/' || currentPath === '';
+// The build emits directory-style URLs (/download/), so drop the trailing slash
+// before comparing against the slash-less hrefs below.
+const currentPath = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const isLanding = currentPath === '/';
 
 const navItems = isLanding
   ? [

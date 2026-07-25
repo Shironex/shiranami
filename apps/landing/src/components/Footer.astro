@@ -1,4 +1,11 @@
 ---
+// #features and #preview only exist on the landing page, so link back to it
+// from every other route instead of pointing at an anchor that is not there.
+const currentPath = Astro.url.pathname.replace(/\/+$/, '') || '/';
+const isLanding = currentPath === '/';
+
+const featuresHref = isLanding ? '#features' : '/#features';
+const previewHref = isLanding ? '#preview' : '/#preview';
 ---
 
 <footer class="foot">
@@ -25,8 +32,8 @@
         <ul>
           <li><a href="/download" data-i18n="footer.link.download">Download</a></li>
           <li><a href="/changelog" data-i18n="footer.link.changelog">Changelog</a></li>
-          <li><a href="#features" data-i18n="footer.link.features">Features</a></li>
-          <li><a href="#preview" data-i18n="footer.link.preview">The app</a></li>
+          <li><a href={featuresHref} data-i18n="footer.link.features">Features</a></li>
+          <li><a href={previewHref} data-i18n="footer.link.preview">The app</a></li>
         </ul>
       </div>
 
