@@ -1,68 +1,37 @@
-import { useCallback, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { ArrowLeft, Pencil, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { List } from 'react-window';
-import { useClickOutside } from '@/hooks/useClickOutside';
-import { useViewStore } from '@/stores/useViewStore';
-import { useLibraryStore } from '@/stores/useLibraryStore';
-import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { TrackRow } from '@/components/shared/TrackRow';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { IconButton } from '@/components/ui/icon-button';
-import { Loader2 } from 'lucide-react';
-import {
-  useSmartPlaylistQuery,
-  useSmartPlaylistTracksQuery,
-  useDeleteSmartPlaylistMutation,
-} from '@/hooks/queries/useSmartPlaylists';
-import { SmartPlaylistFormDialog } from '../SmartPlaylistFormDialog';
+import { SmartPlaylistFormDialog } from '../../SmartPlaylistFormDialog';
+import { useSmartPlaylistDetail } from './SmartPlaylistDetail.hooks';
+import type { ISmartPlaylistDetailProps } from './SmartPlaylistDetail.types';
 
-interface ISmartPlaylistDetailProps {
-  readonly id: string;
-}
+export default function SmartPlaylistDetail(props: ISmartPlaylistDetailProps) {
+  const {
+    t,
+    tCommon,
+    playlist,
+    showMetaLoader,
+    showTracksLoader,
+    matchCountLabel,
+    hasNoTracks,
+    rowCount,
+    rowProps,
+    deleteRef,
+    showDeleteConfirm,
+    isDeleting,
+    editOpen,
+    setEditOpen,
+    onEdit,
+    onToggleDeleteConfirm,
+    onCancelDelete,
+    onDelete,
+    onBack,
+  } = useSmartPlaylistDetail(props);
 
-export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
-  const { t } = useTranslation('smartPlaylists');
-  const { t: tCommon } = useTranslation('common');
-  const { t: tToast } = useTranslation('toast');
-  const selectSmartPlaylist = useViewStore(s => s.selectSmartPlaylist);
-  const setQueue = usePlaybackStore(s => s.setQueue);
-  const currentTrack = usePlaybackStore(s => s.currentTrack);
-  const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const toggleFavorite = useLibraryStore(s => s.toggleFavorite);
-
-  const { data: playlist, isLoading: loadingMeta } = useSmartPlaylistQuery(id);
-  const { data: tracks = [], isLoading: loadingTracks } = useSmartPlaylistTracksQuery(id);
-  const deleteMutation = useDeleteSmartPlaylistMutation();
-  const [editOpen, setEditOpen] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const deleteRef = useRef<HTMLDivElement>(null);
-  useClickOutside(deleteRef, () => setShowDeleteConfirm(false), showDeleteConfirm);
-
-  const tracksRef = useRef(tracks);
-  tracksRef.current = tracks;
-  const handlePlayTrack = useCallback(
-    (index: number) => setQueue(tracksRef.current, index),
-    [setQueue]
-  );
-
-  const handleBack = useCallback(() => selectSmartPlaylist(null), [selectSmartPlaylist]);
-
-  const handleDelete = useCallback(async () => {
-    if (deleteMutation.isPending) return;
-    try {
-      await deleteMutation.mutateAsync(id);
-      setShowDeleteConfirm(false);
-      selectSmartPlaylist(null);
-    } catch {
-      // Keep the confirm popover open so the user can retry or cancel.
-      toast.error(tToast('failedDeleteSmartPlaylist'));
-    }
-  }, [deleteMutation, id, selectSmartPlaylist, tToast]);
-
-  if (loadingMeta) {
+  if (showMetaLoader) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
@@ -74,7 +43,7 @@ export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-sm text-muted-foreground">{t('notFound')}</p>
-        <button onClick={handleBack} className="text-xs text-primary hover:underline">
+        <button onClick={onBack} className="text-xs text-primary hover:underline">
           {t('goBack')}
         </button>
       </div>
@@ -84,7 +53,7 @@ export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border/30 shrink-0">
-        <IconButton size="md" onClick={handleBack} aria-label={t('goBack')} title={t('goBack')}>
+        <IconButton size="md" onClick={onBack} aria-label={t('goBack')} title={t('goBack')}>
           <ArrowLeft />
         </IconButton>
         <div className="min-w-0 flex-1">
@@ -92,21 +61,16 @@ export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
             {playlist.name}
           </h2>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 mt-0.5">
-            {t('matchCount', { count: tracks.length })}
+            {matchCountLabel}
           </p>
         </div>
-        <IconButton
-          size="md"
-          onClick={() => setEditOpen(true)}
-          aria-label={tCommon('edit')}
-          title={tCommon('edit')}
-        >
+        <IconButton size="md" onClick={onEdit} aria-label={tCommon('edit')} title={tCommon('edit')}>
           <Pencil />
         </IconButton>
         <div ref={deleteRef} className="relative">
           <IconButton
             size="md"
-            onClick={() => setShowDeleteConfirm(v => !v)}
+            onClick={onToggleDeleteConfirm}
             aria-label={tCommon('delete')}
             title={tCommon('delete')}
             className="text-muted-foreground hover:text-destructive"
@@ -125,14 +89,14 @@ export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
                 <p className="text-xs text-foreground/80 mb-2">{t('deleteConfirm')}</p>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleDelete}
-                    disabled={deleteMutation.isPending}
+                    onClick={onDelete}
+                    disabled={isDeleting}
                     className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors disabled:opacity-50"
                   >
                     {tCommon('delete')}
                   </button>
                   <button
-                    onClick={() => setShowDeleteConfirm(false)}
+                    onClick={onCancelDelete}
                     className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     {tCommon('cancel')}
@@ -144,30 +108,23 @@ export function SmartPlaylistDetail({ id }: ISmartPlaylistDetailProps) {
         </div>
       </div>
 
-      {loadingTracks ? (
+      {showTracksLoader ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-5 h-5 text-muted-foreground/40 animate-spin" />
         </div>
-      ) : tracks.length === 0 ? (
+      ) : hasNoTracks ? (
         <ViewEmptyState title={t('emptyTitle')} subtitle={t('emptySubtitle')} icon={Sparkles} />
       ) : (
         <div className="flex-1 min-h-0 mx-4 mb-4 rounded-2xl glass-panel border border-border/30 overflow-hidden">
           <div className="h-full px-2 py-1.5">
             <List
-              rowCount={tracks.length}
+              rowCount={rowCount}
               rowHeight={52}
               overscanCount={10}
               className="scrollbar-thin"
               style={{ height: '100%' }}
               rowComponent={TrackRow}
-              rowProps={{
-                queue: tracks,
-                currentTrack,
-                isPlaying,
-                handlePlayTrack,
-                onToggleFavorite: toggleFavorite,
-                showAddToPlaylist: true,
-              }}
+              rowProps={rowProps}
             />
           </div>
         </div>

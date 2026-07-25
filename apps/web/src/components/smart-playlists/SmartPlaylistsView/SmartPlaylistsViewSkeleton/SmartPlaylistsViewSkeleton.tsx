@@ -1,14 +1,14 @@
 import { Sparkles } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { useSmartPlaylistsViewSkeleton } from './SmartPlaylistsViewSkeleton.hooks';
 
-export function SmartPlaylistsViewSkeleton() {
-  const { t } = useTranslation('smartPlaylists');
+export default function SmartPlaylistsViewSkeleton() {
+  const { title, placeholderKeys } = useSmartPlaylistsViewSkeleton();
 
-  const placeholderCards = Array.from({ length: 6 }).map((_, i) => (
+  const placeholderCards = placeholderKeys.map(key => (
     <div
-      key={i}
+      key={key}
       className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/50 p-3"
     >
       <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
@@ -22,9 +22,9 @@ export function SmartPlaylistsViewSkeleton() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden" aria-busy="true">
       <span className="sr-only" role="status">
-        {t('title')}
+        {title}
       </span>
-      <PageHeader title={t('title')} icon={Sparkles} variant="section" />
+      <PageHeader title={title} icon={Sparkles} variant="section" />
 
       <div className="flex items-center justify-end px-6 py-3 shrink-0">
         <Skeleton className="h-8 w-36 rounded-lg" />
