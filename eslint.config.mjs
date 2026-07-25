@@ -60,6 +60,22 @@ const COMPOSITION_ROOT_FEATURES = ['now-playing', 'overview', 'onboarding', 'set
 const COMPOSITION_ROOTS_BRACE = `{${COMPOSITION_ROOT_FEATURES.join(',')}}`;
 const COMPOSITION_ROOTS_GLOB = `apps/web/src/components/${COMPOSITION_ROOTS_BRACE}/**`;
 
+// Components that are not entry shells (a sub-component inside another
+// component's folder, or a loose `.tsx` at a feature root) and still hold state
+// in their body. no-state-in-component-body covers nested components everywhere
+// else; these files are the migration backlog and keep the entry-file-only
+// scope until their state moves into a colocated hook.
+const NESTED_STATE_BACKLOG = [
+  'apps/web/src/components/player/CompactPlayer/CompactFavoriteButton.tsx',
+  'apps/web/src/components/player/CompactPlayer/CompactMarqueeText.tsx',
+  'apps/web/src/components/settings/InterfacePreview.tsx',
+  'apps/web/src/components/shared/BulkActionBar/MoreMenu.tsx',
+  'apps/web/src/components/shared/TrackContextMenu/PlaylistSubmenu.tsx',
+  'apps/web/src/components/shared/ViewEmptyState/MascotIdleNote.tsx',
+  'apps/web/src/components/smart-playlists/SmartPlaylistsView/SmartPlaylistDetail.tsx',
+  'apps/web/src/components/splash/SplashRain.tsx',
+];
+
 export default defineConfig(
   eslint.configs.recommended,
   tseslint.configs.recommended,
@@ -148,7 +164,10 @@ export default defineConfig(
     rules: {
       'shiranami/component-folder-structure': 'error',
       'shiranami/index-must-reexport-default': 'error',
-      'shiranami/no-state-in-component-body': 'error',
+      // includeNestedComponents also covers the component files that are not
+      // entry shells — sub-components inside another component's folder and
+      // loose `.tsx` at a feature root — which otherwise escape every body rule.
+      'shiranami/no-state-in-component-body': ['error', { includeNestedComponents: true }],
       'shiranami/no-jsx-computation': 'error',
       // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir).
       'shiranami/no-cross-feature-imports': ['error', { sharedFeatures: ['shared', 'ui'] }],
@@ -161,6 +180,35 @@ export default defineConfig(
     files: [`${COMPOSITION_ROOTS_GLOB}/*.{ts,tsx}`],
     rules: {
       'shiranami/no-cross-feature-imports': 'off',
+    },
+  },
+  // Nested-component migration backlog: these components still own state in
+  // their body and need a folder plus a colocated `.hooks.ts` before the nested
+  // check can pass. They keep the entry-file-only scope until then — delete a
+  // line once its state moves into a hook.
+  {
+    files: NESTED_STATE_BACKLOG,
+    rules: {
+      'shiranami/no-state-in-component-body': ['error', { includeNestedComponents: false }],
+    },
+  },
+  // The flat renderer hook modules are hook buckets too — same grab-bag risk as
+  // a colocated `<Name>.queries.ts`, and previously outside every Tier C glob.
+  {
+    files: ['apps/web/src/hooks/**/*.{ts,tsx}'],
+    rules: {
+      'shiranami/max-hooks-per-file': 'error',
+    },
+  },
+  // Hook-bucket backlog: query modules that predate the limit. The count in the
+  // comment is what they must come down to 4 from.
+  {
+    files: [
+      'apps/web/src/hooks/queries/usePlaylists.ts', // 12 exported hooks
+      'apps/web/src/hooks/queries/useSmartPlaylists.ts', // 7 exported hooks
+    ],
+    rules: {
+      'shiranami/max-hooks-per-file': 'off',
     },
   },
   {

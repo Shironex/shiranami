@@ -3,6 +3,13 @@ import { ruleTester } from '../test-utils/ruleTester';
 
 const QUERIES = 'apps/web/src/components/downloads/DownloadsView/DownloadsView.queries.ts';
 const HOOKS = 'apps/web/src/components/downloads/DownloadsView/DownloadsView.hooks.ts';
+// A flat renderer hook module: a bucket by directory rather than by suffix.
+const HOOK_DIR_MODULE = 'apps/web/src/hooks/queries/usePlaylists.ts';
+
+// Pass-through re-exports surface hooks that are counted in their own module.
+const fiveHooksReExported = `
+export { useA, useB, useC, useD, useE } from './queries/useOther';
+`;
 
 const fourHooks = `
 export function useA() { return 1; }
@@ -75,6 +82,12 @@ ruleTester.run('max-hooks-per-file', maxHooksPerFileRule, {
     // Hooks exported under aliased (non-hook) names still count by their
     // local factory name; four is within the limit.
     { code: fourHooksAliasedExports, filename: QUERIES },
+    // A module under `hooks/` is a bucket, and four is within the limit.
+    { code: fourHooks, filename: HOOK_DIR_MODULE },
+    // Test sidecars under `hooks/` are not buckets.
+    { code: fiveHooks, filename: 'apps/web/src/hooks/useThing.test.ts' },
+    // Pass-through re-exports are counted in the module that declares them.
+    { code: fiveHooksReExported, filename: HOOK_DIR_MODULE },
   ],
   invalid: [
     { code: fiveHooks, filename: QUERIES, errors: [{ messageId: 'tooManyHooks' }] },
@@ -96,6 +109,12 @@ ruleTester.run('max-hooks-per-file', maxHooksPerFileRule, {
     {
       code: fiveHooksAliasedExports,
       filename: QUERIES,
+      errors: [{ messageId: 'tooManyHooks' }],
+    },
+    // A module under `hooks/` is bounded like a colocated bucket.
+    {
+      code: fiveHooks,
+      filename: HOOK_DIR_MODULE,
       errors: [{ messageId: 'tooManyHooks' }],
     },
   ],

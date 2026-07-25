@@ -1,16 +1,16 @@
 import { componentFolderStructureRule } from '../../src/rules/component-folder-structure';
-import { ruleTester } from '../test-utils/ruleTester';
+import { fixture, ruleTester } from '../test-utils/ruleTester';
 
 const COMPONENT = `export default function Widget() { return null; }`;
 
-// Paths resolve relative to the package root (vitest cwd); the fixtures under
-// tests/fixtures/components/** carry the sibling sets these cases assert on.
+// The fixtures under tests/fixtures/components/** carry the sibling sets these
+// cases assert on; `fixture()` anchors them so the runner's cwd cannot matter.
 ruleTester.run('component-folder-structure', componentFolderStructureRule, {
   valid: [
     // A component folder whose full sibling set is present on disk.
     {
       code: COMPONENT,
-      filename: 'tests/fixtures/components/downloads/Complete/Complete.tsx',
+      filename: fixture('components/downloads/Complete/Complete.tsx'),
     },
     // Kebab-case file is not a component entry file — skipped.
     {
@@ -37,7 +37,7 @@ ruleTester.run('component-folder-structure', componentFolderStructureRule, {
     // A component folder on disk that is missing its entire sibling set.
     {
       code: COMPONENT,
-      filename: 'tests/fixtures/components/downloads/Widget/Widget.tsx',
+      filename: fixture('components/downloads/Widget/Widget.tsx'),
       errors: [{ messageId: 'missingSiblings' }],
     },
   ],

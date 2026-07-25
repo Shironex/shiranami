@@ -16,6 +16,9 @@ import micromatch from 'micromatch';
 /** The directory segment that roots every feature: `components`. */
 export const COMPONENT_ROOT_SEGMENT = 'components';
 
+/** The directory segment that roots the app-wide hook modules: `hooks`. */
+export const HOOK_ROOT_SEGMENT = 'hooks';
+
 /** Forward-slashed basename of a file (e.g. `DownloadsView.tsx`). */
 export function getBasename(filename: string): string {
   return path.basename(filename);
@@ -54,6 +57,21 @@ export function isComponentEntryFile(filename: string): boolean {
     return false;
   }
   return getComponentName(filename) === path.basename(path.dirname(filename));
+}
+
+/**
+ * True for a component file under `components/` that is NOT the entry file of
+ * its own folder: a sub-component colocated in another component's folder
+ * (`BulkActionBar/MoreMenu.tsx`) or a loose file at a feature root
+ * (`splash/SplashRain.tsx`). These still render JSX and hold state, so the body
+ * rules apply to them; they are not entry shells, so the folder-structure rule
+ * does not.
+ */
+export function isNestedComponentFile(filename: string): boolean {
+  if (!isComponentFileName(filename) || isComponentEntryFile(filename)) {
+    return false;
+  }
+  return getFeatureName(filename) !== null;
 }
 
 /** Component name for a component file (`DownloadsView.tsx` -> `DownloadsView`). */
@@ -102,9 +120,22 @@ export function isIgnoredPath(filename: string, ignorePaths: readonly string[]):
   return micromatch.isMatch(toPosix(filename), [...ignorePaths], { dot: true });
 }
 
-/** True for a feature data file whose hook count `max-hooks-per-file` bounds. */
+/**
+ * True for a feature data file whose hook count `max-hooks-per-file` bounds: a
+ * colocated `<Name>.queries.ts` / `.mutations.ts` / `.hooks.ts`, or any module
+ * inside a `hooks/` directory (`apps/web/src/hooks/queries/usePlaylists.ts`) —
+ * the flat hook modules fill the same role and grow the same grab-bags. Test,
+ * spec, and story sidecars are not buckets.
+ */
 export function isHookBucketFile(filename: string): boolean {
-  return /\.(queries|mutations|hooks)\.tsx?$/.test(getBasename(filename));
+  const basename = getBasename(filename);
+  if (/\.(queries|mutations|hooks)\.tsx?$/.test(basename)) {
+    return true;
+  }
+  if (!/\.tsx?$/.test(basename) || /\.(test|spec|stories)\.tsx?$/.test(basename)) {
+    return false;
+  }
+  return toPosix(filename).includes(`/${HOOK_ROOT_SEGMENT}/`);
 }
 
 /** True when `sibling` exists on disk in `dir`. Wrapper for testability. */

@@ -1,9 +1,9 @@
+import { fixture, ruleTester } from '../test-utils/ruleTester';
 import { indexMustReexportDefaultRule } from '../../src/rules/index-must-reexport-default';
-import { ruleTester } from '../test-utils/ruleTester';
 
 // The Card/ fixture has a Card.tsx sibling on disk, so the rule activates for
 // its index.ts (it only checks index.ts files next to a `<Folder>.tsx`).
-const CARD_INDEX = 'tests/fixtures/components/Card/index.ts';
+const CARD_INDEX = fixture('components/Card/index.ts');
 
 ruleTester.run('index-must-reexport-default', indexMustReexportDefaultRule, {
   valid: [
@@ -18,7 +18,7 @@ ruleTester.run('index-must-reexport-default', indexMustReexportDefaultRule, {
     // A non-component-folder index.ts (no sibling PascalCase .tsx) is untouched.
     {
       code: `export const config = 1;`,
-      filename: 'tests/fixtures/lib/index.ts',
+      filename: fixture('lib/index.ts'),
     },
     // An index.ts with no `<Folder>.tsx` sibling on disk is not a component
     // barrel and is left untouched.
