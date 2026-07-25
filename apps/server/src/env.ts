@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { YOUTUBE_PROXY_ENABLED } from './features';
 
 const envSchema = z
   .object({
@@ -10,17 +11,19 @@ const envSchema = z
     SHARE_BASE_URL: z.string().default('https://api.shiranami.app'),
     SHARE_TTL_SECONDS: z.coerce.number().default(3600),
     YTDLP_PATH: z.string().default('yt-dlp'),
-    // Optional locally so `pnpm dev` needs no secret, but mandatory in
-    // production: ApiKeyGuard denies every request when it is unset, so a
-    // production boot without it would take the guarded routes offline.
+    // Optional by default, but mandatory in production once a guarded surface
+    // is actually mounted: ApiKeyGuard denies every request when it is unset,
+    // so booting without it would take those routes offline rather than expose
+    // them. Nothing is guarded while YOUTUBE_PROXY_ENABLED is false, so today
+    // this stays optional and existing deployments are unaffected.
     API_KEY: z.string().min(1, 'API_KEY must not be empty').optional(),
   })
   .superRefine((env, ctx) => {
-    if (env.NODE_ENV === 'production' && !env.API_KEY) {
+    if (YOUTUBE_PROXY_ENABLED && env.NODE_ENV === 'production' && !env.API_KEY) {
       ctx.addIssue({
         code: 'custom',
         path: ['API_KEY'],
-        message: 'API_KEY is required when NODE_ENV is production',
+        message: 'API_KEY is required when NODE_ENV is production and the YouTube proxy is enabled',
       });
     }
   });

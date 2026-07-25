@@ -20,6 +20,9 @@ describe('validateEnv', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+    // `vi.resetModules()` clears the module registry but not mock registrations,
+    // so an opt-in `doMock` would otherwise leak into every later test.
+    vi.doUnmock('./features');
   });
 
   async function loadAndValidate() {
@@ -84,7 +87,20 @@ describe('validateEnv', () => {
     expect(env.SHARE_TTL_SECONDS).toBe(3600);
   });
 
-  it('exits when API_KEY is missing in production', async () => {
+  it('allows a production env without API_KEY while no guarded surface is mounted', async () => {
+    // Nothing is behind ApiKeyGuard until the YouTube proxy is enabled, so
+    // requiring the key today would only break deploys that have no guarded
+    // routes to protect.
+    Object.assign(process.env, { ...VALID_ENV, NODE_ENV: 'production' });
+    delete process.env.API_KEY;
+
+    const env = await loadAndValidate();
+    expect(env.NODE_ENV).toBe('production');
+    expect(env.API_KEY).toBeUndefined();
+  });
+
+  it('exits when API_KEY is missing in production and the YouTube proxy is enabled', async () => {
+    vi.doMock('./features', () => ({ YOUTUBE_PROXY_ENABLED: true }));
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called');
     });
