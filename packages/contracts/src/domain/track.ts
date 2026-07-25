@@ -51,6 +51,31 @@ export interface NewTrack {
 }
 
 /**
+ * Renderer → main write payload for `db:tracks:add` / `db:tracks:add-many`.
+ * Narrower than `NewTrack` on purpose: it mirrors the zod schema the handlers
+ * validate against, which omits the backend-managed columns (`id`,
+ * `loudnessLufs`, `isFavorite`, `playCount`, `createdAt`, `updatedAt`). Those
+ * are generated in the main process or owned by dedicated handlers, so a
+ * payload carrying them has them stripped rather than honoured.
+ */
+export interface TrackCreateInput {
+  filePath: string;
+  title: string;
+  artist?: string | null;
+  albumArtist?: string | null;
+  album?: string | null;
+  duration?: number | null;
+  genre?: string | null;
+  year?: number | null;
+  trackNumber?: number | null;
+  discNumber?: number | null;
+  albumArt?: string | null;
+}
+
+/** Patch payload for `db:tracks:update` / `db:tracks:update-many`. */
+export type TrackUpdateInput = Partial<TrackCreateInput>;
+
+/**
  * Renderer-facing display shape derived from the canonical `Track`. The mapper
  * boundary (`apps/web/src/lib/trackMapper.ts`) collapses the DB's nullable
  * `artist`/`album`/`duration` into non-null display values (e.g.

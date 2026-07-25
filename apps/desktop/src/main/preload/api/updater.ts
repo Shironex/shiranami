@@ -1,33 +1,15 @@
 import { invoke } from '../context-bridge';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import {
+  IPC_CHANNELS,
+  type UpdateDownloadProgress,
+  type UpdateInfo,
+  type UpdaterApi,
+} from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
 const C = IPC_CHANNELS.updater;
 
-interface UpdateInfo {
-  version: string;
-  releaseNotes: string | null;
-  releaseDate: string;
-}
-
-interface DownloadProgress {
-  bytesPerSecond: number;
-  percent: number;
-  transferred: number;
-  total: number;
-}
-
-export interface UpdaterApi {
-  checkForUpdates: () => Promise<{ enabled: boolean }>;
-  startDownload: () => Promise<void>;
-  installNow: () => Promise<void>;
-  onCheckingForUpdate: (callback: () => void) => () => void;
-  onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void;
-  onUpdateNotAvailable: (callback: () => void) => () => void;
-  onDownloadProgress: (callback: (progress: DownloadProgress) => void) => () => void;
-  onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void;
-  onUpdateError: (callback: (message: string) => void) => () => void;
-}
+export type { UpdaterApi };
 
 export const updaterApi: UpdaterApi = {
   checkForUpdates: () => invoke(C.checkForUpdates),
@@ -36,7 +18,7 @@ export const updaterApi: UpdaterApi = {
   onCheckingForUpdate: createIpcListener<void>(C.checkingForUpdate),
   onUpdateAvailable: createIpcListener<UpdateInfo>(C.updateAvailable),
   onUpdateNotAvailable: createIpcListener<void>(C.updateNotAvailable),
-  onDownloadProgress: createIpcListener<DownloadProgress>(C.downloadProgress),
+  onDownloadProgress: createIpcListener<UpdateDownloadProgress>(C.downloadProgress),
   onUpdateDownloaded: createIpcListener<UpdateInfo>(C.updateDownloaded),
   onUpdateError: createIpcListener<string>(C.error),
 };

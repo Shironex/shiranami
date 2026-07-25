@@ -14,9 +14,11 @@ type RuleOptions = [MaxHooksPerFileOptions];
 type MessageIds = 'tooManyHooks';
 
 /*
- * A feature data file (`*.queries.ts`, `*.hooks.ts`, `*.mutations.ts`) that
- * exports more than `max` (default 4) `use*` hooks is doing too much; split it
- * before it becomes a grab-bag. Only exported hook factories count.
+ * A hook bucket — a feature data file (`*.queries.ts`, `*.hooks.ts`,
+ * `*.mutations.ts`) or a module under a `hooks/` directory — that exports more
+ * than `max` (default 4) `use*` hooks is doing too much; split it before it
+ * becomes a grab-bag. Only hook factories declared and exported here count —
+ * a pass-through `export { useX } from './useX'` does not.
  */
 const DEFAULT_MAX = 4;
 
@@ -38,7 +40,7 @@ export const maxHooksPerFileRule = createRule<RuleOptions, MessageIds>({
     type: 'suggestion',
     docs: {
       description:
-        'A `*.queries.ts` / `*.hooks.ts` / `*.mutations.ts` file may export at most `max` (default 4) `use*` hooks. Split larger files.',
+        'A `*.queries.ts` / `*.hooks.ts` / `*.mutations.ts` file, or a module under a `hooks/` directory, may export at most `max` (default 4) `use*` hooks. Split larger files.',
     },
     schema: [optionSchema],
     messages: {
@@ -80,6 +82,12 @@ export const maxHooksPerFileRule = createRule<RuleOptions, MessageIds>({
 
     return {
       ExportNamedDeclaration(node): void {
+        // `export { useX } from './useX'` re-surfaces a hook that already lives
+        // (and is already counted) in another module — the pass-through does
+        // not make this file a grab-bag, so it is not counted here.
+        if (node.source !== null) {
+          return;
+        }
         handleExport(node.declaration);
         for (const specifier of node.specifiers) {
           if (

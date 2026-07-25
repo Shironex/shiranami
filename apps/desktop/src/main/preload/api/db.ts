@@ -1,129 +1,26 @@
 import { invoke } from '../context-bridge';
 import { IPC_CHANNELS } from '@shiranami/contracts';
 import type {
-  DbExportResult,
-  DbImportResult,
-  SmartPlaylist,
-  SmartPlaylistDefinition,
-  SmartPlaylistRule,
-  SmartPlaylistMatchType,
+  DbApi,
+  DbBackupApi,
+  DbFoldersApi,
+  DbHistoryApi,
+  DbPlaylistsApi,
+  DbSmartPlaylistsApi,
+  DbTracksApi,
 } from '@shiranami/contracts';
-import type {
-  ListeningActivityPoint,
-  ListeningHourlyActivityPoint,
-  ListeningHistoryEntry,
-  ListeningStatsSummary,
-  WeeklyInsights,
-} from '../types';
 
 const C = IPC_CHANNELS.db;
 
-export interface DbTracksApi {
-  getAll: () => Promise<unknown[]>;
-  add: (track: unknown) => Promise<unknown>;
-  addMany: (tracks: unknown[]) => Promise<unknown[]>;
-  remove: (id: string) => Promise<void>;
-  removeMany: (ids: string[]) => Promise<void>;
-  update: (id: string, data: unknown) => Promise<unknown>;
-  updateMany: (updates: Array<{ id: string; data: unknown }>) => Promise<void>;
-  toggleFavorite: (id: string) => Promise<unknown>;
-  getFavorites: () => Promise<unknown[]>;
-  incrementPlayCount: (id: string) => Promise<unknown>;
-  exists: (filePath: string) => Promise<boolean>;
-  existsMany: (filePaths: string[]) => Promise<string[]>;
-  getIdByPath: (filePath: string) => Promise<string | null>;
-}
-
-export interface DbHistoryApi {
-  recordPlay: (data: {
-    trackId: string;
-    playedSeconds: number;
-    duration: number | null;
-    source?: string;
-  }) => Promise<unknown>;
-  getRecent: (options?: {
-    limit?: number;
-    since?: string | null;
-  }) => Promise<ListeningHistoryEntry[]>;
-  getSummary: (options?: {
-    since?: string | null;
-    until?: string | null;
-  }) => Promise<ListeningStatsSummary>;
-  getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
-  getHourlyActivity: (options?: {
-    since?: string | null;
-  }) => Promise<ListeningHourlyActivityPoint[]>;
-  getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
-}
-
-export interface DbFoldersApi {
-  getAll: () => Promise<unknown[]>;
-  add: (path: string) => Promise<unknown>;
-  remove: (id: string) => Promise<void>;
-  updateScanned: (id: string) => Promise<unknown>;
-}
-
-export interface DbPlaylistsApi {
-  getAll: () => Promise<unknown[]>;
-  get: (id: string) => Promise<unknown>;
-  create: (data: { name: string; description?: string; coverArt?: string }) => Promise<unknown>;
-  createWithTracks: (data: {
-    name: string;
-    description?: string;
-    trackIds: string[];
-  }) => Promise<unknown>;
-  update: (
-    id: string,
-    data: { name?: string; description?: string; coverArt?: string }
-  ) => Promise<unknown>;
-  delete: (id: string) => Promise<void>;
-  getTracks: (playlistId: string) => Promise<unknown[]>;
-  addTrack: (playlistId: string, trackId: string) => Promise<unknown>;
-  addTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
-  removeTrack: (playlistId: string, trackId: string) => Promise<void>;
-  removeTracks: (playlistId: string, trackIds: string[]) => Promise<void>;
-  getPlaylistsForTracks: (trackIds: string[]) => Promise<string[]>;
-  reorder: (playlistId: string, trackIds: string[]) => Promise<void>;
-}
-
-export interface DbSmartPlaylistsApi {
-  getAll: () => Promise<SmartPlaylist[]>;
-  get: (id: string) => Promise<SmartPlaylist | null>;
-  create: (data: {
-    name: string;
-    description?: string;
-    matchType: SmartPlaylistMatchType;
-    rules: SmartPlaylistRule[];
-  }) => Promise<SmartPlaylist>;
-  update: (
-    id: string,
-    data: {
-      name?: string;
-      description?: string;
-      matchType?: SmartPlaylistMatchType;
-      rules?: SmartPlaylistRule[];
-    }
-  ) => Promise<SmartPlaylist | null>;
-  delete: (id: string) => Promise<void>;
-  /** Evaluate a saved smart playlist and return matching track rows. */
-  getTracks: (id: string) => Promise<unknown[]>;
-  /** Evaluate an unsaved rule definition (live editor preview). */
-  preview: (definition: SmartPlaylistDefinition) => Promise<unknown[]>;
-}
-
-export interface DbBackupApi {
-  export: () => Promise<DbExportResult>;
-  import: () => Promise<DbImportResult>;
-}
-
-export interface DbApi {
-  tracks: DbTracksApi;
-  history: DbHistoryApi;
-  folders: DbFoldersApi;
-  playlists: DbPlaylistsApi;
-  smartPlaylists: DbSmartPlaylistsApi;
-  backup: DbBackupApi;
-}
+export type {
+  DbApi,
+  DbBackupApi,
+  DbFoldersApi,
+  DbHistoryApi,
+  DbPlaylistsApi,
+  DbSmartPlaylistsApi,
+  DbTracksApi,
+};
 
 const tracksApi: DbTracksApi = {
   getAll: () => invoke(C.tracks.getAll),

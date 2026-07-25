@@ -1,12 +1,9 @@
 import { invoke } from '../context-bridge';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import { IPC_CHANNELS, type ShellApi } from '@shiranami/contracts';
 
 const C = IPC_CHANNELS.shell;
 
-export interface ShellApi {
-  showInFolder: (filePath: string) => Promise<void>;
-  trashFile: (filePath: string) => Promise<void>;
-}
+export type { ShellApi };
 
 export const shellApi: ShellApi = {
   showInFolder: filePath => invoke(C.showInFolder, filePath),

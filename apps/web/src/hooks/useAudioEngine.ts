@@ -10,7 +10,6 @@ import {
   setDeckGain,
   isAnalyserReady,
   resumeAudioContext,
-  initEq,
   applyEqPreset,
   setEqEnabled,
   setPreampDb,
@@ -776,7 +775,6 @@ export function useAudioEngine() {
       if (!analyserInitRef.current && deckARef.current && deckBRef.current) {
         try {
           initAnalyser(deckARef.current, deckBRef.current);
-          initEq();
           analyserInitRef.current = true;
           // Set initial gains via setVolume so the active deck's cached
           // loudness factor is applied from the very first play.
@@ -784,14 +782,14 @@ export function useAudioEngine() {
           setVolume(activeDeckRef.current, userVol);
           setVolume(getIdleDeckId(), 0);
 
-          // Replay the persisted EQ state into the newly-built chain.
+          // Replay the persisted EQ state into the chain. The biquads are only
+          // built (and wired) when the user actually has the EQ on, so a
+          // default (disabled) install never pays for them on the audio thread.
           const eq = useEqStore.getState();
-          applyEqPreset(eq.gains);
           recomputePreamp();
-          setEqEnabled(eq.enabled);
-          if (!eq.enabled) {
-            // Ensure bands are flat when disabled on boot.
-            applyEqPreset(new Array(eq.gains.length).fill(0));
+          if (eq.enabled) {
+            setEqEnabled(true);
+            applyEqPreset(eq.gains);
           }
         } catch {
           // Non-critical - visualiser just won't work
@@ -876,10 +874,11 @@ export function useAudioEngine() {
       }
 
       if (state.enabled !== prev.enabled) {
+        // setEqEnabled owns the dry/wet crossfade (and builds the filters on
+        // the first enable); the preset re-apply then fills a fresh chain in.
+        setEqEnabled(state.enabled);
         if (state.enabled) {
           applyEqPreset(state.gains);
-        } else {
-          setEqEnabled(false);
         }
       } else if (state.enabled && state.gains !== prev.gains) {
         applyEqPreset(state.gains);

@@ -8,16 +8,14 @@
     <style>
       html { background-color: #110e1a; }
     </style>
-    <script>
-      // Apply the persisted theme before React mounts so a non-default theme
-      // never flashes the bare baseline for one frame. Read-only + defensive:
-      // wrapped in try/catch and guarded so "none" leaves <html> attribute-free.
-      try {
-        var t = JSON.parse(localStorage.getItem('shiranami.theme') || '{}');
-        var id = t && t.state && t.state.theme;
-        if (id && id !== 'none') document.documentElement.dataset.theme = id;
-      } catch (e) {}
-    </script>
+    <!--
+      Applies the persisted theme before React mounts so a non-default theme
+      never flashes the bare baseline for one frame. A module rather than an
+      inline script because the packaged CSP is `script-src 'self'`, which
+      blocks inline execution outright. Must stay above the /src/main.tsx entry:
+      module scripts run in document order.
+    -->
+    <script type="module" src="/src/lib/theme-init.ts"></script>
   </head>
   <body>
     <div id="root"></div>

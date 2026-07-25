@@ -130,8 +130,8 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'download.headingAccent': 'yours',
     'download.body':
       'Free to download. Source-available. Updates land in-app on Windows; macOS users grab them from GitHub Releases.',
-    'download.metaSize': '~84 MB',
-    'download.metaStack': 'Electron 40',
+    'download.metaSize': '~113–130 MB',
+    'download.metaStack': 'Electron 41',
     'download.action': 'Download',
     'download.windowsTag': '.exe · in-app updates',
     'download.macosTag': '.dmg · GitHub Releases',
@@ -356,8 +356,8 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'download.headingAccent': 'po Twojemu',
     'download.body':
       'Darmowe pobranie. Kod dostępny. Aktualizacje trafiają do aplikacji na Windowsie; użytkownicy macOS pobierają je z GitHub Releases.',
-    'download.metaSize': '~84 MB',
-    'download.metaStack': 'Electron 40',
+    'download.metaSize': '~113–130 MB',
+    'download.metaStack': 'Electron 41',
     'download.action': 'Pobierz',
     'download.windowsTag': '.exe · aktualizacje w aplikacji',
     'download.macosTag': '.dmg · GitHub Releases',

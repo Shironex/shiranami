@@ -2,20 +2,34 @@ FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.9.0 --activate
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies — `...` pulls in the workspace packages @shiranami/server
+# depends on (@shiranami/contracts), whose manifest must be in the context for
+# pnpm to resolve the `workspace:*` link.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
+COPY packages/contracts/package.json packages/contracts/
 COPY apps/server/prisma/ apps/server/prisma/
-RUN pnpm install --frozen-lockfile --filter @shiranami/server --ignore-scripts
+RUN pnpm install --frozen-lockfile --filter @shiranami/server... --ignore-scripts
 
 # Build
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/server/node_modules ./apps/server/node_modules
-COPY apps/server/ apps/server/
+# Bring the whole installed workspace from deps — root manifests included — so
+# `pnpm --filter` can resolve the workspace; node_modules (incl. the package
+# symlinks) come along.
+COPY --from=deps /app ./
 COPY tsconfig.base.json ./
-RUN pnpm --filter @shiranami/server run db:generate
+# Copy the rarely-changing package first for better layer caching.
+COPY packages/contracts/ packages/contracts/
+COPY apps/server/ apps/server/
+# The server resolves @shiranami/contracts through its package `main`/`types`,
+# so the package has to be compiled before nest builds against it.
+RUN pnpm --filter @shiranami/contracts run build
+# `prisma generate` only reads the schema, but prisma.config.ts resolves
+# DATABASE_URL eagerly — hand it a throwaway value so the image builds without a
+# database. The real connection string is read from the runtime environment.
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \
+  pnpm --filter @shiranami/server run db:generate
 RUN pnpm --filter @shiranami/server run build
 
 # Production
@@ -27,9 +41,15 @@ ENV NODE_ENV=production
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/
+COPY packages/contracts/package.json packages/contracts/
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/apps/server/src/generated ./apps/server/src/generated
-RUN pnpm install --frozen-lockfile --filter @shiranami/server --prod --ignore-scripts
+# @shiranami/contracts is required at runtime (share DTO schemas), so its build
+# output ships too — pnpm links node_modules/@shiranami/contracts at this path.
+COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
+RUN pnpm install --frozen-lockfile --filter @shiranami/server... --prod --ignore-scripts
 
 EXPOSE 3000
-CMD ["node", "apps/server/dist/main.js"]
+# `nest build` (swc builder) mirrors the source tree, so the entrypoint lands in
+# dist/src — not dist.
+CMD ["node", "apps/server/dist/src/main.js"]

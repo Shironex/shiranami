@@ -2,7 +2,7 @@ import { AST_NODE_TYPES, type TSESTree } from '@typescript-eslint/utils';
 import type { JSONSchema4 } from '@typescript-eslint/utils/json-schema';
 
 import { createRule } from '../utils/createRule';
-import { isComponentEntryFile } from '../utils/component-architecture';
+import { isComponentEntryFile, isNestedComponentFile } from '../utils/component-architecture';
 
 export const RULE_NAME = 'no-state-in-component-body';
 
@@ -10,6 +10,7 @@ export interface NoStateInComponentBodyOptions {
   readonly allowedHooks?: readonly string[];
   readonly additionalHooks?: readonly string[];
   readonly storeHookPattern?: string;
+  readonly includeNestedComponents?: boolean;
 }
 
 type RuleOptions = [NoStateInComponentBodyOptions];
@@ -21,7 +22,10 @@ type MessageIds = 'stateInBody';
  * presentation shell. React state/effect/memo/ref hooks, react-query data
  * hooks, and zustand store hooks (`use*Store`) are flagged. `useId`,
  * `useTransition`, and `useDeferredValue` are render-safe and allowlisted.
- * Only `<Name>.tsx` files are checked; `.hooks.ts` is the correct home.
+ * Entry files (`<Name>/<Name>.tsx`) are always checked; `.hooks.ts` is the
+ * correct home. `includeNestedComponents` extends the check to component files
+ * that are not entry shells — sub-components inside another component's folder
+ * and loose `.tsx` at a feature root — which otherwise escape every body rule.
  */
 const DEFAULT_ALLOWED: readonly string[] = ['useId', 'useTransition', 'useDeferredValue'];
 
@@ -54,6 +58,7 @@ const optionSchema: JSONSchema4 = {
     allowedHooks: { type: 'array', items: { type: 'string' }, uniqueItems: true },
     additionalHooks: { type: 'array', items: { type: 'string' }, uniqueItems: true },
     storeHookPattern: { type: 'string' },
+    includeNestedComponents: { type: 'boolean' },
   },
 };
 
@@ -73,7 +78,9 @@ export const noStateInComponentBodyRule = createRule<RuleOptions, MessageIds>({
   },
   defaultOptions: [{ allowedHooks: [...DEFAULT_ALLOWED] }],
   create(context, [options]) {
-    if (!isComponentEntryFile(context.filename)) {
+    const filename = context.filename;
+    const checksNested = options.includeNestedComponents === true;
+    if (!isComponentEntryFile(filename) && !(checksNested && isNestedComponentFile(filename))) {
       return {};
     }
 

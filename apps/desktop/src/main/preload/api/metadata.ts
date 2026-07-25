@@ -1,41 +1,10 @@
 import { invoke } from '../context-bridge';
-import {
-  IPC_CHANNELS,
-  type EnrichTrackInput,
-  type EnrichTrackResult,
-  type EnrichProgress,
-  type MetadataLookupResult,
-  type WriteTagsInput,
-  type WriteTagsResult,
-} from '@shiranami/contracts';
+import { IPC_CHANNELS, type EnrichProgress, type MetadataApi } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
 const C = IPC_CHANNELS.metadata;
 
-export interface MetadataApi {
-  lookup: (title: string, artist: string) => Promise<MetadataLookupResult>;
-  enrichTracks: (
-    tracks: EnrichTrackInput[],
-    options: { writeToFile: boolean; onlyMissing: boolean }
-  ) => Promise<EnrichTrackResult[]>;
-  /**
-   * Look-up-only single-track enrichment. Returns the would-be `updatedFields`
-   * (and a cached cover URL when one was downloaded) WITHOUT writing tags or
-   * mutating the DB. The renderer is responsible for the apply step. Rejects
-   * with code `metadata.enrich_busy` when a bulk run holds the abort slot.
-   */
-  previewEnrich: (
-    track: EnrichTrackInput,
-    options: { onlyMissing: boolean }
-  ) => Promise<EnrichTrackResult>;
-  cancelEnrichment: () => Promise<void>;
-  onEnrichProgress: (callback: (data: EnrichProgress) => void) => () => void;
-  /**
-   * Write user-edited tags back to the audio file and update the DB row. Used
-   * by the manual tag editor (distinct from the automatic enrichment flow).
-   */
-  writeTags: (input: WriteTagsInput) => Promise<WriteTagsResult>;
-}
+export type { MetadataApi };
 
 export const metadataApi: MetadataApi = {
   lookup: (title, artist) => invoke(C.lookup, title, artist),

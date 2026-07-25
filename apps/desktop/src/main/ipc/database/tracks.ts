@@ -26,12 +26,23 @@ import {
 
 const T = IPC_CHANNELS.db.tracks;
 
+/**
+ * Tie-break for every `ORDER BY created_at DESC` read of the library.
+ *
+ * `created_at` defaults to `datetime('now')` — second resolution — so a folder
+ * scan stamps every imported track with the same value. Without an explicit
+ * second key the order within such a run is whatever the query planner happens
+ * to produce, which flips the moment an index is added or removed. `rowid`
+ * ascending is insertion order, which is what users have always seen.
+ */
+const LIBRARY_TIE_BREAK = sql`rowid asc`;
+
 export function registerTrackHandlers(): void {
   handle(
     T.getAll,
     async () => {
       const db = getDatabase();
-      return db.select().from(tracks).orderBy(desc(tracks.createdAt)).all();
+      return db.select().from(tracks).orderBy(desc(tracks.createdAt), LIBRARY_TIE_BREAK).all();
     },
     { schema: tracksGetAllArgs }
   );
@@ -216,7 +227,7 @@ export function registerTrackHandlers(): void {
         .select()
         .from(tracks)
         .where(eq(tracks.isFavorite, true))
-        .orderBy(desc(tracks.createdAt))
+        .orderBy(desc(tracks.createdAt), LIBRARY_TIE_BREAK)
         .all();
     },
     { schema: tracksGetFavoritesArgs }

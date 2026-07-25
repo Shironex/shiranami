@@ -5,6 +5,7 @@
 // surface tracks the manifest mechanically.
 
 import { contextBridge } from 'electron';
+import type { SharedElectronApi } from '@shiranami/contracts';
 import {
   isIpcError,
   SHARE_ERROR_CODES,
@@ -36,7 +37,11 @@ import { updaterApi, type UpdaterApi } from './api/updater';
 import { windowApi, type WindowApi } from './api/window';
 import { systemApi, type SystemApi } from './api/system';
 
-export interface ElectronAPI {
+// Extends the shared contract rather than restating it, so a namespace added to
+// `SharedElectronApi` but never wired up below fails to compile at the
+// `electronAPI` object literal. Without the `extends`, the renderer would
+// silently declare a surface the preload does not actually expose.
+export interface ElectronAPI extends SharedElectronApi {
   window: WindowApi;
   store: StoreApi;
   dialog: DialogApi;
