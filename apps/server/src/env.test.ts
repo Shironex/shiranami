@@ -84,6 +84,39 @@ describe('validateEnv', () => {
     expect(env.SHARE_TTL_SECONDS).toBe(3600);
   });
 
+  it('exits when API_KEY is missing in production', async () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    Object.assign(process.env, { ...VALID_ENV, NODE_ENV: 'production' });
+    delete process.env.API_KEY;
+
+    await expect(loadAndValidate()).rejects.toThrow('process.exit called');
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  it('accepts a production env that provides API_KEY', async () => {
+    Object.assign(process.env, {
+      ...VALID_ENV,
+      NODE_ENV: 'production',
+      API_KEY: 'super-secret-key',
+    });
+
+    const env = await loadAndValidate();
+    expect(env.NODE_ENV).toBe('production');
+    expect(env.API_KEY).toBe('super-secret-key');
+  });
+
+  it('allows a missing API_KEY outside production', async () => {
+    Object.assign(process.env, VALID_ENV);
+    delete process.env.API_KEY;
+
+    const env = await loadAndValidate();
+    expect(env.API_KEY).toBeUndefined();
+  });
+
   it('rejects an invalid NODE_ENV value', async () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called');
