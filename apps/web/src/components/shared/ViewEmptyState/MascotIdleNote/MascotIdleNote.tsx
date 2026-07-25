@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Music2 } from 'lucide-react';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useMascotIdleNote } from './MascotIdleNote.hooks';
 
 /**
  * A single music note that drifts up from the mascot's headphones once every
@@ -9,20 +8,11 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
  * mascot is a flat PNG, so this is a small overlaid element rather than an edit
  * to the image; it sits inside the mascot's `relative` frame, is purely
  * decorative (`aria-hidden`, no pointer events) and does not affect layout.
- *
- * Self-gates on reduced motion (matching the mascot's own CSS-gated float), and
- * the cadence is randomized per mount so the note never feels metronomic.
  */
-export function MascotIdleNote() {
-  const reducedMotion = useReducedMotion();
-  // Randomized once so the note's first appearance and spacing feel organic and
-  // are staggered across the several empty states a user might have open.
-  const [{ initialDelay, gap }] = useState(() => ({
-    initialDelay: 5 + Math.random() * 6, // 5–11s before the first note
-    gap: 13 + Math.random() * 7, // 13–20s of quiet between notes
-  }));
+export default function MascotIdleNote() {
+  const { isVisible, initialDelay, gap } = useMascotIdleNote();
 
-  if (reducedMotion) return null;
+  if (!isVisible) return null;
 
   return (
     <motion.span
