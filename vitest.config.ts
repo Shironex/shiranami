@@ -9,6 +9,7 @@ export default defineConfig({
       'packages/database/vitest.config.ts',
       'packages/contracts/vitest.config.ts',
       'packages/recommendation/vitest.config.ts',
+      'packages/eslint-plugin/vitest.config.ts',
       'apps/server/vitest.config.ts',
     ],
     coverage: {
@@ -20,6 +21,7 @@ export default defineConfig({
         'packages/database/src/**/*.ts',
         'packages/contracts/src/**/*.ts',
         'packages/recommendation/src/**/*.ts',
+        'packages/eslint-plugin/src/**/*.ts',
         'apps/server/src/**/*.ts',
       ],
       exclude: [

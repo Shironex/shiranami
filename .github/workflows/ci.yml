@@ -23,7 +23,7 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' || steps.filter.outputs.server == 'true' }}
+      code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.recommendation == 'true' || steps.filter.outputs.tooling == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' || steps.filter.outputs.server == 'true' }}
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
     steps:
@@ -44,8 +44,7 @@ jobs:
               - '.prettierrc'
               - '.gitignore'
               - 'vitest.config.ts'
-              - 'scripts/rebuild-better-sqlite-for-node.mjs'
-              - 'scripts/run-vitest.mjs'
+              - 'scripts/rebuild-native.mjs'
             ci:
               - '.github/**'
               - 'scripts/set-version-ci.sh'
@@ -54,6 +53,16 @@ jobs:
               - 'packages/shared/**'
             database:
               - 'packages/database/**'
+            contracts:
+              - 'packages/contracts/**'
+            recommendation:
+              - 'packages/recommendation/**'
+            # Custom lint rules + the lint-meta runner and codegen scripts:
+            # they gate every other package, so a change here has to run the
+            # full code battery even when no app source moved.
+            tooling:
+              - 'packages/eslint-plugin/**'
+              - 'tools/**'
             web:
               - 'apps/web/**'
             desktop:
