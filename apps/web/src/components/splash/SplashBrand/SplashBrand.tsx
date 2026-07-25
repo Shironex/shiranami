@@ -1,15 +1,6 @@
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import type { SplashMessageKey, SplashVariant } from '@/hooks/useSplashScreen';
-
-interface ISplashBrandProps {
-  showStatus: boolean;
-  variant: SplashVariant;
-  messageKey: SplashMessageKey;
-  error?: string | null;
-  reducedMotion: boolean;
-}
+import { useSplashBrand } from './SplashBrand.hooks';
+import type { ISplashBrandProps } from './SplashBrand.types';
 
 /**
  * Bottom-left brand block — the app identity + loader.
@@ -26,23 +17,25 @@ interface ISplashBrandProps {
  *  - LED carries `.splash-led` -> static opacity 1 under reduced-motion / low-perf.
  *  - Sweep bar carries `.splash-sweep` -> animation removed (track stays so the
  *    loader still reads as "loading").
- *  - The `reducedMotion` prop drops the message-swap animation.
  *
  * Mock literal mapping: badge text / LED / `nami` em / kanji subtitle / loader
  * sweep `oklch(0.85 0.14 295)` -> `--primary`.
  */
-export function SplashBrand({
-  showStatus,
-  variant,
-  messageKey,
-  error,
-  reducedMotion,
-}: ISplashBrandProps) {
-  const { t } = useTranslation('splash');
-
-  const ledAnimation = reducedMotion ? undefined : 'splash-led-pulse 1.6s ease-in-out infinite';
-  const sweepAnimation = reducedMotion ? undefined : 'splash-sweep 1.8s ease-in-out infinite';
-  const msgAnimation = reducedMotion ? undefined : 'shiranami-msg-fade 320ms ease-out both';
+export default function SplashBrand(props: ISplashBrandProps) {
+  const {
+    badgeLabel,
+    ledAnimation,
+    sweepAnimation,
+    messageAnimation,
+    showStatus,
+    statusClassName,
+    isError,
+    errorMessage,
+    retryLabel,
+    messageKey,
+    statusMessage,
+    onRetry,
+  } = useSplashBrand(props);
 
   return (
     <div
@@ -69,7 +62,7 @@ export function SplashBrand({
           }}
           aria-hidden="true"
         />
-        {t('badge')}
+        {badgeLabel}
       </span>
 
       {/* Wordmark — Instrument Serif italic */}
@@ -97,14 +90,8 @@ export function SplashBrand({
       </span>
 
       {/* Loader + status (or error + retry) */}
-      <div
-        className={cn(
-          'mt-1.5 flex flex-col gap-2.5 transition-opacity duration-500 ease-in',
-          showStatus ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        )}
-        aria-hidden={!showStatus}
-      >
-        {variant === 'error' ? (
+      <div className={statusClassName} aria-hidden={!showStatus}>
+        {isError ? (
           <div className="flex flex-col items-start gap-2.5">
             <div className="flex items-center gap-2">
               <span
@@ -119,7 +106,7 @@ export function SplashBrand({
                 className="text-[11.5px] font-sans"
                 style={{ color: 'oklch(from var(--destructive) l c h / 0.9)' }}
               >
-                {error ?? t('tryAgain')}
+                {errorMessage}
               </p>
             </div>
             <Button
@@ -127,9 +114,9 @@ export function SplashBrand({
               variant="link"
               size="sm"
               className="no-drag h-auto cursor-pointer p-0 text-sm"
-              onClick={() => window.location.reload()}
+              onClick={onRetry}
             >
-              {t('tryAgain')}
+              {retryLabel}
             </Button>
           </div>
         ) : (
@@ -153,10 +140,10 @@ export function SplashBrand({
               className="font-mono text-[9px] uppercase tracking-[0.22em]"
               style={{
                 color: 'oklch(from var(--muted-foreground) l c h / 0.85)',
-                animation: msgAnimation,
+                animation: messageAnimation,
               }}
             >
-              {t(messageKey)}
+              {statusMessage}
             </p>
           </>
         )}

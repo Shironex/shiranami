@@ -1,3 +1,5 @@
+import { useSplashCup } from './SplashCup.hooks';
+
 /**
  * Foreground coffee cup, bottom-right — the cafe-window prop.
  *
@@ -10,7 +12,9 @@
  * dropped under `[data-perf-mode='low']` (compositor cost). The cup itself
  * never animates.
  */
-export function SplashCup() {
+export default function SplashCup() {
+  useSplashCup();
+
   return (
     <div
       className="splash-cup-shadow absolute pointer-events-none"
