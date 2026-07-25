@@ -28,18 +28,25 @@ const MIGRATIONS_TABLE = '__drizzle_migrations';
 /** Name of the baseline migration (matches the `drizzle/` folder name). */
 export const BASELINE_NAME = '20260101000000_baseline';
 
-/**
- * The app's current schema version, mirrored into `PRAGMA user_version`.
- * Bump this whenever a migration is added so the downgrade guard can refuse to
- * open a database created by a newer build.
- */
-export const SCHEMA_VERSION = 9;
-
 interface EmbeddedMigration {
   /** Folder name — used as the ledger `name` and for ordering. */
   name: string;
   /** SQL statements (already split on `--> statement-breakpoint`). */
   statements: string[];
+  /**
+   * `true` when an older build — one that predates this migration — can still
+   * read and write the database correctly after it has been applied.
+   *
+   * Backward-compatible in practice means: adding an index, adding a table, or
+   * adding a nullable column. The older build simply never looks at what was
+   * added. It does NOT cover dropping or renaming a column or table, adding a
+   * NOT NULL column, changing a type, or tightening a constraint — anything the
+   * older build's queries could trip over.
+   *
+   * Defaults to `false` (assume breaking) so a migration author has to think
+   * about it deliberately rather than inherit compatibility by omission.
+   */
+  backwardCompatible?: boolean;
 }
 
 /**
@@ -355,8 +362,34 @@ const MIGRATIONS: EmbeddedMigration[] = [
       'CREATE INDEX IF NOT EXISTS `idx_playlist_tracks_playlist_position` ON `playlist_tracks`(`playlist_id`,`position`)',
       'DROP INDEX IF EXISTS `idx_playlist_tracks_playlist_id`',
     ],
+    // Index-only. Indexes are transparent to queries, and the dropped one was
+    // redundant with the leftmost column of the playlist_tracks unique
+    // constraint, so a build that predates this migration reads and writes the
+    // database exactly as before — it just does not benefit from the new ones.
+    backwardCompatible: true,
   },
 ];
+
+/**
+ * The lowest app schema version that can still safely open a database once
+ * every migration above has been applied — mirrored into `PRAGMA user_version`
+ * and checked by {@link assertNotDowngrade}.
+ *
+ * This is deliberately NOT `MIGRATIONS.length`. Stamping the migration count
+ * makes every migration a one-way door: a user who opens their library on a new
+ * build can never go back to the previous release, even when the only thing
+ * that changed was an index. Instead the stamp tracks the last migration that
+ * genuinely broke older builds, so backward-compatible migrations let users
+ * roll back freely.
+ *
+ * Migrations 000–007 predate the flag and are treated as breaking, which keeps
+ * the floor at 8 — exactly what shipped builds already stamp, so no existing
+ * database is re-stamped or newly refused by this change.
+ */
+export const SCHEMA_VERSION = MIGRATIONS.reduce(
+  (floor, migration, index) => (migration.backwardCompatible ? floor : index + 1),
+  0
+);
 
 /**
  * Parse a `YYYYMMDDHHMMSS_*` folder name into epoch millis, matching drizzle's
@@ -462,8 +495,14 @@ function healDiscNumberColumn(sqlite: Database.Database): void {
 
 /**
  * Compare two schema versions. Throws if `dbVersion` is newer than the app's
- * current `SCHEMA_VERSION` (a downgrade), which would risk data loss if the
- * older build tried to operate on a newer schema.
+ * current {@link SCHEMA_VERSION} (a downgrade), which would risk data loss if
+ * the older build tried to operate on a newer schema.
+ *
+ * Because the stamp is a *compatibility floor* rather than a migration count,
+ * this only fires when the database has had a genuinely breaking migration
+ * applied. A newer build that added nothing but backward-compatible migrations
+ * leaves the floor untouched, so downgrading to the previous release keeps
+ * working.
  *
  * Extracted as a pure function so it can be unit-tested without a live pragma
  * round-trip (the test mock does not persist `PRAGMA user_version`).
@@ -524,7 +563,10 @@ export function runMigrations(sqlite: Database.Database): void {
   };
   internal.dialect.migrate(migrations, internal.session, { migrationsTable: MIGRATIONS_TABLE });
 
-  // Stamp the schema version for the downgrade guard on subsequent opens.
+  // Stamp the compatibility floor for the downgrade guard on subsequent opens.
+  // Note this can be LOWER than the number of migrations applied — that is the
+  // point: it records what an older build needs to understand, not how many
+  // migrations have run. The ledger above is the record of what actually ran.
   sqlite.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 

@@ -369,10 +369,51 @@ describe('embedded migrations stay in lock-step with on-disk drizzle files', () 
     expect(embedded).toEqual([...embedded].sort());
   });
 
-  it('keeps SCHEMA_VERSION in lock-step with the migration count', () => {
-    // user_version is the downgrade guard's only signal. If it lags the ledger,
-    // a build that ships a migration cannot tell an older DB from a current one.
-    expect(SCHEMA_VERSION).toBe(__embeddedMigrationsForTest.length);
+  it('derives SCHEMA_VERSION from the last breaking migration, not the count', () => {
+    // The stamp is a compatibility floor: the lowest build that can still open
+    // the DB. Deriving it (rather than hand-bumping) is what keeps a purely
+    // additive migration from locking users out of the previous release.
+    const expected = __embeddedMigrationsForTest.reduce(
+      (floor, migration, index) => (migration.backwardCompatible ? floor : index + 1),
+      0
+    );
+    expect(SCHEMA_VERSION).toBe(expected);
+    // Never exceeds the ledger length — a floor above the migrations that exist
+    // would refuse databases this very build produces.
+    expect(SCHEMA_VERSION).toBeLessThanOrEqual(__embeddedMigrationsForTest.length);
+  });
+
+  it('lets an older build open a DB whose newest migrations are backward-compatible', () => {
+    // The rollback guarantee, asserted end to end: migrate a fresh DB with the
+    // current build, then ask the downgrade guard the question an older build
+    // would ask on startup. Trailing backward-compatible migrations must not
+    // raise the floor past what that older build shipped.
+    const db = new Database(':memory:');
+    runMigrations(db);
+    const stamped = userVersion(db);
+    db.close();
+
+    const trailingCompatible = [...__embeddedMigrationsForTest]
+      .reverse()
+      .findIndex(m => !m.backwardCompatible);
+    const oldestBuildThatStillWorks = __embeddedMigrationsForTest.length - trailingCompatible;
+
+    expect(stamped).toBe(SCHEMA_VERSION);
+    // Every build from the floor up through the current migration count opens
+    // this database — that range is exactly the set of releases a user can roll
+    // back to without the guard refusing them.
+    for (
+      let appVersion = SCHEMA_VERSION;
+      appVersion <= __embeddedMigrationsForTest.length;
+      appVersion++
+    ) {
+      expect(() => assertNotDowngrade(stamped, appVersion)).not.toThrow();
+    }
+    // The trailing backward-compatible migrations are precisely what widened
+    // that range beyond a single version.
+    expect(oldestBuildThatStillWorks).toBeGreaterThanOrEqual(SCHEMA_VERSION);
+    // A build older than the floor is still correctly refused.
+    expect(() => assertNotDowngrade(stamped, SCHEMA_VERSION - 1)).toThrow(/newer than this app/i);
   });
 
   it('matches each drizzle/<name>/migration.sql statement-for-statement', () => {
