@@ -1,21 +1,10 @@
 import { invoke } from '../context-bridge';
-import { IPC_CHANNELS } from '@shiranami/contracts';
+import { IPC_CHANNELS, type WindowApi } from '@shiranami/contracts';
 import { createIpcListener } from '../ipc-listener';
 
 const C = IPC_CHANNELS.window;
 
-export interface WindowApi {
-  minimize: () => Promise<void>;
-  maximize: () => Promise<void>;
-  close: () => Promise<void>;
-  isMaximized: () => Promise<boolean>;
-  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>;
-  setCompactMode: (
-    compactMode: boolean,
-    dimensions?: { width: number; height: number }
-  ) => Promise<void>;
-  onMaximizedChange: (callback: (maximized: boolean) => void) => () => void;
-}
+export type { WindowApi };
 
 export const windowApi: WindowApi = {
   minimize: () => invoke(C.minimize),

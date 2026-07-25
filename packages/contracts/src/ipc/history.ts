@@ -3,7 +3,7 @@
  * return across the contextBridge.
  *
  * Single source of truth for both sides of the bridge — the preload surface
- * (`apps/desktop/src/main/preload/types.ts`) and the renderer contract
+ * (the preload API modules) and the renderer contract
  * (`apps/web/src/types/electron.d.ts`) re-export these rather than redeclaring
  * them, so the two cannot silently diverge.
  *
@@ -12,6 +12,31 @@
  * IPC boundary, so these declare them non-null and the renderer renders them
  * directly.
  */
+
+/** Payload for `db:history:record-play`. */
+export interface RecordPlayInput {
+  trackId: string;
+  playedSeconds: number;
+  /** Track duration in seconds, or null when unknown (e.g. a radio stream). */
+  duration: number | null;
+  /** Playback origin, e.g. 'library' or 'radio'. Defaults to 'library'. */
+  source?: string;
+}
+
+/**
+ * The raw `play_history` row `db:history:record-play` echoes back after the
+ * insert. Deliberately distinct from `ListeningHistoryEntry`, which is the
+ * track-joined read shape the history views render.
+ */
+export interface PlayHistoryRecord {
+  id: string;
+  trackId: string;
+  playedAt: string;
+  playedSeconds: number;
+  completionRatio: number;
+  completed: boolean;
+  source: string;
+}
 
 export interface ListeningHistoryEntry {
   id: string;
