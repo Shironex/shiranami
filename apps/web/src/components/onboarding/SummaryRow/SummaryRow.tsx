@@ -1,20 +1,15 @@
-import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-
-interface ISummaryRowProps {
-  readonly icon: ReactNode;
-  readonly label: string;
-  readonly value: string;
-  /** Tints the value with the accent color (e.g. an enabled integration). */
-  readonly highlight?: boolean;
-}
+import { useSummaryRow } from './SummaryRow.hooks';
+import type { ISummaryRowProps } from './SummaryRow.types';
 
 /**
  * Single read-only recap row for the onboarding Summary step (icon · label ·
  * value). Local to onboarding — single-use, so it lives beside SummaryStep
  * rather than in components/shared. Static: no effects, no rAF.
  */
-export function SummaryRow({ icon, label, value, highlight }: ISummaryRowProps) {
+export default function SummaryRow(props: ISummaryRowProps) {
+  const { icon, label, value, isHighlighted } = useSummaryRow(props);
+
   return (
     <div
       role="listitem"
@@ -29,7 +24,7 @@ export function SummaryRow({ icon, label, value, highlight }: ISummaryRowProps) 
       <span
         className={cn(
           'min-w-0 text-right font-mono text-[10.5px] font-semibold tracking-[0.05em]',
-          highlight ? 'text-primary' : 'text-foreground'
+          isHighlighted ? 'text-primary' : 'text-foreground'
         )}
       >
         {value}

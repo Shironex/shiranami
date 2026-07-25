@@ -1,32 +1,24 @@
-import { useTranslation, Trans } from 'react-i18next';
+import { Trans } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { useAppVersion } from '@/hooks/useAppVersion';
-import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
-import { OnboardingStepLayout } from '../OnboardingStepLayout';
-import { useOnboardingStepContext } from '../stepContext';
+import { OnboardingStepLayout } from '../../OnboardingStepLayout';
+import { useWelcomeStep } from './WelcomeStep.hooks';
 
-export function WelcomeStep() {
-  const { t, i18n } = useTranslation('onboarding');
-  const { kanji, headingId, headingRef } = useOnboardingStepContext();
-  const version = useAppVersion();
-
-  function handleLanguageChange(lang: SupportedLanguage) {
-    i18n.changeLanguage(lang);
-    persistLanguage(lang);
-  }
+export default function WelcomeStep() {
+  const { t, stepContext, stepMarker, mascotAlt, languageOptions, onSelectLanguage } =
+    useWelcomeStep();
 
   // Build the language pills above the return so the `.map` stays out of JSX
   // render position (declarative-JSX rule).
-  const languageButtons = SUPPORTED_LANGUAGES.map(lang => (
+  const languageButtons = languageOptions.map(lang => (
     <button
       key={lang.code}
       type="button"
-      aria-pressed={i18n.language === lang.code}
-      onClick={() => handleLanguageChange(lang.code)}
+      aria-pressed={lang.isActive}
+      onClick={() => onSelectLanguage(lang.code)}
       className={cn(
         'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-        i18n.language === lang.code
+        lang.isActive
           ? 'border border-primary/40 bg-primary/15 text-primary'
           : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'
       )}
@@ -37,10 +29,10 @@ export function WelcomeStep() {
 
   return (
     <OnboardingStepLayout
-      kanji={kanji}
-      headingId={headingId}
-      headingRef={headingRef}
-      stepMarker={t('welcome.eyebrow', { version: version ?? '…' })}
+      kanji={stepContext.kanji}
+      headingId={stepContext.headingId}
+      headingRef={stepContext.headingRef}
+      stepMarker={stepMarker}
       headline={
         <Trans
           t={t}
@@ -67,7 +59,7 @@ export function WelcomeStep() {
           />
           <img
             src="./mascot.png"
-            alt={t('abt.altMascot', { ns: 'settings' })}
+            alt={mascotAlt}
             className="relative h-20 w-20 object-contain"
             draggable={false}
           />

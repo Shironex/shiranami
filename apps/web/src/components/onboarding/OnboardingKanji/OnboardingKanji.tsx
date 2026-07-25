@@ -1,7 +1,5 @@
-interface IOnboardingKanjiProps {
-  /** Per-step glyph, e.g. 白波 / 蔵 / 夜 / 波. Not translated — it's brand art. */
-  readonly glyph: string;
-}
+import { useOnboardingKanji } from './OnboardingKanji.hooks';
+import type { IOnboardingKanjiProps } from './OnboardingKanji.types';
 
 /**
  * Faint kanji watermark behind the left narrative pane. Purely decorative —
@@ -14,7 +12,9 @@ interface IOnboardingKanjiProps {
  * color-contrast rule (which still measures `aria-hidden` *text*) doesn't flag
  * the intentional 5%-alpha wash against an opaque light background.
  */
-export function OnboardingKanji({ glyph }: IOnboardingKanjiProps) {
+export default function OnboardingKanji(props: IOnboardingKanjiProps) {
+  const { glyph } = useOnboardingKanji(props);
+
   return (
     <span
       aria-hidden="true"
