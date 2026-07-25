@@ -1,10 +1,11 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLibraryViewSkeleton } from './LibraryViewSkeleton.hooks';
 
-export function LibraryViewSkeleton() {
-  // Lifted out of JSX (no-jsx-computation): build the placeholder rows above
-  // the return, then render the ready-made array.
-  const placeholderRows = Array.from({ length: 14 }).map((_, i) => (
-    <div key={i} className="flex items-center gap-3 px-3 py-2 h-[52px]">
+export default function LibraryViewSkeleton() {
+  const { rowKeys } = useLibraryViewSkeleton();
+
+  const placeholderRows = rowKeys.map(key => (
+    <div key={key} className="flex items-center gap-3 px-3 py-2 h-[52px]">
       <Skeleton className="size-9 rounded-md" />
       <div className="flex-1 space-y-1.5">
         <Skeleton className="h-3.5 w-48" />

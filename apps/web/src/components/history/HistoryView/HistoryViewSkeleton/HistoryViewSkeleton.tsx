@@ -1,22 +1,24 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useHistoryViewSkeleton } from './HistoryViewSkeleton.hooks';
 
-export function HistoryViewSkeleton() {
-  // Lifted out of JSX (no-jsx-computation): build the placeholder rows above
-  // the return, then render the ready-made arrays.
-  const heroPills = Array.from({ length: 3 }).map((_, index) => (
-    <Skeleton key={index} className="h-9 w-24 rounded-full" />
+export default function HistoryViewSkeleton() {
+  const { heroPillKeys, statCardKeys, panelRowKeys, listPanelKeys, recentRowKeys } =
+    useHistoryViewSkeleton();
+
+  const heroPills = heroPillKeys.map(key => (
+    <Skeleton key={key} className="h-9 w-24 rounded-full" />
   ));
 
-  const statCards = Array.from({ length: 4 }).map((_, index) => (
-    <div key={index} className="rounded-2xl border border-border/25 bg-background/35 p-4">
+  const statCards = statCardKeys.map(key => (
+    <div key={key} className="rounded-2xl border border-border/25 bg-background/35 p-4">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-4 h-8 w-20" />
       <Skeleton className="mt-2 h-3 w-28" />
     </div>
   ));
 
-  const panelRows = Array.from({ length: 4 }).map((_, rowIndex) => (
-    <div key={rowIndex} className="flex items-center gap-3 rounded-2xl border border-border/20 p-3">
+  const panelRows = panelRowKeys.map(key => (
+    <div key={key} className="flex items-center gap-3 rounded-2xl border border-border/20 p-3">
       <Skeleton className="size-11 rounded-xl" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3.5 w-36" />
@@ -25,15 +27,15 @@ export function HistoryViewSkeleton() {
     </div>
   ));
 
-  const listPanels = Array.from({ length: 2 }).map((_, index) => (
-    <div key={index} className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+  const listPanels = listPanelKeys.map(key => (
+    <div key={key} className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
       <Skeleton className="h-5 w-36" />
       <div className="mt-4 space-y-3">{panelRows}</div>
     </div>
   ));
 
-  const recentRows = Array.from({ length: 6 }).map((_, index) => (
-    <div key={index} className="flex items-center gap-3 rounded-2xl border border-border/20 p-3">
+  const recentRows = recentRowKeys.map(key => (
+    <div key={key} className="flex items-center gap-3 rounded-2xl border border-border/20 p-3">
       <Skeleton className="size-11 rounded-xl" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3.5 w-44" />

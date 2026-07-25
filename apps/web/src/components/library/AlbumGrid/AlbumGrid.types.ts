@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import type { GridImperativeAPI } from 'react-window';
 import type { Track } from '@/stores/types';
-import type { AlbumData } from '@/lib/albumSort';
+import type { IAlbumCellProps } from './AlbumCell';
 
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 
@@ -10,24 +10,6 @@ export interface IAlbumGridProps {
   readonly library: Track[];
   /** Active text filter applied to album name/artist. */
   readonly searchQuery: string;
-}
-
-/** Props handed to each virtualized album cell beyond react-window's own. */
-export interface IAlbumCellProps {
-  /** The filtered albums backing the grid, indexed by row/column. */
-  readonly albums: AlbumData[];
-  /** Number of columns currently laid out — used to flatten the cell index. */
-  readonly columnCount: number;
-  /** Inter-cell gap in px, split into per-edge insets. */
-  readonly gap: number;
-  /** Select an album by its key, persisting scroll position. */
-  readonly onAlbumClick: (key: string) => void;
-  /** Tailwind padding class for the card, derived from the grid size. */
-  readonly cardPaddingClass: string;
-  /** Square cover image edge length in px. */
-  readonly imgPx: number;
-  /** Localized "{{count}} tracks" label for a card. */
-  readonly trackCountLabel: (count: number) => string;
 }
 
 export interface IAlbumGridView {
