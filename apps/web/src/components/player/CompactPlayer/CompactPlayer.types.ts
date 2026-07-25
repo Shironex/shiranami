@@ -9,14 +9,6 @@ export interface ICompactAmbient {
   readonly hex: string;
 }
 
-/** Props for the compact single-line marquee text. */
-export interface ICompactMarqueeTextProps {
-  /** Text content; scrolls on hover when it overflows its container. */
-  readonly text: string;
-  /** Extra class names for the clipped line. */
-  readonly className?: string;
-}
-
 export interface ICompactPlayerView {
   /** Bound `compact` namespace translator (the shell stays free of `useTranslation`). */
   readonly t: TranslateFn;

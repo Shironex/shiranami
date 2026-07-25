@@ -3,6 +3,7 @@ export { CircleVisualizer } from './CircleVisualizer';
 export { CompactPlayer } from './CompactPlayer';
 export { ConstellationVisualizer } from './ConstellationVisualizer';
 export { EqualizerPanel } from './EqualizerPanel';
+export { FavoriteBurst } from './FavoriteBurst';
 export { KanjiVisualizer } from './KanjiVisualizer';
 export { LiquidVisualizer } from './LiquidVisualizer';
 export { MediaSessionSync } from './MediaSessionSync';

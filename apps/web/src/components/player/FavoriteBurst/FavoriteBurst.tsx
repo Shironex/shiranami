@@ -1,9 +1,6 @@
 import { motion } from 'motion/react';
-
-interface IFavoriteBurstProps {
-  /** Burst counter; bump it to remount the ring so the animation replays. */
-  readonly burstKey: number;
-}
+import { useFavoriteBurst } from './FavoriteBurst.hooks';
+import type { IFavoriteBurstProps } from './FavoriteBurst.types';
 
 /**
  * Expanding ring that plays once when a track is freshly favorited. Shared by
@@ -11,7 +8,9 @@ interface IFavoriteBurstProps {
  * button (which must be positioned `relative`); guard rendering with the
  * `showFavoriteBurst` flag from {@link useFavoriteCelebration}.
  */
-export function FavoriteBurst({ burstKey }: IFavoriteBurstProps) {
+export default function FavoriteBurst(props: IFavoriteBurstProps) {
+  const { burstKey } = useFavoriteBurst(props);
+
   return (
     <motion.span
       key={burstKey}
