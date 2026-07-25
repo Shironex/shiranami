@@ -1,17 +1,14 @@
 import { StatusCard } from '@/components/shared/StatusCard';
-
-interface ISearchStateCardProps {
-  readonly title: string;
-  readonly description: string;
-  readonly loading?: boolean;
-  readonly children?: React.ReactNode;
-}
+import { useSearchStateCard } from './SearchStateCard.hooks';
+import type { ISearchStateCardProps } from './SearchStateCard.types';
 
 /**
  * Thin wrapper over the shared `StatusCard`, kept for SearchView's existing
  * call sites. New status surfaces should use `StatusCard` directly.
  */
-export function SearchStateCard({ title, description, loading, children }: ISearchStateCardProps) {
+export default function SearchStateCard(props: ISearchStateCardProps) {
+  const { title, description, loading, children } = useSearchStateCard(props);
+
   return (
     <StatusCard title={title} description={description} loading={loading}>
       {children}

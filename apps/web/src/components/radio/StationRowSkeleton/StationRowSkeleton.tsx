@@ -1,8 +1,12 @@
 import { Skeleton } from '@/components/ui/skeleton';
+import { useStationRowSkeleton } from './StationRowSkeleton.hooks';
 
+/** How many placeholder rows RadioView renders while the directory loads. */
 export const RADIO_SKELETON_ROWS = 10;
 
-export function StationRowSkeleton() {
+export default function StationRowSkeleton() {
+  useStationRowSkeleton();
+
   return (
     <div className="px-0.5">
       <div className="flex h-[52px] items-center gap-3 rounded-xl px-3">
