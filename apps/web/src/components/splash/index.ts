@@ -1,4 +1,11 @@
+export { SplashBrand } from './SplashBrand';
+export { SplashCup } from './SplashCup';
 export { SplashDroplets } from './SplashDroplets';
 export { SplashGlass } from './SplashGlass';
+export { SplashLamp } from './SplashLamp';
+export { SplashMeta } from './SplashMeta';
+export { SplashRain } from './SplashRain';
 export { SplashScene } from './SplashScene';
 export { SplashScreen } from './SplashScreen';
+export { SplashSteam } from './SplashSteam';
+export { SplashWordmark } from './SplashWordmark';

@@ -1,11 +1,9 @@
 import { Sparkles } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
-import {
-  LibraryBannerPreview,
-  LowPerformancePreview,
-  NoiseOverlayPreview,
-  NowPlayingViewPreview,
-} from '@/components/settings/VisualEffectsPreview';
+import { LibraryBannerPreview } from '@/components/settings/LibraryBannerPreview';
+import { LowPerformancePreview } from '@/components/settings/LowPerformancePreview';
+import { NoiseOverlayPreview } from '@/components/settings/NoiseOverlayPreview';
+import { NowPlayingViewPreview } from '@/components/settings/NowPlayingViewPreview';
 import { useVisualEffectsSection } from './VisualEffectsSection.hooks';
 
 export default function VisualEffectsSection() {

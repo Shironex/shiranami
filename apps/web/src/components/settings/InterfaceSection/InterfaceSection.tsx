@@ -4,12 +4,10 @@ import {
   SettingsToggleRow,
   SettingsSelectRow,
 } from '@/components/settings/SettingsCard';
-import {
-  LayoutPreview,
-  TopBarPreview,
-  OverviewLayoutPreview,
-  PlayerBarPreview,
-} from '@/components/settings/InterfacePreview';
+import { LayoutPreview } from '@/components/settings/LayoutPreview';
+import { TopBarPreview } from '@/components/settings/TopBarPreview';
+import { OverviewLayoutPreview } from '@/components/settings/OverviewLayoutPreview';
+import { PlayerBarPreview } from '@/components/settings/PlayerBarPreview';
 import { useInterfaceSection } from './InterfaceSection.hooks';
 
 export default function InterfaceSection() {
