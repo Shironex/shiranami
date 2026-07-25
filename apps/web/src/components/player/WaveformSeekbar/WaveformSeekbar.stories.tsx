@@ -20,12 +20,12 @@ function makeTrack(): Track {
 
 /** Seed the playback position the waveform paints from (peaks fall back to a
  *  flat bar without the native bridge). */
-function seedWaveform(currentTime: number): void {
+function seedWaveform(currentTime: number, isPlaying = false): void {
   usePlaybackStore.setState({
     currentTrack: makeTrack(),
     currentTime,
     duration: 215,
-    isPlaying: false,
+    isPlaying,
   });
   usePlayerUIStore.setState({ scrubTime: null });
 }
@@ -38,6 +38,10 @@ function seedWaveform(currentTime: number): void {
  * native bridge, so it draws a flat bar and stays a functional scrubber. Reads
  * `usePlaybackStore` + `usePlayerUIStore`. Stories seed those and assert the
  * slider's accessible name + reported position.
+ *
+ * The bars are rasterised once per track/size/accent into an offscreen canvas
+ * holding both tints, and a frame only re-blits it; the stories below cover the
+ * geometries and playback states that invalidate that cache.
  */
 const meta: Meta<typeof WaveformSeekbar> = {
   title: 'player/WaveformSeekbar',
@@ -91,6 +95,45 @@ export const Tall: Story = {
     await expect(canvas.getByRole('slider', { name: 'Seek' })).toHaveAttribute(
       'aria-valuenow',
       '90'
+    );
+  },
+};
+
+/** Narrow — a smaller track fits fewer bars, so the cached raster is rebuilt at
+ *  the new geometry rather than rescaled. */
+export const Narrow: Story = {
+  decorators: [
+    Story => {
+      seedWaveform(150);
+      return (
+        <div className="w-40">
+          <Story />
+        </div>
+      );
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const slider = canvas.getByRole('slider', { name: 'Seek' });
+    await expect(slider).toHaveAttribute('aria-valuenow', '150');
+    await expect(slider).toHaveAttribute('aria-valuetext', '2:30 of 3:35');
+  },
+};
+
+/** Playing — the 30fps loop drives the played/unplayed split by re-blitting the
+ *  cached raster; the slider keeps reporting the store position. */
+export const Playing: Story = {
+  decorators: [
+    Story => {
+      seedWaveform(45, true);
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('slider', { name: 'Seek' })).toHaveAttribute(
+      'aria-valuenow',
+      '45'
     );
   },
 };
