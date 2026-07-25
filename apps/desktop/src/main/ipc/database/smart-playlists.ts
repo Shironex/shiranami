@@ -138,7 +138,9 @@ function evaluateDefinition(definition: SmartPlaylistDefinition) {
   const db = getDatabase();
   const where = buildSmartPlaylistWhere(definition);
   const query = db.select().from(tracks);
-  return (where ? query.where(where) : query).orderBy(desc(tracks.createdAt)).all();
+  // `rowid asc` pins the order within a run of identical `created_at` values —
+  // see LIBRARY_TIE_BREAK in ./tracks.ts for why that is not optional.
+  return (where ? query.where(where) : query).orderBy(desc(tracks.createdAt), sql`rowid asc`).all();
 }
 
 const rulesArraySchema = z.array(smartPlaylistRule);

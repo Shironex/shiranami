@@ -235,15 +235,14 @@ describe('runMigrations', () => {
 
     for (const db of [fresh, legacy]) {
       const indexes = indexNames(db);
-      expect(indexes).toContain('idx_tracks_created_at');
       expect(indexes).toContain('idx_playlist_tracks_playlist_position');
       // Superseded by the composite (same leftmost column) — migration 008 drops it.
       expect(indexes).not.toContain('idx_playlist_tracks_playlist_id');
 
-      // The whole point of the indexes: neither hot ordered read sorts at runtime.
-      const libraryPlan = queryPlan(db, `SELECT * FROM tracks ORDER BY created_at DESC`);
-      expect(libraryPlan).toContain('idx_tracks_created_at');
-      expect(libraryPlan).not.toContain('TEMP B-TREE');
+      // Deliberately absent: indexing created_at makes the library read a
+      // reverse index walk, which reverses any run of rows sharing a timestamp
+      // — and a folder scan gives every track the same second. See migrate.ts.
+      expect(indexes).not.toContain('idx_tracks_created_at');
 
       const playlistPlan = queryPlan(
         db,
@@ -258,6 +257,49 @@ describe('runMigrations', () => {
 
     fresh.close();
     legacy.close();
+  });
+
+  it('(f) reads a same-second import batch back in insertion order', () => {
+    // A folder scan inserts every track within one second, and created_at is
+    // second-resolution, so the whole batch shares a timestamp. The app orders
+    // the library by `created_at DESC` — without an explicit tie-break the
+    // order inside that run is the planner's choice, and adding an index to
+    // tracks(created_at) silently reverses it. This pins the contract the
+    // desktop query sites rely on (LIBRARY_TIE_BREAK in ipc/database/tracks.ts).
+    const db = new Database(':memory:');
+    runMigrations(db);
+
+    const insert = db.prepare(
+      `INSERT INTO tracks (id, file_path, title, artist, album, created_at)
+       VALUES (?, ?, ?, ?, ?, '2026-07-25 10:00:00')`
+    );
+    const seeded = ['Alice', 'Bob', 'Carol'];
+    seeded.forEach((artist, i) => {
+      insert.run(`t${i}`, `/music/${i}.mp3`, `Track ${i}`, artist, 'Lofi Mix');
+    });
+    expect(
+      (db.prepare(`SELECT COUNT(DISTINCT created_at) c FROM tracks`).get() as { c: number }).c
+    ).toBe(1);
+
+    const ordered = (sql: string): string[] =>
+      (db.prepare(sql).all() as Array<{ artist: string }>).map(r => r.artist);
+
+    expect(ordered(`SELECT artist FROM tracks ORDER BY created_at DESC, rowid ASC`)).toEqual(
+      seeded
+    );
+
+    // And the guarantee has to survive an index existing on the ordering column,
+    // since that is exactly what silently broke it.
+    db.exec('CREATE INDEX idx_probe_created_at ON tracks(created_at)');
+    expect(ordered(`SELECT artist FROM tracks ORDER BY created_at DESC, rowid ASC`)).toEqual(
+      seeded
+    );
+    // Same query without the tie-break flips under the index — the bug itself.
+    expect(ordered(`SELECT artist FROM tracks ORDER BY created_at DESC`)).toEqual(
+      [...seeded].reverse()
+    );
+
+    db.close();
   });
 
   it('is idempotent on a fresh DB (second run is a no-op)', () => {

@@ -336,29 +336,32 @@ const MIGRATIONS: EmbeddedMigration[] = [
     ],
   },
   {
-    // Indexes for the two hot ordered reads, both of which previously paid for a
-    // temp B-tree sort on every call:
-    //
-    // - `tracks(created_at)` serves `SELECT * FROM tracks ORDER BY created_at
-    //   DESC` — the whole-library load (`tracks:get-all`), `tracks:get-favorites`
-    //   and smart-playlist evaluation. SQLite walks the index in reverse instead
-    //   of scanning the table and sorting it.
-    // - `playlist_tracks(playlist_id, position)` serves
-    //   `WHERE playlist_id = ? ORDER BY position` — every playlist open
-    //   (`playlists:get-tracks`, share export) — and covers the
-    //   `MAX(position)` probe the add-track paths run before inserting.
+    // `playlist_tracks(playlist_id, position)` serves
+    // `WHERE playlist_id = ? ORDER BY position` — every playlist open
+    // (`playlists:get-tracks`, share export) — and covers the `MAX(position)`
+    // probe the add-track paths run before inserting. `position` is unique
+    // within a playlist, so the index gives a total order with no ties.
     //
     // The single-column `idx_playlist_tracks_playlist_id` is dropped: the
     // composite has `playlist_id` as its leftmost column, so it serves every
     // lookup the old index did while costing one fewer B-tree write per row.
     //
+    // NOT indexed: `tracks(created_at)`, despite `ORDER BY created_at DESC`
+    // being the whole-library read. `created_at` defaults to `datetime('now')`,
+    // which is second-resolution, so a folder scan gives every imported track an
+    // identical timestamp. An index turns that ordered read into a reverse index
+    // walk, which emits an equal-key run in descending rowid order — silently
+    // reversing the library against the insertion order users saw before. The
+    // ordering is now pinned explicitly at the query sites instead, and with
+    // that tie-break in place the index measures a net loss (26.4ms vs 23.2ms
+    // for 20k file-backed rows) because the read is dominated by materializing
+    // `SELECT *`, not by the sort.
+    //
     // The smart-playlist filter columns (`genre`, `year`, `play_count`) are
-    // deliberately NOT indexed: their rules are dominated by `contains` (LIKE
-    // '%…%', unindexable) and `isNot`, the columns are low-cardinality, and every
-    // evaluation already ends in the `created_at` ordering indexed above.
+    // deliberately NOT indexed either: their rules are dominated by `contains`
+    // (LIKE '%…%', unindexable) and `isNot`, and the columns are low-cardinality.
     name: '20260101000008_query_indexes',
     statements: [
-      'CREATE INDEX IF NOT EXISTS `idx_tracks_created_at` ON `tracks`(`created_at`)',
       'CREATE INDEX IF NOT EXISTS `idx_playlist_tracks_playlist_position` ON `playlist_tracks`(`playlist_id`,`position`)',
       'DROP INDEX IF EXISTS `idx_playlist_tracks_playlist_id`',
     ],
