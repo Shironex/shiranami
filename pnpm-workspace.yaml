@@ -38,6 +38,7 @@ overrides:
   find-my-way: '>=9.7.0'
   svgo: '>=4.0.2'
   '@xhmikosr/decompress': '>=11.1.3'
+  valibot: '>=1.4.2'
   # CVE-2026-14257 is only patched on the 5.x line. The @1/@2 pins just hold
   # those lines at their newest release — they cannot clear the advisory, which
   # needs the `minimatch` parents dragging them in to move to 5.x.

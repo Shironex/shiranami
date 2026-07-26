@@ -40,7 +40,7 @@
     "adm-zip": "^0.6.0",
     "better-sqlite3": "^12.10.0",
     "electron-store": "^8.2.0",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "flac-tagger": "^2.0.0",
     "ipaddr.js": "^2.4.0",
     "lrclib-api": "^2.0.4",
@@ -71,7 +71,8 @@
     "@types/node": "^25.9.1",
     "cross-env": "^10.1.0",
     "electron": "^41.7.0",
-    "electron-builder": "^26.8.1",
+    "electron-builder": "^26.15.3",
+    "electron-builder-squirrel-windows": "26.15.3",
     "esbuild": "^0.28.1",
     "node-gyp": "^12.3.0"
   }
