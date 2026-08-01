@@ -32,9 +32,15 @@
 //!   floor, adoption leaves `__drizzle_migrations` in place, and a fresh v2
 //!   install writes one — so a v1 build can still read what v2 has touched.
 
+pub mod adopt;
+pub mod compat;
+pub mod database;
 pub mod error;
 pub mod migrations;
 pub mod pool;
 
+pub use adopt::{Adoption, adopt};
+pub use compat::{SCHEMA_FLOOR, assert_not_downgrade};
+pub use database::{OpenedDatabase, open};
 pub use error::{DbError, Result};
 pub use migrations::MIGRATOR;
