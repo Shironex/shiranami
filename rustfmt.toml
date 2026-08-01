@@ -1,0 +1,6 @@
+# Stable-only options: rustfmt on a pinned stable toolchain warns and ignores
+# nightly-gated keys, which would make `cargo fmt --check` noisy in CI.
+max_width = 100
+tab_spaces = 4
+newline_style = "Unix"
+use_small_heuristics = "Default"

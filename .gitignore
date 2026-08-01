@@ -1,6 +1,9 @@
 node_modules/
 dist/
 build/
+# Cargo build output (root workspace + any nested target dir). Cargo.lock IS
+# tracked — it doubles as the lockfile-drift guard for the Rust tier.
+target/
 bin/
 release/
 *.log

@@ -1,0 +1,11 @@
+//! Recommendation scoring, split into a pure half and an I/O half.
+//!
+//! `core` holds the affinity, similarity and mix-scoring functions ported
+//! verbatim from `@shiranami/recommendation` — no I/O, fully unit-tested
+//! against the same fixtures, which is what makes it the warm-up port. `service`
+//! holds the SQL aggregation over `play_history` that feeds it, the shelf
+//! assembly, and the yt-dlp radio-mix discovery path that deliberately avoids
+//! the YouTube Data API.
+//!
+//! `core` is ported in Phase 4, `service` after the repositories land in Phase
+//! 7. See `docs/v2/architecture.md` §2.2 (#24, #37).

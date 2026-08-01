@@ -1,0 +1,8 @@
+# The MSRV clippy honours comes from `rust-version` in the workspace
+# Cargo.toml — declaring it here too only creates a second thing to drift.
+#
+# Nightcore's file/function-size discipline, carried from day one rather than
+# retrofitted (architecture §2.1). The hard 400-code-line module cap is a
+# lint-meta text rule; these two are the function-level companions.
+cognitive-complexity-threshold = 20
+too-many-arguments-threshold = 8

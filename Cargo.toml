@@ -1,0 +1,74 @@
+#  Shiranami v2 — Rust workspace.
+#
+#  Lives inside the existing pnpm workspace (docs/v2/architecture.md §2.1): the
+#  domain crates under `crates/` own all backend logic, and
+#  `apps/desktop-tauri/src-tauri` is a thin composition root that wires them
+#  into a Tauri v2 shell. The dependency spine runs one way only —
+#  core → net → { db, serve, metadata, integrations }, core → audio,
+#  { db, metadata } → library, { net, db } → downloader,
+#  { db, downloader } → recommendation, core → media-controls, everything →
+#  src-tauri — and is expressed by the path dependencies below.
+
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "2.0.0-alpha.0"
+edition = "2024"
+rust-version = "1.94.1"
+authors = ["Shironex"]
+license = "SEE LICENSE IN LICENSE"
+repository = "https://github.com/Shironex/shiranami"
+publish = false
+
+[workspace.dependencies]
+# Internal crates — the layering spine. Depend on these, never on a sibling
+# that sits above you in the ordering documented at the top of this file.
+shiranami-core = { path = "crates/shiranami-core" }
+shiranami-net = { path = "crates/shiranami-net" }
+shiranami-db = { path = "crates/shiranami-db" }
+shiranami-audio = { path = "crates/shiranami-audio" }
+shiranami-metadata = { path = "crates/shiranami-metadata" }
+shiranami-library = { path = "crates/shiranami-library" }
+shiranami-downloader = { path = "crates/shiranami-downloader" }
+shiranami-integrations = { path = "crates/shiranami-integrations" }
+shiranami-recommendation = { path = "crates/shiranami-recommendation" }
+shiranami-serve = { path = "crates/shiranami-serve" }
+shiranami-media-controls = { path = "crates/shiranami-media-controls" }
+
+# External — pinned per docs/v2/architecture.md Appendix B. Only the
+# dependencies Phase 1 actually compiles are listed; each later phase adds its
+# own row here rather than in a leaf crate, so versions stay unified.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2.11", features = ["tray-icon", "image-png"] }
+tauri-build = "2"
+tauri-plugin-single-instance = "2.4"
+
+# Lints are declared once and inherited by every member via `[lints] workspace
+# = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
+[workspace.lints.rust]
+unsafe_code = "deny"
+# A group, so it needs a lower priority than the single lints around it.
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Holding a std lock across an await deadlocks the tokio worker — the reason
+# `tokio::sync::Mutex` is reserved for exactly that case (architecture §2.3).
+await_holding_lock = "warn"
+# `.unwrap()` in a desktop app is a user-visible crash; propagate instead.
+unwrap_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[profile.dev]
+# Rebuild surface is already split by the crate boundaries; keep incremental on
+# so a one-crate edit does not rebuild the workspace (architecture §6.1, R9).
+incremental = true
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

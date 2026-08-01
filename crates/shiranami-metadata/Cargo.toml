@@ -1,0 +1,16 @@
+[package]
+name = "shiranami-metadata"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+shiranami-core.workspace = true
+shiranami-net.workspace = true
+
+[lints]
+workspace = true
