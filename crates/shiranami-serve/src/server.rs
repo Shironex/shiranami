@@ -55,13 +55,23 @@ impl ServeHandle {
         self.address.port()
     }
 
+    /// The scheme and authority, without the token: `http://127.0.0.1:<port>`.
+    ///
+    /// Handed to the webview beside the token rather than pre-joined, so the
+    /// renderer holds the credential as its own value and can keep it out of
+    /// everything that is not a URL. [`Self::base_url`] is the join of the two,
+    /// and a test pins them together so the shapes cannot drift apart.
+    pub fn origin(&self) -> String {
+        format!("http://{}", self.address)
+    }
+
     /// The prefix every URL the webview builds starts with, token included.
     ///
     /// The one string the renderer needs: `${base}/audio?path=…` replaces
     /// `shiranami-audio://play?path=…`, and the two other routes hang off it the
     /// same way.
     pub fn base_url(&self) -> String {
-        format!("http://{}/{}", self.address, self.token.as_str())
+        format!("{}/{}", self.origin(), self.token.as_str())
     }
 
     /// This session's token, for the command that hands it to the webview.

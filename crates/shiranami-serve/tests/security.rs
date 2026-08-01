@@ -312,6 +312,44 @@ async fn the_server_binds_loopback_on_an_ephemeral_port() {
     );
 }
 
+/// The shell hands the webview an origin and a token, not a pre-joined string,
+/// and the renderer joins them back. That join has to reproduce `base_url`
+/// exactly — a leading or trailing slash on either side is a 404 on every media
+/// URL the app builds, and one this crate's own tests would never see.
+///
+/// The origin is also the half that is safe to log: it must not contain the
+/// credential, so `tracing::info!(port = …)` at boot stays a portless-secret
+/// line rather than a token in a bug report.
+#[tokio::test]
+async fn the_origin_and_token_rejoin_into_the_base_url() {
+    let harness = Harness::start().await;
+    let origin = harness.handle.origin();
+    let token = harness.handle.token().as_str().to_owned();
+
+    assert_eq!(
+        format!("{origin}/{token}"),
+        harness.base(),
+        "the renderer joins these two with a single slash; if that is not the \
+         base URL, every audio and art request 404s"
+    );
+    assert!(
+        origin.starts_with("http://127.0.0.1:"),
+        "loopback only, and never a custom scheme (§2.4, wry#1778): got {origin}"
+    );
+    assert!(
+        !origin.contains(&token),
+        "the origin must not carry the credential — it is the half that is logged"
+    );
+
+    // And the joined result actually serves, rather than merely looking right.
+    let path = harness.write_audio("track.mp3", 256);
+    let url = format!(
+        "{origin}/{token}/audio?path={}",
+        common::encode(&path.to_string_lossy())
+    );
+    assert_eq!(harness.get(&url, &[]).await.status(), StatusCode::OK);
+}
+
 /// Shutdown actually stops the listener, so the port and its token do not
 /// outlive the session that minted them.
 #[tokio::test]
