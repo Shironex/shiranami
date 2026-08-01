@@ -26,6 +26,23 @@ tauri = { workspace = true }
 tauri-plugin-single-instance = { workspace = true }
 tracing = { workspace = true }
 
+# Phase 14 lane 6. The OS surfaces §2.2 #30 and #31 name, all called from Rust
+# and none exposed to the webview: `tauri-plugin-dialog` for the two file
+# pickers, `tauri-plugin-opener` for "reveal in file manager" and "open the log
+# folder", `trash` for the recycle bin, `sys-locale` for the OS region code, and
+# `sysinfo` for the debug panel's per-process CPU/RSS — which is all v2 has,
+# there being no Chromium `getAppMetrics` to port.
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+trash = { workspace = true }
+sys-locale = { workspace = true }
+sysinfo = { workspace = true }
+
+# The debug sampler's 1 Hz tick. `tauri::async_runtime` re-exports the runtime's
+# spawn and its channels but not its timers, and a `std::thread::sleep` inside
+# the sampling task would park a runtime worker for a second at a time.
+tokio = { workspace = true }
+
 # Phase 14. The command/event surface and the bindings it emits.
 #
 # `specta-typescript` and `specta-serde` are here because this crate now owns
