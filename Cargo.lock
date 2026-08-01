@@ -4263,6 +4263,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "trash",
+ "uuid 1.24.0",
 ]
 
 [[package]]
@@ -4399,6 +4400,10 @@ dependencies = [
  "shiranami-core",
  "shiranami-db",
  "shiranami-downloader",
+ "sqlx",
+ "tempfile",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -55,7 +55,18 @@ use crate::error::{CommandResult, WireResultExt as _};
 /// (`SqlitePool` and `HttpClient` are both handle types).
 pub struct AppState {
     /// The database pool. One connection; see the module docs.
-    pool: SqlitePool,
+    ///
+    /// Behind a lock because `db:backup:import` **replaces** it: importing a
+    /// library closes the live pool, swaps the file underneath it and opens a
+    /// new one, which `shiranami_db::repo::backup` explicitly leaves to "the
+    /// layer above" because it is file orchestration rather than SQL. v1 did
+    /// the same thing with `closeDatabase()` / `initializeDatabase()`.
+    ///
+    /// A `std::sync::RwLock` rather than an async one, and that is safe here
+    /// only because **the guard is never held across an `await`**: every reader
+    /// clones the handle — `SqlitePool` is itself a cheap `Arc` — and drops the
+    /// guard before doing anything asynchronous. See [`AppState::pool`].
+    pool: std::sync::RwLock<SqlitePool>,
 
     /// The atomic JSON settings store, with its renderer-writable key allowlist
     /// and its change bus (decision D17 — deliberately not `tauri-plugin-store`,
@@ -170,7 +181,7 @@ impl AppState {
     ) -> Self {
         let weather = Arc::new(WeatherService::new((*http).clone()));
         Self {
-            pool,
+            pool: std::sync::RwLock::new(pool),
             settings,
             http,
             weather,
@@ -185,7 +196,11 @@ impl AppState {
     /// it twice in one command and never hold the result across a network await;
     /// see the module docs for what each of those costs.
     pub async fn conn(&self) -> CommandResult<PoolConnection<Sqlite>> {
-        self.pool
+        // `pool()` clones the handle and releases the lock before this `await`,
+        // which is what makes the synchronous lock sound. Inlining the read
+        // guard here instead would hold it across the acquire and deadlock
+        // against `replace_pool`.
+        self.pool()
             .acquire()
             .await
             .map_err(|source| shiranami_db::DbError::Query {
@@ -197,8 +212,56 @@ impl AppState {
 
     /// The pool itself, for the background tasks that own their own acquisition
     /// discipline (the scrobbler's flush, the queue's write-through).
-    pub fn pool(&self) -> &SqlitePool {
-        &self.pool
+    ///
+    /// Returns an owned handle rather than a reference: the pool can be
+    /// replaced by an import, and a borrow would pin the lock for the caller's
+    /// whole scope — including across the `await`s those background tasks are
+    /// made of. `SqlitePool` is an `Arc` internally, so the clone is a refcount
+    /// bump.
+    ///
+    /// A caller holding a handle across an import keeps the *old* pool alive
+    /// and will keep querying the pre-import database. That is the correct
+    /// reading of "the work already in flight finishes against the library it
+    /// started on", and it is why [`Self::replace_pool`] closes the old pool
+    /// rather than assuming nobody holds one.
+    pub fn pool(&self) -> SqlitePool {
+        self.pool
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+
+    /// Swap in a pool over a different file, returning the one replaced.
+    ///
+    /// Only `db:backup:import` calls this. **Synchronous, and it returns the
+    /// old pool rather than closing it**, for two reasons that point the same
+    /// way:
+    ///
+    /// - `SqlitePool::close` waits for every checked-out connection to come
+    ///   back. Awaiting that while holding the write guard would block every
+    ///   other command's [`Self::pool`] read for the duration, and deadlock
+    ///   outright if one of those commands is the holder being waited on.
+    /// - An `async fn` here would put a `&AppState` borrow across an await in
+    ///   its caller, and a generated command wrapper cannot prove that `Send`
+    ///   for every lifetime its `State<'_>` could take. Handing the pool back
+    ///   lets the caller close an **owned** value instead.
+    ///
+    /// (The attribute that generates those wrappers is deliberately not spelled
+    /// out above: `lint:meta`'s `rust-command-placement` rule is a text scan, so
+    /// naming it here would report this file as a misplaced command.)
+    ///
+    /// The lock is poisoned only if a thread panicked while holding it, which
+    /// for a critical section this small means the process is already in
+    /// trouble; recovering the guard is strictly better than refusing to
+    /// install a pool the caller has already opened, since the alternative
+    /// leaves the app pointing at a closed one.
+    pub fn install_pool(&self, replacement: SqlitePool) -> SqlitePool {
+        let mut guard = self
+            .pool
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+        std::mem::replace(&mut *guard, replacement)
     }
 
     /// The settings store.

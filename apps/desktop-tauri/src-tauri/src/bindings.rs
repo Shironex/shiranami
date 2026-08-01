@@ -301,6 +301,17 @@ mod tests {
             "downloaderQueueGet",
             "playlistExtract",
             "playlistCancel",
+            "dbHistoryRecordPlay",
+            "dbHistoryGetRecent",
+            "dbHistoryGetHourlyActivity",
+            "dbHistoryGetWeeklyInsights",
+            "radioFavoritesGetAll",
+            "radioFavoritesIsFavorite",
+            "recommendationsGet",
+            "recommendationsSmartMixes",
+            "recommendationsUndoNotInterested",
+            "dbBackupExport",
+            "dbBackupImport",
         ];
 
         for command in PORTED_NAMES {

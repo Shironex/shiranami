@@ -7,8 +7,9 @@
 //! assembly, and the yt-dlp radio-mix discovery path that deliberately avoids
 //! the YouTube Data API.
 //!
-//! `core` is ported in Phase 4, `service` after the repositories land in Phase
-//! 7. See `docs/v2/architecture.md` §2.2 (#24, #37).
+//! `core` was ported in Phase 4; `service` landed in Phase 14 with the six
+//! `recommendations:*` commands that consume it, once the repositories it reads
+//! existed. See `docs/v2/architecture.md` §2.2 (#24, #37).
 
 // The scoring functions and their knobs are the whole public surface of this
 // crate, and the numbers they produce are a user-visible contract. An
@@ -16,3 +17,4 @@
 #![warn(missing_docs)]
 
 pub mod core;
+pub mod service;

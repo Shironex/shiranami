@@ -37,6 +37,23 @@ export const commands = {
 	 *  region subtag (a bare `pl`), which is why it exists at all.
 	 */
 	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
+	/**
+	 *  `db:backup:export` — write a consistent copy of the library to `destination`.
+	 * 
+	 *  The snapshot is taken with `VACUUM INTO`, which is transactionally
+	 *  consistent over a WAL database without an explicit checkpoint. It also
+	 *  **refuses an existing destination**, where v1's `.backup()` overwrote one —
+	 *  so the copy is written to a temp sibling and renamed into place. That
+	 *  restores v1's overwrite behaviour and adds atomicity: a user who overwrites
+	 *  last week's backup and loses power mid-copy still has last week's backup.
+	 */
+	dbBackupExport: (destination: string) => __TAURI_INVOKE<DbExportResult>("db_backup_export", { destination }),
+	/**
+	 *  `db:backup:import` — replace the live library with the file at `source`.
+	 * 
+	 *  See the module docs for why the six steps are in the order they are.
+	 */
+	dbBackupImport: (source: string) => __TAURI_INVOKE<DbImportResult>("db_backup_import", { source }),
 	/**  `db:folders:get-all` — every watched folder, in insertion order. */
 	dbFoldersGetAll: () => __TAURI_INVOKE<WatchedFolder[]>("db_folders_get_all"),
 	/**
@@ -75,6 +92,53 @@ export const commands = {
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 } | null>("db_folders_update_scanned", { id }),
+	/**
+	 *  `db:history:record-play` — record a finished play and bump the play count.
+	 * 
+	 *  Returns the inserted `play_history` row, as v1 did. The scrobble it fires
+	 *  afterwards is deliberately invisible in the return value: it is
+	 *  best-effort, it retries out of a persisted queue, and the renderer has never
+	 *  waited on it.
+	 */
+	dbHistoryRecordPlay: (data: RecordPlayInput) => __TAURI_INVOKE<PlayHistoryRecord>("db_history_record_play", { data }),
+	/**  `db:history:get-recent` — the most recent plays, newest first. */
+	dbHistoryGetRecent: (options: {
+	/**
+	 *  Page size. Clamped to `1..=100` by the repository, defaulting to 30.
+	 * 
+	 *  Signed, and exported as a plain `number` rather than left as an `i64`
+	 *  that specta would refuse. `u32` would be the tidier type and is wrong:
+	 *  v1's clamp was `Math.max(1, …)`, so a renderer sending `0` or a negative
+	 *  page size got `1` back, where an unsigned field would reject the call
+	 *  outright. The clamp lives in the repository; this only has to be able to
+	 *  carry what the clamp was written to absorb.
+	 */
+	limit?: number,
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningHistoryEntry[]>("db_history_get_recent", { options }),
+	/**  `db:history:get-summary` — totals and the top-five leaderboards. */
+	dbHistoryGetSummary: (options: {
+	/**  Inclusive ISO-8601 lower bound. */
+	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. */
+	until?: string | null,
+} | null) => __TAURI_INVOKE<ListeningStatsSummary>("db_history_get_summary", { options }),
+	/**  `db:history:get-activity` — plays and minutes per calendar day. */
+	dbHistoryGetActivity: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningActivityPoint[]>("db_history_get_activity", { options }),
+	/**  `db:history:get-hourly-activity` — plays bucketed by local weekday and hour. */
+	dbHistoryGetHourlyActivity: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningHourlyActivityPoint[]>("db_history_get_hourly_activity", { options }),
+	/**  `db:history:get-weekly-insights` — session count and the top-five albums. */
+	dbHistoryGetWeeklyInsights: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<WeeklyInsights>("db_history_get_weekly_insights", { options }),
 	/**  `db:playlists:get-all` — every playlist, newest first. */
 	dbPlaylistsGetAll: () => __TAURI_INVOKE<Playlist[]>("db_playlists_get_all"),
 	/**  `db:playlists:get` — one playlist by id. */
@@ -753,6 +817,64 @@ export const commands = {
 	 *  after the extraction has already finished.
 	 */
 	playlistCancel: () => __TAURI_INVOKE<null>("playlist_cancel"),
+	/**  `radio:favorites:get-all` — every saved station, newest first. */
+	radioFavoritesGetAll: () => __TAURI_INVOKE<RadioFavorite[]>("radio_favorites_get_all"),
+	/**
+	 *  `radio:favorites:add` — save a station and return the stored row.
+	 * 
+	 *  Rejects when the station is already saved; see the module docs.
+	 */
+	radioFavoritesAdd: (station: RadioStationInput) => __TAURI_INVOKE<RadioFavorite>("radio_favorites_add", { station }),
+	/**
+	 *  `radio:favorites:remove` — forget a station, by directory id.
+	 * 
+	 *  Keyed on `station_uuid` rather than the row id, because that is the id the
+	 *  renderer holds while browsing the directory. Removing a station that was
+	 *  never saved is not an error, as it was not in v1.
+	 */
+	radioFavoritesRemove: (stationUuid: string) => __TAURI_INVOKE<null>("radio_favorites_remove", { stationUuid }),
+	/**  `radio:favorites:is-favorite` — whether a station is saved. */
+	radioFavoritesIsFavorite: (stationUuid: string) => __TAURI_INVOKE<boolean>("radio_favorites_is_favorite", { stationUuid }),
+	/**
+	 *  `recommendations:get` — both shelves, recomputing the library one if stale.
+	 * 
+	 *  Never rejects; see the module docs for why this one degrades.
+	 */
+	recommendationsGet: () => __TAURI_INVOKE<RecommendationShelves>("recommendations_get"),
+	/**
+	 *  `recommendations:refresh` — rebuild what can be rebuilt, then return both
+	 *  shelves.
+	 * 
+	 *  On failure this falls back to *reading* the shelves rather than to an empty
+	 *  pair, exactly as v1's `() => getRecommendationShelves()` did — the user
+	 *  asked for newer, and the older answer is better than no answer. If that read
+	 *  fails too the rejection surfaces, as it did in v1: a fallback that throws is
+	 *  not caught again.
+	 */
+	recommendationsRefresh: () => __TAURI_INVOKE<RecommendationShelves>("recommendations_refresh"),
+	/**
+	 *  `recommendations:similar` — tracks like this one, most similar first.
+	 * 
+	 *  Rejects on failure, unlike the two shelf channels: this answers a click.
+	 */
+	recommendationsSimilar: (seedTrackId: string) => __TAURI_INVOKE<SimilarTrackResult[]>("recommendations_similar", { seedTrackId }),
+	/**
+	 *  `recommendations:not-interested` — hide a track from the library shelf.
+	 * 
+	 *  A track that is no longer in the library is a silent no-op, as in v1: the
+	 *  context menu can outlive the row it was opened on.
+	 */
+	recommendationsNotInterested: (trackId: string) => __TAURI_INVOKE<null>("recommendations_not_interested", { trackId }),
+	/**  `recommendations:undo-not-interested` — un-hide a track. */
+	recommendationsUndoNotInterested: (trackId: string) => __TAURI_INVOKE<null>("recommendations_undo_not_interested", { trackId }),
+	/**
+	 *  `recommendations:smart-mixes` — the mood, weather and decade mixes for now.
+	 * 
+	 *  `None` is "the generator failed" and an empty list is "your library has no
+	 *  mix worth showing". The two are different states on screen; see the module
+	 *  docs.
+	 */
+	recommendationsSmartMixes: (signals: SmartMixContext) => __TAURI_INVOKE<SmartMixResult[] | null>("recommendations_smart_mixes", { signals }),
 	/**  `scrobble:get-status` — what the Settings pane renders. */
 	scrobbleGetStatus: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_get_status"),
 	/**  `scrobble:set-enabled` — flip the master switch, returning the new status. */
@@ -996,6 +1118,32 @@ export type Coordinates = {
 	lat: number | null,
 	/**  Degrees east, −180 to 180. */
 	lon: number | null,
+};
+
+/**  What `db:backup:export` resolves to — v1's `DbExportResult`. */
+export type DbExportResult = {
+	/**  Whether the library was written. */
+	success: boolean,
+	/**  Where it was written. Set only on success. */
+	path?: string | null,
+	/**
+	 *  Why it was not written. Technical English, as v1's was; the renderer
+	 *  prefers its own translation and falls back to this.
+	 */
+	error?: string | null,
+};
+
+/**
+ *  What `db:backup:import` resolves to — v1's `DbImportResult`.
+ * 
+ *  No `path`: v1 did not echo one back, and the renderer already knows which
+ *  file it offered.
+ */
+export type DbImportResult = {
+	/**  Whether the library was replaced. */
+	success: boolean,
+	/**  Why it was not replaced. */
+	error?: string | null,
 };
 
 /**
@@ -2320,6 +2468,31 @@ export type RadioStationInput = {
 	tags?: string | null,
 };
 
+/**
+ *  The optional `{ limit, since }` argument of `db:history:get-recent`.
+ * 
+ *  v1's `z.object({ limit: z.number().int().optional(), since:
+ *  z.string().nullable().optional() }).optional()`. Both fields accept absent
+ *  *and* explicit `null`, which is why they are `Option` with a serde default:
+ *  the renderer builds this object conditionally and sends `{ since: null }`
+ *  for "all time".
+ */
+export type RecentQuery = {
+	/**
+	 *  Page size. Clamped to `1..=100` by the repository, defaulting to 30.
+	 * 
+	 *  Signed, and exported as a plain `number` rather than left as an `i64`
+	 *  that specta would refuse. `u32` would be the tidier type and is wrong:
+	 *  v1's clamp was `Math.max(1, …)`, so a renderer sending `0` or a negative
+	 *  page size got `1` back, where an unsigned field would reject the call
+	 *  outright. The clamp lives in the repository; this only has to be able to
+	 *  carry what the clamp was written to absorb.
+	 */
+	limit?: number,
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+};
+
 /**  Shelf identifiers: one cache row and one renderer section per kind. */
 export type RecommendationKind = 
 /**  "Recommended from your library" — existing local tracks. */
@@ -2488,6 +2661,39 @@ export type SimilarTrackResult = {
 	trackId: string,
 	/**  Raw score from the similarity core; higher is closer. */
 	similarity: number,
+};
+
+/**  The optional `{ since }` argument the three activity channels share. */
+export type SinceQuery = {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+};
+
+/**
+ *  The single object argument `recommendations:smart-mixes` takes.
+ * 
+ *  # Why this is not [`SmartMixSignals`] itself
+ * 
+ *  v1's zod for `weather` was `z.enum([...]).catch('unknown')`, and `.catch` is
+ *  a **coercion**, not a validation: an unrecognised string became `'unknown'`
+ *  and the call proceeded to build time and decade mixes. serde's derived
+ *  enum rejects an unrecognised variant instead, which would turn a stale
+ *  cached weather string in the renderer into a failed channel and — through
+ *  this channel's `null` fallback — into an error state on a screen that should
+ *  have shown mixes.
+ * 
+ *  So the field is deserialized leniently and exported as
+ *  [`SmartMixWeather`] regardless, which keeps the emitted TypeScript identical
+ *  to the model's while restoring v1's runtime behaviour.
+ */
+export type SmartMixContext = {
+	/**  Local hour of day, 0–23. */
+	hour: number,
+	/**
+	 *  Current weather; absent when the user has not opted in, in which case
+	 *  the generator degrades to time and decade mixes.
+	 */
+	weather?: WeatherCondition | null,
 };
 
 /**  Which flavour of mix was generated. */
@@ -2677,6 +2883,21 @@ export type SubfolderScan = {
 	path: string,
 	/**  Every audio file beneath it, at any depth the walk reached. */
 	tracks: ScannedFile[],
+};
+
+/**
+ *  The optional `{ since, until }` argument of `db:history:get-summary`.
+ * 
+ *  The only history channel with an upper bound, and it is **exclusive** — that
+ *  is what lets the renderer ask for "the seven days before the current seven"
+ *  to compute a week-over-week trend without the two windows sharing a boundary
+ *  play.
+ */
+export type SummaryQuery = {
+	/**  Inclusive ISO-8601 lower bound. */
+	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. */
+	until?: string | null,
 };
 
 /**

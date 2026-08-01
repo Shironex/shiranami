@@ -60,6 +60,12 @@ tauri-specta = { workspace = true }
 # signatures. No SQL is written here — that stays in `shiranami-db`.
 sqlx = { workspace = true }
 
+# Row identifiers. `shiranami_db::repo` takes an `id` argument wherever a row
+# needs a new primary key (`history::record_play`, `radio::add`) rather than
+# minting one itself, so the one source of randomness stays in the composition
+# root and a test can pin the id it asserts on.
+uuid = { workspace = true }
+
 # The two composition-root seams (`crate::seam`) are `Arc<dyn Trait>` with async
 # methods, and native `async fn` in traits is not dyn-compatible. Same reason
 # `shiranami-downloader` takes it for its `ProcessRunner`.

@@ -57,7 +57,9 @@ pub mod radio;
 // failed submissions in a process-memory array. Migration `0002` adds it.
 pub mod scrobble_queue;
 
-// Phase 14 — the one v1 table with no `db:*` channel of its own. Share-payload
-// assembly and RD-mix discovery read it inline in v1; both are command-layer
-// jobs in v2, and neither can be written without these queries.
+// Phase 14 — the v1 tables with no `db:*` channel of their own. Share-payload
+// assembly, RD-mix discovery and shelf scoring read them inline in v1; all
+// three are jobs for a layer above in v2, and none can be written without these
+// queries.
+pub mod recommendations;
 pub mod youtube_mappings;

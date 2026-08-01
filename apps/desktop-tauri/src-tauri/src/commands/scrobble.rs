@@ -77,7 +77,7 @@ pub(crate) use commands;
 #[specta::specta]
 pub async fn scrobble_get_status(state: State<'_, AppState>) -> CommandResult<ScrobbleStatus> {
     let scrobbler = scrobbler(&state)?;
-    scrobbler.status(state.pool()).await.wire()
+    scrobbler.status(&state.pool()).await.wire()
 }
 
 /// `scrobble:set-enabled` — flip the master switch, returning the new status.
@@ -88,7 +88,7 @@ pub async fn scrobble_set_enabled(
     enabled: bool,
 ) -> CommandResult<ScrobbleStatus> {
     let scrobbler = scrobbler(&state)?;
-    scrobbler.set_enabled(state.pool(), enabled).await.wire()
+    scrobbler.set_enabled(&state.pool(), enabled).await.wire()
 }
 
 /// `scrobble:lastfm-begin-auth` — start the desktop-auth handshake.
@@ -134,7 +134,7 @@ pub async fn scrobble_lastfm_disconnect(
     state: State<'_, AppState>,
 ) -> CommandResult<ScrobbleStatus> {
     let scrobbler = scrobbler(&state)?;
-    scrobbler.disconnect_lastfm(state.pool()).await.wire()
+    scrobbler.disconnect_lastfm(&state.pool()).await.wire()
 }
 
 /// `scrobble:listenbrainz-connect` — validate and store a user token.
@@ -157,7 +157,7 @@ pub async fn scrobble_listenbrainz_disconnect(
     state: State<'_, AppState>,
 ) -> CommandResult<ScrobbleStatus> {
     let scrobbler = scrobbler(&state)?;
-    scrobbler.disconnect_listenbrainz(state.pool()).await.wire()
+    scrobbler.disconnect_listenbrainz(&state.pool()).await.wire()
 }
 
 /// The scrobbler, or an `INTERNAL` naming it.
@@ -410,7 +410,7 @@ mod tests {
         // behaviour: a user who never touched the master switch expects the
         // backend they just connected to actually receive plays.
         let status = scrobbler_over(&state, &server)
-            .status(state.pool())
+            .status(&state.pool())
             .await
             .expect("a status");
         assert!(status.enabled);
@@ -439,7 +439,7 @@ mod tests {
         assert_eq!(json(&result), r#"{"ok":false,"error":"invalid_token"}"#);
         assert!(
             !scrobbler_over(&state, &server)
-                .status(state.pool())
+                .status(&state.pool())
                 .await
                 .expect("a status")
                 .listen_brainz_connected,
@@ -476,7 +476,7 @@ mod tests {
             .connect_listenbrainz("LB-TOKEN")
             .await;
         let status = scrobbler_over(&state, &server)
-            .disconnect_listenbrainz(state.pool())
+            .disconnect_listenbrainz(&state.pool())
             .await
             .expect("a status");
 
@@ -492,13 +492,13 @@ mod tests {
         let server = TestServer::start(vec![]).await;
 
         let enabled = scrobbler_over(&state, &server)
-            .set_enabled(state.pool(), true)
+            .set_enabled(&state.pool(), true)
             .await
             .expect("a status");
         assert!(enabled.enabled);
 
         let disabled = scrobbler_over(&state, &server)
-            .set_enabled(state.pool(), false)
+            .set_enabled(&state.pool(), false)
             .await
             .expect("a status");
         assert!(!disabled.enabled);
