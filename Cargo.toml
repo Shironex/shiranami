@@ -126,13 +126,13 @@ sha2 = "0.10"
 # axum runs with `default-features = false`: the webview speaks HTTP/1.1 over
 # loopback and nothing else, and every feature left out — `json`, `form`,
 # `multipart`, `ws`, `http2` — is a parser this server would otherwise expose to
-# any local process that guesses the port. `query` is in because the audio and
-# radio routes take their argument as a query parameter, and it decodes
-# form-urlencoded (`+` is a space), which is what `URLSearchParams` did in v1.
+# any local process that guesses the port. `query` is out too: the routes read
+# their parameters through `url::form_urlencoded` directly, because that is what
+# reproduces `URLSearchParams`' rule that `+` decodes to a space — see
+# `routes::query`.
 axum = { version = "0.8", default-features = false, features = [
   "http1",
   "tokio",
-  "query",
 ] }
 # `io` gives `ReaderStream`, which turns the seeked-and-limited file handle into
 # a chunked body. It is the difference between streaming and `fs::read`.
