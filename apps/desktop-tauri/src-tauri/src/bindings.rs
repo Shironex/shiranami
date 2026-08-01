@@ -262,6 +262,20 @@ mod tests {
             "shellTrashFile",
             "debugStart",
             "debugStop",
+            "libraryParseMetadata",
+            "libraryScanFolder",
+            "libraryScanFolderGrouped",
+            "libraryScanCancel",
+            "libraryValidateFiles",
+            "loudnessAnalyze",
+            "loudnessCancel",
+            "metadataLookup",
+            "metadataEnrichTracks",
+            "metadataEnrichPreview",
+            "metadataEnrichCancel",
+            "metadataWriteTags",
+            "storageGetUsage",
+            "waveformGetPeaks",
         ];
 
         for command in PORTED_NAMES {

@@ -21,6 +21,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 specta = { workspace = true }
+# `specta_typescript::Number` pins `MetadataLookupResult::confidence` to
+# `number`; specta's default float mapping is `number | null`, since serde_json
+# writes a NaN as `null`. Same reason `shiranami-core` and `shiranami-library`
+# take it.
+specta-typescript = { workspace = true }
 thiserror = { workspace = true }
 # `macros` for the `tokio::select!` in `enrich::batch`. It is added here rather
 # than in the workspace row because this is the only crate whose *library* needs

@@ -462,6 +462,70 @@ export const commands = {
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
 	/**
+	 *  `library:parse-metadata` — read one file's tags.
+	 * 
+	 *  Stays off the scan pipeline entirely, as v1's did: spawning a whole scan for
+	 *  one file is overkill, and a single parse does not accumulate the pressure
+	 *  that drove v1 to a utility process in the first place.
+	 * 
+	 *  Never fails on a bad file. v1's `parseAudioMetadata` caught everything and
+	 *  returned a filename-derived placeholder row, which is exactly what
+	 *  [`shiranami_metadata::read_metadata_or_placeholder`] is for — the renderer
+	 *  shows a track named after its file rather than an error.
+	 */
+	libraryParseMetadata: (filePath: string) => __TAURI_INVOKE<ScannedFile>("library_parse_metadata", { filePath }),
+	/**
+	 *  `library:scan-folder` — every audio file beneath a folder, flat.
+	 * 
+	 *  No production caller: `apps/web` reaches only for the grouped form. It
+	 *  survives because the e2e suite drives it and because dropping a channel the
+	 *  frozen manifest still names would fail the parity checklist (R13).
+	 */
+	libraryScanFolder: (dirPath: string) => __TAURI_INVOKE<ScannedFile[]>("library_scan_folder", { dirPath }),
+	/**
+	 *  `library:scan-folder-grouped` — loose files plus one group per subfolder.
+	 * 
+	 *  The only path production uses: the add-folder, rescan and onboarding flows
+	 *  all call it. Grouping feeds exactly one feature — the "create playlists from
+	 *  these subfolders?" prompt — and not album detection, which `apps/web` derives
+	 *  from tags instead.
+	 */
+	libraryScanFolderGrouped: (dirPath: string) => __TAURI_INVOKE<GroupedScanResult>("library_scan_folder_grouped", { dirPath }),
+	/**
+	 *  `library:scan-cancel` — cancel the active scan, if any.
+	 * 
+	 *  Best-effort and immediate: it returns as soon as the token is cancelled,
+	 *  while the scan itself unwinds and resolves empty through its own channel.
+	 *  Cancelling while idle is a no-op, not an error.
+	 */
+	libraryScanCancel: () => __TAURI_INVOKE<null>("library_scan_cancel"),
+	/**
+	 *  `library:validate-files` — which of these paths are gone from disk.
+	 * 
+	 *  Returns only the **missing** paths, in input order, duplicates preserved.
+	 *  It reports; it does not decide — the renderer maps them back to track ids and
+	 *  calls `db:tracks:remove-many` itself, which is a hard delete. See the crate's
+	 *  module docs for what that costs on an unmounted drive, and why softening it
+	 *  belongs in `apps/web` rather than here.
+	 */
+	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
+	/**
+	 *  `loudness:analyze` — measure and persist integrated loudness for a batch.
+	 * 
+	 *  Sequential, one track at a time, as v1 was: the decode is already
+	 *  CPU-saturating and the unit of parallelism this crate's docs name is a track.
+	 *  Already-measured tracks are skipped by re-reading the row, which keeps the
+	 *  run idempotent even when the renderer passes a stale "needs analysis" set.
+	 */
+	loudnessAnalyze: (input: LoudnessAnalyzeInput[]) => __TAURI_INVOKE<LoudnessAnalyzeResult>("loudness_analyze", { input }),
+	/**
+	 *  `loudness:cancel` — stop the active run.
+	 * 
+	 *  Best-effort: the run notices at its next checkpoint and returns its partial
+	 *  counts. A no-op when nothing is running.
+	 */
+	loudnessCancel: () => __TAURI_INVOKE<null>("loudness_cancel"),
+	/**
 	 *  `lyrics:fetch` — resolve lyrics for one track.
 	 * 
 	 *  The five arguments are v1's, in v1's order. `album`, `duration` and
@@ -480,6 +544,62 @@ export const commands = {
 	mediaPlaybackState: (playback: NowPlaying) => __TAURI_INVOKE<null>("media_playback_state", { playback }),
 	/**  `media:clear-state` — take the app off the OS surfaces. */
 	mediaClearState: () => __TAURI_INVOKE<null>("media_clear_state"),
+	/**
+	 *  `metadata:lookup` — find candidate tags for one track.
+	 * 
+	 *  Two positional strings, as v1's channel took them. No fallback backend is
+	 *  supplied: yt-dlp lives in `shiranami-downloader`, above `shiranami-metadata`
+	 *  on the spine, and iTunes-only is the complete configuration Phase 9 scopes.
+	 *  The fallback only ever contributed cover art.
+	 * 
+	 *  No connection is acquired: this awaits the network, and holding the pool's
+	 *  one connection across an HTTP timeout would stall every query in the app.
+	 */
+	metadataLookup: (title: string, artist: string) => __TAURI_INVOKE<MetadataLookupResult>("metadata_lookup", { title, artist }),
+	/**
+	 *  `metadata:enrich:tracks` — enrich a batch, four at a time.
+	 * 
+	 *  Results come back in input order and a cancelled run returns a **shorter**
+	 *  list than its input, exactly as v1's `slots.filter(r => r !== undefined)`
+	 *  did. One track's failure never aborts the batch: it contributes a failed
+	 *  result and the run continues, which is what makes a two-thousand-track run
+	 *  survivable.
+	 * 
+	 *  This command does not write database rows. v1's handler did not either — the
+	 *  file writes happen inside the batch when `writeToFile` is set, and the
+	 *  renderer commits the proposed fields through `db:tracks:update-many`.
+	 */
+	metadataEnrichTracks: (tracksInput: EnrichTrackInput[], options: EnrichRunOptions) => __TAURI_INVOKE<EnrichTrackResult[]>("metadata_enrich_tracks", { tracksInput, options }),
+	/**
+	 *  `metadata:enrich:preview` — propose tags for one track without writing.
+	 * 
+	 *  Never touches the audio file and never updates the database. A downloaded
+	 *  cover still lands in the art cache so the renderer can show the diff; v1 does
+	 *  the same and notes that an entry the user then rejects is a harmless orphan
+	 *  the prune pass reclaims.
+	 * 
+	 *  Emits no progress: v1 wired the sink only on the batch channel, and a
+	 *  single-track preview reporting into the bulk progress bar would move it for
+	 *  an operation the bar is not describing.
+	 */
+	metadataEnrichPreview: (track: EnrichTrackInput, options: EnrichPreviewOptions) => __TAURI_INVOKE<EnrichTrackResult>("metadata_enrich_preview", { track, options }),
+	/**
+	 *  `metadata:enrich:cancel` — cancel the run holding the slot.
+	 * 
+	 *  Cancels a bulk run and a preview alike, because they share one slot.
+	 *  Cancelling while idle is a no-op rather than an error: v1's comment says why,
+	 *  and a stale flag left set by a mistimed cancel would poison the next run.
+	 */
+	metadataEnrichCancel: () => __TAURI_INVOKE<null>("metadata_enrich_cancel"),
+	/**
+	 *  `metadata:write-tags` — the manual tag editor's save.
+	 * 
+	 *  Writes the user's tags to the file, then updates the database row to match,
+	 *  then answers `{ success: true }`. **A file-write failure is logged and does
+	 *  not change that answer** — see the module docs for why that downgrade is the
+	 *  contract rather than an oversight.
+	 */
+	metadataWriteTags: (input: WriteTagsInput_Deserialize) => __TAURI_INVOKE<WriteTagsResult>("metadata_write_tags", { input }),
 	/**  `scrobble:get-status` — what the Settings pane renders. */
 	scrobbleGetStatus: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_get_status"),
 	/**  `scrobble:set-enabled` — flip the master switch, returning the new status. */
@@ -542,6 +662,19 @@ export const commands = {
 	 */
 	shellTrashFile: (filePath: string) => __TAURI_INVOKE<null>("shell_trash_file", { filePath }),
 	/**
+	 *  `storage:get-usage` — disk usage across the watched folders, by volume.
+	 * 
+	 *  An empty list is not an error: it answers with no volumes, which is what a
+	 *  library with no folders yet should show. v1's zod tuple allowed it too, and
+	 *  only refused an empty *string* inside the array.
+	 * 
+	 *  `spawn_blocking` is not optional here. The walk is `walkdir` to depth 12 plus
+	 *  a `statvfs` per volume over what may be a whole music library on a spinning
+	 *  or network disk — seconds of synchronous I/O, and on the WKWebView main
+	 *  thread that is the window not painting for the duration (§2.3, R15).
+	 */
+	storageGetUsage: (folderPaths: string[]) => __TAURI_INVOKE<DiskUsageResult>("storage_get_usage", { folderPaths }),
+	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
 	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
@@ -574,6 +707,31 @@ export const commands = {
 	 *  rejecting, which is why this returns `void` rather than a status.
 	 */
 	updaterInstallNow: () => __TAURI_INVOKE<null>("updater_install_now"),
+	/**
+	 *  `waveform:get-peaks` — the peak array for a track, or `null`.
+	 * 
+	 *  Cached peaks are returned without decoding; a miss decodes once and writes
+	 *  the result back. See the module docs for why every failure is `null`.
+	 */
+	waveformGetPeaks: (filePath: string) => __TAURI_INVOKE<{
+	/**
+	 *  [`WAVEFORM_PEAK_COUNT`] peak amplitudes — the maximum absolute sample per
+	 *  bucket.
+	 * 
+	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
+	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
+	 *  per-track maximum when drawing.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits every float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract is `peaks: number[]`, the reducer cannot produce a NaN, and the
+	 *  cache writer already rewrites a non-finite peak as `0` — so the union
+	 *  would be an uninhabited branch the shim has to narrow at every call site.
+	 *  The same treatment `shiranami_core::models::TrackMetadata` gives
+	 *  `duration`.
+	 */
+	peaks: number[],
+} | null>("waveform_get_peaks", { filePath }),
 	/**
 	 *  `weather:geocode` — resolve a free-text city to coordinates.
 	 * 
@@ -865,6 +1023,20 @@ export type DiscoverShelf = {
 	stale: boolean,
 };
 
+/**  Disk usage across every watched folder. */
+export type DiskUsageResult = {
+	/**
+	 *  One entry per distinct volume. Readable volumes first, then every
+	 *  unreadable one — v1's `[...volumes, ...unavailableVolumes]`.
+	 */
+	volumes: VolumeUsage[],
+	/**
+	 *  When the walk ran, as `new Date().toISOString()`, for the panel's
+	 *  "updated x ago" caption.
+	 */
+	computedAt: string,
+};
+
 /**
  *  Renderer-facing display shape derived from [`Track`].
  * 
@@ -1071,6 +1243,105 @@ export type EnqueueDownloadInput = {
 };
 
 /**
+ *  `metadata:enrich:preview`' second argument.
+ * 
+ *  One field, not two: a preview never writes, so v1 gave the channel its own
+ *  narrower schema (`enrichPreviewOptionsSchema`) rather than accepting a
+ *  `writeToFile` it would ignore.
+ */
+export type EnrichPreviewOptions = {
+	/**  Fill only the fields that are missing. */
+	onlyMissing: boolean,
+};
+
+/**
+ *  `metadata:enrich:tracks`' second argument.
+ * 
+ *  `shiranami_metadata::enrich::EnrichOptions` is not a wire type — it carries
+ *  [`EnrichMode`], which is a decision this layer makes rather than one the
+ *  renderer sends. v1's zod was `z.object({ writeToFile, onlyMissing })` and
+ *  that is exactly these two fields.
+ */
+export type EnrichRunOptions = {
+	/**  Whether to write the proposed tags back to each file. */
+	writeToFile: boolean,
+	/**  Fill only the fields that are missing, rather than overwriting. */
+	onlyMissing: boolean,
+};
+
+/**  A track offered up for enrichment. */
+export type EnrichTrackInput = {
+	/**  Database id, echoed back on the result so the caller can match them up. */
+	id: string,
+	/**  Where the file is, for the tag write. */
+	filePath: string,
+	/**  Current title — the search term, never overwritten. */
+	title: string,
+	/**  Current artist. */
+	artist: string,
+	/**  Current album. */
+	album: string,
+	/**  Current cover, which decides whether a new one is downloaded. */
+	albumArt: string | null,
+	/**  Current genre. */
+	genre: string,
+	/**  Current year. */
+	year: number | null,
+	/**  Current track number. */
+	trackNumber: number | null,
+};
+
+/**  What enrichment did to one track. */
+export type EnrichTrackResult = {
+	/**  The input's id. */
+	id: string,
+	/**
+	 *  Whether a match was found.
+	 * 
+	 *  Match presence, **not** field count: a match that proposes nothing new
+	 *  still succeeded. v1 states this outright in a comment, and the renderer
+	 *  relies on it — a `false` here is what lands the track on the persisted
+	 *  skip list.
+	 */
+	success: boolean,
+	/**  The proposed changes. */
+	updatedFields: EnrichUpdatedFields,
+	/**  Which backend matched. */
+	source: LookupSource,
+	/**  The match score, when there was a match. */
+	confidence?: number | null,
+	/**  Why it failed, when it did. */
+	error?: string | null,
+};
+
+/**
+ *  What enrichment proposes to change.
+ * 
+ *  `None` means "no suggestion", never "clear this" — enrichment only ever
+ *  fills or replaces, so there is no way for it to empty a field the user has
+ *  set.
+ * 
+ *  **`title` is deliberately absent.** v1's `computeUpdatedFields` touches
+ *  artist, album, genre, year and track number and never the title, so
+ *  enrichment cannot rename a track out from under the user. The lookup result
+ *  still carries one, for display.
+ */
+export type EnrichUpdatedFields = {
+	/**  Proposed artist. */
+	artist?: string | null,
+	/**  Proposed album. */
+	album?: string | null,
+	/**  Proposed genre. */
+	genre?: string | null,
+	/**  Proposed year. */
+	year?: number | null,
+	/**  Proposed track number. */
+	trackNumber?: number | null,
+	/**  The cache URL of a newly downloaded cover. */
+	albumArt?: string | null,
+};
+
+/**
  *  The serializable form every rejected command returns.
  * 
  *  v1 encoded this same triple as JSON behind an `__IPC_ERROR__` sentinel inside
@@ -1115,6 +1386,21 @@ export type GeocodeResult = {
 	lon: number,
 	/**  Human label, formatted "City, Country". */
 	label: string,
+};
+
+/**  The result of a grouped scan. */
+export type GroupedScanResult = {
+	/**  Audio files sitting directly in the scanned root. */
+	rootTracks: ScannedFile[],
+	/**
+	 *  One entry per immediate subdirectory that held at least one audio file.
+	 * 
+	 *  A subdirectory with no audio anywhere beneath it is omitted entirely,
+	 *  rather than appearing with an empty `tracks` list — v1's
+	 *  `if (files.length > 0)` guard, and what keeps the playlist prompt from
+	 *  offering to create a playlist for an empty folder.
+	 */
+	subfolders: SubfolderScan[],
 };
 
 /**  What the shell reports about itself. */
@@ -1329,6 +1615,45 @@ export type ListeningStatsTrack = {
 	lastPlayedAt: string,
 };
 
+/**  Where a lookup result came from. */
+export type LookupSource = 
+/**  The iTunes Search API. */
+"itunes" | 
+/**
+ *  A yt-dlp search, supplying a thumbnail when iTunes had no cover.
+ * 
+ *  This crate never produces it directly — yt-dlp lives above it in the
+ *  crate spine. See [`crate::lookup::LookupFallback`].
+ */
+"youtube" | 
+/**  Nothing matched. */
+"none" | 
+/**
+ *  The result of an enrich *preview*, which proposes fields without
+ *  writing them.
+ */
+"preview";
+
+/**  One track offered up for analysis. v1's `LoudnessAnalyzeInput`. */
+export type LoudnessAnalyzeInput = {
+	/**  The row to measure and update. */
+	id: string,
+	/**  The file to decode. */
+	filePath: string,
+	/**  Display title, echoed on every progress tick. */
+	title: string,
+};
+
+/**  What a finished — or cancelled — run counted. */
+export type LoudnessAnalyzeResult = {
+	/**  Tracks newly measured and persisted. */
+	analyzed: number,
+	/**  Tracks skipped: already measured, digitally silent, or no longer on disk. */
+	skipped: number,
+	/**  Tracks that failed to decode. */
+	failed: number,
+};
+
 /**  Progress through an EBU R128 loudness analysis. */
 export type LoudnessProgress = Json;
 
@@ -1386,6 +1711,50 @@ export type MediaCommand = string;
 
 /**  Progress through a metadata-enrichment batch. */
 export type MetadataEnrichProgress = Json;
+
+/**
+ *  A candidate set of tags for a track.
+ * 
+ *  Every field is optional because iTunes omits them freely, and because
+ *  `computeUpdatedFields` treats an absent value as "no suggestion" rather than
+ *  "clear this".
+ */
+export type MetadataLookupResult = {
+	/**
+	 *  Matched title.
+	 * 
+	 *  Carried for display only: enrich never writes it. v1's
+	 *  `computeUpdatedFields` touches artist, album, genre, year and track
+	 *  number and deliberately not this, so a lookup cannot rename a track.
+	 */
+	title?: string | null,
+	/**  Matched artist. */
+	artist?: string | null,
+	/**  Matched album. */
+	album?: string | null,
+	/**  Matched genre. */
+	genre?: string | null,
+	/**  Matched release year. */
+	year?: number | null,
+	/**  Matched position within the album. */
+	trackNumber?: number | null,
+	/**  URL of a cover to download, already upscaled where possible. */
+	coverImageUrl?: string | null,
+	/**  Which backend produced this. */
+	source: LookupSource,
+	/**
+	 *  How well the match scored, in `0.0..=1.0`.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits a bare float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract declares `confidence: number` and the score is a ratio of
+	 *  string-similarity counts, so the `null` branch is uninhabited — and a
+	 *  required field the renderer must narrow before comparing it to
+	 *  `MIN_CONFIDENCE` is a worse contract than the one being ported. The same
+	 *  treatment `shiranami_core::models::TrackMetadata` gives `duration`.
+	 */
+	confidence: number,
+};
 
 /**
  *  What `debug:metrics` carries.
@@ -1814,6 +2183,17 @@ export type RendererStoreKey =
 /**  Whether to prefer LRCLIB's synced lyrics over local files. */
 "lyrics.preferSyncedFromLrclib";
 
+/**  One file the scan read, and what it read. */
+export type ScannedFile = {
+	/**  Absolute path of the audio file. */
+	filePath: string,
+	/**
+	 *  Its tags, or the filename-derived placeholder v1 substitutes for a file
+	 *  it cannot parse.
+	 */
+	metadata: TrackMetadata,
+};
+
 /**
  *  The result of connecting Last.fm or ListenBrainz.
  * 
@@ -2068,6 +2448,24 @@ export type SmartPlaylistUpdateInput = {
 	matchType?: SmartPlaylistMatchType | null,
 	/**  The rules, replacing the stored set wholesale. */
 	rules?: SmartPlaylistRule[] | null,
+};
+
+/**
+ *  One immediate subdirectory of the scanned root, and its tracks.
+ * 
+ *  "Subfolder" is a flat concept: nested directories are folded into their
+ *  top-level ancestor's group, so `Artist/Album/Disc 1/x.mp3` lands in the group
+ *  named `Artist`. Grouping exists for exactly one feature — the "create
+ *  playlists from these subfolders?" prompt — and not for album detection, which
+ *  `apps/web` derives from tags instead.
+ */
+export type SubfolderScan = {
+	/**  The directory's own name, which becomes the proposed playlist name. */
+	name: string,
+	/**  Its absolute path. */
+	path: string,
+	/**  Every audio file beneath it, at any depth the walk reached. */
+	tracks: ScannedFile[],
 };
 
 /**
@@ -2464,6 +2862,35 @@ export type UpdaterUpdateDownloaded = UpdateInfo;
  */
 export type UpdaterUpdateNotAvailable = null;
 
+/**  One physical volume that hosts one or more watched library folders. */
+export type VolumeUsage = {
+	/**
+	 *  Stable bucket key: the POSIX device id as a string, or the uppercased
+	 *  Windows drive/UNC root.
+	 */
+	volumeKey: string,
+	/**  Friendly label for the bar header. */
+	mountLabel: string,
+	/**  The watched folders that live on this volume. */
+	folderPaths: string[],
+	/**  Sum of logical file sizes inside those folders. */
+	musicBytes: number,
+	/**  Whole-disk capacity. */
+	totalBytes: number,
+	/**  User-available free space — quota- and root-reservation-aware. */
+	freeBytes: number,
+	/**
+	 *  Whole-disk used across all applications.
+	 * 
+	 *  Captions only. The renderer sizes its bar segments with a clamped
+	 *  formula, never a raw `used_bytes - music_bytes` subtraction, because the
+	 *  two are measured against different baselines.
+	 */
+	usedBytes: number,
+	/**  Set when the volume could not be probed — an unmounted or removed drive. */
+	unavailable?: boolean | null,
+};
+
 /**
  *  A folder the library watches for audio files.
  * 
@@ -2479,6 +2906,35 @@ export type WatchedFolder = {
 	lastScanned: string | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
+};
+
+/**
+ *  What `waveform:get-peaks` answers with.
+ * 
+ *  One field, as v1's `WaveformPeaksResult` had. `shiranami_audio::WaveformPeaks`
+ *  also carries the sample rate, channel count and duration, and they are
+ *  deliberately dropped here: v1's TypeScript only ever read `peaks`, and adding
+ *  three fields to a wire shape the renderer does not consume would freeze them
+ *  into the contract.
+ */
+export type WaveformPeaksResult = {
+	/**
+	 *  [`WAVEFORM_PEAK_COUNT`] peak amplitudes — the maximum absolute sample per
+	 *  bucket.
+	 * 
+	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
+	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
+	 *  per-track maximum when drawing.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits every float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract is `peaks: number[]`, the reducer cannot produce a NaN, and the
+	 *  cache writer already rewrites a non-finite peak as `0` — so the union
+	 *  would be an uninhabited branch the shim has to narrow at every call site.
+	 *  The same treatment `shiranami_core::models::TrackMetadata` gives
+	 *  `duration`.
+	 */
+	peaks: number[],
 };
 
 /**  Coarse weather condition. */
@@ -2520,6 +2976,103 @@ export type WeeklyInsights = {
 
 /**  The main window was maximized or restored. */
 export type WindowMaximizedChange = boolean;
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput = WriteTagsInput_Serialize | WriteTagsInput_Deserialize;
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput_Deserialize = {
+	/**  The row to update. */
+	id: string,
+	/**  The file to write. */
+	filePath: string,
+	/**  Track title. */
+	title?: string | null,
+	/**  Track artist. */
+	artist?: string | null,
+	/**  Album artist, for grouping. */
+	albumArtist?: string | null,
+	/**  Album title. */
+	album?: string | null,
+	/**  Genre. */
+	genre?: string | null,
+	/**  Release year. An explicit `null` clears it. */
+	year?: number | null,
+	/**  Position within the album. An explicit `null` clears it. */
+	trackNumber?: number | null,
+	/**  Disc number. An explicit `null` clears it. */
+	discNumber?: number | null,
+};
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput_Serialize = {
+	/**  The row to update. */
+	id: string,
+	/**  The file to write. */
+	filePath: string,
+	/**  Track title. */
+	title?: string | null,
+	/**  Track artist. */
+	artist?: string | null,
+	/**  Album artist, for grouping. */
+	albumArtist?: string | null,
+	/**  Album title. */
+	album?: string | null,
+	/**  Genre. */
+	genre?: string | null,
+	/**  Release year. An explicit `null` clears it. */
+	year?: number | null,
+	/**  Position within the album. An explicit `null` clears it. */
+	trackNumber?: number | null,
+	/**  Disc number. An explicit `null` clears it. */
+	discNumber?: number | null,
+};
+
+/**
+ *  What `metadata:write-tags` answers.
+ * 
+ *  `success` means **the request was processed**, not that every byte hit disk.
+ *  See the module docs; `error` is declared because v1 declared it.
+ */
+export type WriteTagsResult = {
+	/**  Whether the request was processed. */
+	success: boolean,
+	/**  Why it was not, when it was not. */
+	error?: string | null,
+};
 
 /* Tauri Specta runtime */
 type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;

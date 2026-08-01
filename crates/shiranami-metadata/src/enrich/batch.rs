@@ -87,45 +87,79 @@ pub async fn enrich_tracks(
     let total = tracks.len();
     let state = RunState::new(total);
 
-    let results: Vec<Option<EnrichTrackResult>> = futures::stream::iter(tracks.iter())
-        .map(|track| {
-            let state = &state;
-            async move {
-                // A queued task whose turn arrives after the cancel does no
-                // work at all — no lookup, no request, nothing.
-                if cancel.is_cancelled() {
-                    state.report_cancelled_once(progress, &track.title);
-                    return None;
-                }
-
-                let outcome = enrich_one(context, track, options, cancel, progress, state).await;
-
-                match outcome {
-                    Ok(result) => Some(result),
-                    Err(error) if error.is_cancelled() || cancel.is_cancelled() => {
-                        state.report_cancelled_once(progress, &track.title);
-                        None
-                    }
-                    Err(error) => {
-                        let completed = state.complete();
-                        progress(EnrichProgress {
-                            current: completed,
-                            total,
-                            track_name: track.title.clone(),
-                            status: EnrichStatus::Error,
-                            confidence: None,
-                            source: None,
-                        });
-                        Some(EnrichTrackResult::failed(&track.id, error))
-                    }
-                }
-            }
-        })
+    // The stream carries **owned** inputs and the per-track body is a named
+    // `async fn`. Neither is a style preference — see [`settle`].
+    let results: Vec<Option<EnrichTrackResult>> = futures::stream::iter(tracks.to_vec())
+        .map(|track| settle(context, track, options, cancel, progress, &state))
         .buffered(ENRICH_CONCURRENCY)
         .collect()
         .await;
 
     results.into_iter().flatten().collect()
+}
+
+/// Settle one track: skip it if the run is cancelled, enrich it otherwise, and
+/// project a failure onto a failed result rather than letting it abort the
+/// batch.
+///
+/// # Why the track arrives owned, and why this is not an `async move` block
+///
+/// Written the obvious way — `stream::iter(tracks.iter())` and an `async move`
+/// block inside the closure — the closure returns a future that borrows its
+/// `&EnrichTrackInput` argument, and rustc infers the closure at **one**
+/// concrete lifetime rather than making it higher-ranked. Any caller that needs
+/// the resulting future to be `Send` then cannot prove it, and the error is
+/// *"implementation of `FnOnce` is not general enough"* reported against the
+/// **caller**, naming neither this closure nor this crate.
+///
+/// That caller is every Tauri command, whose attribute macro boxes the body as
+/// `Send + 'static`. Phase 14's `metadata:enrich:tracks` and
+/// `metadata:enrich:preview` hit it, and from the command's side the message
+/// points at an attribute macro and is close to undiagnosable.
+///
+/// Taking the input by value removes the higher-ranked borrow altogether, and a
+/// closure that merely *calls* an `async fn` returns that function's future
+/// type rather than an opaque block holding a reference. The clone is one
+/// `EnrichTrackInput` — a handful of `String`s — per track, against an HTTP
+/// lookup and a tag write each; it does not register.
+///
+/// The body below is the inline one unchanged, so results are still in input
+/// order and one failure still contributes a failed result rather than aborting
+/// the batch.
+async fn settle(
+    context: &EnrichContext<'_>,
+    track: EnrichTrackInput,
+    options: EnrichOptions,
+    cancel: &CancellationToken,
+    progress: ProgressFn<'_>,
+    state: &RunState,
+) -> Option<EnrichTrackResult> {
+    // A queued task whose turn arrives after the cancel does no work at all —
+    // no lookup, no request, nothing.
+    if cancel.is_cancelled() {
+        state.report_cancelled_once(progress, &track.title);
+        return None;
+    }
+
+    match enrich_one(context, &track, options, cancel, progress, state).await {
+        Ok(result) => Some(result),
+        Err(error) if error.is_cancelled() || cancel.is_cancelled() => {
+            state.report_cancelled_once(progress, &track.title);
+            None
+        }
+        Err(error) => {
+            let completed = state.complete();
+            progress(EnrichProgress {
+                current: completed,
+                total: state.total,
+                track_name: track.title.clone(),
+                status: EnrichStatus::Error,
+                confidence: None,
+                source: None,
+            });
+            Some(EnrichTrackResult::failed(&track.id, error))
+        }
+    }
 }
 
 /// Enrich one track: look it up, fetch a cover, write the tags.
