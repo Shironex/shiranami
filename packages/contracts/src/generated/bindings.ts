@@ -459,6 +459,145 @@ export const commands = {
 	 *  Same fallback semantics as its sibling above.
 	 */
 	discordRpcClearPresence: () => __TAURI_INVOKE<null>("discord_rpc_clear_presence"),
+	/**
+	 *  `downloader:check` — yt-dlp's installed state, version and update status.
+	 * 
+	 *  A `handleWithFallback` channel in v1 whose fallback is now unreachable: the
+	 *  status probe cannot fail, it reports `latest_version: None` instead. See the
+	 *  namespace docs.
+	 */
+	downloaderCheck: () => __TAURI_INVOKE<ToolStatus>("downloader_check"),
+	/**  `downloader:check-dependencies` — two booleans, no network. */
+	downloaderCheckDependencies: () => __TAURI_INVOKE<DependencyCheck>("downloader_check_dependencies"),
+	/**
+	 *  `downloader:get-cached-tool-status` — the last cached snapshot, or `null`.
+	 * 
+	 *  `null` is not an error: a fresh install has never refreshed, and the panel
+	 *  renders a loading state for it.
+	 */
+	downloaderGetCachedToolStatus: () => __TAURI_INVOKE<{
+	/**  yt-dlp's status. */
+	ytdlp: ToolStatus,
+	/**  ffmpeg's status. */
+	ffmpeg: ToolStatus,
+	/**  Absolute path to the managed yt-dlp, shown in the settings panel. */
+	ytdlpPath: string,
+	/**  The active download location. */
+	downloadLocation: DownloadLocation,
+	/**  When this snapshot was taken, epoch milliseconds. */
+	timestamp: number,
+} | null>("downloader_get_cached_tool_status"),
+	/**
+	 *  `downloader:refresh-tool-status` — probe both tools and cache the result.
+	 * 
+	 *  The one genuine `handleWithFallback` of the four: resolving the download
+	 *  location creates a directory, which can fail on a full or read-only volume,
+	 *  and v1 answered the stale cache rather than rejecting. A settings panel that
+	 *  shows a slightly old version string beats one that shows an error.
+	 */
+	downloaderRefreshToolStatus: () => __TAURI_INVOKE<{
+	/**  yt-dlp's status. */
+	ytdlp: ToolStatus,
+	/**  ffmpeg's status. */
+	ffmpeg: ToolStatus,
+	/**  Absolute path to the managed yt-dlp, shown in the settings panel. */
+	ytdlpPath: string,
+	/**  The active download location. */
+	downloadLocation: DownloadLocation,
+	/**  When this snapshot was taken, epoch milliseconds. */
+	timestamp: number,
+} | null>("downloader_refresh_tool_status"),
+	/**
+	 *  `downloader:check-ffmpeg` — ffmpeg's installed state, version and update
+	 *  status.
+	 */
+	downloaderCheckFfmpeg: () => __TAURI_INVOKE<ToolStatus>("downloader_check_ffmpeg"),
+	/**
+	 *  `downloader:get-ytdlp-path` — where the managed yt-dlp lives.
+	 * 
+	 *  Answers whether or not it is installed; the settings panel shows the path so
+	 *  a user can see where an install *would* go.
+	 */
+	downloaderGetYtdlpPath: () => __TAURI_INVOKE<string>("downloader_get_ytdlp_path"),
+	/**
+	 *  `downloader:install-ytdlp` — download the managed yt-dlp.
+	 * 
+	 *  Emits `downloader:install-progress`, de-duplicated to whole percentages by
+	 *  the fetcher.
+	 */
+	downloaderInstallYtdlp: () => __TAURI_INVOKE<null>("downloader_install_ytdlp"),
+	/**
+	 *  `downloader:install-ffmpeg` — download the managed ffmpeg and ffprobe.
+	 * 
+	 *  Emits `downloader:ffmpeg-install-progress`.
+	 */
+	downloaderInstallFfmpeg: () => __TAURI_INVOKE<null>("downloader_install_ffmpeg"),
+	/**
+	 *  `downloader:install-dependencies` — install whichever tools are missing.
+	 * 
+	 *  Emits `downloader:dependency-install-progress`, which carries the target,
+	 *  the overall percentage across the run and a label. Answers a per-tool result
+	 *  list rather than rejecting, because a run that installed one of two tools is
+	 *  partial success and the panel says which half worked.
+	 * 
+	 *  An empty `results` means nothing was missing — v1's early return, preserved
+	 *  because the renderer reads `results.length === 0` as "already set up".
+	 */
+	downloaderInstallDependencies: () => __TAURI_INVOKE<InstallDependenciesResult>("downloader_install_dependencies"),
+	/**
+	 *  `downloader:get-download-location` — where downloads land, and whether that
+	 *  is still the default.
+	 */
+	downloaderGetDownloadLocation: () => __TAURI_INVOKE<DownloadLocation>("downloader_get_download_location"),
+	/**
+	 *  `downloader:set-download-location` — store a directory, or reset to default.
+	 * 
+	 *  `None`, `""` and `"   "` all reset. See the module docs.
+	 */
+	downloaderSetDownloadLocation: (downloadDir: string | null) => __TAURI_INVOKE<DownloadLocation>("downloader_set_download_location", { downloadDir }),
+	/**  `downloader:search` — ten scored YouTube results for a query. */
+	downloaderSearch: (query: string) => __TAURI_INVOKE<SearchResult[]>("downloader_search", { query }),
+	/**  `downloader:suggest` — autocomplete suggestions, or an empty list. */
+	downloaderSuggest: (query: string) => __TAURI_INVOKE<string[]>("downloader_suggest", { query }),
+	/**
+	 *  `downloader:download` — the legacy single-URL download.
+	 * 
+	 *  Answers the path of the written file and emits `downloader:progress`.
+	 */
+	downloaderDownload: (opts: DownloadOptions) => __TAURI_INVOKE<string>("downloader_download", { opts }),
+	/**
+	 *  `downloader:get-stream-url` — resolve a page URL to a direct audio stream.
+	 * 
+	 *  Used by the radio and recommendation paths, which play without downloading.
+	 */
+	downloaderGetStreamUrl: (url: string) => __TAURI_INVOKE<string>("downloader_get_stream_url", { url }),
+	/**  `downloader:queue-enqueue` — add one item, answering its generated id. */
+	downloaderQueueEnqueue: (input: EnqueueDownloadInput) => __TAURI_INVOKE<string>("downloader_queue_enqueue", { input }),
+	/**
+	 *  `downloader:queue-cancel` — cancel one item by id.
+	 * 
+	 *  A no-op for an unknown id, exactly as v1 was: the renderer can fire this
+	 *  from a row it drew before a `queue-state` event removed the item, and
+	 *  rejecting would surface a race as an error.
+	 */
+	downloaderQueueCancel: (id: string) => __TAURI_INVOKE<null>("downloader_queue_cancel", { id }),
+	/**  `downloader:queue-cancel-all` — cancel everything queued or active. */
+	downloaderQueueCancelAll: () => __TAURI_INVOKE<null>("downloader_queue_cancel_all"),
+	/**  `downloader:queue-clear-completed` — drop finished, failed and cancelled rows. */
+	downloaderQueueClearCompleted: () => __TAURI_INVOKE<null>("downloader_queue_clear_completed"),
+	/**
+	 *  `downloader:queue-pause` — stop promoting queued items to active.
+	 * 
+	 *  Survives a restart: the flag is persisted outside the queue table, because
+	 *  an empty paused queue is a real state. See [`crate::downloads::queue`].
+	 */
+	downloaderQueuePause: () => __TAURI_INVOKE<null>("downloader_queue_pause"),
+	/**  `downloader:queue-resume` — start promoting again. */
+	downloaderQueueResume: () => __TAURI_INVOKE<null>("downloader_queue_resume"),
+	/**  `downloader:queue-mark-imported` — drop rows the renderer has imported. */
+	downloaderQueueMarkImported: (ids: string[]) => __TAURI_INVOKE<null>("downloader_queue_mark_imported", { ids }),
+	/**  `downloader:queue-get` — the whole queue, for a renderer that just mounted. */
+	downloaderQueueGet: () => __TAURI_INVOKE<DownloadQueueSnapshot>("downloader_queue_get"),
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
 	/**
@@ -600,6 +739,20 @@ export const commands = {
 	 *  contract rather than an oversight.
 	 */
 	metadataWriteTags: (input: WriteTagsInput_Deserialize) => __TAURI_INVOKE<WriteTagsResult>("metadata_write_tags", { input }),
+	/**
+	 *  `playlist:extract` — resolve a YouTube or Spotify playlist URL.
+	 * 
+	 *  Emits `playlist:extract-progress` on the Spotify path only.
+	 */
+	playlistExtract: (url: string) => __TAURI_INVOKE<PlaylistExtractResult>("playlist_extract", { url }),
+	/**
+	 *  `playlist:cancel` — stop the extraction in flight.
+	 * 
+	 *  A no-op when none is running, exactly as v1's `activeExtraction?.abort()`
+	 *  was: the renderer fires this from a modal's close button, which is reachable
+	 *  after the extraction has already finished.
+	 */
+	playlistCancel: () => __TAURI_INVOKE<null>("playlist_cancel"),
 	/**  `scrobble:get-status` — what the Settings pane renders. */
 	scrobbleGetStatus: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_get_status"),
 	/**  `scrobble:set-enabled` — flip the master switch, returning the new status. */
@@ -784,7 +937,7 @@ export const events = {
 	loudnessProgress: makeEvent<LoudnessProgress>("loudness:progress"),
 	mediaCommand: makeEvent<MediaCommand>("media:command"),
 	metadataEnrichProgress: makeEvent<MetadataEnrichProgress>("metadata:enrich:progress"),
-	playlistExtractProgress: makeEvent<PlaylistExtractProgress>("playlist:extract-progress"),
+	playlistExtractProgress: makeEvent<PlaylistExtracting>("playlist:extract-progress"),
 	shareDeepLink: makeEvent<ShareDeepLink>("share:deep-link"),
 	systemNotice: makeEvent<SystemNoticeEmitted>("system:notice"),
 	updaterCheckingForUpdate: makeEvent<UpdaterCheckingForUpdate>("updater:checking-for-update"),
@@ -1096,6 +1249,20 @@ export type DownloadLocation = {
 };
 
 /**
+ *  The single object argument `downloader:download` takes.
+ * 
+ *  A struct because v1's channel took one — `z.object({ url, outputDir? })` —
+ *  and the preload calls it as `invoke(C.download, { url })`. Splitting it into
+ *  two parameters would change the call shape the shim forwards.
+ */
+export type DownloadOptions = {
+	/**  The page URL to download. Must be http(s). */
+	url: string,
+	/**  Where to write it. Absent means the configured download location. */
+	outputDir?: string | null,
+};
+
+/**
  *  Progress event for the legacy single-URL download path.
  * 
  *  Superseded by the queue for everything the UI drives, but still emitted by
@@ -1206,7 +1373,7 @@ export type DownloadQueueStatus =
 export type DownloaderDependencyInstallProgress = DependencyInstallProgress;
 
 /**  Percentage progress installing ffmpeg. */
-export type DownloaderFfmpegInstallProgress = Json;
+export type DownloaderFfmpegInstallProgress = InstallProgress;
 
 /**
  *  Percentage progress installing yt-dlp.
@@ -1214,7 +1381,7 @@ export type DownloaderFfmpegInstallProgress = Json;
  *  De-duplicated rather than throttled (Phase 11): v1 fired per chunk,
  *  ~19,000 calls to deliver 101 distinct values.
  */
-export type DownloaderInstallProgress = Json;
+export type DownloaderInstallProgress = InstallProgress;
 
 /**  Byte progress for the active download. Throttled at 250 ms. */
 export type DownloaderProgress = DownloadProgress;
@@ -1415,6 +1582,23 @@ export type HealthReport = {
 export type InstallDependenciesResult = {
 	/**  One [`ToolInstallResult`] per tool the run touched. */
 	results: ToolInstallResult[],
+};
+
+/**
+ *  Progress installing **one** external tool, as its own channel reports it.
+ * 
+ *  The payload of `downloader:install-progress` and
+ *  `downloader:ffmpeg-install-progress`. A one-field object rather than a bare
+ *  number because that is what v1 sent: the preload declares both listeners as
+ *  `createIpcListener<{ percent: number }>`, so a renderer callback destructures
+ *  `{ percent }` and a bare number would arrive as `undefined`.
+ * 
+ *  Deliberately **not** [`DependencyInstallProgress`], which is the combined
+ *  two-tool run and carries a target, an overall percentage and a label.
+ */
+export type InstallProgress = {
+	/**  Percentage of this tool's download, 0–100. */
+	percent: number,
 };
 
 /**
@@ -1938,8 +2122,27 @@ export type PlaylistCreateWithTracksInput = {
 	trackIds: string[],
 };
 
-/**  Progress extracting a YouTube or Spotify playlist. */
-export type PlaylistExtractProgress = Json;
+/**
+ *  Progress streamed while resolving an external playlist's tracks.
+ * 
+ *  The payload of `playlist:extract-progress`. Only the Spotify path emits it —
+ *  YouTube extraction is one `yt-dlp --flat-playlist` call with nothing to
+ *  report partway through — and it fires **twice per track**, once before that
+ *  track's YouTube search and once after, which is what makes the counter move
+ *  while a slow search is in flight rather than jumping on completion.
+ * 
+ *  `current` is clamped to `total` by the emitter: the pre-search tick reports
+ *  `completed + 1`, and with four workers in flight the last three would
+ *  otherwise report a number larger than the total.
+ */
+export type PlaylistExtractProgress = {
+	/**  How many tracks have been reached, 1-based and clamped to `total`. */
+	current: number,
+	/**  How many tracks the source playlist holds. */
+	total: number,
+	/**  `"{artist} - {title}"`, the row the renderer shows as in progress. */
+	trackName: string,
+};
 
 /**
  *  Result of `playlist:extract`.
@@ -1953,6 +2156,14 @@ export type PlaylistExtractResult = {
 	/**  The resolved tracks, in source order. */
 	tracks: SearchResult[],
 };
+
+/**
+ *  Progress extracting a YouTube or Spotify playlist.
+ * 
+ *  Spotify only — YouTube extraction is a single `--flat-playlist` call
+ *  with nothing to report partway through.
+ */
+export type PlaylistExtracting = PlaylistExtractProgress;
 
 /**
  *  One playlist and one track — the argument `add-track` and `remove-track`

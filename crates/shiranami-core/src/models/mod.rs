@@ -54,7 +54,7 @@ pub use download_queue::{
 };
 pub use downloader::{
     CachedToolStatus, DependencyCheck, DependencyInstallProgress, DownloadLocation,
-    DownloadProgress, DownloadProgressStatus, ToolStatus,
+    DownloadProgress, DownloadProgressStatus, InstallProgress, ToolStatus,
 };
 pub use folder::WatchedFolder;
 pub use history::{
@@ -63,7 +63,9 @@ pub use history::{
     PlayHistoryRecord, RecordPlayInput, WeeklyInsights,
 };
 pub use lyrics::{LyricLine, LyricsResult, LyricsSource};
-pub use media::{MatchFlag, PlaylistExtractResult, SearchResult, TrackMetadata};
+pub use media::{
+    MatchFlag, PlaylistExtractProgress, PlaylistExtractResult, SearchResult, TrackMetadata,
+};
 pub use patch::{Patch, double_option};
 pub use playlist::{
     Playlist, PlaylistCreateInput, PlaylistCreateWithTracksInput, PlaylistUpdateInput,

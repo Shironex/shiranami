@@ -116,6 +116,23 @@ pub enum DownloadProgressStatus {
     Error,
 }
 
+/// Progress installing **one** external tool, as its own channel reports it.
+///
+/// The payload of `downloader:install-progress` and
+/// `downloader:ffmpeg-install-progress`. A one-field object rather than a bare
+/// number because that is what v1 sent: the preload declares both listeners as
+/// `createIpcListener<{ percent: number }>`, so a renderer callback destructures
+/// `{ percent }` and a bare number would arrive as `undefined`.
+///
+/// Deliberately **not** [`DependencyInstallProgress`], which is the combined
+/// two-tool run and carries a target, an overall percentage and a label.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct InstallProgress {
+    /// Percentage of this tool's download, 0–100.
+    pub percent: u32,
+}
+
 /// Progress event for a combined yt-dlp + ffmpeg install run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

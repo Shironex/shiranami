@@ -14,6 +14,7 @@ pub mod arch_guards;
 pub mod bindings;
 pub mod commands;
 pub mod compact;
+pub mod downloads;
 pub mod error;
 pub mod events;
 pub mod paths;
