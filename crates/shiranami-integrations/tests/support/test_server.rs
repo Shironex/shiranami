@@ -1,29 +1,31 @@
 //! A loopback HTTP server that replays canned responses.
 //!
-//! v1's suite stubbed `electron.net.request` outright, so the code under test
-//! never produced or parsed a byte of HTTP. Driving a real socket instead costs
-//! about a hundred lines and covers what a stub cannot: bodies arriving in
-//! pieces, a connection that answers a status line and then goes quiet, and the
-//! actual parsing.
+//! Copied from `shiranami-metadata/tests/support/test_server.rs`, itself a copy
+//! of `shiranami-net`'s, which is
+//! `pub(crate)` to its own integration tests and so not reachable from here.
+//! Copied rather than promoted to a shared crate: a test double is not public
+//! API, and a `shiranami-test-support` crate would have to sit below `net` in
+//! the spine while depending on `tokio` for reasons no production build needs.
 //!
 //! Deliberately not a real HTTP implementation. It reads one request, records
 //! it, and writes back whatever the test queued.
 
+#![allow(dead_code, reason = "each test file uses a different subset")]
+
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
 /// What the server does for one connection.
-///
-/// `shiranami-net`'s original also carries a `Hang` variant for driving a
-/// caller's timeout. It is dropped here: the deadlines these services run under
-/// are 8 s (weather) and 30 s (everything else), which is far too long to spend
-/// in a unit suite, and `shiranami-net` already proves the timeout path.
+#[allow(dead_code, reason = "each test file uses a different subset")]
 pub(crate) enum Reply {
     /// Write these bytes verbatim, then close.
     Raw(String),
+    /// Read the request and then never answer, so the caller's timeout fires.
+    Hang,
 }
 
 impl Reply {
@@ -80,9 +82,15 @@ impl TestServer {
                     .unwrap_or_else(|poisoned| poisoned.into_inner())
                     .push(request);
 
-                let Reply::Raw(bytes) = queue.next().unwrap_or_else(|| Reply::ok(""));
-                let _ = stream.write_all(bytes.as_bytes()).await;
-                let _ = stream.flush().await;
+                match queue.next().unwrap_or_else(|| Reply::ok("")) {
+                    Reply::Raw(bytes) => {
+                        let _ = stream.write_all(bytes.as_bytes()).await;
+                        let _ = stream.flush().await;
+                    }
+                    // Hold the connection open without answering, for longer
+                    // than any timeout a test sets.
+                    Reply::Hang => tokio::time::sleep(Duration::from_secs(3_600)).await,
+                }
             }
         });
 

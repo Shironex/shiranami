@@ -52,3 +52,7 @@ pub mod backup;
 pub mod download_queue;
 pub mod history;
 pub mod radio;
+
+// Phase 12 lane B — the scrobble retry queue, which has no v1 table: v1 parked
+// failed submissions in a process-memory array. Migration `0002` adds it.
+pub mod scrobble_queue;

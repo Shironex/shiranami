@@ -12,7 +12,7 @@ mod v1;
 
 use std::path::Path;
 
-use shiranami_db::{Adoption, SCHEMA_FLOOR};
+use shiranami_db::{Adoption, MIGRATOR, SCHEMA_FLOOR};
 use sqlx::SqliteConnection;
 
 use schema::{column_names, count, index_names, row_counts, scalar, table_names};
@@ -37,14 +37,25 @@ async fn sqlx_versions(conn: &mut SqliteConnection) -> Vec<i64> {
         .expect("the sqlx ledger must be readable")
 }
 
+/// Every migration compiled into this build, in version order.
+///
+/// Derived rather than hard-coded, because the property under test is not "there
+/// are two migrations" but "adoption stamps the baseline and *runs* everything
+/// after it". Adoption stamps only version 1; if a later migration were ever
+/// stamped instead of applied, its DDL would silently never reach an adopted
+/// database and the failure would surface as a missing table months later.
+fn expected_sqlx_versions() -> Vec<i64> {
+    MIGRATOR.iter().map(|migration| migration.version).collect()
+}
+
 /// The state every successful open has to leave behind, whatever it started
-/// from: the baseline stamped, the floor stamped, and a complete v1 ledger for
-/// a build the user might roll back to.
+/// from: the whole sqlx chain applied, the floor stamped, and a complete v1
+/// ledger for a build the user might roll back to.
 async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
     assert_eq!(
         sqlx_versions(&mut *conn).await,
-        vec![1],
-        "the baseline must be the only recorded sqlx migration"
+        expected_sqlx_versions(),
+        "every sqlx migration must be recorded exactly once, in order"
     );
     assert_eq!(
         user_version(&mut *conn).await,
@@ -67,6 +78,9 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         "playlists",
         "radio_favorites",
         "recommendations",
+        // v2's own, from migration `0002` — no v1 counterpart, so its presence
+        // here is what proves post-baseline migrations reach adopted databases.
+        "scrobble_queue",
         "smart_playlists",
         "tracks",
         "youtube_mappings",
@@ -76,6 +90,68 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
             "`{expected}` is missing after adoption; have {tables:?}"
         );
     }
+}
+
+/// Every table the database had before still holds exactly the rows it held,
+/// and any table adoption *added* arrived empty.
+///
+/// Stricter than comparing the two lists outright, which stopped being the right
+/// assertion once v2 gained migrations of its own: a new empty table is what an
+/// additive migration is supposed to look like, while a new table with rows in
+/// it, or any change to a v1 count, is data loss or invention.
+fn assert_rows_preserved(before: &[(String, i64)], after: &[(String, i64)]) {
+    for (table, rows) in before {
+        let found = after
+            .iter()
+            .find(|(name, _)| name == table)
+            .unwrap_or_else(|| panic!("`{table}` disappeared during adoption"));
+        assert_eq!(found.1, *rows, "`{table}` changed row count");
+    }
+
+    for (table, rows) in after {
+        if before.iter().any(|(name, _)| name == table) {
+            continue;
+        }
+        assert_eq!(*rows, 0, "the new table `{table}` arrived with rows in it");
+    }
+}
+
+/// The scrobble queue really works on whatever database this is, not merely
+/// exists: its index is there and its CHECK refuses the one state v1's pure
+/// state machine dropped rows for — a parked scrobble that no backend owes.
+async fn assert_scrobble_queue_is_usable(conn: &mut SqliteConnection) {
+    assert!(
+        index_names(&mut *conn)
+            .await
+            .contains(&"idx_scrobble_queue_due".to_owned()),
+        "the due-items index is missing"
+    );
+    assert_eq!(count(&mut *conn, "scrobble_queue").await, 0);
+
+    exec(
+        &mut *conn,
+        "INSERT INTO scrobble_queue \
+           (id, artist, track, album, duration_seconds, started_at, \
+            lastfm_pending, listenbrainz_pending, attempts, next_attempt_at, enqueued_at) \
+         VALUES ('q1', 'Kaze', 'Alpha', NULL, NULL, 1000, 1, 0, 0, 0, 0)",
+    )
+    .await;
+    assert_eq!(count(&mut *conn, "scrobble_queue").await, 1);
+
+    let orphan = sqlx::query(
+        "INSERT INTO scrobble_queue \
+           (id, artist, track, album, duration_seconds, started_at, \
+            lastfm_pending, listenbrainz_pending, attempts, next_attempt_at, enqueued_at) \
+         VALUES ('q2', 'Kaze', 'Beta', NULL, NULL, 1000, 0, 0, 0, 0, 0)",
+    )
+    .execute(&mut *conn)
+    .await;
+    assert!(
+        orphan.is_err(),
+        "a parked scrobble owing no backend must be unstorable"
+    );
+
+    exec(&mut *conn, "DELETE FROM scrobble_queue").await;
 }
 
 /// Open through the crate's real boot path.
@@ -106,6 +182,54 @@ async fn a_fresh_install_gets_the_baseline_and_a_rollback_ledger() {
     );
 }
 
+/// v2's first post-baseline migration, on the database shape that has no idea
+/// it exists.
+///
+/// Adoption stamps `0001_baseline.sql` without running it, because an adopted
+/// database already has those tables. Everything after the baseline gets the
+/// opposite treatment — run for real, never stamped — and this is the test that
+/// says so about a *v1* file rather than about the migrator in isolation.
+#[tokio::test]
+async fn the_post_baseline_migration_runs_on_an_adopted_v1_database() {
+    let directory = tempfile::tempdir().expect("a temp dir");
+    let path = directory.path().join("shiranami.db");
+
+    let mut seeded = connect(&path).await;
+    build_v1_database(&mut seeded, 9).await;
+    seed_rows(&mut seeded).await;
+    assert!(
+        !v1::has_table(&mut seeded, "scrobble_queue").await,
+        "the fixture must start without v2's table, or this proves nothing"
+    );
+    let before = row_counts(&mut seeded).await;
+    drop(seeded);
+
+    open(&path).await;
+
+    let mut conn = connect(&path).await;
+    assert_adopted_invariants(&mut conn).await;
+    assert_scrobble_queue_is_usable(&mut conn).await;
+    assert_rows_preserved(&before, &row_counts(&mut conn).await);
+}
+
+/// The same migration on a fresh install, where it runs alongside the baseline
+/// rather than after a stamp.
+#[tokio::test]
+async fn the_post_baseline_migration_runs_on_a_fresh_database() {
+    let directory = tempfile::tempdir().expect("a temp dir");
+    let path = directory.path().join("shiranami.db");
+
+    assert_eq!(open(&path).await, Adoption::Fresh);
+
+    let mut conn = connect(&path).await;
+    assert_adopted_invariants(&mut conn).await;
+    assert_scrobble_queue_is_usable(&mut conn).await;
+
+    // The rollback ledger is v1's nine names and nothing else. A v2-only table
+    // must not leak into the chain a rolled-back v1 build would try to replay.
+    assert_eq!(ledger_names(&mut conn).await.len(), 9);
+}
+
 #[tokio::test]
 async fn a_current_v1_database_is_adopted_without_touching_its_data() {
     let directory = tempfile::tempdir().expect("a temp dir");
@@ -129,7 +253,7 @@ async fn a_current_v1_database_is_adopted_without_touching_its_data() {
 
     let mut conn = connect(&path).await;
     assert_adopted_invariants(&mut conn).await;
-    assert_eq!(row_counts(&mut conn).await, before, "rows changed");
+    assert_rows_preserved(&before, &row_counts(&mut conn).await);
     assert_eq!(
         scalar(&mut conn, "SELECT title FROM tracks WHERE id = 't1'").await,
         Some("Alpha".to_owned())
@@ -178,7 +302,7 @@ async fn adopting_twice_more_changes_nothing() {
         );
         assert_eq!(
             sqlx_versions(&mut conn).await,
-            vec![1],
+            expected_sqlx_versions(),
             "run {run} re-stamped"
         );
     }

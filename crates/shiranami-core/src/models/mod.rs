@@ -26,6 +26,7 @@
 //! behave identically.
 
 pub mod dependencies;
+pub mod discord;
 pub mod download_queue;
 pub mod downloader;
 pub mod folder;
@@ -42,6 +43,12 @@ pub mod track;
 pub mod weather;
 
 pub use dependencies::{InstallDependenciesResult, Tool, ToolInstallResult};
+pub use discord::{
+    DISCORD_LANDING_URL, DISCORD_LARGE_IMAGE_KEY, DISCORD_MAX_FIELD_LENGTH,
+    DiscordMusicActivityType, DiscordMusicPresenceActivity, DiscordPresenceTemplate,
+    DiscordPresenceTemplates, DiscordPresenceTemplatesPatch, DiscordRpcSettings,
+    DiscordRpcSettingsPatch, SHIRANAMI_DISCORD_CLIENT_ID,
+};
 pub use download_queue::{
     DownloadQueueItem, DownloadQueueSnapshot, DownloadQueueStatus, EnqueueDownloadInput,
 };
@@ -67,7 +74,7 @@ pub use recommendation::{
     RECOMMENDATION_TTL_MS, RecommendationKind, RecommendationShelves, SIMILAR_TRACKS_MAX,
     SimilarTrackResult, SmartMixKind, SmartMixResult, SmartMixSignals, SmartMixWeather,
 };
-pub use scrobble::ScrobbleStatus;
+pub use scrobble::{LastfmAuthStart, ScrobbleConnectError, ScrobbleConnectResult, ScrobbleStatus};
 pub use smart_playlist::{
     SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType,
     SmartPlaylistOperator, SmartPlaylistRule,

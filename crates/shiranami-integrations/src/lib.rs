@@ -11,7 +11,15 @@
 //! Ported in Phase 12. Scrobble secrets must never cross the command boundary.
 //! See `docs/v2/architecture.md` §2.2 (#22, #23, #25, #26).
 
+// Every item here is either renderer-visible contract or a ported guard, so an
+// undocumented one is a contract nobody can read.
+#![warn(missing_docs)]
+
 // lane A
 pub mod lyrics;
 pub mod share;
 pub mod weather;
+
+// lane B
+pub mod discord;
+pub mod scrobble;

@@ -51,6 +51,111 @@ export type DependencyInstallProgress = {
 };
 
 /**
+ *  The now-playing snapshot the presence builder consumes.
+ * 
+ *  Mirrors the relevant fields of the main-process playback state, kept
+ *  independent — as v1 kept it — so the builder stays pure and the crate that
+ *  owns OS media controls is not a dependency of the crate that owns Discord.
+ */
+export type DiscordMusicPresenceActivity = {
+	/**  Whether playback is running. */
+	isPlaying: boolean,
+	/**  Track title. */
+	title: string,
+	/**  Track artist. */
+	artist: string,
+	/**  Track album. */
+	album: string,
+	/**  Total track length in seconds. */
+	duration: number,
+	/**  Current playhead position in seconds. */
+	currentTime: number,
+};
+
+/**
+ *  One status template. `details` is line 1, `state` is line 2.
+ * 
+ *  The three toggles control whether the track timer, the app logo and the
+ *  landing button appear in the rendered presence.
+ */
+export type DiscordPresenceTemplate = {
+	/**  Line 1 of the presence card. Supports `{title}`/`{artist}`/`{album}`. */
+	details: string,
+	/**  Line 2 of the presence card. Supports the same tokens. */
+	state: string,
+	/**  Whether to show the track timer. */
+	showTimestamp: boolean,
+	/**  Whether to show the app logo. */
+	showLargeImage: boolean,
+	/**  Whether to show the landing-page button. */
+	showButton: boolean,
+};
+
+/**  One template per activity type. */
+export type DiscordPresenceTemplates = {
+	/**  Template used while a track is playing. */
+	playing: DiscordPresenceTemplate,
+	/**  Template used while a track is paused. */
+	paused: DiscordPresenceTemplate,
+	/**  Template used while nothing is loaded. */
+	idle: DiscordPresenceTemplate,
+};
+
+/**
+ *  A partial [`DiscordPresenceTemplates`] — the shape v1 accepted on the way in.
+ * 
+ *  Both a stored blob written by an older build and a settings update may name
+ *  only some activity types; the missing ones fall back to the current value,
+ *  exactly as v1's object spread did.
+ */
+export type DiscordPresenceTemplatesPatch = {
+	/**  Replacement template for `playing`, when named. */
+	playing?: DiscordPresenceTemplate | null,
+	/**  Replacement template for `paused`, when named. */
+	paused?: DiscordPresenceTemplate | null,
+	/**  Replacement template for `idle`, when named. */
+	idle?: DiscordPresenceTemplate | null,
+};
+
+/**
+ *  Persisted Discord RPC settings.
+ * 
+ *  Lives behind [`crate::store::MainStoreKey::DiscordRpcSettings`]; the
+ *  renderer reads and writes it through dedicated commands rather than the
+ *  generic store surface.
+ */
+export type DiscordRpcSettings = {
+	/**  Master switch for Rich Presence. */
+	enabled: boolean,
+	/**  Show the track title/artist lines on Discord. */
+	showTrackDetails: boolean,
+	/**  Show the elapsed/remaining track timer. */
+	showElapsedTime: boolean,
+	/**  When true, the per-activity templates drive the presence text. */
+	useCustomTemplates: boolean,
+	/**  The per-activity templates. */
+	templates: DiscordPresenceTemplates,
+};
+
+/**
+ *  A partial [`DiscordRpcSettings`] — what the settings UI sends.
+ * 
+ *  Every key is optional because the renderer patches individual fields.
+ */
+export type DiscordRpcSettingsPatch = {
+	/**  New value for the master switch, when named. */
+	enabled?: boolean | null,
+	/**  New value for the track-details toggle, when named. */
+	showTrackDetails?: boolean | null,
+	/**  New value for the elapsed-time toggle, when named. */
+	showElapsedTime?: boolean | null,
+	/**  New value for the custom-templates toggle, when named. */
+	useCustomTemplates?: boolean | null,
+	/**  Templates to replace, when named. */
+	templates?: DiscordPresenceTemplatesPatch | null,
+};
+
+/**
  *  A track on the "Discover new music" shelf, pulled from a YouTube RD mix and
  *  **not** in the local library.
  * 
@@ -309,6 +414,20 @@ export type GeocodeResult = {
 export type InstallDependenciesResult = {
 	/**  One [`ToolInstallResult`] per tool the run touched. */
 	results: ToolInstallResult[],
+};
+
+/**
+ *  The result of starting the Last.fm desktop-auth handshake.
+ * 
+ *  Exactly one of `token` / `error` is present, selected by `ok`.
+ */
+export type LastfmAuthStart = {
+	/**  Whether the browser handshake was started. */
+	ok: boolean,
+	/**  Present on success; the single-use token to complete auth with. */
+	token?: string | null,
+	/**  Present on failure; a short reason key for the UI toast. */
+	error?: string | null,
 };
 
 /**
@@ -814,6 +933,20 @@ export type RendererStoreKey =
 "system.closeToTray" | 
 /**  Whether to prefer LRCLIB's synced lyrics over local files. */
 "lyrics.preferSyncedFromLrclib";
+
+/**
+ *  The result of connecting Last.fm or ListenBrainz.
+ * 
+ *  Exactly one of `username` / `error` is present, selected by `ok`.
+ */
+export type ScrobbleConnectResult = {
+	/**  Whether the backend accepted the credentials. */
+	ok: boolean,
+	/**  Present on success; the backend's display name, which may be null. */
+	username?: string | null,
+	/**  Present on failure; a short reason key for the UI toast. */
+	error?: string | null,
+};
 
 /**
  *  The scrobbling connection status the Settings UI renders.

@@ -62,6 +62,9 @@ pub fn types() -> Types {
         // Domain models, in the order `models::mod` declares them.
         .register::<models::InstallDependenciesResult>()
         .register::<models::ToolInstallResult>()
+        .register::<models::DiscordRpcSettings>()
+        .register::<models::DiscordRpcSettingsPatch>()
+        .register::<models::DiscordMusicPresenceActivity>()
         .register::<models::DownloadQueueItem>()
         .register::<models::DownloadQueueSnapshot>()
         .register::<models::EnqueueDownloadInput>()
@@ -100,6 +103,8 @@ pub fn types() -> Types {
         .register::<models::SmartMixResult>()
         .register::<models::SmartMixSignals>()
         .register::<models::ScrobbleStatus>()
+        .register::<models::ScrobbleConnectResult>()
+        .register::<models::LastfmAuthStart>()
         .register::<models::SmartPlaylist>()
         .register::<models::SmartPlaylistDefinition>()
         .register::<models::SmartPlaylistRule>()

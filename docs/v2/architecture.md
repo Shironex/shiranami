@@ -1178,3 +1178,142 @@ depending on metadata could be built in isolation.
 - `recommendation::core::instant` (ISO-8601) now has its second consumer (lyrics/share validation shapes; likely scrobble too) — move it to `shiranami-core` per Phase 4's amendment.
 - **No `youtube_mappings` repository exists in `shiranami-db`** — Phase 7 didn't cover the table; share-payload assembly (which joins tracks/playlists with YouTube ids) lives in the Phase 14 command layer as it did in v1 and needs that repository created.
 - v1 performs no checksum/signature verification on downloaded yt-dlp/ffmpeg binaries (Phase 11 finding, ported as-is: atomic rename + chmod + xattr only). Adding real verification is new behavior — a post-cutover hardening decision, deliberately not smuggled into the port.
+
+## Phase 12 lane B implementation amendments (2026-08-01, `v2-integrations-b`)
+
+Recorded from the shipped scrobbling and Discord Rich Presence modules; full rationale lives in the
+modules' docs. Lane A (lyrics, weather, share) is separate.
+
+**The deferred connect-result types are resolved, and the deferral's premise is confirmed.** Phase 2
+left `LastfmConnectResult` / `ListenBrainzConnectResult` unported because they are
+`{ ok: true; … } | { ok: false; error }` unions discriminated on a **boolean literal**. `specta`
+2.0.0-rc.25 genuinely cannot express one: `datatype::Literal` exists in its source, but the
+re-export is commented out (`// pub use literal::Literal;` in `specta/src/datatype.rs`) under a
+module header saying it "isn't being shipped for now". The resolution is three-part, and it lives in
+`shiranami-core` rather than `shiranami-integrations` because the export harness CI diffs is in
+core — the deferral was about _representation_, not location:
+
+- **Rust side, a real enum.** `ScrobbleConnectResult` cannot hold a username and an error at once.
+- **Wire side, hand-written `serde`.** The bytes are v1's exactly: the arm that does not apply is
+  **absent**, not present and null. A derived flat struct would have emitted `"error":null` on
+  success, and byte-compatibility was the constraint.
+- **TypeScript side, a flat mirror** the `Type` impl delegates to, whose `username?` / `error?`
+  describe those two byte layouts honestly. It is a widening of v1's union and it is what the
+  renderer's existing call sites compile against — they read `.ok`, then `.username ?? ''`, and
+  never read `.error` at all.
+
+v1's two result types are structurally identical and neither is imported by `apps/web`, so they
+collapse into one. `beginLastfmAuth`'s result was _already_ a flat
+`{ ok: boolean; token?: string; error?: string }` in v1, so it joins them as `LastfmAuthStart` and
+all three results in the flow now share one shape.
+
+**Discord's contracts are mirrored into core, and the templates become a struct.** `packages/shared`
+stays TypeScript (§1.3), so the client id, image key, landing URL, field cap and default templates
+are a mirror with an equality test, never a redefinition — the client id names a registered Discord
+application and the image key names an art asset uploaded to it, so drift renders a blank card with
+nothing in any log. `DiscordPresenceTemplates` is a three-field struct rather than the
+`Record<ActivityType, Template>` TypeScript declares: identical JSON, but "all three activity types
+have a template" now holds by construction. The partial forms v1 accepted on the way in get explicit
+patch types, so its object-spread merges are typed operations.
+
+### Migration `0002_scrobble_queue.sql` — v2's first post-baseline migration
+
+Purely additive: one table and one index, nothing altered. That is what keeps it
+`backwardCompatible` in the sense §3.2 freezes for the handover window — the `user_version` floor
+stays at **8**, and a rolled-back v1 build opens the file and never queries the extra table. The
+drizzle rollback ledger keeps exactly its nine names; a v2-only table must not leak into a chain v1
+would try to replay.
+
+Adoption stamps **only** the baseline, so `0002` runs for real on both a fresh install and a database
+adopted from v1. Both directions are asserted
+(`the_post_baseline_migration_runs_on_{a_fresh,an_adopted_v1}_database`), and the shared adoption
+invariant now derives its expected ledger from `MIGRATOR` rather than hard-coding a version list —
+the property under test is "the baseline is stamped and everything after it is run", not "there are
+two migrations". A later migration stamped instead of applied would otherwise never reach an adopted
+database, and would surface as a missing table months later.
+
+Two pre-existing tests had to be corrected rather than merely updated, and both were latent traps:
+
+- `schema_equivalence.rs`'s `baseline_database()` ran the whole migrator despite being documented as
+  "a database with nothing but `0001_baseline.sql` in it". It now applies that file directly. The
+  three comparisons there ask whether the squash reproduces **v1's** schema; v2's own tables would
+  only make them fail for the one reason that is not a bug.
+- The adoption row-count assertions compared the whole before/after list. A new _empty_ table is
+  exactly what an additive migration looks like, so they now compare per table and additionally
+  require any new table to arrive empty — a stronger statement than the equality it replaces.
+
+Table-shape notes: `started_at` is unix **seconds** (it is the timestamp submitted to both APIs);
+`next_attempt_at` and `enqueued_at` are unix **milliseconds** (they are compared against the local
+clock, as v1 compared them against `Date.now()`). The remaining targets are two CHECK-constrained
+flags rather than a list column or a child table — `ScrobbleTarget` is a closed two-variant set, and
+flags make v1's `remainingTargets.length === 0 → drop` rule something the database enforces.
+`enqueued_at` exists only to order eviction, standing in for the array position v1 spliced.
+
+`QueuedScrobble` lives in `shiranami-db` beside its table, **not** in `core::models`, whose stated
+contract is that everything in it crosses the IPC boundary. This one never does — the renderer sees
+only `pendingCount`.
+
+**A latent v1 bug closes in the port.** v1's `enqueue` appended unconditionally, so re-parking a play
+the queue already held — same artist, track and start second, hence the same content-derived id —
+put two copies in the array and submitted it **twice** on the next flush. `id` is the primary key
+here, so a re-enqueue updates in place.
+
+**Discard rules are v1's, verbatim, including what v1 did not do.** A submission failure is a
+submission failure: v1 never classified them, so a 400 from Last.fm retries exactly like a timeout,
+and genuinely permanent errors are dropped by the attempt ceiling like everything else. The ceiling
+is 10 attempts and the cap 500 rows. (v1's comment claimed the backoff curve spans "~17h"; it
+actually spans about five. The constant is ported, not the arithmetic in the comment.)
+
+### Deviations from v1, and why each is forced
+
+**Scrobbling.** The now-playing ping runs _concurrently with_ the submission rather than detached —
+v1 fired it without awaiting and swallowed its rejection; a spawned task here would need a runtime
+handle this crate has no business holding and could outlive shutdown, while `join` reproduces the
+observable behaviour exactly. Opening the browser for Last.fm's auth page is the composition root's
+job (`tauri-plugin-opener`), so the URL is returned rather than opened. The flush timer belongs to
+the composition root too. Credentials are read with `option_env!`, never `std::env::var`: v1's were
+inlined by esbuild at build time _precisely because_ a packaged main process cannot see those
+variables at runtime, and a runtime read here would compile fine and leave every shipped build
+permanently unconfigured.
+
+**The single connection is never held across a request.** The pool holds one connection (Phase 6), so
+the scrobbler submits first and acquires afterwards — `submit_play` takes one short write, `flush`
+one read of the due rows and one write pass over the results. A ten-second HTTP timeout with the
+connection in hand would stall every query in the app. This is `repo/mod.rs`'s rule for commands,
+applied to a background task: acquire late, release early, never await the network holding one.
+
+**Discord.** `discord-rich-presence` (Appendix B) has **no event surface**, where v1's
+`@xhayper/discord-rpc` emitted `disconnected`; a dropped socket is therefore discovered when the next
+write fails. For a presence card that is the same thing to a user, since there is nothing to show
+between updates. v1's two `setTimeout`s become one `pump` the composition root drives. The socket
+sits behind a `PresenceSocket` trait, and every call runs in `spawn_blocking` — its transport is a
+blocking Unix socket or named pipe. `pump` takes its clock as an argument for the same reason
+`build_presence` does: crossing the fifteen-second rate-limit window is worth testing and is not
+worth fifteen seconds of test runtime.
+
+Field truncation counts **characters** where v1 counted UTF-16 code units. `slice(0, 127)` on a
+string whose 127th unit is the first half of a surrogate pair yields an unpaired surrogate, so v1
+could hand Discord an ill-formed field for a title containing an emoji; the two agree for every field
+inside the limit. The presence timestamp is **milliseconds**, verified on both sides: v1 handed its
+client a `Date`, which the client serialized with `getTime()`, and the pinned crate's `Timestamps`
+documents the same unit.
+
+Two v1 details preserved that read like bugs and are not: the first reconnect waits **five** seconds,
+not ten, because v1 scheduled with the current delay and doubled afterwards (the state machine now
+returns the delay so it cannot be read at the wrong moment); and a settings save re-renders the card
+_through_ the throttle, so it cannot bypass the rate limit.
+
+**Appendix B additions.** `md-5 = "0.10"` — the crate §2.2 row 25 names, and not a choice: Last.fm
+defines `api_sig` as md5 of the signature base string. Pinned to the 0.10 RustCrypto line so it
+shares one `digest` version with `sha2`. Used strictly as a request signature Last.fm dictates, never
+for anything security-bearing. `discord-rich-presence = "1.1"` as pinned. `sqlx` and `reqwest` are
+added to `shiranami-integrations` — the former because the retry queue is a table, the latter for
+header names and values only, exactly as `shiranami-serve` takes it; `shiranami-net` remains the sole
+constructor of a reqwest `Client`.
+
+**Signing is pinned by exact-output vectors, not by shape.** Last.fm answers an invalid signature
+with one generic message and no indication of which part was wrong, so a test asserting "32 hex
+characters" would have passed through every mistake worth catching. The vectors assert the signature
+base _and_ the digest for a realistic scrobble, including a non-ASCII title — `update(base, 'utf8')`
+means the bytes hashed are UTF-8, which is the detail that would break signing for a Japanese library
+and nowhere else.

@@ -19,17 +19,31 @@ shiranami-db.workspace = true
 # `regex`, `tokio` and `serde` all arrived with earlier phases.
 lofty = { workspace = true }
 regex = { workspace = true }
-# Header names and the status type only — `shiranami-net` stays the sole place
-# a client is constructed. These are the vocabulary its API is phrased in.
+
+# Lane B (scrobbling · Discord Rich Presence).
+# The Discord IPC client. Blocking transport, so it lives behind the
+# `PresenceSocket` trait and every call runs in `spawn_blocking`.
+discord-rich-presence = { workspace = true }
+futures = { workspace = true }
+# Last.fm defines `api_sig` as md5 of the signature base string, so the
+# algorithm is theirs, not a choice. Nothing security-bearing uses it.
+md-5 = { workspace = true }
+# The scrobble retry queue is a table now, so the service acquires from a pool
+# around its network work — see `scrobble::service` for why it never holds one
+# across a request.
+sqlx = { workspace = true }
+
+# Shared vocabulary. Header names and the status type only — `shiranami-net`
+# stays the sole place a client is constructed. `url` supplies
+# `form_urlencoded`, which is what `URLSearchParams` is — the encoder the
+# weather URLs were built with; the LRCLIB URLs used `encodeURIComponent`
+# instead and are encoded by hand (see `lyrics::query`).
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tracing = { workspace = true }
-# For `form_urlencoded`, which is what `URLSearchParams` is — the encoder the
-# weather URLs were built with. The LRCLIB URLs used `encodeURIComponent`
-# instead and are encoded by hand; see `lyrics::query`.
 url = { workspace = true }
 
 [dev-dependencies]
