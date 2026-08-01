@@ -26,6 +26,7 @@
 //! behave identically.
 
 pub mod dependencies;
+pub mod discord;
 pub mod download_queue;
 pub mod folder;
 pub mod history;
@@ -41,6 +42,12 @@ pub mod track;
 pub mod weather;
 
 pub use dependencies::{InstallDependenciesResult, Tool, ToolInstallResult};
+pub use discord::{
+    DISCORD_LANDING_URL, DISCORD_LARGE_IMAGE_KEY, DISCORD_MAX_FIELD_LENGTH,
+    DiscordMusicActivityType, DiscordMusicPresenceActivity, DiscordPresenceTemplate,
+    DiscordPresenceTemplates, DiscordPresenceTemplatesPatch, DiscordRpcSettings,
+    DiscordRpcSettingsPatch, SHIRANAMI_DISCORD_CLIENT_ID,
+};
 pub use download_queue::{
     DownloadQueueItem, DownloadQueueSnapshot, DownloadQueueStatus, EnqueueDownloadInput,
 };

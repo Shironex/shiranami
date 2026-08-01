@@ -62,6 +62,9 @@ pub fn types() -> Types {
         // Domain models, in the order `models::mod` declares them.
         .register::<models::InstallDependenciesResult>()
         .register::<models::ToolInstallResult>()
+        .register::<models::DiscordRpcSettings>()
+        .register::<models::DiscordRpcSettingsPatch>()
+        .register::<models::DiscordMusicPresenceActivity>()
         .register::<models::DownloadQueueItem>()
         .register::<models::DownloadQueueSnapshot>()
         .register::<models::EnqueueDownloadInput>()
