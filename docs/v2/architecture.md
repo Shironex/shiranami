@@ -1033,3 +1033,101 @@ over YouTube-title noise; hand-rolling it would be a rewrite of the thing being 
 does; `\d` and `\b` are pinned back to ASCII at their use sites, since JavaScript's are ASCII-only.
 `serde_json` is dropped from `music-metadata`'s role entirely — `lofty` replaces music-metadata,
 node-id3, flac-tagger **and** the ffmpeg re-mux path, as §2.2 row 17 predicted.
+
+## Phase 10 implementation amendments (2026-08-01, `v2-library`)
+
+Recorded from the shipped `shiranami-library` lane; full rationale lives in the crate's module
+docs.
+
+**The scan pipeline has no database, and must not acquire one.** This supersedes the Phase 10 row's
+implication that rows are written here, and the "cancel mid-scan leaves no partial rows" criterion
+is met structurally rather than transactionally. v1's main process is a **stateless scanner**: it
+has no diffing logic, no database access during a scan, and no knowledge of the `folders` table. It
+discovers files, reads tags, and returns the whole result across IPC. Every reconciliation decision
+lives in the renderer — `apps/web/src/lib/scanHelpers.ts` and `useLibraryRescan.ts` — as three
+round-trips: `library:scan-folder-grouped`, then `db:tracks:exists-many`, then `db:tracks:add-many`.
+`apps/web` is unchanged in v2 (§2.6), so it still does. A scan that also wrote rows would not merely
+duplicate work: `db:tracks:add-many` is `ON CONFLICT DO NOTHING` and returns only the rows that
+landed, so the renderer would receive an empty array, report "library up to date" for a folder full
+of new music, and never enqueue what it had just imported. `shiranami-db` is therefore **not** a
+dependency of this crate (only a dev-dependency, for the reconciliation test), and the
+single-connection pool is trivially safe from here because it is never reached. Phase 7 remains a
+correct _ordering_ dependency for the phase; it is not a code one.
+
+**There is no new/changed/moved detection to port.** File identity is the absolute path string —
+no mtime, no size, no content hash, and the only `mtime` use in v1 is the unrelated waveform cache.
+Consequently: a file whose tags are edited on disk is invisible to every future rescan, because an
+existing path is filtered out _before_ it is read; and a moved or renamed file is an insert at the
+new path plus a hard delete at the old, which resets `play_count`, `is_favorite` and
+`loudness_lufs`, mints a new `id`, resets `created_at`, and cascades away every playlist entry and
+history row keyed on the old id. There is no `UPDATE tracks SET file_path` anywhere in v1. All four
+matrix cases are pinned against a real fixture database in `tests/reconciliation.rs`, which ports
+the renderer's own diff so the behaviour is executable in one place — including the assertion that
+seven plays are lost across a move. Identity-preserving move detection is a real feature needing a
+stable key the schema does not store; it is the highest-value thing this subsystem lacks and is
+left for a product decision, not smuggled in as a port.
+
+**`notify` is not used and is not pinned.** v1 has no folder watcher of any kind — no `chokidar`,
+no `fs.watch`, no polling timer, no rescan on startup or focus — and `folders.last_scanned` is
+written but never read. Every scan is user-triggered from one of three buttons. The §2.1 charter
+lists scan/validate/storage and no watch; adding one would be a new feature wearing a port's
+clothes.
+
+**Concurrency is 16, and deliberately not v1's real 64.** v1's grouped scan — the only path
+production uses — nested two pools: root files at `PARSE_CONCURRENCY` 16, then four subfolders
+concurrently at 16 each, so the true peak was 64 in-flight parses. That is an artifact of the
+pool-of-IPC-round-trips shape, not a tuning decision, and reproducing it would mean 64 threads
+decoding JPEGs at once. v2 flattens the grouped scan into one ordered pass over every discovered
+file at 16, in a **scan-owned** `rayon::ThreadPool` rather than the global one (a scan runs for
+minutes and must not monopolise it). Output order and the end-to-end progress contract are
+identical, because v1 already called `setBatchSize(totalFiles)` once for the whole scan rather than
+per group.
+
+**Pipeline shape.** `discover` (walkdir, single-threaded) → `parse` (rayon ×16: tag read, cover
+decode/resize/encode, art-cache write) → ordered `collect` that short-circuits on the first
+cancellation. Parallel workers feed no shared writer, because there is none: the only mutation a
+worker makes is a create-exclusive append to the content-addressed art cache, whose `EEXIST` is the
+dedupe happy path — asserted under real parallelism by a 40-file same-cover test that ends with one
+cache entry. The single shared state is an atomic progress counter. Cancellation is checked once
+per file at task entry, exactly where v1 checks it, so a file that emitted a tick has a complete
+entry behind it; rayon's `Result` collect reproduces v1's `hasFailed` latch.
+
+**Deliberate v1 behaviours reproduced rather than fixed**, each pinned by a test so the choice is
+visible: no hidden-file, dot-directory or `node_modules` exclusions (v1 has none, so `.Trashes/` is
+walked); macOS AppleDouble `._track.mp3` sidecars are discovered, fail to parse, and become
+placeholder rows; the extension test uses `lastIndexOf('.')` semantics, so a file named exactly
+`.mp3` matches where `Path::extension` would skip it; symlinked files _and_ directories are skipped
+entirely, which also removes any need for cycle detection; and the grouped scan reaches one
+directory level deeper than a flat one because v1 re-enters each subfolder with a fresh depth
+counter. `validate-files` keeps `Path::exists` rather than `try_exists`, because v1's bare `catch`
+made `EACCES`/`EIO`/a disconnected mount indistinguishable from `ENOENT` — and all of them lead to
+deletion. Softening that belongs in `apps/web`, which owns the decision to delete.
+
+**Three recorded deviations.** (1) `ScanProgress.ok` is always `true`: its `false` case meant "the
+`utilityProcess` rejected", which has no in-process analogue, and repurposing the field to mean
+"a placeholder was substituted" would change the value the renderer receives for every corrupt
+file. (2) `VALIDATE_CONCURRENCY` 128 survives as the batch granularity, not as a concurrency
+ceiling — "128 in flight" in a threaded runtime means 128 OS threads, which is worse than the
+descriptor pressure the number was chosen to bound; storage's `STAT_CONCURRENCY` is dropped
+entirely for the same reason, with no observable change since the result is a sum. (3) Disk-usage
+folder paths deduplicate as paths rather than as raw strings, so a library registering both
+`/music` and `/music/` no longer double-counts its bytes into one bar. That one is a fix, taken
+because the behaviour it replaces has no defensible reading.
+
+**Appendix B additions.** `fs4 0.13` for the `statvfs` figures: v1 reads three distinct fields
+(`blocks`, `bfree`, `bavail`) and deliberately computes free space from `bavail` but used space
+from `bfree`, and `unsafe_code = "deny"` rules out calling `statvfs`/`GetDiskFreeSpaceExW`
+directly. `sysinfo` — already pinned for Phase 16 — supplies only two of the three, so `usedBytes`
+would have silently changed basis. `sysinfo` itself is pinned here for the RSS-delta telemetry the
+done-criteria name; v1's second telemetry record (`phase: 'utility-exit'`) is dropped, since its
+only subject was proving that killing the child returned its RSS. The Windows drive-root parsing is
+hand-rolled rather than delegated to `std::path`, for the reason v1 calls `path.win32.parse`
+explicitly: so the bucketing rule stays testable on a POSIX host. `new Date().toISOString()` is
+hand-rolled too (`iso8601.rs`, Hinnant's `civil_from_days`, checked against V8 output) because no
+date crate is pinned — **move it to `shiranami-core` when a second consumer appears**, the same
+note Phase 4 left on `instant.rs` for the parse direction.
+
+**One pre-existing bug fixed in passing.** `shiranami-metadata`'s library used `tokio::select!`
+without its crate enabling tokio's `macros` feature; it compiled only through unification with its
+own dev-dependency, so `cargo check -p shiranami-metadata` failed on its own and no crate
+depending on metadata could be built in isolation.
