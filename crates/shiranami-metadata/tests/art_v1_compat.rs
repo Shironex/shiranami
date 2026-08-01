@@ -283,7 +283,10 @@ fn an_inherited_v1_entry_is_served_not_regenerated() {
     let count = fs::read_dir(art::art_dir(data_dir))
         .expect("the art dir exists")
         .count();
-    assert_eq!(count, 2, "the duplicate is expected and bounded at one extra");
+    assert_eq!(
+        count, 2,
+        "the duplicate is expected and bounded at one extra"
+    );
 }
 
 #[test]

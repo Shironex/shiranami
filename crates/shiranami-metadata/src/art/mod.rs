@@ -71,4 +71,6 @@ pub use cache::{
     file_name_from_url, hash_bytes, save_cover,
 };
 pub use image::{JPEG_QUALITY, MAX_DIMENSION, ProcessedArt, fit_inside, process_cover};
-pub use prune::{ArtReferences, ArtReferencesError, ArtReferencesResult, PruneReport, prune_orphans};
+pub use prune::{
+    ArtReferences, ArtReferencesError, ArtReferencesResult, PruneReport, prune_orphans,
+};

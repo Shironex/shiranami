@@ -113,7 +113,11 @@ pub fn prune_orphans(data_dir: &Path, references: &dyn ArtReferences) -> PruneRe
 fn collect_references(references: &dyn ArtReferences) -> ArtReferencesResult<HashSet<String>> {
     let mut referenced = HashSet::new();
 
-    for value in references.track_art()?.iter().chain(references.playlist_art()?.iter()) {
+    for value in references
+        .track_art()?
+        .iter()
+        .chain(references.playlist_art()?.iter())
+    {
         if let Some(name) = file_name_from_url(Some(value)) {
             referenced.insert(name);
         }

@@ -130,8 +130,9 @@ pub fn save_cover(data_dir: &Path, cover: &[u8]) -> Result<Option<String>> {
     let file_name = file_name_for(&hash);
     let directory = art_dir(data_dir);
 
-    fs::create_dir_all(&directory)
-        .map_err(|source| MetadataError::io("create the album-art directory", &directory, source))?;
+    fs::create_dir_all(&directory).map_err(|source| {
+        MetadataError::io("create the album-art directory", &directory, source)
+    })?;
 
     let path = directory.join(&file_name);
     write_new_only(&path, &processed.bytes)?;
@@ -149,7 +150,11 @@ pub fn save_cover(data_dir: &Path, cover: &[u8]) -> Result<Option<String>> {
 fn write_new_only(path: &Path, bytes: &[u8]) -> Result<()> {
     use std::io::Write as _;
 
-    match fs::OpenOptions::new().write(true).create_new(true).open(path) {
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+    {
         Ok(mut file) => {
             file.write_all(bytes)
                 .map_err(|source| MetadataError::io("write the cover cache entry", path, source))?;
@@ -180,7 +185,10 @@ mod tests {
         let hash = hash_bytes(b"cover bytes");
 
         assert_eq!(hash.len(), HASH_LENGTH);
-        assert!(hash.chars().all(|c| c.is_ascii_hexdigit() && !c.is_uppercase()));
+        assert!(
+            hash.chars()
+                .all(|c| c.is_ascii_hexdigit() && !c.is_uppercase())
+        );
 
         // The full digest of `b"cover bytes"`, truncated by hand. If the
         // truncation ever changes end (or the algorithm changes), this fails.

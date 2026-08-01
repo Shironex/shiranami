@@ -54,4 +54,4 @@ pub mod write;
 
 pub use error::{ENRICH_BUSY_CODE, MetadataError, Result};
 pub use read::{read_metadata, read_metadata_or_placeholder};
-// re-exports restored once write lands
+pub use write::{WriteOutcome, WriteTagsOptions, write_tags};

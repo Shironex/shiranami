@@ -232,7 +232,10 @@ mod tests {
 
     #[test]
     fn empty_input_is_not_a_cover() {
-        assert_eq!(process_cover(&[]).expect("empty input is not an error"), None);
+        assert_eq!(
+            process_cover(&[]).expect("empty input is not an error"),
+            None
+        );
     }
 
     #[test]
@@ -310,8 +313,12 @@ mod tests {
 
     #[test]
     fn different_covers_encode_to_different_bytes() {
-        let first = process_cover(&png(64, 64)).expect("processes").expect("a cover");
-        let second = process_cover(&png(64, 65)).expect("processes").expect("a cover");
+        let first = process_cover(&png(64, 64))
+            .expect("processes")
+            .expect("a cover");
+        let second = process_cover(&png(64, 65))
+            .expect("processes")
+            .expect("a cover");
 
         assert_ne!(first.bytes, second.bytes);
     }

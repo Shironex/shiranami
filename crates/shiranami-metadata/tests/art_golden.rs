@@ -32,10 +32,30 @@ use shiranami_metadata::art;
 ///
 /// Captured on `image` 0.25.10 + `fast_image_resize` 6.1.0.
 const GOLDEN: &[(&str, &str, u32, u32)] = &[
-    ("cover-small.png", "a7adf3ad16679b1ff829defab3a330e7", 100, 80),
-    ("cover-square.png", "cc89c527d35c945f74ae8ceab47f6e95", 512, 512),
-    ("cover-tall.png", "fc4e87c0dfbce43bf6e584e82342d14b", 228, 512),
-    ("cover-wide.png", "e3a90b3613258a60f387ea6ad39c6dcc", 512, 256),
+    (
+        "cover-small.png",
+        "a7adf3ad16679b1ff829defab3a330e7",
+        100,
+        80,
+    ),
+    (
+        "cover-square.png",
+        "cc89c527d35c945f74ae8ceab47f6e95",
+        512,
+        512,
+    ),
+    (
+        "cover-tall.png",
+        "fc4e87c0dfbce43bf6e584e82342d14b",
+        228,
+        512,
+    ),
+    (
+        "cover-wide.png",
+        "e3a90b3613258a60f387ea6ad39c6dcc",
+        512,
+        256,
+    ),
 ];
 
 fn covers_dir() -> PathBuf {
