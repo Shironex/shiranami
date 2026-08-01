@@ -11,5 +11,24 @@ publish.workspace = true
 [dependencies]
 shiranami-core.workspace = true
 
+httpdate = { workspace = true }
+reqwest = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+# `test-util` is what makes the rate-gate tests deterministic: it puts
+# `tokio::time::Instant` and `sleep_until` on a virtual clock, which is the
+# direct equivalent of the injected `now` / `sleep` pair the TypeScript gate
+# accepted purely so its own tests could drive it.
+tokio = { workspace = true, features = [
+  "macros",
+  "rt-multi-thread",
+  "test-util",
+] }
+
 [lints]
 workspace = true

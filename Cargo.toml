@@ -56,6 +56,25 @@ specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 specta-serde = "=0.0.12"
 
+# Phase 3 (`shiranami-net`). reqwest 0.13 already resolves `default-tls` to
+# rustls, so the explicit list is not about picking a TLS stack — it is about
+# dropping what we never use (`charset`, `blocking`, `cookies`) while keeping
+# `system-proxy`, which is the one Chromium behaviour `electron.net` gave the v1
+# client for free and a corporate-proxy user would notice losing.
+reqwest = { version = "0.13", default-features = false, features = [
+  "rustls",
+  "http2",
+  "gzip",
+  "brotli",
+  "system-proxy",
+] }
+# `net` is here for the SSRF guard's DNS resolution and nothing else; the guard
+# must resolve a hostname *itself* rather than trust the connector, or the
+# range classification has nothing to classify.
+tokio = { version = "1", features = ["net", "rt", "sync", "time"] }
+url = "2.5"
+httpdate = "1"
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
