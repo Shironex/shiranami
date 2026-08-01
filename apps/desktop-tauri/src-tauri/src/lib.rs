@@ -13,6 +13,7 @@
 pub mod arch_guards;
 pub mod bindings;
 pub mod commands;
+pub mod downloads;
 pub mod error;
 pub mod events;
 pub mod seam;

@@ -47,6 +47,17 @@ sqlx = { workspace = true }
 # `shiranami-downloader` takes it for its `ProcessRunner`.
 async-trait = { workspace = true }
 
+# `CancellationToken`, which every cancellable downloader call takes. The
+# command layer has to *construct* one — `playlist:cancel` cancels a run started
+# by a different invoke, so the token outlives the command that made it.
+tokio-util = { workspace = true }
+
+# `join!` only. v1 ran the two tool-status probes with `Promise.all` and each
+# carries an upstream version check, so serialising them would double the
+# latency of every settings-panel refresh. Deliberately *not* for `spawn` —
+# R16 bans the bare form and `arch_guards` enforces it.
+tokio = { workspace = true }
+
 # The composition root depends on every domain crate; no domain crate depends
 # on it. Wiring lives here, logic never does — any file in this crate that
 # grows past 400 code lines means logic leaked out of a crate.

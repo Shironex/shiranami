@@ -101,6 +101,16 @@ pub struct Deferred {
     /// driver and not the machine.
     pub downloads: Option<Arc<shiranami_downloader::queue::DownloadQueue>>,
 
+    /// The rest of `downloader:*` and all of `playlist:*`: the two binary
+    /// managers, yt-dlp search, the playlist extractor, the single-URL download
+    /// runner, and the one piece of cross-call state v1 kept in a module-level
+    /// variable (the in-flight extraction's cancel token).
+    ///
+    /// Separate from `downloads` because the queue is one service among these
+    /// and the kickoff typed it on its own; folding it in would rename a field
+    /// six other lanes read.
+    pub downloader: Option<Arc<crate::downloads::DownloaderServices>>,
+
     /// Last.fm and ListenBrainz submission plus the persisted retry queue. The
     /// flush timer belongs to the composition root, not to the crate.
     pub scrobbler: Option<Arc<shiranami_integrations::scrobble::Scrobbler>>,
@@ -249,6 +259,7 @@ pub(crate) mod tests {
         let deferred = state.deferred();
         assert!(deferred.serve.is_none());
         assert!(deferred.downloads.is_none());
+        assert!(deferred.downloader.is_none());
         assert!(deferred.scrobbler.is_none());
         assert!(deferred.discord.is_none());
         assert!(deferred.media_controls.is_none());
