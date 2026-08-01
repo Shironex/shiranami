@@ -1819,3 +1819,138 @@ Surface complete: **136 commands** (135 v1 channels + `health_check`) and all **
 - `persist_compact_bounds` on window close; log dir is `<app data>/logs`, not `app_log_dir()`.
 - Fix `shiranami_db::open`'s non-`Send` future at source (deref-coercion reborrow; lane 2 worked around it with `block_on` in backup-import).
 - Move `off_thread`/`data_dir`/`require_path` from `commands/library.rs` into `crate::wire`.
+
+## Phase 16 implementation amendments (2026-08-01, merged to `v2`)
+
+The app boots. `pnpm tauri:dev` opens the window, loads `apps/web` over the dev
+server, and the renderer's first `store:set` round-trips to disk. Cold start on
+an M-series Mac, debug build, fresh profile:
+
+```
+boot complete total_ms=372 slowest="database" slowest_ms=356
+  stages=logging=6ms settings=0ms database=356ms folders-cache=2ms
+         serve=0ms services=0ms window=4ms
+```
+
+That is §1.2's cold-start line, and 372 ms against a 1,500 ms ceiling — with
+the caveat that the ceiling is for a _release_ build with a populated library,
+and this is a debug build with an empty one. The database stage is 96 % of it,
+which is the baseline migration running for real on a fresh install.
+
+### The boot sequence is split where Tauri splits it, not where §2.8 does
+
+§2.8 reads as one list. The implementation is two functions, because three
+things cannot wait for `tauri::Builder`:
+
+- **`hydrate_login_path`** mutates the process environment, which is not
+  thread-safe, so it runs while the process is still single-threaded.
+- **Sentry consent** decides whether `.plugin(sentry)` is called at all, and a
+  plugin cannot be un-registered.
+- **Logging** precedes both, or their failures are invisible.
+
+So `boot::sequence::preflight` stamps `logging` and `settings` before the
+builder exists, and `finish` stamps the remaining five inside `setup()`. Two
+tests assert the split does not reorder anything by comparing each half against
+`Stage::EXPECTED_ORDER`, which is §2.8 written down once.
+
+`block_on` inside `setup()` is correct and is the only place in the shell it is:
+`setup` runs on the main thread before the event loop starts, so it is not a
+runtime worker and nothing is waiting on it.
+
+### Three integration bugs the first real launch found, all invisible to `cargo test`
+
+1. **`tracing-subscriber` needs the `ansi` feature.** `with_ansi(bool)` compiles
+   without it and **panics** when passed `true`. The app died inside
+   `logging::install` — before there was a subscriber to report the death.
+2. **`tauri-plugin-updater` fails the whole builder without `plugins.updater` in
+   `tauri.conf.json`** (`invalid type: null, expected struct Config`). That
+   section carries the endpoints and the minisign key, which Phase 19
+   provisions, so registering it unconditionally meant _no build started at
+   all_. It is now registered behind `updater::is_supported` — the same
+   predicate that fills the seam, so the plugin and the seam cannot disagree.
+   **Phase 19 must add the config section** when it provisions the keypair.
+3. **`sentry = "0.49"` and `tauri-plugin-sentry = "0.5"` cannot both hold.** The
+   plugin depends on sentry **0.42** and its `init` takes that crate's `Client`;
+   cargo resolves the two as distinct crates and the plugin refuses the other
+   one's client. Appendix B lists them side by side and that pairing is wrong.
+   Aligned to 0.42, which also restores v1's `traces_sample_rate` spelling.
+
+### `is_release_pending` had to grow, and it was a launch issue
+
+v1's predicate matches electron-updater's `latest.yml` wording. v2 publishes no
+`latest.yml`, so **in v2 it would classify nothing** — and every release window
+would show users an error toast where v1 showed them nothing. Extended with the
+plugin's own `Error` vocabulary, including one case v1 could not have had:
+electron-builder published a manifest per platform, but a Tauri manifest lists
+them all in one file, so a half-uploaded release is a _valid_ manifest missing a
+key. A signature failure is deliberately excluded — that is the one updater
+error a user must see (R8).
+
+### The folders cache answers two async questions from a synchronous trait
+
+`PathAuthority` is sync so the audio route can call it under `spawn_blocking`,
+and two of its three answers are rows. They are handled by shape rather than
+uniformly: `folder_roots` is a small set that changes only on a user edit, so it
+is a snapshot refreshed by the invalidation hooks; `has_track_at` has an
+unbounded key space, so it goes to a task over a channel.
+
+A channel rather than `block_on`, which `crate::paths` names and rejects:
+`block_on` on a runtime worker parks that worker until a future completes that
+may need it, where waiting on a receiver parks the _calling_ thread while the
+responder runs elsewhere. The worst case drops from a stopped runtime to one
+stalled thread, and a timeout makes even that a bounded, fail-closed refusal —
+which is v1's rule for this query.
+
+### Two Appendix-B-adjacent findings
+
+- **`tracing-subscriber`'s `ansi` feature is not optional** for any app with
+  both a console and a file layer. See bug 1 above.
+- **`Migrator::run`'s `'a` is late-bound**, so `implementation of 'sqlx::Acquire'
+is not general enough` cannot be fixed with a turbofish (rust#42868). sqlx's
+  own `run_direct` is the answer, and since `open` already holds the connection
+  the `Acquire` hop it skips was pure ceremony. `open`'s future is now `Send`,
+  pinned by a compile-time assertion — nothing else in that crate needs `Send`,
+  which is why the property could regress unnoticed the first time.
+
+### Deviations, and one gap v1 had that v2 closes
+
+- **Cold-start deep links now work.** v1's argv scan lived only in the
+  `second-instance` handler, so clicking a share link with the app closed opened
+  the app and dropped the link. A link arriving _before the window exists_ still
+  drops, which **is** v1's rule and is better than replaying an import prompt
+  minutes later.
+- **`LOG_LEVEL` is validated against five names**, as v1's table did, and that
+  turns out to be load-bearing rather than decorative: `EnvFilter` accepts a bare
+  word as a _target_ directive, so `LOG_LEVEL=verbose` parses cleanly and sets
+  the default for everything else to off. A plausible typo would silence the app
+  with no error anywhere.
+- **The media session is suppressed by an initialization script**, not only by
+  Windows browser args. §2.7 specifies the flag and it is still wanted, but it is
+  Windows-only and untestable; neutering the object covers both platforms.
+  Inert rather than absent — the renderer calls `setActionHandler`
+  unconditionally, so deleting it would be a `TypeError` on the first track.
+- **macOS media keys stay unregistered, for a new reason.** v1 excluded macOS
+  because mediaSession served the keys there; §2.7 found that an embedded
+  WKWebView never bridged it. The exclusion survives because souvlaki now owns
+  those keys and two claimants on one keypress is the thing to avoid.
+- **lint-meta's Rust text scans now strip comments.** A doc comment explaining
+  either rule read as a violation of it. `arch_guards.rs` had already recorded
+  this exact lesson for the Rust-side guards; this file had even written the
+  helper and used it in only one of three rules.
+
+### What Phase 16 did not do
+
+- **`ExitRequested` shutdown is written but was not exercised end to end.**
+  `crate::shutdown` stops the loopback server per §2.4, and `ServeHandle::shutdown`
+  consumes `self` so it is reached through `Arc::try_unwrap`. The dev run was
+  terminated by signal (Cmd+Q could not be delivered from the automation
+  harness), so the graceful path has no runtime evidence yet — Phase 18's E2E
+  suite is where it gets some.
+- **Sentry has no DSN in dev**, so `init` returns `None` on every local run. The
+  consent truth table is unit-tested in both directions; the _reporting_ path is
+  first exercised when Phase 19 injects a DSN.
+- **Discover's yt-dlp fetch half is still unported.** `service::refresh` runs and
+  the 30-second coalesced schedule fires (verified in the log), but
+  `computeDiscoverItems`' RD-mix fetch needs a `ProcessRunner` the recommendation
+  crate does not take. The seed selection is ported and the schedule is real; the
+  fetch is a `shiranami-recommendation` change, not a boot one.
