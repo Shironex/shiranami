@@ -18,6 +18,8 @@ sha2 = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+# Row ids, generated app-side exactly as v1's handlers generated them.
+uuid = { workspace = true }
 
 [dev-dependencies]
 serde = { workspace = true }

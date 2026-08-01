@@ -112,6 +112,13 @@ sqlx = { version = "0.9", default-features = false, features = [
 # line already resolved in the lockfile so the tree holds one `digest` version.
 sha2 = "0.10"
 
+# Phase 7 (`shiranami-db` repositories). Every row this crate inserts carries an
+# id the *application* generates, because v1's handlers did: `crypto.randomUUID()`
+# in the main process, never a SQLite default. Keeping the ids v4 UUIDs keeps the
+# zod `z.string().uuid()` guards on v1's IPC surface satisfiable, which is what a
+# handover-window rollback depends on.
+uuid = { version = "1", features = ["v4"] }
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace

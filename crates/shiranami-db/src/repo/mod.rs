@@ -1,57 +1,53 @@
-//! The repositories behind the database IPC channels.
+//! The repositories behind the `db:*` IPC channels.
 //!
-//! One module per entity, each a set of free functions over a borrowed
-//! connection. Nothing here opens, migrates, or adopts a database — that is
-//! [`crate::database::open`]'s job, and by the time a repository runs, the file
-//! is known-good.
+//! One module per channel namespace, each holding the SQL for exactly the
+//! handlers v1 registered for it. The queries are ports, not redesigns: sort
+//! order, tie-breaks, chunk sizes, transaction boundaries, idempotency
+//! behaviour and returned shapes all match `apps/desktop/src/main/ipc/database/`
+//! statement for statement, because the renderer that consumes them is
+//! unchanged (architecture §2.6) and a "tidier" query here is a silent
+//! behaviour change there.
 //!
-//! # Every function borrows a connection; none of them acquires one
+//! # The single connection, and the one calling convention
 //!
-//! This is the load-bearing rule of the whole module, and it is enforced by the
-//! signatures rather than by review: a function that takes `&mut
-//! SqliteConnection` *cannot* reach the pool, so it cannot acquire a second
-//! connection while the caller holds the first.
+//! [`crate::pool`] holds exactly one connection, so the cardinal rule of this
+//! module is that **no repository call may acquire a connection while one is
+//! already held** — with a single-connection pool a nested `pool.acquire()`
+//! does not merely contend, it deadlocks against itself.
 //!
-//! The reason is [`crate::pool`]'s single connection. v1 ran every database
-//! channel through one synchronous better-sqlite3 handle, and v2 keeps that
-//! shape because it removes the `SQLITE_BUSY_SNAPSHOT` class outright — sqlx
-//! opens *deferred* transactions, so two concurrent writers that each read
-//! before writing race to upgrade, and `busy_timeout` explicitly does not retry
-//! the loser. With one connection there is no race to lose.
+//! The convention that makes the rule checkable by signature rather than by
+//! review: **every repository function takes `&mut SqliteConnection` and none
+//! of them acquires**. The command layer acquires once at its boundary (via
+//! [`conn::acquire`], the only acquire site in the crate), passes `&mut *conn`
+//! down through every repository call the command needs, and drops it on
+//! return. Multi-statement work takes a `Transaction` from that same
+//! connection and passes `&mut *tx` down — the same borrow discipline one
+//! level in. Repository functions never call each other; shared logic is a
+//! private helper over `&mut SqliteConnection` that cannot acquire anything.
 //!
-//! The corollary is that a nested `pool.acquire()` does not merely contend, it
-//! **deadlocks against itself**: the pool has nothing left to hand out and the
-//! holder is blocked waiting for it. So the calling convention is fixed —
-//! acquire once at the command boundary, pass `&mut *conn` down through every
-//! repository call the command needs, drop it when the command returns:
+//! # Ambient inputs
 //!
-//! ```ignore
-//! let mut conn = pool.acquire().await?;
-//! let entry = repo::history::record_play(&mut conn, /* … */).await?;
-//! let recent = repo::history::recent(&mut conn, /* … */).await?;
-//! drop(conn);
-//! ```
-//!
-//! Multi-statement work takes a `Transaction` from that same connection and
-//! passes `&mut *tx` down, which is the same borrow discipline one level in.
-//!
-//! # Ambient inputs are parameters, not calls
-//!
-//! Row identifiers and "now" timestamps arrive as arguments rather than being
-//! minted here. v1 called `crypto.randomUUID()` and `new Date().toISOString()`
-//! inline in its handlers; v2 cannot, because neither a UUID crate nor a clock
-//! crate is in the workspace's pinned dependency set (architecture Appendix B),
-//! and adding one to reach for it inside a query layer would be the wrong trade.
-//! Passing them in is better anyway: the queries stay pure, so a test can assert
-//! an exact row instead of a shape, and the command layer keeps one obvious
-//! place where identity and time enter the system.
-//!
-//! The timestamp *format* is not a free choice, though — see
-//! [`history::record_play`] and [`radio::add`], which disagree about it for a
-//! reason that would silently corrupt a sort order if it were "tidied up".
+//! Row identifiers arrive from [`ids`]; "now" timestamps come from SQLite's
+//! own clock inside the SQL (`strftime`) where v1's format is load-bearing,
+//! or as parameters where a caller-supplied instant is part of the contract.
+//! [`history::record_play`] and [`radio::add`] deliberately disagree about
+//! the timestamp format — "tidying" that up would silently corrupt a sort
+//! order.
 
-// lane B — activity-side repositories (play history, download queue, radio,
-// backup). Lane A appends the library-side modules in its own group.
+// lane A — library side (tracks, folders, playlists, smart playlists)
+pub(crate) mod clock;
+pub(crate) mod conn;
+pub mod folders;
+pub(crate) mod ids;
+pub mod playlist_tracks;
+pub mod playlists;
+pub mod smart_playlists;
+pub mod smart_rules;
+pub(crate) mod track_patch;
+pub(crate) mod track_row;
+pub mod tracks;
+
+// lane B — activity side (play history, download queue, radio, backup)
 pub mod backup;
 pub mod download_queue;
 pub mod history;
