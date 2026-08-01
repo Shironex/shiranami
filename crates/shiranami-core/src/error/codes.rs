@@ -80,6 +80,22 @@ pub mod yt_dlp {
 /// letting `undefined` leak into it.
 pub const INTERNAL: &str = "INTERNAL";
 
+/// Every weather failure — `packages/contracts/src/domain/weather.ts`.
+///
+/// A standalone constant rather than a registry module, because it is the whole
+/// vocabulary: v1's weather service collapsed a non-2xx, a transport failure, a
+/// timeout and a malformed payload into this one code, since the card's response
+/// to all four is the same quiet "Weather unavailable" mini-state. The
+/// distinction that *does* matter — "no such city" — is not an error at all and
+/// crosses as an absent reading.
+///
+/// Declared here rather than beside the producer for the reason this module's
+/// header gives: a frozen vocabulary split across ranks is how one half drifts
+/// from the other. `shiranami-integrations` re-exports it from
+/// `weather::error`, which is where Phase 12 lane A had to declare it — that
+/// lane had no core-edit rights.
+pub const WEATHER_UNAVAILABLE: &str = "WEATHER_UNAVAILABLE";
+
 #[cfg(test)]
 mod tests {
     use crate::bindings::repo_file;
@@ -130,6 +146,29 @@ mod tests {
                 (super::validation::BAD_REQUEST, "BAD_REQUEST"),
                 (super::validation::FORBIDDEN, "FORBIDDEN"),
             ],
+        );
+    }
+
+    /// The same guarantee as [`assert_mirrors`], for a code the renderer
+    /// declares as a standalone `export const` rather than as a key inside a
+    /// registry object. `WEATHER_UNAVAILABLE` sits beside the weather domain
+    /// types, not in `error-codes.ts`, so its declaration shape differs.
+    fn assert_mirrors_const(source: &str, rust_value: &str, ts_name: &str) {
+        let ts = repo_file(source);
+        let expected = format!("export const {ts_name} = '{rust_value}'");
+        assert!(
+            ts.contains(&expected),
+            "{source} no longer declares `{expected}` — the Rust mirror has drifted \
+             from the literal the renderer matches on"
+        );
+    }
+
+    #[test]
+    fn the_weather_code_mirrors_the_typescript_domain_contract() {
+        assert_mirrors_const(
+            "packages/contracts/src/domain/weather.ts",
+            super::WEATHER_UNAVAILABLE,
+            "WEATHER_UNAVAILABLE",
         );
     }
 

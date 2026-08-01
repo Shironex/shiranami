@@ -9,19 +9,12 @@ pub type Result<T, E = WeatherError> = std::result::Result<T, E>;
 
 /// The renderer-visible code for every weather failure.
 ///
-/// Ported from `packages/contracts/src/domain/weather.ts`, where it is declared
-/// alongside the domain types rather than in the IPC error-code registry. The
-/// renderer matches on it to show a quiet "Weather unavailable" mini-state
-/// instead of failing the card, so it is a frozen contract like the four
-/// registries in [`shiranami_core::error::codes`].
-///
-/// **Note for the coordinator:** it arguably belongs *in* that module — core's
-/// own docs say "the crate that produces a code does not have to be the crate
-/// that declares it", and the registry test there reads the TypeScript sources
-/// to prove the literals still match. It is declared here only because Phase 12
-/// lane A must not edit `shiranami-core`. Moving it is a one-line change plus a
-/// row in that test.
-pub const WEATHER_UNAVAILABLE: &str = "WEATHER_UNAVAILABLE";
+/// Declared in [`shiranami_core::error::codes`] with the rest of the frozen
+/// vocabulary and re-exported here, where the producer lives. Phase 12 lane A
+/// had to declare it locally because that lane had no core-edit rights; Phase 14
+/// moved it, and the TypeScript-mirror test that reads
+/// `packages/contracts/src/domain/weather.ts` moved with it.
+pub use shiranami_core::error::codes::WEATHER_UNAVAILABLE;
 
 /// Everything a weather lookup can fail with.
 ///
@@ -69,11 +62,15 @@ mod tests {
         assert_eq!(payload.details, None);
     }
 
-    /// The literal the renderer matches on. Pinned so a rename here has to be a
-    /// deliberate act rather than a refactor's side effect.
+    /// The re-export must resolve to core's constant, not to a local copy that
+    /// happens to spell the same thing. Core is where the mirror test lives, so
+    /// a redeclaration here would be a literal the TypeScript check never sees.
     #[test]
-    fn the_code_literal_matches_the_typescript_contract() {
-        assert_eq!(WEATHER_UNAVAILABLE, "WEATHER_UNAVAILABLE");
+    fn the_code_is_cores_constant_not_a_local_redeclaration() {
+        assert!(std::ptr::eq(
+            WEATHER_UNAVAILABLE,
+            shiranami_core::error::codes::WEATHER_UNAVAILABLE
+        ));
     }
 
     #[test]
