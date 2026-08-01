@@ -2253,3 +2253,151 @@ was terminated by signal again, because the automation harness cannot deliver
 Cmd+Q. `serve_info` was written so as not to make that worse — it borrows the
 handle rather than cloning the `Arc`, so `Arc::try_unwrap` at exit still finds
 one reference.
+
+## Phase 18 lane B implementation amendments (2026-08-02, `v2-test-harness`)
+
+Three of Phase 18's four legs ship here — the analyser-energy regression test,
+the mock-mode target and the Windows CDP workflow. The `@wdio/tauri-service`
+E2E port is lane A's.
+
+### The analyser canary is a differential, not an assertion
+
+§8 names the test as "play a fixture, assert `sum(getByteFrequencyData()) > 0`".
+That assertion is necessary and it is not sufficient, because every way it can
+become vacuous ends in the same place it started: a passing test and a silent
+player. A browser that never began playing, a probe reading a disconnected
+analyser, a fixture that is itself digital silence — each of those turns the
+canary into a green light bolted to nothing. R17 already taught this repo the
+lesson on the drift guard; the mitigation for R2 should not have to relearn it.
+
+So `crates/shiranami-serve/examples/analyser_canary.rs` boots the **real**
+`server::router` twice over one `ServeState` — same routes, same token, same
+bytes — and wraps the second in a layer that deletes
+`Access-Control-Allow-Origin` on the way out. The two servers are one header
+apart, and `scripts/analyser-canary.mjs` asserts all three shapes Spike A §2
+recorded:
+
+| case                               | expectation                        | Spike A |
+| ---------------------------------- | ---------------------------------- | ------- |
+| guarded + `crossOrigin=anonymous`  | RMS at level, FFT peak on the tone | §1      |
+| stripped + `crossOrigin=anonymous` | load fails, `MediaError.code 4`    | §2 (2a) |
+| stripped, no `crossOrigin`         | plays, and is exactly silent       | §2 (2b) |
+
+Case 3 is what makes case 1 mean something. If the probe ever stops being able
+to tell energy from silence, case 3 starts satisfying case 1's assertions and
+the run fails on the control rather than passing on the subject.
+
+The local run reproduces Spike A's figures on both engines: RMS **0.3550**
+(chromium) / **0.3549** (webkit) against a theoretical 0.354, FFT peak on the
+445.3 Hz bin — the nearest 23.4 Hz-wide bin to 440 — `mediaError=4` for 2a, and
+`currentTime` advancing to 2.5 s with RMS 0.0000 and every byte bin at zero for
+2b. Removing `.layer(from_fn(cors::apply))` from `server.rs` fails all five
+guarded-case assertions, which is the perturbation §8 asks the guard to survive.
+
+`tests/cors.rs` gains the same proof at ring 1, without a browser:
+`the_presence_assertion_is_falsifiable` builds the stripped router and requires
+the suite to reject it. It runs in `rust-checks` on every pull request, so the
+expensive job is not the only thing standing between a header regression and a
+silent player.
+
+### The engines are stand-ins, and that is the honest limit
+
+The canary drives **Playwright's** WebKit and Chromium, not WKWebView and
+WebView2. Those are not the same builds: Playwright's macOS WebKit is the Mac
+port, which is close to WKWebView and shares the tainting rules the whole test
+turns on, but it is not the system WebKit Spike A measured. The job runs on
+`macos-latest` for exactly this reason — Playwright's _Linux_ WebKit is the
+GTK/WPE port, and running the R2 canary on the least WKWebView-like WebKit
+available would be a strange way to mitigate R2.
+
+What this buys is a fast, headless, display-free check that runs on every Rust
+change. What it does not buy is coverage of the real shells; ring 3 owns that.
+If lane A's wdio suite can host the same probe against the real webview, it
+should — the assertions are already written down here.
+
+### `:5173` has always been `:15175`
+
+§2.6 and §8 name the mock-mode target `:5173`. The web app has never run there:
+`apps/web/vite.config.ts` pins `port: 15175, strictPort: true`, `tauri.conf.json`
+names it as `devUrl`, and `packages/shared` exports it as `VITE_DEV_PORT`. The
+`:5173` is Vite's default leaking into the plan. Read every `:5173` in this
+document as `:15175`.
+
+### §2.6's mock mode is inertness, not mock data
+
+§2.6 says that outside the webview "every command resolves to **mock data**
+instead of rejecting, which is what makes the `:5173` mock-mode target and
+Storybook work". Phase 15 deliberately did not build that, and was right not to:
+`apps/web` already answers the no-backend case through `IS_ELECTRON` guards in
+every query hook, and installing a mock-data bridge unconditionally would flip
+`IS_ELECTRON` to `true` in Storybook — which 11 story files assert is `false` —
+and replace vitest's mock with a bridge whose commands cannot answer.
+
+So the contract is the opposite of the one §2.6 describes, and
+`scripts/check-mock-mode.mjs` pins the real one: the shell boots with no backend
+at all, nine views navigate, nothing throws, and `window.electronAPI` is absent
+both before and after the walk. Making `installElectronApiBridge()` install
+unconditionally fails it with 34 findings.
+
+One wrinkle worth recording: the check cannot use `IS_E2E` to skip the first-run
+wizard, because `IS_E2E` is `IS_ELECTRON && electronAPI.__e2e` and the absence
+of `electronAPI` is the thing under test. It seeds `shiranami.onboarding`
+instead.
+
+### No drift to fix
+
+Both existing suites were already green against the bridge: `pnpm test` at 388
+files / 2831 tests, and `pnpm --filter @shiranami/web test:storybook` at 229
+story files / 490 tests. Phase 15 verified Storybook once; this re-verified it
+and added the browser-mode leg that never existed, rather than repairing one.
+
+### The Windows CDP path exists and has never run
+
+`scripts/visual-check-windows.mjs` plus `.github/workflows/visual-windows.yml`
+are written, reviewed and unexecuted. Only `--print-config` can run on macOS.
+They are `workflow_dispatch` + `visual-windows`-label gated and required by
+nothing, and they need a first run on a Windows machine before that changes.
+
+The one design decision worth keeping: §2.7 wants the CDP flag at the same call
+site as the media-session suppression, but there is no such call site. The
+window is declared in `tauri.conf.json`, so Tauri builds the webview during
+`Builder::build()` and `lib.rs` has no `WebviewWindowBuilder` to hang
+`with_additional_browser_args` on — the same constraint that already forced the
+initialization script to become a plugin. The supported seam is the config, and
+`tauri dev --config` is an RFC 7386 merge patch, which replaces arrays rather
+than merging them: a hand-written partial overlay would silently drop the
+window's title, size and decorations, which is a poor foundation for a _visual_
+check. The script therefore **derives** the overlay from the real config at run
+time, so there is no second copy to keep in sync.
+
+§2.7's replacement footgun is handled where the doc says it should be: the
+argument builder re-includes wry's `msWebOOUI,msPdfOOUI,msSmartScreenProtection`
+defaults, which `additionalBrowserArgs` replaces rather than appends. The SMTC
+suppression flag is **not** applied — it belongs in `tauri.conf.json` so the
+shipped app carries it, not in a debug-only overlay, and Phase 13 owns that.
+`MEDIA_SESSION_SUPPRESSION` is exported beside the builder with that note on it.
+
+### CI
+
+| Job               | Workflow             | Runner         | Gate                                    |
+| ----------------- | -------------------- | -------------- | --------------------------------------- |
+| `analyser-canary` | `rust-checks.yml`    | macos-latest   | `pnpm canary:analyser`, chromium+webkit |
+| `mock-mode`       | `ci.yml`             | ubuntu-latest  | `pnpm check:mock-mode`, web-path gated  |
+| `visual-windows`  | `visual-windows.yml` | windows-latest | opt-in: dispatch or label               |
+
+The canary compiles only `shiranami-serve` and its dependencies — the harness is
+an example target — so it needs no Tauri system dependencies and no display.
+`mock-mode` joins `ci-result`. Per `docs/ci.md`, all three land un-required;
+promote them to branch protection after a few green runs.
+
+### What lane B did not do
+
+No baseline image diffing. The Windows check captures screenshots as artifacts
+and fails on a missing view, an uncaught error or a console error — it does not
+compare pixels, because a baseline set produced on a machine nobody has run the
+harness on yet would be a baseline of unknown correctness. Add it once the first
+Windows run says what the app actually looks like there.
+
+Coverage ratchets are still unimplemented. §8 promises per-tier floors that
+"raise, never lower"; no vitest config in the repo declares `thresholds`, and
+coverage is not run in CI at all. Naming it here so it stops being invisible.
