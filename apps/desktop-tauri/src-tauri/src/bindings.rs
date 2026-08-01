@@ -208,6 +208,9 @@ mod tests {
             "dbHistoryGetWeeklyInsights",
             "radioFavoritesGetAll",
             "radioFavoritesIsFavorite",
+            "recommendationsGet",
+            "recommendationsSmartMixes",
+            "recommendationsUndoNotInterested",
         ];
 
         for command in PORTED_NAMES {

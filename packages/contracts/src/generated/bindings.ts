@@ -255,6 +255,46 @@ export const commands = {
 	/**  `radio:favorites:is-favorite` — whether a station is saved. */
 	radioFavoritesIsFavorite: (stationUuid: string) => __TAURI_INVOKE<boolean>("radio_favorites_is_favorite", { stationUuid }),
 	/**
+	 *  `recommendations:get` — both shelves, recomputing the library one if stale.
+	 * 
+	 *  Never rejects; see the module docs for why this one degrades.
+	 */
+	recommendationsGet: () => __TAURI_INVOKE<RecommendationShelves>("recommendations_get"),
+	/**
+	 *  `recommendations:refresh` — rebuild what can be rebuilt, then return both
+	 *  shelves.
+	 * 
+	 *  On failure this falls back to *reading* the shelves rather than to an empty
+	 *  pair, exactly as v1's `() => getRecommendationShelves()` did — the user
+	 *  asked for newer, and the older answer is better than no answer. If that read
+	 *  fails too the rejection surfaces, as it did in v1: a fallback that throws is
+	 *  not caught again.
+	 */
+	recommendationsRefresh: () => __TAURI_INVOKE<RecommendationShelves>("recommendations_refresh"),
+	/**
+	 *  `recommendations:similar` — tracks like this one, most similar first.
+	 * 
+	 *  Rejects on failure, unlike the two shelf channels: this answers a click.
+	 */
+	recommendationsSimilar: (seedTrackId: string) => __TAURI_INVOKE<SimilarTrackResult[]>("recommendations_similar", { seedTrackId }),
+	/**
+	 *  `recommendations:not-interested` — hide a track from the library shelf.
+	 * 
+	 *  A track that is no longer in the library is a silent no-op, as in v1: the
+	 *  context menu can outlive the row it was opened on.
+	 */
+	recommendationsNotInterested: (trackId: string) => __TAURI_INVOKE<null>("recommendations_not_interested", { trackId }),
+	/**  `recommendations:undo-not-interested` — un-hide a track. */
+	recommendationsUndoNotInterested: (trackId: string) => __TAURI_INVOKE<null>("recommendations_undo_not_interested", { trackId }),
+	/**
+	 *  `recommendations:smart-mixes` — the mood, weather and decade mixes for now.
+	 * 
+	 *  `None` is "the generator failed" and an empty list is "your library has no
+	 *  mix worth showing". The two are different states on screen; see the module
+	 *  docs.
+	 */
+	recommendationsSmartMixes: (signals: SmartMixContext) => __TAURI_INVOKE<SmartMixResult[] | null>("recommendations_smart_mixes", { signals }),
+	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
 	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
@@ -1446,6 +1486,33 @@ export type SimilarTrackResult = {
 export type SinceQuery = {
 	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
 	since?: string | null,
+};
+
+/**
+ *  The single object argument `recommendations:smart-mixes` takes.
+ * 
+ *  # Why this is not [`SmartMixSignals`] itself
+ * 
+ *  v1's zod for `weather` was `z.enum([...]).catch('unknown')`, and `.catch` is
+ *  a **coercion**, not a validation: an unrecognised string became `'unknown'`
+ *  and the call proceeded to build time and decade mixes. serde's derived
+ *  enum rejects an unrecognised variant instead, which would turn a stale
+ *  cached weather string in the renderer into a failed channel and — through
+ *  this channel's `null` fallback — into an error state on a screen that should
+ *  have shown mixes.
+ * 
+ *  So the field is deserialized leniently and exported as
+ *  [`SmartMixWeather`] regardless, which keeps the emitted TypeScript identical
+ *  to the model's while restoring v1's runtime behaviour.
+ */
+export type SmartMixContext = {
+	/**  Local hour of day, 0–23. */
+	hour: number,
+	/**
+	 *  Current weather; absent when the user has not opted in, in which case
+	 *  the generator degrades to time and decade mixes.
+	 */
+	weather?: WeatherCondition | null,
 };
 
 /**  Which flavour of mix was generated. */
