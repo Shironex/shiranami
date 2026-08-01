@@ -98,13 +98,14 @@ pub async fn scrobble_set_enabled(
 #[tauri::command]
 #[specta::specta]
 pub async fn scrobble_lastfm_begin_auth(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> CommandResult<LastfmAuthStart> {
     let scrobbler = scrobbler(&state)?;
     let (started, authorize_url) = scrobbler.begin_lastfm_auth().await;
 
     if let Some(url) = authorize_url {
-        open_auth_page(&url);
+        open_auth_page(&app, &url);
     }
 
     Ok(started)
@@ -194,23 +195,25 @@ fn non_empty_token(token: &str) -> CommandResult<()> {
 /// missed.** v1 called `shell.openExternal` inside `beginLastfmAuth`; Phase 12
 /// moved that out of the crate on the grounds that opening a URL is the
 /// composition root's job, and named `tauri-plugin-opener` as the mechanism.
-/// That plugin is not a dependency of this crate yet, and adding one means
-/// pinning it in Appendix B and registering it in the boot sequence — an
-/// Appendix B decision and a §2.8 decision respectively, neither of which is a
-/// namespace lane's to make, and both of which `shell:open-external` needs
-/// identically. So the two land together rather than one lane pinning a
-/// dependency on the other's behalf.
+/// Phase 16 registered that plugin, so this is now the open rather than the
+/// note explaining why it could not happen — the launch blocker lane 5 flagged
+/// is closed.
 ///
-/// Until then the URL is logged rather than dropped silently, and wiring it is
-/// replacing this body with `app.opener().open_url(url, None::<&str>)` plus an
-/// `AppHandle` parameter on the caller. The wire contract is unaffected either
-/// way: `{ ok, token? }` is what the renderer reads, and it is already exact.
-fn open_auth_page(url: &str) {
-    tracing::warn!(
-        url,
-        "last.fm authorization page not opened: no opener plugin is registered yet \
-         (see `open_auth_page`); the handshake cannot complete until it is"
-    );
+/// The wire contract never changed: `{ ok, token? }` is what the renderer
+/// reads and it was already exact. What changed is that the handshake can
+/// complete, because the user now reaches the page they have to approve on.
+///
+/// A failure to open is logged and swallowed, not propagated. v1's
+/// `shell.openExternal` result was ignored for the same reason: the token in
+/// the return value is still valid, the renderer is already showing "waiting
+/// for approval", and a user whose browser refused to launch can still be told
+/// the URL. Rejecting here would discard a token that was just spent.
+fn open_auth_page(app: &tauri::AppHandle, url: &str) {
+    use tauri_plugin_opener::OpenerExt as _;
+
+    if let Err(error) = app.opener().open_url(url, None::<&str>) {
+        tracing::warn!(%error, url, "could not open the last.fm authorization page");
+    }
 }
 
 #[cfg(test)]

@@ -23,6 +23,7 @@ pub mod error;
 pub mod events;
 pub mod folders;
 pub mod infra;
+pub mod media;
 pub mod paths;
 pub mod seam;
 pub mod shortcuts;

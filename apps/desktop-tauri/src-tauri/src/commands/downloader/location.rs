@@ -104,6 +104,13 @@ pub async fn downloader_set_download_location(
             .wire()?,
     }
 
+    // v1 invalidated the folders cache on both branches of this write, and it
+    // has to: the download directory is one of the cache's three roots, so a
+    // move must revoke the old location and grant the new one. Without it, a
+    // user who relocates their downloads cannot play anything they download
+    // afterwards until they restart.
+    crate::folders::invalidate_after_change(&app, &state.pool()).await;
+
     let configured = state.settings().downloads_location();
     location::state(
         &music_dir,

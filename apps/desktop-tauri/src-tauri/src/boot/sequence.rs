@@ -242,6 +242,16 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
     deferred.serve = Some(Arc::new(serve));
     deferred.updater = crate::updater::build(app, preflight.e2e);
 
+    // The OS media surface is built here rather than in `services` because it
+    // needs the **window** — on Windows, its raw `HWND` — and because its
+    // backend is not `Send`, so it has to be constructed on the thread that
+    // owns the handle. The window already exists: Tauri creates the ones
+    // `tauri.conf.json` declares before `setup()` runs, which is what makes
+    // this possible inside the same stage rather than after it.
+    deferred.media_controls = app
+        .get_webview_window("main")
+        .and_then(|window| crate::media::build(app, &window, preflight.e2e));
+
     let state = AppState::from_parts(opened.pool, Arc::clone(&preflight.settings), http, deferred);
     preflight.timer.stage(Stage::Services);
 

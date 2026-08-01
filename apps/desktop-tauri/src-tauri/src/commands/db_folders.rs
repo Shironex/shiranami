@@ -37,7 +37,7 @@
 
 use shiranami_core::models::WatchedFolder;
 use shiranami_db::repo::folders;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::error::{CommandResult, WireResultExt as _, bad_request};
 use crate::state::AppState;
@@ -75,13 +75,24 @@ pub async fn db_folders_get_all(state: State<'_, AppState>) -> CommandResult<Vec
 #[tauri::command]
 #[specta::specta]
 pub async fn db_folders_add(
+    app: AppHandle,
     state: State<'_, AppState>,
     folder_path: String,
 ) -> CommandResult<Option<WatchedFolder>> {
     validate_path(&folder_path)?;
 
-    let mut conn = state.conn().await?;
-    folders::add(&mut conn, &folder_path).await.wire()
+    let added = {
+        let mut conn = state.conn().await?;
+        folders::add(&mut conn, &folder_path).await.wire()?
+    };
+
+    // v1 invalidated here, after the insert and before returning. The new
+    // folder is a root, so until the cache is dropped the audio route refuses
+    // every track under it — which reads to a user as "I added my music and it
+    // will not play".
+    crate::folders::invalidate_after_change(&app, &state.pool()).await;
+
+    Ok(added)
 }
 
 /// v1's `z.string().min(1)`.
@@ -102,9 +113,21 @@ fn validate_path(folder_path: &str) -> CommandResult<()> {
 /// the watch, so unwatching a folder does not empty the library.
 #[tauri::command]
 #[specta::specta]
-pub async fn db_folders_remove(state: State<'_, AppState>, id: String) -> CommandResult<()> {
-    let mut conn = state.conn().await?;
-    folders::remove(&mut conn, &id).await.wire()
+pub async fn db_folders_remove(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    id: String,
+) -> CommandResult<()> {
+    {
+        let mut conn = state.conn().await?;
+        folders::remove(&mut conn, &id).await.wire()?;
+    }
+
+    // The direction that matters for safety: without this the removed root
+    // keeps granting every path under it for the life of the process.
+    crate::folders::invalidate_after_change(&app, &state.pool()).await;
+
+    Ok(())
 }
 
 /// `db:folders:update-scanned` — stamp a folder as scanned just now.

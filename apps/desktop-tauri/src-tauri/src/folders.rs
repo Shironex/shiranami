@@ -296,6 +296,37 @@ impl Folders {
     }
 }
 
+/// Drop the memoised roots after something that changes them.
+///
+/// The three call sites are v1's, exactly: `db:folders:add`,
+/// `db:folders:remove` and `downloader:set-download-location` — the last
+/// because the download directory is itself a root, so moving it must revoke
+/// the old one and grant the new. `db:folders:update-scanned` deliberately does
+/// **not** invalidate: it stamps a timestamp and the roots are unchanged.
+///
+/// A no-op when the cache is not managed, which is every pre-boot test.
+///
+/// # Why the whole cache and not just one root
+///
+/// `FoldersCache` memoises *allowed paths*, not just roots, and a removed
+/// folder has to stop granting the paths under it. There is no way to expire
+/// only the affected entries without knowing which of the memoised paths lived
+/// under the removed root — which is the containment question the cache exists
+/// to answer, asked backwards.
+///
+/// One documented consequence survives from v1: removing a folder does not
+/// revoke access to its *tracks*, because `has_track_at` still finds their rows.
+/// That is v1's behaviour and the folders cache's own docs call it out.
+pub async fn invalidate_after_change(app: &tauri::AppHandle, pool: &SqlitePool) {
+    use tauri::Manager as _;
+
+    let Some(folders) = app.try_state::<Arc<Folders>>() else {
+        return;
+    };
+
+    folders.invalidate(pool).await;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
