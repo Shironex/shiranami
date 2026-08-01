@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '1.0.0': '一', // "one" — the 1.0 milestone; the 0.x series graduates
   '0.24.0': '探', // "search / seek / find" — local-first lyrics resolution
   '0.23.0': '彩', // "coloring / hue" — custom accent color, dockable panels, the customization pass
   '0.22.1': '揃', // "to be gathered / in order" — various-artists albums regrouped into one
@@ -136,6 +137,101 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '1.0.0',
+    date: '2026-08-01',
+    title: l(
+      'Shiranami goes stable: the 1.0 milestone',
+      'Shiranami osiąga stabilność: kamień milowy 1.0'
+    ),
+    description: l(
+      'Shiranami is officially 1.0. Everything the 0.x series built — your library, downloads, smart playlists, radio, lyrics, scrobbling, the equalizer, volume leveling, the waveform seek bar, and deep customization — is now stable and complete for what this app set out to be: a calm, personal lofi music player. On top of that, this release brings a final polish pass across the whole interface, faster audio and drawing paths, and a round of security updates. And a look ahead: version 2.0 will rebuild the app’s core in Rust for a much lighter footprint, while the interface you know stays the same. Until then, the 1.x line keeps receiving fixes and stays the recommended release.',
+      'Shiranami oficjalnie osiąga wersję 1.0. Wszystko, co powstało w serii 0.x — biblioteka, pobieranie, inteligentne playlisty, radio, teksty utworów, scrobbling, korektor, wyrównywanie głośności, pasek przewijania z falą dźwięku i szerokie możliwości personalizacji — jest teraz stabilne i kompletne w ramach tego, czym ta aplikacja miała być: spokojnym, osobistym odtwarzaczem muzyki lofi. Do tego to wydanie przynosi ostatni szlif całego interfejsu, szybsze przetwarzanie dźwięku i rysowanie oraz porcję aktualizacji bezpieczeństwa. A patrząc w przyszłość: wersja 2.0 przebuduje rdzeń aplikacji w języku Rust, dzięki czemu aplikacja będzie znacznie lżejsza, a znany Ci interfejs pozostanie bez zmian. Do tego czasu linia 1.x pozostaje zalecanym wydaniem i będzie otrzymywać poprawki.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'A full-app polish pass: subtle press feedback on buttons, rows, and cards, staggered list animations, and a smooth crossfade between views — all switched off when your system asks for reduced motion',
+            'Szlif całej aplikacji: delikatna reakcja przycisków, wierszy i kart na kliknięcie, kaskadowe animacje list i płynne przenikanie między widokami — wszystko wyłączane, gdy system prosi o ograniczenie animacji'
+          ),
+          l(
+            'A more tactile player: the favorite heart pops for the current track, the waveform previews under your cursor, and track changes animate gently',
+            'Bardziej namacalny odtwarzacz: serduszko ulubionych podskakuje przy bieżącym utworze, fala dźwięku pokazuje podgląd pod kursorem, a zmiany utworów są delikatnie animowane'
+          ),
+          l(
+            'A richer command palette with your recent tracks, keyboard hints, and navigation shortcuts',
+            'Rozbudowana paleta poleceń z ostatnio odtwarzanymi utworami, podpowiedziami klawiszowymi i skrótami nawigacji'
+          ),
+          l(
+            'Warmer toast messages, a gentle send-off at the end of onboarding, and a mascot that will very occasionally hum a note while idle',
+            'Cieplejsze komunikaty, miłe pożegnanie na końcu samouczka i maskotka, która od czasu do czasu zanuci nutkę podczas bezczynności'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'The equalizer’s audio processing is fully bypassed while it is turned off, so playback does less work on every sample',
+            'Przetwarzanie dźwięku przez korektor jest całkowicie pomijane, gdy korektor jest wyłączony — odtwarzanie wykonuje mniej pracy przy każdej próbce'
+          ),
+          l(
+            'The waveform seek bar redraws from a cached image instead of recomputing, keeping scrubbing smooth',
+            'Pasek przewijania z falą dźwięku rysuje się z zapisanego obrazu zamiast liczyć wszystko od nowa, dzięki czemu przewijanie pozostaje płynne'
+          ),
+          l(
+            'Faster library and playlist ordering in the database',
+            'Szybsze sortowanie biblioteki i playlist w bazie danych'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'The volume readout no longer lingers when a drag is cancelled mid-gesture',
+            'Wskaźnik głośności nie zostaje już na ekranie, gdy przeciąganie zostanie przerwane w połowie'
+          ),
+          l(
+            'Search reliably detects the “no results” state in every language',
+            'Wyszukiwarka niezawodnie rozpoznaje stan „brak wyników” w każdym języku'
+          ),
+          l(
+            'Self-hosting: the server now refuses to start without its API key when the protected API is enabled, and the container build works again',
+            'Samodzielny hosting: serwer odmawia teraz startu bez klucza API, gdy chroniony interfejs jest włączony, a budowanie kontenera znów działa'
+          ),
+          l(
+            'Going back to an older version of Shiranami after an update stays possible thanks to a database compatibility marker',
+            'Powrót do starszej wersji Shiranami po aktualizacji pozostaje możliwy dzięki znacznikowi zgodności bazy danych'
+          ),
+        ],
+      },
+      {
+        label: l('Security', 'Bezpieczeństwo'),
+        entries: [
+          l(
+            'Dependency refresh across the app to clear known vulnerabilities, including the image, archive, and updater libraries',
+            'Odświeżenie zależności w całej aplikacji w celu usunięcia znanych luk, w tym bibliotek obrazów, archiwów i aktualizatora'
+          ),
+        ],
+      },
+      {
+        label: l('What’s Next', 'Co dalej'),
+        entries: [
+          l(
+            'Shiranami 2.0 will rebuild the app’s core in Rust (moving from Electron to Tauri), aiming for much lower memory use and a smaller install — with the same interface on top',
+            'Shiranami 2.0 przebuduje rdzeń aplikacji w języku Rust (przechodząc z Electrona na Tauri), celując w znacznie mniejsze zużycie pamięci i mniejszą instalację — z tym samym interfejsem'
+          ),
+          l(
+            'While 2.0 is in the works, the 1.x line remains the stable release: bug fixes and security updates continue, but no major new features',
+            'Podczas prac nad 2.0 linia 1.x pozostaje wydaniem stabilnym: poprawki błędów i aktualizacje bezpieczeństwa będą kontynuowane, ale bez dużych nowych funkcji'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '0.24.0',
     date: '2026-07-13',
