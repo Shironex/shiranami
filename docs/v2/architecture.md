@@ -1163,3 +1163,18 @@ depending on metadata could be built in isolation.
 **Real-yt-dlp tests are gated on the binary's presence** so CI stays hermetic, and carry a `SHIRANAMI_YTDLP_PATH` override so the skip is provably a skip: pointing it at `/bin/echo` fails two of the three (R17's lesson, applied to a skipping test).
 
 **Fixtures.** `spotify-embed-playlist.html` is copied into `crates/shiranami-downloader/fixtures/` so the suite survives Phase 20 deleting `apps/desktop`, with a test asserting byte-identity while both exist — the treatment `shiranami-db` gave `v1-schema.json`. Both paths are prettier-ignored.
+
+## Phase 12A implementation amendments (2026-08-01, merged to v2)
+
+- Lyrics precedence found and ported: `lyrics.preferSyncedFromLrclib` only ever promotes LRCLIB past _untimed_ local sources; synced local/embedded always short-circuits before the network. Sidecar probing order: `.lrc` beside track / `Lyrics/` / `lyrics/`, then the same for `.txt`; a timestamp-less `.lrc` is held back as last resort, not returned early.
+- A failed lyrics lookup is `LyricsError::Lookup` and is NOT cached (Phase 9's 429-vs-miss rule applied); a 404 remains a cacheable miss. LRCLIB is reached directly through net's gated client (the `lrclib-api` package's wire shape reproduced exactly) so `Retry-After` is honored.
+- Weather reading cache bounded (50 tiles); share codes validated against the nanoid alphabet before path interpolation; share base URL keys on `debug_assertions`, not an env var.
+- Preserved v1 asymmetries deliberately: create-response passthrough (additive server fields can't break the client), unconditional `searchResults[0]`, case-sensitive unanchored deep-link scheme match.
+- Residual gap: ID3v2 `SYLT` is parsed for MPEG/AIFF/WAV with ms timestamps only (v1's music-metadata reported ms only); LRC-inside-`USLT` fully covered.
+
+### Phase 14 prep (accumulated from lanes 11–12A)
+
+- `WEATHER_UNAVAILABLE` should move into `core::error::codes` (currently declared in `weather/error.rs` with a note — lane A had no core-edit rights).
+- `recommendation::core::instant` (ISO-8601) now has its second consumer (lyrics/share validation shapes; likely scrobble too) — move it to `shiranami-core` per Phase 4's amendment.
+- **No `youtube_mappings` repository exists in `shiranami-db`** — Phase 7 didn't cover the table; share-payload assembly (which joins tracks/playlists with YouTube ids) lives in the Phase 14 command layer as it did in v1 and needs that repository created.
+- v1 performs no checksum/signature verification on downloaded yt-dlp/ffmpeg binaries (Phase 11 finding, ported as-is: atomic rename + chmod + xattr only). Adding real verification is new behavior — a post-cutover hardening decision, deliberately not smuggled into the port.
