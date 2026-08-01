@@ -21,6 +21,7 @@ pub mod constants;
 pub mod error;
 pub mod models;
 pub mod paths;
+pub mod store;
 pub mod sync;
 
 pub use constants::{UNKNOWN_ALBUM, UNKNOWN_ARTIST};
