@@ -40,6 +40,7 @@
     "rebuild:electron": "pnpm --filter @shiranami/desktop rebuild",
     "generate-icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/screenshot-app.mjs",
+    "canary:analyser": "node scripts/analyser-canary.mjs",
     "prepare": "husky"
   },
   "engines": {
