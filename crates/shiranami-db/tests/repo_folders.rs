@@ -9,9 +9,9 @@ use library::fresh;
 
 #[tokio::test]
 async fn add_inserts_a_folder_and_returns_the_row() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let added = folders::add(&library.pool, "/home/user/Music")
+    let added = folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert")
         .expect("a row");
@@ -27,13 +27,13 @@ async fn add_inserts_a_folder_and_returns_the_row() {
 /// folders on first launch.
 #[tokio::test]
 async fn get_all_returns_folders_in_insertion_order() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     for path in ["/music/zulu", "/music/alpha", "/music/mike"] {
-        folders::add(&library.pool, path).await.expect("insert");
+        folders::add(library.conn(), path).await.expect("insert");
     }
 
-    let all = folders::get_all(&library.pool).await.expect("read");
+    let all = folders::get_all(library.conn()).await.expect("read");
 
     assert_eq!(
         all.iter().map(|f| f.path.as_str()).collect::<Vec<_>>(),
@@ -43,10 +43,10 @@ async fn get_all_returns_folders_in_insertion_order() {
 
 #[tokio::test]
 async fn get_all_on_a_fresh_library_is_empty() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        folders::get_all(&library.pool)
+        folders::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -55,18 +55,18 @@ async fn get_all_on_a_fresh_library_is_empty() {
 
 #[tokio::test]
 async fn remove_deletes_a_folder_by_id() {
-    let library = fresh().await;
-    let added = folders::add(&library.pool, "/home/user/Music")
+    let mut library = fresh().await;
+    let added = folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert")
         .expect("a row");
 
-    folders::remove(&library.pool, &added.id)
+    folders::remove(library.conn(), &added.id)
         .await
         .expect("remove");
 
     assert!(
-        folders::get_all(&library.pool)
+        folders::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -75,17 +75,17 @@ async fn remove_deletes_a_folder_by_id() {
 
 #[tokio::test]
 async fn removing_an_unknown_folder_is_a_no_op() {
-    let library = fresh().await;
-    folders::add(&library.pool, "/home/user/Music")
+    let mut library = fresh().await;
+    folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert");
 
-    folders::remove(&library.pool, "not-a-folder")
+    folders::remove(library.conn(), "not-a-folder")
         .await
         .expect("remove");
 
     assert_eq!(
-        folders::get_all(&library.pool).await.expect("read").len(),
+        folders::get_all(library.conn()).await.expect("read").len(),
         1
     );
 }
@@ -95,29 +95,29 @@ async fn removing_an_unknown_folder_is_a_no_op() {
 /// visible outcome rather than a background race.
 #[tokio::test]
 async fn adding_the_same_path_twice_is_refused() {
-    let library = fresh().await;
-    folders::add(&library.pool, "/home/user/Music")
+    let mut library = fresh().await;
+    folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert");
 
-    let again = folders::add(&library.pool, "/home/user/Music").await;
+    let again = folders::add(library.conn(), "/home/user/Music").await;
 
     assert!(again.is_err(), "the UNIQUE constraint stands");
     assert_eq!(
-        folders::get_all(&library.pool).await.expect("read").len(),
+        folders::get_all(library.conn()).await.expect("read").len(),
         1
     );
 }
 
 #[tokio::test]
 async fn update_scanned_stamps_the_folder_and_returns_the_row() {
-    let library = fresh().await;
-    let added = folders::add(&library.pool, "/home/user/Music")
+    let mut library = fresh().await;
+    let added = folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert")
         .expect("a row");
 
-    let scanned = folders::update_scanned(&library.pool, &added.id)
+    let scanned = folders::update_scanned(library.conn(), &added.id)
         .await
         .expect("stamp")
         .expect("a row");
@@ -131,13 +131,13 @@ async fn update_scanned_stamps_the_folder_and_returns_the_row() {
 /// the file during the handover window.
 #[tokio::test]
 async fn update_scanned_writes_a_javascript_iso_8601_timestamp() {
-    let library = fresh().await;
-    let added = folders::add(&library.pool, "/home/user/Music")
+    let mut library = fresh().await;
+    let added = folders::add(library.conn(), "/home/user/Music")
         .await
         .expect("insert")
         .expect("a row");
 
-    let stamp = folders::update_scanned(&library.pool, &added.id)
+    let stamp = folders::update_scanned(library.conn(), &added.id)
         .await
         .expect("stamp")
         .expect("a row")
@@ -157,10 +157,10 @@ async fn update_scanned_writes_a_javascript_iso_8601_timestamp() {
 
 #[tokio::test]
 async fn update_scanned_on_an_unknown_id_returns_nothing() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        folders::update_scanned(&library.pool, "not-a-folder")
+        folders::update_scanned(library.conn(), "not-a-folder")
             .await
             .expect("stamp")
             .is_none()

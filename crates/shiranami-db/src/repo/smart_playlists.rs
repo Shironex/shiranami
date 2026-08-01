@@ -22,12 +22,12 @@
 use shiranami_core::models::{
     SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistMatchType, SmartPlaylistRule, Track,
 };
-use sqlx::{QueryBuilder, Row, Sqlite, SqliteConnection, SqlitePool, sqlite::SqliteRow};
+use sqlx::{QueryBuilder, Row, Sqlite, SqliteConnection, sqlite::SqliteRow};
 use uuid::Uuid;
 
 use crate::error::Result;
 use crate::repo::clock::SQLITE_NOW;
-use crate::repo::conn::{acquire, failed};
+use crate::repo::conn::failed;
 use crate::repo::smart_rules;
 use crate::repo::track_row::{self, LIBRARY_ORDER, TRACK_SELECT};
 
@@ -73,9 +73,7 @@ pub struct SmartPlaylistUpdateInput {
 }
 
 /// Every smart playlist, newest first.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<SmartPlaylist>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<SmartPlaylist>> {
     let mut builder = QueryBuilder::<Sqlite>::new(SMART_SELECT);
     builder.push(" ORDER BY created_at DESC");
 
@@ -89,20 +87,17 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<SmartPlaylist>> {
 }
 
 /// One smart playlist by id.
-pub async fn get(pool: &SqlitePool, id: &str) -> Result<Option<SmartPlaylist>> {
-    let mut conn = acquire(pool).await?;
-    let row = fetch(&mut conn, id).await?;
+pub async fn get(conn: &mut SqliteConnection, id: &str) -> Result<Option<SmartPlaylist>> {
+    let row = fetch(&mut *conn, id).await?;
 
     row.as_ref().map(smart_playlist).transpose()
 }
 
 /// Create a smart playlist.
 pub async fn create(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     input: &SmartPlaylistCreateInput,
 ) -> Result<Option<SmartPlaylist>> {
-    let mut conn = acquire(pool).await?;
-
     let mut builder = QueryBuilder::<Sqlite>::new(
         "INSERT INTO smart_playlists (id, name, description, match_type, rules) VALUES (",
     );
@@ -130,12 +125,10 @@ pub async fn create(
 /// playlists channel uses — v1 passed drizzle a raw ``sql`datetime('now')` ``
 /// here and a JavaScript date there, and both formats are on disk.
 pub async fn update(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     id: &str,
     patch: &SmartPlaylistUpdateInput,
 ) -> Result<Option<SmartPlaylist>> {
-    let mut conn = acquire(pool).await?;
-
     let mut builder = QueryBuilder::<Sqlite>::new("UPDATE smart_playlists SET ");
     let mut set = builder.separated(", ");
 
@@ -175,9 +168,7 @@ pub async fn update(
 }
 
 /// Delete a smart playlist. Nothing cascades — it owns no rows.
-pub async fn delete(pool: &SqlitePool, id: &str) -> Result<()> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn delete(conn: &mut SqliteConnection, id: &str) -> Result<()> {
     sqlx::query("DELETE FROM smart_playlists WHERE id = ?1")
         .bind(id)
         .execute(&mut *conn)
@@ -192,18 +183,16 @@ pub async fn delete(pool: &SqlitePool, id: &str) -> Result<()> {
 /// An unknown id is an empty list rather than an error: v1 returned `[]`, and a
 /// playlist deleted in another window should read as empty, not as a failure.
 ///
-/// Both statements run on the one connection this call acquired — the read of
-/// the definition and the evaluation that follows it.
-pub async fn get_tracks(pool: &SqlitePool, id: &str) -> Result<Vec<Track>> {
-    let mut conn = acquire(pool).await?;
-
-    let Some(row) = fetch(&mut conn, id).await? else {
+/// Both statements run on the caller's one connection — the read of the
+/// definition and the evaluation that follows it.
+pub async fn get_tracks(conn: &mut SqliteConnection, id: &str) -> Result<Vec<Track>> {
+    let Some(row) = fetch(&mut *conn, id).await? else {
         return Ok(Vec::new());
     };
     let saved = smart_playlist(&row)?;
 
     evaluate(
-        &mut conn,
+        &mut *conn,
         &SmartPlaylistDefinition {
             match_type: saved.match_type,
             rules: saved.rules,
@@ -214,12 +203,10 @@ pub async fn get_tracks(pool: &SqlitePool, id: &str) -> Result<Vec<Track>> {
 
 /// Evaluate an unsaved definition — the live rule-editor preview.
 pub async fn preview(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     definition: &SmartPlaylistDefinition,
 ) -> Result<Vec<Track>> {
-    let mut conn = acquire(pool).await?;
-
-    evaluate(&mut conn, definition).await
+    evaluate(&mut *conn, definition).await
 }
 
 /// Run a definition's filter over `tracks`.

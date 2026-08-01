@@ -9,12 +9,12 @@
 use shiranami_core::models::{
     Playlist, PlaylistCreateInput, PlaylistCreateWithTracksInput, PlaylistUpdateInput,
 };
-use sqlx::{Connection, QueryBuilder, Row, Sqlite, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Connection, QueryBuilder, Row, Sqlite, SqliteConnection, sqlite::SqliteRow};
 use uuid::Uuid;
 
 use crate::error::Result;
 use crate::repo::clock::ISO_8601_NOW;
-use crate::repo::conn::{acquire, failed};
+use crate::repo::conn::failed;
 use crate::repo::playlist_tracks;
 
 /// The `SELECT` list for every read that returns whole playlists.
@@ -30,9 +30,7 @@ const RETURNING_PLAYLIST: &str =
 /// No tie-break, unlike the library reads — v1 ordered on `created_at` alone
 /// here. Playlists are created one user action at a time, so the collision that
 /// makes [`crate::repo::track_row::LIBRARY_ORDER`] necessary does not arise.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Playlist>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<Playlist>> {
     let mut builder = QueryBuilder::<Sqlite>::new(PLAYLIST_SELECT);
     builder.push(" ORDER BY created_at DESC");
 
@@ -46,9 +44,7 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Playlist>> {
 }
 
 /// One playlist by id.
-pub async fn get(pool: &SqlitePool, id: &str) -> Result<Option<Playlist>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get(conn: &mut SqliteConnection, id: &str) -> Result<Option<Playlist>> {
     let mut builder = QueryBuilder::<Sqlite>::new(PLAYLIST_SELECT);
     builder.push(" WHERE id = ");
     builder.push_bind(id.to_owned());
@@ -63,9 +59,10 @@ pub async fn get(pool: &SqlitePool, id: &str) -> Result<Option<Playlist>> {
 }
 
 /// Create an empty playlist.
-pub async fn create(pool: &SqlitePool, input: &PlaylistCreateInput) -> Result<Option<Playlist>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn create(
+    conn: &mut SqliteConnection,
+    input: &PlaylistCreateInput,
+) -> Result<Option<Playlist>> {
     let mut builder = QueryBuilder::<Sqlite>::new(
         "INSERT INTO playlists (id, name, description, cover_art) VALUES (",
     );
@@ -96,10 +93,9 @@ pub async fn create(pool: &SqlitePool, input: &PlaylistCreateInput) -> Result<Op
 /// `cover_art` is left `NULL`: the create-with-tracks payload has no field for
 /// it.
 pub async fn create_with_tracks(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     input: &PlaylistCreateWithTracksInput,
 ) -> Result<Option<Playlist>> {
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -135,12 +131,10 @@ pub async fn create_with_tracks(
 /// clause is never empty and an all-absent patch is still a real statement that
 /// only bumps the timestamp. That is v1's behaviour, spread operator included.
 pub async fn update(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     id: &str,
     patch: &PlaylistUpdateInput,
 ) -> Result<Option<Playlist>> {
-    let mut conn = acquire(pool).await?;
-
     let mut builder = QueryBuilder::<Sqlite>::new("UPDATE playlists SET ");
     let mut set = builder.separated(", ");
 
@@ -172,9 +166,7 @@ pub async fn update(
 }
 
 /// Delete a playlist. Membership cascades; the tracks themselves are untouched.
-pub async fn delete(pool: &SqlitePool, id: &str) -> Result<()> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn delete(conn: &mut SqliteConnection, id: &str) -> Result<()> {
     sqlx::query("DELETE FROM playlists WHERE id = ?1")
         .bind(id)
         .execute(&mut *conn)

@@ -19,12 +19,12 @@ use library::{definition, fresh, preview, rule, set_created_at, set_play_count, 
 
 #[tokio::test]
 async fn get_tracks_evaluates_a_saved_playlist_and_tolerates_an_unknown_id() {
-    let library = fresh().await;
-    tagged(&library, "Lofi Track", "Lofi", None).await;
-    tagged(&library, "Rock Track", "Rock", None).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "Lofi Track", "Lofi", None).await;
+    tagged(library.conn(), "Rock Track", "Rock", None).await;
 
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Lofi only".to_owned(),
             description: None,
@@ -36,14 +36,14 @@ async fn get_tracks_evaluates_a_saved_playlist_and_tolerates_an_unknown_id() {
     .expect("create")
     .expect("a row");
 
-    let matched = smart_playlists::get_tracks(&library.pool, &created.id)
+    let matched = smart_playlists::get_tracks(library.conn(), &created.id)
         .await
         .expect("evaluate");
     assert_eq!(matched.len(), 1);
     assert_eq!(matched[0].title, "Lofi Track");
 
     assert!(
-        smart_playlists::get_tracks(&library.pool, "not-a-playlist")
+        smart_playlists::get_tracks(library.conn(), "not-a-playlist")
             .await
             .expect("an unknown id is empty, not an error")
             .is_empty()
@@ -52,12 +52,12 @@ async fn get_tracks_evaluates_a_saved_playlist_and_tolerates_an_unknown_id() {
 
 #[tokio::test]
 async fn preview_filters_by_genre_is() {
-    let library = fresh().await;
-    tagged(&library, "Lofi Track", "Lofi", None).await;
-    tagged(&library, "Rock Track", "Rock", None).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "Lofi Track", "Lofi", None).await;
+    tagged(library.conn(), "Rock Track", "Rock", None).await;
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(Match::All, vec![rule(Field::Genre, Op::Is, "Lofi")]),
     )
     .await;
@@ -67,15 +67,15 @@ async fn preview_filters_by_genre_is() {
 
 #[tokio::test]
 async fn preview_filters_by_year_between_inclusively() {
-    let library = fresh().await;
-    tagged(&library, "Nineteen", "Lofi", Some(1999)).await;
-    tagged(&library, "Two Thousand", "Lofi", Some(2000)).await;
-    tagged(&library, "Middle", "Lofi", Some(2005)).await;
-    tagged(&library, "Eight", "Lofi", Some(2008)).await;
-    tagged(&library, "Ten", "Lofi", Some(2010)).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "Nineteen", "Lofi", Some(1999)).await;
+    tagged(library.conn(), "Two Thousand", "Lofi", Some(2000)).await;
+    tagged(library.conn(), "Middle", "Lofi", Some(2005)).await;
+    tagged(library.conn(), "Eight", "Lofi", Some(2008)).await;
+    tagged(library.conn(), "Ten", "Lofi", Some(2010)).await;
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(
             Match::All,
             vec![SmartPlaylistRule {
@@ -95,14 +95,14 @@ async fn preview_filters_by_year_between_inclusively() {
 
 #[tokio::test]
 async fn preview_filters_by_play_count_greater_than() {
-    let library = fresh().await;
-    let high = tagged(&library, "Popular", "Lofi", None).await;
-    let low = tagged(&library, "Rare", "Lofi", None).await;
-    set_play_count(&library, &high, 6).await;
-    set_play_count(&library, &low, 1).await;
+    let mut library = fresh().await;
+    let high = tagged(library.conn(), "Popular", "Lofi", None).await;
+    let low = tagged(library.conn(), "Rare", "Lofi", None).await;
+    set_play_count(library.conn(), &high, 6).await;
+    set_play_count(library.conn(), &low, 1).await;
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(
             Match::All,
             vec![rule(Field::PlayCount, Op::GreaterThan, "5")],
@@ -115,13 +115,13 @@ async fn preview_filters_by_play_count_greater_than() {
 
 #[tokio::test]
 async fn preview_combines_rules_with_all_and_with_any() {
-    let library = fresh().await;
-    tagged(&library, "Recent Lofi", "Lofi", Some(2020)).await;
-    tagged(&library, "Old Lofi", "Lofi", Some(2000)).await;
-    tagged(&library, "Recent Jazz", "Jazz", Some(2020)).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "Recent Lofi", "Lofi", Some(2020)).await;
+    tagged(library.conn(), "Old Lofi", "Lofi", Some(2000)).await;
+    tagged(library.conn(), "Recent Jazz", "Jazz", Some(2020)).await;
 
     let both = preview(
-        &library,
+        library.conn(),
         &definition(
             Match::All,
             vec![
@@ -134,7 +134,7 @@ async fn preview_combines_rules_with_all_and_with_any() {
     assert_eq!(both, vec!["Recent Lofi"]);
 
     let either = preview(
-        &library,
+        library.conn(),
         &definition(
             Match::Any,
             vec![
@@ -150,12 +150,12 @@ async fn preview_combines_rules_with_all_and_with_any() {
 /// Unescaped, the `%` would match any sequence and return both rows.
 #[tokio::test]
 async fn preview_treats_like_wildcards_in_a_contains_value_as_literal() {
-    let library = fresh().await;
-    tagged(&library, "100% Lofi", "Lofi", None).await;
-    tagged(&library, "Pure Jazz", "Jazz", None).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "100% Lofi", "Lofi", None).await;
+    tagged(library.conn(), "Pure Jazz", "Jazz", None).await;
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(Match::All, vec![rule(Field::Title, Op::Contains, "100%")]),
     )
     .await;
@@ -165,33 +165,33 @@ async fn preview_treats_like_wildcards_in_a_contains_value_as_literal() {
 
 #[tokio::test]
 async fn preview_with_an_empty_rule_set_matches_the_whole_library() {
-    let library = fresh().await;
-    tagged(&library, "One", "Lofi", None).await;
-    tagged(&library, "Two", "Rock", None).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "One", "Lofi", None).await;
+    tagged(library.conn(), "Two", "Rock", None).await;
 
-    let matched = preview(&library, &definition(Match::All, Vec::new())).await;
+    let matched = preview(library.conn(), &definition(Match::All, Vec::new())).await;
 
     assert_eq!(matched.len(), 2);
 }
 
 #[tokio::test]
 async fn preview_filters_by_favourite() {
-    let library = fresh().await;
-    let favourite = tagged(&library, "Loved", "Lofi", None).await;
-    tagged(&library, "Ignored", "Lofi", None).await;
-    tracks::toggle_favorite(&library.pool, &favourite)
+    let mut library = fresh().await;
+    let favourite = tagged(library.conn(), "Loved", "Lofi", None).await;
+    tagged(library.conn(), "Ignored", "Lofi", None).await;
+    tracks::toggle_favorite(library.conn(), &favourite)
         .await
         .expect("toggle");
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(Match::All, vec![rule(Field::IsFavorite, Op::Is, "true")]),
     )
     .await;
     assert_eq!(matched, vec!["Loved"]);
 
     let inverted = preview(
-        &library,
+        library.conn(),
         &definition(Match::All, vec![rule(Field::IsFavorite, Op::IsNot, "true")]),
     )
     .await;
@@ -200,13 +200,13 @@ async fn preview_filters_by_favourite() {
 
 #[tokio::test]
 async fn preview_filters_by_date_added_within_the_last_days() {
-    let library = fresh().await;
-    let recent = tagged(&library, "Recent", "Lofi", None).await;
-    let ancient = tagged(&library, "Ancient", "Lofi", None).await;
-    set_created_at(&library, &ancient, "2020-01-01 00:00:00").await;
+    let mut library = fresh().await;
+    let recent = tagged(library.conn(), "Recent", "Lofi", None).await;
+    let ancient = tagged(library.conn(), "Ancient", "Lofi", None).await;
+    set_created_at(library.conn(), &ancient, "2020-01-01 00:00:00").await;
 
     let matched = preview(
-        &library,
+        library.conn(),
         &definition(
             Match::All,
             vec![rule(Field::DateAdded, Op::InLastDays, "7")],
@@ -222,17 +222,17 @@ async fn preview_filters_by_date_added_within_the_last_days() {
 /// tie-break as `db:tracks:get-all`.
 #[tokio::test]
 async fn evaluation_orders_newest_first_with_the_library_tie_break() {
-    let library = fresh().await;
-    let first = tagged(&library, "First", "Lofi", None).await;
-    let second = tagged(&library, "Second", "Lofi", None).await;
-    let older = tagged(&library, "Older", "Lofi", None).await;
+    let mut library = fresh().await;
+    let first = tagged(library.conn(), "First", "Lofi", None).await;
+    let second = tagged(library.conn(), "Second", "Lofi", None).await;
+    let older = tagged(library.conn(), "Older", "Lofi", None).await;
 
     for id in [&first, &second] {
-        set_created_at(&library, id, "2026-06-01 12:00:00").await;
+        set_created_at(library.conn(), id, "2026-06-01 12:00:00").await;
     }
-    set_created_at(&library, &older, "2026-01-01 12:00:00").await;
+    set_created_at(library.conn(), &older, "2026-01-01 12:00:00").await;
 
-    let matched = preview(&library, &definition(Match::All, Vec::new())).await;
+    let matched = preview(library.conn(), &definition(Match::All, Vec::new())).await;
 
     assert_eq!(matched, vec!["First", "Second", "Older"]);
 }

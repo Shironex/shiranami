@@ -18,10 +18,10 @@ use library::{add_track, fresh, retitle};
 
 #[tokio::test]
 async fn update_changes_fields_and_returns_the_row() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/old.mp3", "Old Title").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/old.mp3", "Old Title").await;
 
-    let updated = tracks::update(&library.pool, &id, &retitle("New Title"))
+    let updated = tracks::update(library.conn(), &id, &retitle("New Title"))
         .await
         .expect("update")
         .expect("a row");
@@ -33,10 +33,10 @@ async fn update_changes_fields_and_returns_the_row() {
 /// The distinction the whole [`shiranami_core::models::Patch`] type exists for.
 #[tokio::test]
 async fn update_leaves_an_absent_field_alone_and_clears_an_explicit_null() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/patch.mp3", "Patch Me").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/patch.mp3", "Patch Me").await;
 
-    let after_absent = tracks::update(&library.pool, &id, &retitle("Renamed"))
+    let after_absent = tracks::update(library.conn(), &id, &retitle("Renamed"))
         .await
         .expect("update")
         .expect("a row");
@@ -47,7 +47,7 @@ async fn update_leaves_an_absent_field_alone_and_clears_an_explicit_null() {
     );
 
     let after_null = tracks::update(
-        &library.pool,
+        library.conn(),
         &id,
         &TrackUpdateInput {
             artist: Some(None),
@@ -63,10 +63,10 @@ async fn update_leaves_an_absent_field_alone_and_clears_an_explicit_null() {
 
 #[tokio::test]
 async fn update_with_a_patch_that_says_nothing_returns_the_unchanged_row() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/quiet.mp3", "Quiet").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/quiet.mp3", "Quiet").await;
 
-    let unchanged = tracks::update(&library.pool, &id, &TrackUpdateInput::default())
+    let unchanged = tracks::update(library.conn(), &id, &TrackUpdateInput::default())
         .await
         .expect("an empty patch is a no-op, not an error")
         .expect("a row");
@@ -76,10 +76,10 @@ async fn update_with_a_patch_that_says_nothing_returns_the_unchanged_row() {
 
 #[tokio::test]
 async fn update_of_an_unknown_id_returns_nothing() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        tracks::update(&library.pool, "not-a-track", &retitle("Nope"))
+        tracks::update(library.conn(), "not-a-track", &retitle("Nope"))
             .await
             .expect("update")
             .is_none()
@@ -90,10 +90,10 @@ async fn update_of_an_unknown_id_returns_nothing() {
 
 #[tokio::test]
 async fn update_many_applies_distinct_patches_and_groups_identical_ones() {
-    let library = fresh().await;
-    let first = add_track(&library, "/music/one.mp3", "One").await;
-    let second = add_track(&library, "/music/two.mp3", "Two").await;
-    let third = add_track(&library, "/music/three.mp3", "Three").await;
+    let mut library = fresh().await;
+    let first = add_track(library.conn(), "/music/one.mp3", "One").await;
+    let second = add_track(library.conn(), "/music/two.mp3", "Two").await;
+    let third = add_track(library.conn(), "/music/three.mp3", "Three").await;
 
     let shared = TrackUpdateInput {
         album: Some(Some("New Album".to_owned())),
@@ -106,7 +106,7 @@ async fn update_many_applies_distinct_patches_and_groups_identical_ones() {
     };
 
     tracks::update_many(
-        &library.pool,
+        library.conn(),
         &[
             (first.clone(), shared.clone()),
             (second.clone(), shared),
@@ -116,7 +116,7 @@ async fn update_many_applies_distinct_patches_and_groups_identical_ones() {
     .await
     .expect("update");
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
     let find = |id: &str| all.iter().find(|t| t.id == id).expect("the track").clone();
 
     assert_eq!(find(&first).album.as_deref(), Some("New Album"));
@@ -133,16 +133,16 @@ async fn update_many_applies_distinct_patches_and_groups_identical_ones() {
 
 #[tokio::test]
 async fn update_many_skips_patches_that_say_nothing() {
-    let library = fresh().await;
-    let keep = add_track(&library, "/music/keep.mp3", "Keep Me").await;
-    let change = add_track(&library, "/music/change.mp3", "Change Me").await;
+    let mut library = fresh().await;
+    let keep = add_track(library.conn(), "/music/keep.mp3", "Keep Me").await;
+    let change = add_track(library.conn(), "/music/change.mp3", "Change Me").await;
 
-    tracks::update_many(&library.pool, &[])
+    tracks::update_many(library.conn(), &[])
         .await
         .expect("an empty list is a no-op");
 
     tracks::update_many(
-        &library.pool,
+        library.conn(),
         &[
             (keep.clone(), TrackUpdateInput::default()),
             (
@@ -157,7 +157,7 @@ async fn update_many_skips_patches_that_say_nothing() {
     .await
     .expect("an empty patch must not abort the transaction");
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
     let find = |id: &str| all.iter().find(|t| t.id == id).expect("the track").clone();
 
     assert_eq!(find(&keep).title, "Keep Me");
@@ -168,12 +168,12 @@ async fn update_many_skips_patches_that_say_nothing() {
 /// "leave the artist alone" and clear both.
 #[tokio::test]
 async fn update_many_does_not_merge_a_cleared_field_with_an_absent_one() {
-    let library = fresh().await;
-    let cleared = add_track(&library, "/music/cleared.mp3", "Cleared").await;
-    let kept = add_track(&library, "/music/kept.mp3", "Kept").await;
+    let mut library = fresh().await;
+    let cleared = add_track(library.conn(), "/music/cleared.mp3", "Cleared").await;
+    let kept = add_track(library.conn(), "/music/kept.mp3", "Kept").await;
 
     tracks::update_many(
-        &library.pool,
+        library.conn(),
         &[
             (
                 cleared.clone(),
@@ -194,7 +194,7 @@ async fn update_many_does_not_merge_a_cleared_field_with_an_absent_one() {
     .await
     .expect("update");
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
     let find = |id: &str| all.iter().find(|t| t.id == id).expect("the track").clone();
 
     assert_eq!(find(&cleared).artist, None);

@@ -15,11 +15,11 @@
 use std::collections::HashSet;
 
 use shiranami_core::models::Track;
-use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
+use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection};
 use uuid::Uuid;
 
 use crate::error::Result;
-use crate::repo::conn::{acquire, failed};
+use crate::repo::conn::failed;
 use crate::repo::ids;
 use crate::repo::track_row::{self, TRACK_SELECT};
 
@@ -39,9 +39,7 @@ const REORDER_CHUNK: usize = 100;
 ///
 /// No tie-break on `position`: two rows can only share one after a partial
 /// reorder, and v1 left that order to the planner too.
-pub async fn get_tracks(pool: &SqlitePool, playlist_id: &str) -> Result<Vec<Track>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_tracks(conn: &mut SqliteConnection, playlist_id: &str) -> Result<Vec<Track>> {
     let mut builder = QueryBuilder::<Sqlite>::new(TRACK_SELECT);
     builder.push(" INNER JOIN playlist_tracks ON tracks.id = playlist_tracks.track_id");
     builder.push(" WHERE playlist_tracks.playlist_id = ");
@@ -63,8 +61,11 @@ pub async fn get_tracks(pool: &SqlitePool, playlist_id: &str) -> Result<Vec<Trac
 /// already there, and nothing is written. That is the contract the preload API
 /// documents, and the reason the caller gets an id rather than a row — v1's two
 /// branches returned different shapes and every caller only ever read `id`.
-pub async fn add_track(pool: &SqlitePool, playlist_id: &str, track_id: &str) -> Result<String> {
-    let mut conn = acquire(pool).await?;
+pub async fn add_track(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    track_id: &str,
+) -> Result<String> {
     let mut tx = conn
         .begin()
         .await
@@ -110,12 +111,15 @@ pub async fn add_track(pool: &SqlitePool, playlist_id: &str, track_id: &str) -> 
 /// incoming list itself, then assigns positions from the current maximum in
 /// input order — computing the base once rather than once per track, which is
 /// what stops N serial adds from interleaving.
-pub async fn add_tracks(pool: &SqlitePool, playlist_id: &str, track_ids: &[String]) -> Result<()> {
+pub async fn add_tracks(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    track_ids: &[String],
+) -> Result<()> {
     if track_ids.is_empty() {
         return Ok(());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -147,9 +151,11 @@ pub async fn add_tracks(pool: &SqlitePool, playlist_id: &str, track_ids: &[Strin
 }
 
 /// Remove one track from a playlist.
-pub async fn remove_track(pool: &SqlitePool, playlist_id: &str, track_id: &str) -> Result<()> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn remove_track(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    track_id: &str,
+) -> Result<()> {
     sqlx::query("DELETE FROM playlist_tracks WHERE playlist_id = ?1 AND track_id = ?2")
         .bind(playlist_id)
         .bind(track_id)
@@ -162,7 +168,7 @@ pub async fn remove_track(pool: &SqlitePool, playlist_id: &str, track_id: &str) 
 
 /// Remove many tracks from a playlist, in one transaction.
 pub async fn remove_tracks(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     playlist_id: &str,
     track_ids: &[String],
 ) -> Result<()> {
@@ -170,7 +176,6 @@ pub async fn remove_tracks(
         return Ok(());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -208,7 +213,7 @@ pub async fn remove_tracks(
 /// Not chunked, and cannot be: the count is over the whole set, so splitting it
 /// would change the answer rather than just the statement count.
 pub async fn get_playlists_for_tracks(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     track_ids: &[String],
 ) -> Result<Vec<String>> {
     let unique = ids::unique(track_ids.iter().cloned());
@@ -216,8 +221,6 @@ pub async fn get_playlists_for_tracks(
     if unique.is_empty() {
         return Ok(Vec::new());
     }
-
-    let mut conn = acquire(pool).await?;
 
     let mut builder =
         QueryBuilder::<Sqlite>::new("SELECT playlist_id FROM playlist_tracks WHERE track_id IN (");
@@ -240,12 +243,15 @@ pub async fn get_playlists_for_tracks(
 /// Only `position` changes — membership row ids are preserved, so nothing that
 /// holds one goes stale. Ids not currently in the playlist are simply not
 /// matched by the `WHERE`.
-pub async fn reorder(pool: &SqlitePool, playlist_id: &str, track_ids: &[String]) -> Result<()> {
+pub async fn reorder(
+    conn: &mut SqliteConnection,
+    playlist_id: &str,
+    track_ids: &[String],
+) -> Result<()> {
     if track_ids.is_empty() {
         return Ok(());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -300,8 +306,8 @@ async fn next_position(conn: &mut SqliteConnection, playlist_id: &str) -> Result
 
 /// Insert membership rows for `track_ids`, positioned from `base` in order.
 ///
-/// Shared by the three channels that add membership. Chunked, and takes a
-/// connection rather than the pool because every caller is mid-transaction.
+/// Shared by the three channels that add membership. Chunked, and always
+/// handed the transaction its caller opened rather than a bare connection.
 pub(crate) async fn insert_membership(
     conn: &mut SqliteConnection,
     playlist_id: &str,

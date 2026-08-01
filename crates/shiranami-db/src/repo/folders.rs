@@ -19,17 +19,15 @@
 //! poke it.
 
 use shiranami_core::models::WatchedFolder;
-use sqlx::{QueryBuilder, Row, Sqlite, SqlitePool, sqlite::SqliteRow};
+use sqlx::{QueryBuilder, Row, Sqlite, SqliteConnection, sqlite::SqliteRow};
 use uuid::Uuid;
 
 use crate::error::Result;
 use crate::repo::clock::ISO_8601_NOW;
-use crate::repo::conn::{acquire, failed};
+use crate::repo::conn::failed;
 
 /// Every watched folder, in insertion order.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<WatchedFolder>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<WatchedFolder>> {
     let rows = sqlx::query("SELECT id, path, last_scanned, created_at FROM folders")
         .fetch_all(&mut *conn)
         .await
@@ -43,9 +41,7 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<WatchedFolder>> {
 /// `path` is `UNIQUE`, and unlike `db:tracks:add` v1 did *not* soften the
 /// conflict here — adding a folder twice is a user action with a visible
 /// outcome, not a background race, so the constraint error stands.
-pub async fn add(pool: &SqlitePool, path: &str) -> Result<Option<WatchedFolder>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn add(conn: &mut SqliteConnection, path: &str) -> Result<Option<WatchedFolder>> {
     let row = sqlx::query(
         "INSERT INTO folders (id, path) VALUES (?1, ?2) \
          RETURNING id, path, last_scanned, created_at",
@@ -60,9 +56,7 @@ pub async fn add(pool: &SqlitePool, path: &str) -> Result<Option<WatchedFolder>>
 }
 
 /// Stop watching a folder. Tracks already imported from it are left alone.
-pub async fn remove(pool: &SqlitePool, id: &str) -> Result<()> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn remove(conn: &mut SqliteConnection, id: &str) -> Result<()> {
     sqlx::query("DELETE FROM folders WHERE id = ?1")
         .bind(id)
         .execute(&mut *conn)
@@ -73,9 +67,10 @@ pub async fn remove(pool: &SqlitePool, id: &str) -> Result<()> {
 }
 
 /// Stamp a folder as scanned just now, returning the row.
-pub async fn update_scanned(pool: &SqlitePool, id: &str) -> Result<Option<WatchedFolder>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn update_scanned(
+    conn: &mut SqliteConnection,
+    id: &str,
+) -> Result<Option<WatchedFolder>> {
     // Assembled rather than formatted into a literal so that no code path in
     // this module can put a `String` where SQL text goes: the only non-literal
     // here is the bound id. `ISO_8601_NOW` is a constant in this file.

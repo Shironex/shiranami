@@ -19,10 +19,10 @@ use library::{fresh, rule, tagged};
 
 #[tokio::test]
 async fn create_round_trips_the_rules_through_the_rules_column() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Lofi only".to_owned(),
             description: Some("just lofi".to_owned()),
@@ -44,7 +44,7 @@ async fn create_round_trips_the_rules_through_the_rules_column() {
     assert_eq!(created.rules.len(), 2);
     assert_eq!(created.rules[0], rule(Field::Genre, Op::Is, "Lofi"));
 
-    let read_back = smart_playlists::get(&library.pool, &created.id)
+    let read_back = smart_playlists::get(library.conn(), &created.id)
         .await
         .expect("read")
         .expect("a row");
@@ -53,10 +53,10 @@ async fn create_round_trips_the_rules_through_the_rules_column() {
 
 #[tokio::test]
 async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     let older = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Older".to_owned(),
             description: None,
@@ -69,7 +69,7 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
     .expect("a row");
 
     let newer = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Newer".to_owned(),
             description: None,
@@ -84,11 +84,13 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
     sqlx::query("UPDATE smart_playlists SET created_at = ?1 WHERE id = ?2")
         .bind("2026-01-01 00:00:00")
         .bind(&older.id)
-        .execute(&library.pool)
+        .execute(library.conn())
         .await
         .expect("backdate");
 
-    let all = smart_playlists::get_all(&library.pool).await.expect("read");
+    let all = smart_playlists::get_all(library.conn())
+        .await
+        .expect("read");
     assert_eq!(
         all.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
         vec!["Newer", "Older"]
@@ -96,7 +98,7 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
     assert_eq!(all[0].id, newer.id);
 
     assert!(
-        smart_playlists::get(&library.pool, "not-a-playlist")
+        smart_playlists::get(library.conn(), "not-a-playlist")
             .await
             .expect("read")
             .is_none()
@@ -105,9 +107,9 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
 
 #[tokio::test]
 async fn update_replaces_only_the_fields_it_names() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Before".to_owned(),
             description: Some("kept".to_owned()),
@@ -120,7 +122,7 @@ async fn update_replaces_only_the_fields_it_names() {
     .expect("a row");
 
     let updated = smart_playlists::update(
-        &library.pool,
+        library.conn(),
         &created.id,
         &SmartPlaylistUpdateInput {
             name: Some("After".to_owned()),
@@ -140,9 +142,9 @@ async fn update_replaces_only_the_fields_it_names() {
 
 #[tokio::test]
 async fn update_replaces_the_whole_rule_set() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Rules".to_owned(),
             description: None,
@@ -158,7 +160,7 @@ async fn update_replaces_the_whole_rule_set() {
     .expect("a row");
 
     let updated = smart_playlists::update(
-        &library.pool,
+        library.conn(),
         &created.id,
         &SmartPlaylistUpdateInput {
             rules: Some(vec![rule(Field::IsFavorite, Op::Is, "true")]),
@@ -177,9 +179,9 @@ async fn update_replaces_the_whole_rule_set() {
 /// one with a space and no milliseconds.
 #[tokio::test]
 async fn update_stamps_updated_at_in_the_sqlite_format() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Stamped".to_owned(),
             description: None,
@@ -192,7 +194,7 @@ async fn update_stamps_updated_at_in_the_sqlite_format() {
     .expect("a row");
 
     let updated = smart_playlists::update(
-        &library.pool,
+        library.conn(),
         &created.id,
         &SmartPlaylistUpdateInput::default(),
     )
@@ -207,10 +209,10 @@ async fn update_stamps_updated_at_in_the_sqlite_format() {
 
 #[tokio::test]
 async fn update_of_an_unknown_id_returns_nothing() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        smart_playlists::update(&library.pool, "nope", &SmartPlaylistUpdateInput::default())
+        smart_playlists::update(library.conn(), "nope", &SmartPlaylistUpdateInput::default())
             .await
             .expect("update")
             .is_none()
@@ -219,9 +221,9 @@ async fn update_of_an_unknown_id_returns_nothing() {
 
 #[tokio::test]
 async fn delete_removes_the_smart_playlist() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Doomed".to_owned(),
             description: None,
@@ -233,12 +235,12 @@ async fn delete_removes_the_smart_playlist() {
     .expect("create")
     .expect("a row");
 
-    smart_playlists::delete(&library.pool, &created.id)
+    smart_playlists::delete(library.conn(), &created.id)
         .await
         .expect("delete");
 
     assert!(
-        smart_playlists::get_all(&library.pool)
+        smart_playlists::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -253,11 +255,11 @@ async fn delete_removes_the_smart_playlist() {
 /// the sidebar looks like data loss.
 #[tokio::test]
 async fn a_malformed_rules_document_degrades_to_no_rules() {
-    let library = fresh().await;
-    tagged(&library, "Anything", "Lofi", None).await;
+    let mut library = fresh().await;
+    tagged(library.conn(), "Anything", "Lofi", None).await;
 
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Corrupted".to_owned(),
             description: None,
@@ -273,17 +275,17 @@ async fn a_malformed_rules_document_degrades_to_no_rules() {
         sqlx::query("UPDATE smart_playlists SET rules = ?1 WHERE id = ?2")
             .bind(broken)
             .bind(&created.id)
-            .execute(&library.pool)
+            .execute(library.conn())
             .await
             .expect("corrupt the column");
 
-        let read_back = smart_playlists::get(&library.pool, &created.id)
+        let read_back = smart_playlists::get(library.conn(), &created.id)
             .await
             .expect("the read must not fail")
             .expect("the playlist must still exist");
         assert!(read_back.rules.is_empty(), "the filter is what is lost");
 
-        let matched = smart_playlists::get_tracks(&library.pool, &created.id)
+        let matched = smart_playlists::get_tracks(library.conn(), &created.id)
             .await
             .expect("evaluate");
         assert_eq!(matched.len(), 1, "and it then matches the whole library");
@@ -292,9 +294,9 @@ async fn a_malformed_rules_document_degrades_to_no_rules() {
 
 #[tokio::test]
 async fn an_unrecognised_match_type_degrades_to_all() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let created = smart_playlists::create(
-        &library.pool,
+        library.conn(),
         &SmartPlaylistCreateInput {
             name: "Odd".to_owned(),
             description: None,
@@ -308,11 +310,11 @@ async fn an_unrecognised_match_type_degrades_to_all() {
 
     sqlx::query("UPDATE smart_playlists SET match_type = 'sideways' WHERE id = ?1")
         .bind(&created.id)
-        .execute(&library.pool)
+        .execute(library.conn())
         .await
         .expect("corrupt the column");
 
-    let read_back = smart_playlists::get(&library.pool, &created.id)
+    let read_back = smart_playlists::get(library.conn(), &created.id)
         .await
         .expect("read")
         .expect("a row");

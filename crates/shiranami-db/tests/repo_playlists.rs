@@ -17,10 +17,10 @@ use library::{
 
 #[tokio::test]
 async fn create_inserts_a_playlist_and_returns_it() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     let created = playlists::create(
-        &library.pool,
+        library.conn(),
         &PlaylistCreateInput {
             name: "My Playlist".to_owned(),
             description: Some("A test playlist".to_owned()),
@@ -39,17 +39,17 @@ async fn create_inserts_a_playlist_and_returns_it() {
 
 #[tokio::test]
 async fn get_returns_one_playlist_or_nothing() {
-    let library = fresh().await;
-    let id = playlist(&library, "Findable").await;
+    let mut library = fresh().await;
+    let id = playlist(library.conn(), "Findable").await;
 
-    let found = playlists::get(&library.pool, &id)
+    let found = playlists::get(library.conn(), &id)
         .await
         .expect("read")
         .expect("a row");
     assert_eq!(found.name, "Findable");
 
     assert!(
-        playlists::get(&library.pool, "not-a-playlist")
+        playlists::get(library.conn(), "not-a-playlist")
             .await
             .expect("read")
             .is_none()
@@ -60,18 +60,18 @@ async fn get_returns_one_playlist_or_nothing() {
 /// user action at a time, so v1 never needed one here.
 #[tokio::test]
 async fn get_all_returns_the_newest_first() {
-    let library = fresh().await;
-    let older = playlist(&library, "Older").await;
-    let newer = playlist(&library, "Newer").await;
+    let mut library = fresh().await;
+    let older = playlist(library.conn(), "Older").await;
+    let newer = playlist(library.conn(), "Newer").await;
 
     sqlx::query("UPDATE playlists SET created_at = ?1 WHERE id = ?2")
         .bind("2026-01-01 00:00:00")
         .bind(&older)
-        .execute(&library.pool)
+        .execute(library.conn())
         .await
         .expect("backdate");
 
-    let all = playlists::get_all(&library.pool).await.expect("read");
+    let all = playlists::get_all(library.conn()).await.expect("read");
 
     assert_eq!(
         all.iter().map(|p| p.id.as_str()).collect::<Vec<_>>(),
@@ -81,9 +81,9 @@ async fn get_all_returns_the_newest_first() {
 
 #[tokio::test]
 async fn update_patches_named_fields_and_leaves_the_rest() {
-    let library = fresh().await;
+    let mut library = fresh().await;
     let id = playlists::create(
-        &library.pool,
+        library.conn(),
         &PlaylistCreateInput {
             name: "Before".to_owned(),
             description: Some("Kept".to_owned()),
@@ -96,7 +96,7 @@ async fn update_patches_named_fields_and_leaves_the_rest() {
     .id;
 
     let updated = playlists::update(
-        &library.pool,
+        library.conn(),
         &id,
         &PlaylistUpdateInput {
             name: Some("After".to_owned()),
@@ -116,10 +116,10 @@ async fn update_patches_named_fields_and_leaves_the_rest() {
 /// JavaScript spelling, not the column default's.
 #[tokio::test]
 async fn update_always_bumps_updated_at_in_the_javascript_format() {
-    let library = fresh().await;
-    let id = playlist(&library, "Timestamped").await;
+    let mut library = fresh().await;
+    let id = playlist(library.conn(), "Timestamped").await;
 
-    let updated = playlists::update(&library.pool, &id, &PlaylistUpdateInput::default())
+    let updated = playlists::update(library.conn(), &id, &PlaylistUpdateInput::default())
         .await
         .expect("an empty patch still stamps")
         .expect("a row");
@@ -132,10 +132,10 @@ async fn update_always_bumps_updated_at_in_the_javascript_format() {
 
 #[tokio::test]
 async fn update_of_an_unknown_id_returns_nothing() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        playlists::update(&library.pool, "nope", &PlaylistUpdateInput::default())
+        playlists::update(library.conn(), "nope", &PlaylistUpdateInput::default())
             .await
             .expect("update")
             .is_none()
@@ -144,28 +144,30 @@ async fn update_of_an_unknown_id_returns_nothing() {
 
 #[tokio::test]
 async fn delete_removes_the_playlist_and_cascades_its_membership() {
-    let library = fresh().await;
-    let track = add_track(&library, "/music/kept.mp3", "Kept").await;
-    let id = playlist(&library, "To Delete").await;
-    playlist_tracks::add_track(&library.pool, &id, &track)
+    let mut library = fresh().await;
+    let track = add_track(library.conn(), "/music/kept.mp3", "Kept").await;
+    let id = playlist(library.conn(), "To Delete").await;
+    playlist_tracks::add_track(library.conn(), &id, &track)
         .await
         .expect("add");
 
-    playlists::delete(&library.pool, &id).await.expect("delete");
+    playlists::delete(library.conn(), &id)
+        .await
+        .expect("delete");
 
     assert!(
-        playlists::get_all(&library.pool)
+        playlists::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
     );
     let orphans: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM playlist_tracks")
-        .fetch_one(&library.pool)
+        .fetch_one(library.conn())
         .await
         .expect("count");
     assert_eq!(orphans, 0, "membership cascades");
     assert!(
-        shiranami_db::repo::tracks::get_id_by_path(&library.pool, "/music/kept.mp3")
+        shiranami_db::repo::tracks::get_id_by_path(library.conn(), "/music/kept.mp3")
             .await
             .expect("read")
             .is_some(),
@@ -175,13 +177,13 @@ async fn delete_removes_the_playlist_and_cascades_its_membership() {
 
 #[tokio::test]
 async fn create_with_tracks_seeds_membership_in_input_order() {
-    let library = fresh().await;
-    let first = add_track(&library, "/music/a.mp3", "A").await;
-    let second = add_track(&library, "/music/b.mp3", "B").await;
-    let third = add_track(&library, "/music/c.mp3", "C").await;
+    let mut library = fresh().await;
+    let first = add_track(library.conn(), "/music/a.mp3", "A").await;
+    let second = add_track(library.conn(), "/music/b.mp3", "B").await;
+    let third = add_track(library.conn(), "/music/c.mp3", "C").await;
 
     let created = playlists::create_with_tracks(
-        &library.pool,
+        library.conn(),
         &PlaylistCreateWithTracksInput {
             name: "Seeded".to_owned(),
             description: None,
@@ -193,18 +195,21 @@ async fn create_with_tracks_seeds_membership_in_input_order() {
     .expect("a row");
 
     assert_eq!(created.name, "Seeded");
-    assert_eq!(titles(&library, &created.id).await, vec!["C", "A", "B"]);
+    assert_eq!(
+        titles(library.conn(), &created.id).await,
+        vec!["C", "A", "B"]
+    );
 }
 
 /// Two hundred and fifty tracks spans three insert chunks, and positions have
 /// to keep counting across the boundaries.
 #[tokio::test]
 async fn create_with_tracks_spans_the_insert_chunk_boundary() {
-    let library = fresh().await;
-    let ids = add_tracks(&library, "seed", 250).await;
+    let mut library = fresh().await;
+    let ids = add_tracks(library.conn(), "seed", 250).await;
 
     let created = playlists::create_with_tracks(
-        &library.pool,
+        library.conn(),
         &PlaylistCreateWithTracksInput {
             name: "Big".to_owned(),
             description: None,
@@ -215,7 +220,7 @@ async fn create_with_tracks_spans_the_insert_chunk_boundary() {
     .expect("create")
     .expect("a row");
 
-    assert_eq!(playlist_track_ids(&library, &created.id).await, ids);
+    assert_eq!(playlist_track_ids(library.conn(), &created.id).await, ids);
 }
 
 /// Unlike `add-tracks`, this channel does not de-duplicate: a repeat violates
@@ -223,11 +228,11 @@ async fn create_with_tracks_spans_the_insert_chunk_boundary() {
 /// as v1's transaction did.
 #[tokio::test]
 async fn create_with_tracks_rolls_back_on_a_duplicate_id() {
-    let library = fresh().await;
-    let track = add_track(&library, "/music/only.mp3", "Only").await;
+    let mut library = fresh().await;
+    let track = add_track(library.conn(), "/music/only.mp3", "Only").await;
 
     let attempt = playlists::create_with_tracks(
-        &library.pool,
+        library.conn(),
         &PlaylistCreateWithTracksInput {
             name: "Doomed".to_owned(),
             description: None,
@@ -238,7 +243,7 @@ async fn create_with_tracks_rolls_back_on_a_duplicate_id() {
 
     assert!(attempt.is_err(), "the UNIQUE constraint stands");
     assert!(
-        playlists::get_all(&library.pool)
+        playlists::get_all(library.conn())
             .await
             .expect("read")
             .is_empty(),

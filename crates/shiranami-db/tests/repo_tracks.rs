@@ -16,14 +16,14 @@ use library::{add_track, add_tracks, fresh, set_created_at, track};
 
 #[tokio::test]
 async fn get_all_returns_the_newest_first() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let older = add_track(&library, "/music/older.mp3", "Older").await;
-    let newer = add_track(&library, "/music/newer.mp3", "Newer").await;
-    set_created_at(&library, &older, "2026-01-01 00:00:00").await;
-    set_created_at(&library, &newer, "2026-06-01 00:00:00").await;
+    let older = add_track(library.conn(), "/music/older.mp3", "Older").await;
+    let newer = add_track(library.conn(), "/music/newer.mp3", "Newer").await;
+    set_created_at(library.conn(), &older, "2026-01-01 00:00:00").await;
+    set_created_at(library.conn(), &newer, "2026-06-01 00:00:00").await;
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
 
     assert_eq!(
         all.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(),
@@ -36,24 +36,24 @@ async fn get_all_returns_the_newest_first() {
 /// planner's choice.
 #[tokio::test]
 async fn get_all_breaks_ties_on_insertion_order() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let ids = add_tracks(&library, "same-second", 5).await;
+    let ids = add_tracks(library.conn(), "same-second", 5).await;
     for id in &ids {
-        set_created_at(&library, id, "2026-03-01 12:00:00").await;
+        set_created_at(library.conn(), id, "2026-03-01 12:00:00").await;
     }
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
 
     assert_eq!(all.iter().map(|t| t.id.clone()).collect::<Vec<_>>(), ids);
 }
 
 #[tokio::test]
 async fn get_all_on_an_empty_library_is_empty() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        tracks::get_all(&library.pool)
+        tracks::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -64,9 +64,9 @@ async fn get_all_on_an_empty_library_is_empty() {
 
 #[tokio::test]
 async fn add_inserts_a_track_and_returns_the_row_with_a_generated_id() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let added = tracks::add(&library.pool, &track("/music/new.mp3", "New Song"))
+    let added = tracks::add(library.conn(), &track("/music/new.mp3", "New Song"))
         .await
         .expect("insert")
         .expect("a row");
@@ -77,7 +77,7 @@ async fn add_inserts_a_track_and_returns_the_row_with_a_generated_id() {
     assert_eq!(added.play_count, Some(0), "the column default applies");
     assert_eq!(added.is_favorite, Some(false));
 
-    let all = tracks::get_all(&library.pool).await.expect("read");
+    let all = tracks::get_all(library.conn()).await.expect("read");
     assert_eq!(all.len(), 1);
     assert_eq!(all[0].id, added.id);
 }
@@ -86,31 +86,34 @@ async fn add_inserts_a_track_and_returns_the_row_with_a_generated_id() {
 /// so the loser of that race must get the existing row, not a constraint error.
 #[tokio::test]
 async fn add_is_idempotent_on_the_file_path() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let first = tracks::add(&library.pool, &track("/music/dupe.mp3", "First"))
+    let first = tracks::add(library.conn(), &track("/music/dupe.mp3", "First"))
         .await
         .expect("insert")
         .expect("a row");
 
-    let second = tracks::add(&library.pool, &track("/music/dupe.mp3", "Second"))
+    let second = tracks::add(library.conn(), &track("/music/dupe.mp3", "Second"))
         .await
         .expect("the duplicate must not error")
         .expect("a row");
 
     assert_eq!(second.id, first.id);
     assert_eq!(second.title, "First", "the first insert wins");
-    assert_eq!(tracks::get_all(&library.pool).await.expect("read").len(), 1);
+    assert_eq!(
+        tracks::get_all(library.conn()).await.expect("read").len(),
+        1
+    );
 }
 
 /// The documented deviation: [`TrackCreateInput`] has no absent state, so an
 /// unset optional writes `NULL` rather than falling to the column default.
 #[tokio::test]
 async fn an_unset_optional_is_stored_as_null() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     let added = tracks::add(
-        &library.pool,
+        library.conn(),
         &TrackCreateInput {
             file_path: "/music/untagged.mp3".to_owned(),
             title: "Untagged".to_owned(),
@@ -131,12 +134,15 @@ async fn an_unset_optional_is_stored_as_null() {
 
 #[tokio::test]
 async fn add_many_inserts_a_small_batch_and_returns_every_row() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    let ids = add_tracks(&library, "batch", 5).await;
+    let ids = add_tracks(library.conn(), "batch", 5).await;
 
     assert_eq!(ids.len(), 5);
-    assert_eq!(tracks::get_all(&library.pool).await.expect("read").len(), 5);
+    assert_eq!(
+        tracks::get_all(library.conn()).await.expect("read").len(),
+        5
+    );
 }
 
 #[tokio::test]
@@ -144,14 +150,14 @@ async fn add_many_spans_the_chunk_boundary() {
     let library = fresh().await;
 
     for count in [100, 250] {
-        let library = fresh().await;
-        let ids = add_tracks(&library, "large", count).await;
+        let mut library = fresh().await;
+        let ids = add_tracks(library.conn(), "large", count).await;
 
         assert_eq!(ids.len(), count);
         let unique: std::collections::HashSet<&String> = ids.iter().collect();
         assert_eq!(unique.len(), count, "every generated id is distinct");
         assert_eq!(
-            tracks::get_all(&library.pool).await.expect("read").len(),
+            tracks::get_all(library.conn()).await.expect("read").len(),
             count
         );
     }
@@ -161,10 +167,10 @@ async fn add_many_spans_the_chunk_boundary() {
 
 #[tokio::test]
 async fn add_many_handles_an_empty_batch() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
     assert!(
-        tracks::add_many(&library.pool, &[])
+        tracks::add_many(library.conn(), &[])
             .await
             .expect("insert")
             .is_empty()
@@ -175,12 +181,12 @@ async fn add_many_handles_an_empty_batch() {
 /// library, so a duplicate is skipped rather than echoed.
 #[tokio::test]
 async fn add_many_returns_only_the_rows_that_landed() {
-    let library = fresh().await;
+    let mut library = fresh().await;
 
-    add_track(&library, "/music/already.mp3", "Already").await;
+    add_track(library.conn(), "/music/already.mp3", "Already").await;
 
     let inserted = tracks::add_many(
-        &library.pool,
+        library.conn(),
         &[
             track("/music/already.mp3", "Duplicate"),
             track("/music/genuinely-new.mp3", "New"),
@@ -191,20 +197,23 @@ async fn add_many_returns_only_the_rows_that_landed() {
 
     assert_eq!(inserted.len(), 1);
     assert_eq!(inserted[0].title, "New");
-    assert_eq!(tracks::get_all(&library.pool).await.expect("read").len(), 2);
+    assert_eq!(
+        tracks::get_all(library.conn()).await.expect("read").len(),
+        2
+    );
 }
 
 // ── remove ────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
 async fn remove_deletes_one_track() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/doomed.mp3", "Doomed").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/doomed.mp3", "Doomed").await;
 
-    tracks::remove(&library.pool, &id).await.expect("remove");
+    tracks::remove(library.conn(), &id).await.expect("remove");
 
     assert!(
-        tracks::get_all(&library.pool)
+        tracks::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -213,23 +222,23 @@ async fn remove_deletes_one_track() {
 
 #[tokio::test]
 async fn remove_many_deletes_in_chunks_and_tolerates_an_empty_list() {
-    let library = fresh().await;
-    let ids = add_tracks(&library, "doomed", 10).await;
+    let mut library = fresh().await;
+    let ids = add_tracks(library.conn(), "doomed", 10).await;
 
-    tracks::remove_many(&library.pool, &[])
+    tracks::remove_many(library.conn(), &[])
         .await
         .expect("an empty removal is a no-op");
     assert_eq!(
-        tracks::get_all(&library.pool).await.expect("read").len(),
+        tracks::get_all(library.conn()).await.expect("read").len(),
         10
     );
 
-    tracks::remove_many(&library.pool, &ids)
+    tracks::remove_many(library.conn(), &ids)
         .await
         .expect("remove");
 
     assert!(
-        tracks::get_all(&library.pool)
+        tracks::get_all(library.conn())
             .await
             .expect("read")
             .is_empty()
@@ -240,16 +249,16 @@ async fn remove_many_deletes_in_chunks_and_tolerates_an_empty_list() {
 
 #[tokio::test]
 async fn toggle_favorite_flips_the_flag() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/fav.mp3", "Fav").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/fav.mp3", "Fav").await;
 
-    let on = tracks::toggle_favorite(&library.pool, &id)
+    let on = tracks::toggle_favorite(library.conn(), &id)
         .await
         .expect("toggle")
         .expect("a row");
     assert_eq!(on.is_favorite, Some(true));
 
-    let off = tracks::toggle_favorite(&library.pool, &id)
+    let off = tracks::toggle_favorite(library.conn(), &id)
         .await
         .expect("toggle")
         .expect("a row");
@@ -258,21 +267,21 @@ async fn toggle_favorite_flips_the_flag() {
 
 #[tokio::test]
 async fn get_favorites_returns_only_favourites_newest_first() {
-    let library = fresh().await;
-    let older = add_track(&library, "/music/a.mp3", "A").await;
-    let newer = add_track(&library, "/music/b.mp3", "B").await;
-    add_track(&library, "/music/c.mp3", "C").await;
+    let mut library = fresh().await;
+    let older = add_track(library.conn(), "/music/a.mp3", "A").await;
+    let newer = add_track(library.conn(), "/music/b.mp3", "B").await;
+    add_track(library.conn(), "/music/c.mp3", "C").await;
 
-    set_created_at(&library, &older, "2026-01-01 00:00:00").await;
-    set_created_at(&library, &newer, "2026-06-01 00:00:00").await;
-    tracks::toggle_favorite(&library.pool, &older)
+    set_created_at(library.conn(), &older, "2026-01-01 00:00:00").await;
+    set_created_at(library.conn(), &newer, "2026-06-01 00:00:00").await;
+    tracks::toggle_favorite(library.conn(), &older)
         .await
         .expect("toggle");
-    tracks::toggle_favorite(&library.pool, &newer)
+    tracks::toggle_favorite(library.conn(), &newer)
         .await
         .expect("toggle");
 
-    let favorites = tracks::get_favorites(&library.pool).await.expect("read");
+    let favorites = tracks::get_favorites(library.conn()).await.expect("read");
 
     assert_eq!(
         favorites.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(),
@@ -282,11 +291,11 @@ async fn get_favorites_returns_only_favourites_newest_first() {
 
 #[tokio::test]
 async fn increment_play_count_adds_one() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/played.mp3", "Played").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/played.mp3", "Played").await;
 
     for expected in 1..=3 {
-        let row = tracks::increment_play_count(&library.pool, &id)
+        let row = tracks::increment_play_count(library.conn(), &id)
             .await
             .expect("increment")
             .expect("a row");
@@ -298,16 +307,16 @@ async fn increment_play_count_adds_one() {
 
 #[tokio::test]
 async fn exists_answers_for_a_known_and_an_unknown_path() {
-    let library = fresh().await;
-    add_track(&library, "/music/exists.mp3", "Exists").await;
+    let mut library = fresh().await;
+    add_track(library.conn(), "/music/exists.mp3", "Exists").await;
 
     assert!(
-        tracks::exists(&library.pool, "/music/exists.mp3")
+        tracks::exists(library.conn(), "/music/exists.mp3")
             .await
             .expect("look up")
     );
     assert!(
-        !tracks::exists(&library.pool, "/music/nope.mp3")
+        !tracks::exists(library.conn(), "/music/nope.mp3")
             .await
             .expect("look up")
     );
@@ -315,11 +324,11 @@ async fn exists_answers_for_a_known_and_an_unknown_path() {
 
 #[tokio::test]
 async fn exists_many_returns_the_known_paths_deduplicated() {
-    let library = fresh().await;
-    add_tracks(&library, "known", 3).await;
+    let mut library = fresh().await;
+    add_tracks(library.conn(), "known", 3).await;
 
     assert!(
-        tracks::exists_many(&library.pool, &[])
+        tracks::exists_many(library.conn(), &[])
             .await
             .expect("look up")
             .is_empty()
@@ -331,7 +340,7 @@ async fn exists_many_returns_the_known_paths_deduplicated() {
         "/music/known-2.mp3".to_owned(),
         "/music/absent.mp3".to_owned(),
     ];
-    let mut found = tracks::exists_many(&library.pool, &asked)
+    let mut found = tracks::exists_many(library.conn(), &asked)
         .await
         .expect("look up");
     found.sort();
@@ -342,11 +351,11 @@ async fn exists_many_returns_the_known_paths_deduplicated() {
 /// Six hundred paths spans the 500-per-statement chunk boundary.
 #[tokio::test]
 async fn exists_many_spans_the_chunk_boundary() {
-    let library = fresh().await;
-    add_tracks(&library, "bulk", 600).await;
+    let mut library = fresh().await;
+    add_tracks(library.conn(), "bulk", 600).await;
 
     let asked: Vec<String> = (0..600).map(|i| format!("/music/bulk-{i}.mp3")).collect();
-    let found = tracks::exists_many(&library.pool, &asked)
+    let found = tracks::exists_many(library.conn(), &asked)
         .await
         .expect("look up");
 
@@ -355,17 +364,17 @@ async fn exists_many_spans_the_chunk_boundary() {
 
 #[tokio::test]
 async fn get_id_by_path_finds_the_track_or_nothing() {
-    let library = fresh().await;
-    let id = add_track(&library, "/music/findme.mp3", "Find Me").await;
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/findme.mp3", "Find Me").await;
 
     assert_eq!(
-        tracks::get_id_by_path(&library.pool, "/music/findme.mp3")
+        tracks::get_id_by_path(library.conn(), "/music/findme.mp3")
             .await
             .expect("look up"),
         Some(id)
     );
     assert_eq!(
-        tracks::get_id_by_path(&library.pool, "/music/absent.mp3")
+        tracks::get_id_by_path(library.conn(), "/music/absent.mp3")
             .await
             .expect("look up"),
         None

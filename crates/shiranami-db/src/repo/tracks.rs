@@ -21,11 +21,11 @@
 use std::collections::HashMap;
 
 use shiranami_core::models::{Track, TrackCreateInput, TrackUpdateInput};
-use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
+use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection};
 use uuid::Uuid;
 
 use crate::error::Result;
-use crate::repo::conn::{acquire, failed};
+use crate::repo::conn::failed;
 use crate::repo::ids;
 use crate::repo::track_patch;
 use crate::repo::track_row::{self, LIBRARY_ORDER, TRACK_SELECT};
@@ -45,9 +45,7 @@ const INSERT_INTO: &str = "INSERT INTO tracks \
      track_number, disc_number, album_art) ";
 
 /// Every track, newest first.
-pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Track>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<Track>> {
     let mut builder = QueryBuilder::<Sqlite>::new(TRACK_SELECT);
     builder.push(LIBRARY_ORDER);
 
@@ -67,10 +65,8 @@ pub async fn get_all(pool: &SqlitePool) -> Result<Vec<Track>> {
 /// see a constraint error. `ON CONFLICT DO NOTHING` plus the fallback read
 /// makes the channel idempotent, which is the contract the preload API
 /// documents ("an already-imported file returns its existing row").
-pub async fn add(pool: &SqlitePool, input: &TrackCreateInput) -> Result<Option<Track>> {
-    let mut conn = acquire(pool).await?;
-
-    let inserted = insert_chunk(&mut conn, std::slice::from_ref(input)).await?;
+pub async fn add(conn: &mut SqliteConnection, input: &TrackCreateInput) -> Result<Option<Track>> {
+    let inserted = insert_chunk(&mut *conn, std::slice::from_ref(input)).await?;
     if let Some(track) = inserted.into_iter().next() {
         return Ok(Some(track));
     }
@@ -90,12 +86,14 @@ pub async fn add(pool: &SqlitePool, input: &TrackCreateInput) -> Result<Option<T
 /// and what the scan path depends on: the returned rows are exactly the ones to
 /// add to the in-memory library, since the already-present ones are already
 /// there.
-pub async fn add_many(pool: &SqlitePool, incoming: &[TrackCreateInput]) -> Result<Vec<Track>> {
+pub async fn add_many(
+    conn: &mut SqliteConnection,
+    incoming: &[TrackCreateInput],
+) -> Result<Vec<Track>> {
     if incoming.is_empty() {
         return Ok(Vec::new());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -112,9 +110,7 @@ pub async fn add_many(pool: &SqlitePool, incoming: &[TrackCreateInput]) -> Resul
 }
 
 /// Delete one track. Cascades to playlist membership and play history.
-pub async fn remove(pool: &SqlitePool, id: &str) -> Result<()> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn remove(conn: &mut SqliteConnection, id: &str) -> Result<()> {
     sqlx::query("DELETE FROM tracks WHERE id = ?1")
         .bind(id)
         .execute(&mut *conn)
@@ -125,12 +121,11 @@ pub async fn remove(pool: &SqlitePool, id: &str) -> Result<()> {
 }
 
 /// Delete many tracks in one transaction, in chunks.
-pub async fn remove_many(pool: &SqlitePool, ids: &[String]) -> Result<()> {
+pub async fn remove_many(conn: &mut SqliteConnection, ids: &[String]) -> Result<()> {
     if ids.is_empty() {
         return Ok(());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -159,12 +154,10 @@ pub async fn remove_many(pool: &SqlitePool, ids: &[String]) -> Result<()> {
 /// assignments is a syntax error, and refusing the call would be a worse
 /// contract than "you asked for no changes, here is the unchanged track".
 pub async fn update(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     id: &str,
     patch: &TrackUpdateInput,
 ) -> Result<Option<Track>> {
-    let mut conn = acquire(pool).await?;
-
     let mut builder = QueryBuilder::<Sqlite>::new("UPDATE tracks SET ");
     if track_patch::push_assignments(&mut builder, patch) == 0 {
         let row = sqlx::query("SELECT tracks.* FROM tracks WHERE tracks.id = ?1")
@@ -197,7 +190,10 @@ pub async fn update(
 /// album/artist/year fix — so equal patches collapse into one `IN (…)` update
 /// each ([`track_patch::grouping_key`]). Patches that say nothing are skipped
 /// rather than turned into an empty `SET`.
-pub async fn update_many(pool: &SqlitePool, updates: &[(String, TrackUpdateInput)]) -> Result<()> {
+pub async fn update_many(
+    conn: &mut SqliteConnection,
+    updates: &[(String, TrackUpdateInput)],
+) -> Result<()> {
     if updates.is_empty() {
         return Ok(());
     }
@@ -207,7 +203,6 @@ pub async fn update_many(pool: &SqlitePool, updates: &[(String, TrackUpdateInput
         return Ok(());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut tx = conn
         .begin()
         .await
@@ -242,9 +237,9 @@ pub async fn update_many(pool: &SqlitePool, updates: &[(String, TrackUpdateInput
 /// stays `NULL` here — exactly as v1's `sql`NOT ${tracks.isFavorite}`` did. The
 /// column has a `false` default, so only a row written around it can be in that
 /// state.
-pub async fn toggle_favorite(pool: &SqlitePool, id: &str) -> Result<Option<Track>> {
+pub async fn toggle_favorite(conn: &mut SqliteConnection, id: &str) -> Result<Option<Track>> {
     updated_row(
-        pool,
+        conn,
         "UPDATE tracks SET is_favorite = NOT is_favorite WHERE id = ?1 RETURNING *",
         id,
         "toggle the track's favourite flag",
@@ -253,9 +248,7 @@ pub async fn toggle_favorite(pool: &SqlitePool, id: &str) -> Result<Option<Track
 }
 
 /// Every favourited track, newest first.
-pub async fn get_favorites(pool: &SqlitePool) -> Result<Vec<Track>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_favorites(conn: &mut SqliteConnection) -> Result<Vec<Track>> {
     let mut builder = QueryBuilder::<Sqlite>::new(TRACK_SELECT);
     builder.push(" WHERE tracks.is_favorite = ");
     builder.push_bind(true);
@@ -271,9 +264,9 @@ pub async fn get_favorites(pool: &SqlitePool) -> Result<Vec<Track>> {
 }
 
 /// Add one to a track's play count and return the row.
-pub async fn increment_play_count(pool: &SqlitePool, id: &str) -> Result<Option<Track>> {
+pub async fn increment_play_count(conn: &mut SqliteConnection, id: &str) -> Result<Option<Track>> {
     updated_row(
-        pool,
+        conn,
         "UPDATE tracks SET play_count = play_count + 1 WHERE id = ?1 RETURNING *",
         id,
         "increment the track's play count",
@@ -282,9 +275,7 @@ pub async fn increment_play_count(pool: &SqlitePool, id: &str) -> Result<Option<
 }
 
 /// Whether the library already holds a track for this file.
-pub async fn exists(pool: &SqlitePool, file_path: &str) -> Result<bool> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn exists(conn: &mut SqliteConnection, file_path: &str) -> Result<bool> {
     let found: Option<String> = sqlx::query_scalar("SELECT id FROM tracks WHERE file_path = ?1")
         .bind(file_path)
         .fetch_optional(&mut *conn)
@@ -298,12 +289,14 @@ pub async fn exists(pool: &SqlitePool, file_path: &str) -> Result<bool> {
 ///
 /// Order follows first appearance in the database reads, matching the `Set`
 /// insertion order v1 spread into an array.
-pub async fn exists_many(pool: &SqlitePool, file_paths: &[String]) -> Result<Vec<String>> {
+pub async fn exists_many(
+    conn: &mut SqliteConnection,
+    file_paths: &[String],
+) -> Result<Vec<String>> {
     if file_paths.is_empty() {
         return Ok(Vec::new());
     }
 
-    let mut conn = acquire(pool).await?;
     let mut existing = Vec::new();
 
     for chunk in file_paths.chunks(ID_CHUNK) {
@@ -327,9 +320,10 @@ pub async fn exists_many(pool: &SqlitePool, file_paths: &[String]) -> Result<Vec
 }
 
 /// The id of the track holding this file, if any.
-pub async fn get_id_by_path(pool: &SqlitePool, file_path: &str) -> Result<Option<String>> {
-    let mut conn = acquire(pool).await?;
-
+pub async fn get_id_by_path(
+    conn: &mut SqliteConnection,
+    file_path: &str,
+) -> Result<Option<String>> {
     sqlx::query_scalar("SELECT id FROM tracks WHERE file_path = ?1")
         .bind(file_path)
         .fetch_optional(&mut *conn)
@@ -342,13 +336,11 @@ pub async fn get_id_by_path(pool: &SqlitePool, file_path: &str) -> Result<Option
 /// Shared by the two counter-style channels, whose only difference is the `SET`
 /// expression. `statement` is always a literal from this module.
 async fn updated_row(
-    pool: &SqlitePool,
+    conn: &mut SqliteConnection,
     statement: &'static str,
     id: &str,
     operation: &'static str,
 ) -> Result<Option<Track>> {
-    let mut conn = acquire(pool).await?;
-
     let row = sqlx::query(statement)
         .bind(id)
         .fetch_optional(&mut *conn)
@@ -360,8 +352,8 @@ async fn updated_row(
 
 /// Insert up to [`INSERT_CHUNK`] tracks, returning the rows that landed.
 ///
-/// Takes a connection rather than the pool because both callers already hold
-/// one — `add_many` is mid-transaction on it.
+/// Both callers hand down what they were given: [`add`] its connection,
+/// [`add_many`] the transaction it opened on one.
 ///
 /// Every column the create payload can speak about is listed and bound, so a
 /// `None` writes `NULL` rather than falling to the column default. That is the
