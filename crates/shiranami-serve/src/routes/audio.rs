@@ -83,6 +83,21 @@ pub async fn handle(
     let content_type =
         extension_of(&path).map_or(UNKNOWN_AUDIO_MIME, |extension| audio_mime(&extension));
 
+    // The served half of the route, at DEBUG. Refusals above are WARN because
+    // each is a decision; this is the ordinary case, and it exists because
+    // "playback is silent" and "playback never asked" look identical from the
+    // renderer. WebKit opens every media load with `bytes=0-1` and then streams
+    // in ranges, so the shape of these lines is itself the diagnosis.
+    //
+    // The range and the sizes, never the path: a user's music paths are the
+    // most identifying thing in the app, and this line is on by default in dev.
+    tracing::debug!(
+        range = range_header(&headers).unwrap_or("none"),
+        total,
+        content_type,
+        "audio route serving"
+    );
+
     match resolve(range_header(&headers), total) {
         RangeOutcome::Full => Ok(full_response(file, total, content_type)),
         RangeOutcome::Partial(range) => partial_response(file, range, total, content_type).await,

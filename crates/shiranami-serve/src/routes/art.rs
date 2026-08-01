@@ -53,6 +53,7 @@ pub async fn handle(
     }
 
     if let Some(cached) = state.art_cache().get(&name) {
+        tracing::debug!(size = cached.len(), hit = true, "art route serving");
         return Ok(image_response(
             &name,
             cached.len() as u64,
@@ -72,9 +73,12 @@ pub async fn handle(
     // Anything past the cache budget is streamed and never held: reading it to
     // populate a cache that would immediately refuse it is the worst of both.
     if size > DEFAULT_MAX_BYTES as u64 {
+        tracing::debug!(size, hit = false, streamed = true, "art route serving");
         let body = Body::from_stream(ReaderStream::with_capacity(file, CHUNK_SIZE));
         return Ok(image_response(&name, size, body));
     }
+
+    tracing::debug!(size, hit = false, streamed = false, "art route serving");
 
     let bytes = Bytes::from(
         tokio::fs::read(&path)
