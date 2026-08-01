@@ -132,7 +132,10 @@ mod tests {
 
         assert_eq!(
             events.channels(),
-            ["updater:checking-for-update", "updater:update-not-available"]
+            [
+                "updater:checking-for-update",
+                "updater:update-not-available"
+            ]
         );
         assert_eq!(updater.calls(), ["check"]);
     }
@@ -208,7 +211,10 @@ mod tests {
             .await
             .expect_err("the download fails");
 
-        assert_eq!(events.payloads(), vec![serde_json::json!("RELEASE_PENDING")]);
+        assert_eq!(
+            events.payloads(),
+            vec![serde_json::json!("RELEASE_PENDING")]
+        );
     }
 
     /// v1 gated only the check: an updater that reports itself disabled has

@@ -33,6 +33,39 @@
 pub mod registry;
 
 // ── namespaces ──────────────────────────────────────────────────────────────
-// Generated from `registry`'s shared line list, so a lane adds its namespace in
-// exactly one place. Expands to one `pub mod` per entry.
-registry::namespace_list!(declare_modules);
+// Literal, not generated: during the Phase 14 fan-out these were expanded from
+// `registry`'s shared line list so a lane touched exactly one file, but rustfmt
+// and rust-analyzer cannot see through a macro-declared module tree — `cargo
+// fmt` was silently skipping every file below. With the surface complete, the
+// list is spelled out; `registry`'s gather side still consumes the shared line
+// list, and a namespace listed there without a module here is a compile error.
+pub mod app;
+pub mod db_backup;
+pub mod db_folders;
+pub mod db_history;
+pub mod db_playlists;
+pub mod db_smart_playlists;
+pub mod db_tracks;
+pub mod debug;
+pub mod dialog;
+pub mod discord;
+pub mod downloader;
+pub mod health;
+pub mod library;
+pub mod loudness;
+pub mod lyrics;
+pub mod media;
+pub mod metadata;
+pub mod playlist;
+pub mod radio;
+pub mod recommendations;
+pub mod scrobble;
+pub mod share;
+pub mod shell;
+pub mod storage;
+pub mod store;
+pub mod system;
+pub mod updater;
+pub mod waveform;
+pub mod weather;
+pub mod window;

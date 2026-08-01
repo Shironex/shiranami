@@ -164,7 +164,10 @@ mod tests {
             spotify_playlist_id("https://open.spotify.com/playlist/37i9dQZF1DX?si=abc"),
             Some("37i9dQZF1DX".to_owned())
         );
-        assert_eq!(spotify_playlist_id("https://open.spotify.com/album/1"), None);
+        assert_eq!(
+            spotify_playlist_id("https://open.spotify.com/album/1"),
+            None
+        );
     }
 
     /// The result shape the renderer builds its import from. `title` is

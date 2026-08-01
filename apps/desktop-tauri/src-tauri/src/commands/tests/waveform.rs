@@ -157,7 +157,9 @@ fn editing_the_file_invalidates_its_cached_peaks() {
     peaks_for(&file_path, Some(&cache_dir)).expect("the second decode");
 
     assert_eq!(
-        std::fs::read_dir(&cache_dir).expect("read the cache").count(),
+        std::fs::read_dir(&cache_dir)
+            .expect("read the cache")
+            .count(),
         2,
         "the edited file was keyed separately rather than served stale peaks"
     );

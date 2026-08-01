@@ -130,8 +130,12 @@ fn a_cancelled_scan_resolves_empty_rather_than_failing() {
     let flat = empty_on_cancel(scan_folder(dir.path(), None, &cancel, &ignore_progress));
     assert!(flat.is_empty());
 
-    let grouped =
-        empty_on_cancel(scan_folder_grouped(dir.path(), None, &cancel, &ignore_progress));
+    let grouped = empty_on_cancel(scan_folder_grouped(
+        dir.path(),
+        None,
+        &cancel,
+        &ignore_progress,
+    ));
     assert_eq!(grouped, GroupedScanResult::default());
 }
 
@@ -205,8 +209,7 @@ fn the_grouped_result_keeps_v1s_key_names() {
 /// reads `.metadata` off it.
 #[test]
 fn parse_metadata_answers_the_scanned_file_shape() {
-    let json =
-        serde_json::to_value(scanned(Path::new("/music/a.mp3"))).expect("serialize");
+    let json = serde_json::to_value(scanned(Path::new("/music/a.mp3"))).expect("serialize");
 
     assert_eq!(json["filePath"], "/music/a.mp3");
     assert!(json["metadata"].is_object());

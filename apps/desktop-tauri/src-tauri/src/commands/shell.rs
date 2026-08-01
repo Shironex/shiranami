@@ -136,7 +136,10 @@ mod tests {
     fn deletion_goes_to_the_recycle_bin_rather_than_unlinking() {
         let code = implementation();
 
-        assert!(code.contains("trash::delete"), "the scan reaches the command");
+        assert!(
+            code.contains("trash::delete"),
+            "the scan reaches the command"
+        );
         assert!(
             !code.contains(concat!("remove_", "file")) && !code.contains(concat!("remove_", "dir")),
             "a direct unlink here would make `shell:trash-file` irreversible"

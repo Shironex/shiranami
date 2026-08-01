@@ -252,8 +252,11 @@ mod tests {
     /// matching. `downloader.invalid_url` is in the frozen registry.
     #[test]
     fn the_guard_rejects_under_v1s_code() {
-        let error = http_only("file:///etc/passwd", "Refusing to download a non-http(s) URL")
-            .expect_err("a file URL is refused");
+        let error = http_only(
+            "file:///etc/passwd",
+            "Refusing to download a non-http(s) URL",
+        )
+        .expect_err("a file URL is refused");
 
         assert_eq!(error.code, code::INVALID_URL);
         assert_eq!(error.code, "downloader.invalid_url");
@@ -265,10 +268,10 @@ mod tests {
     /// translation for the code.
     #[test]
     fn the_two_guarded_channels_keep_their_distinct_messages() {
-        let download = http_only("file:///x", "Refusing to download a non-http(s) URL")
-            .expect_err("refused");
-        let stream = http_only("file:///x", "Refusing to resolve a non-http(s) URL")
-            .expect_err("refused");
+        let download =
+            http_only("file:///x", "Refusing to download a non-http(s) URL").expect_err("refused");
+        let stream =
+            http_only("file:///x", "Refusing to resolve a non-http(s) URL").expect_err("refused");
 
         assert_ne!(download.message, stream.message);
         assert_eq!(download.code, stream.code);
@@ -320,7 +323,10 @@ mod tests {
 
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].id, "abc");
-        assert_eq!(results[0].webpage_url, "https://www.youtube.com/watch?v=abc");
+        assert_eq!(
+            results[0].webpage_url,
+            "https://www.youtube.com/watch?v=abc"
+        );
         assert_eq!(results[0].view_count, Some(1_000));
         assert!(
             results[0].match_confidence.is_none(),

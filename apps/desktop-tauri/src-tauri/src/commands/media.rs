@@ -214,7 +214,11 @@ mod tests {
     }
 
     /// Both seams present, which is what a booted desktop looks like.
-    fn wired() -> (Deferred, Arc<RecordingMediaControls>, Arc<RecordingPresence>) {
+    fn wired() -> (
+        Deferred,
+        Arc<RecordingMediaControls>,
+        Arc<RecordingPresence>,
+    ) {
         let controls = Arc::new(RecordingMediaControls::default());
         let presence = Arc::new(RecordingPresence::default());
         let deferred = Deferred {

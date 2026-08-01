@@ -132,7 +132,11 @@ fn an_absent_numeric_is_kept_and_an_explicit_null_clears_it() {
     assert_eq!(tag_edits(&set).year, FieldEdit::Set(2018));
 
     assert_eq!(row_patch(&absent).year, None, "the column is left alone");
-    assert_eq!(row_patch(&cleared).year, Some(None), "the column is cleared");
+    assert_eq!(
+        row_patch(&cleared).year,
+        Some(None),
+        "the column is cleared"
+    );
     assert_eq!(row_patch(&set).year, Some(Some(2018)));
 }
 
@@ -174,7 +178,10 @@ fn an_emptied_text_field_clears_the_frame_and_writes_the_row() {
 /// `if (Object.keys(updates).length > 0)`.
 #[test]
 fn a_submission_with_no_fields_produces_no_patch() {
-    assert_eq!(row_patch(&input("x", "/a.mp3")), TrackUpdateInput::default());
+    assert_eq!(
+        row_patch(&input("x", "/a.mp3")),
+        TrackUpdateInput::default()
+    );
     assert!(
         tag_edits(&input("x", "/a.mp3")).is_empty(),
         "and nothing to write to the file either"

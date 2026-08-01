@@ -125,17 +125,6 @@ macro_rules! namespace_list {
 }
 pub(crate) use namespace_list;
 
-/// `namespace_list!` callback: declare each namespace as a module.
-///
-/// Expands where it is *invoked*, not where it is defined, so the `pub mod`
-/// items land in `commands/mod.rs` and resolve against `commands/`.
-macro_rules! declare_modules {
-    ($($namespace:ident)*) => {
-        $( pub mod $namespace; )*
-    };
-}
-pub(crate) use declare_modules;
-
 /// `namespace_list!` callback: seed [`gather!`] with the full queue.
 macro_rules! begin_gather {
     ($($namespace:ident)*) => {

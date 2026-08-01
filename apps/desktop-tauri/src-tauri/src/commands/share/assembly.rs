@@ -234,7 +234,10 @@ mod tests {
     fn an_untagged_artist_falls_back_differently_in_the_payload_and_the_query() {
         let untagged = track("t1", "Song", None);
 
-        assert_eq!(track_payload(&untagged, "yt1".to_owned()).artist, UNKNOWN_ARTIST);
+        assert_eq!(
+            track_payload(&untagged, "yt1".to_owned()).artist,
+            UNKNOWN_ARTIST
+        );
         assert_eq!(
             search_query(&untagged),
             "Song",
@@ -244,7 +247,10 @@ mod tests {
 
     #[test]
     fn a_tagged_track_searches_for_title_and_artist() {
-        assert_eq!(search_query(&track("t1", "Song", Some("Artist"))), "Song Artist");
+        assert_eq!(
+            search_query(&track("t1", "Song", Some("Artist"))),
+            "Song Artist"
+        );
     }
 
     /// v1 trimmed the joined query, so a track with a blank artist tag does not
@@ -276,10 +282,13 @@ mod tests {
         let mut rows = Vec::new();
         for (index, title) in titles.iter().enumerate() {
             rows.push(
-                tracks::add(&mut conn, &input(&format!("/music/{index}.mp3"), title, Some("A")))
-                    .await
-                    .expect("insert")
-                    .expect("a row"),
+                tracks::add(
+                    &mut conn,
+                    &input(&format!("/music/{index}.mp3"), title, Some("A")),
+                )
+                .await
+                .expect("insert")
+                .expect("a row"),
             );
         }
         rows
@@ -372,7 +381,9 @@ mod tests {
         }
 
         let (search, script) = scripted_search(ScriptedYtDlp::never_called());
-        share_tracks(&state, &search, &rows).await.expect("assembly");
+        share_tracks(&state, &search, &rows)
+            .await
+            .expect("assembly");
 
         assert_eq!(script.queries().len(), 0);
     }
@@ -386,10 +397,14 @@ mod tests {
         let rows = seeded(&state, &["Only"]).await;
 
         let (search, script) = scripted_search(ScriptedYtDlp::finding("found-id"));
-        let first = share_tracks(&state, &search, &rows).await.expect("assembly");
+        let first = share_tracks(&state, &search, &rows)
+            .await
+            .expect("assembly");
         assert_eq!(first[0].yt_id, "found-id");
 
-        let second = share_tracks(&state, &search, &rows).await.expect("assembly");
+        let second = share_tracks(&state, &search, &rows)
+            .await
+            .expect("assembly");
         assert_eq!(second[0].yt_id, "found-id");
         assert_eq!(
             script.queries().len(),

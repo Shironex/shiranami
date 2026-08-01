@@ -150,7 +150,9 @@ fn validate_enqueue(input: &EnqueueDownloadInput) -> CommandResult<()> {
         ));
     }
     if input.batch_id.is_some() != input.batch_index.is_some() {
-        return Err(bad_request("batchId and batchIndex must be provided together"));
+        return Err(bad_request(
+            "batchId and batchIndex must be provided together",
+        ));
     }
 
     Ok(())
@@ -226,7 +228,9 @@ mod tests {
             codes::validation::BAD_REQUEST
         );
         assert_eq!(
-            validate_enqueue(&blank_title).expect_err("empty title").code,
+            validate_enqueue(&blank_title)
+                .expect_err("empty title")
+                .code,
             codes::validation::BAD_REQUEST
         );
     }
@@ -246,7 +250,9 @@ mod tests {
         both.batch_index = Some(0);
 
         assert_eq!(
-            validate_enqueue(&only_id).expect_err("id without index").code,
+            validate_enqueue(&only_id)
+                .expect_err("id without index")
+                .code,
             codes::validation::BAD_REQUEST
         );
         assert!(validate_enqueue(&only_index).is_err());
@@ -287,7 +293,12 @@ mod tests {
     #[tokio::test]
     async fn enqueue_answers_an_id_and_broadcasts_the_new_item() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue, sink, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue,
+            sink,
+            persistence,
+            ..
+        } = harness(dir.path());
 
         let id = queue.enqueue(input("https://youtu.be/abc")).await;
 
@@ -312,7 +323,12 @@ mod tests {
     #[tokio::test]
     async fn pause_and_resume_broadcast_and_persist_the_flag() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue, sink, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue,
+            sink,
+            persistence,
+            ..
+        } = harness(dir.path());
 
         queue.pause().await;
         assert!(sink.latest().expect("pause broadcasts").paused);
@@ -330,7 +346,12 @@ mod tests {
     #[tokio::test]
     async fn cancelling_a_queued_item_marks_it_and_forgets_its_row() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue, sink, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue,
+            sink,
+            persistence,
+            ..
+        } = harness(dir.path());
 
         // Paused, so the enqueue is not immediately promoted to active: the
         // queued and active paths through `cancel` are genuinely different, and
@@ -367,7 +388,10 @@ mod tests {
         // registered, which makes the assertion below deterministic rather than
         // dependent on how the scheduler interleaved two spawned tasks.
         until("the download task has started", || runner.running() == 1).await;
-        assert_eq!(queue.snapshot().items[0].status, DownloadQueueStatus::Active);
+        assert_eq!(
+            queue.snapshot().items[0].status,
+            DownloadQueueStatus::Active
+        );
 
         queue.cancel(&id).await;
 
@@ -383,7 +407,12 @@ mod tests {
     #[tokio::test]
     async fn cancel_all_empties_the_queue_and_unpauses_it() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue, sink, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue,
+            sink,
+            persistence,
+            ..
+        } = harness(dir.path());
 
         queue.pause().await;
         queue.enqueue(input("https://youtu.be/one")).await;
@@ -424,7 +453,9 @@ mod tests {
     #[tokio::test]
     async fn mark_imported_drops_batch_rows_from_the_view_and_keeps_single_ones() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue, persistence, ..
+        } = harness(dir.path());
 
         queue.pause().await;
 
@@ -554,7 +585,11 @@ mod tests {
     #[tokio::test]
     async fn a_persisted_queue_hydrates_with_its_paused_flag() {
         let dir = tempfile::tempdir().expect("a temp dir");
-        let Harness { queue: first, persistence, .. } = harness(dir.path());
+        let Harness {
+            queue: first,
+            persistence,
+            ..
+        } = harness(dir.path());
 
         first.enqueue(input("https://youtu.be/abc")).await;
         first.pause().await;

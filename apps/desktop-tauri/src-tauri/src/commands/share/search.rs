@@ -17,7 +17,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use shiranami_downloader::search::SearchService;
-use shiranami_downloader::spawn::{LineSink, ProcessError, ProcessOutput, ProcessRunner, ProcessSpec};
+use shiranami_downloader::spawn::{
+    LineSink, ProcessError, ProcessOutput, ProcessRunner, ProcessSpec,
+};
 use shiranami_net::HttpClient;
 use tokio_util::sync::CancellationToken;
 

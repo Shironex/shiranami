@@ -133,7 +133,11 @@ pub async fn downloader_install_ytdlp(
     state: State<'_, AppState>,
 ) -> CommandResult<()> {
     let progress = InstallPercentEvents::new(app, InstallChannel::YtDlp);
-    let outcome = services(&state)?.tools().ytdlp.install(Some(&progress)).await;
+    let outcome = services(&state)?
+        .tools()
+        .ytdlp
+        .install(Some(&progress))
+        .await;
 
     finish_install(&state, outcome)
 }
@@ -236,11 +240,12 @@ async fn refresh(app: &AppHandle, state: &AppState) -> CommandResult<CachedToolS
         timestamp: now_ms(),
     };
 
-    let encoded = serde_json::to_value(&fresh).map_err(|error| shiranami_core::error::ErrorPayload {
-        code: codes::INTERNAL.to_owned(),
-        message: format!("could not encode the tool status cache: {error}"),
-        details: None,
-    })?;
+    let encoded =
+        serde_json::to_value(&fresh).map_err(|error| shiranami_core::error::ErrorPayload {
+            code: codes::INTERNAL.to_owned(),
+            message: format!("could not encode the tool status cache: {error}"),
+            details: None,
+        })?;
     state
         .settings()
         .set_main(MainStoreKey::DownloadsToolStatusCache, encoded)

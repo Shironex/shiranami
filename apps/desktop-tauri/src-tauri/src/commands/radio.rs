@@ -135,9 +135,7 @@ pub async fn radio_favorites_is_favorite(
 /// accepting one here would put a differently-spelled duplicate of an existing
 /// station past the `UNIQUE` constraint that is supposed to stop exactly that.
 fn validate_station_uuid(station_uuid: &str) -> CommandResult<()> {
-    if station_uuid.len() != HYPHENATED_UUID_LEN
-        || uuid::Uuid::parse_str(station_uuid).is_err()
-    {
+    if station_uuid.len() != HYPHENATED_UUID_LEN || uuid::Uuid::parse_str(station_uuid).is_err() {
         return Err(bad_request("the station id must be a UUID"));
     }
     Ok(())
@@ -256,7 +254,10 @@ mod tests {
 
         let again = radio::add(&mut conn, "row-2", &station(STATION, "Renamed")).await;
 
-        assert!(again.is_err(), "the UNIQUE constraint must not be upserted away");
+        assert!(
+            again.is_err(),
+            "the UNIQUE constraint must not be upserted away"
+        );
     }
 
     #[tokio::test]
@@ -287,8 +288,7 @@ mod tests {
             "not-a-uuid",
             "",
         ] {
-            let error = validate_station_uuid(spelling)
-                .expect_err("`{spelling}` must be refused");
+            let error = validate_station_uuid(spelling).expect_err("`{spelling}` must be refused");
             assert_eq!(error.code, codes::validation::BAD_REQUEST);
         }
     }

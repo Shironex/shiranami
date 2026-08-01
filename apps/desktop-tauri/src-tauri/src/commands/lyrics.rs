@@ -323,10 +323,7 @@ mod tests {
             None,
         )
         .expect("a valid request");
-        let found = service_over(&server)
-            .fetch(&request)
-            .await
-            .expect("a hit");
+        let found = service_over(&server).fetch(&request).await.expect("a hit");
 
         let synced = found.synced.expect("timed lyrics");
         assert_eq!(synced.len(), 2);

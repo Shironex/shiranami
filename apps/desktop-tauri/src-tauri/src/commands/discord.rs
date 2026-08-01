@@ -242,7 +242,10 @@ mod tests {
         let dir = tempfile::tempdir().expect("a temp dir");
         let state = state_over(dir.path()).await;
 
-        assert_eq!(settings::load(state.settings()), DiscordRpcSettings::default());
+        assert_eq!(
+            settings::load(state.settings()),
+            DiscordRpcSettings::default()
+        );
     }
 
     /// The one-shot migration that keeps an existing user's presence switched
@@ -276,7 +279,10 @@ mod tests {
         .expect("persist");
 
         assert!(updated.enabled);
-        assert!(settings::load(state.settings()).enabled, "and it round-trips");
+        assert!(
+            settings::load(state.settings()).enabled,
+            "and it round-trips"
+        );
     }
 
     /// v1 merged `templates` per activity type, not per field, and left every

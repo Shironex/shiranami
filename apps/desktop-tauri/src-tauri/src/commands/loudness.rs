@@ -290,7 +290,10 @@ pub async fn loudness_analyze(
             continue;
         }
 
-        emit(&app, tick(index + 1, total, track, LoudnessStatus::Analyzing));
+        emit(
+            &app,
+            tick(index + 1, total, track, LoudnessStatus::Analyzing),
+        );
 
         let file_path = track.file_path.clone();
         let outcome = off_thread("measure the track's loudness", move || {

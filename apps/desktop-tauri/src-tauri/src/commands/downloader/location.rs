@@ -52,9 +52,12 @@ pub async fn downloader_get_download_location(
     let music_dir = music_dir(&app)?;
     let configured = state.settings().downloads_location();
 
-    location::state(&music_dir, configured.as_deref().and_then(std::path::Path::to_str))
-        .await
-        .wire()
+    location::state(
+        &music_dir,
+        configured.as_deref().and_then(std::path::Path::to_str),
+    )
+    .await
+    .wire()
 }
 
 /// `downloader:set-download-location` — store a directory, or reset to default.
@@ -102,9 +105,12 @@ pub async fn downloader_set_download_location(
     }
 
     let configured = state.settings().downloads_location();
-    location::state(&music_dir, configured.as_deref().and_then(std::path::Path::to_str))
-        .await
-        .wire()
+    location::state(
+        &music_dir,
+        configured.as_deref().and_then(std::path::Path::to_str),
+    )
+    .await
+    .wire()
 }
 
 /// The user's music directory — v1's `app.getPath('music')`.

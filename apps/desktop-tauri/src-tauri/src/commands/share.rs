@@ -192,9 +192,11 @@ async fn import_share(client: &ShareClient, code: &str) -> CommandResult<Json> {
     // Re-encoding a value that deserialized from JSON a moment ago cannot fail
     // in practice; it is mapped rather than unwrapped because a command layer
     // that panics takes the webview down with it.
-    serde_json::to_value(&imported)
-        .map(Json)
-        .map_err(|error| bad_request(format!("the share response could not be re-encoded: {error}")))
+    serde_json::to_value(&imported).map(Json).map_err(|error| {
+        bad_request(format!(
+            "the share response could not be re-encoded: {error}"
+        ))
+    })
 }
 
 /// `share:cache-youtube-id` — record a YouTube id resolved elsewhere.

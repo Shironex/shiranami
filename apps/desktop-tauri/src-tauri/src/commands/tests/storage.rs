@@ -49,10 +49,7 @@ async fn a_real_folder_reports_the_bytes_inside_it() {
     assert!(volume.total_bytes > 0);
     assert_eq!(volume.unavailable, None);
     assert!(
-        volume
-            .folder_paths
-            .iter()
-            .any(|path| path == dir.path()),
+        volume.folder_paths.iter().any(|path| path == dir.path()),
         "the entry records which watched folder fed it"
     );
 }

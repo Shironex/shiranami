@@ -99,10 +99,13 @@ async fn sharing_a_track_posts_the_discriminated_body_and_returns_the_server_ans
     let state = state_over(dir.path()).await;
     let track = {
         let mut conn = state.conn().await.expect("acquire");
-        tracks::add(&mut conn, &track_input("/music/a.mp3", "Song", Some("Artist")))
-            .await
-            .expect("insert")
-            .expect("a row")
+        tracks::add(
+            &mut conn,
+            &track_input("/music/a.mp3", "Song", Some("Artist")),
+        )
+        .await
+        .expect("insert")
+        .expect("a row")
     };
 
     let server = TestServer::start(vec![Reply::ok(CREATED)]).await;
@@ -139,10 +142,13 @@ async fn an_unknown_field_on_the_create_response_passes_through() {
     let state = state_over(dir.path()).await;
     let track = {
         let mut conn = state.conn().await.expect("acquire");
-        tracks::add(&mut conn, &track_input("/music/a.mp3", "Song", Some("Artist")))
-            .await
-            .expect("insert")
-            .expect("a row")
+        tracks::add(
+            &mut conn,
+            &track_input("/music/a.mp3", "Song", Some("Artist")),
+        )
+        .await
+        .expect("insert")
+        .expect("a row")
     };
 
     let server = TestServer::start(vec![Reply::ok(
@@ -394,10 +400,13 @@ async fn a_cached_id_is_what_a_later_share_resolves_to() {
     let state = state_over(dir.path()).await;
     let track = {
         let mut conn = state.conn().await.expect("acquire");
-        tracks::add(&mut conn, &track_input("/music/a.mp3", "Song", Some("Artist")))
-            .await
-            .expect("insert")
-            .expect("a row")
+        tracks::add(
+            &mut conn,
+            &track_input("/music/a.mp3", "Song", Some("Artist")),
+        )
+        .await
+        .expect("insert")
+        .expect("a row")
     };
 
     {

@@ -164,7 +164,9 @@ pub async fn recommendations_similar(
     validate_track_id(&seed_track_id)?;
 
     let mut conn = state.conn().await?;
-    service::similar_tracks(&mut conn, &seed_track_id).await.wire()
+    service::similar_tracks(&mut conn, &seed_track_id)
+        .await
+        .wire()
 }
 
 /// `recommendations:not-interested` — hide a track from the library shelf.
@@ -196,7 +198,9 @@ pub async fn recommendations_undo_not_interested(
     validate_track_id(&track_id)?;
 
     let mut conn = state.conn().await?;
-    service::undo_not_interested(&mut conn, &track_id).await.wire()
+    service::undo_not_interested(&mut conn, &track_id)
+        .await
+        .wire()
 }
 
 /// `recommendations:smart-mixes` — the mood, weather and decade mixes for now.
@@ -473,8 +477,7 @@ mod tests {
         // Absent and explicit-null are both "the user has not opted in", which
         // is a different state from `Unknown` — the generator skips weather
         // mixes entirely rather than falling into the default arm.
-        let absent: SmartMixContext =
-            serde_json::from_str(r#"{"hour":12}"#).expect("parses");
+        let absent: SmartMixContext = serde_json::from_str(r#"{"hour":12}"#).expect("parses");
         assert_eq!(absent.weather, None);
 
         let nulled: SmartMixContext =

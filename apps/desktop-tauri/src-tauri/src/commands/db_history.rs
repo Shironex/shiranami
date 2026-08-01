@@ -156,7 +156,9 @@ pub async fn db_history_record_play(
 
     let recorded = {
         let mut conn = state.conn().await?;
-        history::record_play(&mut conn, &id, &now, &data).await.wire()?
+        history::record_play(&mut conn, &id, &now, &data)
+            .await
+            .wire()?
     };
 
     scrobble(&state, &data, &recorded, now_ms);
@@ -180,7 +182,8 @@ fn scrobble(
     if input.source.as_deref().unwrap_or(SCROBBLED_SOURCE) != SCROBBLED_SOURCE {
         return;
     }
-    let (Some(scrobbler), Some(track)) = (state.deferred().scrobbler.clone(), recorded.track.as_ref())
+    let (Some(scrobbler), Some(track)) =
+        (state.deferred().scrobbler.clone(), recorded.track.as_ref())
     else {
         return;
     };

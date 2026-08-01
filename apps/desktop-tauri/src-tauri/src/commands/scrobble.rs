@@ -157,7 +157,10 @@ pub async fn scrobble_listenbrainz_disconnect(
     state: State<'_, AppState>,
 ) -> CommandResult<ScrobbleStatus> {
     let scrobbler = scrobbler(&state)?;
-    scrobbler.disconnect_listenbrainz(&state.pool()).await.wire()
+    scrobbler
+        .disconnect_listenbrainz(&state.pool())
+        .await
+        .wire()
 }
 
 /// The scrobbler, or an `INTERNAL` naming it.
@@ -266,7 +269,10 @@ mod tests {
 
         assert!(!wire.contains("SESSION-KEY"), "the session key leaked");
         assert!(!wire.contains("LB-TOKEN"), "the ListenBrainz token leaked");
-        assert!(wire.contains("alice"), "the display name is meant to be there");
+        assert!(
+            wire.contains("alice"),
+            "the display name is meant to be there"
+        );
         assert!(wire.contains("\"pendingCount\":2"));
     }
 
@@ -382,8 +388,10 @@ mod tests {
         let http = HttpClient::new().expect("the shared client builds");
         Scrobbler::new(Arc::clone(state.settings()), http.clone(), None).with_clients(
             None,
-            ListenBrainzClient::new(http)
-                .with_endpoints(server.url("/1/submit-listens"), server.url("/1/validate-token")),
+            ListenBrainzClient::new(http).with_endpoints(
+                server.url("/1/submit-listens"),
+                server.url("/1/validate-token"),
+            ),
         )
     }
 
@@ -521,10 +529,7 @@ mod tests {
         assert_eq!(authorize_url, None, "and there is no page to open");
 
         let completed = scrobbler.complete_lastfm_auth("token").await;
-        assert_eq!(
-            json(&completed),
-            r#"{"ok":false,"error":"not_configured"}"#
-        );
+        assert_eq!(json(&completed), r#"{"ok":false,"error":"not_configured"}"#);
         assert_eq!(server.received(), 0, "nothing was sent");
     }
 
