@@ -161,7 +161,11 @@ impl AppState {
     }
 
     /// The settings store.
-    pub fn settings(&self) -> &SettingsStore {
+    ///
+    /// Returns the `Arc` rather than a plain reference because a command that
+    /// writes has to move an owned handle into `spawn_blocking` — the atomic
+    /// write is real disk I/O and must not run on the webview's thread.
+    pub fn settings(&self) -> &Arc<SettingsStore> {
         &self.settings
     }
 
@@ -182,7 +186,11 @@ impl AppState {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
+    //! Also the crate's shared test fixture: [`state_over`] is what every
+    //! namespace's tests build their `AppState` with, so all of them exercise
+    //! the same composition rather than each inventing a narrower one.
+
     use super::*;
     use shiranami_db::repo;
     use std::path::Path;

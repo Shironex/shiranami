@@ -3,8 +3,9 @@
  * Anti-vacuity proof for the binding regenerate-and-diff gate (architecture
  * §2.5, decision D7, risk R17).
  *
- * The gate itself is two steps: `cargo test -p shiranami-core` re-exports every
- * `#[derive(specta::Type)]` boundary type into `packages/contracts/src/generated/`,
+ * The gate itself is two steps: `cargo test -p shiranami-desktop` re-exports
+ * every `#[derive(specta::Type)]` boundary type, every command and every event
+ * into `packages/contracts/src/generated/`,
  * then `git diff --exit-code` over that directory fails when the committed
  * bindings no longer match the Rust types.
  *
@@ -35,16 +36,23 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CRATE = path.join(ROOT, 'crates', 'shiranami-core');
+const CRATE = path.join(ROOT, 'apps', 'desktop-tauri', 'src-tauri');
 
 /** The directory the real gate guards, repo-relative (as git pathspecs want it). */
 const GENERATED = 'packages/contracts/src/generated';
 /** The type we perturb, and the binding that must change when we do. */
 const TARGET = 'crates/shiranami-core/src/models/folder.rs';
 const TARGET_ANCHOR = 'pub struct WatchedFolder {';
-const TARGET_BINDING = `${GENERATED}/core.ts`;
+const TARGET_BINDING = `${GENERATED}/bindings.ts`;
 /** Scoped so the probe costs one incremental rebuild, not the whole suite. */
 const EXPORT_TEST = 'bindings::tests::export_bindings';
+/** The package that owns the export. Phase 14 moved it out of `shiranami-core`:
+ *  a command signature is what pulls a type into the bindings, so the exporter
+ *  has to run where the commands are. Perturbing a *core* type and requiring the
+ *  emitted file to change is therefore a stronger proof than before — it shows
+ *  the vocabulary genuinely flows through the command export rather than being
+ *  written beside it. */
+const EXPORT_PACKAGE = 'shiranami-desktop';
 const MARKER = 'shiranami-drift-guard-probe: this line must never be committed';
 
 function git(args) {
@@ -60,7 +68,7 @@ function git(args) {
  * resolved against the caller's working directory — the #422 defect itself.
  */
 function runExport(cwd) {
-  return spawnSync('cargo', ['test', '-p', 'shiranami-core', '--lib', EXPORT_TEST], {
+  return spawnSync('cargo', ['test', '-p', EXPORT_PACKAGE, '--lib', EXPORT_TEST], {
     cwd,
     stdio: 'inherit',
   });

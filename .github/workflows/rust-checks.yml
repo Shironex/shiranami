@@ -127,7 +127,7 @@ jobs:
         run: |
           git diff --exit-code packages/contracts/src/generated \
             || {
-              echo "::error::Generated bindings are stale. Run \`cargo test -p shiranami-core --lib bindings\` and commit packages/contracts/src/generated."
+              echo "::error::Generated bindings are stale. Run \`cargo test -p shiranami-desktop --lib bindings\` and commit packages/contracts/src/generated."
               exit 1
             }
 

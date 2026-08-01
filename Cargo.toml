@@ -52,6 +52,13 @@ tracing = "0.1"
 # perpetually pre-1.0, and a floating rc would resolve differently between a
 # local run and CI — which is precisely how a regenerate-and-diff guard starts
 # failing for reasons that have nothing to do with drift.
+# `serde_json` is deliberately NOT enabled. It would give `serde_json::Value` a
+# `Type` impl marked *inline*, and `Value` is recursive, so the exporter
+# overflows its stack rather than emitting anything — a `fatal runtime error`
+# from a test that looks like it only writes a file, naming nothing. Without the
+# feature the same mistake is a compile error naming the line, and
+# `shiranami_desktop_lib::wire::Json` is the supported way to carry an opaque
+# value across the boundary.
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 specta-serde = "=0.0.12"

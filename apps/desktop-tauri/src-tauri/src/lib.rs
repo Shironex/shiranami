@@ -10,10 +10,13 @@
 //! else — and later phases insert login-PATH hydration, consent-gated Sentry,
 //! the remaining plugins and the `setup()` sequence around it.
 
+pub mod bindings;
 pub mod commands;
 pub mod error;
+pub mod events;
 pub mod seam;
 pub mod state;
+pub mod wire;
 
 use tauri::Manager as _;
 
