@@ -43,7 +43,7 @@
 //! # Adding a namespace
 //!
 //! 1. Write `commands/<ns>.rs` with the commands and a `commands!` macro
-//!    (copy the shape from [`crate::commands::health`]).
+//!    (copy the shape from [`crate::commands::store`]).
 //! 2. `pub mod <ns>;` in `commands/mod.rs`.
 //! 3. One line in [`namespaces!`] below.
 //!
@@ -62,6 +62,7 @@ macro_rules! namespaces {
             queue = [
                 // ══════════════ THE SHARED LINE LIST ══════════════
                 health,
+                store,
                 // ═════════════════════════════════════════════════
             ],
             collected = []

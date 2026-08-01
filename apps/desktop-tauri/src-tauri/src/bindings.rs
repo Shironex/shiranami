@@ -193,7 +193,7 @@ mod tests {
         /// The generated call names, as the shim will reach them. A named slice
         /// rather than an inline array so the assertion reads the same whether
         /// one namespace has landed or all twenty-four have.
-        const PORTED_NAMES: &[&str] = &["healthCheck"];
+        const PORTED_NAMES: &[&str] = &["healthCheck", "storeGet", "storeSet", "storeDelete"];
 
         for command in PORTED_NAMES {
             assert!(

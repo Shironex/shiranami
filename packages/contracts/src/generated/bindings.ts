@@ -13,6 +13,19 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 export const commands = {
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
+	/**
+	 *  `store:get` — read one renderer-visible key.
+	 * 
+	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
+	 *  electron-store returned `undefined` for a missing key and the renderer's
+	 *  `?? fallback` handled it. `undefined` and `null` are the same absence to a
+	 *  `??`, and `null` is what JSON can carry.
+	 */
+	storeGet: (key: RendererStoreKey) => __TAURI_INVOKE<Json>("store_get", { key }),
+	/**  `store:set` — write one renderer-visible key. */
+	storeSet: (key: RendererStoreKey, value: Json) => __TAURI_INVOKE<null>("store_set", { key, value }),
+	/**  `store:delete` — remove one renderer-visible key. */
+	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
 };
 
 /** Events */

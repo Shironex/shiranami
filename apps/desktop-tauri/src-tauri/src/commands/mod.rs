@@ -35,6 +35,7 @@ pub mod registry;
 // ── namespaces ──────────────────────────────────────────────────────────────
 // A lane appends its module here and one line in `registry::namespaces!`.
 pub mod health;
+pub mod store;
 
 /// How many commands the registry currently collects.
 ///
@@ -43,4 +44,4 @@ pub mod health;
 /// shared list but forgets to declare its `commands!` entries gets a failing
 /// test naming the discrepancy, not a silently smaller surface. The parity
 /// target is 135 (§2.6); [`registry`]'s tests hold that ceiling.
-pub const COMMAND_COUNT: usize = 1;
+pub const COMMAND_COUNT: usize = 4;
