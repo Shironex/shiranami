@@ -12,12 +12,15 @@
 //! one of these calls really does await, so the reasoning is now load-bearing
 //! rather than defensive.
 
+use std::collections::HashSet;
+
 use shiranami_core::models::Track;
 use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
 use uuid::Uuid;
 
 use crate::error::Result;
 use crate::repo::conn::{acquire, failed};
+use crate::repo::ids;
 use crate::repo::track_row::{self, TRACK_SELECT};
 
 /// Membership rows per `INSERT`, as v1 sized it. Four columns each.
@@ -118,21 +121,21 @@ pub async fn add_tracks(pool: &SqlitePool, playlist_id: &str, track_ids: &[Strin
         .await
         .map_err(failed("begin the playlist add"))?;
 
-    let present: Vec<String> =
+    let present: HashSet<String> =
         sqlx::query_scalar("SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1")
             .bind(playlist_id)
             .fetch_all(&mut *tx)
             .await
-            .map_err(failed("read the playlist membership"))?;
+            .map_err(failed("read the playlist membership"))?
+            .into_iter()
+            .collect();
 
     let base = next_position(&mut tx, playlist_id).await?;
 
-    let mut wanted: Vec<String> = Vec::new();
-    for track_id in track_ids {
-        if !present.contains(track_id) && !wanted.contains(track_id) {
-            wanted.push(track_id.clone());
-        }
-    }
+    let wanted: Vec<String> = ids::unique(track_ids.iter().cloned())
+        .into_iter()
+        .filter(|track_id| !present.contains(track_id))
+        .collect();
 
     if !wanted.is_empty() {
         insert_membership(&mut tx, playlist_id, &wanted, base).await?;
@@ -208,12 +211,7 @@ pub async fn get_playlists_for_tracks(
     pool: &SqlitePool,
     track_ids: &[String],
 ) -> Result<Vec<String>> {
-    let mut unique: Vec<String> = Vec::new();
-    for track_id in track_ids {
-        if !unique.contains(track_id) {
-            unique.push(track_id.clone());
-        }
-    }
+    let unique = ids::unique(track_ids.iter().cloned());
 
     if unique.is_empty() {
         return Ok(Vec::new());

@@ -26,6 +26,7 @@ use uuid::Uuid;
 
 use crate::error::Result;
 use crate::repo::conn::{acquire, failed};
+use crate::repo::ids;
 use crate::repo::track_patch;
 use crate::repo::track_row::{self, LIBRARY_ORDER, TRACK_SELECT};
 
@@ -317,14 +318,12 @@ pub async fn exists_many(pool: &SqlitePool, file_paths: &[String]) -> Result<Vec
             .await
             .map_err(failed("look up the tracks by path"))?;
 
-        for path in found {
-            if !existing.contains(&path) {
-                existing.push(path);
-            }
-        }
+        existing.extend(found);
     }
 
-    Ok(existing)
+    // A caller that passed the same path twice gets one answer, and a path
+    // repeated across two chunks is answered once.
+    Ok(ids::unique(existing))
 }
 
 /// The id of the track holding this file, if any.

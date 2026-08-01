@@ -26,6 +26,7 @@
 pub(crate) mod clock;
 pub(crate) mod conn;
 pub mod folders;
+pub(crate) mod ids;
 pub mod playlist_tracks;
 pub mod playlists;
 pub mod smart_playlists;
