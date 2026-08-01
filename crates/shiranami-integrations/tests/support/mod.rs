@@ -14,17 +14,5 @@
 // `clippy -D warnings` turns that into a build failure.
 #![allow(dead_code)]
 
+pub(crate) mod request;
 pub(crate) mod test_server;
-
-/// The request line of the nth request the server received.
-///
-/// Every LRCLIB and weather assertion is really about the URL that went out, so
-/// the tests read it back rather than trusting the builder that wrote it.
-pub(crate) fn request_line(raw: &str) -> &str {
-    raw.lines().next().unwrap_or_default()
-}
-
-/// The body of a request, i.e. everything past the blank line.
-pub(crate) fn request_body(raw: &str) -> &str {
-    raw.split_once("\r\n\r\n").map_or("", |(_, body)| body)
-}

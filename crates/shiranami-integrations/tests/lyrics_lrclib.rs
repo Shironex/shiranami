@@ -10,8 +10,8 @@ mod support;
 
 use shiranami_integrations::lyrics::{LrclibClient, LrclibOutcome, LrclibQuery};
 use shiranami_net::HttpClient;
+use support::request::{request_body, request_line};
 use support::test_server::{Reply, TestServer};
-use support::{request_body, request_line};
 
 /// A query for "Song" by "Artist", whose search variants are exactly
 /// `["Song Artist", "Song"]` — so a full chain is one `/get` and two
