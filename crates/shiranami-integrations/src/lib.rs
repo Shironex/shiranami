@@ -13,4 +13,5 @@
 
 // lane A
 pub mod lyrics;
+pub mod share;
 pub mod weather;
