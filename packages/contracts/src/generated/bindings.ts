@@ -11,6 +11,44 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  `db:folders:get-all` — every watched folder, in insertion order. */
+	dbFoldersGetAll: () => __TAURI_INVOKE<WatchedFolder[]>("db_folders_get_all"),
+	/**
+	 *  `db:folders:add` — watch a folder.
+	 * 
+	 *  The `path` column is `UNIQUE` and v1 did *not* soften the conflict here, so
+	 *  adding a folder twice rejects rather than returning the existing row. That is
+	 *  the opposite of `db:tracks:add` and is deliberate: this is a user action with
+	 *  a visible outcome, not a background race.
+	 */
+	dbFoldersAdd: (folderPath: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Absolute path to the watched directory. */
+	path: string,
+	/**  ISO-8601 timestamp of the last completed scan; `None` until the first. */
+	lastScanned: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+} | null>("db_folders_add", { folderPath }),
+	/**
+	 *  `db:folders:remove` — stop watching a folder.
+	 * 
+	 *  Tracks already imported from it are left alone, as in v1: the rows outlive
+	 *  the watch, so unwatching a folder does not empty the library.
+	 */
+	dbFoldersRemove: (id: string) => __TAURI_INVOKE<null>("db_folders_remove", { id }),
+	/**  `db:folders:update-scanned` — stamp a folder as scanned just now. */
+	dbFoldersUpdateScanned: (id: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Absolute path to the watched directory. */
+	path: string,
+	/**  ISO-8601 timestamp of the last completed scan; `None` until the first. */
+	lastScanned: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+} | null>("db_folders_update_scanned", { id }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
 	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */

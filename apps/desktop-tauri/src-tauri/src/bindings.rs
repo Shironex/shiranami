@@ -202,6 +202,10 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "dbFoldersGetAll",
+            "dbFoldersAdd",
+            "dbFoldersRemove",
+            "dbFoldersUpdateScanned",
         ];
 
         for command in PORTED_NAMES {
