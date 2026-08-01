@@ -207,6 +207,7 @@ mod tests {
             "libraryScanFolderGrouped",
             "libraryScanCancel",
             "libraryValidateFiles",
+            "storageGetUsage",
         ];
 
         for command in PORTED_NAMES {

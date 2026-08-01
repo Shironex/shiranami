@@ -238,6 +238,19 @@ export const commands = {
 	 */
 	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
 	/**
+	 *  `storage:get-usage` — disk usage across the watched folders, by volume.
+	 * 
+	 *  An empty list is not an error: it answers with no volumes, which is what a
+	 *  library with no folders yet should show. v1's zod tuple allowed it too, and
+	 *  only refused an empty *string* inside the array.
+	 * 
+	 *  `spawn_blocking` is not optional here. The walk is `walkdir` to depth 12 plus
+	 *  a `statvfs` per volume over what may be a whole music library on a spinning
+	 *  or network disk — seconds of synchronous I/O, and on the WKWebView main
+	 *  thread that is the window not painting for the duration (§2.3, R15).
+	 */
+	storageGetUsage: (folderPaths: string[]) => __TAURI_INVOKE<DiskUsageResult>("storage_get_usage", { folderPaths }),
+	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
 	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
@@ -504,6 +517,20 @@ export type DiscoverShelf = {
 	generatedAt: string | null,
 	/**  Computed at read time: older than [`RECOMMENDATION_TTL_MS`]. */
 	stale: boolean,
+};
+
+/**  Disk usage across every watched folder. */
+export type DiskUsageResult = {
+	/**
+	 *  One entry per distinct volume. Readable volumes first, then every
+	 *  unreadable one — v1's `[...volumes, ...unavailableVolumes]`.
+	 */
+	volumes: VolumeUsage[],
+	/**
+	 *  When the walk ran, as `new Date().toISOString()`, for the panel's
+	 *  "updated x ago" caption.
+	 */
+	computedAt: string,
 };
 
 /**
@@ -1911,6 +1938,35 @@ export type UpdaterUpdateDownloaded = Json;
 
 /**  The app is already current. */
 export type UpdaterUpdateNotAvailable = null;
+
+/**  One physical volume that hosts one or more watched library folders. */
+export type VolumeUsage = {
+	/**
+	 *  Stable bucket key: the POSIX device id as a string, or the uppercased
+	 *  Windows drive/UNC root.
+	 */
+	volumeKey: string,
+	/**  Friendly label for the bar header. */
+	mountLabel: string,
+	/**  The watched folders that live on this volume. */
+	folderPaths: string[],
+	/**  Sum of logical file sizes inside those folders. */
+	musicBytes: number,
+	/**  Whole-disk capacity. */
+	totalBytes: number,
+	/**  User-available free space — quota- and root-reservation-aware. */
+	freeBytes: number,
+	/**
+	 *  Whole-disk used across all applications.
+	 * 
+	 *  Captions only. The renderer sizes its bar segments with a clamped
+	 *  formula, never a raw `used_bytes - music_bytes` subtraction, because the
+	 *  two are measured against different baselines.
+	 */
+	usedBytes: number,
+	/**  Set when the volume could not be probed — an unmounted or removed drive. */
+	unavailable?: boolean | null,
+};
 
 /**
  *  A folder the library watches for audio files.
