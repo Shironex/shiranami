@@ -212,3 +212,85 @@ pub(crate) async fn count_rows(conn: &mut SqliteConnection, table: &str) -> i64 
         .await
         .unwrap_or_else(|error| panic!("count rows in `{table}`: {error}"))
 }
+
+// ── Composed fixtures ─────────────────────────────────────────────────────────
+
+/// A fixture with one track: `t1`, "Alpha" by "Aoi" on "Nocturne", 200s long.
+pub(crate) async fn with_one_track() -> Fixture {
+    let mut fixture = fresh().await;
+    insert_track(fixture.conn(), &TrackSeed::default()).await;
+    fixture
+}
+
+/// Insert a play with the default seconds and completion, varying only the
+/// identity and the instant — which is what most of the read tests are about.
+pub(crate) async fn play(fixture: &mut Fixture, id: &str, track_id: &str, played_at: &str) {
+    insert_play(
+        fixture.conn(),
+        &PlaySeed {
+            id,
+            track_id,
+            played_at,
+            ..PlaySeed::default()
+        },
+    )
+    .await;
+}
+
+/// Two artists, three tracks, five plays — the shared shape for the summary
+/// assertions below.
+pub(crate) async fn with_a_small_library() -> Fixture {
+    let mut fixture = fresh().await;
+    for seed in [
+        TrackSeed {
+            id: "t1",
+            title: "Alpha",
+            artist: Some("Aoi"),
+            album: Some("Nocturne"),
+            duration: Some(200.0),
+            ..TrackSeed::default()
+        },
+        TrackSeed {
+            id: "t2",
+            title: "Beta",
+            artist: Some("Aoi"),
+            album: Some("Nocturne"),
+            duration: Some(180.0),
+            ..TrackSeed::default()
+        },
+        TrackSeed {
+            id: "t3",
+            title: "Gamma",
+            artist: Some("Kaze"),
+            album: Some("Drift"),
+            duration: Some(240.0),
+            ..TrackSeed::default()
+        },
+    ] {
+        insert_track(fixture.conn(), &seed).await;
+    }
+
+    // t1 ×3, t2 ×1, t3 ×1.
+    for (id, track, at, seconds, completed) in [
+        ("h1", "t1", "2026-06-01T10:00:00.000Z", 200.0, true),
+        ("h2", "t1", "2026-06-01T11:00:00.000Z", 200.0, true),
+        ("h3", "t1", "2026-06-02T10:00:00.000Z", 60.0, false),
+        ("h4", "t2", "2026-06-02T11:00:00.000Z", 180.0, true),
+        ("h5", "t3", "2026-06-03T10:00:00.000Z", 120.0, false),
+    ] {
+        insert_play(
+            fixture.conn(),
+            &PlaySeed {
+                id,
+                track_id: track,
+                played_at: at,
+                played_seconds: seconds,
+                completed,
+                ..PlaySeed::default()
+            },
+        )
+        .await;
+    }
+
+    fixture
+}
