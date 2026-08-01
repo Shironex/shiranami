@@ -207,6 +207,8 @@ mod tests {
             "libraryScanFolderGrouped",
             "libraryScanCancel",
             "libraryValidateFiles",
+            "loudnessAnalyze",
+            "loudnessCancel",
             "metadataLookup",
             "metadataEnrichTracks",
             "metadataEnrichPreview",

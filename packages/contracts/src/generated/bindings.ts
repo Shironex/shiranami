@@ -238,6 +238,22 @@ export const commands = {
 	 */
 	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
 	/**
+	 *  `loudness:analyze` — measure and persist integrated loudness for a batch.
+	 * 
+	 *  Sequential, one track at a time, as v1 was: the decode is already
+	 *  CPU-saturating and the unit of parallelism this crate's docs name is a track.
+	 *  Already-measured tracks are skipped by re-reading the row, which keeps the
+	 *  run idempotent even when the renderer passes a stale "needs analysis" set.
+	 */
+	loudnessAnalyze: (input: LoudnessAnalyzeInput[]) => __TAURI_INVOKE<LoudnessAnalyzeResult>("loudness_analyze", { input }),
+	/**
+	 *  `loudness:cancel` — stop the active run.
+	 * 
+	 *  Best-effort: the run notices at its next checkpoint and returns its partial
+	 *  counts. A no-op when nothing is running.
+	 */
+	loudnessCancel: () => __TAURI_INVOKE<null>("loudness_cancel"),
+	/**
 	 *  `metadata:lookup` — find candidate tags for one track.
 	 * 
 	 *  Two positional strings, as v1's channel took them. No fallback backend is
@@ -1187,6 +1203,26 @@ export type LookupSource =
  *  writing them.
  */
 "preview";
+
+/**  One track offered up for analysis. v1's `LoudnessAnalyzeInput`. */
+export type LoudnessAnalyzeInput = {
+	/**  The row to measure and update. */
+	id: string,
+	/**  The file to decode. */
+	filePath: string,
+	/**  Display title, echoed on every progress tick. */
+	title: string,
+};
+
+/**  What a finished — or cancelled — run counted. */
+export type LoudnessAnalyzeResult = {
+	/**  Tracks newly measured and persisted. */
+	analyzed: number,
+	/**  Tracks skipped: already measured, digitally silent, or no longer on disk. */
+	skipped: number,
+	/**  Tracks that failed to decode. */
+	failed: number,
+};
 
 /**  Progress through an EBU R128 loudness analysis. */
 export type LoudnessProgress = Json;

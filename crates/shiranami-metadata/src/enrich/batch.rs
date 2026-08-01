@@ -112,7 +112,7 @@ pub async fn enrich_tracks(
 /// *"implementation of `FnOnce` is not general enough"* reported against the
 /// **caller**, naming neither this closure nor this crate.
 ///
-/// That caller is every `#[tauri::command]`, which boxes its body as
+/// That caller is every Tauri command, whose attribute macro boxes the body as
 /// `Send + 'static`. Phase 14's `metadata:enrich:tracks` and
 /// `metadata:enrich:preview` hit it, and from the command's side the message
 /// points at an attribute macro and is close to undiagnosable.
