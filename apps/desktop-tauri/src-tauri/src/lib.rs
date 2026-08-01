@@ -71,6 +71,21 @@ pub fn run() {
             deep_link::on_second_instance(app, &args);
         }));
 
+    // The updater plugin is registered only on a build that has one, behind the
+    // *same* predicate `crate::updater::build` uses — so "the plugin is loaded"
+    // and "the seam is filled" cannot disagree.
+    //
+    // This is not an optimisation. `tauri_plugin_updater` deserializes
+    // `plugins.updater` from `tauri.conf.json` at init and **fails the whole
+    // builder** when the key is absent: `invalid type: null, expected struct
+    // Config`. That section carries the endpoints and the minisign public key,
+    // which Phase 19 provisions — so until it does, registering this plugin
+    // unconditionally means no build starts at all, on any platform. Found by
+    // the first `pnpm tauri:dev` boot.
+    if updater::is_supported(e2e) {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
     if let Some(client) = sentry_enabled {
         // Only when consent, packaging and a DSN all agreed.
         //
@@ -107,7 +122,6 @@ pub fn run() {
         // `bridge/environment.ts` currently sniffs the user agent and documents
         // that as a stand-in "until Phase 16 registers the plugin".
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         // Phase 14 lane 6's two holders. Unlike `AppState` these open nothing
         // and order against nothing — both are `Default` and purely in-memory.
