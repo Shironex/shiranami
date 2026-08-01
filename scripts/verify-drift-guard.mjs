@@ -9,7 +9,7 @@
  * then `git diff --exit-code` over that directory fails when the committed
  * bindings no longer match the Rust types.
  *
- * Nightcore's equivalent gate passed VACUOUSLY for its entire life (issue #422):
+ * Nightcore's equivalent gate passed VACUOUSLY for its entire life:
  * cargo resolves `.cargo/config.toml` by walking up from the current directory
  * rather than from `--manifest-path`, so a run from the repo root left
  * `TS_RS_EXPORT_DIR` unset, the generator wrote to a gitignored crate-default
@@ -65,7 +65,7 @@ function git(args) {
  * Run the export exactly as the gate does. `cwd` is a parameter on purpose:
  * proving the result is identical from the repo root and from the crate
  * directory is what shows the export path is genuinely compile-time and not
- * resolved against the caller's working directory — the #422 defect itself.
+ * resolved against the caller's working directory — the nightcore defect itself.
  */
 function runExport(cwd) {
   return spawnSync('cargo', ['test', '-p', EXPORT_PACKAGE, '--lib', EXPORT_TEST], {
@@ -106,8 +106,8 @@ if (!tracked.includes(TARGET_BINDING)) {
 }
 
 // ── 0. The export must be cwd-independent ───────────────────────────────────
-// #422 in one assertion: run the gate from two directories and require the same
-// bytes. An env-derived or cwd-relative export path fails here.
+// The nightcore defect in one assertion: run the gate from two directories and
+// require the same bytes. An env-derived or cwd-relative export path fails here.
 console.log('drift-guard: exporting from the repo root and from the crate dir…');
 if (runExport(ROOT).status !== 0) fail('the export failed when run from the repo root');
 const fromRoot = readFileSync(path.join(ROOT, TARGET_BINDING), 'utf8');
@@ -116,7 +116,7 @@ const fromCrate = readFileSync(path.join(ROOT, TARGET_BINDING), 'utf8');
 if (fromRoot !== fromCrate) {
   fail(
     'the export produced different output from the repo root than from the crate directory, ' +
-      'so the export path depends on the caller’s cwd — this is nightcore #422 exactly'
+      'so the export path depends on the caller’s cwd — this is the nightcore defect exactly'
   );
 }
 if (git(['diff', '--exit-code', '--', GENERATED]).status !== 0) {
@@ -163,7 +163,7 @@ try {
       verdict =
         `the guard did NOT trip. The export ran with a changed \`#[derive(specta::Type)]\` type ` +
         `and \`git diff --exit-code -- ${GENERATED}\` still reported clean, so the drift gate ` +
-        `is a no-op. This is nightcore #422 recurring.`;
+        `is a no-op. This is the nightcore defect recurring.`;
     } else if (!git(['diff', '--', GENERATED]).stdout.includes(MARKER)) {
       verdict =
         `the guard tripped, but the diff does not carry the probe marker — it is reacting to ` +
