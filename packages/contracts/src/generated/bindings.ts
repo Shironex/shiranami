@@ -49,6 +49,96 @@ export const commands = {
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 } | null>("db_folders_update_scanned", { id }),
+	/**  `db:playlists:get-all` — every playlist, newest first. */
+	dbPlaylistsGetAll: () => __TAURI_INVOKE<Playlist[]>("db_playlists_get_all"),
+	/**  `db:playlists:get` — one playlist by id. */
+	dbPlaylistsGet: (id: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  Cover-art URL. */
+	coverArt?: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_playlists_get", { id }),
+	/**  `db:playlists:create` — create an empty playlist. */
+	dbPlaylistsCreate: (data: PlaylistCreateInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  Cover-art URL. */
+	coverArt?: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_playlists_create", { data }),
+	/**
+	 *  `db:playlists:create-with-tracks` — create a playlist and seed its
+	 *  membership, in one transaction.
+	 * 
+	 *  `cover_art` is left `NULL`: v1's payload had no field for it and neither does
+	 *  this one.
+	 */
+	dbPlaylistsCreateWithTracks: (data: PlaylistCreateWithTracksInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  Cover-art URL. */
+	coverArt?: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_playlists_create_with_tracks", { data }),
+	/**  `db:playlists:update` — patch one playlist. */
+	dbPlaylistsUpdate: (id: string, data: PlaylistUpdateInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  Cover-art URL. */
+	coverArt?: string | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_playlists_update", { id, data }),
+	/**  `db:playlists:delete` — delete a playlist; its membership cascades. */
+	dbPlaylistsDelete: (id: string) => __TAURI_INVOKE<null>("db_playlists_delete", { id }),
+	/**  `db:playlists:get-tracks` — a playlist's tracks, in playlist order. */
+	dbPlaylistsGetTracks: (playlistId: string) => __TAURI_INVOKE<Track[]>("db_playlists_get_tracks", { playlistId }),
+	/**  `db:playlists:add-track` — append one track, idempotently. */
+	dbPlaylistsAddTrack: (data: PlaylistTrackPair) => __TAURI_INVOKE<PlaylistTrackRef>("db_playlists_add_track", { data }),
+	/**  `db:playlists:add-tracks` — append a batch, skipping the ones already there. */
+	dbPlaylistsAddTracks: (data: PlaylistTracksBatch) => __TAURI_INVOKE<null>("db_playlists_add_tracks", { data }),
+	/**  `db:playlists:remove-track` — remove one track from a playlist. */
+	dbPlaylistsRemoveTrack: (data: PlaylistTrackPair) => __TAURI_INVOKE<null>("db_playlists_remove_track", { data }),
+	/**  `db:playlists:remove-tracks` — remove a batch from a playlist. */
+	dbPlaylistsRemoveTracks: (data: PlaylistTracksBatch) => __TAURI_INVOKE<null>("db_playlists_remove_tracks", { data }),
+	/**
+	 *  `db:playlists:get-playlists-for-tracks` — which playlists hold *every* one
+	 *  of these tracks.
+	 * 
+	 *  The one channel in this namespace that takes a bare array rather than an
+	 *  object, because v1's tuple did.
+	 */
+	dbPlaylistsGetPlaylistsForTracks: (trackIds: string[]) => __TAURI_INVOKE<string[]>("db_playlists_get_playlists_for_tracks", { trackIds }),
+	/**  `db:playlists:reorder` — rewrite a playlist's order to match the sequence. */
+	dbPlaylistsReorder: (data: PlaylistTracksBatch) => __TAURI_INVOKE<null>("db_playlists_reorder", { data }),
 	/**  `db:smart-playlists:get-all` — every smart playlist, newest first. */
 	dbSmartPlaylistsGetAll: () => __TAURI_INVOKE<SmartPlaylist[]>("db_smart_playlists_get_all"),
 	/**  `db:smart-playlists:get` — one smart playlist by id. */
@@ -1212,6 +1302,44 @@ export type PlaylistExtractResult = {
 	title: string | null,
 	/**  The resolved tracks, in source order. */
 	tracks: SearchResult[],
+};
+
+/**
+ *  One playlist and one track — the argument `add-track` and `remove-track`
+ *  take.
+ */
+export type PlaylistTrackPair = {
+	/**  The playlist. */
+	playlistId: string,
+	/**  The track. */
+	trackId: string,
+};
+
+/**
+ *  A membership row's id — what `add-track` resolves to.
+ * 
+ *  A struct rather than a bare string because `preload-api.ts` declares
+ *  `Promise<{ id: string }>`; see the module docs for the two v1 branches this
+ *  collapses.
+ */
+export type PlaylistTrackRef = {
+	/**  The `playlist_tracks` row's primary key. */
+	id: string,
+};
+
+/**
+ *  One playlist and many tracks — the argument `add-tracks`, `remove-tracks`
+ *  and `reorder` take.
+ * 
+ *  One struct for three channels because v1's zod was one `playlistTracksBatch`
+ *  object reused across `add-tracks` and `remove-tracks`, with `reorder`'s
+ *  declared inline and structurally identical.
+ */
+export type PlaylistTracksBatch = {
+	/**  The playlist. */
+	playlistId: string,
+	/**  The tracks, in the order the operation gives them meaning. */
+	trackIds: string[],
 };
 
 /**
