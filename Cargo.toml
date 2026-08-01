@@ -329,6 +329,70 @@ tempfile = "3"
 # which is exactly why Appendix B's CI table makes `rust-cross-check` required.
 souvlaki = { version = "0.8", default-features = false }
 
+# ── Phase 16 (app shell & boot) ──────────────────────────────────────────────
+#
+# Everything below is reached from the composition root only. None of it is a
+# workspace-wide capability: a crate that wanted to configure logging or read a
+# consent flag would be reaching past the layer that owns boot.
+
+# The subscriber half of `tracing`, which the workspace has had a facade for
+# since Phase 2 and no subscriber for — meaning every `tracing::warn!` written
+# across eleven crates has so far gone nowhere. `env-filter` is what makes the
+# level live-reloadable through a `reload::Handle`; `ansi` is off because the
+# file writer must not receive escape sequences and the console layer sets its
+# own. `json` is deliberately absent: v1's file format is one JSON object per
+# line written by hand, and matching it is `logging`'s job rather than a
+# formatter's.
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "fmt",
+  "env-filter",
+  "registry",
+  "std",
+] }
+# The non-blocking writer and the daily roll behind
+# `<app data>/logs/shiranami-YYYY-MM-DD.log` (architecture §2.2 #4). The guard
+# it returns has to outlive the app, or the last buffered lines — which are the
+# ones describing a crash — are dropped on the way out.
+tracing-appender = "0.2"
+
+# R19: a Finder or Dock launch inherits launchd's minimal PATH, which is how the
+# ffmpeg-on-PATH fallback and a user-installed yt-dlp die on exactly the machines
+# hardest to debug on. Run single-threaded before anything spawns (§2.8 step 1).
+# Git rather than crates.io because Appendix B pins it that way — the published
+# `fix-path-env` is a different, unmaintained crate.
+fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+
+# The remaining §2.8 step 4 plugins.
+#
+# `updater` fills the `seam::Updater` written in Phase 14; `deep-link` claims
+# `shiranami://` and must be registered *after* single-instance, since a cold
+# Windows launch delivers the URL as an argv entry the single-instance handler
+# forwards. `os` gives the shim an exact `platform` string in place of the
+# user-agent sniff `bridge/environment.ts` documents as a stand-in.
+# `global-shortcut` is the media-key path on non-macOS (§2.7 keeps souvlaki's
+# remote-command surface as the primary route and v1 registered these four
+# accelerators on Windows/Linux only). `autostart` writes the OS login item
+# behind `media_controls::AutostartBackend`.
+tauri-plugin-updater = "2.10"
+tauri-plugin-deep-link = "2.4"
+tauri-plugin-os = "2.3"
+tauri-plugin-global-shortcut = "2.3"
+tauri-plugin-autostart = "2"
+
+# Opt-in crash reporting (§2.2 #5), by the `@sentry/electron` author. The plugin
+# auto-injects a browser-side Sentry, which is precisely why consent has to be
+# read *before* `tauri::Builder` and the plugin skipped entirely when it is
+# absent — a no-op DSN is not enough (§2.8 step 3).
+tauri-plugin-sentry = "0.5"
+sentry = { version = "0.49", default-features = false, features = [
+  # `rustls` rather than native-tls, feature-unified with `reqwest` above.
+  "reqwest",
+  "rustls",
+  "backtrace",
+  "contexts",
+  "panic",
+] }
+
 # Lints are declared once and inherited by every member via `[lints] workspace
 # = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
 [workspace.lints.rust]

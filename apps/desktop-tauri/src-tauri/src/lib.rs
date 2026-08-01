@@ -17,6 +17,7 @@ pub mod compact;
 pub mod downloads;
 pub mod error;
 pub mod events;
+pub mod infra;
 pub mod paths;
 pub mod seam;
 pub mod state;

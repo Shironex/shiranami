@@ -44,6 +44,20 @@ sysinfo = { workspace = true }
 # and `arch_guards` enforces it.
 tokio = { workspace = true }
 
+# Phase 16 (app shell & boot). Everything here is composition-root-only: the
+# boot sequence, the logging it installs, the plugins it registers and the
+# consent gate in front of Sentry.
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+fix-path-env = { workspace = true }
+tauri-plugin-updater = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
+tauri-plugin-os = { workspace = true }
+tauri-plugin-global-shortcut = { workspace = true }
+tauri-plugin-autostart = { workspace = true }
+tauri-plugin-sentry = { workspace = true }
+sentry = { workspace = true }
+
 # Phase 14. The command/event surface and the bindings it emits.
 #
 # `specta-typescript` and `specta-serde` are here because this crate now owns

@@ -22,6 +22,7 @@ pub mod error;
 pub mod models;
 pub mod notice;
 pub mod paths;
+pub mod scrub;
 pub mod store;
 pub mod sync;
 pub mod time;

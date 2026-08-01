@@ -9,6 +9,9 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+# The home-directory pattern behind `scrub`. One regex, compiled once behind a
+# `LazyLock`, matching v1's `HOME_DIR_PATTERN` including its `[^\s'"]` stop set.
+regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 specta = { workspace = true }
