@@ -75,6 +75,11 @@ export interface StoreSchema {
   // Main-only migration flags.
   'migrations.albumArtV1': boolean;
 
+  // Main-only (v2-bridge): the one-time v2 crossover ping already fired. Set
+  // only when telemetry consent is on, so an opted-out install never records
+  // anything here. Default undefined → not yet pinged.
+  'v2.crossoverPinged': boolean;
+
   // Main-only (scrobbler.ts): opt-in scrobbling settings + secrets. The raw
   // Last.fm session key / ListenBrainz token NEVER round-trip to the renderer
   // (it reads only a {connected} status via the scrobble IPC), mirroring how
