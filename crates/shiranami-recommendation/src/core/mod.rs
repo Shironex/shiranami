@@ -21,13 +21,19 @@
 //! | --------------------- | ---------------- |
 //! | `src/types.ts`        | [`types`]        |
 //! | `src/affinity.ts`     | [`affinity`]     |
+//! | `src/similarity.ts`   | [`similarity`]   |
 //! | (`Date.parse` / `Date.now`) | [`instant`] |
 
 pub mod affinity;
 pub mod instant;
+pub mod similarity;
 pub mod types;
 
 pub use affinity::{
     DEFAULT_ARTIST_DISLIKE_PENALTY, affinity_score, rank_by_affinity, select_seed_tracks,
 };
-pub use types::{AffinityOptions, ScoredTrack, TrackStats};
+pub use similarity::{rank_by_similarity, similarity_score};
+pub use types::{
+    AffinityOptions, ScoredTrack, SharedPlaylistCounts, SimilarTrack, SimilarityTrack,
+    SimilarityWeights, TrackStats,
+};
