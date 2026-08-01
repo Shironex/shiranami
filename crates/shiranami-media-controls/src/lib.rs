@@ -26,14 +26,18 @@
 //! | [`backend`] | **the seam** — `MediaControlsBackend`, and the null implementation |
 //! | [`souvlaki_backend`] | the real one. Thin, `cfg`-gated, and not covered by tests |
 //! | [`tray`] | v1's tray menu as a value, with the wiring left to the shell |
+//! | [`system`] | minimize/close-to-tray, and the quit flag that must override both |
+//! | [`autostart`] | the login item, and v1's rule about never writing it on a fresh install |
 //!
 //! # What the shell still has to do
 //!
-//! The tray needs the Tauri app handle, which this crate does not depend on
-//! (§2.1: the composition root reaches for crates, never the reverse), so
-//! [`tray::TrayModel`] describes the menu and `tauri::tray` builds it in Phase
-//! 16. The Windows window handle that [`souvlaki_backend`] needs arrives the
-//! same way, as a raw `isize` rather than a `tauri::Window`.
+//! Two things need the Tauri app handle, which this crate does not depend on
+//! (§2.1: the composition root reaches for crates, never the reverse). Each has
+//! a trait here and an implementation in Phase 16: the tray itself
+//! ([`tray::TrayModel`] describes it, `tauri::tray` builds it) and
+//! [`autostart::AutostartBackend`] (`tauri-plugin-autostart`). The Windows
+//! window handle that [`souvlaki_backend`] needs arrives the same way, as a raw
+//! `isize` rather than a `tauri::Window`.
 //!
 //! §2.8 also requires `SHIRANAMI_E2E=1` to disable media controls and the tray.
 //! That is a
@@ -46,6 +50,7 @@
 // documentation the way `shiranami-core` and `shiranami-serve` do.
 #![warn(missing_docs)]
 
+pub mod autostart;
 pub mod backend;
 pub mod coalesce;
 pub mod command;
@@ -54,6 +59,7 @@ pub mod os;
 pub mod service;
 pub mod souvlaki_backend;
 pub mod state;
+pub mod system;
 pub mod tray;
 
 #[cfg(test)]
