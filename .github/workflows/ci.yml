@@ -98,6 +98,9 @@ jobs:
       - name: Lint meta
         run: pnpm lint:meta
 
+      - name: Format check
+        run: pnpm format:check
+
   typecheck:
     name: Type Check
     needs: [changes]
