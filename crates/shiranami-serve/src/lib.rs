@@ -42,6 +42,7 @@
 // on documentation the way `shiranami-core` and `shiranami-net` do.
 #![warn(missing_docs)]
 
+pub mod art_cache;
 pub mod cors;
 pub mod error;
 pub mod media_types;
