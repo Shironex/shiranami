@@ -28,6 +28,7 @@
 pub mod dependencies;
 pub mod download_queue;
 pub mod folder;
+pub mod history;
 pub mod lyrics;
 pub mod media;
 pub mod patch;
@@ -44,6 +45,11 @@ pub use download_queue::{
     DownloadQueueItem, DownloadQueueSnapshot, DownloadQueueStatus, EnqueueDownloadInput,
 };
 pub use folder::WatchedFolder;
+pub use history::{
+    ListeningActivityPoint, ListeningAlbumStat, ListeningHistoryEntry,
+    ListeningHourlyActivityPoint, ListeningStatsArtist, ListeningStatsSummary, ListeningStatsTrack,
+    PlayHistoryRecord, RecordPlayInput, WeeklyInsights,
+};
 pub use lyrics::{LyricLine, LyricsResult, LyricsSource};
 pub use media::{MatchFlag, PlaylistExtractResult, SearchResult, TrackMetadata};
 pub use patch::{Patch, double_option};

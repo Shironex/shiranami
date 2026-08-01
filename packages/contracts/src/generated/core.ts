@@ -263,6 +263,128 @@ export type LibraryShelf = {
 	stale: boolean,
 };
 
+/**  One day in the activity chart. */
+export type ListeningActivityPoint = {
+	/**  `YYYY-MM-DD`, sliced from the stored timestamp (so, UTC). */
+	date: string,
+	/**  Plays on that day. */
+	playCount: number,
+	/**  Minutes heard on that day. */
+	listenedMinutes: number,
+};
+
+/**  An album in the weekly-insights leaderboard. */
+export type ListeningAlbumStat = {
+	/**  Album title. Never empty — blank albums are filtered out of the query. */
+	album: string,
+	/**
+	 *  Album artist when tagged, else a representative track artist, else the
+	 *  unknown-artist sentinel.
+	 */
+	artist: string,
+	/**  Cached cover path, when any track in the group has one. */
+	albumArt: string | null,
+	/**  Plays within the window. */
+	playCount: number,
+};
+
+/**  One row of the history list: a play joined to the track it played. */
+export type ListeningHistoryEntry = {
+	/**  `play_history` primary key. */
+	id: string,
+	/**  The track that was played. */
+	trackId: string,
+	/**  Track title. */
+	title: string,
+	/**  Track artist, or the unknown-artist sentinel. */
+	artist: string,
+	/**  Track album, or the unknown-album sentinel. */
+	album: string,
+	/**  Cached cover path, when the track has one. */
+	albumArt: string | null,
+	/**  Track length in seconds, when known. */
+	duration: number | null,
+	/**  ISO-8601 timestamp of the play. */
+	playedAt: string,
+	/**  Seconds heard. */
+	playedSeconds: number,
+	/**  Fraction of the track heard. */
+	completionRatio: number,
+	/**  Whether the play counted as complete. */
+	completed: boolean,
+	/**  Playback origin. */
+	source: string,
+};
+
+/**  One cell of the day-of-week × hour heatmap. */
+export type ListeningHourlyActivityPoint = {
+	/**
+	 *  Day of week, SQLite-indexed: `0` = Sunday … `6` = Saturday, in **local**
+	 *  time. The renderer remaps to a Monday-first grid.
+	 */
+	dayOfWeek: number,
+	/**  Hour of day in local time, `0..=23`. */
+	hour: number,
+	/**  Plays in that cell. */
+	playCount: number,
+	/**  Minutes heard in that cell. */
+	listenedMinutes: number,
+};
+
+/**  An artist in the "most played" leaderboard. */
+export type ListeningStatsArtist = {
+	/**  Artist name, or the unknown-artist sentinel. */
+	artist: string,
+	/**  Plays within the requested window. */
+	playCount: number,
+	/**  Total seconds heard within the window. */
+	listenedSeconds: number,
+};
+
+/**  Aggregate totals plus the two leaderboards, for one window. */
+export type ListeningStatsSummary = {
+	/**  Plays in the window. */
+	totalPlays: number,
+	/**  Minutes heard in the window. */
+	totalMinutes: number,
+	/**  Distinct tracks played. */
+	uniqueTracks: number,
+	/**
+	 *  Distinct artists played. `NULL` artists are not counted — SQL
+	 *  `COUNT(DISTINCT …)` skips them, and v1 relied on that.
+	 */
+	uniqueArtists: number,
+	/**  Plays that reached the completion threshold. */
+	completedPlays: number,
+	/**  The five most played tracks. */
+	topTracks: ListeningStatsTrack[],
+	/**  The five most played artists. */
+	topArtists: ListeningStatsArtist[],
+};
+
+/**  A track in the "most played" leaderboard. */
+export type ListeningStatsTrack = {
+	/**  The track. */
+	trackId: string,
+	/**  Track title. */
+	title: string,
+	/**  Track artist, or the unknown-artist sentinel. */
+	artist: string,
+	/**  Track album, or the unknown-album sentinel. */
+	album: string,
+	/**  Cached cover path, when the track has one. */
+	albumArt: string | null,
+	/**
+	 *  Plays within the requested window — **not** `tracks.play_count`, which
+	 *  is a lifetime counter.
+	 */
+	playCount: number,
+	/**  Total seconds heard within the window. */
+	listenedSeconds: number,
+	/**  ISO-8601 timestamp of the most recent play in the window. */
+	lastPlayedAt: string,
+};
+
 /**  One timestamped lyric line. */
 export type LyricLine = {
 	/**  Seconds from track start. */
@@ -359,6 +481,33 @@ export type NoticeMetaValue =
 string | 
 /**  A numeric value. */
 number;
+
+/**
+ *  The raw `play_history` row echoed back after the insert.
+ * 
+ *  Deliberately distinct from [`ListeningHistoryEntry`], which is the
+ *  track-joined read shape the history views render. This one carries no track
+ *  metadata at all — the caller that just recorded the play already has it.
+ */
+export type PlayHistoryRecord = {
+	/**  Primary key (UUID v4), minted by the caller. */
+	id: string,
+	/**  The track that was played. */
+	trackId: string,
+	/**  ISO-8601 timestamp, as v1 wrote it (`new Date().toISOString()`). */
+	playedAt: string,
+	/**  Seconds heard, clamped to zero. */
+	playedSeconds: number,
+	/**
+	 *  Fraction of the track heard, in `0.0..=1.0`. Zero when the length was
+	 *  unknown.
+	 */
+	completionRatio: number,
+	/**  Whether the play counted as complete (≥ 95% of a known length). */
+	completed: boolean,
+	/**  Playback origin. */
+	source: string,
+};
 
 /**
  *  A user playlist row as returned by the `db:playlists:*` read handlers.
@@ -516,6 +665,23 @@ export type RecommendationShelves = {
 	library: LibraryShelf,
 	/**  The discovery shelf. */
 	discover: DiscoverShelf,
+};
+
+/**  Renderer → main payload for recording one finished play. */
+export type RecordPlayInput = {
+	/**  The track that was played. */
+	trackId: string,
+	/**  How many seconds of it were actually heard. */
+	playedSeconds: number,
+	/**
+	 *  Track length in seconds, or `null` when unknown (a radio stream).
+	 * 
+	 *  Nullable rather than optional: the renderer always sends the key, and
+	 *  the completion math below branches on the value being present.
+	 */
+	duration: number | null,
+	/**  Playback origin — `"library"` or `"radio"`. Absent means `"library"`. */
+	source?: string | null,
 };
 
 /**
@@ -1010,4 +1176,12 @@ export type WeatherCurrent = {
 	condition: WeatherCondition,
 	/**  Short English label from the WMO table ("Clear sky", "Light rain", …). */
 	label: string,
+};
+
+/**  The weekly-insights card: how many listening sessions, and the top albums. */
+export type WeeklyInsights = {
+	/**  Gap-based session count — more than 30 minutes idle starts a new one. */
+	sessionCount: number,
+	/**  The five most played albums. */
+	topAlbums: ListeningAlbumStat[],
 };
