@@ -2141,3 +2141,115 @@ genuine shipped-state v1 database one migration behind (8 applied, floor 8). It
 migrated, adoption replayed `20260101000008_query_indexes`, and every count
 matched. Source checksums over 572 files were identical before and after the
 whole exercise.
+
+## Phase 14/15 completion: the loopback URL handover (2026-08-01, merged to `v2`)
+
+Phase 17 recorded the last launch blocker: §2.4 specified that the session
+token is "generated at boot, handed to the webview by a command" and that the
+renderer gains one URL-builder helper, and neither existed. The server ran, the
+art files were carried across correctly, and the renderer had no way to address
+either. Both halves now ship, and the proof is a migrated library playing.
+
+Booted against a staged v1 profile — three tracks, three covers, a playlist —
+with `HOME` pointed at a scratch tree so both `legacy_data_dir` and `data_dir`
+resolve inside it:
+
+```
+migrating the v1 library entries=["config.json", "album-art", "waveform-peaks", "logs"]
+the v1 library was migrated copied_bytes=382270
+library opened adoption=Adopted { legacy: false, healed_disc_number: false, replayed: [] }
+the loopback media server is listening port=50346
+boot complete total_ms=323 slowest="database" slowest_ms=289
+
+art route serving size=1760 hit=false streamed=false      ← three covers, on first paint
+audio route serving range="bytes=0-1"       total=481187 content_type="audio/mpeg"
+audio route serving range="bytes=0-481186"  total=481187 content_type="audio/mpeg"
+```
+
+The `bytes=0-1` probe followed by the full range is WebKit's media-load
+signature, which Spike A predicted and which nothing had ever produced against
+a real window before. Two tracks are fetched per play — the current one and the
+idle deck's prebuffer — and a second pair appears 31 s later without any input,
+which is a 30-second track reaching its end and the crossfade advancing. The
+window showed `0:19 / 0:30` and climbing, over a seekbar drawn from the
+migrated peaks cache.
+
+### The art rewrite matches on the value, not on the field name
+
+`tracks.album_art` holds a `shiranami-art://` string _in the database_ and §3.3
+deliberately leaves it there, so the v1 scheme is what every row carries and it
+arrives on roughly two dozen commands. Rewriting at the consumers looked like
+the smaller change and is not: `TrackThumbnail` funnels a dozen call sites, but
+eight further components build a raw `<img>` of their own, `useAmbientColor`
+feeds the URL to a canvas, `useMediaSession` hands it to the OS, and playlists
+carry the same scheme under a _different field_, `coverArt`.
+
+`EnrichLastRunPanel` settles it. It renders `String(diff.newValue)` — an art
+URL inside an untyped diff — which no field-name-based rewrite would ever find
+and no type would flag. So the rewrite is a deep walk over every command result
+that rewrites any string beginning with the v1 art prefix, applied once at the
+same chokepoint `withRehydratedRejections` already occupies. Every one of those
+files is untouched, and a command that starts returning a track tomorrow is
+covered without an edit.
+
+Command results **await** the base URL before resolving. Without that, the
+library fetch React Query issues at mount would race the `serve_info` round
+trip and paint exactly the screen of placeholders this phase exists to delete,
+correcting itself only on a refetch.
+
+### Audio is the one seam that had to be a renderer edit, and §2.4 says so
+
+The audio URL is not stored anywhere: it is derived from `track.filePath` when
+a deck loads, so there is no bridge crossing to intercept. Rewriting `filePath`
+at the boundary was rejected outright — it is a real path, and the containment
+guard, metadata writes and "show in folder" all consume it.
+
+§2.4's renderer row anticipates this and scopes it: "one URL-builder helper …
+the URL is constructed in a single place today". It still is. `getTrackSrc` has
+three call sites, and its body is now a call into the bridge. That is the only
+functional renderer change in this phase.
+
+Radio keeps its `shiranami-radio://stream?url=…` string in the stored track
+rather than being rewritten with the art URLs, because it is _state_, not a
+rendered value: `stationToTrack` bakes it into `Track.filePath`, it persists
+into the queue, and `isRadioTrack` pattern-matches the scheme. Translating it
+at playback instead leaves all of that alone. The encoded parameter is
+forwarded verbatim rather than decoded and re-encoded — `serve` reads the query
+as form-urlencoded, where a re-encoded `+` would silently become a space and
+address a different stream.
+
+### The origin and the token are returned apart
+
+`base_url()` already joins them and returning that one string would have been
+less work. They are split because only one is a secret: the port is
+discoverable with `lsof` and is logged at boot, while the token is a capability
+over every file the containment guard allows. Two fields let the builder hold
+the credential in a single expression and keep it out of everything that is not
+a URL. A test in `shiranami-serve` pins the rejoin against `base_url` and then
+fetches through it, so the join cannot drift from what the routes accept.
+
+Outside the webview nothing is fetched, the base stays `null`, and every
+function is the identity — which is what keeps the `:15175` mock target,
+Storybook and 2,831 tests seeing the v1 strings their fixtures assert on.
+
+### Two things this turned up in earlier phases
+
+- **`souvlaki` was already waiting for this.** `shiranami-media-controls`
+  rejects any cover URL that is not `http`/`https`, and its own fixtures spell
+  out `http://127.0.0.1:52341/tok/art/abcdef.jpg`. Until now the renderer sent
+  it a `shiranami-art://` URL, which `cover_url` correctly refused — so OS media
+  controls have been silently coverless for the whole port. The outbound rewrite
+  fixes that as a side effect, and needs no inbound counterpart.
+- **`serve` logged only its refusals.** Nine warn paths and not one line for a
+  request it answered, which made "playback is silent" and "playback never
+  asked" indistinguishable in a log. Both media routes now log the served case
+  at DEBUG, with sizes and ranges but never the path — a music library's paths
+  are the most identifying thing the app holds.
+
+### What this phase did not do
+
+`ExitRequested` still has no runtime evidence, for Phase 16's reason: the app
+was terminated by signal again, because the automation harness cannot deliver
+Cmd+Q. `serve_info` was written so as not to make that worse — it borrows the
+handle rather than cloning the `Arc`, so `Arc::try_unwrap` at exit still finds
+one reference.
