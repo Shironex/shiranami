@@ -22,7 +22,7 @@ pub mod gate;
 pub mod retry_after;
 pub mod url_safety;
 
-pub use client::{DEFAULT_TIMEOUT, HttpClient, RequestOptions};
+pub use client::{DEFAULT_TIMEOUT, HttpClient, RequestOptions, StreamedResponse};
 pub use error::{HttpError, Result};
 pub use gate::{HOST_GATES, HostGates, MinIntervalGate};
 pub use retry_after::{DEFAULT_429_BACKOFF, RETRY_AFTER_MAX, parse_retry_after};
