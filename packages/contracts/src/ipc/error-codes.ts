@@ -8,6 +8,27 @@
  * literals and lets the preload↔renderer contract assertion stay strict.
  */
 
+/**
+ * Structural check for a structured IPC error, renderer-side.
+ *
+ * Structural rather than `instanceof` because this value crossed a
+ * serialisation boundary and has no prototype left to test — true of Electron's
+ * `invoke` in v1 and of Tauri's rejection in v2, for the same reason.
+ *
+ * Lives here beside the codes, and for the same stated reason: both sides have
+ * to agree on the exact predicate. The v1 main process re-exports it from this
+ * module, and the v2 bridge shim (`apps/web/src/lib/bridge`) hands it straight
+ * back out on `window.electronAPI.errors`.
+ */
+export function isIpcError(e: unknown): e is { code: string; message: string; details?: unknown } {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'code' in e &&
+    typeof (e as Record<string, unknown>).code === 'string'
+  );
+}
+
 export const SHARE_ERROR_CODES = {
   TRACK_NOT_FOUND: 'share.track_not_found',
   NO_YOUTUBE_MATCH: 'share.no_youtube_match',
