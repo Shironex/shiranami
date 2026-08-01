@@ -202,6 +202,24 @@ export const commands = {
 	storeSet: (key: RendererStoreKey, value: Json) => __TAURI_INVOKE<null>("store_set", { key, value }),
 	/**  `store:delete` — remove one renderer-visible key. */
 	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
+	/**
+	 *  `weather:geocode` — resolve a free-text city to coordinates.
+	 * 
+	 *  `Ok(None)` is "no such city", which is not an error. See the module docs.
+	 */
+	weatherGeocode: (query: string) => __TAURI_INVOKE<{
+	/**  Latitude in decimal degrees. */
+	lat: number,
+	/**  Longitude in decimal degrees. */
+	lon: number,
+	/**  Human label, formatted "City, Country". */
+	label: string,
+} | null>("weather_geocode", { query }),
+	/**
+	 *  `weather:get-current` — the current reading for already-resolved
+	 *  coordinates.
+	 */
+	weatherGetCurrent: (coords: Coordinates) => __TAURI_INVOKE<WeatherCurrent>("weather_get_current", { coords }),
 };
 
 /** Events */
@@ -247,6 +265,20 @@ export type CachedToolStatus = {
 	downloadLocation: DownloadLocation,
 	/**  When this snapshot was taken, epoch milliseconds. */
 	timestamp: number,
+};
+
+/**
+ *  The single object argument `weather:get-current` takes.
+ * 
+ *  A struct rather than two parameters because v1's channel took **one**
+ *  argument, `{ lat, lon }`, and the shim calls these positionally. Splitting it
+ *  would change the call shape for no benefit.
+ */
+export type Coordinates = {
+	/**  Degrees north, −90 to 90. */
+	lat: number | null,
+	/**  Degrees east, −180 to 180. */
+	lon: number | null,
 };
 
 /**

@@ -64,6 +64,7 @@ macro_rules! namespaces {
                 db_tracks,
                 health,
                 store,
+                weather,
                 // ═════════════════════════════════════════════════
             ],
             collected = []

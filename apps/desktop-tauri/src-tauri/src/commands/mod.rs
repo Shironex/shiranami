@@ -37,6 +37,7 @@ pub mod registry;
 pub mod db_tracks;
 pub mod health;
 pub mod store;
+pub mod weather;
 
 /// How many commands the registry currently collects.
 ///
@@ -45,4 +46,4 @@ pub mod store;
 /// shared list but forgets to declare its `commands!` entries gets a failing
 /// test naming the discrepancy, not a silently smaller surface. The parity
 /// target is 135 (§2.6); [`registry`]'s tests hold that ceiling.
-pub const COMMAND_COUNT: usize = 17;
+pub const COMMAND_COUNT: usize = 19;
