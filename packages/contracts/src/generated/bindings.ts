@@ -190,6 +190,17 @@ export const commands = {
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
 	/**
+	 *  `media:playback-state` — show this track on every OS surface.
+	 * 
+	 *  The parameter is named `playback` rather than v1's `state` only because
+	 *  `state` is taken by the managed-state extractor; the shim calls positionally
+	 *  and the argument's *shape* — v1's seven-key `MediaPlaybackState` — is what
+	 *  has to match, which [`NowPlaying`] pins with its own test.
+	 */
+	mediaPlaybackState: (playback: NowPlaying) => __TAURI_INVOKE<null>("media_playback_state", { playback }),
+	/**  `media:clear-state` — take the app off the OS surfaces. */
+	mediaClearState: () => __TAURI_INVOKE<null>("media_clear_state"),
+	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
 	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
@@ -1019,6 +1030,35 @@ export type NoticeMetaValue =
 string | 
 /**  A numeric value. */
 number;
+
+/**
+ *  The playing track, as the renderer sees it.
+ * 
+ *  Every field is display-shaped already: `title`, `artist` and `album` have
+ *  been collapsed to non-null strings upstream (v1 did the same, via
+ *  `UNKNOWN_ARTIST` / `UNKNOWN_ALBUM`), and `duration`/`current_time` are
+ *  seconds as `number` — the units the HTML media element reports.
+ */
+export type NowPlaying = {
+	/**  Whether the renderer's audio element is currently playing. */
+	isPlaying: boolean,
+	/**  Display title. */
+	title: string,
+	/**  Display artist. */
+	artist: string,
+	/**  Display album. */
+	album: string,
+	/**
+	 *  Track length in seconds. May be `0`, `NaN` or infinite before the
+	 *  element has loaded metadata, which is why nothing downstream trusts it
+	 *  without [`crate::os`]'s finiteness check.
+	 */
+	duration: number,
+	/**  Playhead position in seconds. */
+	currentTime: number,
+	/**  Cover URL, or `None` when the track carries no art. */
+	albumArt: string | null,
+};
 
 /**
  *  The raw `play_history` row echoed back after the insert.

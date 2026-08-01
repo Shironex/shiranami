@@ -202,6 +202,8 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "mediaPlaybackState",
+            "mediaClearState",
         ];
 
         for command in PORTED_NAMES {

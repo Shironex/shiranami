@@ -145,9 +145,17 @@ pub(crate) mod fake {
     }
 
     /// Records what the command layer asked Discord to show.
+    ///
+    /// `clear` is counted rather than recorded as an `update(None)`, because the
+    /// two are **not** the same call and v1 uses both: `media:clear-state` sends
+    /// `update(None)`, which re-renders "nothing playing" through the
+    /// fifteen-second throttle, while `discord-rpc:clear-presence` tears the card
+    /// down. A double that collapsed them would let either channel be wired to
+    /// the wrong one with every test still green.
     #[derive(Debug, Default)]
     pub(crate) struct RecordingPresence {
         updates: Mutex<Vec<Option<DiscordMusicPresenceActivity>>>,
+        cleared: Mutex<usize>,
     }
 
     impl RecordingPresence {
@@ -157,6 +165,14 @@ pub(crate) mod fake {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone()
+        }
+
+        /// How many times `clear` was called.
+        pub(crate) fn clear_count(&self) -> usize {
+            *self
+                .cleared
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
         }
     }
 
@@ -170,10 +186,10 @@ pub(crate) mod fake {
         }
 
         async fn clear(&self) {
-            self.updates
+            *self
+                .cleared
                 .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .push(None);
+                .unwrap_or_else(std::sync::PoisonError::into_inner) += 1;
         }
     }
 }
