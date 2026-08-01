@@ -61,16 +61,22 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 136;
+pub const COMMAND_COUNT: usize = 137;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
-/// v1 channel — today that is `health_check` alone.
+/// v1 channel.
 pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
-pub const NON_V1_COMMANDS: usize = 1;
+///
+/// Two of them: `health_check`, and `dialog_save_file` — v1 opened its save
+/// panel inside the `db:backup:export` handler rather than over IPC, so the
+/// panel has no channel to port even though the behaviour does. See
+/// [`crate::commands::dialog`] for why it is a command rather than a webview
+/// capability.
+pub const NON_V1_COMMANDS: usize = 2;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

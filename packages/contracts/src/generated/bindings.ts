@@ -486,6 +486,42 @@ export const commands = {
 	filters?: FileFilter[] | null,
 } | null) => __TAURI_INVOKE<string | null>("dialog_open_file", { options }),
 	/**
+	 *  `dialog:save-file` — name a file to write, or `null` if cancelled.
+	 * 
+	 *  Ports no v1 channel; see the module docs for why it exists and why it is not
+	 *  on `window.electronAPI.dialog`.
+	 * 
+	 *  The panel returns a path whether or not anything is there — naming a file is
+	 *  not creating one — so the caller still has to handle a write failure. That is
+	 *  what `db:backup:export` already does.
+	 */
+	dialogSaveFile: (options: {
+	/**
+	 *  The panel's window title.
+	 * 
+	 *  Windows renders it. macOS has ignored `NSSavePanel.title` since 10.11 and
+	 *  ignores `NSOpenPanel.title` too, which is why the import panel losing
+	 *  v1's title costs nothing there and costs one window caption on Windows.
+	 */
+	title?: string | null,
+	/**
+	 *  The name the panel opens pre-filled with — v1's `defaultPath`.
+	 * 
+	 *  A bare file name, never a path: v1 passed `shiranami-library-<date>.db`
+	 *  and let the OS choose the directory (the last-used one), and a directory
+	 *  forced from here would override that.
+	 */
+	fileName?: string | null,
+	/**
+	 *  Which formats the panel offers.
+	 * 
+	 *  Absent means the OS default — *not* [`default_filters`]. This panel is
+	 *  not for audio, and inheriting the open panel's audio list would offer to
+	 *  save a database as an `.mp3`.
+	 */
+	filters?: FileFilter[] | null,
+} | null) => __TAURI_INVOKE<string | null>("dialog_save_file", { options }),
+	/**
 	 *  `discord-rpc:get-settings` — the stored Rich Presence settings.
 	 * 
 	 *  Read straight from the settings store rather than through
@@ -2566,6 +2602,40 @@ export type RendererStoreKey =
 "system.closeToTray" | 
 /**  Whether to prefer LRCLIB's synced lyrics over local files. */
 "lyrics.preferSyncedFromLrclib";
+
+/**
+ *  The argument [`dialog_save_file`] takes.
+ * 
+ *  Every field is optional and every one is honoured only when present, because
+ *  there is no v1 default to fall back on the way [`filters_for`] has one — this
+ *  panel had exactly one caller and it supplies all three.
+ */
+export type SaveFileOptions = {
+	/**
+	 *  The panel's window title.
+	 * 
+	 *  Windows renders it. macOS has ignored `NSSavePanel.title` since 10.11 and
+	 *  ignores `NSOpenPanel.title` too, which is why the import panel losing
+	 *  v1's title costs nothing there and costs one window caption on Windows.
+	 */
+	title?: string | null,
+	/**
+	 *  The name the panel opens pre-filled with — v1's `defaultPath`.
+	 * 
+	 *  A bare file name, never a path: v1 passed `shiranami-library-<date>.db`
+	 *  and let the OS choose the directory (the last-used one), and a directory
+	 *  forced from here would override that.
+	 */
+	fileName?: string | null,
+	/**
+	 *  Which formats the panel offers.
+	 * 
+	 *  Absent means the OS default — *not* [`default_filters`]. This panel is
+	 *  not for audio, and inheriting the open panel's audio list would offer to
+	 *  save a database as an `.mp3`.
+	 */
+	filters?: FileFilter[] | null,
+};
 
 /**  One file the scan read, and what it read. */
 export type ScannedFile = {

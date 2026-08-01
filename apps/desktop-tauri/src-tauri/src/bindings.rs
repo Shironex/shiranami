@@ -258,6 +258,9 @@ mod tests {
             "appGetLocaleCountry",
             "dialogOpenDirectory",
             "dialogOpenFile",
+            // Ports no v1 channel: the shim's `db:backup:export` needs a save
+            // panel and lane 6 grants the webview no dialog capability.
+            "dialogSaveFile",
             "shellShowInFolder",
             "shellTrashFile",
             "debugStart",

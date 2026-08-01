@@ -1,9 +1,36 @@
-//! `dialog:*` — the two native file pickers.
+//! `dialog:*` — the two native file pickers, plus the save panel the shim needs.
 //!
-//! Ported from `apps/desktop/src/main/ipc/dialog.ts`. Both resolve to a single
-//! path or `null`, which is v1's `result.canceled ? null : result.filePaths[0]`:
-//! cancelling is not an error and never was, so the renderer's "the user
-//! changed their mind" branch is an `if`, not a `catch`.
+//! Ported from `apps/desktop/src/main/ipc/dialog.ts`. All three resolve to a
+//! single path or `null`, which is v1's `result.canceled ? null :
+//! result.filePaths[0]`: cancelling is not an error and never was, so the
+//! renderer's "the user changed their mind" branch is an `if`, not a `catch`.
+//!
+//! # The third command ports no v1 channel, and that is the point
+//!
+//! [`dialog_save_file`] has no entry in `packages/contracts`' channel manifest
+//! because v1 never exposed a save panel to the renderer: `db:backup:export`
+//! opened `dialog.showSaveDialog` *inside* the main-process handler and the
+//! renderer only ever saw the result. §2.6 moves the dialog to the Phase 15
+//! shim, and the Phase 14 ports of `db:backup:{export,import}` correspondingly
+//! take a path argument — so the panel has to become reachable somehow.
+//!
+//! The alternative was granting the webview `dialog:allow-save`, and that is
+//! the thing this crate deliberately does not do: no dialog capability is
+//! granted at all (see `capabilities/default.json` and the Phase 14 lane notes),
+//! because Rust-side calls bypass the plugin ACL and a JS permission would hand
+//! the webview an unguarded save panel for the sake of one caller. One command
+//! with a fixed option struct is a smaller surface than a capability, and it is
+//! a surface this file can describe.
+//!
+//! It is **not** re-exposed on `window.electronAPI.dialog`. The shim's public
+//! shape is exactly v1's two methods; the save panel is reachable only from the
+//! shim's own `db.backup` implementation.
+//!
+//! The import half needs no new command: `db:backup:import` picks an *existing*
+//! file, which is what [`dialog_open_file`] already does, so the shim passes it
+//! the SQLite filters and nothing here changes. The one thing that does not
+//! survive is v1's `title: 'Import Library Database'` on that panel — see
+//! [`SaveFileOptions::title`] for why the loss is confined to Windows.
 //!
 //! # Single selection, no default directory — deliberately
 //!
@@ -46,6 +73,7 @@ macro_rules! commands {
             collected = [$($collected)*
                 crate::commands::dialog::dialog_open_directory,
                 crate::commands::dialog::dialog_open_file,
+                crate::commands::dialog::dialog_save_file,
             ]
         }
     };
@@ -113,6 +141,74 @@ pub async fn dialog_open_file(
     }
 
     builder.pick_file(move |picked| {
+        let _ = sender.try_send(picked.and_then(|path| path.into_path().ok()));
+    });
+
+    Ok(receive(receiver.recv().await))
+}
+
+/// The argument [`dialog_save_file`] takes.
+///
+/// Every field is optional and every one is honoured only when present, because
+/// there is no v1 default to fall back on the way [`filters_for`] has one — this
+/// panel had exactly one caller and it supplies all three.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveFileOptions {
+    /// The panel's window title.
+    ///
+    /// Windows renders it. macOS has ignored `NSSavePanel.title` since 10.11 and
+    /// ignores `NSOpenPanel.title` too, which is why the import panel losing
+    /// v1's title costs nothing there and costs one window caption on Windows.
+    #[specta(optional)]
+    pub title: Option<String>,
+    /// The name the panel opens pre-filled with — v1's `defaultPath`.
+    ///
+    /// A bare file name, never a path: v1 passed `shiranami-library-<date>.db`
+    /// and let the OS choose the directory (the last-used one), and a directory
+    /// forced from here would override that.
+    #[specta(optional)]
+    pub file_name: Option<String>,
+    /// Which formats the panel offers.
+    ///
+    /// Absent means the OS default — *not* [`default_filters`]. This panel is
+    /// not for audio, and inheriting the open panel's audio list would offer to
+    /// save a database as an `.mp3`.
+    #[specta(optional)]
+    pub filters: Option<Vec<FileFilter>>,
+}
+
+/// `dialog:save-file` — name a file to write, or `null` if cancelled.
+///
+/// Ports no v1 channel; see the module docs for why it exists and why it is not
+/// on `window.electronAPI.dialog`.
+///
+/// The panel returns a path whether or not anything is there — naming a file is
+/// not creating one — so the caller still has to handle a write failure. That is
+/// what `db:backup:export` already does.
+#[tauri::command]
+#[specta::specta]
+pub async fn dialog_save_file(
+    window: tauri::Window,
+    options: Option<SaveFileOptions>,
+) -> CommandResult<Option<String>> {
+    let (sender, mut receiver) = tauri::async_runtime::channel(1);
+
+    let mut builder = window.dialog().file().set_parent(&window);
+    if let Some(options) = options.as_ref() {
+        if let Some(title) = options.title.as_deref() {
+            builder = builder.set_title(title);
+        }
+        if let Some(file_name) = options.file_name.as_deref() {
+            builder = builder.set_file_name(file_name);
+        }
+        for filter in options.filters.iter().flatten() {
+            let extensions: Vec<&str> = filter.extensions.iter().map(String::as_str).collect();
+            builder = builder.add_filter(&filter.name, &extensions);
+        }
+    }
+
+    builder.save_file(move |picked| {
         let _ = sender.try_send(picked.and_then(|path| path.into_path().ok()));
     });
 
@@ -268,5 +364,47 @@ mod tests {
         let picked = receive(Some(Some(std::path::PathBuf::from("/music/song.mp3"))));
 
         assert_eq!(picked.as_deref(), Some("/music/song.mp3"));
+    }
+
+    /// The shim sends camelCase, because the generated binding does. A field
+    /// that arrived snake_case would deserialize to `None` and the export panel
+    /// would silently open with no suggested name.
+    #[test]
+    fn the_save_options_parse_the_shape_the_shim_sends() {
+        let parsed: SaveFileOptions = serde_json::from_str(
+            r#"{"title":"Export Library Database",
+                "fileName":"shiranami-library-2026-08-01.db",
+                "filters":[{"name":"SQLite Database","extensions":["db"]}]}"#,
+        )
+        .expect("the shim's shape parses");
+
+        assert_eq!(parsed.title.as_deref(), Some("Export Library Database"));
+        assert_eq!(
+            parsed.file_name.as_deref(),
+            Some("shiranami-library-2026-08-01.db")
+        );
+        assert_eq!(
+            parsed.filters.as_deref(),
+            Some(
+                [FileFilter {
+                    name: "SQLite Database".to_owned(),
+                    extensions: vec!["db".to_owned()],
+                }]
+                .as_slice()
+            )
+        );
+    }
+
+    /// The save panel must not inherit the open panel's audio list: it would
+    /// offer to save a database as an `.mp3`. Pinned as the absence of a
+    /// defaulting helper — `filters_for` is deliberately not called for saves.
+    #[test]
+    fn save_options_do_not_fall_back_to_the_audio_filters() {
+        let parsed: SaveFileOptions =
+            serde_json::from_str("{}").expect("an empty object parses to all-absent");
+
+        assert_eq!(parsed, SaveFileOptions::default());
+        assert_eq!(parsed.filters, None);
+        assert_ne!(parsed.filters.unwrap_or_default(), default_filters());
     }
 }
