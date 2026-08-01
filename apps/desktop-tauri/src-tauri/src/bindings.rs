@@ -214,6 +214,33 @@ mod tests {
         }
     }
 
+    /// The emitted callable count matches what the registry states.
+    ///
+    /// Counted from the generated text rather than from `Commands`, which seals
+    /// its contents. Every command body contains exactly one `__TAURI_INVOKE<`;
+    /// the bare `__TAURI_INVOKE` in the import line has no type argument, so the
+    /// angle bracket is what makes the count exact.
+    #[test]
+    fn the_emitted_callable_count_matches_the_registry() {
+        use crate::commands::registry::{COMMAND_COUNT, NON_V1_COMMANDS, V1_INVOKE_CHANNEL_COUNT};
+
+        ensure_exported();
+        let ts = std::fs::read_to_string(GENERATED_FILE).expect("read the emitted bindings");
+        let emitted = ts.matches("__TAURI_INVOKE<").count();
+
+        assert_eq!(
+            emitted, COMMAND_COUNT,
+            "the emitted bindings carry {emitted} callables but the registry \
+             states {COMMAND_COUNT} — a namespace in the shared list declared a \
+             different number of commands than was recorded"
+        );
+        assert!(
+            emitted <= V1_INVOKE_CHANNEL_COUNT + NON_V1_COMMANDS,
+            "more callables than v1 had invoke channels; the parity checklist is \
+             a ceiling as well as a floor"
+        );
+    }
+
     /// Every event reached the file under its **v1 channel string**, not under
     /// a kebab-cased struct name. An event the renderer cannot address is a
     /// feature that goes dark with no error anywhere.

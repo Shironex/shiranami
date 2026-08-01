@@ -38,12 +38,3 @@ pub mod db_tracks;
 pub mod health;
 pub mod store;
 pub mod weather;
-
-/// How many commands the registry currently collects.
-///
-/// Recorded as a constant so the count is a **stated** number rather than
-/// whatever the macro happened to produce: a lane that adds a namespace to the
-/// shared list but forgets to declare its `commands!` entries gets a failing
-/// test naming the discrepancy, not a silently smaller surface. The parity
-/// target is 135 (§2.6); [`registry`]'s tests hold that ceiling.
-pub const COMMAND_COUNT: usize = 19;

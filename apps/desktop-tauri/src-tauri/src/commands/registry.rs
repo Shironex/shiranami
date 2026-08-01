@@ -50,6 +50,27 @@
 //! Steps 1 and 2 are in files the lane owns or appends to; step 3 is the single
 //! shared line.
 
+/// How many commands the shared list currently collects.
+///
+/// A **stated** number rather than whatever the macro happened to produce: a
+/// lane that adds its namespace to the list but mis-declares its `commands!`
+/// entries would otherwise get a silently smaller surface instead of a failing
+/// test. `crate::bindings` counts the emitted callables against this.
+///
+/// Raising it is how a lane records that it landed. Lowering it means a
+/// namespace was dropped, which is exactly the regression R13 names — museeks
+/// lost six features across its migration and noticed afterwards.
+pub const COMMAND_COUNT: usize = 19;
+
+/// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
+/// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
+/// v1 channel — today that is `health_check` alone.
+pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
+
+/// Commands in this crate that port no v1 channel and are therefore not counted
+/// against [`V1_INVOKE_CHANNEL_COUNT`].
+pub const NON_V1_COMMANDS: usize = 1;
+
 /// Every namespace, in one list.
 ///
 /// **This is the shared line. A namespace lane appends one entry and touches

@@ -47,7 +47,7 @@
 
 use shiranami_core::error::{CoreError, ErrorPayload, WireError};
 
-/// What every `#[tauri::command]` in this crate returns.
+/// What every command in this crate returns.
 ///
 /// The error half is [`ErrorPayload`] rather than a crate-local newtype so there
 /// is exactly one error shape in the generated bindings. `tauri-specta` runs in
