@@ -40,7 +40,9 @@
 #![warn(missing_docs)]
 
 pub mod bin;
+pub mod download;
 pub mod error;
+pub mod queue;
 pub mod spawn;
 
 #[cfg(test)]
