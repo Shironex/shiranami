@@ -128,12 +128,15 @@ pub(crate) fn data_dir(app: &AppHandle) -> Option<PathBuf> {
     }
 }
 
-/// v1's `z.string().min(1)` on every path argument.
+/// v1's `z.string().min(1)`, which guards a path argument on every channel in
+/// this lane.
 ///
-/// serde accepts any string, including the empty one, and an empty path walks
-/// the process's working directory — which for a packaged app is `/`. Refused
-/// under the same `BAD_REQUEST` code v1's zod failure produced.
-fn require_path(path: &Path) -> CommandResult<()> {
+/// serde accepts any string, including the empty one, and an empty path resolves
+/// to the process's working directory — so an unguarded scan would walk it and
+/// an unguarded disk-usage call would report bytes from somewhere the user never
+/// added to their library. Refused under the same `BAD_REQUEST` code v1's zod
+/// failure produced.
+pub(crate) fn require_path(path: &Path) -> CommandResult<()> {
     if path.as_os_str().is_empty() {
         return Err(bad_request("the path must not be empty"));
     }

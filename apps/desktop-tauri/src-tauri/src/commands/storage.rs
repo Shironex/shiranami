@@ -27,8 +27,8 @@ use std::path::PathBuf;
 
 use shiranami_library::{DiskUsageResult, compute_disk_usage};
 
-use crate::commands::library::off_thread;
-use crate::error::{CommandResult, bad_request};
+use crate::commands::library::{off_thread, require_path};
+use crate::error::CommandResult;
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {
@@ -61,9 +61,7 @@ pub async fn storage_get_usage(folder_paths: Vec<PathBuf>) -> CommandResult<Disk
         // contributes nothing — it resolves to the process's working directory
         // and would walk it, reporting bytes from somewhere the user never
         // added to their library.
-        if path.as_os_str().is_empty() {
-            return Err(bad_request("a watched folder path must not be empty"));
-        }
+        require_path(path)?;
     }
 
     off_thread("measure the library folders", move || {

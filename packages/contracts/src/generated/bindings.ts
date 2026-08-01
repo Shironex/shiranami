@@ -264,6 +264,23 @@ export const commands = {
 	/**  `store:delete` — remove one renderer-visible key. */
 	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
 	/**
+	 *  `waveform:get-peaks` — the peak array for a track, or `null`.
+	 * 
+	 *  Cached peaks are returned without decoding; a miss decodes once and writes
+	 *  the result back. See the module docs for why every failure is `null`.
+	 */
+	waveformGetPeaks: (filePath: string) => __TAURI_INVOKE<{
+	/**
+	 *  [`WAVEFORM_PEAK_COUNT`] peak amplitudes — the maximum absolute sample per
+	 *  bucket.
+	 * 
+	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
+	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
+	 *  per-track maximum when drawing.
+	 */
+	peaks: (number | null)[],
+} | null>("waveform_get_peaks", { filePath }),
+	/**
 	 *  `weather:geocode` — resolve a free-text city to coordinates.
 	 * 
 	 *  `Ok(None)` is "no such city", which is not an error. See the module docs.
@@ -1983,6 +2000,27 @@ export type WatchedFolder = {
 	lastScanned: string | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
+};
+
+/**
+ *  What `waveform:get-peaks` answers with.
+ * 
+ *  One field, as v1's `WaveformPeaksResult` had. `shiranami_audio::WaveformPeaks`
+ *  also carries the sample rate, channel count and duration, and they are
+ *  deliberately dropped here: v1's TypeScript only ever read `peaks`, and adding
+ *  three fields to a wire shape the renderer does not consume would freeze them
+ *  into the contract.
+ */
+export type WaveformPeaksResult = {
+	/**
+	 *  [`WAVEFORM_PEAK_COUNT`] peak amplitudes — the maximum absolute sample per
+	 *  bucket.
+	 * 
+	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
+	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
+	 *  per-track maximum when drawing.
+	 */
+	peaks: (number | null)[],
 };
 
 /**  Coarse weather condition. */

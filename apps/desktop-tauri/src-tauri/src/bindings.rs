@@ -208,6 +208,7 @@ mod tests {
             "libraryScanCancel",
             "libraryValidateFiles",
             "storageGetUsage",
+            "waveformGetPeaks",
         ];
 
         for command in PORTED_NAMES {
