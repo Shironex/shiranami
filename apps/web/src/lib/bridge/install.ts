@@ -48,13 +48,16 @@ import { isTauri } from './environment';
 export function installElectronApiBridge(): boolean {
   if (!isTauri()) return false;
 
-  // An own, non-configurable property, the way `contextBridge` exposed one: the
-  // renderer treats this global as a given, and a later assignment replacing it
-  // would silently swap the transport under 205 call sites.
+  // Non-writable, so a stray assignment cannot swap the transport out from
+  // under 205 call sites. Still configurable, unlike `contextBridge`'s: the
+  // isolation that made v1's descriptor meaningful does not exist here — the
+  // shim runs in the same world as the app — so locking it would buy nothing
+  // and cost the tests (and any tool that needs to substitute a surface) their
+  // only way to put it back.
   Object.defineProperty(window, 'electronAPI', {
     value: createElectronApi(),
     writable: false,
-    configurable: false,
+    configurable: true,
     enumerable: true,
   });
 
