@@ -354,7 +354,7 @@ mod tests {
             LiveAuthority::new(settings(dir.path()), dir.path().to_path_buf(), pool.clone());
 
         let absent = authority.has_track_at(Path::new("/nowhere/at/all.mp3"));
-        assert_eq!(absent.expect("the lookup answers"), false);
+        assert!(!absent.expect("the lookup answers"));
     }
 
     /// The download location follows the setting, and falls back to the OS

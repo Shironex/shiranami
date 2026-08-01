@@ -25,6 +25,10 @@ serde_json = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-single-instance = { workspace = true }
 tracing = { workspace = true }
+# `boot::sequence::BootError` is the one error type this crate declares itself:
+# a launch refusal, whose variants are what §3.1 step 7 requires be shown to a
+# user instead of an empty library.
+thiserror = { workspace = true }
 
 # Phase 14 lane 6. The OS surfaces §2.2 #30 and #31 name, all called from Rust
 # and none exposed to the webview: `tauri-plugin-dialog` for the two file
@@ -115,6 +119,11 @@ shiranami-serve = { workspace = true }
 # The reference namespaces are tested against the real state composition, which
 # means a real database file and a real settings file — both temporary.
 tempfile = { workspace = true }
+# §8's Ring 2: `tauri::test::mock_app` gives a real `AppHandle` over
+# `MockRuntime`, with no webview and no window server. Boot's service builders
+# take one because every event sink emits through it, so without this their
+# tests could only assert on predicates rather than on what they build.
+tauri = { workspace = true, features = ["test"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]

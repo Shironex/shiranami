@@ -145,7 +145,10 @@ impl UpdaterEvent {
     }
 }
 
-/// v1's release-pending predicate, verbatim.
+/// Whether an updater failure means "the release exists, its artifacts do not
+/// yet" rather than "something is broken".
+///
+/// # v1's half
 ///
 /// ```js
 /// /Cannot find latest\.yml/.test(error.message) ||
@@ -153,11 +156,50 @@ impl UpdaterEvent {
 /// ```
 ///
 /// The regex has no metacharacters beyond an escaped dot, so a substring test is
-/// the same test. See the parent module for why this is written against
-/// electron-updater's wording and what Phase 16 has to add to it.
+/// the same test. Kept because the predicate is shared with nothing else and a
+/// v1 build's log messages still turn up in bug reports during the handover
+/// window (§4).
+///
+/// # v2's half, which Phase 16 had to add
+///
+/// v2 publishes no `latest.yml` — that is electron-builder metadata.
+/// `tauri-plugin-updater` fetches a release JSON and its failure vocabulary is
+/// entirely different, so v1's predicate would classify **nothing** in v2 and
+/// every release window would show users an error toast where v1 showed them
+/// nothing at all. The three cases below are the plugin's, taken from its
+/// `Error` enum rather than guessed:
+///
+/// - **`ReleaseNotFound`** — `"Could not fetch a valid release JSON from the
+///   remote"`. The direct equivalent of v1's missing `latest.yml`: the endpoint
+///   answered, but not with a manifest.
+/// - **`TargetNotFound` / `TargetsNotFound`** — `"the platform … was not found
+///   in the response platforms object"`. This is the *asymmetric* release
+///   window and the one v1 had no equivalent for, because electron-builder
+///   published one manifest per platform: a Tauri manifest lists every
+///   platform in one file, so when the Windows artifact has uploaded and the
+///   macOS one has not, the manifest is valid and simply lacks a key. To a mac
+///   user that is exactly "the release is still building", and treating it as a
+///   hard error would toast every user on the slower platform for the length of
+///   the build.
+/// - A bare **404** on the manifest URL, which `reqwest` reports through the
+///   transparent `Reqwest` variant with no `.yml` in the message for v1's second
+///   clause to match.
+///
+/// A signature failure is deliberately **not** here: that is the one updater
+/// error a user must see, because it means the artifact does not verify.
 pub fn is_release_pending(message: &str) -> bool {
-    message.contains("Cannot find latest.yml")
+    // v1 / electron-updater.
+    if message.contains("Cannot find latest.yml")
         || (message.contains(".yml") && message.contains("404"))
+    {
+        return true;
+    }
+
+    // v2 / tauri-plugin-updater.
+    message.contains("Could not fetch a valid release JSON")
+        || message.contains("was not found in the response `platforms` object")
+        || message.contains("were found in the response `platforms` object")
+        || (message.contains("404") && message.contains("latest.json"))
 }
 
 /// Where an updater transition goes.
@@ -327,6 +369,57 @@ mod tests {
             assert_eq!(
                 UpdaterEvent::failed(message),
                 UpdaterEvent::Failed(message.to_owned())
+            );
+        }
+    }
+
+    /// v2's half of the predicate, against `tauri-plugin-updater`'s **own**
+    /// `Display` output rather than against strings invented here.
+    ///
+    /// Without these every release window would toast users an error, because
+    /// v1's clauses classify nothing the Tauri plugin ever says — v2 publishes
+    /// no `latest.yml` for them to match on.
+    #[test]
+    fn the_tauri_updaters_release_window_messages_classify() {
+        for message in [
+            // `Error::ReleaseNotFound` — the endpoint answered, but not with a
+            // manifest. The direct equivalent of v1's missing `latest.yml`.
+            "Could not fetch a valid release JSON from the remote",
+            // `Error::TargetNotFound` — a valid manifest that does not list this
+            // platform yet, which is the asymmetric release window v1 could not
+            // have: electron-builder published one manifest per platform.
+            "the platform `darwin-aarch64` was not found in the response `platforms` object",
+            // `Error::TargetsNotFound`, its plural sibling.
+            "None of the fallback platforms `[\"darwin-aarch64\"]` were found in the response `platforms` object",
+            // A bare 404 on the manifest itself, via the transparent `reqwest`
+            // variant — no `.yml` anywhere for v1's second clause to catch.
+            "HTTP status client error (404 Not Found) for url (https://x/latest.json)",
+        ] {
+            assert!(is_release_pending(message), "{message} must classify");
+            assert_eq!(
+                UpdaterEvent::failed(message),
+                UpdaterEvent::Failed(RELEASE_PENDING.to_owned()),
+                "the sentinel replaces the message rather than being appended"
+            );
+        }
+    }
+
+    /// The boundary: a signature failure is the one updater error a user must
+    /// see, because it means the artifact does not verify. Swallowing it under
+    /// the sentinel would silently stop updating a user whose release was
+    /// tampered with — or, far more likely, whose CI signed in the wrong order
+    /// (R8).
+    #[test]
+    fn a_signature_failure_is_never_treated_as_a_pending_release() {
+        for message in [
+            "The signature ABC could not be decoded, please check if it is a valid base64 string.",
+            "signature mismatch",
+            "Failed to install package",
+            "Updater does not have any endpoints set.",
+        ] {
+            assert!(
+                !is_release_pending(message),
+                "{message} must reach the user"
             );
         }
     }

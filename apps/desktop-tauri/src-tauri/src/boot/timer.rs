@@ -153,7 +153,10 @@ impl BootTimer {
 
     /// The slowest stage, or `None` when nothing was stamped.
     pub fn slowest(&self) -> Option<StageTiming> {
-        self.stages.iter().copied().max_by_key(|timing| timing.elapsed)
+        self.stages
+            .iter()
+            .copied()
+            .max_by_key(|timing| timing.elapsed)
     }
 
     /// Emit §1.2's measurement line.
@@ -195,7 +198,10 @@ mod tests {
     fn the_expected_order_names_every_stage_exactly_once() {
         let mut seen = std::collections::HashSet::new();
         for stage in Stage::EXPECTED_ORDER {
-            assert!(seen.insert(stage), "{stage:?} appears twice in §2.8's order");
+            assert!(
+                seen.insert(stage),
+                "{stage:?} appears twice in §2.8's order"
+            );
         }
 
         assert_eq!(
@@ -237,7 +243,12 @@ mod tests {
         // Serve before the database: the ordering bug R18 names, in which the
         // audio route's containment guard is built over a library that is not
         // open yet.
-        for stage in [Stage::Logging, Stage::Settings, Stage::Serve, Stage::Database] {
+        for stage in [
+            Stage::Logging,
+            Stage::Settings,
+            Stage::Serve,
+            Stage::Database,
+        ] {
             timer.stage(stage);
         }
 
