@@ -21,8 +21,31 @@ tauri-build = { workspace = true }
 
 [dependencies]
 serde = { workspace = true }
+serde_json = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-single-instance = { workspace = true }
+tracing = { workspace = true }
+
+# Phase 14. The command/event surface and the bindings it emits.
+#
+# `specta-typescript` and `specta-serde` are here because this crate now owns
+# the *file* the drift guard diffs: `shiranami-core` still declares the type
+# vocabulary, but a command signature is what pulls a type into the export, so
+# the exporter has to run where the commands are.
+specta = { workspace = true }
+specta-serde = { workspace = true }
+specta-typescript = { workspace = true }
+tauri-specta = { workspace = true }
+
+# The command layer acquires the pool's one connection and passes `&mut *conn`
+# down (`shiranami_db::repo`), so it names `SqliteConnection` in its own
+# signatures. No SQL is written here — that stays in `shiranami-db`.
+sqlx = { workspace = true }
+
+# The two composition-root seams (`crate::seam`) are `Arc<dyn Trait>` with async
+# methods, and native `async fn` in traits is not dyn-compatible. Same reason
+# `shiranami-downloader` takes it for its `ProcessRunner`.
+async-trait = { workspace = true }
 
 # The composition root depends on every domain crate; no domain crate depends
 # on it. Wiring lives here, logic never does — any file in this crate that
@@ -40,7 +63,10 @@ shiranami-recommendation = { workspace = true }
 shiranami-serve = { workspace = true }
 
 [dev-dependencies]
-serde_json = { workspace = true }
+# The reference namespaces are tested against the real state composition, which
+# means a real database file and a real settings file — both temporary.
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true

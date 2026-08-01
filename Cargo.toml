@@ -55,6 +55,14 @@ tracing = "0.1"
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 specta-serde = "=0.0.12"
+# Phase 14. `typescript` is the exporter the command/event bindings are rendered
+# through; `derive` is what `#[specta::specta]` on a command needs. The
+# `javascript` feature stays off — the renderer is TypeScript and a second
+# emitter would be a second thing the drift guard has to diff.
+tauri-specta = { version = "=2.0.0-rc.25", features = [
+  "derive",
+  "typescript",
+] }
 
 # Phase 3 (`shiranami-net`). reqwest 0.13 already resolves `default-tls` to
 # rustls, so the explicit list is not about picking a TLS stack — it is about

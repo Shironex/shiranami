@@ -11,6 +11,9 @@
 //! the remaining plugins and the `setup()` sequence around it.
 
 pub mod commands;
+pub mod error;
+pub mod seam;
+pub mod state;
 
 use tauri::Manager as _;
 
