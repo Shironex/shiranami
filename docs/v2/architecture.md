@@ -1650,3 +1650,143 @@ Until then `scrobble::open_auth_page` logs the URL at `warn` and says why. The
 wire contract is unaffected — `{ ok, token? }` is what the renderer reads and it
 is already byte-exact — but the handshake cannot complete until the plugin is
 registered, so this is a launch blocker rather than a cosmetic gap.
+
+## Phase 14 lane 6 implementation amendments (2026-08-01, `v2-cmd-window`)
+
+The `window` (6), `app` (3), `dialog` (2), `shell` (2) and `debug` (2)
+namespaces — 15 invoke channels — plus `window:maximized-change` and
+`debug:metrics`. Full rationale lives in the modules' docs.
+
+### Phase 16 inherits four items from this lane
+
+1. **`persist_compact_bounds` on the window's `close` handler.** v1 registered
+   `mainWindow.on('close', persistCompactBounds)` because quitting from compact
+   mode — taskbar, Alt+F4, a system shortcut — bypasses the explicit exit path
+   and loses the corner the user parked the mini-player in. The function is
+   `pub` in `commands::window` and has no caller yet.
+2. **`window:set-compact-mode` needs `AppState`** for that same corner
+   (`MainStoreKey::CompactWindowBounds`), so it answers "state not managed"
+   until Phase 16 boots. The other five window commands work today.
+3. **The log directory is `<app data>/logs`, via `crate::paths::logs_dir`**, not
+   Tauri's `app_log_dir()` — which on macOS is `~/Library/Logs/<bundle id>`, a
+   directory §3's first-run continuity does not copy because it copies the v1
+   _data_ tree. Phase 16's logger must resolve it through that function, or
+   `app:open-logs-folder` opens an empty folder.
+4. **`FoldersCache` is built per check, not held.** `crate::paths::ensure_allowed`
+   is correct but not the cache the audio route needs; see below.
+
+### The path guard is a rank-1 module, not a `shell` detail
+
+`crate::paths::ensure_allowed` is v1's `isPathAllowed` with its warning line,
+its `FORBIDDEN` code and its ordering, placed where the stream server and the
+storage namespace reach the same rule rather than restating it — a second copy
+of a security boundary is a second thing that can drift out of agreement with
+the first. A source-scan test pins that the guard precedes the OS call in both
+`shell` commands, because a refactor that hoisted `spawn_blocking` above it
+would still compile and still reject, after having already revealed or deleted.
+
+`PathAuthority` is deliberately synchronous so `FoldersCache::is_path_allowed`
+stays a plain function the audio route can call under `spawn_blocking`, but two
+of its three answers come from SQLite. The async half therefore runs **first**
+and hands the cache a snapshot of resolved facts. That inverts the laziness —
+the tracks lookup happens even when containment would have answered alone —
+which costs one indexed `SELECT` on a right-click. The alternative is `block_on`
+inside a `PathAuthority`, on a thread that may be the runtime's own, which is a
+deadlock rather than a cost. Phase 16 owns the long-lived cache with a real
+authority behind it.
+
+### Two managed holders are installed in `run()`, not deferred
+
+`compact::CompactModeState` and `commands::debug::DebugSampler` replace two
+things v1 kept as module-level mutable state, which §2.3 forbids. Unlike
+`AppState` they open nothing and order against nothing — both are `Default` and
+purely in-memory — so `manage`-ing them beside the plugins costs no ordering
+guarantee and lets both namespaces answer for real from Phase 14 rather than
+Phase 16.
+
+### Neither new plugin is granted a capability
+
+`tauri-plugin-dialog` and `tauri-plugin-opener` are registered after
+single-instance (§2.8 step 4) and `capabilities/default.json` is **unchanged**.
+Every call is Rust-side, where the plugins bypass their own ACL, so a JS
+permission would add nothing this lane needs and would hand the webview an
+unguarded `open_path` and `reveal_item_in_dir` — making the guard above
+decorative. `open_js_links_on_click` is off for the same reason: it is the
+opener plugin's one webview-reachable behaviour.
+
+### Compact mode is a state machine, and that is what made it testable
+
+v1 kept `isCompactMode`, `normalBounds` and `wasMaximizedBeforeCompact` in a
+closure over the `BrowserWindow`. `crate::compact` holds them as values with
+`plan()` and `valid_compact_position()` over them, and `commands/window.rs` is
+left with field copies and `match` arms over a `tauri::Window` no test can
+construct — `shiranami-media-controls`' backend split, one rank up.
+
+Two Tauri gaps, neither of which costs anything:
+
+- **No `getNormalBounds`.** Electron reports a maximized window's _restored_
+  rectangle; Tauri reports what is on screen. v1 only used `normalBounds` on the
+  path where the window was **not** maximized, since a maximized one is restored
+  by re-maximizing, so `WindowFacts::bounds` is `None` for a maximized window
+  rather than a lie.
+- **No maximize/unmaximize event.** `Resized` fires for both and for every frame
+  of an edge drag, so `window:maximized-change` is derived with one
+  compare-and-swap. Without it the renderer would receive an event per frame.
+
+Work areas are converted with **each monitor's own** scale factor rather than
+the window's; Tauri reports them in physical pixels and v1 stored the corner in
+logical ones, so using the window's factor misplaces the mini-player on a
+mixed-DPI desktop.
+
+Five of the six window commands log and return rather than rejecting: Electron's
+`minimize`/`maximize`/`close`/`setAlwaysOnTop` return `void` and do not throw, so
+those channels never rejected and the renderer's titlebar handlers have no
+`catch`. Propagating Tauri's `Result` would turn "the compositor declined a
+minimize" into an unhandled rejection inside a click handler.
+
+### `debug:metrics` — R13's second accepted loss, now concrete
+
+§2.2 #31 said "shape changes"; this is the shape. v1 sampled `getAppMetrics()`
+(per-process breakdown by Electron process _type_), `process.getCPUUsage()` and
+`process.getHeapStatistics()`. There is no V8 in the backend to report a heap
+for and no Chromium registry to label a process `Browser` or `GPU`, so v2
+reports this process and its **direct** children with CPU percentage and RSS.
+Field names (`pid`, `cpu`, `mem`) and `mem`'s unit (kibibytes) are v1's, so the
+panel's formatting survives; `type` becomes `kind: "main" | "child"` rather than
+inventing Electron's vocabulary for processes that are not Electron's. The event
+payload stops being `wire::Json` and becomes the real type.
+
+One level of children, not a transitive walk: the webview host and the helpers
+Tauri spawns are direct children on all three platforms, and a full ancestry
+walk would sweep in whatever a user's `yt-dlp` went on to start. v1's four
+safety rules survive, and "numbers and process kinds only" is now a test over
+the serialized payload — the tempting field to add is the process _name_, which
+`sysinfo` hands over for free and which would leak what the user is running.
+
+### Two v1 behaviours deliberately not reproduced
+
+- **`app:get-locale-country` reports the UI locale's region.**
+  `app.getLocaleCountryCode()` returned the OS _region_ (macOS
+  `NSLocale.countryCode`), which a user sets independently of the UI language.
+  No crate reads the region separately on all three platforms. The one consumer
+  is radio's "Near you" shortcut, whose failure mode is stations from the wrong
+  country rather than an error. The contract — alpha-2 or `""` — is unchanged.
+- **`app:open-logs-folder` reports a failed open.** Electron's `shell.openPath`
+  _resolves_ with an error string rather than throwing and v1 ignored it, which
+  was an artifact of the API rather than a decision — the same handler's
+  `mkdirSync` could already throw, so the channel was already rejection-capable.
+
+And one that looks like an omission and is not: **there is no
+`shell:open-external` in v1** to port. It has exactly two `shell:*` channels;
+everything that opens a URL goes through `share:*` or the updater, and §12's
+`integrations::share` returns the URL rather than opening it. So
+`shiranami_net::is_http_url` has no call site in this lane — both arguments here
+are filesystem paths, and a URL guard applied to a path refuses every one.
+
+### Appendix B addition
+
+`tauri-plugin-dialog = "2.7"`, `tauri-plugin-opener = "2.5"`, `trash = "5"`,
+`sys-locale = "0.3"`. `sysinfo` and `tokio` are added to `shiranami-desktop`
+from the existing workspace rows — `tauri::async_runtime` re-exports the
+runtime's `spawn` and its channels but not its timers, and a `std::thread::sleep`
+in the sampling task would park a runtime worker a second at a time.

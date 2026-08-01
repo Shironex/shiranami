@@ -11,6 +11,32 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  `app:get-version` — the version the About dialog and the updater compare. */
+	appGetVersion: () => __TAURI_INVOKE<string>("app_get_version"),
+	/**
+	 *  `app:open-logs-folder` — reveal the log directory in the file manager.
+	 * 
+	 *  v1 created the directory before opening it (`getLogsDir` ends in an
+	 *  `mkdirSync`), which matters on a fresh install where nothing has been logged
+	 *  yet — without it the open silently does nothing.
+	 * 
+	 *  # A deliberate difference: this one reports failure
+	 * 
+	 *  Electron's `shell.openPath` *resolves* with an error string rather than
+	 *  throwing, and v1 ignored the result, so a failed open was invisible. That was
+	 *  an artifact of the API rather than a decision — the same handler's
+	 *  `mkdirSync` could already throw, so the channel was rejection-capable and the
+	 *  renderer already handles it. Reporting both halves the same way is the
+	 *  smaller inconsistency.
+	 */
+	appOpenLogsFolder: () => __TAURI_INVOKE<null>("app_open_logs_folder"),
+	/**
+	 *  `app:get-locale-country` — the OS region as ISO 3166-1 alpha-2, or `""`.
+	 * 
+	 *  Backs radio's "Near you" shortcut for renderers whose locale tag carries no
+	 *  region subtag (a bare `pl`), which is why it exists at all.
+	 */
+	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
 	/**  `db:folders:get-all` — every watched folder, in insertion order. */
 	dbFoldersGetAll: () => __TAURI_INVOKE<WatchedFolder[]>("db_folders_get_all"),
 	/**
@@ -384,6 +410,17 @@ export const commands = {
 	dbTracksExistsMany: (filePaths: string[]) => __TAURI_INVOKE<string[]>("db_tracks_exists_many", { filePaths }),
 	/**  `db:tracks:get-id-by-path` — the id of the track holding this file. */
 	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
+	/**  `debug:start` — begin sampling and pushing `debug:metrics`. */
+	debugStart: () => __TAURI_INVOKE<null>("debug_start"),
+	/**  `debug:stop` — end sampling. Idempotent, as v1's was. */
+	debugStop: () => __TAURI_INVOKE<null>("debug_stop"),
+	/**  `dialog:open-directory` — pick one folder, or `null` if cancelled. */
+	dialogOpenDirectory: () => __TAURI_INVOKE<string | null>("dialog_open_directory"),
+	/**  `dialog:open-file` — pick one file, or `null` if cancelled. */
+	dialogOpenFile: (options: {
+	/**  Which formats the picker offers. Absent means audio; see [`filters_for`]. */
+	filters?: FileFilter[] | null,
+} | null) => __TAURI_INVOKE<string | null>("dialog_open_file", { options }),
 	/**
 	 *  `discord-rpc:get-settings` — the stored Rich Presence settings.
 	 * 
@@ -494,6 +531,16 @@ export const commands = {
 	 *  track skips yt-dlp entirely. Returns nothing, as v1 did.
 	 */
 	shareCacheYoutubeId: (trackId: string, youtubeId: string) => __TAURI_INVOKE<null>("share_cache_youtube_id", { trackId, youtubeId }),
+	/**  `shell:show-in-folder` — reveal a file in the OS file manager. */
+	shellShowInFolder: (filePath: string) => __TAURI_INVOKE<null>("shell_show_in_folder", { filePath }),
+	/**
+	 *  `shell:trash-file` — move a file to the recycle bin.
+	 * 
+	 *  The recycle bin, never an unlink: v1 used `shell.trashItem`, so a mistaken
+	 *  delete has always been recoverable from the OS, and `trash` is the crate that
+	 *  keeps that true on all three platforms.
+	 */
+	shellTrashFile: (filePath: string) => __TAURI_INVOKE<null>("shell_trash_file", { filePath }),
 	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
@@ -545,6 +592,26 @@ export const commands = {
 	 *  coordinates.
 	 */
 	weatherGetCurrent: (coords: Coordinates) => __TAURI_INVOKE<WeatherCurrent>("weather_get_current", { coords }),
+	/**  `window:minimize`. */
+	windowMinimize: () => __TAURI_INVOKE<void>("window_minimize"),
+	/**
+	 *  `window:maximize` — a **toggle**, not a maximize.
+	 * 
+	 *  The name is v1's and is misleading: the titlebar has one button for both, so
+	 *  the channel restores an already-maximized window.
+	 */
+	windowMaximize: () => __TAURI_INVOKE<void>("window_maximize"),
+	/**  `window:close`. */
+	windowClose: () => __TAURI_INVOKE<void>("window_close"),
+	/**  `window:is-maximized` — what the titlebar draws its restore icon from. */
+	windowIsMaximized: () => __TAURI_INVOKE<boolean>("window_is_maximized"),
+	/**  `window:set-always-on-top` — the mini-player's pin. */
+	windowSetAlwaysOnTop: (alwaysOnTop: boolean) => __TAURI_INVOKE<void>("window_set_always_on_top", { alwaysOnTop }),
+	/**  `window:set-compact-mode` — enter, resize or leave the mini-player. */
+	windowSetCompactMode: (compactMode: boolean, dimensions: {
+	width: number,
+	height: number,
+} | null) => __TAURI_INVOKE<null>("window_set_compact_mode", { compactMode, dimensions }),
 };
 
 /** Events */
@@ -593,6 +660,20 @@ export type CachedToolStatus = {
 };
 
 /**
+ *  The compact size the renderer asked for.
+ * 
+ *  v1's zod bounds were `width: int 200..=1200`, `height: int 120..=800`. serde
+ *  gives the integer half for free — a fractional or negative value fails to
+ *  deserialize into `u32` before the command body runs — so only the ranges are
+ *  re-raised in [`Self::validate`], under the same `BAD_REQUEST` code zod's
+ *  failure produced.
+ */
+export type CompactDimensions = {
+	width: number,
+	height: number,
+};
+
+/**
  *  The single object argument `weather:get-current` takes.
  * 
  *  A struct rather than two parameters because v1's channel took **one**
@@ -611,9 +692,10 @@ export type Coordinates = {
  * 
  *  **Shape changes in v2** (§2.2 #31): there is no Chromium `getAppMetrics`
  *  equivalent, so this carries `sysinfo` per-process CPU and RSS only. An
- *  accepted, recorded loss rather than a port gap.
+ *  accepted, recorded loss rather than a port gap — see
+ *  `crate::commands::debug` for exactly what was dropped and why.
  */
-export type DebugMetrics = Json;
+export type DebugMetrics = MetricsSnapshot;
 
 /**
  *  Whether each external tool is present.
@@ -1010,6 +1092,21 @@ export type ErrorPayload = {
 	details?: unknown | null,
 };
 
+/**
+ *  One entry of v1's `Electron.FileFilter`.
+ * 
+ *  The shape is frozen by the renderer, which builds these itself when it wants
+ *  something other than audio — the playlist import screen asks for `.m3u`.
+ *  Extensions are bare (`"mp3"`), never dotted and never globbed, with `"*"`
+ *  meaning "everything", exactly as Electron defined it.
+ */
+export type FileFilter = {
+	/**  The label shown in the picker's format dropdown. */
+	name: string,
+	/**  Extensions without the leading dot. */
+	extensions: string[],
+};
+
 /**  A resolved place, as returned by the geocoding lookup. */
 export type GeocodeResult = {
 	/**  Latitude in decimal degrees. */
@@ -1291,6 +1388,19 @@ export type MediaCommand = string;
 export type MetadataEnrichProgress = Json;
 
 /**
+ *  What `debug:metrics` carries.
+ * 
+ *  `procs` is the whole payload beside the timestamp: v1's `cpu` and `heap`
+ *  blocks described the Electron main process's V8 runtime, and there is none.
+ */
+export type MetricsSnapshot = {
+	/**  Milliseconds since the epoch, as `Date.now()` produced. */
+	ts: number,
+	/**  This process first, then its children by ascending pid. */
+	procs: ProcessMetric[],
+};
+
+/**
  *  Insert shape: `id` and the timestamps are DB-generated and may be omitted.
  * 
  *  `file_path` and `title` are the only required columns; everything else
@@ -1372,6 +1482,20 @@ export type NowPlaying = {
 	currentTime: number,
 	/**  Cover URL, or `None` when the track carries no art. */
 	albumArt: string | null,
+};
+
+/**
+ *  The single optional argument `dialog:open-file` takes.
+ * 
+ *  v1's preload typed this as the whole of Electron's `OpenDialogOptions` while
+ *  its zod schema accepted only `{ filters? }` and the handler read only that.
+ *  Non-strict `z.object` dropped the rest silently; serde's default
+ *  unknown-field handling does the same, so a renderer still passing
+ *  `properties` or `title` is ignored rather than rejected.
+ */
+export type OpenFileOptions = {
+	/**  Which formats the picker offers. Absent means audio; see [`filters_for`]. */
+	filters?: FileFilter[] | null,
 };
 
 /**
@@ -1513,6 +1637,37 @@ export type PlaylistUpdateInput = {
 	description?: string | null,
 	/**  Cover-art URL. */
 	coverArt?: string | null,
+};
+
+/**
+ *  Which process a row describes.
+ * 
+ *  v1 forwarded Electron's `type` string (`Browser`, `GPU`, `Tab`, `Utility`).
+ *  Tauri has no such registry, so the honest distinction is the only one this
+ *  process can actually make about its own tree.
+ */
+export type ProcessKind = 
+/**  The app process itself. */
+"main" | 
+/**  A process it spawned — the webview host, or a helper it owns. */
+"child";
+
+/**  One process's slice of a sample. */
+export type ProcessMetric = {
+	/**  Whether this is the app process or one of its children. */
+	kind: ProcessKind,
+	/**  The OS process id. */
+	pid: number,
+	/**
+	 *  CPU usage as a percentage. May exceed 100 on a multi-core machine, which
+	 *  is what v1's `percentCPUUsage` did too.
+	 */
+	cpu: number,
+	/**
+	 *  Resident set size in **kibibytes** — v1's unit, kept so the panel's
+	 *  formatting does not have to change.
+	 */
+	mem: number,
 };
 
 /**

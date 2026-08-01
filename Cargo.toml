@@ -48,6 +48,21 @@ tauri-plugin-single-instance = "2.4"
 thiserror = "2"
 tracing = "0.1"
 
+# Phase 14 lane 6 (`window` / `app` / `dialog` / `shell` / `debug`), the
+# Appendix B rows for architecture §2.2 #30. All four are reached from **Rust
+# only** — no capability grants the webview their JS commands, so the renderer
+# still cannot open a path or a dialog except through a command that validates
+# first.
+#
+# `trash` and `sys-locale` are plain crates rather than plugins because neither
+# has one: `shell:trash-file` is `shell.trashItem` and `app:get-locale-country`
+# is `app.getLocaleCountryCode()`, and a plugin would only add an ACL surface
+# for functionality nothing outside the command layer may call.
+tauri-plugin-dialog = "2.7"
+tauri-plugin-opener = "2.5"
+trash = "5"
+sys-locale = "0.3"
+
 # Exact pins, as nuclear ships (architecture D6/R11): tauri-specta is
 # perpetually pre-1.0, and a floating rc would resolve differently between a
 # local run and CI — which is precisely how a regenerate-and-diff guard starts

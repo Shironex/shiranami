@@ -247,6 +247,21 @@ mod tests {
             "discordRpcUpdatePresence",
             "discordRpcClearPresence",
             "lyricsFetch",
+            "windowMinimize",
+            "windowMaximize",
+            "windowClose",
+            "windowIsMaximized",
+            "windowSetAlwaysOnTop",
+            "windowSetCompactMode",
+            "appGetVersion",
+            "appOpenLogsFolder",
+            "appGetLocaleCountry",
+            "dialogOpenDirectory",
+            "dialogOpenFile",
+            "shellShowInFolder",
+            "shellTrashFile",
+            "debugStart",
+            "debugStop",
         ];
 
         for command in PORTED_NAMES {
