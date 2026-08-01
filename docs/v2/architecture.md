@@ -855,3 +855,67 @@ Recorded from the shipped `v2-net`, `v2-recommendation`, and `v2-audio` lanes; f
 - Verified against a compiled harness of v1's own C++ core: peaks bit-identical (wav/flac), LUFS within 2.1e-14 LU (0.0063 LU on mp3 where decoders differ), cache filenames and bytes reproduced exactly. ~1.4× faster than the addon, O(1) memory.
 - Format coverage vs v1: gains `.m4a` (AAC+ALAC), `.ogg`, and mislabelled extensions; residual gap `.opus`/`.wma` — both were ffmpeg-fallback-only in v1, never native. Pinned by tests that fail when symphonia closes them.
 - The ffmpeg `loudnorm` fallback is deleted; undecodable is a real error surfaced to the caller.
+
+## Phase 6 implementation amendments (2026-08-01, merged to v2)
+
+Recorded from the shipped `shiranami-db` foundation; full rationale lives in the crate's module docs.
+
+**Pool.** v1's effective settings were WAL + `foreign_keys=ON` (explicit in `client.ts`) plus
+better-sqlite3's defaults for `busy_timeout` (5000 ms) and `synchronous` (`FULL`); all four are set
+explicitly in v2 and pinned by a test. The pool holds **one connection**, matching v1's single
+synchronous handle — this removes the `SQLITE_BUSY_SNAPSHOT` class outright, since sqlx opens
+_deferred_ transactions and `busy_timeout` does not retry a failed snapshot upgrade. Phase 7 must
+therefore never acquire a second connection while holding one; raising the count later requires
+`BEGIN IMMEDIATE` on every write path.
+
+**`quick_check` is fatal, not advisory.** v1 logged a warning and opened the file anyway, on the
+reasoning that a half-readable database is still worth exporting from. v2's caller is first-run
+adoption, which is about to write a ledger into the file. Any `SQLITE_CORRUPT` — including from the
+connect itself, which is where a badly mangled file actually fails — maps to the same error.
+
+**Adoption states.** Beyond §3.2's list: a ledger recording the baseline as applied against a
+database with no `tracks` table is refused, and a `_sqlx_migrations` table with no baseline row
+counts as "not yet adopted" (a crashed first run is resumable, not a conflict).
+
+**drizzle 0.x ledgers are refused, not upgraded.** The 3-column shape would need drizzle's own
+hash-matching upgrade path. It is unreachable: v1's migrator landed in v0.22.0 (`9c0d0564`) and the
+bump to drizzle 1.0.0-rc.2 landed before v0.19.0 (`173f5832`), so every ledger in the wild is the
+5-column shape. Detected and refused rather than guessed at.
+
+**`ALTER TABLE ... ADD` is guarded generally**, not just for `disc_number`. v1 ran migrations 001/002
+unguarded, which is safe when the only inputs are databases v1 produced; adoption's input is wider.
+Statement-shape matched, with a test pinning exactly which two frozen statements it recognises.
+
+**Fresh v2 installs seed a complete `__drizzle_migrations` ledger.** §3.2 step 5 only says to leave an
+existing one in place. Writing one on fresh installs too closes the other direction of the handover:
+v1's `importDatabase` accepts any file at the frozen floor, and would then hand a v2-created database
+to its own migrator, which would replay `ALTER TABLE tracks ADD album_artist` against a column that
+already exists and fail. drizzle rc.2 selects pending migrations by **name-set membership** (not by
+newest `created_at`, as `migrate.test.ts`'s comment still claims), so the rows are enough. Removable
+once the handover window closes.
+
+**`user_version` is stamped inside the adoption transaction**, unlike v1, which stamped after its
+migrator returned. The pragma is transactional, so the stamp and the ledger it describes commit
+together.
+
+**Legacy-created databases keep v1's schema _text_.** The pre-migrator `createTables()` DDL differs
+textually from the drizzle baseline (unquoted identifiers, `NOT NULL DEFAULT` ordering, inline
+`REFERENCES`), and adoption does not rewrite it — neither did v1. Equivalence there is structural
+(every table, column and index present), which is what named-column queries depend on. The
+`sqlite_master` text proof covers the drizzle-created schema, which is what a fresh install produces.
+A healed `tracks` also carries `disc_number` last rather than mid-table, because `ALTER TABLE`
+appends; v1 produces the same shape.
+
+**The `sqlite_master` diff test is fixture-based, and the fixture has its own guard.**
+`crates/shiranami-db/fixtures/v1-schema.json` is generated from `packages/database/drizzle/*` by
+`pnpm verify:db-baseline` and committed, because `packages/database` is deleted at cutover (Phase 20)
+and the cargo test has to keep working afterwards. The script's verifying mode is wired into
+`rust-checks`, not `ci.yml` — that job already installs Node for `verify:drift-guard`, and the script
+uses `node:sqlite` and no `node_modules`. It derives the `user_version` floor from `migrate.ts`
+rather than hardcoding it, so a v1 that raised its floor fails the check instead of silently
+diverging. Proven non-vacuous by perturbing a v1 migration and requiring exit 1.
+
+**Appendix B pin.** `sqlx = "0.9"` with `default-features = false`. 0.9 gates dynamic SQL behind
+`SqlSafeStr`, so the handful of statements that interpolate a private constant are wrapped in
+`AssertSqlSafe` with the audit note the trait asks for. `macros` is pinned per Appendix B but unused
+until Phase 7, so no `.sqlx/` offline data or `sqlx-offline` CI job is needed yet.
