@@ -13,5 +13,31 @@ shiranami-core.workspace = true
 shiranami-net.workspace = true
 shiranami-db.workspace = true
 
+# The Discord IPC client. Blocking transport, so it lives behind the
+# `PresenceSocket` trait and every call runs in `spawn_blocking`.
+discord-rich-presence = { workspace = true }
+futures = { workspace = true }
+# Last.fm defines `api_sig` as md5 of the signature base string, so the
+# algorithm is theirs, not a choice. Nothing security-bearing uses it.
+md-5 = { workspace = true }
+# Header names and values only. `shiranami-net` remains the sole constructor of
+# a reqwest `Client`; these types are simply the vocabulary its
+# `RequestOptions::with_header` speaks, the same way `shiranami-serve` takes it.
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# The scrobble retry queue is a table now, so the service acquires from a pool
+# around its network work — see `scrobble::service` for why it never holds one
+# across a request.
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
 [lints]
 workspace = true

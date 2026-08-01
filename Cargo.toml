@@ -200,6 +200,21 @@ regex = { version = "1.11", default-features = false, features = [
   "unicode-perl",
 ] }
 
+# Phase 12 lane B (`shiranami-integrations`: scrobbling, Discord Rich Presence).
+#
+# `md-5` is the crate architecture §2.2 row 25 names, and it is not a choice:
+# Last.fm's `api_sig` is defined as md5 of the signature base string, so the
+# algorithm is fixed by their API. Pinned to the 0.10 RustCrypto line so it
+# shares one `digest` version with `sha2` above. md5 is used here strictly as a
+# request signature Last.fm dictates, never for anything security-bearing.
+md-5 = "0.10"
+
+# The Discord IPC client, pinned by Appendix B. Its transport is blocking
+# (a `UnixStream` on macOS, a named pipe on Windows), so every call it makes
+# runs inside `spawn_blocking` behind the `PresenceSocket` trait seam, which is
+# also what lets the reconnect state machine be tested with no Discord running.
+discord-rich-presence = "1.1"
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
