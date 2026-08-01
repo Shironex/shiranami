@@ -47,6 +47,11 @@ sqlx = { workspace = true }
 # `shiranami-downloader` takes it for its `ProcessRunner`.
 async-trait = { workspace = true }
 
+# The scan, enrich and loudness commands each own one cancellable run, and the
+# crates below them take `&CancellationToken` — v1's `utilityProcess` handshake
+# and its three `AbortController` slots collapse into this one type.
+tokio-util = { workspace = true }
+
 # The composition root depends on every domain crate; no domain crate depends
 # on it. Wiring lives here, logic never does — any file in this crate that
 # grows past 400 code lines means logic leaked out of a crate.

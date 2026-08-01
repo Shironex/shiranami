@@ -190,6 +190,54 @@ export const commands = {
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
 	/**
+	 *  `library:parse-metadata` — read one file's tags.
+	 * 
+	 *  Stays off the scan pipeline entirely, as v1's did: spawning a whole scan for
+	 *  one file is overkill, and a single parse does not accumulate the pressure
+	 *  that drove v1 to a utility process in the first place.
+	 * 
+	 *  Never fails on a bad file. v1's `parseAudioMetadata` caught everything and
+	 *  returned a filename-derived placeholder row, which is exactly what
+	 *  [`shiranami_metadata::read_metadata_or_placeholder`] is for — the renderer
+	 *  shows a track named after its file rather than an error.
+	 */
+	libraryParseMetadata: (filePath: string) => __TAURI_INVOKE<ScannedFile>("library_parse_metadata", { filePath }),
+	/**
+	 *  `library:scan-folder` — every audio file beneath a folder, flat.
+	 * 
+	 *  No production caller: `apps/web` reaches only for the grouped form. It
+	 *  survives because the e2e suite drives it and because dropping a channel the
+	 *  frozen manifest still names would fail the parity checklist (R13).
+	 */
+	libraryScanFolder: (dirPath: string) => __TAURI_INVOKE<ScannedFile[]>("library_scan_folder", { dirPath }),
+	/**
+	 *  `library:scan-folder-grouped` — loose files plus one group per subfolder.
+	 * 
+	 *  The only path production uses: the add-folder, rescan and onboarding flows
+	 *  all call it. Grouping feeds exactly one feature — the "create playlists from
+	 *  these subfolders?" prompt — and not album detection, which `apps/web` derives
+	 *  from tags instead.
+	 */
+	libraryScanFolderGrouped: (dirPath: string) => __TAURI_INVOKE<GroupedScanResult>("library_scan_folder_grouped", { dirPath }),
+	/**
+	 *  `library:scan-cancel` — cancel the active scan, if any.
+	 * 
+	 *  Best-effort and immediate: it returns as soon as the token is cancelled,
+	 *  while the scan itself unwinds and resolves empty through its own channel.
+	 *  Cancelling while idle is a no-op, not an error.
+	 */
+	libraryScanCancel: () => __TAURI_INVOKE<null>("library_scan_cancel"),
+	/**
+	 *  `library:validate-files` — which of these paths are gone from disk.
+	 * 
+	 *  Returns only the **missing** paths, in input order, duplicates preserved.
+	 *  It reports; it does not decide — the renderer maps them back to track ids and
+	 *  calls `db:tracks:remove-many` itself, which is a hard delete. See the crate's
+	 *  module docs for what that costs on an unmounted drive, and why softening it
+	 *  belongs in `apps/web` rather than here.
+	 */
+	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
+	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
 	 *  Returns `null` for an unset key, matching v1's `StoreSchema[K] | undefined`:
@@ -693,6 +741,21 @@ export type GeocodeResult = {
 	lon: number,
 	/**  Human label, formatted "City, Country". */
 	label: string,
+};
+
+/**  The result of a grouped scan. */
+export type GroupedScanResult = {
+	/**  Audio files sitting directly in the scanned root. */
+	rootTracks: ScannedFile[],
+	/**
+	 *  One entry per immediate subdirectory that held at least one audio file.
+	 * 
+	 *  A subdirectory with no audio anywhere beneath it is omitted entirely,
+	 *  rather than appearing with an empty `tracks` list — v1's
+	 *  `if (files.length > 0)` guard, and what keeps the playlist prompt from
+	 *  offering to create a playlist for an empty folder.
+	 */
+	subfolders: SubfolderScan[],
 };
 
 /**  What the shell reports about itself. */
@@ -1267,6 +1330,17 @@ export type RendererStoreKey =
 /**  Whether to prefer LRCLIB's synced lyrics over local files. */
 "lyrics.preferSyncedFromLrclib";
 
+/**  One file the scan read, and what it read. */
+export type ScannedFile = {
+	/**  Absolute path of the audio file. */
+	filePath: string,
+	/**
+	 *  Its tags, or the filename-derived placeholder v1 substitutes for a file
+	 *  it cannot parse.
+	 */
+	metadata: TrackMetadata,
+};
+
 /**
  *  The result of connecting Last.fm or ListenBrainz.
  * 
@@ -1492,6 +1566,24 @@ export type SmartPlaylistRule = {
 	value: string,
 	/**  Upper bound, for [`SmartPlaylistOperator::Between`] only. */
 	valueTo?: string | null,
+};
+
+/**
+ *  One immediate subdirectory of the scanned root, and its tracks.
+ * 
+ *  "Subfolder" is a flat concept: nested directories are folded into their
+ *  top-level ancestor's group, so `Artist/Album/Disc 1/x.mp3` lands in the group
+ *  named `Artist`. Grouping exists for exactly one feature — the "create
+ *  playlists from these subfolders?" prompt — and not for album detection, which
+ *  `apps/web` derives from tags instead.
+ */
+export type SubfolderScan = {
+	/**  The directory's own name, which becomes the proposed playlist name. */
+	name: string,
+	/**  Its absolute path. */
+	path: string,
+	/**  Every audio file beneath it, at any depth the walk reached. */
+	tracks: ScannedFile[],
 };
 
 /**

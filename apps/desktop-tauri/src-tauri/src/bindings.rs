@@ -202,6 +202,11 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "libraryParseMetadata",
+            "libraryScanFolder",
+            "libraryScanFolderGrouped",
+            "libraryScanCancel",
+            "libraryValidateFiles",
         ];
 
         for command in PORTED_NAMES {

@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 19;
+pub const COMMAND_COUNT: usize = 24;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -91,6 +91,7 @@ macro_rules! namespace_list {
             // ══════════════ THE SHARED LINE LIST ══════════════
             db_tracks
             health
+            library
             store
             weather
             // ═════════════════════════════════════════════════
