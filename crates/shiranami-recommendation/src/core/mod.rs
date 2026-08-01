@@ -22,16 +22,19 @@
 //! | `src/types.ts`        | [`types`]        |
 //! | `src/affinity.ts`     | [`affinity`]     |
 //! | `src/similarity.ts`   | [`similarity`]   |
+//! | `src/mixes.ts`        | [`mixes`]        |
 //! | (`Date.parse` / `Date.now`) | [`instant`] |
 
 pub mod affinity;
 pub mod instant;
+pub mod mixes;
 pub mod similarity;
 pub mod types;
 
 pub use affinity::{
     DEFAULT_ARTIST_DISLIKE_PENALTY, affinity_score, rank_by_affinity, select_seed_tracks,
 };
+pub use mixes::{MixTrack, SMART_MIX_LIMIT, build_smart_mixes};
 pub use similarity::{rank_by_similarity, similarity_score};
 pub use types::{
     AffinityOptions, ScoredTrack, SharedPlaylistCounts, SimilarTrack, SimilarityTrack,

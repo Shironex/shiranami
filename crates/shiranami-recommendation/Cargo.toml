@@ -13,5 +13,11 @@ shiranami-core.workspace = true
 shiranami-db.workspace = true
 shiranami-downloader.workspace = true
 
+[dev-dependencies]
+# Only to assert that a generated mix `id` still equals the serde name of its
+# `SmartMixKind` — the renderer keys on that string, and the port put the two in
+# separate places for the first time.
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
