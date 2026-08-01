@@ -23,6 +23,7 @@ use crate::compat;
 use crate::error::{DbError, Result};
 use crate::migrations::MIGRATOR;
 use crate::pool;
+use crate::repo::conn::acquire;
 
 /// An open database and the story of how it got that way.
 pub struct OpenedDatabase {
@@ -38,11 +39,9 @@ pub async fn open(path: &Path) -> Result<OpenedDatabase> {
     let pool = pool::open_pool(path).await?;
 
     // The pool holds a single connection, so everything below runs on the same
-    // one and nothing may acquire a second while this is held.
-    let mut conn = pool.acquire().await.map_err(|source| DbError::Query {
-        operation: "acquire the database connection",
-        source,
-    })?;
+    // one and nothing may acquire a second while this is held. Taken through
+    // `repo::conn::acquire`, the crate's one acquire site (see `repo`).
+    let mut conn = acquire(&pool).await?;
 
     let adoption = adopt(&mut conn).await?;
 
