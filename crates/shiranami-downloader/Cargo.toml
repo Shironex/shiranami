@@ -7,11 +7,45 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
+# `src/bin/` is this crate's binary-*manager* module (architecture §2.2 #19
+# names it `downloader::bin`), not a directory of executables. Cargo would
+# otherwise auto-discover targets there and fail over a file that is plainly a
+# library module.
+autobins = false
 
 [dependencies]
 shiranami-core.workspace = true
 shiranami-net.workspace = true
 shiranami-db.workspace = true
+
+async-trait = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+# `macros` on top of the workspace feature set, for `select!` and `join!`. The
+# version stays pinned in the workspace row; only this crate needs the macros,
+# because only this crate races a child process against a deadline and a
+# cancellation token while draining two pipes at once.
+tokio = { workspace = true, features = ["macros"] }
+# For `CancellationToken` alone, which is what a cancelled download, a cancelled
+# playlist extraction and an `ExitRequested` sweep all reduce to. It lives in
+# `tokio_util::sync`, which is ungated, so the workspace's `io`-only feature set
+# is already enough.
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+unicode-normalization = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+zip = { workspace = true }
+
+[dev-dependencies]
+# The binary managers are HTTP clients, so their tests bind a real loopback
+# server and let them talk to it — a stubbed client would not exercise the
+# redirect loop every one of these three download hosts actually uses.
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true
