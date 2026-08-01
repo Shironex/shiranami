@@ -105,6 +105,20 @@ pub enum DbError {
         /// What did not match.
         reason: String,
     },
+
+    /// A file offered as a backup is not a SQLite database.
+    ///
+    /// Raised by [`crate::repo::backup::assert_importable`] before anything
+    /// overwrites the live database, so the user keeps both files. Unlike the
+    /// variants above this one is not a boot-path failure — it is the answer to
+    /// a file the user just picked, and its message is written to be read in
+    /// that moment.
+    #[error("the selected file is not a valid SQLite database: {path}")]
+    NotADatabase {
+        /// The rejected path, echoed so the message names the file the user
+        /// chose. It goes in the message, never in `details` — see below.
+        path: String,
+    },
 }
 
 impl WireError for DbError {

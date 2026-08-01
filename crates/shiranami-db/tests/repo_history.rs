@@ -274,7 +274,11 @@ async fn recent_honours_the_since_bound_inclusively() {
         .expect("the history must read");
 
     let ids: Vec<_> = rows.iter().map(|row| row.id.as_str()).collect();
-    assert_eq!(ids, ["h2"], "`since` is `>=`, so its own instant is included");
+    assert_eq!(
+        ids,
+        ["h2"],
+        "`since` is `>=`, so its own instant is included"
+    );
 }
 
 #[tokio::test]
@@ -418,7 +422,10 @@ async fn the_top_tracks_rank_by_plays_then_by_recency() {
     assert_eq!(ids, ["t1", "t3", "t2"]);
 
     let top = &summary.top_tracks[0];
-    assert_eq!(top.play_count, 3, "the window's plays, not tracks.play_count");
+    assert_eq!(
+        top.play_count, 3,
+        "the window's plays, not tracks.play_count"
+    );
     assert!((top.listened_seconds - 460.0).abs() < 1e-9);
     assert_eq!(top.last_played_at, "2026-06-02T10:00:00.000Z");
 }
@@ -693,7 +700,10 @@ async fn an_untagged_album_falls_back_to_a_track_artist_then_to_the_sentinel() {
         .iter()
         .map(|album| (album.album.as_str(), album.artist.as_str()))
         .collect();
-    assert_eq!(by_album["Nocturne"], "Aoi", "falls back to the track artist");
+    assert_eq!(
+        by_album["Nocturne"], "Aoi",
+        "falls back to the track artist"
+    );
     assert_eq!(
         by_album["Drift"], UNKNOWN_ARTIST,
         "with nothing to fall back to, the sentinel rather than a blank card"

@@ -52,6 +52,7 @@
 
 // lane B — activity-side repositories (play history, download queue, radio,
 // backup). Lane A appends the library-side modules in its own group.
+pub mod backup;
 pub mod download_queue;
 pub mod history;
 pub mod radio;
