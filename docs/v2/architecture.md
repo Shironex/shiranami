@@ -820,3 +820,14 @@ Recorded from the shipped `feat/updater-v2-bridge` branch where the implementati
 - **Manifest fetch uses native `fetch`, not `app/http.ts`** — the shared helper warns on every non-2xx, which would log daily forever in the dormant state. The installer download still goes through `app/http.ts`.
 - **Dormant guard:** `fetchV2Manifest()` returns `null` (never throws) for 404/non-2xx/network/timeout/oversized/malformed/schema-invalid; `resolveHandover()` returns `null` on kill switch, unmet `min_v1_version`, or missing platform artifact. One info log per process, no renderer contact, no Sentry.
 - New main-only store key `v2.crossoverPinged` (deliberately not in `RENDERER_STORE_KEYS`); version comparison extracted to dependency-free `utils/version.ts`.
+
+## Spike A result (2026-08-01): PASS — port phases unblocked
+
+Full evidence in [spike-a-results.md](./spike-a-results.md) (macOS 26.5.1, WebKit 21624.2.5.11.4, Tauri 2.11.5). Load-bearing requirements it adds:
+
+- The v2 stream server MUST always send `Access-Control-Allow-Origin: *` and implement RFC-7233 single-range 206 responses — WebKit opens every media load with a `Range: bytes=0-1` probe, so Range support is load-bearing for playback, not just seeking.
+- Keep `crossOrigin='anonymous'` on media elements so a missing-header regression fails loudly (MediaError 4) instead of the silent zero-samples trap.
+- No autoplay configuration needed on Tauri/WKWebView (unlike Electron's `autoplay-policy` switch) — keep wry defaults.
+- CORS `Origin` arrives as literal `tauri://localhost`; fine for `*`, matters if the server ever goes credentialed.
+- WKWebView audio contexts run at 48 kHz with transparent resampling of 44.1 kHz media.
+- `navigator.mediaSession` accepts metadata/handlers/playbackState without error; actual Now Playing + media-key surfacing still needs a short manual check before D-media-controls is considered settled (souvlaki remains the plan of record).
