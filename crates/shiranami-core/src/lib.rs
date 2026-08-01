@@ -19,6 +19,7 @@
 pub mod bindings;
 pub mod constants;
 pub mod error;
+pub mod migrate;
 pub mod models;
 pub mod notice;
 pub mod paths;
