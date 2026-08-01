@@ -29,8 +29,20 @@ tracing = { workspace = true }
 walkdir = { workspace = true }
 
 [dev-dependencies]
+# Fixture trees are synthesised, not committed: `lofty` writes the tags the scan
+# then reads back, so this crate carries no audio binaries of its own.
+lofty = { workspace = true }
 serde_json = { workspace = true }
+# A *dev*-dependency only. The crate itself must never gain a database (see the
+# crate docs); `tests/reconciliation.rs` needs one because the thing it pins is
+# what the renderer does with a scan result, and "a moved file loses its play
+# count" is a claim about rows, not about scans.
+shiranami-db = { workspace = true }
+# The repositories borrow `&mut SqliteConnection`, so the test that calls them
+# needs the type by name.
+sqlx = { workspace = true }
 tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true
