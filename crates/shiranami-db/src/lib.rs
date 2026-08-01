@@ -33,6 +33,8 @@
 //!   install writes one — so a v1 build can still read what v2 has touched.
 
 pub mod error;
+pub mod migrations;
 pub mod pool;
 
 pub use error::{DbError, Result};
+pub use migrations::MIGRATOR;
