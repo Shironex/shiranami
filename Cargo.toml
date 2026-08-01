@@ -56,6 +56,30 @@ specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 specta-serde = "=0.0.12"
 
+# Phase 5 (`shiranami-audio`) — the Rust replacement for the C++ N-API addon.
+# `symphonia` decodes strictly more than the vendored dr_libs did, and `ebur128`
+# is a port of the vendored libebur128, so the LUFS the volume-leveling feature
+# already persisted stay comparable (architecture §2.9, Appendix B).
+#
+# `alac` is the one addition to Appendix B's feature list: `.m4a` is in v1's
+# accepted-extension set and an iTunes-ripped `.m4a` holds ALAC, not AAC, so
+# without it a format v1 played would analyse as undecodable.
+symphonia = { version = "0.6", features = [
+  "mp3",
+  "flac",
+  "isomp4",
+  "aac",
+  "alac",
+  "opt-simd",
+] }
+ebur128 = "0.1.10"
+
+# Names the waveform-peaks cache files. v1 keyed them `sha256(path|mtime|size)`
+# truncated to 128 bits and v2 adopts that cache verbatim (§3.3), so the hash is
+# a compatibility constraint, not an implementation choice. Pinned to the 0.10
+# line already resolved in the lockfile so the tree holds one `digest` version.
+sha2 = "0.10"
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
