@@ -14,5 +14,20 @@
 //! deliberate quirk carries a comment saying which v1 behaviour it preserves.
 //! Rust idiom governs the *shape* (owned types, `Option` knobs, exhaustive
 //! `match`); TypeScript governs the *math*.
+//!
+//! Module map, mirroring the TypeScript files one-for-one:
+//!
+//! | TypeScript            | Rust             |
+//! | --------------------- | ---------------- |
+//! | `src/types.ts`        | [`types`]        |
+//! | `src/affinity.ts`     | [`affinity`]     |
+//! | (`Date.parse` / `Date.now`) | [`instant`] |
 
+pub mod affinity;
 pub mod instant;
+pub mod types;
+
+pub use affinity::{
+    DEFAULT_ARTIST_DISLIKE_PENALTY, affinity_score, rank_by_affinity, select_seed_tracks,
+};
+pub use types::{AffinityOptions, ScoredTrack, TrackStats};
