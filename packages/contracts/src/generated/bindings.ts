@@ -12,6 +12,23 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 /** Commands */
 export const commands = {
 	/**
+	 *  `db:backup:export` — write a consistent copy of the library to `destination`.
+	 * 
+	 *  The snapshot is taken with `VACUUM INTO`, which is transactionally
+	 *  consistent over a WAL database without an explicit checkpoint. It also
+	 *  **refuses an existing destination**, where v1's `.backup()` overwrote one —
+	 *  so the copy is written to a temp sibling and renamed into place. That
+	 *  restores v1's overwrite behaviour and adds atomicity: a user who overwrites
+	 *  last week's backup and loses power mid-copy still has last week's backup.
+	 */
+	dbBackupExport: (destination: string) => __TAURI_INVOKE<DbExportResult>("db_backup_export", { destination }),
+	/**
+	 *  `db:backup:import` — replace the live library with the file at `source`.
+	 * 
+	 *  See the module docs for why the six steps are in the order they are.
+	 */
+	dbBackupImport: (source: string) => __TAURI_INVOKE<DbImportResult>("db_backup_import", { source }),
+	/**
 	 *  `db:history:record-play` — record a finished play and bump the play count.
 	 * 
 	 *  Returns the inserted `play_history` row, as v1 did. The scrobble it fires
@@ -384,6 +401,32 @@ export type Coordinates = {
 	lat: number | null,
 	/**  Degrees east, −180 to 180. */
 	lon: number | null,
+};
+
+/**  What `db:backup:export` resolves to — v1's `DbExportResult`. */
+export type DbExportResult = {
+	/**  Whether the library was written. */
+	success: boolean,
+	/**  Where it was written. Set only on success. */
+	path?: string | null,
+	/**
+	 *  Why it was not written. Technical English, as v1's was; the renderer
+	 *  prefers its own translation and falls back to this.
+	 */
+	error?: string | null,
+};
+
+/**
+ *  What `db:backup:import` resolves to — v1's `DbImportResult`.
+ * 
+ *  No `path`: v1 did not echo one back, and the renderer already knows which
+ *  file it offered.
+ */
+export type DbImportResult = {
+	/**  Whether the library was replaced. */
+	success: boolean,
+	/**  Why it was not replaced. */
+	error?: string | null,
 };
 
 /**

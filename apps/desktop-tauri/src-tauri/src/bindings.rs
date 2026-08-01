@@ -211,6 +211,8 @@ mod tests {
             "recommendationsGet",
             "recommendationsSmartMixes",
             "recommendationsUndoNotInterested",
+            "dbBackupExport",
+            "dbBackupImport",
         ];
 
         for command in PORTED_NAMES {
