@@ -207,6 +207,11 @@ mod tests {
             "libraryScanFolderGrouped",
             "libraryScanCancel",
             "libraryValidateFiles",
+            "metadataLookup",
+            "metadataEnrichTracks",
+            "metadataEnrichPreview",
+            "metadataEnrichCancel",
+            "metadataWriteTags",
             "storageGetUsage",
             "waveformGetPeaks",
         ];

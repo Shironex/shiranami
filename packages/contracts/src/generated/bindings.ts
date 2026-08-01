@@ -238,6 +238,62 @@ export const commands = {
 	 */
 	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
 	/**
+	 *  `metadata:lookup` — find candidate tags for one track.
+	 * 
+	 *  Two positional strings, as v1's channel took them. No fallback backend is
+	 *  supplied: yt-dlp lives in `shiranami-downloader`, above `shiranami-metadata`
+	 *  on the spine, and iTunes-only is the complete configuration Phase 9 scopes.
+	 *  The fallback only ever contributed cover art.
+	 * 
+	 *  No connection is acquired: this awaits the network, and holding the pool's
+	 *  one connection across an HTTP timeout would stall every query in the app.
+	 */
+	metadataLookup: (title: string, artist: string) => __TAURI_INVOKE<MetadataLookupResult>("metadata_lookup", { title, artist }),
+	/**
+	 *  `metadata:enrich:tracks` — enrich a batch, four at a time.
+	 * 
+	 *  Results come back in input order and a cancelled run returns a **shorter**
+	 *  list than its input, exactly as v1's `slots.filter(r => r !== undefined)`
+	 *  did. One track's failure never aborts the batch: it contributes a failed
+	 *  result and the run continues, which is what makes a two-thousand-track run
+	 *  survivable.
+	 * 
+	 *  This command does not write database rows. v1's handler did not either — the
+	 *  file writes happen inside the batch when `writeToFile` is set, and the
+	 *  renderer commits the proposed fields through `db:tracks:update-many`.
+	 */
+	metadataEnrichTracks: (tracksInput: EnrichTrackInput[], options: EnrichRunOptions) => __TAURI_INVOKE<EnrichTrackResult[]>("metadata_enrich_tracks", { tracksInput, options }),
+	/**
+	 *  `metadata:enrich:preview` — propose tags for one track without writing.
+	 * 
+	 *  Never touches the audio file and never updates the database. A downloaded
+	 *  cover still lands in the art cache so the renderer can show the diff; v1 does
+	 *  the same and notes that an entry the user then rejects is a harmless orphan
+	 *  the prune pass reclaims.
+	 * 
+	 *  Emits no progress: v1 wired the sink only on the batch channel, and a
+	 *  single-track preview reporting into the bulk progress bar would move it for
+	 *  an operation the bar is not describing.
+	 */
+	metadataEnrichPreview: (track: EnrichTrackInput, options: EnrichPreviewOptions) => __TAURI_INVOKE<EnrichTrackResult>("metadata_enrich_preview", { track, options }),
+	/**
+	 *  `metadata:enrich:cancel` — cancel the run holding the slot.
+	 * 
+	 *  Cancels a bulk run and a preview alike, because they share one slot.
+	 *  Cancelling while idle is a no-op rather than an error: v1's comment says why,
+	 *  and a stale flag left set by a mistimed cancel would poison the next run.
+	 */
+	metadataEnrichCancel: () => __TAURI_INVOKE<null>("metadata_enrich_cancel"),
+	/**
+	 *  `metadata:write-tags` — the manual tag editor's save.
+	 * 
+	 *  Writes the user's tags to the file, then updates the database row to match,
+	 *  then answers `{ success: true }`. **A file-write failure is logged and does
+	 *  not change that answer** — see the module docs for why that downgrade is the
+	 *  contract rather than an oversight.
+	 */
+	metadataWriteTags: (input: WriteTagsInput_Deserialize) => __TAURI_INVOKE<WriteTagsResult>("metadata_write_tags", { input }),
+	/**
 	 *  `storage:get-usage` — disk usage across the watched folders, by volume.
 	 * 
 	 *  An empty list is not an error: it answers with no volumes, which is what a
@@ -756,6 +812,105 @@ export type EnqueueDownloadInput = {
 };
 
 /**
+ *  `metadata:enrich:preview`' second argument.
+ * 
+ *  One field, not two: a preview never writes, so v1 gave the channel its own
+ *  narrower schema (`enrichPreviewOptionsSchema`) rather than accepting a
+ *  `writeToFile` it would ignore.
+ */
+export type EnrichPreviewOptions = {
+	/**  Fill only the fields that are missing. */
+	onlyMissing: boolean,
+};
+
+/**
+ *  `metadata:enrich:tracks`' second argument.
+ * 
+ *  `shiranami_metadata::enrich::EnrichOptions` is not a wire type — it carries
+ *  [`EnrichMode`], which is a decision this layer makes rather than one the
+ *  renderer sends. v1's zod was `z.object({ writeToFile, onlyMissing })` and
+ *  that is exactly these two fields.
+ */
+export type EnrichRunOptions = {
+	/**  Whether to write the proposed tags back to each file. */
+	writeToFile: boolean,
+	/**  Fill only the fields that are missing, rather than overwriting. */
+	onlyMissing: boolean,
+};
+
+/**  A track offered up for enrichment. */
+export type EnrichTrackInput = {
+	/**  Database id, echoed back on the result so the caller can match them up. */
+	id: string,
+	/**  Where the file is, for the tag write. */
+	filePath: string,
+	/**  Current title — the search term, never overwritten. */
+	title: string,
+	/**  Current artist. */
+	artist: string,
+	/**  Current album. */
+	album: string,
+	/**  Current cover, which decides whether a new one is downloaded. */
+	albumArt: string | null,
+	/**  Current genre. */
+	genre: string,
+	/**  Current year. */
+	year: number | null,
+	/**  Current track number. */
+	trackNumber: number | null,
+};
+
+/**  What enrichment did to one track. */
+export type EnrichTrackResult = {
+	/**  The input's id. */
+	id: string,
+	/**
+	 *  Whether a match was found.
+	 * 
+	 *  Match presence, **not** field count: a match that proposes nothing new
+	 *  still succeeded. v1 states this outright in a comment, and the renderer
+	 *  relies on it — a `false` here is what lands the track on the persisted
+	 *  skip list.
+	 */
+	success: boolean,
+	/**  The proposed changes. */
+	updatedFields: EnrichUpdatedFields,
+	/**  Which backend matched. */
+	source: LookupSource,
+	/**  The match score, when there was a match. */
+	confidence?: number | null,
+	/**  Why it failed, when it did. */
+	error?: string | null,
+};
+
+/**
+ *  What enrichment proposes to change.
+ * 
+ *  `None` means "no suggestion", never "clear this" — enrichment only ever
+ *  fills or replaces, so there is no way for it to empty a field the user has
+ *  set.
+ * 
+ *  **`title` is deliberately absent.** v1's `computeUpdatedFields` touches
+ *  artist, album, genre, year and track number and never the title, so
+ *  enrichment cannot rename a track out from under the user. The lookup result
+ *  still carries one, for display.
+ */
+export type EnrichUpdatedFields = {
+	/**  Proposed artist. */
+	artist?: string | null,
+	/**  Proposed album. */
+	album?: string | null,
+	/**  Proposed genre. */
+	genre?: string | null,
+	/**  Proposed year. */
+	year?: number | null,
+	/**  Proposed track number. */
+	trackNumber?: number | null,
+	/**  The cache URL of a newly downloaded cover. */
+	albumArt?: string | null,
+};
+
+/**
  *  The serializable form every rejected command returns.
  * 
  *  v1 encoded this same triple as JSON behind an `__IPC_ERROR__` sentinel inside
@@ -1014,6 +1169,25 @@ export type ListeningStatsTrack = {
 	lastPlayedAt: string,
 };
 
+/**  Where a lookup result came from. */
+export type LookupSource = 
+/**  The iTunes Search API. */
+"itunes" | 
+/**
+ *  A yt-dlp search, supplying a thumbnail when iTunes had no cover.
+ * 
+ *  This crate never produces it directly — yt-dlp lives above it in the
+ *  crate spine. See [`crate::lookup::LookupFallback`].
+ */
+"youtube" | 
+/**  Nothing matched. */
+"none" | 
+/**
+ *  The result of an enrich *preview*, which proposes fields without
+ *  writing them.
+ */
+"preview";
+
 /**  Progress through an EBU R128 loudness analysis. */
 export type LoudnessProgress = Json;
 
@@ -1071,6 +1245,40 @@ export type MediaCommand = string;
 
 /**  Progress through a metadata-enrichment batch. */
 export type MetadataEnrichProgress = Json;
+
+/**
+ *  A candidate set of tags for a track.
+ * 
+ *  Every field is optional because iTunes omits them freely, and because
+ *  `computeUpdatedFields` treats an absent value as "no suggestion" rather than
+ *  "clear this".
+ */
+export type MetadataLookupResult = {
+	/**
+	 *  Matched title.
+	 * 
+	 *  Carried for display only: enrich never writes it. v1's
+	 *  `computeUpdatedFields` touches artist, album, genre, year and track
+	 *  number and deliberately not this, so a lookup cannot rename a track.
+	 */
+	title?: string | null,
+	/**  Matched artist. */
+	artist?: string | null,
+	/**  Matched album. */
+	album?: string | null,
+	/**  Matched genre. */
+	genre?: string | null,
+	/**  Matched release year. */
+	year?: number | null,
+	/**  Matched position within the album. */
+	trackNumber?: number | null,
+	/**  URL of a cover to download, already upscaled where possible. */
+	coverImageUrl?: string | null,
+	/**  Which backend produced this. */
+	source: LookupSource,
+	/**  How well the match scored, in `0.0..=1.0`. */
+	confidence: number | null,
+};
 
 /**
  *  Insert shape: `id` and the timestamps are DB-generated and may be omitted.
@@ -2062,6 +2270,103 @@ export type WeeklyInsights = {
 
 /**  The main window was maximized or restored. */
 export type WindowMaximizedChange = boolean;
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput = WriteTagsInput_Serialize | WriteTagsInput_Deserialize;
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput_Deserialize = {
+	/**  The row to update. */
+	id: string,
+	/**  The file to write. */
+	filePath: string,
+	/**  Track title. */
+	title?: string | null,
+	/**  Track artist. */
+	artist?: string | null,
+	/**  Album artist, for grouping. */
+	albumArtist?: string | null,
+	/**  Album title. */
+	album?: string | null,
+	/**  Genre. */
+	genre?: string | null,
+	/**  Release year. An explicit `null` clears it. */
+	year?: number | null,
+	/**  Position within the album. An explicit `null` clears it. */
+	trackNumber?: number | null,
+	/**  Disc number. An explicit `null` clears it. */
+	discNumber?: number | null,
+};
+
+/**
+ *  The tag editor's submission. v1's `WriteTagsInput`.
+ * 
+ *  The track is addressed by `id` (the row to update) **and** `file_path` (the
+ *  file to write), because the two writes are independent and v1 performed both.
+ * 
+ *  Every editable field is three-state, and the distinction is what the editor
+ *  depends on: absent means "leave unchanged", `null` on a numeric means "the
+ *  user cleared this box, remove the frame", and a value means "write it". The
+ *  string fields are only ever absent or present in v1 — the editor sends `''`
+ *  for a cleared text box, which [`FieldEdit::normalized`] turns into a clear.
+ */
+export type WriteTagsInput_Serialize = {
+	/**  The row to update. */
+	id: string,
+	/**  The file to write. */
+	filePath: string,
+	/**  Track title. */
+	title?: string | null,
+	/**  Track artist. */
+	artist?: string | null,
+	/**  Album artist, for grouping. */
+	albumArtist?: string | null,
+	/**  Album title. */
+	album?: string | null,
+	/**  Genre. */
+	genre?: string | null,
+	/**  Release year. An explicit `null` clears it. */
+	year?: number | null,
+	/**  Position within the album. An explicit `null` clears it. */
+	trackNumber?: number | null,
+	/**  Disc number. An explicit `null` clears it. */
+	discNumber?: number | null,
+};
+
+/**
+ *  What `metadata:write-tags` answers.
+ * 
+ *  `success` means **the request was processed**, not that every byte hit disk.
+ *  See the module docs; `error` is declared because v1 declared it.
+ */
+export type WriteTagsResult = {
+	/**  Whether the request was processed. */
+	success: boolean,
+	/**  Why it was not, when it was not. */
+	error?: string | null,
+};
 
 /* Tauri Specta runtime */
 type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;
