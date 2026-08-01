@@ -3114,6 +3114,7 @@ dependencies = [
 name = "shiranami-recommendation"
 version = "2.0.0-alpha.0"
 dependencies = [
+ "serde",
  "serde_json",
  "shiranami-core",
  "shiranami-db",
