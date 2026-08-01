@@ -62,7 +62,7 @@ pub use recommendation::{
     RECOMMENDATION_TTL_MS, RecommendationKind, RecommendationShelves, SIMILAR_TRACKS_MAX,
     SimilarTrackResult, SmartMixKind, SmartMixResult, SmartMixSignals, SmartMixWeather,
 };
-pub use scrobble::ScrobbleStatus;
+pub use scrobble::{LastfmAuthStart, ScrobbleConnectError, ScrobbleConnectResult, ScrobbleStatus};
 pub use smart_playlist::{
     SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType,
     SmartPlaylistOperator, SmartPlaylistRule,

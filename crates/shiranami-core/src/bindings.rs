@@ -94,6 +94,8 @@ pub fn types() -> Types {
         .register::<models::SmartMixResult>()
         .register::<models::SmartMixSignals>()
         .register::<models::ScrobbleStatus>()
+        .register::<models::ScrobbleConnectResult>()
+        .register::<models::LastfmAuthStart>()
         .register::<models::SmartPlaylist>()
         .register::<models::SmartPlaylistDefinition>()
         .register::<models::SmartPlaylistRule>()

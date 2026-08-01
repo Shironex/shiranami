@@ -223,6 +223,20 @@ export type InstallDependenciesResult = {
 };
 
 /**
+ *  The result of starting the Last.fm desktop-auth handshake.
+ * 
+ *  Exactly one of `token` / `error` is present, selected by `ok`.
+ */
+export type LastfmAuthStart = {
+	/**  Whether the browser handshake was started. */
+	ok: boolean,
+	/**  Present on success; the single-use token to complete auth with. */
+	token?: string | null,
+	/**  Present on failure; a short reason key for the UI toast. */
+	error?: string | null,
+};
+
+/**
  *  A track on the "Recommended from your library" shelf.
  * 
  *  `track_id` is the local `tracks.id`, so the renderer plays it through the
@@ -725,6 +739,20 @@ export type RendererStoreKey =
 "system.closeToTray" | 
 /**  Whether to prefer LRCLIB's synced lyrics over local files. */
 "lyrics.preferSyncedFromLrclib";
+
+/**
+ *  The result of connecting Last.fm or ListenBrainz.
+ * 
+ *  Exactly one of `username` / `error` is present, selected by `ok`.
+ */
+export type ScrobbleConnectResult = {
+	/**  Whether the backend accepted the credentials. */
+	ok: boolean,
+	/**  Present on success; the backend's display name, which may be null. */
+	username?: string | null,
+	/**  Present on failure; a short reason key for the UI toast. */
+	error?: string | null,
+};
 
 /**
  *  The scrobbling connection status the Settings UI renders.
