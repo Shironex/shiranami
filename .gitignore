@@ -4,6 +4,8 @@ build/
 # Cargo build output (root workspace + any nested target dir). Cargo.lock IS
 # tracked — it doubles as the lockfile-drift guard for the Rust tier.
 target/
+# Tauri regenerates these permission schemas from the plugin set on every build.
+apps/desktop-tauri/src-tauri/gen/
 bin/
 release/
 *.log

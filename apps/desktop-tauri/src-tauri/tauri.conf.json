@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Shiranami",
+  "version": "2.0.0-alpha.0",
+  "identifier": "com.shironex.shiranami",
+  "build": {
+    "devUrl": "http://localhost:15175",
+    "frontendDist": "../../web/dist",
+    "beforeDevCommand": "pnpm -w run build:packages && pnpm -w run dev:web",
+    "beforeBuildCommand": "pnpm -w run build:packages && pnpm -w --filter @shiranami/web build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Shiranami",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true,
+        "decorations": false,
+        "backgroundColor": "#0a0a0f"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; media-src 'self' blob: http://127.0.0.1:*; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info; object-src 'none'; form-action 'self'; base-uri 'self'",
+      "devCsp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:15175; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; media-src 'self' blob: http://127.0.0.1:*; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:* http://localhost:15175 ws://localhost:15175 https://lrclib.net https://i.ytimg.com https://*.api.radio-browser.info; object-src 'none'; form-action 'self'; base-uri 'self'"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+  }
+}

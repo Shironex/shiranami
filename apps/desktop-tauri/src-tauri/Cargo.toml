@@ -1,0 +1,46 @@
+[package]
+name = "shiranami-desktop"
+description = "Shiranami desktop shell (Tauri v2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+default-run = "shiranami-desktop"
+
+[lib]
+# The shell is a library so commands and boot wiring stay unit-testable; the
+# binary below is a three-line entry point.
+name = "shiranami_desktop_lib"
+crate-type = ["lib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+[dependencies]
+serde = { workspace = true }
+tauri = { workspace = true }
+tauri-plugin-single-instance = { workspace = true }
+
+# The composition root depends on every domain crate; no domain crate depends
+# on it. Wiring lives here, logic never does — any file in this crate that
+# grows past 400 code lines means logic leaked out of a crate.
+shiranami-audio = { workspace = true }
+shiranami-core = { workspace = true }
+shiranami-db = { workspace = true }
+shiranami-downloader = { workspace = true }
+shiranami-integrations = { workspace = true }
+shiranami-library = { workspace = true }
+shiranami-media-controls = { workspace = true }
+shiranami-metadata = { workspace = true }
+shiranami-net = { workspace = true }
+shiranami-recommendation = { workspace = true }
+shiranami-serve = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
