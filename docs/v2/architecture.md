@@ -1417,10 +1417,18 @@ file listing all 135 command paths, which is one file every one of the
 twenty-four lanes edits, in the middle, with semantically adjacent lines.
 
 Instead, a namespace declares its commands in its own file behind a `commands!`
-macro, and contributes **one line** — its name — to `registry::namespaces!`. A
-continuation-passing muncher walks the list and lets each namespace append its
-own paths. Two details are load-bearing and neither is discoverable from the
-error messages:
+macro, and contributes **one line** — its name — to `registry::namespace_list!`.
+A continuation-passing muncher walks the list and lets each namespace append its
+own paths.
+
+That list is read **twice**, by two callbacks, which is what keeps a lane to one
+line rather than two: `declare_modules!` turns it into the `pub mod` items in
+`commands/mod.rs`, and `begin_gather!` seeds the muncher. Otherwise a lane could
+add its module in one place, forget the other, and get a namespace that compiles
+and registers nothing.
+
+Two macro details are load-bearing and neither is discoverable from the error
+messages:
 
 - The accumulator is `$($t:tt)*`, **not** `$($p:path),*`. A fragment matched as
   `path` becomes one opaque AST node, and `collect_commands!` matches on

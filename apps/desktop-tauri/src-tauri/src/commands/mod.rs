@@ -33,8 +33,6 @@
 pub mod registry;
 
 // ── namespaces ──────────────────────────────────────────────────────────────
-// A lane appends its module here and one line in `registry::namespaces!`.
-pub mod db_tracks;
-pub mod health;
-pub mod store;
-pub mod weather;
+// Generated from `registry`'s shared line list, so a lane adds its namespace in
+// exactly one place. Expands to one `pub mod` per entry.
+registry::namespace_list!(declare_modules);

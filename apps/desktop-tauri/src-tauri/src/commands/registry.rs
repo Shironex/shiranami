@@ -16,7 +16,7 @@
 //!
 //! A namespace declares its own commands, in its own file, in a `commands!`
 //! macro next to them. The only thing that reaches this file is **the
-//! namespace's name, on its own line** in [`namespaces!`]. Two lanes conflict
+//! namespace's name, on its own line** in [`namespace_list!`]. Two lanes conflict
 //! only if they append adjacent lines, and the resolution is unambiguous because
 //! neither line refers to anything in the other.
 //!
@@ -44,11 +44,12 @@
 //!
 //! 1. Write `commands/<ns>.rs` with the commands and a `commands!` macro
 //!    (copy the shape from [`crate::commands::store`]).
-//! 2. `pub mod <ns>;` in `commands/mod.rs`.
-//! 3. One line in [`namespaces!`] below.
+//! 2. Add its name to [`namespace_list!`] below.
 //!
-//! Steps 1 and 2 are in files the lane owns or appends to; step 3 is the single
-//! shared line.
+//! That is the whole procedure. Step 1 is a new file, which cannot conflict;
+//! step 2 is **one line in one file**. The module declaration in
+//! `commands/mod.rs` is generated from the same list, so there is no second
+//! place to forget.
 
 /// How many commands the shared list currently collects.
 ///
@@ -71,28 +72,54 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 pub const NON_V1_COMMANDS: usize = 1;
 
-/// Every namespace, in one list.
+/// Every namespace, in one list, expanded through `$callback`.
 ///
-/// **This is the shared line. A namespace lane appends one entry and touches
-/// nothing else in this file.** Order is alphabetical and has no semantics — the
-/// generated bindings sort their own output — so an append anywhere in the block
-/// is correct and a merge that keeps both sides of a conflict is always right.
-macro_rules! namespaces {
-    () => {
-        $crate::commands::registry::gather! {
-            queue = [
-                // ══════════════ THE SHARED LINE LIST ══════════════
-                db_tracks,
-                health,
-                store,
-                weather,
-                // ═════════════════════════════════════════════════
-            ],
+/// **This is the shared line list. A namespace lane appends one entry and
+/// touches nothing else outside its own module.** Order is alphabetical and has
+/// no semantics — the generated bindings sort their own output — so an append
+/// anywhere in the block is correct and a merge that keeps both sides of a
+/// conflict is always right.
+///
+/// The list is read twice, by two callbacks, which is what keeps it to one line
+/// rather than two: [`declare_modules!`] turns it into the `pub mod` items in
+/// `commands/mod.rs`, and [`begin_gather!`] seeds the muncher that collects the
+/// commands. A lane that added its module in one place and forgot the other
+/// would otherwise get a namespace that compiles and registers nothing.
+macro_rules! namespace_list {
+    ($callback:ident) => {
+        crate::commands::registry::$callback! {
+            // ══════════════ THE SHARED LINE LIST ══════════════
+            db_tracks
+            health
+            store
+            weather
+            // ═════════════════════════════════════════════════
+        }
+    };
+}
+pub(crate) use namespace_list;
+
+/// `namespace_list!` callback: declare each namespace as a module.
+///
+/// Expands where it is *invoked*, not where it is defined, so the `pub mod`
+/// items land in `commands/mod.rs` and resolve against `commands/`.
+macro_rules! declare_modules {
+    ($($namespace:ident)*) => {
+        $( pub mod $namespace; )*
+    };
+}
+pub(crate) use declare_modules;
+
+/// `namespace_list!` callback: seed [`gather!`] with the full queue.
+macro_rules! begin_gather {
+    ($($namespace:ident)*) => {
+        crate::commands::registry::gather! {
+            queue = [$($namespace,)*],
             collected = []
         }
     };
 }
-pub(crate) use namespaces;
+pub(crate) use begin_gather;
 
 /// Walk `queue`, letting each namespace append its own commands to `collected`.
 ///

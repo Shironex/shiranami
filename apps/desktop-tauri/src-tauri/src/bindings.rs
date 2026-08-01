@@ -77,7 +77,7 @@ const HEADER: &str = "\
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
-        .commands(crate::commands::registry::namespaces!())
+        .commands(crate::commands::registry::namespace_list!(begin_gather))
         .events(crate::events::collect())
         // Core's vocabulary, registered whole rather than left to be pulled in
         // by whichever command signature happens to mention a type. Without
