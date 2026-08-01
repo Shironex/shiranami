@@ -16,4 +16,5 @@
 #![warn(missing_docs)]
 
 // lane B
+pub mod discord;
 pub mod scrobble;
