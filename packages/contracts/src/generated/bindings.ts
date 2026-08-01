@@ -878,8 +878,13 @@ export const commands = {
 	 */
 	recommendationsGet: () => __TAURI_INVOKE<RecommendationShelves>("recommendations_get"),
 	/**
-	 *  `recommendations:refresh` — rebuild what can be rebuilt, then return both
-	 *  shelves.
+	 *  `recommendations:refresh` — rebuild both shelves, then return them.
+	 * 
+	 *  The library half is one SQL recompute. The discover half spawns yt-dlp
+	 *  against three seeds' RD mixes, so it runs through [`crate::discover`] with
+	 *  **no connection held** — the pool has one and the fan-out takes seconds —
+	 *  and behind the latch that stops it overlapping the background refresh.
+	 *  Absent under the E2E harness, where the shelf is served from its cache.
 	 * 
 	 *  On failure this falls back to *reading* the shelves rather than to an empty
 	 *  pair, exactly as v1's `() => getRecommendationShelves()` did — the user
@@ -2728,7 +2733,14 @@ export type SearchResult = {
 	matchFlag?: MatchFlag | null,
 };
 
-/**  How the webview addresses the loopback media server this session. */
+/**
+ *  How the webview addresses the loopback media server this session.
+ * 
+ *  `Debug` is hand-written rather than derived. `SessionToken` redacts itself
+ *  precisely so a token cannot reach a log line by being interpolated into a
+ *  struct dump, and reading it out into a plain `String` here would reopen that
+ *  hole one type further out.
+ */
 export type ServeInfo = {
 	/**  Scheme and authority, `http://127.0.0.1:<port>`. Not a secret. */
 	origin: string,
