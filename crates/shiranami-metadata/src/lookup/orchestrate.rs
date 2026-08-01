@@ -62,9 +62,23 @@ pub async fn lookup(
     artist: &str,
     fallback: Option<&dyn LookupFallback>,
 ) -> Result<MetadataLookupResult> {
+    lookup_at(client, title, artist, fallback, itunes::ENDPOINT).await
+}
+
+/// [`lookup`], against a caller-supplied iTunes base URL.
+///
+/// Exists so a batch can be driven against a loopback server; production
+/// callers want [`lookup`].
+pub async fn lookup_at(
+    client: &HttpClient,
+    title: &str,
+    artist: &str,
+    fallback: Option<&dyn LookupFallback>,
+    itunes_endpoint: &str,
+) -> Result<MetadataLookupResult> {
     let (search_artist, search_title) = split_artist_and_title(title, artist);
 
-    let itunes = itunes::search(client, &search_title, &search_artist).await?;
+    let itunes = itunes::search_at(client, &search_title, &search_artist, itunes_endpoint).await?;
     let itunes = (itunes.is_match() && itunes.confidence >= MIN_CONFIDENCE).then_some(itunes);
 
     let Some(fallback) = fallback else {

@@ -15,7 +15,11 @@ use crate::lookup::clean::clean_title_for_search;
 use crate::lookup::model::{LookupSource, MetadataLookupResult};
 
 /// The endpoint, with v1's three fixed parameters.
-const ENDPOINT: &str = "https://itunes.apple.com/search";
+///
+/// Public so a caller can point a run at a test server; `shiranami-net`'s host
+/// gate keys on the hostname, so overriding it also opts out of the 500 ms
+/// spacing — which is what a loopback test wants.
+pub const ENDPOINT: &str = "https://itunes.apple.com/search";
 
 /// How many candidates to score. v1's `limit=5`.
 const LIMIT: usize = 5;
