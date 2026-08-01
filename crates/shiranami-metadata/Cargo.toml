@@ -12,5 +12,23 @@ publish.workspace = true
 shiranami-core.workspace = true
 shiranami-net.workspace = true
 
+fast_image_resize = { workspace = true }
+futures = { workspace = true }
+image = { workspace = true }
+lofty = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+specta = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
 [lints]
 workspace = true

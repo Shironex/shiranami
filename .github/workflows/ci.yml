@@ -98,6 +98,20 @@ jobs:
       - name: Lint meta
         run: pnpm lint:meta
 
+      # `crates/shiranami-metadata/fixtures/v1-art.json` records what v1's real
+      # album-art pipelines produce, and `tests/art_v1_compat.rs` asserts
+      # against it hermetically — so only this step can notice that the file has
+      # stopped describing v1 (architecture §3.3, risk R14).
+      #
+      # It runs here rather than in `rust-checks` because it executes v1's
+      # actual `sharp`, which is a `node_modules` dependency, and that job
+      # deliberately skips `pnpm install`. Reimplementing the pipeline with Node
+      # builtins would measure the reimplementation instead of measuring v1.
+      # The Electron half of the fixture is captured by hand and carried
+      # forward; CI never spawns Electron.
+      - name: v1 album-art fixture is not stale
+        run: pnpm verify:art-baseline
+
       - name: Format check
         run: pnpm format:check
 

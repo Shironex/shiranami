@@ -152,6 +152,54 @@ bytes = "1"
 getrandom = "0.3"
 subtle = "2"
 
+# Phase 9 (`shiranami-metadata`). `lofty` replaces music-metadata, node-id3,
+# flac-tagger *and* the ffmpeg re-mux path in one dependency (architecture §2.2
+# row 17), which is what lets the tag writer become atomic everywhere instead of
+# only on the ffmpeg branch.
+lofty = "0.24"
+
+# The album-art pipeline. `image` decodes whatever the tag held and encodes the
+# JPEG; `fast_image_resize` does the 512 px downscale, because `image`'s own
+# Lanczos3 is roughly an order of magnitude slower on the sizes covers arrive at.
+# Both are pinned by Appendix B / decision D16. No `mozjpeg-sys`: its only
+# justification was byte-parity with sharp, which D16 abandons outright, and it
+# would reintroduce a C toolchain the C++ rewrite just deleted.
+#
+# `image` carries only the decoders v1's two pipelines could actually read
+# (nativeImage: png/jpeg; sharp: + webp/gif) plus `bmp`, which `IMAGE_EXTENSIONS`
+# already lists as servable. Encoding is JPEG-only — every cache entry is `.jpg`.
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "bmp",
+] }
+fast_image_resize = { version = "6.1", features = ["image"] }
+
+# The enrich batch runs four lookups at a time and has to stop promptly when the
+# user cancels. `futures` supplies the bounded concurrency (`buffered`), and
+# `tokio-util`'s `CancellationToken` (pinned above with serve's `io` feature) is
+# the single-slot cancel that architecture §2.2 row 16 names as the replacement
+# for v1's `utilityProcess` handshake.
+futures = { version = "0.3", default-features = false, features = ["std"] }
+
+# The search-title cleaner is nine regexes ported verbatim from
+# `metadata-lookup.ts`, one of which is a long alternation over YouTube-title
+# noise. Hand-rolling that alternation would be a rewrite of the thing this
+# phase is supposed to port faithfully, so the dependency buys fidelity.
+# `unicode-perl` is on because `\s` must match what JavaScript's `\s` matches,
+# which includes NBSP and the Unicode line separators — YouTube titles carry
+# them. `\d` and `\b` are pinned back to ASCII at their use sites, since
+# JavaScript's are ASCII-only and a Unicode `\b` would split CJK titles
+# differently.
+regex = { version = "1.11", default-features = false, features = [
+  "std",
+  "perf",
+  "unicode-case",
+  "unicode-perl",
+] }
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
