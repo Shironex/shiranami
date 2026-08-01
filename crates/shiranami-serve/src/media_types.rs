@@ -23,13 +23,26 @@ pub const AUDIO_EXTENSIONS: [&str; 10] = [
 /// Cover-art extensions the art route will serve. Lowercase, leading dot.
 pub const IMAGE_EXTENSIONS: [&str; 6] = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"];
 
-/// What an audio file with an unrecognised extension is called.
+/// What a stream with no declared content type is called.
 ///
-/// Unreachable through the routes, because the allowlist gate runs first and
-/// holds exactly the keys the table does. Kept because v1 had it and removing a
-/// fallback is how the next extension added to one list and not the other turns
-/// into a silent mislabel.
-pub const DEFAULT_AUDIO_MIME: &str = "application/octet-stream";
+/// v1's `DEFAULT_AUDIO_MIME`, and used where v1 used it: the radio proxy, when a
+/// station sends no `Content-Type` at all. A stream still has to decode, and
+/// most of them are MP3 — guessing is better than handing the media element
+/// nothing, which is a hard failure rather than a wrong guess.
+pub const DEFAULT_AUDIO_MIME: &str = "audio/mpeg";
+
+/// What an audio *file* with an unrecognised extension is called.
+///
+/// A different fallback from [`DEFAULT_AUDIO_MIME`], as it was in v1, and the
+/// difference is deliberate: a file the allowlist has already vetted but the
+/// table does not know is a bug in the tables, so it gets the honest "unknown
+/// bytes" type rather than a guess that would make the bug play.
+///
+/// Unreachable through the routes today, because the allowlist gate runs first
+/// and holds exactly the keys the table does. Kept because removing it is how
+/// the next extension added to one list and not the other becomes a silent
+/// mislabel.
+pub const UNKNOWN_AUDIO_MIME: &str = "application/octet-stream";
 
 /// What an image with an unrecognised extension is called. v1's default.
 pub const DEFAULT_IMAGE_MIME: &str = "image/jpeg";
@@ -48,7 +61,7 @@ pub fn audio_mime(extension: &str) -> &'static str {
         ".opus" => "audio/opus",
         ".wma" => "audio/x-ms-wma",
         ".weba" | ".webm" => "audio/webm",
-        _ => DEFAULT_AUDIO_MIME,
+        _ => UNKNOWN_AUDIO_MIME,
     }
 }
 
@@ -177,7 +190,28 @@ mod tests {
 
     #[test]
     fn unknown_extensions_fall_back_the_way_v1_did() {
-        assert_eq!(audio_mime(".aiff"), DEFAULT_AUDIO_MIME);
+        assert_eq!(audio_mime(".aiff"), UNKNOWN_AUDIO_MIME);
         assert_eq!(image_mime(".tiff"), DEFAULT_IMAGE_MIME);
+    }
+
+    /// v1 declared two different audio fallbacks and used them in two different
+    /// places. Collapsing them would give a typeless radio stream
+    /// `application/octet-stream`, which WKWebView will not decode.
+    #[test]
+    fn the_two_audio_fallbacks_are_v1s_and_are_not_the_same() {
+        let source = v1_media_types();
+
+        assert_eq!(DEFAULT_AUDIO_MIME, "audio/mpeg");
+        assert_eq!(UNKNOWN_AUDIO_MIME, "application/octet-stream");
+        assert_ne!(DEFAULT_AUDIO_MIME, UNKNOWN_AUDIO_MIME);
+
+        assert!(
+            source.contains(&format!("DEFAULT_AUDIO_MIME = '{DEFAULT_AUDIO_MIME}'")),
+            "v1's DEFAULT_AUDIO_MIME is no longer {DEFAULT_AUDIO_MIME}"
+        );
+        assert!(
+            source.contains(&format!("?? '{UNKNOWN_AUDIO_MIME}'")),
+            "v1's audioMime no longer falls back to {UNKNOWN_AUDIO_MIME}"
+        );
     }
 }

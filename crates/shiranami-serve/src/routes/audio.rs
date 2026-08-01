@@ -24,7 +24,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
 
 use crate::error::ServeError;
-use crate::media_types::{audio_mime, extension_of, is_audio_path};
+use crate::media_types::{UNKNOWN_AUDIO_MIME, audio_mime, extension_of, is_audio_path};
 use crate::range::{RangeOutcome, ResolvedRange, resolve};
 use crate::routes::query;
 use crate::state::ServeState;
@@ -81,7 +81,7 @@ pub async fn handle(
     let total = metadata.len();
 
     let content_type =
-        extension_of(&path).map_or("application/octet-stream", |ext| audio_mime(&ext));
+        extension_of(&path).map_or(UNKNOWN_AUDIO_MIME, |extension| audio_mime(&extension));
 
     match resolve(range_header(&headers), total) {
         RangeOutcome::Full => Ok(full_response(file, total, content_type)),

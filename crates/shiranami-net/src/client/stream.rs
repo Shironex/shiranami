@@ -109,7 +109,11 @@ impl HttpClient {
         match tokio::time::timeout(timeout, self.exchange_streaming(url, &options)).await {
             Ok(result) => result,
             Err(_elapsed) => {
-                tracing::debug!(url, timeout_ms = timeout.as_millis(), "stream head timed out");
+                tracing::debug!(
+                    url,
+                    timeout_ms = timeout.as_millis(),
+                    "stream head timed out"
+                );
                 Err(HttpError::Timeout {
                     url: url.to_owned(),
                     timeout,
