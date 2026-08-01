@@ -12,6 +12,8 @@
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "dev:mobile": "pnpm --filter @shiranami/mobile dev",
     "dev:sentry": "node scripts/dev-sentry.mjs",
+    "tauri": "pnpm --filter @shiranami/desktop-tauri exec tauri",
+    "tauri:dev": "pnpm --filter @shiranami/desktop-tauri dev",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",
     "build:packages": "pnpm --filter @shiranami/contracts build && pnpm --filter @shiranami/shared build && pnpm --filter @shiranami/database build && pnpm --filter @shiranami/recommendation build",
     "build:landing": "pnpm --filter @shiranami/landing build",

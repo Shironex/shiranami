@@ -194,6 +194,10 @@ export default defineConfig(
       '**/.astro/**',
       '**/coverage/**',
       '**/generated/**',
+      // Rust tier: cargo build output and Tauri's regenerated permission
+      // schemas. Nothing in either is authored here.
+      '**/target/**',
+      'apps/desktop-tauri/src-tauri/gen/**',
       'packages/eslint-plugin/dist/**',
       '.design-sync/**',
       '**/*.js',

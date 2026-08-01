@@ -1,0 +1,13 @@
+{
+  "name": "@shiranami/desktop-tauri",
+  "version": "2.0.0-alpha.0",
+  "private": true,
+  "description": "Shiranami v2 desktop shell (Tauri) — the Rust backend lives in src-tauri and crates/*",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.0"
+  }
+}
