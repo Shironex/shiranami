@@ -12,8 +12,8 @@
 
 #![allow(dead_code, reason = "each test file uses a different subset")]
 
-use shiranami_core::models::{TrackCreateInput, TrackUpdateInput};
-use shiranami_db::repo::tracks;
+use shiranami_core::models::{PlaylistCreateInput, TrackCreateInput, TrackUpdateInput};
+use shiranami_db::repo::{playlist_tracks, playlists, tracks};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
 
@@ -105,6 +105,41 @@ pub(crate) async fn set_play_count(library: &Library, id: &str, plays: i64) {
         .execute(&library.pool)
         .await
         .expect("the play count must update");
+}
+
+/// Create an empty playlist and return its id.
+pub(crate) async fn playlist(library: &Library, name: &str) -> String {
+    playlists::create(
+        &library.pool,
+        &PlaylistCreateInput {
+            name: name.to_owned(),
+            ..PlaylistCreateInput::default()
+        },
+    )
+    .await
+    .expect("the playlist must be created")
+    .expect("a create returns its row")
+    .id
+}
+
+/// The titles currently in a playlist, in playlist order.
+pub(crate) async fn playlist_titles(library: &Library, playlist_id: &str) -> Vec<String> {
+    playlist_tracks::get_tracks(&library.pool, playlist_id)
+        .await
+        .expect("the membership must read")
+        .into_iter()
+        .map(|track| track.title)
+        .collect()
+}
+
+/// The track ids currently in a playlist, in playlist order.
+pub(crate) async fn playlist_track_ids(library: &Library, playlist_id: &str) -> Vec<String> {
+    playlist_tracks::get_tracks(&library.pool, playlist_id)
+        .await
+        .expect("the membership must read")
+        .into_iter()
+        .map(|track| track.id)
+        .collect()
 }
 
 /// A patch that changes only the title.
