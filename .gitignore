@@ -18,6 +18,8 @@ coverage
 .omniscribe
 .playwright-mcp
 docs/*
+# docs/v2 is the tracked home of the Rust/Tauri rewrite plan, not agent scratch.
+!docs/v2/
 # Versioned migration folders under packages/database/drizzle/ ARE tracked
 # (they are the canonical migration ledger). Only ignore local dev databases.
 packages/database/data/
