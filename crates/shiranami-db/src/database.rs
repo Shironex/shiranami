@@ -43,12 +43,12 @@ pub async fn open(path: &Path) -> Result<OpenedDatabase> {
     // `repo::conn::acquire`, the crate's one acquire site (see `repo`).
     let mut conn = acquire(&pool).await?;
 
-    let adoption = adopt(&mut *conn).await?;
+    let adoption = adopt(&mut conn).await?;
 
-    migrate(&mut *conn).await?;
+    migrate(&mut conn).await?;
 
     if matches!(adoption, Adoption::Fresh) {
-        seed_v1_ledger(&mut *conn).await?;
+        seed_v1_ledger(&mut conn).await?;
     }
 
     // Adoption stamps the floor inside its own transaction; a fresh install has

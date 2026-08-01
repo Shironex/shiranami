@@ -72,11 +72,11 @@ use specta::Type;
 use tauri::{AppHandle, State};
 use tauri_specta::Event as _;
 
-use crate::commands::library::{data_dir, off_thread, require_path};
 use crate::error::{CommandResult, WireResultExt as _};
 use crate::events::MetadataEnrichProgress;
 use crate::state::AppState;
 use crate::wire::Json;
+use crate::wire::{data_dir, off_thread, require_path};
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {

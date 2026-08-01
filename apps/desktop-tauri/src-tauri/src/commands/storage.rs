@@ -27,8 +27,8 @@ use std::path::PathBuf;
 
 use shiranami_library::{DiskUsageResult, compute_disk_usage};
 
-use crate::commands::library::{off_thread, require_path};
 use crate::error::CommandResult;
+use crate::wire::{off_thread, require_path};
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {

@@ -212,26 +212,18 @@ pub async fn db_backup_import(
     let live = live_database_path(&state);
 
     // Steps 1 to 6 run in `replace_library`, on a **blocking thread**, driven by
-    // its own `block_on`. Two independent reasons, and either alone would be
-    // enough:
+    // its own `block_on`: the work is a whole-database file copy plus a
+    // migration pass, both of which can take seconds on a large library, and
+    // running them on a runtime worker would stall every other task — including
+    // the ones the webview is waiting on.
     //
-    // - The work is a whole-database file copy plus a migration pass. Both can
-    //   take seconds on a large library, and running them on a runtime worker
-    //   would stall every other task — including the ones the webview is
-    //   waiting on.
-    // - `shiranami_db::open`'s future is **not provably `Send`**. It reborrows
-    //   a `PoolConnection` by deref-coercion, which leaves rustc trying to
-    //   satisfy `sqlx::Acquire<'_>` for `&mut SqliteConnection` at every
-    //   lifetime rather than one. Nothing has noticed because every caller so
-    //   far is a test driving it on a single thread; this is the first that
-    //   needs it inside a `#[tauri::command]`, where the generated wrapper
-    //   demands `Send` and reports the failure against the attribute rather
-    //   than against any line of the body. `block_on` does not require `Send`
-    //   of the future it drives, only of the values crossing the thread
-    //   boundary — two `PathBuf`s and a pool handle here — so this sidesteps
-    //   the limitation rather than papering over it. Worth fixing in
-    //   `shiranami-db` before §2.8's boot sequence calls `open` from a context
-    //   with the same requirement.
+    // This lane originally had a second reason: `shiranami_db::open`'s future
+    // was not provably `Send`, and `block_on` does not require `Send` of the
+    // future it drives. Phase 16 fixed that at source (see
+    // `shiranami_db::database::migrate`, and the compile-time assertion beside
+    // it), because §2.8's boot sequence has the same requirement and could not
+    // hide behind a blocking thread. The workaround is gone; the reason above
+    // is the one that was always load-bearing, so the shape does not change.
     //
     // `tauri::async_runtime::spawn_blocking`, never `tokio`'s (R16).
     let live_pool = state.pool();

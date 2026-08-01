@@ -53,11 +53,11 @@ use tauri::{AppHandle, State};
 use tauri_specta::Event as _;
 use tokio_util::sync::CancellationToken;
 
-use crate::commands::library::off_thread;
 use crate::error::{CommandResult, WireResultExt as _};
 use crate::events::LoudnessProgress as LoudnessProgressEvent;
 use crate::state::AppState;
 use crate::wire::Json;
+use crate::wire::off_thread;
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {

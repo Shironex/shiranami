@@ -4,6 +4,7 @@
 use super::*;
 use shiranami_core::models::TrackMetadata;
 use shiranami_library::scan::ignore_progress;
+use std::path::Path;
 use std::sync::Arc;
 
 /// A folder holding `count` files that are not decodable audio.
@@ -261,48 +262,4 @@ fn only_the_absent_paths_come_back_in_input_order() {
         vec![first_gone.clone(), last_gone, first_gone],
         "duplicates are preserved, and the survivors are not returned"
     );
-}
-
-#[test]
-fn an_empty_path_is_a_bad_request_rather_than_a_walk_of_the_root() {
-    let error = require_path(Path::new("")).expect_err("empty is refused");
-
-    assert_eq!(error.code, codes::validation::BAD_REQUEST);
-}
-
-#[test]
-fn a_real_path_passes_validation() {
-    assert!(require_path(Path::new("/music")).is_ok());
-}
-
-// ── the off-thread helper ────────────────────────────────────────────────
-
-#[tokio::test]
-async fn off_thread_carries_the_result_back() {
-    let value: usize = off_thread("do the thing", || Ok(7)).await.expect("ok");
-
-    assert_eq!(value, 7);
-}
-
-#[tokio::test]
-async fn off_thread_carries_a_failure_back_unchanged() {
-    let error = off_thread::<(), _>("do the thing", || Err(bad_request("nope")))
-        .await
-        .expect_err("the failure survives");
-
-    assert_eq!(error.code, codes::validation::BAD_REQUEST);
-    assert_eq!(error.message, "nope");
-}
-
-/// A panic in the blocking half must still cross as a code-bearing
-/// rejection, or the renderer's `switch (err.code)` falls through to
-/// `undefined` for the one case where something has genuinely broken.
-#[tokio::test]
-async fn a_panic_off_thread_becomes_a_coded_rejection() {
-    let error = off_thread::<(), _>("scan the folder", || panic!("boom"))
-        .await
-        .expect_err("the panic is reported rather than swallowed");
-
-    assert_eq!(error.code, codes::INTERNAL);
-    assert!(error.message.contains("scan the folder"));
 }

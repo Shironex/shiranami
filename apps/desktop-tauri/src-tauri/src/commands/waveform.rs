@@ -52,8 +52,8 @@ use specta::Type;
 use specta_typescript::Number;
 use tauri::AppHandle;
 
-use crate::commands::library::{data_dir, off_thread, require_path};
 use crate::error::CommandResult;
+use crate::wire::{data_dir, off_thread, require_path};
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {

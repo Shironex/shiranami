@@ -41,22 +41,21 @@
 //! loudness slots, which reject a second run outright. The release is
 //! identity-checked so a scan finishing late cannot clear a newer one's slot.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use shiranami_core::error::{ErrorPayload, codes};
 use shiranami_library::{
     GroupedScanResult, ScanProgress, ScannedFile, empty_on_cancel, scan_folder,
     scan_folder_grouped, validate_files,
 };
-use tauri::{AppHandle, Manager as _, State};
+use tauri::{AppHandle, State};
 use tauri_specta::Event as _;
 use tokio_util::sync::CancellationToken;
 
-use crate::error::{CommandResult, bad_request};
+use crate::error::CommandResult;
 use crate::events::LibraryScanProgress;
-use crate::wire::Json;
+use crate::wire::{Json, data_dir, off_thread, require_path};
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {
@@ -77,72 +76,6 @@ pub(crate) use commands;
 
 // ── lane-shared helpers ──────────────────────────────────────────────────────
 //
-// `commands/mod.rs` is generated from the shared namespace list, so a lane
-// cannot add a non-namespace sibling module to hold helpers its own namespaces
-// share. These two live in the media-pipeline lane's first module and are used
-// by `loudness`, `metadata` and `waveform` as well. They belong in
-// `crate::wire` — the module already documented as "wire helpers the command
-// layer needs and no domain crate should own" — and should move there the
-// moment a shared-file edit is cheaper than a cross-lane conflict.
-
-/// Run CPU-bound or blocking work off the webview's thread (§2.3, R15).
-///
-/// The join failure is a panic inside `work`, which is a bug rather than a
-/// runtime condition — but it must still cross as a code-bearing rejection, or
-/// the renderer's `switch (err.code)` sees `undefined` for the one case where
-/// something has genuinely gone wrong.
-///
-/// `tauri::async_runtime::spawn_blocking`, never tokio's directly: from a thread
-/// Tauri entered through an OS callback there is no reactor, and the resulting
-/// panic crosses an `extern "C"` boundary as a `SIGABRT` (R16).
-pub(crate) async fn off_thread<T, F>(operation: &'static str, work: F) -> CommandResult<T>
-where
-    F: FnOnce() -> CommandResult<T> + Send + 'static,
-    T: Send + 'static,
-{
-    match tauri::async_runtime::spawn_blocking(work).await {
-        Ok(outcome) => outcome,
-        Err(error) => Err(ErrorPayload {
-            code: codes::INTERNAL.to_owned(),
-            message: format!("could not {operation}: {error}"),
-            details: None,
-        }),
-    }
-}
-
-/// The app data directory, or `None` when the platform will not name one.
-///
-/// `None` is a real, survivable state rather than a failure: it is where the
-/// album-art cache lives, and every consumer in this lane takes
-/// `Option<&Path>` and simply skips cover extraction without it. v1 dropped a
-/// cover that would not write while keeping the track, and this is the same
-/// trade one level up — a scan that refused to run because a directory could
-/// not be resolved would lose the user the tags as well as the artwork.
-pub(crate) fn data_dir(app: &AppHandle) -> Option<PathBuf> {
-    match app.path().app_data_dir() {
-        Ok(dir) => Some(dir),
-        Err(error) => {
-            tracing::warn!(%error, "no app data directory; cover art will not be cached");
-            None
-        }
-    }
-}
-
-/// v1's `z.string().min(1)`, which guards a path argument on every channel in
-/// this lane.
-///
-/// serde accepts any string, including the empty one, and an empty path resolves
-/// to the process's working directory — so an unguarded scan would walk it and
-/// an unguarded disk-usage call would report bytes from somewhere the user never
-/// added to their library. Refused under the same `BAD_REQUEST` code v1's zod
-/// failure produced.
-pub(crate) fn require_path(path: &Path) -> CommandResult<()> {
-    if path.as_os_str().is_empty() {
-        return Err(bad_request("the path must not be empty"));
-    }
-    Ok(())
-}
-
 // ── the cancellation slot ────────────────────────────────────────────────────
 
 /// The one in-flight scan's cancellation token.
