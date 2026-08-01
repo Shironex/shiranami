@@ -22,7 +22,12 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 specta = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
+# `macros` for the `tokio::select!` in `enrich::batch`. It is added here rather
+# than in the workspace row because this is the only crate whose *library* needs
+# it, and without it `cargo check -p shiranami-metadata` fails: the feature was
+# arriving only through unification with this crate's own dev-dependency, which
+# a lib-only selection never enables.
+tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
 

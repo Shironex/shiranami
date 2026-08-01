@@ -200,6 +200,51 @@ regex = { version = "1.11", default-features = false, features = [
   "unicode-perl",
 ] }
 
+# Phase 10 (`shiranami-library`). The scan pipeline, per Appendix B.
+#
+# `walkdir` reproduces v1's directory walk including the property the port
+# depends on most: with `follow_links` left off, a symlink's `file_type()` is
+# neither a file nor a directory, which is exactly why v1's
+# `entry.isDirectory() / entry.isFile()` pair skipped symlinks and needed no
+# cycle detection. Getting that for free is worth more than the recursion it
+# saves.
+#
+# `rayon` replaces the `utilityProcess` pool. v1 bounded concurrency at 16
+# in-flight IPC round-trips; v2 bounds it at 16 threads in a scan-owned
+# `ThreadPool`, deliberately *not* the global pool — a library scan must not
+# starve any other rayon user in the process for the minutes it runs.
+walkdir = "2.5"
+rayon = "1.12"
+
+# `notify` (Appendix B) is deliberately *not* pinned here: v1 has no folder
+# watcher of any kind — no `chokidar`, no `fs.watch`, no polling timer, and
+# `folders.last_scanned` is written but never read — so there is nothing for
+# Phase 10 to port. The §2.1 charter lists scan/validate/storage and no watch.
+# Adding one would be a new feature wearing a port's clothes.
+
+# The disk-usage bar's capacity numbers. v1 read `fs.statfs` and used *three*
+# distinct fields — `blocks`, `bfree` and `bavail` — because free space and used
+# space are deliberately computed from different ones (`bavail` is quota- and
+# root-reservation-aware; `bfree` is not). `fs4` is the only maintained crate
+# that exposes all three shapes behind one safe cross-platform API, which
+# matters because `unsafe_code = "deny"` rules out calling `statvfs` /
+# `GetDiskFreeSpaceExW` directly. `sysinfo` (already pinned for Phase 16) was
+# the obvious alternative and cannot do it: it reports total and available only,
+# so `usedBytes` would silently switch from a `bfree` basis to a `bavail` one.
+#
+# `default-features = false` drops the file-locking half of the crate, which
+# nothing here uses.
+fs4 = { version = "0.13", default-features = false }
+
+# Scan telemetry. v1 sampled `process.memoryUsage().rss` either side of a scan
+# and logged `rssDeltaMB`, because the whole point of its `utilityProcess`
+# migration was that killing the child returned RSS to the OS; Phase 10's
+# done-criteria keep the measurement even though v2 has no child to kill, since
+# it is the signal that would catch a scan that leaks. `sysinfo` is the Appendix
+# B pin for exactly this and Phase 16 already needs it for the debug panel;
+# `system` is the only feature either use wants.
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+
 tempfile = "3"
 
 # Phase 13 (`shiranami-media-controls`). `default-features = false` drops
