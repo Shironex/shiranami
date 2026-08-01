@@ -8,10 +8,27 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+# `shiranami-db` is deliberately absent, even though the phase plan orders this
+# crate after Phase 7. The v1 scan pipeline never touches the database — it is a
+# stateless scanner whose whole output crosses IPC, and `apps/web` does every
+# read, diff and write itself. `apps/web` is unchanged in v2 (architecture
+# §2.6), so it still does. See the crate docs for the full argument.
 [dependencies]
 shiranami-core.workspace = true
-shiranami-db.workspace = true
 shiranami-metadata.workspace = true
+
+fs4 = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+specta = { workspace = true }
+thiserror = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+tempfile = { workspace = true }
 
 [lints]
 workspace = true
