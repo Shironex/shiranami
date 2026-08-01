@@ -49,6 +49,7 @@ use std::time::UNIX_EPOCH;
 use serde::{Deserialize, Serialize};
 use shiranami_audio::{WAVEFORM_PEAK_COUNT, peaks::cache, peaks_from_file};
 use specta::Type;
+use specta_typescript::Number;
 use tauri::AppHandle;
 
 use crate::commands::library::{data_dir, off_thread, require_path};
@@ -89,6 +90,15 @@ pub struct WaveformPeaksResult {
     /// **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
     /// inter-sample peaks may exceed 1.0, and the renderer scales by the
     /// per-track maximum when drawing.
+    ///
+    /// `Number` rather than the default float mapping: specta emits every float
+    /// as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+    /// contract is `peaks: number[]`, the reducer cannot produce a NaN, and the
+    /// cache writer already rewrites a non-finite peak as `0` — so the union
+    /// would be an uninhabited branch the shim has to narrow at every call site.
+    /// The same treatment `shiranami_core::models::TrackMetadata` gives
+    /// `duration`.
+    #[specta(type = Vec<Number>)]
     pub peaks: Vec<f32>,
 }
 

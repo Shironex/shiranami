@@ -4306,6 +4306,7 @@ dependencies = [
  "shiranami-core",
  "shiranami-net",
  "specta",
+ "specta-typescript",
  "tempfile",
  "thiserror 2.0.19",
  "tokio",

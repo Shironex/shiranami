@@ -349,8 +349,16 @@ export const commands = {
 	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
 	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
 	 *  per-track maximum when drawing.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits every float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract is `peaks: number[]`, the reducer cannot produce a NaN, and the
+	 *  cache writer already rewrites a non-finite peak as `0` — so the union
+	 *  would be an uninhabited branch the shim has to narrow at every call site.
+	 *  The same treatment `shiranami_core::models::TrackMetadata` gives
+	 *  `duration`.
 	 */
-	peaks: (number | null)[],
+	peaks: number[],
 } | null>("waveform_get_peaks", { filePath }),
 	/**
 	 *  `weather:geocode` — resolve a free-text city to coordinates.
@@ -1312,8 +1320,18 @@ export type MetadataLookupResult = {
 	coverImageUrl?: string | null,
 	/**  Which backend produced this. */
 	source: LookupSource,
-	/**  How well the match scored, in `0.0..=1.0`. */
-	confidence: number | null,
+	/**
+	 *  How well the match scored, in `0.0..=1.0`.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits a bare float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract declares `confidence: number` and the score is a ratio of
+	 *  string-similarity counts, so the `null` branch is uninhabited — and a
+	 *  required field the renderer must narrow before comparing it to
+	 *  `MIN_CONFIDENCE` is a worse contract than the one being ported. The same
+	 *  treatment `shiranami_core::models::TrackMetadata` gives `duration`.
+	 */
+	confidence: number,
 };
 
 /**
@@ -2263,8 +2281,16 @@ export type WaveformPeaksResult = {
 	 *  **Unnormalised.** Typically within `0.0..=1.0`, but a float source with
 	 *  inter-sample peaks may exceed 1.0, and the renderer scales by the
 	 *  per-track maximum when drawing.
+	 * 
+	 *  `Number` rather than the default float mapping: specta emits every float
+	 *  as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+	 *  contract is `peaks: number[]`, the reducer cannot produce a NaN, and the
+	 *  cache writer already rewrites a non-finite peak as `0` — so the union
+	 *  would be an uninhabited branch the shim has to narrow at every call site.
+	 *  The same treatment `shiranami_core::models::TrackMetadata` gives
+	 *  `duration`.
 	 */
-	peaks: (number | null)[],
+	peaks: number[],
 };
 
 /**  Coarse weather condition. */

@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use specta_typescript::Number;
 
 /// Where a lookup result came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -60,6 +61,15 @@ pub struct MetadataLookupResult {
     /// Which backend produced this.
     pub source: LookupSource,
     /// How well the match scored, in `0.0..=1.0`.
+    ///
+    /// `Number` rather than the default float mapping: specta emits a bare float
+    /// as `number | null`, because `serde_json` writes a NaN as `null`. v1's
+    /// contract declares `confidence: number` and the score is a ratio of
+    /// string-similarity counts, so the `null` branch is uninhabited — and a
+    /// required field the renderer must narrow before comparing it to
+    /// `MIN_CONFIDENCE` is a worse contract than the one being ported. The same
+    /// treatment `shiranami_core::models::TrackMetadata` gives `duration`.
+    #[specta(type = Number)]
     pub confidence: f64,
 }
 
