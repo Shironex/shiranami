@@ -1954,6 +1954,7 @@ is not general enough` cannot be fixed with a turbofish (rust#42868). sqlx's
   `computeDiscoverItems`' RD-mix fetch needs a `ProcessRunner` the recommendation
   crate does not take. The seed selection is ported and the schedule is real; the
   fetch is a `shiranami-recommendation` change, not a boot one.
+  _Closed 2026-08-02 — see "Loose ends closed"._
 
 ## Phase 17 implementation amendments (2026-08-01, merged to `v2`)
 
@@ -2401,3 +2402,104 @@ Windows run says what the app actually looks like there.
 Coverage ratchets are still unimplemented. §8 promises per-tier floors that
 "raise, never lower"; no vitest config in the repo declares `thresholds`, and
 coverage is not run in CI at all. Naming it here so it stops being invisible.
+
+## Loose ends closed (2026-08-02, `v2-loose-ends`)
+
+The two follow-ups this ledger was still carrying. Both are closed; neither
+needed a decision reversed.
+
+### Discover's yt-dlp fetch half is ported
+
+Phase 14 lane 2 deferred it and Phase 16 re-flagged it: `service::refresh` ran
+and the 30-second schedule fired, but nothing ever wrote a discover shelf,
+because `computeDiscoverItems`' RD-mix fetch needed a process runner the
+recommendation crate did not take.
+
+**The seam is `shiranami_downloader`'s `ProcessRunner`, reused rather than
+redeclared.** The spine already runs `{ db, downloader } → recommendation`, so
+the trait is reachable, and a second single-method process trait here would only
+buy an adapter in the composition root whose whole job is to forward one call.
+`DiscoverFetcher::new(runner, yt_dlp_path)` is `SearchService::new`'s shape for
+`SearchService`'s reason — the binary may not be on disk on a first run.
+
+**The argv is the downloader crate's `args::playlist`,** because an RD mix _is_
+a playlist to yt-dlp and v1's inline
+`['--flat-playlist', '--dump-json', '--no-warnings']` plus its spawner's
+`--ignore-config` and `--` guard is that argv, flag for flag. A test asserts the
+two are equal rather than assuming it, so neither builder can drift into the
+other's blind spot.
+
+**The fetch is three calls, not one, and that is the connection discipline
+rather than taste.** The pool holds exactly one connection and a fan-out waits
+seconds on three child processes, so `discover_plan` reads (seeds, the library's
+video ids, the cached shelf's age), `DiscoverFetcher::fetch` runs with **no
+connection held**, and `commit_discover` writes. `shiranami_metadata::enrich`'s
+`enrich_tracks` is the precedent and took the same shape for the same reason.
+Joining them into one `refresh(conn, …)` was written first and rejected: it
+stalls every command the user makes during the fan-out.
+
+**v1's coalescing latch came back with the fan-out it existed for.** Phase 14
+deferred it on the grounds that what remained was one bounded SQL recompute;
+with three yt-dlp processes back on the path, the timer and a user's _Refresh_
+can once again spawn six between them. It lives in `crate::discover` beside the
+fetcher rather than in a module-level variable (§2.3), and it serialises where
+v1's promise shared: the property that mattered — never two fan-outs at once —
+holds, and a second caller pays for a second refresh instead of receiving the
+first's, which is what pressing Refresh asked for.
+
+**`recommendations:refresh` drives it too, not only boot.** v1's channel rebuilt
+discovery, and a Refresh that touched only the library shelf would leave the
+renderer comparing a `generatedAt` that never advances — which its
+`refreshFailedCached` toast reads as a silent degrade. The brief named the boot
+schedule; the channel is included because leaving it out would close the port
+gap and open a behaviour one.
+
+**Two v1 behaviours were ported deliberately and are pinned by tests**, because
+both look like bugs: a successful fan-out that finds nothing **is** written
+(`writeCacheRow('discover', [])` ran even when yt-dlp was absent, so a user
+without the binary gets a freshly-stamped empty shelf rather than an
+indefinitely stale one), and the seed set is excluded from _every_ mix rather
+than only from its own.
+
+**The fixture is a real capture**, six verbatim lines of a 314-entry RD mix
+(`yt-dlp 2025.12.08`, 2026-08-02), and it earned its place by contradicting the
+defensive reading of v1's code: a flat-playlist entry carries **no `thumbnail`
+key at all**, only `thumbnails[]`, so `data.thumbnail ?? data.thumbnails?.[0]?.url`
+is the branch that runs in production; and the **seed video is the mix's own
+first entry**, so "never recommend a seed back" is not hypothetical. The gated
+real-binary test asks yt-dlp's own parser whether the four flags exist
+(`--help` exits 0 on a known option set and 2 on an unknown one) without a
+single network request — and its first version passed against
+`SHIRANAMI_YTDLP_PATH=/bin/echo`, which echoes the flag back. R17's vacuous-pass
+trap, caught by running the escape hatch; the assertion is now on the usage
+banner, which only yt-dlp writes.
+
+### The debug overlay reads the v2 metrics shape
+
+Phase 15 flagged it and §2.2 #31 predicted it: the panel read
+`main.cpu.percentCPUUsage` and `main.heap`, which v2 does not send.
+
+The process table now labels rows by `kind`, and the **"Main process" section is
+deleted rather than zero-filled** — both of its rows described the Electron main
+process's V8 runtime, and a synthesised `0 KB` renders as a measurement. Its
+useful half, the app process's own CPU and RSS, is the `main` row of the table
+the panel already draws; the renderer's own JS heap was always a separate
+section and is untouched.
+
+`useDebugStore` and the overlay now name the **generated** `MetricsSnapshot`, so
+the shape the backend emits and the shape the panel reads are one declaration
+rather than two that agreed by hand. `packages/contracts`' `MainMetricsSnapshot`
+and `DebugApi` are left exactly as they are: they are v1's frozen preload
+surface, `apps/desktop` still compiles against them, and rewriting them would
+have made v1's own sampler claim a shape it does not send. The cost is two
+assertions — one in the shim, one where the renderer subscribes — each
+commented, each pointing at the other, and both deleted with `apps/desktop` at
+cutover.
+
+### Appendix B addition
+
+`futures`, `tokio` and `tokio-util` join `shiranami-recommendation` from the
+existing workspace rows: `buffered` bounds the fan-out at four while keeping
+seed order, `CancellationToken` is what the reused `ProcessRunner` seam takes,
+and `tokio::fs` answers "is yt-dlp installed?" the way `YtDlpManager` answers
+it. No new external dependency was added to the workspace.
