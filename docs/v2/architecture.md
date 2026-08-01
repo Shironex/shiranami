@@ -919,3 +919,94 @@ diverging. Proven non-vacuous by perturbing a v1 migration and requiring exit 1.
 `SqlSafeStr`, so the handful of statements that interpolate a private constant are wrapped in
 `AssertSqlSafe` with the audit note the trait asks for. `macros` is pinned per Appendix B but unused
 until Phase 7, so no `.sqlx/` offline data or `sqlx-offline` CI job is needed yet.
+
+## Phase 9 implementation amendments (2026-08-01, merged to v2)
+
+Recorded from the shipped `shiranami-metadata` lane; full rationale lives in the crate's module docs.
+
+**The album-art hash verdict (R14, D16) is now measured, and it is stronger than the plan assumed.**
+§3.3 decided against byte-parity on the reasoning that "any Rust encoder produces different bytes".
+Porting turned up a better reason: **v1 has no single canonical output to be compatible with.** It
+ships _two_ art pipelines writing into one content-addressed directory — Electron `nativeImage`
+(Chromium/Skia) in the main process, and `sharp` (libvips/libjpeg-turbo) in the scan utility, which
+exists only because `nativeImage` is unavailable inside a `utilityProcess`.
+`scripts/verify-art-baseline.mjs` runs **both, the real ones**, over four committed covers:
+
+|                                               | Result                 |
+| --------------------------------------------- | ---------------------- |
+| Geometry agreement between v1's two pipelines | **4 of 4**             |
+| Hash agreement between v1's two pipelines     | **0 of 4**             |
+| v2 geometry vs both v1 pipelines              | **4 of 4 identical**   |
+| v2 bytes vs either v1 pipeline                | differ, as D16 intends |
+
+So the same cover already lands under two different filenames in v1 depending on whether the track
+arrived through a library scan or a metadata write. "Match v1's bytes" is not a hard target; it is an
+ill-defined one, and D16 needs no revisiting. v2 reproduces everything that _is_ well defined — the
+512 px `fit: inside, withoutEnlargement` geometry (including the `max(1, round(…))` floor), q85,
+`sha256(encoded)[0..32].jpg`, the `shiranami-art://art/` URL, and the create-exclusive write whose
+`EEXIST` is the dedupe happy path. `tests/art_v1_compat.rs` asserts all of it against the fixture and
+fails loudly if v1's two pipelines ever _agree_; `tests/art_golden.rs` pins v2's own hashes so the
+pipeline cannot drift within v2, which is the drift that would actually orphan users' covers.
+
+**Adoption is enforced by `O_EXCL`, not by convention.** `save_cover` opens with `create_new(true)`,
+so an entry inherited from v1 keeps v1's bytes even when v2 processes the identical source. Nothing
+rehashes, re-encodes or migrates the copied directory. The accepted cost — one duplicated file per
+cover that is re-extracted under v2 — is asserted rather than left to be discovered.
+
+**The art fixture's CI step lives in `lint`, not `rust-checks`,** unlike `verify:db-baseline`. It
+executes v1's real `sharp`, which is a `node_modules` dependency, and `rust-checks` deliberately
+skips `pnpm install`. A pure-builtin reimplementation would be measuring the reimplementation instead
+of measuring v1. The Electron half is captured by hand (`--write --with-electron`) and carried
+forward; CI never spawns Electron.
+
+**Pruning takes its reference set through an `ArtReferences` trait.** `metadata` and `db` are both
+rank 2, so the dependency is inverted the way `core::paths::PathAuthority` inverts it. v1's fail-safe
+is reproduced exactly and is the most load-bearing line in the module: a failed reference lookup
+prunes _nothing_, because "the database is unavailable" and "nothing is referenced" are
+indistinguishable from there and one of them means deleting the user's entire cover cache.
+
+**Four deviations from v1 in the tag writer**, all recorded in the crate docs:
+
+1. **Every write is atomic.** v1 wrote mp3 (node-id3) and flac (flac-tagger) by reading the whole
+   file into memory and overwriting the original path in place — no temp, no backup, synchronously on
+   the main thread. Only the ffmpeg branch used temp-and-rename. v2 routes every format through that
+   shape. `lofty` covering all formats is what makes one safety story possible.
+2. **`.wav` is writable.** v1 hit `default:` and logged, while the IPC handler still returned
+   `success: true` and committed the database row — so the file and the library diverged permanently.
+3. **Foreign tags survive.** v1's FLAC path rebuilt the comment block from the eight fields it knew,
+   erasing `REPLAYGAIN_*`, `MUSICBRAINZ_*`, `COMPOSER` and every custom key.
+4. **Failures are reported.** The crate returns `Result`; v1 swallowed every per-format failure.
+   **Phase 14 owns preserving the wire contract** — `metadata:write-tags` must keep answering
+   `{ success: true }` for "the request was processed", because the renderer commits the database row
+   on it. That is a command-layer concern, not a crate one.
+
+Field mappings are asserted three ways per format (mapping direction, the identifier's presence in
+the written bytes, and the round-tripped value) rather than round-tripped through `ItemKey`, which
+would pass even if lofty and v1 disagreed about which frame a field lives in. ID3v2 maps `TRCK` to
+both `TrackNumber` and `TrackTotal`, so the reverse lookup is ambiguous for exactly the fields most
+worth checking. `lofty` upgrades v2.3's `TYER` to `TDRC` on read and splits it back on write, so both
+directions match v1's node-id3 output.
+
+**`picture[0]` is kept, deliberately.** v1 takes the first embedded picture with no front-cover
+preference, so a file whose first `APIC` is a back cover yields that. Preferring
+`PictureType::CoverFront` would change which image a user sees; that is a product decision, not a
+port decision, and is left for one.
+
+**Two lookup deviations.** Transport failures propagate instead of collapsing into "no result" —
+v1's `catch → return null` made a 429 indistinguishable from a genuine miss, and the renderer then
+added the track to a _persisted_ skip list, permanently marking a rate-limited track unmatchable. And
+the release year is read from the ISO string rather than through `new Date().getFullYear()`, which
+reported the previous year for January-1 releases west of UTC.
+
+**The yt-dlp cover fallback is a `LookupFallback` trait**, not a call: `downloader` is rank 3 and
+`metadata` is rank 2. iTunes-only is a complete configuration and is what Phase 9 scopes; the
+composition root supplies the impl if the fallback is wanted. `EnrichContext::itunes_endpoint` exists
+so a batch can be driven against a loopback server rather than the real API.
+
+**Appendix B additions.** `regex 1.11` (the nine ported cleaning rules include one long alternation
+over YouTube-title noise; hand-rolling it would be a rewrite of the thing being ported), `futures`
+(bounded concurrency), `tokio-util` (the `CancellationToken` §2.2 row 16 already names), and
+`image`/`fast_image_resize` per D16. `unicode-perl` is enabled so `\s` matches what JavaScript's
+does; `\d` and `\b` are pinned back to ASCII at their use sites, since JavaScript's are ASCII-only.
+`serde_json` is dropped from `music-metadata`'s role entirely — `lofty` replaces music-metadata,
+node-id3, flac-tagger **and** the ffmpeg re-mux path, as §2.2 row 17 predicted.
