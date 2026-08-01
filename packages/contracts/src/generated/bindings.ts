@@ -217,8 +217,8 @@ export const commands = {
 	 *  `updater:check-for-updates` — ask whether this build updates itself, and
 	 *  start a check if it does.
 	 * 
-	 *  Cannot fail. See the module docs: v1 catches its own check failure and still
-	 *  answers `{ enabled: true }`, so a failing check reaches the user as an
+	 *  Cannot fail. See the parent module: v1 catches its own check failure and
+	 *  still answers `{ enabled: true }`, so a failing check reaches the user as an
 	 *  `updater:error` event. An absent seam answers `{ enabled: false }`, which is
 	 *  v1's answer in dev and on macOS.
 	 */
