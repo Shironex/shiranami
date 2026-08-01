@@ -380,3 +380,84 @@ async fn get_id_by_path_finds_the_track_or_nothing() {
         None
     );
 }
+
+// ── loudness ──────────────────────────────────────────────────────────────────
+
+/// The skip test `loudness:analyze` runs before measuring anything: a freshly
+/// imported track has no measurement, and the column is what says so.
+#[tokio::test]
+async fn a_new_track_has_no_measured_loudness() {
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/unmeasured.mp3", "Unmeasured").await;
+
+    assert_eq!(
+        tracks::loudness_lufs(library.conn(), &id)
+            .await
+            .expect("read"),
+        None
+    );
+}
+
+#[tokio::test]
+async fn a_recorded_measurement_reads_back() {
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/measured.mp3", "Measured").await;
+
+    tracks::set_loudness_lufs(library.conn(), &id, -13.7)
+        .await
+        .expect("record");
+
+    let stored = tracks::loudness_lufs(library.conn(), &id)
+        .await
+        .expect("read")
+        .expect("a measurement");
+    assert!((stored + 13.7).abs() < f64::EPSILON);
+}
+
+/// The analysis run reads this for a track the renderer named but the library
+/// no longer holds. "Absent" and "unmeasured" answer the same, so a stale id is
+/// work to attempt rather than something to crash on.
+#[tokio::test]
+async fn an_unknown_track_reads_as_unmeasured_rather_than_failing() {
+    let mut library = fresh().await;
+
+    assert_eq!(
+        tracks::loudness_lufs(library.conn(), "11111111-1111-4111-8111-111111111111")
+            .await
+            .expect("read"),
+        None
+    );
+}
+
+/// Writing to an id that no longer exists is a no-op, not an error — a run that
+/// measures a file whose row was deleted mid-batch must not abort.
+#[tokio::test]
+async fn recording_against_an_unknown_track_is_a_no_op() {
+    let mut library = fresh().await;
+
+    tracks::set_loudness_lufs(library.conn(), "11111111-1111-4111-8111-111111111111", -9.0)
+        .await
+        .expect("the write is a no-op rather than a failure");
+}
+
+/// `loudness_lufs` is the only column the write touches. A measurement must not
+/// disturb the tags beside it, and must not bump `updated_at` — it is a backend
+/// measurement, not a user edit.
+#[tokio::test]
+async fn recording_loudness_leaves_every_other_column_alone() {
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/tagged.mp3", "Tagged").await;
+
+    let before = tracks::get_all(library.conn()).await.expect("read");
+    tracks::set_loudness_lufs(library.conn(), &id, -8.25)
+        .await
+        .expect("record");
+    let after = tracks::get_all(library.conn()).await.expect("read");
+
+    let (before, after) = (&before[0], &after[0]);
+    assert_eq!(before.title, after.title);
+    assert_eq!(before.file_path, after.file_path);
+    assert_eq!(before.play_count, after.play_count);
+    assert_eq!(before.updated_at, after.updated_at);
+    assert_eq!(after.loudness_lufs, Some(-8.25));
+}
