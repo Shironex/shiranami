@@ -100,3 +100,25 @@ pub struct PlaylistExtractResult {
     /// The resolved tracks, in source order.
     pub tracks: Vec<SearchResult>,
 }
+
+/// Progress streamed while resolving an external playlist's tracks.
+///
+/// The payload of `playlist:extract-progress`. Only the Spotify path emits it —
+/// YouTube extraction is one `yt-dlp --flat-playlist` call with nothing to
+/// report partway through — and it fires **twice per track**, once before that
+/// track's YouTube search and once after, which is what makes the counter move
+/// while a slow search is in flight rather than jumping on completion.
+///
+/// `current` is clamped to `total` by the emitter: the pre-search tick reports
+/// `completed + 1`, and with four workers in flight the last three would
+/// otherwise report a number larger than the total.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistExtractProgress {
+    /// How many tracks have been reached, 1-based and clamped to `total`.
+    pub current: u32,
+    /// How many tracks the source playlist holds.
+    pub total: u32,
+    /// `"{artist} - {title}"`, the row the renderer shows as in progress.
+    pub track_name: String,
+}

@@ -46,7 +46,10 @@ use tauri_specta::Event;
 
 use crate::wire::Json;
 use shiranami_core::SystemNotice;
-use shiranami_core::models::{DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot};
+use shiranami_core::models::{
+    DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot, InstallProgress,
+    PlaylistExtractProgress,
+};
 
 /// Declare an event: a `#[serde(transparent)]` newtype bound to a v1 channel
 /// name, plus a `NAME` re-statement the registry test reads.
@@ -122,17 +125,20 @@ events! {
     ///
     /// De-duplicated rather than throttled (Phase 11): v1 fired per chunk,
     /// ~19,000 calls to deliver 101 distinct values.
-    DownloaderInstallProgress = "downloader:install-progress" => Json;
+    DownloaderInstallProgress = "downloader:install-progress" => InstallProgress;
 
     /// Percentage progress installing ffmpeg.
-    DownloaderFfmpegInstallProgress = "downloader:ffmpeg-install-progress" => Json;
+    DownloaderFfmpegInstallProgress = "downloader:ffmpeg-install-progress" => InstallProgress;
 
     /// Combined progress installing both binaries.
     DownloaderDependencyInstallProgress =
         "downloader:dependency-install-progress" => DependencyInstallProgress;
 
     /// Progress extracting a YouTube or Spotify playlist.
-    PlaylistExtractProgress = "playlist:extract-progress" => Json;
+    ///
+    /// Spotify only — YouTube extraction is a single `--flat-playlist` call
+    /// with nothing to report partway through.
+    PlaylistExtracting = "playlist:extract-progress" => PlaylistExtractProgress;
 
     /// Progress through a metadata-enrichment batch.
     MetadataEnrichProgress = "metadata:enrich:progress" => Json;
@@ -239,6 +245,137 @@ mod tests {
         let json =
             serde_json::to_value(ShareDeepLink("shiranami://x".to_owned())).expect("serialize");
         assert_eq!(json, serde_json::json!("shiranami://x"));
+    }
+
+    /// The six downloader/playlist payloads, pinned key by key.
+    ///
+    /// These reach `apps/web`'s downloads UI unchanged (§2.6), through
+    /// `createIpcListener<T>` callbacks that destructure them. A renamed key is
+    /// therefore not a type error anywhere — it is `undefined` in a progress
+    /// bar, which is why the shapes are asserted as JSON rather than trusted to
+    /// the `camelCase` attribute.
+    #[test]
+    fn the_downloader_event_payloads_keep_v1s_keys() {
+        use shiranami_core::models::{DownloadProgressStatus, DownloadQueueSnapshot, Tool};
+
+        let json = serde_json::to_value(DownloaderInstallProgress(InstallProgress { percent: 42 }))
+            .expect("serialize");
+        assert_eq!(json, serde_json::json!({ "percent": 42 }));
+
+        let json = serde_json::to_value(DownloaderFfmpegInstallProgress(InstallProgress {
+            percent: 100,
+        }))
+        .expect("serialize");
+        assert_eq!(json, serde_json::json!({ "percent": 100 }));
+
+        let json = serde_json::to_value(DownloaderDependencyInstallProgress(
+            DependencyInstallProgress {
+                target: Tool::Ffmpeg,
+                percent: 50,
+                overall_percent: 75,
+                label: "Installing ffmpeg (2/2)".to_owned(),
+            },
+        ))
+        .expect("serialize");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "target": "ffmpeg",
+                "percent": 50,
+                "overallPercent": 75,
+                "label": "Installing ffmpeg (2/2)",
+            })
+        );
+
+        let json = serde_json::to_value(PlaylistExtracting(PlaylistExtractProgress {
+            current: 3,
+            total: 10,
+            track_name: "Cornelius - Drop".to_owned(),
+        }))
+        .expect("serialize");
+        assert_eq!(
+            json,
+            serde_json::json!({ "current": 3, "total": 10, "trackName": "Cornelius - Drop" })
+        );
+
+        // `error` is present and `null` rather than absent. That is
+        // `models::mod`'s one recorded widening — `#[serde(skip_serializing_if)]`
+        // needs specta's phased export mode, which would split every type into
+        // an input and an output form — and the generated `error?: string | null`
+        // describes it honestly. v1's consumer tests truthiness, for which
+        // `null` and `undefined` behave identically.
+        let json = serde_json::to_value(DownloaderProgress(DownloadProgress {
+            url: "https://youtu.be/x".to_owned(),
+            progress: 12.5,
+            status: DownloadProgressStatus::Downloading,
+            error: None,
+        }))
+        .expect("serialize");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "url": "https://youtu.be/x",
+                "progress": 12.5,
+                "status": "downloading",
+                "error": null,
+            })
+        );
+
+        let json = serde_json::to_value(DownloaderQueueState(DownloadQueueSnapshot {
+            items: Vec::new(),
+            max_concurrency: 3,
+            active_count: 0,
+            paused: false,
+        }))
+        .expect("serialize");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "items": [],
+                "maxConcurrency": 3,
+                "activeCount": 0,
+                "paused": false,
+            })
+        );
+    }
+
+    /// The two install channels are **separate events with the same payload**,
+    /// which a copy-paste refactor is apt to collapse into one.
+    ///
+    /// v1's preload registers `onInstallProgress` and
+    /// `onFfmpegInstallProgress` as two listeners, and the settings panel shows
+    /// two progress bars. One shared channel would drive both bars from
+    /// whichever install ran last.
+    #[test]
+    fn the_two_install_channels_stay_distinct() {
+        assert_eq!(
+            <DownloaderInstallProgress as Event>::NAME,
+            "downloader:install-progress"
+        );
+        assert_eq!(
+            <DownloaderFfmpegInstallProgress as Event>::NAME,
+            "downloader:ffmpeg-install-progress"
+        );
+        assert_ne!(
+            <DownloaderInstallProgress as Event>::NAME,
+            <DownloaderFfmpegInstallProgress as Event>::NAME
+        );
+    }
+
+    /// The extract-progress event's struct name and its channel deliberately
+    /// disagree, so the attribute is doing real work here rather than merely
+    /// restating a kebab-cased name.
+    ///
+    /// `PlaylistExtracting` is named around its payload type
+    /// (`PlaylistExtractProgress`) to avoid a collision; without the attribute
+    /// the derive would register `playlist-extracting`, which nothing listens
+    /// on.
+    #[test]
+    fn the_extract_event_is_addressed_by_its_attribute_not_its_name() {
+        assert_eq!(
+            <PlaylistExtracting as Event>::NAME,
+            "playlist:extract-progress"
+        );
     }
 
     // Whether `collect()` actually registered all twenty is asserted in

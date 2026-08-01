@@ -234,7 +234,7 @@ export const events = {
 	loudnessProgress: makeEvent<LoudnessProgress>("loudness:progress"),
 	mediaCommand: makeEvent<MediaCommand>("media:command"),
 	metadataEnrichProgress: makeEvent<MetadataEnrichProgress>("metadata:enrich:progress"),
-	playlistExtractProgress: makeEvent<PlaylistExtractProgress>("playlist:extract-progress"),
+	playlistExtractProgress: makeEvent<PlaylistExtracting>("playlist:extract-progress"),
 	shareDeepLink: makeEvent<ShareDeepLink>("share:deep-link"),
 	systemNotice: makeEvent<SystemNoticeEmitted>("system:notice"),
 	updaterCheckingForUpdate: makeEvent<UpdaterCheckingForUpdate>("updater:checking-for-update"),
@@ -627,7 +627,7 @@ export type DownloadQueueStatus =
 export type DownloaderDependencyInstallProgress = DependencyInstallProgress;
 
 /**  Percentage progress installing ffmpeg. */
-export type DownloaderFfmpegInstallProgress = Json;
+export type DownloaderFfmpegInstallProgress = InstallProgress;
 
 /**
  *  Percentage progress installing yt-dlp.
@@ -635,7 +635,7 @@ export type DownloaderFfmpegInstallProgress = Json;
  *  De-duplicated rather than throttled (Phase 11): v1 fired per chunk,
  *  ~19,000 calls to deliver 101 distinct values.
  */
-export type DownloaderInstallProgress = Json;
+export type DownloaderInstallProgress = InstallProgress;
 
 /**  Byte progress for the active download. Throttled at 250 ms. */
 export type DownloaderProgress = DownloadProgress;
@@ -707,6 +707,23 @@ export type HealthReport = {
 export type InstallDependenciesResult = {
 	/**  One [`ToolInstallResult`] per tool the run touched. */
 	results: ToolInstallResult[],
+};
+
+/**
+ *  Progress installing **one** external tool, as its own channel reports it.
+ * 
+ *  The payload of `downloader:install-progress` and
+ *  `downloader:ffmpeg-install-progress`. A one-field object rather than a bare
+ *  number because that is what v1 sent: the preload declares both listeners as
+ *  `createIpcListener<{ percent: number }>`, so a renderer callback destructures
+ *  `{ percent }` and a bare number would arrive as `undefined`.
+ * 
+ *  Deliberately **not** [`DependencyInstallProgress`], which is the combined
+ *  two-tool run and carries a target, an overall percentage and a label.
+ */
+export type InstallProgress = {
+	/**  Percentage of this tool's download, 0–100. */
+	percent: number,
 };
 
 /**
@@ -1091,8 +1108,27 @@ export type PlaylistCreateWithTracksInput = {
 	trackIds: string[],
 };
 
-/**  Progress extracting a YouTube or Spotify playlist. */
-export type PlaylistExtractProgress = Json;
+/**
+ *  Progress streamed while resolving an external playlist's tracks.
+ * 
+ *  The payload of `playlist:extract-progress`. Only the Spotify path emits it —
+ *  YouTube extraction is one `yt-dlp --flat-playlist` call with nothing to
+ *  report partway through — and it fires **twice per track**, once before that
+ *  track's YouTube search and once after, which is what makes the counter move
+ *  while a slow search is in flight rather than jumping on completion.
+ * 
+ *  `current` is clamped to `total` by the emitter: the pre-search tick reports
+ *  `completed + 1`, and with four workers in flight the last three would
+ *  otherwise report a number larger than the total.
+ */
+export type PlaylistExtractProgress = {
+	/**  How many tracks have been reached, 1-based and clamped to `total`. */
+	current: number,
+	/**  How many tracks the source playlist holds. */
+	total: number,
+	/**  `"{artist} - {title}"`, the row the renderer shows as in progress. */
+	trackName: string,
+};
 
 /**
  *  Result of `playlist:extract`.
@@ -1106,6 +1142,14 @@ export type PlaylistExtractResult = {
 	/**  The resolved tracks, in source order. */
 	tracks: SearchResult[],
 };
+
+/**
+ *  Progress extracting a YouTube or Spotify playlist.
+ * 
+ *  Spotify only — YouTube extraction is a single `--flat-playlist` call
+ *  with nothing to report partway through.
+ */
+export type PlaylistExtracting = PlaylistExtractProgress;
 
 /**
  *  Patch payload for `db:playlists:update`. Omitted fields are left untouched.
