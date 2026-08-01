@@ -80,6 +80,34 @@ function codeLines(source: string): number {
     }).length;
 }
 
+/**
+ * The same source with comments removed, for the rules that scan for text.
+ *
+ * Every text scan in this file has to do this, and the reason is one the Rust
+ * side already learned the hard way. `arch_guards.rs` records it: *"The scan
+ * must strip comments, because this crate documents the very rules it bans; a
+ * scan that flagged the documentation explaining a ban is the fastest way to get
+ * a guard deleted."*
+ *
+ * It applies identically here. A module doc that explains why `shiranami-db`
+ * must not reach into `shiranami-metadata` names both crates, and a doc comment
+ * explaining where `#[tauri::command]` belongs has to spell the attribute. Both
+ * read as violations to a scan over raw source, and both are the opposite: they
+ * are the rule being written down where someone will find it.
+ *
+ * Full-line comments only, matching {@link codeLines}. A trailing comment on a
+ * code line is left alone, because stripping it means deciding whether a `//`
+ * sits inside a string literal — and getting that wrong silently deletes code
+ * from the scan, which is a far worse failure than one over-reported line.
+ */
+function withoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//gu, '')
+    .split('\n')
+    .filter(line => !line.trim().startsWith('//'))
+    .join('\n');
+}
+
 /*
  * Item keywords that mean a file implements something rather than merely
  * declaring modules and re-exports. Matching on these rather than on an
@@ -166,7 +194,7 @@ export const rustLayerRankRule: IMetaRule = {
     };
 
     for (const file of rustFiles) {
-      const source = readFileSync(file, 'utf8');
+      const source = withoutComments(readFileSync(file, 'utf8'));
       for (const match of source.matchAll(/\bshiranami_([a-z_]+)\b/gu)) {
         const referenced = match[1]?.replace(/_/gu, '-');
         if (referenced !== undefined) {
@@ -203,7 +231,7 @@ export const rustCommandPlacementRule: IMetaRule = {
         continue;
       }
 
-      if (/#\[(?:tauri::)?command\b/u.test(readFileSync(file, 'utf8'))) {
+      if (/#\[(?:tauri::)?command\b/u.test(withoutComments(readFileSync(file, 'utf8')))) {
         violations.push({
           file,
           rule: 'rust-command-placement',

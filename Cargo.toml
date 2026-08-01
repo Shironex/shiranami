@@ -338,13 +338,20 @@ souvlaki = { version = "0.8", default-features = false }
 # The subscriber half of `tracing`, which the workspace has had a facade for
 # since Phase 2 and no subscriber for — meaning every `tracing::warn!` written
 # across eleven crates has so far gone nowhere. `env-filter` is what makes the
-# level live-reloadable through a `reload::Handle`; `ansi` is off because the
-# file writer must not receive escape sequences and the console layer sets its
-# own. `json` is deliberately absent: v1's file format is one JSON object per
-# line written by hand, and matching it is `logging`'s job rather than a
-# formatter's.
+# level live-reloadable through a `reload::Handle`.
+#
+# `ansi` is **required**, and the reason is a trap: `with_ansi(bool)` exists
+# without the feature and **panics** when passed `true` rather than failing to
+# compile. So the two layers here — a console layer that wants colour and a file
+# layer that must not have it — cannot be expressed at all without it, and the
+# build that lacks it dies at `logging::install`, before there is a subscriber to
+# report the death. Found by the first `pnpm tauri:dev` boot.
+#
+# `json` is deliberately absent: v1's file format is one JSON object per line
+# written by hand, and matching it is `logging`'s job rather than a formatter's.
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "fmt",
+  "ansi",
   "env-filter",
   "registry",
   "std",
