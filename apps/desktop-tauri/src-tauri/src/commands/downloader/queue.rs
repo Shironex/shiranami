@@ -472,6 +472,82 @@ mod tests {
         assert_eq!(remaining.items[0].id, batched_id);
     }
 
+    /// The same round trip over the **real** persistence and a real database.
+    ///
+    /// The tests above use a fake store because what they assert is queue
+    /// behaviour. This one asserts the wiring instead: that a row put in by the
+    /// queue lands in `download_queue` through `SqlitePersistence`, survives a
+    /// restart, and comes back with its batch columns intact — the ones the
+    /// renderer rebuilds a playlist import from, and the ones a schema drift
+    /// would silently drop.
+    ///
+    /// The paused flag deliberately does **not** live in that table, so this
+    /// pairs it with the real `SettingsPausedFlag` over a real settings file.
+    #[tokio::test]
+    async fn the_queue_round_trips_through_the_real_table_and_settings_file() {
+        use crate::downloads::SettingsPausedFlag;
+        use shiranami_core::store::SettingsStore;
+        use shiranami_downloader::queue::{DownloadQueue, SqlitePersistence};
+
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let opened = shiranami_db::open(&dir.path().join("shiranami.db"))
+            .await
+            .expect("a fresh database opens");
+        let (settings, _quarantined) = SettingsStore::load(dir.path().join("config.json"));
+        let settings = Arc::new(settings);
+
+        let persistence = || -> Arc<SqlitePersistence> {
+            Arc::new(SqlitePersistence::new(
+                opened.pool.clone(),
+                Arc::new(SettingsPausedFlag::new(Arc::clone(&settings))),
+            ))
+        };
+        let build = || {
+            DownloadQueue::new(
+                persistence(),
+                Arc::new(StalledRunner::default()),
+                Arc::new(RecordingSink::default()),
+                Arc::new(crate::downloads::testing::FixedDirectory(
+                    dir.path().join("downloads"),
+                )),
+            )
+        };
+
+        let first = build();
+        first.pause().await;
+        let mut batched = input("https://youtu.be/abc");
+        batched.batch_id = Some("batch-1".to_owned());
+        batched.batch_index = Some(2);
+        batched.batch_source_title = Some("lofi beats".to_owned());
+        batched.batch_create_playlist = Some(true);
+        batched.youtube_id = Some("abc".to_owned());
+        let id = first.enqueue(batched).await;
+
+        // The row really is in the table, read back through the repository the
+        // queue writes through rather than through the queue's own memory.
+        let mut conn = opened.pool.acquire().await.expect("a connection");
+        let rows = shiranami_db::repo::download_queue::load(&mut conn)
+            .await
+            .expect("the table reads");
+        drop(conn);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, id);
+
+        let restarted = build();
+        restarted.hydrate_and_resume().await;
+
+        let snapshot = restarted.snapshot();
+        assert!(snapshot.paused, "the flag came back from the settings file");
+        let item = snapshot.items.first().expect("the row came back");
+        assert_eq!(item.id, id);
+        assert_eq!(item.url, "https://youtu.be/abc");
+        assert_eq!(item.youtube_id.as_deref(), Some("abc"));
+        assert_eq!(item.batch_id.as_deref(), Some("batch-1"));
+        assert_eq!(item.batch_index, Some(2));
+        assert_eq!(item.batch_source_title.as_deref(), Some("lofi beats"));
+        assert_eq!(item.batch_create_playlist, Some(true));
+    }
+
     /// The persisted queue is what a restart reads, so this is the round trip
     /// `hydrate_and_resume` performs at boot: rows and the paused flag both
     /// come back.
