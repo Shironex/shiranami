@@ -175,6 +175,34 @@ jobs:
       - name: Run Storybook tests
         run: pnpm --filter @shiranami/web test:storybook
 
+  mock-mode:
+    # The `:15175` browser-mode contract (architecture §8 ring 4, risk R5).
+    # macOS lost CDP-driven visual checks when the shell became a WKWebView, and
+    # browser mode plus Storybook are what replaced them — both only work while
+    # `apps/web` boots with no backend attached and the Tauri bridge stays
+    # inert. `install.test.ts` asserts that in jsdom; this asserts it in a real
+    # browser, against the real dev server, after the app has painted.
+    name: Mock Mode (browser)
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Build shared packages
+        run: pnpm build:packages
+
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium --with-deps
+
+      # The script starts `pnpm dev:web` itself and waits for :15175.
+      - name: Check mock mode
+        run: pnpm check:mock-mode
+
   size:
     name: Bundle Size
     needs: [changes]
@@ -302,7 +330,7 @@ jobs:
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, test-storybook, size, e2e, landing]
+    needs: [lint, typecheck, test, test-storybook, mock-mode, size, e2e, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

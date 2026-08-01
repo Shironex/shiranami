@@ -28,6 +28,9 @@ on:
       - 'packages/database/drizzle/**'
       - 'packages/database/src/migrate.ts'
       - 'scripts/verify-db-baseline.mjs'
+      # The analyser canary drives the serve crate's CORS layer through a real
+      # audio graph; a change to either half has to re-run it.
+      - 'scripts/analyser-canary.mjs'
       - '.github/workflows/rust-checks.yml'
   pull_request:
     branches: [master, v2]
@@ -48,6 +51,9 @@ on:
       - 'packages/database/drizzle/**'
       - 'packages/database/src/migrate.ts'
       - 'scripts/verify-db-baseline.mjs'
+      # The analyser canary drives the serve crate's CORS layer through a real
+      # audio graph; a change to either half has to re-run it.
+      - 'scripts/analyser-canary.mjs'
       - '.github/workflows/rust-checks.yml'
 
 concurrency:
@@ -180,3 +186,54 @@ jobs:
       # dependencies — unlike RUSTFLAGS, which would fail on third-party noise.
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+  analyser-canary:
+    # The permanent detector for risk R2's silent-failure mode: a media response
+    # that loses `Access-Control-Allow-Origin` still plays while the analyser
+    # reads digital silence (docs/v2/spike-a-results.md §2). Nothing else in CI
+    # can see it — every other CORS test asserts on a `reqwest` response, and
+    # this failure only exists inside a browser's audio graph.
+    #
+    # macOS rather than ubuntu, and the reason is the engine: R2 is specifically
+    # about WKWebView, and Playwright's WebKit on macOS is the Mac port of
+    # WebKit while its Linux build is the GTK/WPE port. Chromium runs alongside
+    # as the WebView2 stand-in for the Windows target. Both are headless, so
+    # this needs a runner, not a display.
+    name: Analyser energy canary
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-canary-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-canary-
+
+      # Unlike the other jobs in this workflow this one needs node_modules: the
+      # driver is a Playwright script.
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # macOS needs no OS-level browser dependencies, so no --with-deps.
+      - name: Install browser engines
+        run: pnpm exec playwright install chromium webkit
+
+      # Only the serve crate and its dependencies — the harness is an example
+      # target, so nothing here compiles Tauri.
+      - name: Build the harness
+        run: cargo build -p shiranami-serve --example analyser_canary
+
+      - name: Analyser energy canary
+        env:
+          CANARY_HARNESS_BIN: target/debug/examples/analyser_canary
+        run: pnpm canary:analyser
