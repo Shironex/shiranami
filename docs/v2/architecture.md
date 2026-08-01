@@ -1790,3 +1790,32 @@ are filesystem paths, and a URL guard applied to a path refuses every one.
 from the existing workspace rows — `tauri::async_runtime` re-exports the
 runtime's `spawn` and its channels but not its timers, and a `std::thread::sleep`
 in the sampling task would park a runtime worker a second at a time.
+
+## Phase 14 fan-out ledger (2026-08-01, all seven lanes merged to v2)
+
+Surface complete: **136 commands** (135 v1 channels + `health_check`) and all **20 events**, registry-counted and drift-guarded. Per-lane deviations live in the lanes' module docs; cross-cutting outcomes:
+
+- `commands/mod.rs` now spells out the module list literally — the macro-generated tree hid every command file from rustfmt (24 files of invisible formatting debt confirmed and cleared when the list was made literal).
+- Lane 2 built the missing `recommendation::service` + `repo::recommendations` (§2.2 #24 mapped it; Phase 4 shipped only `core`). Golden-vector replays pin the service half.
+- `AppState.pool` sits behind a lock so `db:backup:import` can swap the live database; `pool()` returns an owned handle, `conn()` never holds the guard across an await.
+- `media:playback-state` drives Discord presence directly (v1's own wiring — the discord namespace's `update-presence` is settings-dialog-only). `Presence::update_settings` is a seam method because the settings write tears the socket down.
+- Downloader/`playlist` command modules are `pub` (the `#[tauri::command]` hidden macro doesn't travel through `pub use`).
+
+### Phase 15 obligations (the shim)
+
+- Handle `play`/`pause` on `media:command` — new in v2 (webview MediaSession is suppressed; v1's renderer switch has no default branch).
+- `db:backup:{export,import}` now take a path argument; the file dialog moves to the shim. **Tension to resolve:** lane 6 deliberately granted the webview NO dialog capabilities (Rust-side calls bypass the plugin ACL) — the shim needs a save/open dialog via the existing dialog commands or one new narrowly-scoped command, not a broad capability grant.
+- `share:import` returns `unknown` on the wire (D25 keeps share DTOs zod-only); the shim types it from `packages/contracts`' zod schemas.
+- Error rehydration per D9: the wire carries no `__IPC_ERROR__` sentinel; the shim reconstructs whatever renderer-visible error shape v1's preload produced.
+
+### Phase 16 obligations (boot), accumulated
+
+- `manage` the three cancel-slot states (`ScanSlot`, `EnrichRuns`, `LoudnessRuns`) or cancel channels fail at runtime.
+- Construct every `Deferred` service: serve handle, downloads driver (+ `hydrateAndResume`), lyrics (needs the folders-cache policy), search, scrobbler, discord presence, media controls, updater.
+- Updater impl over the seam (`tauri-plugin-updater`) and **extend `is_release_pending`** beyond `latest.yml` or every release window shows an error toast.
+- Register `tauri-plugin-opener` and wire the Last.fm auth-page open (lane 5's flagged launch blocker); registration order keeps single-instance first.
+- Boot actions from v1: `fetchAndCacheToolStatus`, the yt-dlp discover recompute + 30-second coalesced refresh (seed selection is already ported).
+- Folders-cache invalidation on `db:folders` add/remove and downloader set-location; own the long-lived `FoldersCache`.
+- `persist_compact_bounds` on window close; log dir is `<app data>/logs`, not `app_log_dir()`.
+- Fix `shiranami_db::open`'s non-`Send` future at source (deref-coercion reborrow; lane 2 worked around it with `block_on` in backup-import).
+- Move `off_thread`/`data_dir`/`require_path` from `commands/library.rs` into `crate::wire`.
