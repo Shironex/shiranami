@@ -54,3 +54,4 @@
 // backup). Lane A appends the library-side modules in its own group.
 pub mod download_queue;
 pub mod history;
+pub mod radio;
