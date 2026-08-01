@@ -6,7 +6,10 @@ build/
 target/
 # Tauri regenerates these permission schemas from the plugin set on every build.
 apps/desktop-tauri/src-tauri/gen/
-bin/
+# Runtime-downloaded yt-dlp/ffmpeg binaries land in the repo-root bin/ during
+# dev. Anchored: an unanchored `bin/` silently swallowed a Rust module
+# (crates/shiranami-downloader/src/bin/) out of a pushed commit once.
+/bin/
 release/
 *.log
 .turbo/
