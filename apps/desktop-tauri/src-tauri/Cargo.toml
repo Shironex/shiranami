@@ -47,6 +47,12 @@ sqlx = { workspace = true }
 # `shiranami-downloader` takes it for its `ProcessRunner`.
 async-trait = { workspace = true }
 
+# `shiranami-downloader`'s `SearchService::search` takes a `CancellationToken`,
+# and share-payload assembly calls it to resolve a track `youtube_mappings` has
+# never seen. Nothing here starts a cancellable job of its own — the token is an
+# argument this crate has to be able to name.
+tokio-util = { workspace = true }
+
 # The composition root depends on every domain crate; no domain crate depends
 # on it. Wiring lives here, logic never does — any file in this crate that
 # grows past 400 code lines means logic leaked out of a crate.

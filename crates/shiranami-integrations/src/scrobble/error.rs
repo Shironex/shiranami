@@ -73,6 +73,23 @@ impl ScrobbleError {
 /// A scrobbling result.
 pub type Result<T, E = ScrobbleError> = std::result::Result<T, E>;
 
+impl shiranami_core::error::WireError for ScrobbleError {
+    fn code(&self) -> std::borrow::Cow<'static, str> {
+        // Every variant is `INTERNAL`, and the reason is the policy above rather
+        // than laziness: the failures a *user* can cause — a rejected token, a
+        // handshake that produced nothing — never reach the command boundary as
+        // errors at all. They are absorbed by [`Self::connect_reason`] into the
+        // `{ ok: false, error }` value the connect channels return, because the
+        // renderer branches on `ok` and shows one toast.
+        //
+        // What is left is the residue: a queue read that failed, or a transport
+        // failure on a path that had no reason key to fall back on. v1 threw a
+        // bare `Error` for both, so neither had a registry code, and minting one
+        // here would hand the renderer a string it has no translation for.
+        std::borrow::Cow::Borrowed(shiranami_core::error::codes::INTERNAL)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

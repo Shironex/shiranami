@@ -123,6 +123,30 @@ pub struct Deferred {
     /// `updater:check-for-updates` answers `{ enabled: false }` for, which is
     /// exactly v1's answer in the same three cases.
     pub updater: Option<Arc<dyn crate::seam::Updater>>,
+    /// Lyrics resolution across local files, embedded tags and LRCLIB.
+    ///
+    /// Here rather than beside [`AppState::weather`] — the other cache-holding
+    /// service — for one reason: `LyricsService::new` takes an
+    /// `Arc<dyn LyricsPolicy>`, and that policy answers "may a lyric file beside
+    /// this path be read?" from the watched-folder set. The folders cache is
+    /// built during boot, so the service cannot be constructed from
+    /// [`AppState::from_parts`]'s already-finished pieces without inventing the
+    /// boot order §2.8 owns.
+    ///
+    /// Constructed **once**, like the weather service and for the same reason:
+    /// its LRU and its in-flight coalescing map are its entire memory, and a
+    /// per-call service would re-request LRCLIB for every track change.
+    pub lyrics: Option<Arc<shiranami_integrations::lyrics::LyricsService>>,
+
+    /// YouTube search, over a `yt-dlp` the app may still be installing.
+    ///
+    /// Two consumers: the three `downloader:*` lookup channels, and this
+    /// crate's share-payload assembly, which falls back to a search for any
+    /// track `youtube_mappings` has never resolved. Deferred because
+    /// `SearchService::new` needs the resolved path to the managed yt-dlp
+    /// binary, which is a boot-time answer — the binary may not be on disk yet
+    /// on a first run.
+    pub search: Option<Arc<shiranami_downloader::search::SearchService>>,
 }
 
 impl AppState {
@@ -211,18 +235,24 @@ pub(crate) mod tests {
     /// against. `shiranami_db::open` is the app's own boot path, so the schema
     /// under test is the one the baseline migration produces.
     pub(crate) async fn state_over(dir: &Path) -> AppState {
+        state_over_with(dir, Deferred::default()).await
+    }
+
+    /// The same state, with some of [`Deferred`] filled in.
+    ///
+    /// Every namespace whose channels reach a deferred piece needs this — the
+    /// seams' recording doubles in [`crate::seam::fake`] are of no use if there
+    /// is no way to put one into the state a command reads. Kept beside
+    /// [`state_over`] rather than rebuilt per lane so all of them exercise one
+    /// composition, which is the whole reason that fixture is shared.
+    pub(crate) async fn state_over_with(dir: &Path, deferred: Deferred) -> AppState {
         let opened = shiranami_db::open(&dir.join("shiranami.db"))
             .await
             .expect("a fresh database must open");
         let (settings, _quarantined) = SettingsStore::load(dir.join("config.json"));
         let http = HttpClient::new().expect("the HTTP client must build");
 
-        AppState::from_parts(
-            opened.pool,
-            Arc::new(settings),
-            Arc::new(http),
-            Deferred::default(),
-        )
+        AppState::from_parts(opened.pool, Arc::new(settings), Arc::new(http), deferred)
     }
 
     #[tokio::test]
@@ -260,5 +290,7 @@ pub(crate) mod tests {
         assert!(deferred.discord.is_none());
         assert!(deferred.media_controls.is_none());
         assert!(deferred.updater.is_none());
+        assert!(deferred.lyrics.is_none());
+        assert!(deferred.search.is_none());
     }
 }

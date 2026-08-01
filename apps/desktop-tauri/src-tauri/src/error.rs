@@ -91,6 +91,27 @@ pub fn bad_request(message: impl Into<String>) -> ErrorPayload {
     ErrorPayload::of(&CoreError::BadRequest(message.into()))
 }
 
+/// An `INTERNAL` for a [`crate::state::Deferred`] piece that is absent.
+///
+/// Every field of `Deferred` is an `Option`, because "absent" is a real runtime
+/// state and not merely unfinished work: `SHIRANAMI_E2E=1` deliberately runs
+/// with no Discord and no media controls (§2.8 step 7), and until Phase 16
+/// boots, none of them is present. A command that needs one has to say so
+/// rather than fabricate an answer — a `scrobble:get-status` that invented
+/// `{ enabled: false }` would tell a connected user they are disconnected.
+///
+/// [`codes::INTERNAL`](shiranami_core::error::codes::INTERNAL) rather than a
+/// new code, because v1 had no equivalent state and therefore no code for one;
+/// inventing a registry entry would hand the renderer a string it has no
+/// translation for. The message names the piece so a log says which.
+pub fn not_booted(service: &str) -> ErrorPayload {
+    ErrorPayload {
+        code: shiranami_core::error::codes::INTERNAL.to_owned(),
+        message: format!("{service} is not available in this session"),
+        details: None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,5 +168,16 @@ mod tests {
         let ok: Result<u8, shiranami_core::CoreError> = Ok(7);
 
         assert_eq!(ok.wire().expect("ok survives"), 7);
+    }
+
+    /// An absent `Deferred` piece is code-bearing like everything else, and
+    /// names the piece so the log says which one was missing.
+    #[test]
+    fn an_absent_deferred_piece_is_an_internal_naming_the_piece() {
+        let payload = not_booted("the scrobbler");
+
+        assert_eq!(payload.code, codes::INTERNAL);
+        assert!(payload.message.contains("the scrobbler"));
+        assert_eq!(payload.details, None);
     }
 }

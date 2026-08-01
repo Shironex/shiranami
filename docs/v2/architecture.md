@@ -1536,3 +1536,117 @@ fails the second, and restoring the file makes both pass again.
 off, since a second emitter is a second thing the drift guard has to diff.
 `async-trait` is added to `shiranami-desktop` for the two seams, the same reason
 `shiranami-downloader` takes it for its `ProcessRunner`.
+
+## Phase 14 lane 5 implementation amendments (2026-08-01, `v2-cmd-integrations`)
+
+The four integrations namespaces — `scrobble` (7 channels), `share` (4),
+`discord-rpc` (4), `lyrics` (1). Sixteen invoke commands; the lane's one event,
+`share:deep-link`, was already declared by the kickoff and needed no change.
+
+### Share-payload assembly, and what the repository deliberately does not do
+
+The 12A amendment's rule is implemented literally: `repo::youtube_mappings`
+answers "which of these tracks have a mapping" and nothing else, and both
+observable behaviours live in `commands/share/assembly.rs`'s loop — a shared
+playlist keeps its `position` order, and a track with no mapping is silently
+omitted rather than erroring the payload. Both are pinned, and the ordering one
+is asserted twice: once on the assembled payload, and once on the **bytes the
+server receives**, because a loop that reordered would still look right in a
+`HashMap`-keyed assertion.
+
+Two details that read as redundancy and are not, both preserved:
+
+- The per-track resolver re-reads the cache even though the bulk prefetch ran
+  before the loop. That re-read is the only reason a playlist holding the same
+  track **twice** searches once — the prefetch has no entry for the second
+  occurrence, and only the re-read sees the row the first one just wrote.
+- The artist falls back to `UNKNOWN_ARTIST` in the payload and to `''` in the
+  search query. v1 spelled the two differently and the difference is
+  observable: searching YouTube for "Song Unknown Artist" finds different
+  videos from searching for "Song".
+
+`playlist_tracks::get_tracks` supplies the ordering by `INNER JOIN … ORDER BY
+position`, which is where v1's two-step read plus JavaScript reorder ends up;
+the ordering that had to stay in this layer is the **mapping** loop's, not the
+track fetch's.
+
+### The commands are split so the orchestration is testable
+
+Each of the three network-facing share channels is a three-line
+`#[tauri::command]` over an inner function taking `&ShareClient`. Without the
+split, everything past the argument check is unreachable from a test — the
+client's base URL is fixed at build time on purpose, so there is no seam to
+point at a loopback server, and building a `State<'_, AppState>` needs a webview.
+This is `weather::validate_query`'s precedent applied to a whole body rather
+than to a guard.
+
+`SearchService` needed no seam at all: its dependency on the outside world is
+`spawn::ProcessRunner`, which is already a public trait, so the whole share path
+runs against a scripted yt-dlp with no binary installed.
+
+### `seam::Presence` gains `update_settings`, and its sibling read does not
+
+The kickoff placed both Discord settings channels outside the trait, on the
+reasoning that both only touch the store. That holds for the read and not for
+the write: v1's `updateDiscordRpcSettings` persists and then connects,
+disconnects, or re-renders the card, and `DiscordPresence::update_settings`
+reproduces all three. Routing the write through the store alone would leave a
+**stale presence card up** after a user switches Rich Presence off — the socket
+would stay open until Discord noticed it close on its own. That is a visible
+regression rather than a deferred effect, so the write is a seam method.
+
+`get-settings` stays outside the trait, because settings exist on a run that has
+no Discord and the Settings pane has to render them there too. The write falls
+back to a plain store update when the seam is absent, which is the same set of
+observable effects: nothing to tear down, nothing to re-render.
+
+### `Deferred` gains `lyrics` and `search`
+
+Neither can be built from `AppState::from_parts`'s finished pieces.
+`LyricsService::new` takes an `Arc<dyn LyricsPolicy>` whose containment answer
+comes from the watched-folder set, and `SearchService::new` needs the resolved
+path to a yt-dlp binary that may not be on disk on a first run. Both are
+constructed **once** for the same reason the weather service is: an LRU and an
+in-flight coalescing map are the lyrics service's entire memory.
+
+`error::not_booted` is the shared answer for an absent piece: `INTERNAL`, naming
+the piece. Not a new registry code — v1 had no equivalent state, and minting one
+would hand the renderer a string it has no translation for. It is deliberately
+**not** a fabricated success: a `scrobble:get-status` that invented
+`{ enabled: false }` would tell a connected user they are disconnected.
+
+### Two crate additions, both because a consumer finally exists
+
+- `repo::tracks::get` backs no `db:tracks:*` channel and never will — the
+  renderer holds the library in memory and never asks for one row. v1's
+  `ipc/share.ts` read one inline, and the alternative here was scanning
+  `get_all` for it.
+- `impl WireError for ScrobbleError`. Every variant is `INTERNAL`, and that is
+  the policy rather than laziness: the failures a _user_ causes never reach the
+  boundary as errors at all — they are absorbed into the `{ ok: false, error }`
+  value the connect channels return. What is left is a queue read that failed,
+  for which v1 threw a bare `Error`.
+
+### `share:import` returns `unknown`, and that is D25 holding
+
+The share DTOs deliberately do not derive `specta::Type`: they are an HTTP
+contract with `apps/server`, and generating renderer types from them would make
+a server-side DTO change regenerate the renderer's types. So all three
+network-facing share channels return `wire::Json`. Only the _type source_
+changes — the response is still validated here before it is handed on, which is
+the part that was protecting the renderer from hostile input.
+
+### The one functional gap: the Last.fm auth page is not opened
+
+v1 called `shell.openExternal` inside `beginLastfmAuth`; Phase 12 moved that out
+of the crate and named `tauri-plugin-opener` as the composition root's
+mechanism. That plugin is not a dependency yet, and adding one means pinning it
+in Appendix B **and** registering it in the boot sequence — an Appendix B
+decision and a §2.8 decision, neither of which is a namespace lane's to make,
+and both of which `shell:open-external` needs identically. So the two land
+together rather than one lane pinning a dependency on the other's behalf.
+
+Until then `scrobble::open_auth_page` logs the URL at `warn` and says why. The
+wire contract is unaffected — `{ ok, token? }` is what the renderer reads and it
+is already byte-exact — but the handshake cannot complete until the plugin is
+registered, so this is a launch blocker rather than a cosmetic gap.
