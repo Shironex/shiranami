@@ -168,39 +168,39 @@ pub struct TrackUpdateInput {
     pub title: Option<String>,
     /// Track artist.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<String>)]
     pub artist: Patch<String>,
     /// Album artist.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<String>)]
     pub album_artist: Patch<String>,
     /// Album name.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<String>)]
     pub album: Patch<String>,
     /// Duration in seconds.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<f64>)]
     pub duration: Patch<f64>,
     /// Genre tag.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<String>)]
     pub genre: Patch<String>,
     /// Release year.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<i32>)]
     pub year: Patch<i32>,
     /// Position within the album.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<i32>)]
     pub track_number: Patch<i32>,
     /// Disc number for multi-disc releases.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<i32>)]
     pub disc_number: Patch<i32>,
     /// Cached cover URL.
     #[serde(default, deserialize_with = "double_option")]
-    #[specta(optional)]
+    #[specta(optional, type = Option<String>)]
     pub album_art: Patch<String>,
 }
 

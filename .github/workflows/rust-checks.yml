@@ -19,6 +19,10 @@ on:
       - 'rust-toolchain.toml'
       - 'rustfmt.toml'
       - 'clippy.toml'
+      # Emitted by cargo test and diffed by this workflow, so an edit to either
+      # the bindings or the prover has to re-run the gate that owns them.
+      - 'packages/contracts/src/generated/**'
+      - 'scripts/verify-drift-guard.mjs'
       - '.github/workflows/rust-checks.yml'
   pull_request:
     branches: [master, v2]
@@ -30,6 +34,10 @@ on:
       - 'rust-toolchain.toml'
       - 'rustfmt.toml'
       - 'clippy.toml'
+      # Emitted by cargo test and diffed by this workflow, so an edit to either
+      # the bindings or the prover has to re-run the gate that owns them.
+      - 'packages/contracts/src/generated/**'
+      - 'scripts/verify-drift-guard.mjs'
       - '.github/workflows/rust-checks.yml'
 
 concurrency:
@@ -67,6 +75,14 @@ jobs:
       - name: Install pinned Rust toolchain
         run: rustup show
 
+      # Only so `pnpm verify:drift-guard` resolves below. The script itself uses
+      # nothing but Node builtins, git and cargo, so the workspace install is
+      # skipped — this job has no business waiting on node_modules.
+      - name: Setup pnpm and Node
+        uses: ./.github/actions/setup
+        with:
+          install: 'false'
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -84,8 +100,26 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+      # Re-exports the TypeScript bindings as a side effect (architecture §2.5:
+      # "export runs inside `cargo test`"), which is what gives the next step
+      # something to diff.
       - name: Test
         run: cargo test --workspace
+
+      - name: Bindings are up to date
+        run: |
+          git diff --exit-code packages/contracts/src/generated \
+            || {
+              echo "::error::Generated bindings are stale. Run \`cargo test -p shiranami-core --lib bindings\` and commit packages/contracts/src/generated."
+              exit 1
+            }
+
+      # The diff above is only a gate if it can still fail. This perturbs a
+      # `#[derive(specta::Type)]` type and REQUIRES the diff to trip — nightcore
+      # shipped a drift guard that was vacuous for its entire life (issue #422,
+      # risk R17), and a guard that silently no-ops is worse than no guard.
+      - name: Drift guard is not vacuous
+        run: pnpm verify:drift-guard
 
   rust-cross-check:
     # souvlaki, taskbar progress, WebView2 browser args and the macOS keychain

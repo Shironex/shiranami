@@ -10,3 +10,8 @@ apps/desktop-tauri/src-tauri/gen/
 # install, and buries real dependency changes in review.
 Cargo.lock
 pnpm-lock.yaml
+
+# Emitted by `cargo test -p shiranami-core` (specta). Prettier reformatting it
+# would put the formatter and the generator in a loop and make the
+# regenerate-and-diff guard fail for reasons that have nothing to do with drift.
+packages/contracts/src/generated/
