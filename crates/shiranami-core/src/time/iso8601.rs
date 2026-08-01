@@ -8,9 +8,9 @@
 //! `shiranami-library` on the spine rather than below it, so the only way for
 //! both to share one calendar is for the calendar to be here.
 //!
-//! `shiranami_library::iso8601` survives as a re-export, exactly as
-//! `shiranami_recommendation::core::instant` did when the *parse* direction made
-//! this same trip in the Phase 14 kickoff. Two hand-rolled calendars in one
+//! The `iso8601` module in shiranami-library survives as a re-export, exactly
+//! as the recommendation crate's `core::instant` did when the *parse* direction
+//! made this same trip in the Phase 14 kickoff. Two hand-rolled calendars in one
 //! workspace is one too many; two paths to one calendar costs nothing.
 //!
 //! The calendar conversion is Howard Hinnant's `civil_from_days`, which is the
@@ -24,9 +24,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 ///
 /// Same 24 characters, same `T` separator, same millisecond precision and same
 /// trailing `Z` as the strings v1's handlers wrote, and as
-/// [`shiranami_db`]'s `ISO_8601_NOW` produces from SQLite's clock.
-///
-/// [`shiranami_db`]: https://docs.rs/shiranami-db
+/// shiranami-db's `ISO_8601_NOW` produces from SQLite's clock.
 pub fn now() -> String {
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)

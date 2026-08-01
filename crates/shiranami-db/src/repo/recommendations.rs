@@ -4,9 +4,9 @@
 //! Phase 7 ported the 45 database channels and neither `recommendations` nor
 //! `negative_signals` has one: v1 reached both tables inline from
 //! `apps/desktop/src/main/services/recommendation-service.ts`, which owns
-//! channels in its own namespace. The service half of that file becomes
-//! `shiranami_recommendation::service`, and it cannot aggregate anything
-//! without these queries.
+//! channels in its own namespace. The service half of that file becomes the
+//! `service` module of the recommendation crate, and it cannot aggregate
+//! anything without these queries.
 //!
 //! # Why the folding is not done here
 //!
@@ -24,9 +24,9 @@
 //! - The dislike tables are tiny and the aggregate is not, so three small reads
 //!   are cheaper than widening the big one.
 //!
-//! So this module returns the three shapes v1 read, and
-//! [`shiranami_recommendation::service`] folds them exactly as the JavaScript
-//! did. The fold is the ported logic; the SQL is this crate's.
+//! So this module returns the three shapes v1 read, and the recommendation
+//! crate's `service` module folds them exactly as the JavaScript did. The fold
+//! is the ported logic; the SQL is this crate's.
 //!
 //! # The sentinels are deliberately absent
 //!

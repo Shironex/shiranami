@@ -8,7 +8,7 @@
 //! below it, so the shared calendar had to move to `shiranami-core`.
 //!
 //! This module survives as a re-export rather than being deleted for the same
-//! reason `shiranami_recommendation::core::instant` did when the parse
+//! reason the recommendation crate's `core::instant` did when the parse
 //! direction made the same trip: `crate::storage` documents its timestamp by
 //! pointing here, and that path is the one a reader of this crate follows.
 pub use shiranami_core::time::iso8601::{from_epoch_millis, now};

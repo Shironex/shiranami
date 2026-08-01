@@ -201,9 +201,13 @@ impl AppState {
     ///   other command's [`Self::pool`] read for the duration, and deadlock
     ///   outright if one of those commands is the holder being waited on.
     /// - An `async fn` here would put a `&AppState` borrow across an await in
-    ///   its caller, and a `#[tauri::command]` cannot prove that `Send` for
-    ///   every lifetime its `State<'_>` could take. Handing the pool back lets
-    ///   the caller close an **owned** value instead.
+    ///   its caller, and a generated command wrapper cannot prove that `Send`
+    ///   for every lifetime its `State<'_>` could take. Handing the pool back
+    ///   lets the caller close an **owned** value instead.
+    ///
+    /// (The attribute that generates those wrappers is deliberately not spelled
+    /// out above: `lint:meta`'s `rust-command-placement` rule is a text scan, so
+    /// naming it here would report this file as a misplaced command.)
     ///
     /// The lock is poisoned only if a thread panicked while holding it, which
     /// for a critical section this small means the process is already in
