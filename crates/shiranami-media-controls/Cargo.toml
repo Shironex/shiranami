@@ -11,5 +11,30 @@ publish.workspace = true
 [dependencies]
 shiranami-core.workspace = true
 
+# `NowPlaying` is the argument of the command the renderer invokes on every
+# playhead tick, so it needs the same camelCase/`Number` treatment as the models
+# in `shiranami-core::models`. It lives here rather than in `core` because it is
+# an IPC payload (v1's `packages/contracts/src/ipc/preload-api.ts`), not a
+# domain model — and this crate is the only thing that consumes it.
+serde = { workspace = true }
+# Reads the `system.launchAtStartup` value out of a `core::store::ChangeEvent`.
+serde_json = { workspace = true }
+specta = { workspace = true }
+specta-typescript = { workspace = true }
+thiserror = { workspace = true }
+# `sync` only: the OS delivers remote commands on its own thread, so the seam
+# between the backend callback and the shell has to be a channel. Unbounded
+# because the callback is a synchronous `Fn` the OS is blocking on — it may not
+# await backpressure.
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+# The one OS-facing dependency, gated to the two platforms we ship. On Linux
+# this crate still compiles — every pure module and the trait seam are
+# platform-independent — it simply has no real backend, which is what
+# `NullBackend` is for.
+[target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
+souvlaki = { workspace = true }
+
 [lints]
 workspace = true
