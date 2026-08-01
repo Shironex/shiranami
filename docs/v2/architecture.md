@@ -1954,3 +1954,190 @@ is not general enough` cannot be fixed with a turbofish (rust#42868). sqlx's
   `computeDiscoverItems`' RD-mix fetch needs a `ProcessRunner` the recommendation
   crate does not take. The seed selection is ported and the schedule is real; the
   fetch is a `shiranami-recommendation` change, not a boot one.
+
+## Phase 17 implementation amendments (2026-08-01, merged to `v2`)
+
+First-run data continuity ships. A real v1 profile migrates and the app opens
+it: 519 tracks, 3 playlists, 454 playlist entries, 450 YouTube mappings, 514
+covers and 49 peaks files, adopted and served.
+
+```
+migrating the v1 library entries=["config.json", "album-art", "waveform-peaks"]
+backed the v1 library up before migrating path=…/backups/shiranami-2026-08-01T20-49-36-799Z.db
+the v1 library was migrated copied_bytes=22031149
+library opened adoption=Adopted { legacy: false, healed_disc_number: false,
+                                  replayed: ["20260101000008_query_indexes"] }
+boot complete total_ms=2341 slowest="continuity" slowest_ms=1971
+  stages=logging=4ms continuity=1971ms settings=1ms database=359ms …
+```
+
+Second launch, same profile: `outcome=AlreadyMigrated`, `adoption=AlreadyAdopted`,
+`boot complete total_ms=260 … continuity=0ms`. The 1,971 ms is a one-time cost
+paid once per user, and it is the only thing that has ever pushed a boot past
+§1.2's 1.5 s ceiling; the launch that pays it is also the launch that copies the
+user's library, and every launch after it is back under 300 ms.
+
+### Continuity runs _before_ the settings store, not after it
+
+§2.8 orders the stages `logging → settings → first-run data continuity`. The
+implementation runs continuity second, and the dependency is the wrong way round
+in the document rather than in the code: **the migration is what puts
+`config.json` in the v2 directory.** Loading the settings store first reads an
+empty document on precisely the launch where a returning user's theme, language,
+sidebar layout and Last.fm credentials matter most, and decides Sentry consent
+from a default instead of from the answer they already gave v1.
+
+§2.8 was written before §3.4 settled that the v1 settings file is read _in place_
+rather than converted. Once it is read in place, "copy the file" and "import the
+settings" are the same step, and it has to precede the reader. `Stage::Continuity`
+sits between `Logging` and `Settings`, and two tests assert that ordering rather
+than describing it.
+
+The refusal is checked at the top of `finish`, above `shiranami_db::open`. That
+is the ordering R6 actually turns on: a failed migration leaves a v1 tree full of
+music beside an empty v2 directory, and `open` would create a fresh database
+there without complaint.
+
+### §3.1 has a fourteenth state, and the marker alone cannot name it
+
+The marker is written last, so an interrupted run leaves none and the next launch
+redoes the copy. Sound — but it makes a v2 directory holding `shiranami.db` and
+no marker ambiguous: it is _either_ a run that died mid-copy (redo it) _or_ a v2
+install that already has its own library, on a machine where a v1 directory also
+exists (never touch it). The second is reachable — a user who ran v2 first and
+restored an old v1 profile afterwards — and copying there overwrites live data
+with an older library, which is R6 arriving from the direction §3.1 did not
+consider.
+
+`.v1-migration-in-progress` disambiguates: written before the first byte, removed
+after the marker. Its presence means "a previous run of this sequence was
+interrupted"; its absence beside a database means "that database is not ours to
+overwrite". The declining run writes a marker recording `skipped:
+v2-data-already-present`, so the check is not retaken on every launch.
+
+### Three decisions inside step 3 that the file list does not state
+
+- **The copy list is an allowlist of names, not the directory.** A real Electron
+  `userData` is mostly Chromium: `Cache/` alone was 498 MB in the profile this was
+  developed against, beside `Code Cache/` (87 MB), `GPUCache/`, `Session Storage/`,
+  `Cookies` and a dozen more. Copying the tree would turn a 22 MB migration into a
+  650 MB one whose extra bytes are inert in a WKWebView. `Local Storage/leveldb/`
+  is the pointed case — it holds the renderer state that matters, in a format v2
+  cannot read, which is exactly why the bridge writes `renderer-state.json`.
+- **Directory copies skip entries that already exist.** For `album-art/` and
+  `waveform-peaks/` this is an identity rather than a heuristic: both are
+  content-addressed, so a destination entry that exists necessarily holds the same
+  bytes. It is what makes resuming a 514-file art cache cheap. `logs/` skips for a
+  stronger reason — the file appender already holds today's log open, because
+  logging is stage one, and renaming a copy over it would leave the appender
+  writing to an unlinked inode.
+- **The database is copied last, its `-wal` and `-shm` after it.** Everything the
+  database points at is in place before the file that makes the library look
+  present. A run that dies between the two leaves caches with no database, which
+  the next launch simply redoes; the reverse would be a library whose covers are
+  all missing until something re-extracted them.
+
+### The pre-migration backup does not prune, and does not refuse a launch
+
+§3.1 step 2 says to port `db-backup.ts`'s rotation. The naming is ported
+(`backups/shiranami-<ISO with `:`and`.`replaced by`-`>.db`, lexicographically
+sortable by age); **`MAX_BACKUPS` pruning is not.** v1 keeps five because it backs
+up on every launch; this runs once, ever, so the cap it protects can be exceeded
+by exactly one file — and pruning would mean v2 unlinking files from the v1 tree
+during a sequence whose whole contract (D13) is copy, never move, never delete.
+Of everything in this phase it is the one act with no undo.
+
+It also copies bytes rather than using SQLite's online backup API. `shiranami-db`
+is two ranks above `shiranami-core` and unreachable from the migration, and
+opening the v1 database through sqlx would be the first thing in the sequence
+that _writes_ to the v1 tree — WAL recovery on open creates and mutates `-wal`
+and `-shm` — which is what "before anything is touched" rules out. The sidecars
+are copied alongside instead.
+
+A failed backup is logged and swallowed, which is v1's own documented policy
+("a backup failure must not block launch") and the one deliberate exception to
+step 7. Step 7 exists to stop the app continuing into a fresh empty database; a
+failed backup cannot cause that, because the migration only ever reads the v1
+database.
+
+### §3.4's import is a file copy, and that is the whole of it
+
+`core::store` was already built to read the v1 `config.json` in place — same
+filename, same electron-store dot-notation nesting, same tab indentation, unknown
+keys round-tripped. So step 4's "import key-by-key" needs no key loop: copying
+the file _is_ the import, and
+`the_v1_settings_file_is_readable_by_the_v2_store_after_migrating` asserts the
+end of that chain against a real profile's file. A key loop would additionally
+have been wrong in a way worth naming — every `set` publishes on the change bus,
+so importing `system.launchAtStartup` would have written an OS login item as a
+side effect of migrating.
+
+### §3.5's fallback was mostly already there
+
+`useOnboardingStore` and `useSupportBannerStore` both mirror to the settings
+store (`app.onboardingCompleted`, `app.supportBannerSeen`) and re-read it on boot
+through `hydrateOnboarding` — the store-mirror pattern §3.5 cites as the thing to
+generalise. Migrating `config.json` therefore restores both with no help from the
+seed script. What that misses is a v1 user whose mirror was never written, so the
+script seeds the flag whenever a v1 library was actually copied — a returning
+user by definition. Derived from the migration outcome rather than a track count
+because the script is built before the database stage; the populations are the
+same.
+
+The seed writes a key only when `localStorage` has none, which is what lets it
+run on **every** launch rather than being consumed once. Consuming the dump would
+lose it entirely if the first launch crashed before the renderer stored anything,
+and never overwriting means a preference changed in v2 is not reverted by the v1
+snapshot on the next start. The dump's values stay the strings `localStorage`
+held — a zustand slice is itself JSON and arrives double-encoded — and the
+`shiranami.` prefix is re-checked here even though the bridge already filtered on
+it, because this script runs before page code and anything it writes is
+indistinguishable from something the app stored itself.
+
+### Two gaps this phase found in earlier ones
+
+- **`window::initialization_script` had no caller.** Phase 16 wrote it, tested it
+  and never registered it, so neither `__SHIRANAMI_E2E__` nor D10's mediaSession
+  suppression ever reached the webview. It could not be attached the obvious way:
+  `tauri.conf.json` declares the main window, so Tauri builds it during `build()`
+  and there is no `WebviewWindowBuilder` to hang an `initialization_script` on.
+  It is now a plugin `js_init_script`, which has the same before-any-page-script
+  timing, and the §3.5 seed rides the same mechanism.
+- **Nothing hands the webview the loopback server's base URL and token.** §2.4
+  specifies "token is generated at boot, handed to the webview by a command" and
+  §2.4's renderer row specifies the URL-builder helper
+  (`shiranami-art://…` / `shiranami-audio://…` → `${base}/…`). Neither exists:
+  there is no such command in the generated bindings and no helper in
+  `apps/web/src/lib/bridge/`. The consequence is visible the moment a migrated
+  library renders — every cover is a placeholder, because `tracks.album_art`
+  holds `shiranami-art://art/<hash>.jpg` and nothing rewrites it. The art
+  _files_ are carried correctly and the route serves them (proved by
+  `shiranami-serve/tests/migrated_profile.rs`, which fetches a migrated cover
+  over HTTP and compares bytes); the missing piece is one command plus one
+  renderer helper, and it is a Phase 14/15 obligation rather than a continuity
+  one. **It is a launch blocker: no album art and no audio playback without it.**
+
+### The real-data proof, and what it turned up
+
+`crates/shiranami-db/tests/real_v1_profile.rs` runs the whole sequence against a
+profile named by `SHIRANAMI_V1_PROFILE`, copying it into a temp directory first
+because step 2 writes into the v1 tree, then re-checksumming the original to show
+D13 held. Its gate test runs unconditionally, so a typo in the variable cannot
+become a silent pass — Phase 11's lesson about skipping tests, applied.
+
+Against the developer's own v1 profile it immediately failed, and correctly: that
+database's ledger names `20260101000008_track_bpm_key`, a migration that exists
+only on the unmerged `feat/native-bpm-key-addon` branch. Adoption refused it with
+`UnknownV1Migration`, which is refusal #10 working exactly as Phase 6 designed —
+a database carrying a migration this build has never seen may have schema v2
+cannot reason about. Two of that profile's backups also carry `user_version = 9`,
+above the frozen floor, and would be refused as `SchemaTooNew`. No shipped v1
+produces either state; both are artefacts of running a feature branch. Worth
+recording because anyone testing v2 against their own dev profile will meet it,
+and the refusal is the correct answer rather than a bug.
+
+The success run therefore used that profile's own `2026-06-24` backup, which is a
+genuine shipped-state v1 database one migration behind (8 applied, floor 8). It
+migrated, adoption replayed `20260101000008_query_indexes`, and every count
+matched. Source checksums over 572 files were identical before and after the
+whole exercise.
