@@ -38,6 +38,7 @@ pub mod database;
 pub mod error;
 pub mod migrations;
 pub mod pool;
+pub mod repo;
 
 pub use adopt::{Adoption, adopt};
 pub use compat::{SCHEMA_FLOOR, assert_not_downgrade};
