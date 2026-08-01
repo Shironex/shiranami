@@ -156,6 +156,89 @@ impl Harness {
     }
 }
 
+/// The same server with `Access-Control-Allow-Origin` deleted on the way out.
+///
+/// The falsifiability control for the CORS suite. Every other test in
+/// `tests/cors.rs` asserts the header is *present*; none of them would notice if
+/// `assert_cors` stopped being able to tell. This one builds the real router
+/// over a real [`ServeState`] and wraps one extra layer around it that removes
+/// the header after `cors::apply` inserted it, so the suite has a response it is
+/// required to reject.
+///
+/// It is the cheap ring-1 twin of `scripts/analyser-canary.mjs`, which proves
+/// the same thing through a browser's audio graph. Same shape, same reason: a
+/// guard that silently no-ops is worse than no guard (R17).
+pub struct StrippedServer {
+    /// The URL prefix including the session token.
+    pub base: String,
+    pub client: reqwest::Client,
+    /// An audio fixture inside the allowed root.
+    pub audio: PathBuf,
+    _dirs: (TempDir, TempDir),
+}
+
+/// Bind [`StrippedServer`] on an ephemeral port over fresh fixtures.
+pub async fn start_stripped() -> StrippedServer {
+    use axum::extract::Request;
+    use axum::http::header::ACCESS_CONTROL_ALLOW_ORIGIN;
+    use axum::middleware::Next;
+    use axum::response::Response;
+    use shiranami_serve::state::ServeState;
+    use shiranami_serve::token::SessionToken;
+
+    async fn strip(request: Request, next: Next) -> Response {
+        let mut response = next.run(request).await;
+        response.headers_mut().remove(ACCESS_CONTROL_ALLOW_ORIGIN);
+        response
+    }
+
+    let data = TempDir::new().expect("a data dir");
+    let music = TempDir::new().expect("a music dir");
+
+    let folders = Arc::new(FoldersCache::new(
+        data.path().to_owned(),
+        Arc::new(TestAuthority {
+            downloads: data.path().join("downloads"),
+            folders: vec![music.path().to_owned()],
+            tracks: Mutex::new(Vec::new()),
+        }),
+    ));
+
+    let token = SessionToken::generate();
+    let state = ServeState::new(
+        ServeConfig {
+            folders,
+            art_dir: data.path().to_owned(),
+            guard: UrlGuard::with_resolver(Arc::new(TestResolver::new())),
+            upstream: Arc::new(FakeUpstream::new()) as Arc<dyn RadioUpstream>,
+        },
+        token.clone(),
+    );
+
+    let router = shiranami_serve::server::router(state).layer(axum::middleware::from_fn(strip));
+
+    let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .expect("the control server binds");
+    let port = listener.local_addr().expect("a bound address").port();
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, router).await;
+    });
+
+    let audio = music.path().join("track.mp3");
+    std::fs::write(&audio, pattern(512)).expect("the fixture writes");
+
+    StrippedServer {
+        base: format!("http://127.0.0.1:{port}/{}", token.as_str()),
+        client: reqwest::Client::builder()
+            .no_proxy()
+            .build()
+            .expect("the test client builds"),
+        audio,
+        _dirs: (data, music),
+    }
+}
+
 /// The byte pattern every fixture is filled with: position-dependent, so a
 /// response carrying the wrong offset cannot pass by accident.
 pub fn pattern(size: usize) -> Vec<u8> {

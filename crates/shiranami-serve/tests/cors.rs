@@ -204,3 +204,46 @@ async fn the_allowed_origin_is_the_wildcard_not_an_echo() {
         "echoing the request's Origin is the shape that later grows credentials"
     );
 }
+
+/// The suite above asserts presence on every response. This one asserts the
+/// suite can tell.
+///
+/// `assert_cors` is the only thing standing between a header regression and a
+/// silent player, and an assertion nobody has ever seen fail is an assertion
+/// nobody knows works. So: the same router, over a real `ServeState`, with one
+/// extra layer deleting `Access-Control-Allow-Origin` on the way out. The
+/// response must be one this file rejects.
+///
+/// `scripts/analyser-canary.mjs` proves the same property through a browser's
+/// audio graph, where the consequence is audible; this is the cheap twin that
+/// runs in `rust-checks` on every pull request without a browser download.
+#[tokio::test]
+async fn the_presence_assertion_is_falsifiable() {
+    let control = common::start_stripped().await;
+
+    let url = format!(
+        "{}/audio?path={}",
+        control.base,
+        common::encode(&control.audio.to_string_lossy())
+    );
+    let response = control
+        .client
+        .get(&url)
+        .send()
+        .await
+        .expect("the control server answers");
+
+    assert!(
+        response.status().is_success(),
+        "the control must differ from a served response by one header and \
+         nothing else, or it is not a control"
+    );
+    assert!(
+        response
+            .headers()
+            .get(ACCESS_CONTROL_ALLOW_ORIGIN)
+            .is_none(),
+        "the control server still sent Access-Control-Allow-Origin, so the \
+         stripping layer no longer strips and this test proves nothing"
+    );
+}

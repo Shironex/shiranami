@@ -14,4 +14,4 @@ pub mod fakes;
 pub mod harness;
 
 pub use fakes::{FakeUpstream, Reply, ReplyBody, TestResolver};
-pub use harness::{Harness, encode, pattern};
+pub use harness::{Harness, StrippedServer, encode, pattern, start_stripped};
