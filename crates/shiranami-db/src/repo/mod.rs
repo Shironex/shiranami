@@ -56,3 +56,8 @@ pub mod radio;
 // Phase 12 lane B — the scrobble retry queue, which has no v1 table: v1 parked
 // failed submissions in a process-memory array. Migration `0002` adds it.
 pub mod scrobble_queue;
+
+// Phase 14 — the one v1 table with no `db:*` channel of its own. Share-payload
+// assembly and RD-mix discovery read it inline in v1; both are command-layer
+// jobs in v2, and neither can be written without these queries.
+pub mod youtube_mappings;
