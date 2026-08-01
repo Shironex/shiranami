@@ -4198,9 +4198,19 @@ dependencies = [
 name = "shiranami-integrations"
 version = "2.0.0-alpha.0"
 dependencies = [
+ "lofty",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
  "shiranami-core",
  "shiranami-db",
  "shiranami-net",
+ "tempfile",
+ "thiserror 2.0.19",
+ "tokio",
+ "tracing",
+ "url",
 ]
 
 [[package]]

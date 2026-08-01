@@ -10,3 +10,8 @@
 //!
 //! Ported in Phase 12. Scrobble secrets must never cross the command boundary.
 //! See `docs/v2/architecture.md` §2.2 (#22, #23, #25, #26).
+
+// lane A
+pub mod lyrics;
+pub mod share;
+pub mod weather;
