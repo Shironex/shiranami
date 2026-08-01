@@ -28,22 +28,23 @@
 //! | [`tray`] | v1's tray menu as a value, with the wiring left to the shell |
 //! | [`system`] | minimize/close-to-tray, and the quit flag that must override both |
 //! | [`autostart`] | the login item, and v1's rule about never writing it on a fresh install |
+//! | [`progress`] | the Windows taskbar progress bar |
 //!
 //! # What the shell still has to do
 //!
-//! Two things need the Tauri app handle, which this crate does not depend on
+//! Three things need the Tauri app handle, which this crate does not depend on
 //! (§2.1: the composition root reaches for crates, never the reverse). Each has
 //! a trait here and an implementation in Phase 16: the tray itself
-//! ([`tray::TrayModel`] describes it, `tauri::tray` builds it) and
-//! [`autostart::AutostartBackend`] (`tauri-plugin-autostart`). The Windows
-//! window handle that [`souvlaki_backend`] needs arrives the same way, as a raw
-//! `isize` rather than a `tauri::Window`.
+//! ([`tray::TrayModel`] describes it, `tauri::tray` builds it),
+//! [`autostart::AutostartBackend`] (`tauri-plugin-autostart`), and
+//! [`progress::TaskbarProgressBackend`] (`Window::set_progress_bar`). The
+//! Windows window handle that [`souvlaki_backend`] needs arrives the same way,
+//! as a raw `isize` rather than a `tauri::Window`.
 //!
 //! §2.8 also requires `SHIRANAMI_E2E=1` to disable media controls and the tray.
-//! That is a
-//! decision about whether to construct anything here at all, so it stays in the
-//! shell — with [`backend::NullBackend`] available for the variant that would
-//! rather keep its wiring uniform than make it conditional.
+//! That is a decision about whether to construct anything here at all, so it
+//! stays in the shell — with [`backend::NullBackend`] available for the variant
+//! that would rather keep its wiring uniform than make it conditional.
 
 // Every item here is either a ported guard or a contract the shell wires to. An
 // undocumented one is a contract nobody can read, so this crate gates on
@@ -56,6 +57,7 @@ pub mod coalesce;
 pub mod command;
 pub mod error;
 pub mod os;
+pub mod progress;
 pub mod service;
 pub mod souvlaki_backend;
 pub mod state;
