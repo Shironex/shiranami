@@ -23,7 +23,7 @@
 //! | `src/affinity.ts`     | [`affinity`]     |
 //! | `src/similarity.ts`   | [`similarity`]   |
 //! | `src/mixes.ts`        | [`mixes`]        |
-//! | (`Date.parse` / `Date.now`) | [`instant`] |
+//! | (`Date.parse` / `Date.now`) | [`instant`], re-exported from `shiranami-core` since Phase 14 |
 
 pub mod affinity;
 pub mod instant;

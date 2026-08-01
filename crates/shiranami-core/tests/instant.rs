@@ -6,8 +6,11 @@
 //! "unparseable": a parser bug would not crash, it would quietly stop
 //! recommending. Every expectation below was cross-checked against
 //! `node -e "Date.parse(…)"`.
+//!
+//! Written in Phase 4 against `shiranami-recommendation`; moved here unchanged
+//! in Phase 14 with the module they cover.
 
-use shiranami_recommendation::core::instant::{now_ms, parse_iso8601_ms};
+use shiranami_core::time::instant::{now_ms, parse_iso8601_ms};
 
 /// The exact shape the only producer emits — `new Date().toISOString()` in
 /// `apps/desktop/src/main/ipc/database/history.ts`.

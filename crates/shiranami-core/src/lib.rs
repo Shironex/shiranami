@@ -24,6 +24,7 @@ pub mod notice;
 pub mod paths;
 pub mod store;
 pub mod sync;
+pub mod time;
 
 pub use constants::{UNKNOWN_ALBUM, UNKNOWN_ARTIST};
 pub use error::{CoreError, ErrorPayload, Result};
