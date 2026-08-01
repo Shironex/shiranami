@@ -1501,6 +1501,35 @@ deliberately absent — it travels the other way and is an event.
 Recording doubles for both seams ship in `seam::fake`, so every lane tests
 against the same double rather than inventing one.
 
+### R15 and R16 are retired by source-grep guards, added before the fan-out
+
+`arch_guards.rs` (nightcore's file, scoped to the composition root) pins the two
+rules no type can express, and it exists **now** rather than after twenty-one
+lanes have written commands against the skeleton — a rule that arrives late
+arrives as a twenty-one-file cleanup.
+
+- **R15**: every command is `async`, with an empty `SYNC_COMMAND_ALLOWLIST`
+  ratchet. "It does not need to be async" is not grounds for an entry; "it must
+  not be" would be, and nothing has claimed that.
+- **R16**: no bare `tokio::spawn`. R16 was nominally retired in Phase 2 but no
+  guard was ever built, and the command layer is the first place `spawn` appears.
+
+Three things the guards taught on their first run, all recorded in the module:
+
+- The scan must **strip comments**, because this crate documents the very rules
+  it bans; a scan that flagged the documentation explaining a ban is the fastest
+  way to get a guard deleted.
+- The guard file must exclude **itself**, because it is the only source naming
+  those patterns in string literals. Both guards reported themselves first.
+- The command attribute is assembled with `concat!` rather than written, because
+  `lint:meta`'s own `rust-command-placement` rule is also a text scan and flagged
+  the file whose job is to search for it. That keeps the shared rule absolute
+  instead of growing an exemption list.
+
+Both guards are proven non-vacuous the way the drift guard is: making
+`health_check` synchronous fails the first, and a bare `tokio::spawn` in its body
+fails the second, and restoring the file makes both pass again.
+
 ### Appendix B addition
 
 `tauri-specta = "=2.0.0-rc.25"` with `derive` and `typescript`; `javascript` is

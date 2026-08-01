@@ -10,6 +10,7 @@
 //! else — and later phases insert login-PATH hydration, consent-gated Sentry,
 //! the remaining plugins and the `setup()` sequence around it.
 
+pub mod arch_guards;
 pub mod bindings;
 pub mod commands;
 pub mod error;
