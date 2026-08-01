@@ -319,6 +319,28 @@ pub async fn exists_many(
     Ok(ids::unique(existing))
 }
 
+/// One track by id, if it is in the library.
+///
+/// Backs **no** `db:tracks:*` channel — v1 has none, because the renderer holds
+/// the whole library in memory and never asks for one row. It exists for
+/// share-payload assembly (Phase 14), which is a *main-process* reader: v1's
+/// `ipc/share.ts` opened `db.select().from(tracks).where(eq(tracks.id, …)).get()`
+/// inline for exactly this. Reading the library and scanning it in the command
+/// layer would answer the same question by loading every row.
+pub async fn get(conn: &mut SqliteConnection, id: &str) -> Result<Option<Track>> {
+    let mut builder = QueryBuilder::<Sqlite>::new(TRACK_SELECT);
+    builder.push(" WHERE tracks.id = ");
+    builder.push_bind(id.to_owned());
+
+    let row = builder
+        .build()
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(failed("read the track"))?;
+
+    row.as_ref().map(track_row::track).transpose()
+}
+
 /// The id of the track holding this file, if any.
 pub async fn get_id_by_path(
     conn: &mut SqliteConnection,

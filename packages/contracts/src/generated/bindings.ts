@@ -187,8 +187,105 @@ export const commands = {
 	dbTracksExistsMany: (filePaths: string[]) => __TAURI_INVOKE<string[]>("db_tracks_exists_many", { filePaths }),
 	/**  `db:tracks:get-id-by-path` — the id of the track holding this file. */
 	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
+	/**
+	 *  `discord-rpc:get-settings` — the stored Rich Presence settings.
+	 * 
+	 *  Read straight from the settings store rather than through
+	 *  [`crate::seam::Presence`], because settings exist on a run that has no
+	 *  Discord and the Settings UI has to render them there too. The crate's `load`
+	 *  completes a partial blob from the defaults and applies the one-shot legacy
+	 *  `settings.discordRpc` migration, so this is never a raw deserialize.
+	 */
+	discordRpcGetSettings: () => __TAURI_INVOKE<DiscordRpcSettings>("discord_rpc_get_settings"),
+	/**
+	 *  `discord-rpc:update-settings` — patch the settings and act on the result.
+	 * 
+	 *  v1's `updateDiscordRpcSettings` did four things: merge, persist, then
+	 *  connect / disconnect / re-render depending on what changed. The last three
+	 *  are why this goes through [`crate::seam::Presence::update_settings`] when a
+	 *  Discord service exists — a store write alone would leave a stale card up
+	 *  after a user switches Rich Presence off.
+	 * 
+	 *  With no service the store write is the whole operation, which is the same
+	 *  set of observable effects: there is no socket to close and no card to
+	 *  re-render.
+	 */
+	discordRpcUpdateSettings: (updates: DiscordRpcSettingsPatch) => __TAURI_INVOKE<DiscordRpcSettings>("discord_rpc_update_settings", { updates }),
+	/**
+	 *  `discord-rpc:update-presence` — force the card to re-render.
+	 * 
+	 *  Returns nothing, and cannot fail: v1 registered this with an `undefined`
+	 *  fallback because a Discord that is not running is the normal case, not an
+	 *  error state to surface on every settings save.
+	 */
+	discordRpcUpdatePresence: (activity: DiscordMusicPresenceActivity) => __TAURI_INVOKE<null>("discord_rpc_update_presence", { activity }),
+	/**
+	 *  `discord-rpc:clear-presence` — take the card down.
+	 * 
+	 *  Same fallback semantics as its sibling above.
+	 */
+	discordRpcClearPresence: () => __TAURI_INVOKE<null>("discord_rpc_clear_presence"),
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
+	/**
+	 *  `lyrics:fetch` — resolve lyrics for one track.
+	 * 
+	 *  The five arguments are v1's, in v1's order. `album`, `duration` and
+	 *  `filePath` are optional: a radio stream has none of the three, and the
+	 *  service falls back to LRCLIB alone when there is no path to probe beside.
+	 */
+	lyricsFetch: (title: string, artist: string, album: string | null, duration: number | null, filePath: string | null) => __TAURI_INVOKE<LyricsResult>("lyrics_fetch", { title, artist, album, duration, filePath }),
+	/**  `scrobble:get-status` — what the Settings pane renders. */
+	scrobbleGetStatus: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_get_status"),
+	/**  `scrobble:set-enabled` — flip the master switch, returning the new status. */
+	scrobbleSetEnabled: (enabled: boolean) => __TAURI_INVOKE<ScrobbleStatus>("scrobble_set_enabled", { enabled }),
+	/**
+	 *  `scrobble:lastfm-begin-auth` — start the desktop-auth handshake.
+	 * 
+	 *  Returns the request token the renderer holds until the user has approved it.
+	 *  The browser trip is the side effect described on [`open_auth_page`].
+	 */
+	scrobbleLastfmBeginAuth: () => __TAURI_INVOKE<LastfmAuthStart>("scrobble_lastfm_begin_auth"),
+	/**
+	 *  `scrobble:lastfm-complete-auth` — exchange an approved token for a session.
+	 * 
+	 *  The token is single-use and is spent by this call whether or not it
+	 *  succeeds, which is why a failure answers `{ ok: false, error }` rather than
+	 *  something the renderer might retry with the same value.
+	 */
+	scrobbleLastfmCompleteAuth: (token: string) => __TAURI_INVOKE<ScrobbleConnectResult>("scrobble_lastfm_complete_auth", { token }),
+	/**  `scrobble:lastfm-disconnect` — forget the stored session. */
+	scrobbleLastfmDisconnect: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_lastfm_disconnect"),
+	/**  `scrobble:listenbrainz-connect` — validate and store a user token. */
+	scrobbleListenbrainzConnect: (token: string) => __TAURI_INVOKE<ScrobbleConnectResult>("scrobble_listenbrainz_connect", { token }),
+	/**  `scrobble:listenbrainz-disconnect` — forget the stored token. */
+	scrobbleListenbrainzDisconnect: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_listenbrainz_disconnect"),
+	/**  `share:track` — create a share link for one track. */
+	shareTrack: (trackId: string) => __TAURI_INVOKE<Json>("share_track", { trackId }),
+	/**
+	 *  `share:playlist` — create a share link for a playlist.
+	 * 
+	 *  Tracks with no YouTube match are dropped rather than failing the share; see
+	 *  [`assembly::share_tracks`]. The share fails only when **none** of them
+	 *  matched, which is a different code the renderer translates differently.
+	 */
+	sharePlaylist: (playlistId: string) => __TAURI_INVOKE<Json>("share_playlist", { playlistId }),
+	/**
+	 *  `share:import` — fetch shared content by its code.
+	 * 
+	 *  The response is **untrusted network input** that the renderer reads field by
+	 *  field, so the client validates its bounds before it is handed on: a title of
+	 *  50 MB or an `expiresAt` of `<script>` deserializes fine and must not reach
+	 *  the import UI as a lying type.
+	 */
+	shareImport: (code: string) => __TAURI_INVOKE<Json>("share_import", { code }),
+	/**
+	 *  `share:cache-youtube-id` — record a YouTube id resolved elsewhere.
+	 * 
+	 *  Called after a download that came from a search, so the next share of that
+	 *  track skips yt-dlp entirely. Returns nothing, as v1 did.
+	 */
+	shareCacheYoutubeId: (trackId: string, youtubeId: string) => __TAURI_INVOKE<null>("share_cache_youtube_id", { trackId, youtubeId }),
 	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 

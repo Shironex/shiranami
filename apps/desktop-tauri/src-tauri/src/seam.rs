@@ -31,16 +31,32 @@
 //! | `media:clear-state`           | [`MediaControls::clear`]             |
 //! | `discord-rpc:update-presence` | [`Presence::update`]                 |
 //! | `discord-rpc:clear-presence`  | [`Presence::clear`]                  |
+//! | `discord-rpc:update-settings` | [`Presence::update_settings`]        |
 //!
-//! `media:command` and the Discord settings pair are deliberately absent.
+//! `media:command` and `discord-rpc:get-settings` are deliberately absent.
 //! `media:command` travels the other way — it is an **event**, emitted when the
 //! OS remote fires, so it belongs to `CommandSink` and to
-//! [`crate::events`], not here. `discord-rpc:get-settings` and
-//! `discord-rpc:update-settings` read and write the settings store, which the
-//! command layer already holds directly.
+//! [`crate::events`], not here. `discord-rpc:get-settings` is a pure read of the
+//! settings store, which the command layer already holds directly, and it has to
+//! answer on a run that has no Discord at all.
+//!
+//! # Why `update-settings` is a seam method and its sibling read is not
+//!
+//! The kickoff placed both settings channels outside this trait, on the
+//! reasoning that both only touch the store. That holds for the read and does
+//! **not** hold for the write: v1's `updateDiscordRpcSettings` persists and then
+//! connects, disconnects, or re-renders the card, and
+//! `DiscordPresence::update_settings` reproduces all three. Routing the write
+//! through the store alone would leave a stale presence card up after a user
+//! switches Rich Presence off — the socket would stay open until Discord noticed
+//! it close on its own, which is a visible port regression rather than a
+//! deferred effect. The command layer still writes the store directly when the
+//! seam is absent, because a run with no Discord has nothing to tear down.
 
 use async_trait::async_trait;
-use shiranami_core::models::DiscordMusicPresenceActivity;
+use shiranami_core::models::{
+    DiscordMusicPresenceActivity, DiscordRpcSettings, DiscordRpcSettingsPatch,
+};
 use shiranami_media_controls::MediaState;
 
 /// The OS media surface — SMTC on Windows, `MPNowPlayingInfoCenter` on macOS.
@@ -82,6 +98,16 @@ pub trait Presence: Send + Sync {
 
     /// Clear the presence card.
     async fn clear(&self);
+
+    /// Persist a settings change and act on it, returning the merged settings.
+    ///
+    /// Not a store write with a return value: switching Rich Presence **off**
+    /// tears the socket down immediately, and switching it on — or changing how
+    /// the card reads — marks the presence dirty so the next pump re-sends it
+    /// *through* the throttle. v1 was careful that a settings save could not
+    /// bypass Discord's fifteen-second rate limit, and that care is inside the
+    /// implementation rather than in the caller.
+    async fn update_settings(&self, patch: DiscordRpcSettingsPatch) -> DiscordRpcSettings;
 }
 
 #[cfg(test)]
@@ -148,12 +174,36 @@ pub(crate) mod fake {
     #[derive(Debug, Default)]
     pub(crate) struct RecordingPresence {
         updates: Mutex<Vec<Option<DiscordMusicPresenceActivity>>>,
+        /// Separate from `updates` because [`Presence::clear`] and
+        /// `update(None)` are the same *card* and different *calls*; a test that
+        /// asserts one happened must not be satisfied by the other.
+        cleared: Mutex<usize>,
+        /// The merged settings, so the double behaves like the real service:
+        /// a patch applies over what the previous patch left behind.
+        settings: Mutex<DiscordRpcSettings>,
+        patches: Mutex<Vec<DiscordRpcSettingsPatch>>,
     }
 
     impl RecordingPresence {
         /// Every update, in order. A `None` is "nothing playing", not "no call".
         pub(crate) fn updates(&self) -> Vec<Option<DiscordMusicPresenceActivity>> {
             self.updates
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone()
+        }
+
+        /// How many times `clear` was called.
+        pub(crate) fn clear_count(&self) -> usize {
+            *self
+                .cleared
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+        }
+
+        /// Every settings patch the command layer handed over, in order.
+        pub(crate) fn patches(&self) -> Vec<DiscordRpcSettingsPatch> {
+            self.patches
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone()
@@ -170,10 +220,24 @@ pub(crate) mod fake {
         }
 
         async fn clear(&self) {
-            self.updates
+            *self
+                .cleared
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) += 1;
+        }
+
+        async fn update_settings(&self, patch: DiscordRpcSettingsPatch) -> DiscordRpcSettings {
+            self.patches
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .push(None);
+                .push(patch.clone());
+
+            let mut settings = self
+                .settings
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            *settings = settings.clone().patched(patch);
+            settings.clone()
         }
     }
 }

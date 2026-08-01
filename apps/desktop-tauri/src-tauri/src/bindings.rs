@@ -202,6 +202,22 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            // The four integrations namespaces. `discordRpc*` rather than
+            // `discord*` because the rename is mechanical on the *channel*
+            // string, and the channel is `discord-rpc:get-settings`.
+            "scrobbleGetStatus",
+            "scrobbleLastfmBeginAuth",
+            "scrobbleLastfmCompleteAuth",
+            "scrobbleListenbrainzConnect",
+            "shareTrack",
+            "sharePlaylist",
+            "shareImport",
+            "shareCacheYoutubeId",
+            "discordRpcGetSettings",
+            "discordRpcUpdateSettings",
+            "discordRpcUpdatePresence",
+            "discordRpcClearPresence",
+            "lyricsFetch",
         ];
 
         for command in PORTED_NAMES {
