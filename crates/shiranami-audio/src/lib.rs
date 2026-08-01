@@ -22,6 +22,13 @@
 //! caller decides how many run at once. Architecture §2.1 puts `rayon` in
 //! `shiranami-library`'s folder scan, not at this layer — the unit of
 //! parallelism for analysis is a track, and this crate never sees more than one.
+//!
+//! # What compatibility means here
+//!
+//! The `waveform-peaks/` cache is copied verbatim into the v2 profile on first
+//! run (architecture §3.3). [`peaks::cache`] reproduces v1's key construction
+//! and document format exactly, so an existing entry is a hit rather than a
+//! silent re-decode of the user's whole library.
 
 // Every item here is either renderer-visible contract or a ported guard, and an
 // undocumented one is a contract nobody can read.
