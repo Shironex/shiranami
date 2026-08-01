@@ -44,6 +44,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // The generated Tauri bindings, reached from source rather than through
+      // the package's `exports`. They import `@tauri-apps/api/*`, which is
+      // ESM-only, and the contracts package compiles to CommonJS for the v1
+      // desktop main process — so the built `dist/generated/bindings.js` is not
+      // loadable there. Aliasing the source keeps the published surface of
+      // `@shiranami/contracts` unchanged and keeps the hazard unreachable.
+      // MUST precede the bare '@shiranami/contracts' entry: alias matching is
+      // prefix-based and first-wins.
+      '@shiranami/contracts/bindings': resolve(
+        __dirname,
+        '../../packages/contracts/src/generated/bindings.ts'
+      ),
       '@shiranami/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
       '@shiranami/shared': resolve(__dirname, '../../packages/shared/src/index.ts'),
       // @sentry/browser's barrel statically re-exports Session Replay (rrweb +

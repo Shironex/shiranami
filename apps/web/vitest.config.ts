@@ -22,6 +22,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(root, './src'),
+      // Source, not `dist` — see the note in vite.config.ts. Must precede any
+      // bare '@shiranami/contracts' entry: alias matching is prefix-based.
+      '@shiranami/contracts/bindings': resolve(
+        root,
+        '../../packages/contracts/src/generated/bindings.ts'
+      ),
       '@shiranami/shared': resolve(root, '../../packages/shared/src/index.ts'),
     },
   },

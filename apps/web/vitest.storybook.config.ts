@@ -19,6 +19,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(root, './src'),
+      // Must precede the bare entry — alias matching is prefix-based.
+      '@shiranami/contracts/bindings': resolve(
+        root,
+        '../../packages/contracts/src/generated/bindings.ts'
+      ),
       '@shiranami/contracts': resolve(root, '../../packages/contracts/src/index.ts'),
       '@shiranami/shared': resolve(root, '../../packages/shared/src/index.ts'),
       // Stub @sentry/browser's un-shakeable Session Replay / Feedback re-exports
