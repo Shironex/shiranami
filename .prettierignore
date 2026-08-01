@@ -15,3 +15,7 @@ pnpm-lock.yaml
 # would put the formatter and the generator in a loop and make the
 # regenerate-and-diff guard fail for reasons that have nothing to do with drift.
 packages/contracts/src/generated/
+
+# Captured verbatim from Spotify's embed endpoint; must stay byte-identical to
+# the real (minified) response the parser is tested against.
+apps/desktop/src/main/ipc/__fixtures__/spotify-embed-playlist.html

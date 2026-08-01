@@ -39,15 +39,11 @@ describe('downloader payload schemas', () => {
 
   describe('downloaderSetDownloadLocationArgs', () => {
     it('accepts a path string', () => {
-      expect(
-        downloaderSetDownloadLocationArgs.safeParse(['/tmp/music']).success,
-      ).toBe(true);
+      expect(downloaderSetDownloadLocationArgs.safeParse(['/tmp/music']).success).toBe(true);
     });
 
     it('accepts null', () => {
-      expect(downloaderSetDownloadLocationArgs.safeParse([null]).success).toBe(
-        true,
-      );
+      expect(downloaderSetDownloadLocationArgs.safeParse([null]).success).toBe(true);
     });
 
     it('rejects a number', () => {
@@ -68,16 +64,12 @@ describe('downloader payload schemas', () => {
 
   describe('downloaderDownloadArgs', () => {
     it('accepts {url}', () => {
-      expect(
-        downloaderDownloadArgs.safeParse([{ url: 'https://x/y' }]).success,
-      ).toBe(true);
+      expect(downloaderDownloadArgs.safeParse([{ url: 'https://x/y' }]).success).toBe(true);
     });
 
     it('accepts {url, outputDir}', () => {
       expect(
-        downloaderDownloadArgs.safeParse([
-          { url: 'https://x/y', outputDir: '/tmp' },
-        ]).success,
+        downloaderDownloadArgs.safeParse([{ url: 'https://x/y', outputDir: '/tmp' }]).success
       ).toBe(true);
     });
 
@@ -88,9 +80,7 @@ describe('downloader payload schemas', () => {
 
   describe('downloaderGetStreamUrlArgs', () => {
     it('accepts a url', () => {
-      expect(
-        downloaderGetStreamUrlArgs.safeParse(['https://youtu.be/x']).success,
-      ).toBe(true);
+      expect(downloaderGetStreamUrlArgs.safeParse(['https://youtu.be/x']).success).toBe(true);
     });
 
     it('rejects empty', () => {

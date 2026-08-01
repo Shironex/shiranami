@@ -9,7 +9,11 @@ export const suggestQuerySchema = z.object({
 });
 
 export const streamParamsSchema = z.object({
-  videoId: z.string().min(1).max(20).regex(/^[a-zA-Z0-9_-]+$/),
+  videoId: z
+    .string()
+    .min(1)
+    .max(20)
+    .regex(/^[a-zA-Z0-9_-]+$/),
 });
 
 export const playlistBodySchema = z.object({

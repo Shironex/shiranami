@@ -16,7 +16,7 @@ export class YoutubeService {
   constructor(
     private readonly redis: RedisService,
     private readonly config: ConfigService,
-    @InjectPinoLogger(YoutubeService.name) private readonly logger: PinoLogger,
+    @InjectPinoLogger(YoutubeService.name) private readonly logger: PinoLogger
   ) {
     this.ytdlpPath = this.config.get<string>('YTDLP_PATH', 'yt-dlp');
   }
@@ -75,7 +75,7 @@ export class YoutubeService {
 
     const url = `https://clients1.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(query)}`;
     const res = await fetch(url);
-    const data = await res.json() as [string, string[]];
+    const data = (await res.json()) as [string, string[]];
     const suggestions = Array.isArray(data[1]) ? data[1] : [];
 
     await this.redis.set(cacheKey, JSON.stringify(suggestions), 'EX', SUGGEST_CACHE_TTL);
@@ -91,7 +91,8 @@ export class YoutubeService {
 
     const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const { stdout, code } = await this.spawnYtDlp([
-      '-f', 'bestaudio',
+      '-f',
+      'bestaudio',
       '--get-url',
       '--no-warnings',
       ytUrl,

@@ -36,21 +36,18 @@ describe('radio payload schemas', () => {
             bitrate: 128,
             tags: 'lofi,chill',
           },
-        ]).success,
+        ]).success
       ).toBe(true);
     });
 
     it('rejects non-uuid stationUuid', () => {
-      expect(
-        radioFavoritesAddArgs.safeParse([{ ...validStation, stationUuid: 'x' }])
-          .success,
-      ).toBe(false);
+      expect(radioFavoritesAddArgs.safeParse([{ ...validStation, stationUuid: 'x' }]).success).toBe(
+        false
+      );
     });
 
     it('rejects empty name', () => {
-      expect(
-        radioFavoritesAddArgs.safeParse([{ ...validStation, name: '' }]).success,
-      ).toBe(false);
+      expect(radioFavoritesAddArgs.safeParse([{ ...validStation, name: '' }]).success).toBe(false);
     });
   });
 

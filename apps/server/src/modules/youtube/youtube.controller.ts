@@ -34,9 +34,7 @@ export class YoutubeController {
     try {
       return await this.youtubeService.search(result.data.q);
     } catch (err) {
-      throw new InternalServerErrorException(
-        err instanceof Error ? err.message : 'Search failed',
-      );
+      throw new InternalServerErrorException(err instanceof Error ? err.message : 'Search failed');
     }
   }
 
@@ -50,9 +48,7 @@ export class YoutubeController {
     try {
       return await this.youtubeService.suggest(result.data.q);
     } catch (err) {
-      throw new InternalServerErrorException(
-        err instanceof Error ? err.message : 'Suggest failed',
-      );
+      throw new InternalServerErrorException(err instanceof Error ? err.message : 'Suggest failed');
     }
   }
 
@@ -68,7 +64,7 @@ export class YoutubeController {
       return { url };
     } catch (err) {
       throw new InternalServerErrorException(
-        err instanceof Error ? err.message : 'Stream extraction failed',
+        err instanceof Error ? err.message : 'Stream extraction failed'
       );
     }
   }
@@ -84,7 +80,7 @@ export class YoutubeController {
       return await this.youtubeService.extractPlaylist(result.data.url);
     } catch (err) {
       throw new InternalServerErrorException(
-        err instanceof Error ? err.message : 'Playlist extraction failed',
+        err instanceof Error ? err.message : 'Playlist extraction failed'
       );
     }
   }

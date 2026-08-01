@@ -14,7 +14,7 @@ export function RadioDial() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setIndex((prev) => (prev + 1) % STATIONS.length);
+      setIndex(prev => (prev + 1) % STATIONS.length);
     }, 2200);
     return () => window.clearInterval(id);
   }, []);

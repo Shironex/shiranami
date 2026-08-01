@@ -5,7 +5,7 @@ export function Crossfade() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setTick((prev) => (prev + 1) % 100);
+      setTick(prev => (prev + 1) % 100);
     }, 60);
     return () => window.clearInterval(id);
   }, []);

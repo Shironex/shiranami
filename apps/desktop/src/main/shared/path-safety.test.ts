@@ -2,11 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import {
-  isPathWithin,
-  isPathWithinAny,
-  normalizePathForCompare,
-} from './path-safety';
+import { isPathWithin, isPathWithinAny, normalizePathForCompare } from './path-safety';
 
 /* ------------------------------------------------------------------ */
 /*  normalizePathForCompare                                           */
@@ -19,14 +15,11 @@ describe('normalizePathForCompare', () => {
     expect(a).toBe(b);
   });
 
-  it.skipIf(process.platform === 'linux')(
-    'lowercases paths on case-insensitive platforms',
-    () => {
-      const a = normalizePathForCompare('/Users/Me/Music');
-      const b = normalizePathForCompare('/users/me/music');
-      expect(a).toBe(b);
-    },
-  );
+  it.skipIf(process.platform === 'linux')('lowercases paths on case-insensitive platforms', () => {
+    const a = normalizePathForCompare('/Users/Me/Music');
+    const b = normalizePathForCompare('/users/me/music');
+    expect(a).toBe(b);
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -66,14 +59,11 @@ describe('isPathWithin', () => {
     expect(isPathWithin(child, root)).toBe(false);
   });
 
-  it.skipIf(process.platform !== 'win32')(
-    'rejects paths on a different Windows drive',
-    () => {
-      const root = normalizePathForCompare('C:\\music');
-      const child = normalizePathForCompare('D:\\music\\song.mp3');
-      expect(isPathWithin(child, root)).toBe(false);
-    },
-  );
+  it.skipIf(process.platform !== 'win32')('rejects paths on a different Windows drive', () => {
+    const root = normalizePathForCompare('C:\\music');
+    const child = normalizePathForCompare('D:\\music\\song.mp3');
+    expect(isPathWithin(child, root)).toBe(false);
+  });
 
   it('treats paths with and without a trailing separator as equivalent', () => {
     const withSlash = normalizePathForCompare('/home/user/music/');
@@ -127,9 +117,7 @@ describe('symlink handling (documents current behaviour)', () => {
   function mkTemp(prefix: string): string {
     // Use realpath so symlinks like /var/folders -> /private/var/folders on
     // macOS don't cause false rejections in the assertion.
-    const dir = fs.realpathSync(
-      fs.mkdtempSync(path.join(os.tmpdir(), prefix)),
-    );
+    const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
     tempDirs.push(dir);
     return dir;
   }
@@ -151,10 +139,7 @@ describe('symlink handling (documents current behaviour)', () => {
 
     // Path stays inside allowedRoot textually because we don't call realpath.
     expect(
-      isPathWithin(
-        normalizePathForCompare(linkPath),
-        normalizePathForCompare(allowedRoot),
-      ),
+      isPathWithin(normalizePathForCompare(linkPath), normalizePathForCompare(allowedRoot))
     ).toBe(true);
   });
 });

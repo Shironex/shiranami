@@ -14,5 +14,7 @@ export function findActiveLine(lines: Array<{ time: number }>, currentTime: numb
 }
 
 export function useActiveLineIndex(lines: LyricLine[] | null | undefined): number {
-  return usePlaybackStore((s) => (lines && lines.length > 0 ? findActiveLine(lines, s.currentTime) : -1));
+  return usePlaybackStore(s =>
+    lines && lines.length > 0 ? findActiveLine(lines, s.currentTime) : -1
+  );
 }

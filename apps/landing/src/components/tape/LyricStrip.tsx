@@ -13,7 +13,7 @@ export function LyricStrip() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setActive((prev) => (prev + 1) % LINES.length);
+      setActive(prev => (prev + 1) % LINES.length);
     }, 2400);
     return () => window.clearInterval(id);
   }, []);

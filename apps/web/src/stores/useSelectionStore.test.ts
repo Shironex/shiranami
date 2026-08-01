@@ -1,13 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useSelectionStore } from './useSelectionStore';
 
-const trackList = [
-  { id: 'a' },
-  { id: 'b' },
-  { id: 'c' },
-  { id: 'd' },
-  { id: 'e' },
-];
+const trackList = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }, { id: 'e' }];
 
 function resetStore() {
   useSelectionStore.setState({
@@ -79,7 +73,7 @@ describe('useSelectionStore', () => {
     it('selects all provided IDs', () => {
       useSelectionStore.getState().selectAll(trackList);
       expect(useSelectionStore.getState().selectedTrackIds).toEqual(
-        new Set(['a', 'b', 'c', 'd', 'e']),
+        new Set(['a', 'b', 'c', 'd', 'e'])
       );
     });
 

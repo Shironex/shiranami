@@ -22,7 +22,10 @@ const OUT_ROOT = resolve(process.cwd(), 'assets/screenshots');
 const LANGUAGE_STORAGE_KEY = 'shiranami.language';
 const UI_LANGUAGE_SETTING_KEY = 'app.language';
 const UI_STORE_KEY = 'shiranami.app-store';
-const LANGUAGES = (process.env.LANGS ?? 'en,pl').split(',').map(s => s.trim()).filter(Boolean);
+const LANGUAGES = (process.env.LANGS ?? 'en,pl')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
 // Views worth capturing — mirrors NAV_ITEMS in Sidebar.tsx.
 const VIEWS = [
@@ -44,7 +47,9 @@ const page =
   context.pages().find(p => !p.url().startsWith('devtools://'));
 
 if (!page) {
-  console.error('no renderer page found on CDP — is the app running with --remote-debugging-port=9222?');
+  console.error(
+    'no renderer page found on CDP — is the app running with --remote-debugging-port=9222?'
+  );
   process.exit(1);
 }
 

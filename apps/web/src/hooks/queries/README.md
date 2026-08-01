@@ -10,6 +10,7 @@ Convention for this directory:
 - **`IS_ELECTRON` guard** goes both in `queryFn` (return empty) and `enabled` for queries; mutations can assume Electron.
 
 Hooks that do NOT belong here:
+
 - Event subscriptions (`*.on*` listeners) — flat `hooks/`
 - Wizard/multi-step flows that coordinate several mutations with local UI state — flat `hooks/`
 - Composition hooks that wrap a query + extra view-layer logic — flat `hooks/`

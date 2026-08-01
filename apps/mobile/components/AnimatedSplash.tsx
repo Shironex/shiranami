@@ -65,22 +65,22 @@ function Sparkle({ data }: { data: SparkleData }) {
       withRepeat(
         withSequence(
           withTiming(1, { duration: data.duration / 2, easing: Easing.out(Easing.ease) }),
-          withTiming(0, { duration: data.duration / 2, easing: Easing.in(Easing.ease) }),
+          withTiming(0, { duration: data.duration / 2, easing: Easing.in(Easing.ease) })
         ),
         -1,
-        false,
-      ),
+        false
+      )
     );
     scale.value = withDelay(
       data.delay,
       withRepeat(
         withSequence(
           withTiming(1, { duration: data.duration / 2 }),
-          withTiming(0.3, { duration: data.duration / 2 }),
+          withTiming(0.3, { duration: data.duration / 2 })
         ),
         -1,
-        false,
-      ),
+        false
+      )
     );
   }, []);
 
@@ -120,11 +120,11 @@ function LogoIcon() {
       withRepeat(
         withSequence(
           withTiming(-6, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) })
         ),
         -1,
-        false,
-      ),
+        false
+      )
     );
   }, []);
 
@@ -141,13 +141,7 @@ function LogoIcon() {
   );
 }
 
-function AnimatedSplashInner({
-  ready,
-  onDismissed,
-}: {
-  ready: boolean;
-  onDismissed: () => void;
-}) {
+function AnimatedSplashInner({ ready, onDismissed }: { ready: boolean; onDismissed: () => void }) {
   const [visible, setVisible] = useState(true);
   const [messageIndex, setMessageIndex] = useState(0);
   const sparkles = useMemo(() => generateSparkles(), []);
@@ -186,10 +180,7 @@ function AnimatedSplashInner({
           <LogoIcon />
         </View>
 
-        <Animated.Text
-          entering={FadeIn.delay(400).duration(400)}
-          style={s.title}
-        >
+        <Animated.Text entering={FadeIn.delay(400).duration(400)} style={s.title}>
           Shiranami
         </Animated.Text>
 

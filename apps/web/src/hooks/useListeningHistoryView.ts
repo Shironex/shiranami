@@ -11,8 +11,8 @@ import {
 export type { HistoryRange } from '@/components/history/historyUtils';
 
 export function useListeningHistoryView() {
-  const library = useLibraryStore((s) => s.library);
-  const setQueue = usePlaybackStore((s) => s.setQueue);
+  const library = useLibraryStore(s => s.library);
+  const setQueue = usePlaybackStore(s => s.setQueue);
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('all');
 
   const { data, isLoading, isError, refetch } = useHistoryQuery(selectedRange);
@@ -23,17 +23,17 @@ export function useListeningHistoryView() {
 
   const handlePlayTrack = useCallback(
     (trackId: string) => {
-      const index = library.findIndex((track) => track.id === trackId);
+      const index = library.findIndex(track => track.id === trackId);
       if (index >= 0) {
         setQueue(library, index);
       }
     },
-    [library, setQueue],
+    [library, setQueue]
   );
 
   const activitySeries = useMemo(
     () => buildActivitySeries(selectedRange, activity),
-    [selectedRange, activity],
+    [selectedRange, activity]
   );
 
   return {

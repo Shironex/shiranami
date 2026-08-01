@@ -35,10 +35,7 @@ export default function SettingsScreen() {
   const version = Constants.expoConfig?.version ?? '0.1.0';
 
   return (
-    <ScrollView
-      style={[s.container, { paddingTop: insets.top }]}
-      contentContainerStyle={s.content}
-    >
+    <ScrollView style={[s.container, { paddingTop: insets.top }]} contentContainerStyle={s.content}>
       <Text style={s.headerTitle}>Settings</Text>
 
       {/* Server */}
