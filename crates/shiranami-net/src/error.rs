@@ -93,6 +93,18 @@ pub enum HttpError {
         source: reqwest::Error,
     },
 
+    /// The shared client could not be built.
+    ///
+    /// Construction reaches for the TLS backend and the system proxy
+    /// configuration, either of which can fail on a misconfigured machine. Rare,
+    /// but a panic here would take the whole app down at boot.
+    #[error("could not build the HTTP client: {source}")]
+    ClientInit {
+        /// The underlying failure.
+        #[source]
+        source: reqwest::Error,
+    },
+
     /// The response arrived but was not the JSON the caller asked for.
     #[error("{url} returned a body that is not valid JSON: {source}")]
     Json {

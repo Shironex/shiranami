@@ -3526,6 +3526,7 @@ version = "2.0.0-alpha.0"
 dependencies = [
  "httpdate",
  "reqwest",
+ "serde",
  "serde_json",
  "shiranami-core",
  "thiserror 2.0.19",

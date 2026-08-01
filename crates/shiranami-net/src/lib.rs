@@ -16,11 +16,13 @@
 // read, so this crate gates on documentation the way `shiranami-core` does.
 #![warn(missing_docs)]
 
+pub mod client;
 pub mod error;
 pub mod gate;
 pub mod retry_after;
 pub mod url_safety;
 
+pub use client::{DEFAULT_TIMEOUT, HttpClient, RequestOptions};
 pub use error::{HttpError, Result};
 pub use gate::{HOST_GATES, HostGates, MinIntervalGate};
 pub use retry_after::{DEFAULT_429_BACKOFF, RETRY_AFTER_MAX, parse_retry_after};
