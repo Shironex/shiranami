@@ -35,9 +35,10 @@ pub mod service;
 pub mod settings;
 pub mod sign;
 
+pub use crate::clock::now_ms;
 pub use error::{Result, ScrobbleError};
 pub use lastfm::{LastfmAuthStarted, LastfmClient, LastfmCredentials};
 pub use listenbrainz::{ListenBrainzClient, ListenType, listen_body};
 pub use play::{ScrobblePlay, play_start_timestamp};
-pub use service::{FLUSH_INTERVAL_SECS, Scrobbler, now_ms, park};
+pub use service::{FLUSH_INTERVAL_SECS, Scrobbler, park};
 pub use settings::{active_targets, status};

@@ -30,7 +30,6 @@
 //! with a connection in hand.
 
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use md5::{Digest, Md5};
 use shiranami_core::models::{
@@ -40,6 +39,7 @@ use shiranami_core::store::{ScrobbleSettings, SettingsStore};
 use shiranami_db::repo::scrobble_queue::{self, QueuedScrobble, ScrobbleTargets};
 use sqlx::SqlitePool;
 
+use crate::clock::now_ms;
 use crate::scrobble::error::{Result, ScrobbleError};
 use crate::scrobble::lastfm::{LastfmClient, LastfmCredentials};
 use crate::scrobble::listenbrainz::ListenBrainzClient;
@@ -345,18 +345,6 @@ impl Scrobbler {
         let mut conn = pool.acquire().await.map_err(queue_failure)?;
         Ok(scrobble_queue::count(&mut conn).await?)
     }
-}
-
-/// Unix milliseconds now.
-///
-/// Before the epoch is unrepresentable rather than negative: a machine whose
-/// clock is set before 1970 would otherwise park every scrobble as due in the
-/// far future.
-pub fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|elapsed| i64::try_from(elapsed.as_millis()).unwrap_or(i64::MAX))
-        .unwrap_or(0)
 }
 
 /// The row parked for a play that failed to submit.

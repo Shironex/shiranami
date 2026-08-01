@@ -296,8 +296,8 @@ impl<S: PresenceSocket, N: NoticeSink> DiscordPresence<S, N> {
 
 /// Unix milliseconds now — what the composition root passes to [`DiscordPresence::pump`].
 ///
-/// The same clock the scrobbler uses, and deliberately the same function: a
-/// shared `clock` module at the crate root would be a file the parallel Phase 12
-/// lane also has reason to add, so the helper stays where it landed first and
-/// moving it is left to whoever merges the lanes.
-pub use crate::scrobble::now_ms;
+/// Re-exported from [`crate::clock`], the crate's shared clock. Phase 12 landed
+/// this and the scrobbler in parallel lanes, so it pointed at
+/// `scrobble::now_ms` — a module boundary presence has no other reason to
+/// cross. Phase 14 gave both a shared owner.
+pub use crate::clock::now_ms;

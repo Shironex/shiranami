@@ -15,6 +15,9 @@
 // undocumented one is a contract nobody can read.
 #![warn(missing_docs)]
 
+// Shared by the lane-B modules; see the module doc for why it is not in either.
+pub mod clock;
+
 // lane A
 pub mod lyrics;
 pub mod share;
