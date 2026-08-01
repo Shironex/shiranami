@@ -141,6 +141,47 @@ async fn clear(deferred: &Deferred) {
     }
 }
 
+/// The `media:command` payload for an OS remote command, when v1 had one.
+///
+/// The third channel in this namespace travels the other way: the OS remote
+/// fires and the renderer, which owns the audio graph, has to hear about it. It
+/// is an event ([`crate::events::MediaCommand`]) rather than a command, which is
+/// why the seam has no method for it — but the *conversion* belongs here, beside
+/// the namespace whose channel it is.
+///
+/// v1 sent four bare strings — `toggle-play`, `next`, `previous`, `stop` — and
+/// `useMediaSession.ts` switches on exactly those with **no default branch**.
+/// Phase 13 built [`MediaCommand`] so its unit variants serialize to precisely
+/// those strings, so this reads the string off the crate's own `serde` rather
+/// than restating a table that could drift from it.
+///
+/// `None` is returned for the two seek variants, which serialize as objects and
+/// have no v1 form at all — v1 registered neither `seekbackward` nor
+/// `seekforward`, so there is no string to send and nothing listening for one.
+///
+/// # Two findings for Phase 16, recorded here because this is where they bite
+///
+/// - **`Play` and `Pause` reach this channel in v2 and did not in v1.** v1's
+///   macOS story was `navigator.mediaSession.setActionHandler`, which handled
+///   them renderer-side without any IPC; §2.7 suppresses the webview session and
+///   makes souvlaki the single source, so they now have to travel. They
+///   serialize to `play` and `pause`, and v1's four-case switch ignores both —
+///   so the shim or the renderer needs those two cases, or play/pause from a
+///   hardware key regresses on macOS.
+/// - **`Raise` and `Quit` should never reach the renderer.** The tray raises the
+///   same two commands for "Show Shiranami" and "Quit", and both are the shell's
+///   to perform. They are strings here because the crate models one vocabulary;
+///   routing them to the window rather than to this channel is Phase 16's.
+pub fn remote_command_payload(command: &shiranami_media_controls::MediaCommand) -> Option<String> {
+    match serde_json::to_value(command) {
+        Ok(serde_json::Value::String(payload)) => Some(payload),
+        // An object: one of the two seeks. Externally tagged enums only
+        // serialize as bare strings for unit variants, which is exactly the
+        // subset that has a v1 wire form.
+        _ => None,
+    }
+}
+
 /// [`NowPlaying`] as Discord's presence builder wants it: the same fields minus
 /// the cover, which nothing on that path has ever read.
 fn presence_activity(playback: &NowPlaying) -> DiscordMusicPresenceActivity {
@@ -319,6 +360,57 @@ mod tests {
         .expect("v1's payload parses");
 
         assert_eq!(parsed, track());
+    }
+
+    /// v1's four strings, exactly. `useMediaSession.ts` switches on these with
+    /// no default branch, so a rename on either side is a media key that stops
+    /// working with no error anywhere.
+    #[test]
+    fn the_four_v1_remote_commands_keep_their_wire_strings() {
+        use shiranami_media_controls::MediaCommand;
+
+        for (command, expected) in [
+            (MediaCommand::TogglePlay, "toggle-play"),
+            (MediaCommand::Next, "next"),
+            (MediaCommand::Previous, "previous"),
+            (MediaCommand::Stop, "stop"),
+        ] {
+            assert_eq!(remote_command_payload(&command).as_deref(), Some(expected));
+        }
+    }
+
+    /// The two v2 additions. They have wire strings — the renderer just has no
+    /// case for them yet, which is the Phase 16 finding recorded on
+    /// [`remote_command_payload`].
+    #[test]
+    fn play_and_pause_have_wire_strings_v1_never_sent() {
+        use shiranami_media_controls::MediaCommand;
+
+        assert_eq!(
+            remote_command_payload(&MediaCommand::Play).as_deref(),
+            Some("play")
+        );
+        assert_eq!(
+            remote_command_payload(&MediaCommand::Pause).as_deref(),
+            Some("pause")
+        );
+    }
+
+    /// A seek serializes as an object, and `media:command` carries a bare string
+    /// because v1's `onCommand` callback is typed `(command: string) => void`.
+    /// Declining is what keeps the channel's contract a string.
+    #[test]
+    fn a_seek_has_no_v1_wire_form_and_is_declined() {
+        use shiranami_media_controls::MediaCommand;
+
+        assert_eq!(
+            remote_command_payload(&MediaCommand::SeekTo { position: 30.0 }),
+            None
+        );
+        assert_eq!(
+            remote_command_payload(&MediaCommand::SeekBy { offset: -10.0 }),
+            None
+        );
     }
 
     /// A deliberate, recorded widening. v1's zod schema had
