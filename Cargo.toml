@@ -70,8 +70,17 @@ reqwest = { version = "0.13", default-features = false, features = [
 ] }
 # `net` is here for the SSRF guard's DNS resolution and nothing else; the guard
 # must resolve a hostname *itself* rather than trust the connector, or the
-# range classification has nothing to classify.
-tokio = { version = "1", features = ["net", "rt", "sync", "time"] }
+# range classification has nothing to classify. Phase 8 adds `fs` and `io-util`:
+# the audio route streams a file range off disk rather than buffering it, which
+# is the whole reason a 300 MB FLAC does not become 300 MB of resident memory.
+tokio = { version = "1", features = [
+  "net",
+  "rt",
+  "sync",
+  "time",
+  "fs",
+  "io-util",
+] }
 url = "2.5"
 httpdate = "1"
 
@@ -111,6 +120,30 @@ sqlx = { version = "0.9", default-features = false, features = [
 # a compatibility constraint, not an implementation choice. Pinned to the 0.10
 # line already resolved in the lockfile so the tree holds one `digest` version.
 sha2 = "0.10"
+
+# Phase 8 (`shiranami-serve`). The loopback byte server.
+#
+# axum runs with `default-features = false`: the webview speaks HTTP/1.1 over
+# loopback and nothing else, and every feature left out — `json`, `form`,
+# `multipart`, `ws`, `http2` — is a parser this server would otherwise expose to
+# any local process that guesses the port. `query` is in because the audio and
+# radio routes take their argument as a query parameter, and it decodes
+# form-urlencoded (`+` is a space), which is what `URLSearchParams` did in v1.
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "tokio",
+  "query",
+] }
+# `io` gives `ReaderStream`, which turns the seeked-and-limited file handle into
+# a chunked body. It is the difference between streaming and `fs::read`.
+tokio-util = { version = "0.7", default-features = false, features = ["io"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+bytes = "1"
+# The session token is a credential, so its bytes come from the OS CSPRNG and
+# are compared in constant time. `subtle` rather than a hand-rolled fold because
+# the compiler is allowed to short-circuit the hand-rolled one.
+getrandom = "0.3"
+subtle = "2"
 
 tempfile = "3"
 
