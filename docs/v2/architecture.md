@@ -808,3 +808,15 @@ fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 - Approved: full Rust rewrite of the C++ native addon (waveform/LUFS via symphonia + ebur128); the FFI escape hatch is not needed.
 - Spike B (Windows updater-handover proof on a VM) is replaced by the user testing the v2 branch on their Windows PC before v2 launch. The dormant v1.x bridge hook (Phase 1b) still ships early on the 1.x line.
 - Phase 1 (scaffold) runs in parallel with Spike A; port phases 2+ remain gated on Spike A passing.
+
+## Phase 1b implementation amendments (2026-08-01, PR #364)
+
+Recorded from the shipped `feat/updater-v2-bridge` branch where the implementation deviated from §4; these supersede the original text.
+
+- **Own timers, shared cadence.** The bridge does not ride the electron-updater tick — that tick never runs on macOS (unsigned build returns early) or in dev, which would have made the macOS handover modal unreachable. The bridge schedules its own `unref`'d timers (+5s first check, then hourly) importing `INITIAL_UPDATE_CHECK_DELAY_MS` / `UPDATE_CHECK_INTERVAL_MS` from `updater.ts`.
+- **localStorage dump via `webContents.executeJavaScript`** scoped to the `shiranami.` prefix — zero renderer diff (no new IPC channel, preload entry, or React surface frozen into the sunsetting v1 app).
+- **Handover prompt is a window-modal `dialog.showMessageBox`**, not a React modal, for the same zero-renderer-diff reason.
+- **Manifest gains an optional `download_page` field** so macOS points at the landing page rather than the artifact; absent ⇒ fall back to the platform URL. Per-platform `{url, sha256, size}` unchanged.
+- **Manifest fetch uses native `fetch`, not `app/http.ts`** — the shared helper warns on every non-2xx, which would log daily forever in the dormant state. The installer download still goes through `app/http.ts`.
+- **Dormant guard:** `fetchV2Manifest()` returns `null` (never throws) for 404/non-2xx/network/timeout/oversized/malformed/schema-invalid; `resolveHandover()` returns `null` on kill switch, unmet `min_v1_version`, or missing platform artifact. One info log per process, no renderer contact, no Sentry.
+- New main-only store key `v2.crossoverPinged` (deliberately not in `RENDERER_STORE_KEYS`); version comparison extracted to dependency-free `utils/version.ts`.
