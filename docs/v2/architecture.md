@@ -831,3 +831,27 @@ Full evidence in [spike-a-results.md](./spike-a-results.md) (macOS 26.5.1, WebKi
 - CORS `Origin` arrives as literal `tauri://localhost`; fine for `*`, matters if the server ever goes credentialed.
 - WKWebView audio contexts run at 48 kHz with transparent resampling of 44.1 kHz media.
 - `navigator.mediaSession` accepts metadata/handlers/playbackState without error; actual Now Playing + media-key surfacing still needs a short manual check before D-media-controls is considered settled (souvlaki remains the plan of record).
+
+## Phase 3–5 implementation amendments (2026-08-01, merged to v2)
+
+Recorded from the shipped `v2-net`, `v2-recommendation`, and `v2-audio` lanes; full rationale lives in the crates' module docs.
+
+**Phase 3 (`shiranami-net`):**
+
+- `governor` (Appendix B) is deliberately unused — GCRA paces arrivals not completions, loses FIFO order, and cannot be pushed forward by an external `Retry-After`; the ported `MinIntervalGate` is hand-rolled. The pin remains for a future true token-bucket need.
+- `ipaddr.js` range names became explicit CIDR tables (verified non-overlapping; a boundary test caught a dropped multicast row in the port).
+- The client sets a `User-Agent` (`shiranami/<version>`) — reqwest sends none and api.github.com 403s without one; v1 rode Chromium's UA invisibly.
+- Non-2xx responses are returned and logged at `debug`, never `warn` (Phase 1b lesson applied to v2). All `HttpError` variants map to core's frozen `INTERNAL` code; higher crates wrap for user-meaningful registry entries.
+- The SSRF guard stays opt-in per request (`RequestOptions::guarded()`), matching v1's two untrusted-URL call sites; `shiranami-serve` gets the shared instance for hop-by-hop revalidation in Phase 8.
+
+**Phase 4 (`shiranami-recommendation`):**
+
+- ISO-8601 parsing is a hand-rolled module (`core/instant.rs`) cross-checked against V8 `Date.parse` (five divergences found and fixed; two legacy V8 behaviours deliberately unmatched and pinned by tests). Offset-less date-times read as UTC. **Move to `shiranami-core` when a second consumer appears** (Phase 12 scrobble timestamps / shelf TTL are candidates).
+- Golden-vector differential vs the TS package: bit-identical orderings and similarity/mix scores; 5 of 90 affinity scores differ by one ULP (`Math.pow` vs `f64::powf`); asserted tolerance 1e-15.
+
+**Phase 5 (`shiranami-audio`):**
+
+- Appendix B additions: symphonia `alac` feature (iTunes `.m4a` rips are ALAC) and `sha2 0.10` (the §3.3 cache key is a compatibility constraint).
+- Verified against a compiled harness of v1's own C++ core: peaks bit-identical (wav/flac), LUFS within 2.1e-14 LU (0.0063 LU on mp3 where decoders differ), cache filenames and bytes reproduced exactly. ~1.4× faster than the addon, O(1) memory.
+- Format coverage vs v1: gains `.m4a` (AAC+ALAC), `.ogg`, and mislabelled extensions; residual gap `.opus`/`.wma` — both were ffmpeg-fallback-only in v1, never native. Pinned by tests that fail when symphonia closes them.
+- The ffmpeg `loudnorm` fallback is deleted; undecodable is a real error surfaced to the caller.
