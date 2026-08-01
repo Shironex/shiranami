@@ -1317,3 +1317,185 @@ characters" would have passed through every mistake worth catching. The vectors 
 base _and_ the digest for a realistic scrobble, including a non-ASCII title — `update(base, 'utf8')`
 means the bytes hashed are UTF-8, which is the detail that would break signing for a Japanese library
 and nowhere else.
+
+## Phase 14 kickoff implementation amendments (2026-08-01, merged to `v2`)
+
+Recorded from the command/event skeleton and its three reference namespaces
+(`store`, `db:tracks`, `weather`); full rationale lives in the modules' docs.
+
+### The prep items from "Phase 14 prep" are all closed
+
+- `WEATHER_UNAVAILABLE` moved into `core::error::codes`. It needed a second
+  mirror-assertion shape: it is a standalone `export const` beside the weather
+  domain types rather than a key inside `error-codes.ts`. `weather::error`
+  re-exports it, pinned by a pointer-identity test so it cannot quietly become a
+  local copy again.
+- `recommendation::core::instant` moved to **`core::time::instant`** with its
+  twelve V8-cross-checked tests. `recommendation::core::instant` survives as a
+  re-export: `affinity` documents its options by pointing at that path, and the
+  scoring core's surface is a port contract that should not shift because a
+  helper changed rank. `core::time` is a folder so `shiranami-library`'s
+  `iso8601` formatter — which carries the same "move on a second consumer" note
+  for the _format_ direction — has an obvious place to land.
+- `discord::service`'s re-export of `scrobble::now_ms` became
+  `integrations::clock`, which **re-exports core's** `now_ms` rather than
+  redefining it. Both `scrobble::now_ms` and `discord::now_ms` stay as
+  re-exports, so no caller moved.
+- **`repo::youtube_mappings` created** (four functions for v1's four query sites;
+  its two identical `onConflictDoUpdate` blocks collapse into one `upsert`).
+  Three findings worth carrying:
+  - v1 never joins this table. Ordering and drop-on-miss both live in the
+    JavaScript loop that consumes a `Map`, and both are observable — a shared
+    playlist keeps its `position` order, a track with no mapping is silently
+    omitted rather than erroring the payload, and RD-mix seeds are fetched
+    strongest-first so the best seed wins the dedupe. A SQL join would move all
+    three into the query. The repository returns the mapping and nothing else.
+  - `searched_at` holds **two formats**: the column default on insert, v1's
+    `toISOString()` on conflict. Both are on disk in every shipped library, so
+    the split is reproduced rather than tidied (the `folders.last_scanned`
+    situation again).
+  - v1's chunking asymmetry is **not** reproduced — the share path chunked at
+    500 and the recommendation seed path did not, and the only input on which
+    they differ is one large enough to raise `SQLITE_MAX_VARIABLE_NUMBER`.
+    Reproducing a failure mode is not port fidelity.
+
+### There is no `settings:*` namespace
+
+The Phase 14 brief named `settings` as a reference namespace; v1 has none. App
+settings are one opaque key inside the store blob, and the renderer reaches
+every preference through the generic three-channel `store` namespace. That is
+what was ported, and it is the better reference anyway: the renderer-writable
+key allowlist stops being a validation step and becomes a **type**, so
+`scrobble.settings` is not rejected inside a command — it is unrepresentable as
+an argument to one.
+
+### One generated file, emitted from the composition root
+
+§2.5 said the bindings land in `packages/contracts/src/generated/`; it did not
+say how many files. Two is worse than one and the reason is not obvious:
+`specta-typescript` emits a definition for **every type a signature
+references**, so a `commands.ts` beside `core.ts` would carry a second copy of
+`Track`, `Playlist` and forty others — two declarations of one contract in one
+directory, which is the drift the whole apparatus exists to prevent.
+
+So `core.ts` is retired and `bindings.ts` replaces it, emitted by
+`shiranami_desktop_lib::bindings`, which feeds `shiranami_core::bindings::types()`
+to its `tauri-specta` builder. Core keeps the vocabulary and its _content_
+tests (casing, the string unions the renderer switches over, the store-key
+allowlist); the **file guards moved with the writing**, and
+`scripts/verify-drift-guard.mjs` now perturbs a core type and requires the
+_desktop_ export to change — a strictly stronger proof than before, because it
+also shows the vocabulary genuinely flows through the command export rather
+than merely being written beside it.
+
+`Builder::types(&core_types)` registers the vocabulary **whole** rather than
+letting command signatures pull types in one at a time. Otherwise a model no
+landed command mentions yet would vanish from the emitted file and reappear
+when its lane merged, producing diff churn with nothing to do with drift.
+
+### `ErrorHandlingMode::Throw`, not the default
+
+tauri-specta defaults to `Result`, which makes every generated call resolve to a
+`{ status, data } | { status, error }` union. §2.6 has the shim reconstruct an
+`IpcError`-shaped `Error` **from a rejection**, so a rejection is what the
+generated callable has to produce — otherwise the shim unwraps a union and
+re-throws at all 135 call sites. This is the one builder setting a careless
+refactor would silently revert, so a test asserts the emitted file contains no
+result union.
+
+The `__IPC_ERROR__` sentinel is deleted server-side per D9 and is asserted
+absent twice: once on the serialized payload, once on the generated surface
+(with comments stripped — `ErrorPayload`'s doc _explains_ the sentinel, and that
+explanation is worth keeping).
+
+### The registry is a token-tree muncher, and that is a merge decision
+
+`collect_commands!` needs literal paths at expansion time — `tauri::generate_handler!`
+and `specta::function::collect_functions!` both do — so `Commands` values cannot
+be merged and a runtime list is impossible. The obvious shape is one central
+file listing all 135 command paths, which is one file every one of the
+twenty-four lanes edits, in the middle, with semantically adjacent lines.
+
+Instead, a namespace declares its commands in its own file behind a `commands!`
+macro, and contributes **one line** — its name — to `registry::namespaces!`. A
+continuation-passing muncher walks the list and lets each namespace append its
+own paths. Two details are load-bearing and neither is discoverable from the
+error messages:
+
+- The accumulator is `$($t:tt)*`, **not** `$($p:path),*`. A fragment matched as
+  `path` becomes one opaque AST node, and `collect_commands!` matches on
+  `$b:ident $(:: $p:ident)*`, which an opaque node cannot satisfy.
+- Paths are spelled `crate::commands::…`, not `$crate::…`. `$crate` expands to a
+  resolver-level token that `collect_commands!`'s `$b:ident` cannot match.
+
+### Never name `serde_json::Value` in a command or event signature
+
+specta's `Value` impl is marked _inline_ and `Value` is recursive, so the
+exporter **overflows its stack** rather than emitting anything — the failure
+arrives as `fatal runtime error: stack overflow` from a test that looks like it
+only writes a file, naming nothing. specta's `serde_json` feature is therefore
+deliberately **off** in the workspace manifest, which turns the same mistake
+into a compile error naming the line. `wire::Json` (a transparent newtype whose
+specta type is `Unknown`) is the supported way to carry an opaque value, and it
+is what `store:get`/`store:set` use — v1's tuple was
+`[rendererStoreKey, z.unknown()]`, because the renderer owns the shape of its
+own persisted zustand slices.
+
+### The twenty events are typed, and their names are attributes
+
+v1 leaves the invoke/event split implicit — `ALL_IPC_CHANNELS` is one flat list,
+and whether an entry is an event is discoverable only from a `createIpcListener`
+in the preload or a `webContents.send` in main. `events.rs` makes it explicit,
+which is the largest readability gain the port gets for free.
+
+Every event carries `#[tauri_specta(event_name = "…")]`. **Without it the derive
+kebab-cases the struct name**, so `LibraryScanProgress` would register as
+`library-scan-progress` and the renderer's listener on `library:scan-progress`
+would simply never fire — a failure with no error anywhere. All twenty names are
+pinned against `packages/contracts/src/ipc/channels.ts`.
+
+Each event is a `#[serde(transparent)]` newtype over exactly **one** payload,
+because v1's `createIpcListener<T>` strips the Electron event object and hands
+its callback one argument. Eight payloads whose models belong to unlanded lanes
+are `wire::Json` for now; replacing one with a real type is a binding-visible,
+reviewable change.
+
+### Managed state is a record, not a boot sequence
+
+`AppState::from_parts` takes already-built pieces. There is no constructor that
+opens a database or starts a server, because §2.8's ordering is Phase 16's and a
+constructor here would be a second, competing definition of it. `lib.rs` wires
+the invoke handler and mounts the events but does **not** `manage` the state, so
+every stateful command is registered and typed but answers "state not managed"
+until Phase 16 boots — the honest intermediate, with a real surface for the shim
+and the lanes to build against and nothing pretending to have booted.
+
+**`AppState::conn` is the crate's only acquire site**, mirroring
+`repo::conn::acquire` one rank down. The pool holds a single connection, so a
+second acquire while the first is held does not fail — it hangs. The `db:tracks`
+suite asserts this rather than describing it: fifteen acquisitions back to back
+under a ten-second timeout, so a leaked connection is a named failure instead of
+a hung suite.
+
+### Two seams, because their concrete type is a boot decision
+
+`MediaControlsService<B>` is generic over a backend that is Windows/macOS-only,
+needs a live window handle on Windows and a running run loop on macOS, and
+carries thread-affinity constraints that decide what lock wraps it.
+`DiscordPresence<S, N>` is generic over a socket and a notice sink, and
+`SHIRANAMI_E2E=1` runs with neither. Both become `Arc<dyn Trait>` in
+`crate::seam` per §2.3, with method sets taken **verbatim from the four v1
+channels that name them** (`media:playback-state`, `media:clear-state`,
+`discord-rpc:update-presence`, `discord-rpc:clear-presence`), so a lane
+implementing one is porting rather than designing. `media:command` is
+deliberately absent — it travels the other way and is an event.
+
+Recording doubles for both seams ship in `seam::fake`, so every lane tests
+against the same double rather than inventing one.
+
+### Appendix B addition
+
+`tauri-specta = "=2.0.0-rc.25"` with `derive` and `typescript`; `javascript` is
+off, since a second emitter is a second thing the drift guard has to diff.
+`async-trait` is added to `shiranami-desktop` for the two seams, the same reason
+`shiranami-downloader` takes it for its `ProcessRunner`.
