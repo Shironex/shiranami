@@ -116,6 +116,13 @@ pub struct Deferred {
     /// (see `crate::seam`), and because `SHIRANAMI_E2E=1` runs with no OS
     /// integration at all.
     pub media_controls: Option<Arc<dyn crate::seam::MediaControls>>,
+
+    /// Auto-update, behind [`crate::seam::Updater`]. `tauri-plugin-updater` in
+    /// Phase 16; absent in dev, on macOS until the Developer ID cert lands
+    /// (§4.3), and under `SHIRANAMI_E2E=1`. An absent updater is what
+    /// `updater:check-for-updates` answers `{ enabled: false }` for, which is
+    /// exactly v1's answer in the same three cases.
+    pub updater: Option<Arc<dyn crate::seam::Updater>>,
 }
 
 impl AppState {
@@ -252,5 +259,6 @@ pub(crate) mod tests {
         assert!(deferred.scrobbler.is_none());
         assert!(deferred.discord.is_none());
         assert!(deferred.media_controls.is_none());
+        assert!(deferred.updater.is_none());
     }
 }

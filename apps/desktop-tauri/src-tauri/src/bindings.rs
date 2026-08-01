@@ -226,6 +226,11 @@ mod tests {
             "dbSmartPlaylistsDelete",
             "dbSmartPlaylistsGetTracks",
             "dbSmartPlaylistsPreview",
+            "mediaPlaybackState",
+            "mediaClearState",
+            "updaterCheckForUpdates",
+            "updaterStartDownload",
+            "updaterInstallNow",
         ];
 
         for command in PORTED_NAMES {

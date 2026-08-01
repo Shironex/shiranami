@@ -1,8 +1,8 @@
-//! The two trait seams the shell owns, and why they are traits.
+//! The trait seams the shell owns, and why they are traits.
 //!
 //! Most of what [`crate::state::AppState`] holds is a concrete handle —
 //! `SqlitePool`, `SettingsStore`, `HttpClient` all name one type with no
-//! decisions left in them. Two do not, and both for the same reason: the crate
+//! decisions left in them. Three do not. Two of them share a reason: the crate
 //! behind them is generic over an implementation detail whose value is a **boot**
 //! decision, not a command-layer one.
 //!
@@ -17,7 +17,7 @@
 //! Architecture §2.3 says exactly what to do about that: no globals,
 //! `Arc<dyn Trait>` seams, and the seam lives in a rank-1 module. Phase 16 picks
 //! the backend, the lock and the lifetime; the command layer only ever sees
-//! these two traits, so none of those choices can reach a command and none of
+//! the traits below, so none of those choices can reach a command and none of
 //! them can be re-litigated in twenty-one parallel lanes.
 //!
 //! # The method sets are not invented
@@ -31,6 +31,9 @@
 //! | `media:clear-state`           | [`MediaControls::clear`]             |
 //! | `discord-rpc:update-presence` | [`Presence::update`]                 |
 //! | `discord-rpc:clear-presence`  | [`Presence::clear`]                  |
+//! | `updater:check-for-updates`   | [`Updater::check`]                   |
+//! | `updater:start-download`      | [`Updater::download`]                |
+//! | `updater:install-now`         | [`Updater::install`]                 |
 //!
 //! `media:command` and the Discord settings pair are deliberately absent.
 //! `media:command` travels the other way — it is an **event**, emitted when the
@@ -38,10 +41,23 @@
 //! [`crate::events`], not here. `discord-rpc:get-settings` and
 //! `discord-rpc:update-settings` read and write the settings store, which the
 //! command layer already holds directly.
+//!
+//! # The third seam is here for a different reason
+//!
+//! [`MediaControls`] and [`Presence`] are traits because their concrete type is
+//! a **boot** decision. [`Updater`] is a trait because there is no concrete type
+//! yet at all: the implementation is `tauri-plugin-updater`, which Phase 16
+//! wires and Phase 19 provisions a signing key for, and §4 makes the handover
+//! from `electron-updater` a project risk with its own plan. Ending up with the
+//! command surface blocked on that is the outcome the seam avoids — the three
+//! channels, the six events and their payloads are frozen against v1 now, and
+//! Phase 16 writes one implementation behind them.
 
 use async_trait::async_trait;
 use shiranami_core::models::DiscordMusicPresenceActivity;
 use shiranami_media_controls::MediaState;
+
+use crate::commands::updater::{UpdaterCheck, UpdaterFailure};
 
 /// The OS media surface — SMTC on Windows, `MPNowPlayingInfoCenter` on macOS.
 ///
@@ -84,14 +100,51 @@ pub trait Presence: Send + Sync {
     async fn clear(&self);
 }
 
+/// The auto-updater, as v1's three channels name it.
+///
+/// Every method is also an **event emitter**: v1's renderer learns what happened
+/// from the `updater:*` event stream, not from these return values, so an
+/// implementation calls `crate::commands::updater::UpdaterEventSink::send` as it
+/// goes. The return values are only what the invoke resolves to.
+///
+/// The asymmetry between [`Updater::check`] and the other two is v1's and is
+/// load-bearing — see `crate::commands::updater`.
+#[async_trait]
+pub trait Updater: Send + Sync {
+    /// Start a check, and report whether this build has an updater at all.
+    ///
+    /// **Infallible.** v1 wraps the check in a `try`/`catch` that logs and still
+    /// answers `{ enabled: true }`; a failed check reaches the user as an
+    /// `updater:error` event. `useUpdater` maps a rejection and an error event to
+    /// different states, so making this fallible would change what the UI shows
+    /// for a network blip during the hourly tick.
+    async fn check(&self) -> UpdaterCheck;
+
+    /// Download the update that was found.
+    ///
+    /// # Errors
+    ///
+    /// Whatever the underlying updater failed with. v1's handler re-threw, and
+    /// the renderer's mutation surfaces it.
+    async fn download(&self) -> Result<(), UpdaterFailure>;
+
+    /// Quit and install.
+    ///
+    /// # Errors
+    ///
+    /// As [`Updater::download`]. On success the process exits, so the renderer
+    /// never observes this resolving.
+    async fn install(&self) -> Result<(), UpdaterFailure>;
+}
+
 #[cfg(test)]
 pub(crate) mod fake {
     //! Seam implementations that record instead of reaching an OS.
     //!
     //! The point of the seams is that a command can be tested with no Discord
-    //! client running and no media surface to talk to; these are what makes that
-    //! true, and they live here rather than in each test file so every lane
-    //! tests its namespace against the same double.
+    //! client running, no media surface to talk to and no release to install;
+    //! these are what makes that true, and they live here rather than in each
+    //! test file so every lane tests its namespace against the same double.
 
     #![allow(
         dead_code,
@@ -145,9 +198,17 @@ pub(crate) mod fake {
     }
 
     /// Records what the command layer asked Discord to show.
+    ///
+    /// `clear` is counted rather than recorded as an `update(None)`, because the
+    /// two are **not** the same call and v1 uses both: `media:clear-state` sends
+    /// `update(None)`, which re-renders "nothing playing" through the
+    /// fifteen-second throttle, while `discord-rpc:clear-presence` tears the card
+    /// down. A double that collapsed them would let either channel be wired to
+    /// the wrong one with every test still green.
     #[derive(Debug, Default)]
     pub(crate) struct RecordingPresence {
         updates: Mutex<Vec<Option<DiscordMusicPresenceActivity>>>,
+        cleared: Mutex<usize>,
     }
 
     impl RecordingPresence {
@@ -157,6 +218,14 @@ pub(crate) mod fake {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone()
+        }
+
+        /// How many times `clear` was called.
+        pub(crate) fn clear_count(&self) -> usize {
+            *self
+                .cleared
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
         }
     }
 
@@ -170,10 +239,193 @@ pub(crate) mod fake {
         }
 
         async fn clear(&self) {
-            self.updates
+            *self
+                .cleared
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) += 1;
+        }
+    }
+
+    use crate::commands::updater::{
+        UpdateDownloadProgress, UpdateInfo, UpdaterEvent, UpdaterEventSink,
+    };
+    use std::sync::Arc;
+
+    /// Records the updater transitions that would have reached the webview.
+    ///
+    /// The three accessors answer the three questions the port has about an
+    /// event: which channel, in what order, carrying what. `payloads` returns
+    /// JSON rather than the enum on purpose — the renderer sees bytes, and a
+    /// payload assertion that reads the Rust value back proves only that the
+    /// enum round-trips through itself.
+    #[derive(Debug, Default)]
+    pub(crate) struct RecordingUpdaterEvents {
+        sent: Mutex<Vec<UpdaterEvent>>,
+    }
+
+    impl RecordingUpdaterEvents {
+        /// Every transition, in order.
+        pub(crate) fn recorded(&self) -> Vec<UpdaterEvent> {
+            self.sent
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .push(None);
+                .clone()
+        }
+
+        /// The channels they went out on, in order.
+        pub(crate) fn channels(&self) -> Vec<&'static str> {
+            self.recorded().iter().map(UpdaterEvent::channel).collect()
+        }
+
+        /// The bytes they carried, in order.
+        pub(crate) fn payloads(&self) -> Vec<serde_json::Value> {
+            self.recorded().iter().map(UpdaterEvent::payload).collect()
+        }
+    }
+
+    impl UpdaterEventSink for RecordingUpdaterEvents {
+        fn send(&self, event: UpdaterEvent) {
+            self.sent
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(event);
+        }
+    }
+
+    /// An updater that emits v1's event sequence without an updater existing.
+    ///
+    /// Deliberately a *scripted* double rather than a bare recorder: the thing
+    /// worth asserting about this namespace is the **order and the bytes** of the
+    /// six transitions, because that sequence is the entire contract the Phase 15
+    /// shim and the renderer's `useUpdater` state machine are built against.
+    /// Recording only the calls would leave the half that matters untested until
+    /// Phase 16.
+    #[derive(Debug)]
+    pub(crate) struct FakeUpdater {
+        events: Arc<RecordingUpdaterEvents>,
+        /// What a check finds. `None` is "already current".
+        available: Option<UpdateInfo>,
+        /// When set, the check reports itself disabled and emits nothing.
+        disabled: bool,
+        /// When set, acting fails with this message.
+        failure: Option<String>,
+        calls: Mutex<Vec<&'static str>>,
+    }
+
+    impl FakeUpdater {
+        /// The one progress tick the double emits mid-download.
+        pub(crate) const PROGRESS: UpdateDownloadProgress = UpdateDownloadProgress {
+            bytes_per_second: 1_048_576.0,
+            percent: 42.5,
+            transferred: 4_456_448.0,
+            total: 10_485_760.0,
+        };
+
+        fn new(events: Arc<RecordingUpdaterEvents>) -> Self {
+            Self {
+                events,
+                available: None,
+                disabled: false,
+                failure: None,
+                calls: Mutex::new(Vec::new()),
+            }
+        }
+
+        /// A working updater with nothing to offer.
+        pub(crate) fn up_to_date(events: Arc<RecordingUpdaterEvents>) -> Arc<Self> {
+            Arc::new(Self::new(events))
+        }
+
+        /// A working updater offering `info`, which downloads and installs.
+        pub(crate) fn offering(info: UpdateInfo, events: Arc<RecordingUpdaterEvents>) -> Arc<Self> {
+            Arc::new(Self {
+                available: Some(info),
+                ..Self::new(events)
+            })
+        }
+
+        /// v1's dev and macOS build: present, gated, silent.
+        pub(crate) fn disabled(events: Arc<RecordingUpdaterEvents>) -> Arc<Self> {
+            Arc::new(Self {
+                disabled: true,
+                ..Self::new(events)
+            })
+        }
+
+        /// An updater whose download and install both fail with `message`.
+        pub(crate) fn failing(
+            message: impl Into<String>,
+            events: Arc<RecordingUpdaterEvents>,
+        ) -> Arc<Self> {
+            Arc::new(Self {
+                failure: Some(message.into()),
+                ..Self::new(events)
+            })
+        }
+
+        /// Which seam methods were called, in order.
+        pub(crate) fn calls(&self) -> Vec<&'static str> {
+            self.calls
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone()
+        }
+
+        fn record(&self, call: &'static str) {
+            self.calls
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .push(call);
+        }
+
+        /// The shared failure path: v1 both emitted on `updater:error` and let
+        /// the invoke reject, so the double does both too.
+        fn fail(&self, message: &str) -> UpdaterFailure {
+            self.events.send(UpdaterEvent::failed(message));
+            UpdaterFailure::new(message)
+        }
+    }
+
+    #[async_trait]
+    impl Updater for FakeUpdater {
+        async fn check(&self) -> UpdaterCheck {
+            self.record("check");
+            if self.disabled {
+                // v1 returns before touching autoUpdater, so no event fires.
+                return UpdaterCheck::DISABLED;
+            }
+
+            self.events.send(UpdaterEvent::CheckingForUpdate);
+            match &self.available {
+                Some(info) => self
+                    .events
+                    .send(UpdaterEvent::UpdateAvailable(info.clone())),
+                None => self.events.send(UpdaterEvent::UpdateNotAvailable),
+            }
+            UpdaterCheck::ENABLED
+        }
+
+        async fn download(&self) -> Result<(), UpdaterFailure> {
+            self.record("download");
+            if let Some(message) = &self.failure {
+                return Err(self.fail(message));
+            }
+
+            self.events
+                .send(UpdaterEvent::DownloadProgress(Self::PROGRESS));
+            if let Some(info) = &self.available {
+                self.events
+                    .send(UpdaterEvent::UpdateDownloaded(info.clone()));
+            }
+            Ok(())
+        }
+
+        async fn install(&self) -> Result<(), UpdaterFailure> {
+            self.record("install");
+            match &self.failure {
+                Some(message) => Err(self.fail(message)),
+                None => Ok(()),
+            }
         }
     }
 }
