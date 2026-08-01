@@ -36,11 +36,7 @@ pub async fn library_stats(conn: &mut SqliteConnection) -> Result<Vec<TrackStats
                 last_played_at: row.last_played_at,
                 is_favorite: row.is_favorite,
                 is_disliked,
-                artist_dislikes: artist_dislikes_for(
-                    &artist,
-                    &artist_dislikes,
-                    is_disliked,
-                ),
+                artist_dislikes: artist_dislikes_for(&artist, &artist_dislikes, is_disliked),
                 track_id: row.track_id,
                 title: row.title,
                 artist,

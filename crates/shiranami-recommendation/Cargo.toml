@@ -13,13 +13,27 @@ shiranami-core.workspace = true
 shiranami-db.workspace = true
 shiranami-downloader.workspace = true
 
-[dev-dependencies]
-# Tests only. `serde` reads the recorded inputs out of the golden-vector
-# fixture; `serde_json` both parses it and asserts that a generated mix `id`
-# still equals the serde name of its `SmartMixKind` — the renderer keys on that
-# string, and the port put the two in separate places for the first time.
+# `service` only. The shelf cache stores its items as a JSON array in one TEXT
+# column, exactly as v1's `JSON.stringify(items)` did, so the payload round-trip
+# is `serde_json` over the same camelCase models the renderer receives.
 serde = { workspace = true }
 serde_json = { workspace = true }
+
+# `service` only. A failed recompute serves the cached shelf rather than failing
+# the channel, which is a decision worth a log line — the shelf looks merely
+# stale from the outside.
+sqlx = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+# `core`'s golden-vector fixture: `serde` reads the recorded inputs out of it,
+# `serde_json` parses it and asserts that a generated mix `id` still equals the
+# serde name of its `SmartMixKind` — the renderer keys on that string, and the
+# port put the two in separate places for the first time.
+#
+# `service`'s tests additionally need a real temporary database and a runtime.
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true

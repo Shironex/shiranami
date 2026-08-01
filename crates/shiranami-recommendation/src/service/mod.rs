@@ -55,9 +55,7 @@ mod signals;
 mod similar;
 mod stats;
 
-pub use shelves::{
-    LIBRARY_MAX_ITEMS, discover_seed_youtube_ids, refresh, shelves, smart_mixes,
-};
-pub use signals::{mark_not_interested, undo_not_interested};
+pub use shelves::{LIBRARY_MAX_ITEMS, discover_seed_youtube_ids, refresh, shelves, smart_mixes};
+pub use signals::{DEFAULT_SOURCE, mark_not_interested, undo_not_interested};
 pub use similar::similar_tracks;
 pub use stats::{library_stats, mix_tracks};

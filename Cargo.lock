@@ -4337,6 +4337,10 @@ dependencies = [
  "shiranami-core",
  "shiranami-db",
  "shiranami-downloader",
+ "sqlx",
+ "tempfile",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
