@@ -1,18 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useDebugStore, type LongTaskEntry } from './useDebugStore';
-import type { MainMetricsSnapshot } from '@shiranami/contracts';
+import type { MetricsSnapshot } from '@shiranami/contracts/bindings';
 
 function resetStore() {
   useDebugStore.getState().close();
   useDebugStore.getState().reset();
 }
 
-function makeSnapshot(): MainMetricsSnapshot {
+function makeSnapshot(): MetricsSnapshot {
   return {
     ts: 1,
-    cpu: { percentCPUUsage: 12.5, idleWakeupsPerSecond: 3 },
-    heap: { totalHeapSize: 100, usedHeapSize: 60, heapSizeLimit: 2000 },
-    procs: [{ type: 'Browser', pid: 1, cpu: 5, mem: 1024 }],
+    procs: [{ kind: 'main', pid: 1, cpu: 5, mem: 1024 }],
   };
 }
 

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { MainMetricsSnapshot } from '@shiranami/contracts';
+import type { MetricsSnapshot } from '@shiranami/contracts/bindings';
 import { useDebugStore, type RendererMetrics } from '@/stores/useDebugStore';
 
 import DebugOverlay from './DebugOverlay';
@@ -14,12 +14,16 @@ const EMPTY_RENDERER: RendererMetrics = {
   storeHz: {},
 };
 
-function makeMain(overrides: Partial<MainMetricsSnapshot> = {}): MainMetricsSnapshot {
+// The v2 payload: `{ ts, procs: [{ kind, pid, cpu, mem }] }`. v1's `cpu` and
+// `heap` blocks described the Electron main process's V8 runtime and have no
+// counterpart — see `lib/bridge/namespaces/debug.ts`.
+function makeMain(overrides: Partial<MetricsSnapshot> = {}): MetricsSnapshot {
   return {
     ts: Date.now(),
-    cpu: { percentCPUUsage: 8.4, idleWakeupsPerSecond: 120 },
-    heap: { totalHeapSize: 81920, usedHeapSize: 53248, heapSizeLimit: 2097152 },
-    procs: [{ type: 'GPU', pid: 1002, cpu: 31.7, mem: 65536 }],
+    procs: [
+      { kind: 'main', pid: 1001, cpu: 4.2, mem: 122880 },
+      { kind: 'child', pid: 1002, cpu: 31.7, mem: 65536 },
+    ],
     ...overrides,
   };
 }
@@ -38,14 +42,27 @@ describe('DebugOverlay', () => {
     expect(screen.getByText('waiting for samples…')).toBeInTheDocument();
   });
 
-  it('renders per-process rows from the main snapshot', () => {
+  it('renders per-process rows from the backend snapshot', () => {
     useDebugStore.setState({ main: makeMain() });
     render(<DebugOverlay />);
 
-    expect(screen.getByText('GPU')).toBeInTheDocument();
+    // The process label is v2's `kind`, not Electron's `type`.
+    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(screen.getByText('child')).toBeInTheDocument();
     expect(screen.getByText('1002')).toBeInTheDocument();
     // cpu is rendered to one decimal place.
     expect(screen.getByText('31.7')).toBeInTheDocument();
+  });
+
+  it('shows no main-process heap section, which v2 does not measure', () => {
+    useDebugStore.setState({ main: makeMain() });
+    render(<DebugOverlay />);
+
+    // There is no V8 in the backend, so a "heap used" row here could only be a
+    // fabricated zero. The renderer's own heap is still reported below.
+    expect(screen.queryByText('heap used')).not.toBeInTheDocument();
+    expect(screen.queryByText('idle wakeups/s')).not.toBeInTheDocument();
+    expect(screen.getByText('js heap')).toBeInTheDocument();
   });
 
   it('calls close when the esc button is clicked', () => {
