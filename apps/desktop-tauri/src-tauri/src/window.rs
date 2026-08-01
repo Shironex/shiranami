@@ -281,7 +281,10 @@ mod tests {
 
         let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed is produced");
 
-        assert!(script.contains(r#"seed("shiranami.theme", "\"dark\"")"#), "{script}");
+        assert!(
+            script.contains(r#"seed("shiranami.theme", "\"dark\"")"#),
+            "{script}"
+        );
         assert!(
             script.contains(r#"seed("shiranami.app-store", "{\"state\":{\"uiScale\":115}}")"#),
             "{script}"
@@ -357,7 +360,9 @@ mod tests {
         );
 
         let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed");
-        let dumped = script.find(r#""version\":9"#).expect("the dumped slice is present");
+        let dumped = script
+            .find(r#""version\":9"#)
+            .expect("the dumped slice is present");
         let fallback = script.find(r#"'{"state":{"hasCompletedOnboarding":true},"version":1}'"#);
 
         if let Some(fallback) = fallback {
