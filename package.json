@@ -42,6 +42,7 @@
     "screenshots": "node scripts/screenshot-app.mjs",
     "canary:analyser": "node scripts/analyser-canary.mjs",
     "check:mock-mode": "node scripts/check-mock-mode.mjs",
+    "visual:windows": "node scripts/visual-check-windows.mjs",
     "prepare": "husky"
   },
   "engines": {
