@@ -202,6 +202,13 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "appGetVersion",
+            "appOpenLogsFolder",
+            "appGetLocaleCountry",
+            "dialogOpenDirectory",
+            "dialogOpenFile",
+            "shellShowInFolder",
+            "shellTrashFile",
         ];
 
         for command in PORTED_NAMES {

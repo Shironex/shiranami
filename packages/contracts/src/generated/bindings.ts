@@ -11,6 +11,32 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  `app:get-version` — the version the About dialog and the updater compare. */
+	appGetVersion: () => __TAURI_INVOKE<string>("app_get_version"),
+	/**
+	 *  `app:open-logs-folder` — reveal the log directory in the file manager.
+	 * 
+	 *  v1 created the directory before opening it (`getLogsDir` ends in an
+	 *  `mkdirSync`), which matters on a fresh install where nothing has been logged
+	 *  yet — without it the open silently does nothing.
+	 * 
+	 *  # A deliberate difference: this one reports failure
+	 * 
+	 *  Electron's `shell.openPath` *resolves* with an error string rather than
+	 *  throwing, and v1 ignored the result, so a failed open was invisible. That was
+	 *  an artifact of the API rather than a decision — the same handler's
+	 *  `mkdirSync` could already throw, so the channel was rejection-capable and the
+	 *  renderer already handles it. Reporting both halves the same way is the
+	 *  smaller inconsistency.
+	 */
+	appOpenLogsFolder: () => __TAURI_INVOKE<null>("app_open_logs_folder"),
+	/**
+	 *  `app:get-locale-country` — the OS region as ISO 3166-1 alpha-2, or `""`.
+	 * 
+	 *  Backs radio's "Near you" shortcut for renderers whose locale tag carries no
+	 *  region subtag (a bare `pl`), which is why it exists at all.
+	 */
+	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
 	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
@@ -187,8 +213,25 @@ export const commands = {
 	dbTracksExistsMany: (filePaths: string[]) => __TAURI_INVOKE<string[]>("db_tracks_exists_many", { filePaths }),
 	/**  `db:tracks:get-id-by-path` — the id of the track holding this file. */
 	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
+	/**  `dialog:open-directory` — pick one folder, or `null` if cancelled. */
+	dialogOpenDirectory: () => __TAURI_INVOKE<string | null>("dialog_open_directory"),
+	/**  `dialog:open-file` — pick one file, or `null` if cancelled. */
+	dialogOpenFile: (options: {
+	/**  Which formats the picker offers. Absent means audio; see [`filters_for`]. */
+	filters?: FileFilter[] | null,
+} | null) => __TAURI_INVOKE<string | null>("dialog_open_file", { options }),
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
+	/**  `shell:show-in-folder` — reveal a file in the OS file manager. */
+	shellShowInFolder: (filePath: string) => __TAURI_INVOKE<null>("shell_show_in_folder", { filePath }),
+	/**
+	 *  `shell:trash-file` — move a file to the recycle bin.
+	 * 
+	 *  The recycle bin, never an unlink: v1 used `shell.trashItem`, so a mistaken
+	 *  delete has always been recoverable from the OS, and `trash` is the crate that
+	 *  keeps that true on all three platforms.
+	 */
+	shellTrashFile: (filePath: string) => __TAURI_INVOKE<null>("shell_trash_file", { filePath }),
 	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 
@@ -685,6 +728,21 @@ export type ErrorPayload = {
 	details?: unknown | null,
 };
 
+/**
+ *  One entry of v1's `Electron.FileFilter`.
+ * 
+ *  The shape is frozen by the renderer, which builds these itself when it wants
+ *  something other than audio — the playlist import screen asks for `.m3u`.
+ *  Extensions are bare (`"mp3"`), never dotted and never globbed, with `"*"`
+ *  meaning "everything", exactly as Electron defined it.
+ */
+export type FileFilter = {
+	/**  The label shown in the picker's format dropdown. */
+	name: string,
+	/**  Extensions without the leading dot. */
+	extensions: string[],
+};
+
 /**  A resolved place, as returned by the geocoding lookup. */
 export type GeocodeResult = {
 	/**  Latitude in decimal degrees. */
@@ -1019,6 +1077,20 @@ export type NoticeMetaValue =
 string | 
 /**  A numeric value. */
 number;
+
+/**
+ *  The single optional argument `dialog:open-file` takes.
+ * 
+ *  v1's preload typed this as the whole of Electron's `OpenDialogOptions` while
+ *  its zod schema accepted only `{ filters? }` and the handler read only that.
+ *  Non-strict `z.object` dropped the rest silently; serde's default
+ *  unknown-field handling does the same, so a renderer still passing
+ *  `properties` or `title` is ignored rather than rejected.
+ */
+export type OpenFileOptions = {
+	/**  Which formats the picker offers. Absent means audio; see [`filters_for`]. */
+	filters?: FileFilter[] | null,
+};
 
 /**
  *  The raw `play_history` row echoed back after the insert.
