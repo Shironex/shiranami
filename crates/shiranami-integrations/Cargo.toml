@@ -13,5 +13,28 @@ shiranami-core.workspace = true
 shiranami-net.workspace = true
 shiranami-db.workspace = true
 
+# Lane A (lyrics · weather · share). Every row is already pinned in the
+# workspace table — Phase 12's lyrics/weather/share port needs no Appendix B
+# addition, because `lofty` (§2.2 row 22 names it for the embedded-tag source),
+# `regex`, `tokio` and `serde` all arrived with earlier phases.
+lofty = { workspace = true }
+regex = { workspace = true }
+# Header names and the status type only — `shiranami-net` stays the sole place
+# a client is constructed. These are the vocabulary its API is phrased in.
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
+tracing = { workspace = true }
+# For `form_urlencoded`, which is what `URLSearchParams` is — the encoder the
+# weather URLs were built with. The LRCLIB URLs used `encodeURIComponent`
+# instead and are encoded by hand; see `lyrics::query`.
+url = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
 [lints]
 workspace = true
