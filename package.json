@@ -24,6 +24,7 @@
     "lint:meta": "tsx tools/lint-meta/cli.ts",
     "verify:drift-guard": "node scripts/verify-drift-guard.mjs",
     "verify:db-baseline": "node --disable-warning=ExperimentalWarning --experimental-sqlite scripts/verify-db-baseline.mjs",
+    "verify:art-baseline": "node scripts/verify-art-baseline.mjs",
     "new:component": "tsx tools/codegen/new-component.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
