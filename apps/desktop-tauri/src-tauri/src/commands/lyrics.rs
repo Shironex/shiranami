@@ -213,4 +213,125 @@ mod tests {
             .expect("no service is installed");
         assert_eq!(error.code, codes::INTERNAL);
     }
+
+    // ── over a real socket ──────────────────────────────────────────────────
+
+    use crate::commands::share::loopback::{Reply, TestServer};
+    use shiranami_integrations::lyrics::{LrclibClient, LyricsPolicy, LyricsService};
+    use shiranami_net::HttpClient;
+    use std::path::Path;
+    use std::sync::Arc;
+
+    /// A policy that denies every local path, so the ladder is LRCLIB alone.
+    ///
+    /// Denying is the honest default for a *command-layer* test: the real
+    /// policy answers from the watched-folder set, and a test that allowed
+    /// everything would be probing the temp directory for `.lrc` files.
+    struct NetworkOnly;
+
+    impl LyricsPolicy for NetworkOnly {
+        fn is_local_resolution_allowed(&self, _path: &Path) -> bool {
+            false
+        }
+
+        fn prefer_synced_from_lrclib(&self) -> bool {
+            false
+        }
+    }
+
+    fn service_over(server: &TestServer) -> LyricsService {
+        LyricsService::new(
+            LrclibClient::with_base(
+                HttpClient::new().expect("the shared client builds"),
+                server.url(""),
+            ),
+            Arc::new(NetworkOnly),
+        )
+    }
+
+    /// LRCLIB answering 404 is a **miss**: the track genuinely has no lyrics,
+    /// which is `Ok` with an empty result and a cacheable answer. The renderer
+    /// shows a quiet empty pane rather than an error.
+    #[tokio::test]
+    async fn a_directory_miss_is_an_empty_result_rather_than_an_error() {
+        // The real API's shape for "no such track": the exact-record lookup
+        // answers 404 and each search variant answers `200 []`. The two are not
+        // interchangeable — a 404 is exempted from the failure record only on
+        // the record lookup, so a *search* answering 404 is a failed lookup
+        // rather than a miss, and a fixture that used one for both would be
+        // asserting the opposite of what this test claims.
+        let mut replies = vec![Reply::failing(404, r#"{"message":"Not Found"}"#)];
+        replies.extend((0..8).map(|_| Reply::ok("[]")));
+        let server = TestServer::start(replies).await;
+
+        let request = build_request("Song".to_owned(), "Artist".to_owned(), None, None, None)
+            .expect("a valid request");
+        let found = service_over(&server)
+            .fetch(&request)
+            .await
+            .expect("a miss is not an error");
+
+        assert_eq!(found.synced, None);
+        assert_eq!(found.plain, None);
+        assert_eq!(
+            found.source, None,
+            "no source won, which is what an empty pane renders from"
+        );
+    }
+
+    /// A directory that cannot be reached is an **error**, not a miss. The
+    /// distinction is the whole reason the crate separates them: the renderer
+    /// must be able to tell "no lyrics exist" from "we could not find out",
+    /// because only the second is worth trying again.
+    #[tokio::test]
+    async fn a_lookup_that_could_not_complete_is_an_error() {
+        let replies = (0..8)
+            .map(|_| Reply::failing(503, r#"{"message":"Service Unavailable"}"#))
+            .collect();
+        let server = TestServer::start(replies).await;
+
+        let request = build_request("Song".to_owned(), "Artist".to_owned(), None, None, None)
+            .expect("a valid request");
+        let error = service_over(&server)
+            .fetch(&request)
+            .await
+            .wire()
+            .expect_err("an unreachable directory is a failure");
+
+        assert!(!error.code.is_empty(), "every rejection is code-bearing");
+    }
+
+    /// The happy path, end to end over a socket: LRCLIB's synced lyrics reach
+    /// the renderer parsed rather than as raw LRC text.
+    #[tokio::test]
+    async fn synced_lyrics_from_the_directory_reach_the_caller_parsed() {
+        let record = serde_json::json!({
+            "id": 1,
+            "trackName": "Song",
+            "artistName": "Artist",
+            "syncedLyrics": "[00:12.00]First line\n[00:15.50]Second line",
+            "plainLyrics": "First line\nSecond line",
+        })
+        .to_string();
+        let server = TestServer::start(vec![Reply::ok(&record)]).await;
+
+        let request = build_request(
+            "Song".to_owned(),
+            "Artist".to_owned(),
+            Some("Album".to_owned()),
+            Some(204.0),
+            None,
+        )
+        .expect("a valid request");
+        let found = service_over(&server)
+            .fetch(&request)
+            .await
+            .expect("a hit");
+
+        let synced = found.synced.expect("timed lyrics");
+        assert_eq!(synced.len(), 2);
+        assert_eq!(synced[0].text, "First line");
+        assert!((synced[0].time - 12.0).abs() < f64::EPSILON);
+        assert!(found.source.is_some(), "a source won");
+    }
 }

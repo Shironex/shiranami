@@ -368,6 +368,166 @@ mod tests {
         }
     }
 
+    // ── the connect flow, over a real socket and a real database ────────────
+
+    use crate::commands::share::loopback::{Reply, TestServer};
+    use shiranami_integrations::scrobble::ListenBrainzClient;
+    use shiranami_net::HttpClient;
+    use std::sync::Arc;
+
+    /// A scrobbler with no Last.fm credential — this build has none unless
+    /// `option_env!` found one at compile time — and a ListenBrainz client
+    /// pointed at `server`.
+    fn scrobbler_over(state: &crate::state::AppState, server: &TestServer) -> Scrobbler {
+        let http = HttpClient::new().expect("the shared client builds");
+        Scrobbler::new(Arc::clone(state.settings()), http.clone(), None).with_clients(
+            None,
+            ListenBrainzClient::new(http)
+                .with_endpoints(server.url("/1/submit-listens"), server.url("/1/validate-token")),
+        )
+    }
+
+    /// The whole ListenBrainz connect flow: validate the token, store it, and
+    /// answer with v1's bytes. Asserted end to end because the three parts fail
+    /// independently — a token that validates but is not stored looks identical
+    /// on the wire until the next `get-status`.
+    #[tokio::test]
+    async fn connecting_listenbrainz_stores_the_token_and_answers_with_v1s_bytes() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![Reply::ok(
+            r#"{"code":200,"message":"Token valid.","valid":true,"user_name":"alice"}"#,
+        )])
+        .await;
+
+        let result = scrobbler_over(&state, &server)
+            .connect_listenbrainz("LB-TOKEN")
+            .await;
+
+        assert_eq!(json(&result), r#"{"ok":true,"username":"alice"}"#);
+
+        // Connecting a backend also switches scrobbling on, which is v1's
+        // behaviour: a user who never touched the master switch expects the
+        // backend they just connected to actually receive plays.
+        let status = scrobbler_over(&state, &server)
+            .status(state.pool())
+            .await
+            .expect("a status");
+        assert!(status.enabled);
+        assert!(status.listen_brainz_connected);
+        assert_eq!(status.pending_count, 0);
+
+        // …and the token itself is nowhere in what the renderer receives.
+        assert!(!json(&status).contains("LB-TOKEN"));
+    }
+
+    /// A refused token is `Ok` carrying a reason key, not a rejection: the
+    /// renderer branches on `ok` and shows one toast.
+    #[tokio::test]
+    async fn a_rejected_token_is_a_value_rather_than_a_rejection() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![Reply::ok(
+            r#"{"code":200,"message":"Token invalid.","valid":false}"#,
+        )])
+        .await;
+
+        let result = scrobbler_over(&state, &server)
+            .connect_listenbrainz("WRONG")
+            .await;
+
+        assert_eq!(json(&result), r#"{"ok":false,"error":"invalid_token"}"#);
+        assert!(
+            !scrobbler_over(&state, &server)
+                .status(state.pool())
+                .await
+                .expect("a status")
+                .listen_brainz_connected,
+            "a refused token is not stored"
+        );
+    }
+
+    /// An unreachable backend collapses to `network`, which is what v1's single
+    /// `catch` produced for every transport failure.
+    #[tokio::test]
+    async fn an_unreachable_backend_is_a_network_reason_key() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![Reply::failing(500, "nope")]).await;
+
+        let result = scrobbler_over(&state, &server)
+            .connect_listenbrainz("LB-TOKEN")
+            .await;
+
+        assert_eq!(json(&result), r#"{"ok":false,"error":"network"}"#);
+    }
+
+    /// Disconnecting forgets the credential and says so in the status.
+    #[tokio::test]
+    async fn disconnecting_forgets_the_token() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![Reply::ok(
+            r#"{"code":200,"message":"Token valid.","valid":true,"user_name":"alice"}"#,
+        )])
+        .await;
+
+        scrobbler_over(&state, &server)
+            .connect_listenbrainz("LB-TOKEN")
+            .await;
+        let status = scrobbler_over(&state, &server)
+            .disconnect_listenbrainz(state.pool())
+            .await
+            .expect("a status");
+
+        assert!(!status.listen_brainz_connected);
+        assert!(status.enabled, "the master switch is a separate decision");
+    }
+
+    /// The master switch, through the channel that owns it.
+    #[tokio::test]
+    async fn the_master_switch_round_trips_through_the_settings_file() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![]).await;
+
+        let enabled = scrobbler_over(&state, &server)
+            .set_enabled(state.pool(), true)
+            .await
+            .expect("a status");
+        assert!(enabled.enabled);
+
+        let disabled = scrobbler_over(&state, &server)
+            .set_enabled(state.pool(), false)
+            .await
+            .expect("a status");
+        assert!(!disabled.enabled);
+    }
+
+    /// A build with no Last.fm application credential refuses the handshake
+    /// with `not_configured` rather than reaching the network — and, crucially,
+    /// without an unopened browser tab having been the user's only clue.
+    #[tokio::test]
+    async fn a_build_without_a_lastfm_credential_refuses_the_handshake() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let server = TestServer::start(vec![]).await;
+        let scrobbler = scrobbler_over(&state, &server);
+
+        assert!(!scrobbler.is_lastfm_configured());
+
+        let (started, authorize_url) = scrobbler.begin_lastfm_auth().await;
+        assert_eq!(json(&started), r#"{"ok":false,"error":"not_configured"}"#);
+        assert_eq!(authorize_url, None, "and there is no page to open");
+
+        let completed = scrobbler.complete_lastfm_auth("token").await;
+        assert_eq!(
+            json(&completed),
+            r#"{"ok":false,"error":"not_configured"}"#
+        );
+        assert_eq!(server.received(), 0, "nothing was sent");
+    }
+
     /// A run with no scrobbler answers with a code rather than a default
     /// status — see [`scrobbler`] for why a fabricated one would be worse.
     #[tokio::test]
