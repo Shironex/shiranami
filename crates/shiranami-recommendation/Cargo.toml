@@ -25,6 +25,16 @@ serde_json = { workspace = true }
 sqlx = { workspace = true }
 tracing = { workspace = true }
 
+# `service::discover` only, and all three for the RD-mix fan-out:
+# `futures`' `buffered` bounds it at four while keeping seed order — the
+# ordering is what decides which mix's copy of a shared video survives the
+# dedupe — `tokio-util`'s `CancellationToken` is the token the reused
+# `ProcessRunner` seam takes, and `tokio::fs` answers "is yt-dlp installed?" the
+# way `YtDlpManager::is_installed` answers it.
+futures = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
 [dev-dependencies]
 # `core`'s golden-vector fixture: `serde` reads the recorded inputs out of it,
 # `serde_json` parses it and asserts that a generated mix `id` still equals the
@@ -34,6 +44,11 @@ tracing = { workspace = true }
 # `service`'s tests additionally need a real temporary database and a runtime.
 tempfile = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+# `service::discover`'s tests script the `ProcessRunner` seam, and the trait is
+# `#[async_trait]` — implementing it needs the same macro the trait was declared
+# with.
+async-trait = { workspace = true }
 
 [lints]
 workspace = true

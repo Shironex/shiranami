@@ -5122,6 +5122,8 @@ dependencies = [
 name = "shiranami-recommendation"
 version = "2.0.0-alpha.0"
 dependencies = [
+ "async-trait",
+ "futures",
  "serde",
  "serde_json",
  "shiranami-core",
@@ -5130,6 +5132,7 @@ dependencies = [
  "sqlx",
  "tempfile",
  "tokio",
+ "tokio-util",
  "tracing",
 ]
 

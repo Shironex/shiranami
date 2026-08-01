@@ -33,29 +33,37 @@
 //!   arrives as an argument, so a shelf can be scored "as of" a fixed time and
 //!   the TTL boundary is assertable rather than approximable.
 //!
-//! # What is deliberately not here yet
+//! # Discovery is two halves, and both are here
 //!
-//! v1's `computeDiscoverItems` spawns yt-dlp against a seed's `RD` mix, four
-//! at a time, and merges the results. The seed half of that is ported —
-//! [`discover_seed_youtube_ids`] selects the seeds by affinity and resolves
-//! them through `repo::youtube_mappings` in **affinity order**, which is the
-//! part that decides which seed wins the dedupe. The fetch half is not: it
-//! needs a `ProcessRunner` and the yt-dlp binary manager, which the composition
-//! root owns and Phase 16 boots (§2.8 also assigns it the 30-second coalesced
-//! background refresh that was this path's only caller besides the channel).
+//! v1's `computeDiscoverItems` spawns yt-dlp against a seed's `RD` mix, four at
+//! a time, and merges the results. The seed half —
+//! [`discover_seed_youtube_ids`], which selects seeds by affinity and resolves
+//! them through `repo::youtube_mappings` in **affinity order** — shipped with
+//! the rest of this module; the fetch half needed a process runner and landed
+//! after Phase 16 booted one, as [`discover`] describes.
 //!
-//! So [`refresh`] recomputes the library shelf and **serves the cached discover
-//! shelf**, reporting its real `stale` flag rather than a fabricated one. That
-//! is the same deferral shape `db_tracks_remove_many` took with the orphaned-art
-//! sweep: the rows the command is responsible for are correct, and the
-//! follow-up that needs an unbooted piece is named rather than faked.
+//! The fetch is **three calls, not one**, and that shape is the connection
+//! discipline rather than a taste: [`discover_plan`] reads,
+//! [`DiscoverFetcher::fetch`] spawns yt-dlp with no connection held, and
+//! [`commit_discover`] writes. The pool has a single connection and a fan-out
+//! takes seconds; `shiranami_metadata::enrich::batch` is the precedent for
+//! splitting a long external run out of the connection's scope.
+//!
+//! [`refresh`] therefore rebuilds only the library shelf, and the composition
+//! root — which owns the process runner and the yt-dlp path (§2.3) — drives the
+//! discover half around it.
 
+mod discover;
 mod shelves;
 mod signals;
 mod similar;
 mod stats;
 
-pub use shelves::{LIBRARY_MAX_ITEMS, discover_seed_youtube_ids, refresh, shelves, smart_mixes};
+pub use discover::{DiscoverFetcher, DiscoverPlan};
+pub use shelves::{
+    LIBRARY_MAX_ITEMS, commit_discover, discover_plan, discover_seed_youtube_ids, refresh, shelves,
+    smart_mixes,
+};
 pub use signals::{DEFAULT_SOURCE, mark_not_interested, undo_not_interested};
 pub use similar::similar_tracks;
 pub use stats::{library_stats, mix_tracks};

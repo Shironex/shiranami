@@ -1,6 +1,9 @@
 //! The two cached shelves: reading them, deciding they are stale, recomputing
 //! the one that can be recomputed offline, and writing it back.
 
+use super::discover::DiscoverPlan;
+use super::stats;
+use crate::core::{AffinityOptions, build_smart_mixes, select_seed_tracks};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use shiranami_core::models::{
@@ -12,9 +15,6 @@ use shiranami_core::time::{instant, iso8601};
 use shiranami_db::Result;
 use shiranami_db::repo::{recommendations as repo, youtube_mappings};
 use sqlx::SqliteConnection;
-
-use super::stats;
-use crate::core::{AffinityOptions, build_smart_mixes, select_seed_tracks};
 
 /// How many tracks the library shelf carries. v1's `LIBRARY_MAX_ITEMS`.
 pub const LIBRARY_MAX_ITEMS: usize = 20;
@@ -198,17 +198,17 @@ async fn recompute_library(
     })
 }
 
-/// Recompute what can be recomputed offline, then return both shelves.
+/// Recompute what can be recomputed from the database, then return both
+/// shelves.
 ///
 /// The library shelf is rebuilt **unconditionally**, which is the difference
 /// between this and [`shelves`]: the user pressed refresh, so "it is not stale
 /// yet" is not an answer.
 ///
-/// The discover shelf is served from its cache. v1 rebuilt it here through
-/// yt-dlp, and that half is deferred — see [`super`] for what it needs and who
-/// owns it. Nothing is faked: the shelf reports the `generated_at` and `stale`
-/// its cached row actually has, so the renderer's "last updated" line stays
-/// truthful and the shelf goes visibly stale rather than silently wrong.
+/// The discover shelf is served from its cache, because rebuilding it spawns
+/// processes and waits seconds for them — the caller drives that half through
+/// [`discover_plan`], [`super::DiscoverFetcher::fetch`] and [`commit_discover`] with
+/// no connection held. See [`DiscoverPlan`] for why that split exists.
 ///
 /// # Errors
 ///
@@ -231,6 +231,56 @@ pub async fn refresh(conn: &mut SqliteConnection, now_ms: i64) -> Result<Recomme
             .await?;
 
     Ok(assemble(library, discover))
+}
+
+/// Read everything the discover fan-out needs, in one pass.
+///
+/// Three reads and no processes: the seeds in affinity order, the library's
+/// YouTube ids, and whether the cached shelf has aged out. The caller releases
+/// the connection before fetching — see [`DiscoverPlan`].
+///
+/// # Errors
+///
+/// Returns [`shiranami_db::DbError`] if any of the three reads fails.
+pub async fn discover_plan(conn: &mut SqliteConnection, now_ms: i64) -> Result<DiscoverPlan> {
+    let seeds = discover_seed_youtube_ids(&mut *conn, now_ms).await?;
+    let library = youtube_mappings::all_youtube_ids(&mut *conn).await?;
+    let cached = repo::read_shelf(&mut *conn, kind_key(RecommendationKind::Discover)).await?;
+
+    Ok(DiscoverPlan {
+        seeds,
+        library,
+        stale: is_stale(cached.as_ref().map(|row| row.generated_at.as_str()), now_ms),
+    })
+}
+
+/// Cache a fetched discover shelf, and report what it looks like now.
+///
+/// An empty `items` is written rather than skipped, and that is v1's behaviour
+/// rather than an oversight: `writeCacheRow('discover', [])` ran whenever the
+/// fan-out found nothing — including when yt-dlp was absent — so an empty shelf
+/// is a real, freshly-stamped answer. Skipping the write instead would pin the
+/// previous shelf until the TTL and make "no results" indistinguishable from
+/// "never refreshed".
+///
+/// # Errors
+///
+/// Returns [`shiranami_db::DbError`] if the write fails.
+pub async fn commit_discover(
+    conn: &mut SqliteConnection,
+    items: Vec<DiscoverRecommendation>,
+    now_ms: i64,
+) -> Result<DiscoverShelf> {
+    let generated_at =
+        write_shelf(&mut *conn, RecommendationKind::Discover, &items, now_ms).await?;
+    tracing::info!(items = items.len(), "the discover refresh wrote a shelf");
+
+    Ok(DiscoverShelf {
+        kind: RecommendationKind::Discover,
+        items,
+        generated_at: Some(generated_at),
+        stale: false,
+    })
 }
 
 /// Put the two cached halves into the wire shape.

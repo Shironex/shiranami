@@ -314,9 +314,10 @@ async fn refresh_recomputes_a_shelf_that_is_not_yet_stale() {
     assert!(!refreshed.library.stale);
 }
 
-/// Producing the discover shelf spawns yt-dlp, so neither read path may do it.
-/// The shelf is served from its cache with its real staleness — deferred, not
-/// faked.
+/// Producing the discover shelf spawns yt-dlp and waits seconds for it, so no
+/// path that holds the pool's one connection may do it — neither read, and not
+/// `refresh` either. The shelf is served from its cache with its real
+/// staleness; `tests/discover.rs` covers the fetch that fills it.
 #[tokio::test]
 async fn neither_read_path_recomputes_the_discover_shelf() {
     let mut fixture = fresh().await;
@@ -337,8 +338,8 @@ async fn neither_read_path_recomputes_the_discover_shelf() {
     }
 }
 
-/// A cached discover shelf is passed through untouched by both paths, so the
-/// deferral costs nothing once Phase 16 starts writing one.
+/// A cached discover shelf is passed through untouched by every connection-
+/// holding path, which is what makes committing it out of band safe.
 #[tokio::test]
 async fn a_cached_discover_shelf_survives_a_library_refresh() {
     let mut fixture = fresh().await;
