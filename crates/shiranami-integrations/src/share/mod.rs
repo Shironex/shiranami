@@ -14,6 +14,7 @@ pub mod client;
 pub mod deep_link;
 pub mod dto;
 pub mod error;
+pub mod validate;
 
 pub use client::{SHARE_API_DEV_URL, SHARE_API_URL, ShareClient, is_valid_share_code};
 pub use deep_link::{DEEP_LINK_SCHEME, DeepLink, find_deep_link_argument, parse_deep_link};
