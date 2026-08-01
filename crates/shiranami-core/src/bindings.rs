@@ -304,20 +304,12 @@ mod tests {
         );
     }
 
-    /// The committed file must equal what the generator produces. Locally this
-    /// is redundant with the export test above; in CI it is the assertion that
-    /// catches a hand-edited bindings file before `git diff` does, with a
-    /// message that says what to run.
-    #[test]
-    fn the_committed_bindings_match_the_generator() {
-        ensure_exported();
-        let committed = std::fs::read_to_string(GENERATED_FILE)
-            .expect("the generated bindings must be committed");
-        assert_eq!(
-            committed,
-            render().expect("render the bindings"),
-            "packages/contracts/src/generated/core.ts is stale — run \
-             `cargo test -p shiranami-core --lib bindings` and commit the result"
-        );
-    }
+    // There is deliberately NO test here asserting "the committed file matches
+    // the generator". Such a test would have to run after the export that this
+    // very binary performs, so it would compare the freshly written file against
+    // the generator that just wrote it and could never fail — a guard-shaped
+    // thing incapable of guarding, which is the exact failure this whole module
+    // exists to avoid. Staleness is caught where it is detectable: by
+    // `git diff --exit-code` in CI, against the version control history that a
+    // `cargo test` run cannot rewrite.
 }
