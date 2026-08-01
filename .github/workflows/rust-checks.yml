@@ -87,11 +87,18 @@ jobs:
 
       # Only so `pnpm verify:drift-guard` resolves below. The script itself uses
       # nothing but Node builtins, git and cargo, so the workspace install is
-      # skipped — this job has no business waiting on node_modules.
-      - name: Setup pnpm and Node
-        uses: ./.github/actions/setup
+      # skipped — this job has no business waiting on node_modules. Not using
+      # the shared ./.github/actions/setup action here: it always turns on
+      # setup-node's pnpm cache, and an install-free job never creates a pnpm
+      # store for actions/cache to save, which fails the job at post-job
+      # cleanup even though every real step passed.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          install: 'false'
+          node-version-file: .nvmrc
 
       - name: Cache cargo
         uses: actions/cache@v4
