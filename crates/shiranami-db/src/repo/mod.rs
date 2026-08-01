@@ -23,7 +23,9 @@
 //! that cannot acquire anything.
 
 // lane A — library side (tracks, folders, playlists, smart playlists)
+pub(crate) mod clock;
 pub(crate) mod conn;
+pub mod folders;
 pub(crate) mod track_patch;
 pub(crate) mod track_row;
 pub mod tracks;
