@@ -919,3 +919,26 @@ diverging. Proven non-vacuous by perturbing a v1 migration and requiring exit 1.
 `SqlSafeStr`, so the handful of statements that interpolate a private constant are wrapped in
 `AssertSqlSafe` with the audit note the trait asks for. `macros` is pinned per Appendix B but unused
 until Phase 7, so no `.sqlx/` offline data or `sqlx-offline` CI job is needed yet.
+
+## Phase 7–8 implementation amendments (2026-08-01, merged to v2)
+
+**Phase 7 (`shiranami-db` repositories, two lanes):**
+
+- **Calling convention (coordinator ruling):** the two lanes landed with opposite conventions — lane B repositories borrow `&mut SqliteConnection` acquired at the command boundary; lane A public functions acquired from the pool internally. Mixed, this deadlocks the single-connection pool (a command holding lane B's connection calling a lane-A function). The unified rule, now in `repo/mod.rs`: **every repository function takes `&mut SqliteConnection`; `conn::acquire` is the crate's only acquire site; the command layer acquires once.** Lane A's functions are being converted to match before Phase 14 builds on them.
+- No albums/artists repositories exist — v1 derives both client-side by grouping tracks (`apps/web/src/lib/albumSort.ts`); nothing was invented.
+- Runtime sqlx API, not `query_as!` macros — `.sqlx/` offline data and its CI job are a coordinator decision deferred to Phase 14.
+- Timestamps are minted by SQLite's clock (`strftime`, byte-identical to `toISOString()`, pinned by test); `history::record_play` and `radio::add` deliberately keep v1's divergent timestamp formats.
+- History wire types were added to `shiranami-core` models (they lived in `contracts/src/ipc/`, which Phase 2 didn't port).
+- `VACUUM INTO` replaces better-sqlite3's online-backup API (same consistency; defragments; refuses existing destinations).
+- Scrobble-queue persistence is Phase 12's to design — v1's queue is process-memory only. Lyrics and storage-usage likewise have no v1 DB layer (files/statfs; Phases 12/10).
+- The rule→SQL compiler covers all 56 field×operator combinations via `QueryBuilder` binds only; injection attempts pinned as operands.
+- A real v1 bug was fixed in port: julian-day→ms scaling made an exactly-30-minute gap measure as 1800000.00004 ms, splitting listening sessions; now epoch-subtracted, integer-rounded, boundary pinned.
+
+**Phase 8 (`shiranami-serve`):**
+
+- `Access-Control-Allow-Origin: *` (Spike A amendment) supersedes §2.4's "webview origin" — asserted on every media route including all 9 refusal paths.
+- `HttpClient::stream()` (redirect-less streaming primitive) was added to `shiranami-net` so net remains the sole reqwest constructor; serve drives the ≤5-hop loop with the SSRF guard re-run per hop.
+- v1's 499-on-abort is dropped — over HTTP the client's gone; abort propagates by dropping the upstream body.
+- RFC-7233 conformance over v1 bug parity (suffix ranges, end clamping, 416 — v1 had none). Art path traversal is refused, never `basename`d.
+- Media-type tables live in serve (sole consumer) with a drift test against the frozen v1 table; v1's TWO distinct audio MIME fallbacks are preserved (typeless radio → `audio/mpeg`; unknown file extension → `application/octet-stream`).
+- Loopback auth: 32-byte CSPRNG hex path token minted in `start()`, constant-time compared, wrong token = blanket 404 (a 403 would confirm the server to a local prober).
