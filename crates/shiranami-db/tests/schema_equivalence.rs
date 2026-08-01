@@ -27,21 +27,25 @@ mod schema;
 mod v1;
 
 use serde_json::Value;
-use shiranami_db::MIGRATOR;
 use sqlx::SqliteConnection;
 
 use schema::{SchemaObject, fixture, normalize_sql, schema_objects, table_shape};
 use v1::{V1_SQL, connect, exec, statements};
 
+/// The squash, fed to the driver whole exactly as sqlx's migrator feeds it —
+/// splitting it here would be testing the splitter.
+const BASELINE_SQL: &str = include_str!("../migrations/0001_baseline.sql");
+
 /// A database with nothing but `0001_baseline.sql` in it.
+///
+/// Deliberately *not* `MIGRATOR.run()`. Every comparison in this file asks
+/// whether the squash reproduces v1's schema, and v2's own post-baseline
+/// migrations (`0002_scrobble_queue.sql` onward) add tables v1 never had — they
+/// belong to the adoption tests, which assert they run, not here, where they
+/// would only make this comparison fail for the one reason that is not a bug.
 async fn baseline_database(directory: &tempfile::TempDir) -> SqliteConnection {
     let mut conn = connect(&directory.path().join("baseline.db")).await;
-
-    MIGRATOR
-        .run(&mut conn)
-        .await
-        .expect("the baseline migration must apply to an empty database");
-
+    exec(&mut conn, BASELINE_SQL).await;
     conn
 }
 
@@ -186,9 +190,7 @@ async fn the_baseline_is_idempotent() {
 
     let before = schema_objects(&mut conn).await;
 
-    // Fed to the driver whole, comments and all, exactly as sqlx's migrator
-    // feeds it — splitting it here would be testing the splitter.
-    exec(&mut conn, include_str!("../migrations/0001_baseline.sql")).await;
+    exec(&mut conn, BASELINE_SQL).await;
 
     assert_same_schema(
         &before,
