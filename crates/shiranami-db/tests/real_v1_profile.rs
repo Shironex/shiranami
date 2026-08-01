@@ -35,6 +35,7 @@ use std::path::{Path, PathBuf};
 
 use shiranami_core::migrate::{self, Outcome};
 use shiranami_db::Adoption;
+use sqlx::Connection as _;
 
 use schema::count;
 use v1::connect;
@@ -112,7 +113,11 @@ async fn counts(path: &Path) -> Vec<(&'static str, i64)> {
     for table in COUNTED {
         counted.push((table, count(&mut conn, table).await));
     }
-    drop(conn);
+    // Closed rather than dropped: sqlx shuts a dropped connection down on a
+    // background worker, and this test compares file bytes immediately
+    // afterwards. A WAL checkpoint arriving late would look like the migration
+    // having modified a tree it only read.
+    conn.close().await.expect("the counting connection closes");
     counted
 }
 
@@ -159,8 +164,14 @@ async fn a_real_v1_profile_migrates_with_its_rows_and_covers_intact() {
     copy_in(&source, &legacy);
 
     let source_before = digest_tree(&source);
-    let legacy_before = digest_tree(&legacy);
+
+    // Count first, *then* snapshot the tree. Opening a database creates its
+    // `-wal` and `-shm` and closing it cleanly removes them, so a snapshot taken
+    // before the count would record sidecars that this test's own connection
+    // then deleted — and the "nothing in the v1 tree changed" assertion below
+    // would be measuring the harness rather than the migration.
     let counts_before = counts(&legacy.join("shiranami.db")).await;
+    let legacy_before = digest_tree(&legacy);
     let art_before = digest_tree(&legacy.join("album-art"));
     let peaks_before = digest_tree(&legacy.join("waveform-peaks"));
 

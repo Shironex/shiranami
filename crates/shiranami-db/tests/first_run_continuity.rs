@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 
 use shiranami_core::migrate::{self, Outcome};
 use shiranami_db::{Adoption, DbError};
+use sqlx::Connection as _;
 
 use schema::count;
 use v1::{build_v1_database, connect, seed_rows};
@@ -58,7 +59,13 @@ impl Profile {
         let mut conn = connect(&legacy.join("shiranami.db")).await;
         build_v1_database(&mut conn, through).await;
         seed_rows(&mut conn).await;
-        drop(conn);
+        // `close()`, not `drop()`. sqlx hands a dropped connection to a
+        // background worker to shut down, and the pool opens in WAL mode — so a
+        // checkpoint can land on the file *after* the test has moved on and
+        // rewritten it. That is a race, and it produced a genuinely confusing
+        // failure: the corruption test overwrote the database and then found its
+        // own bytes changed underneath it.
+        conn.close().await.expect("the fixture connection closes");
 
         std::fs::create_dir_all(legacy.join("album-art")).expect("art");
         std::fs::create_dir_all(legacy.join("waveform-peaks")).expect("peaks");
@@ -108,7 +115,9 @@ async fn counts(path: &Path) -> Vec<(&'static str, i64)> {
     for table in COUNTED {
         counted.push((table, count(&mut conn, table).await));
     }
-    drop(conn);
+    // See `Profile::build` — closed rather than dropped, so the file is settled
+    // before the caller reads or compares its bytes.
+    conn.close().await.expect("the counting connection closes");
     counted
 }
 
@@ -256,7 +265,7 @@ async fn a_database_from_a_newer_build_is_refused_after_being_copied() {
 
     let mut conn = connect(&profile.legacy.join("shiranami.db")).await;
     v1::set_user_version(&mut conn, shiranami_db::SCHEMA_FLOOR + 1).await;
-    drop(conn);
+    conn.close().await.expect("the stamping connection closes");
 
     profile.migrate().expect("migrate");
 
