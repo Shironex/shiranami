@@ -20,9 +20,11 @@ pub mod bindings;
 pub mod constants;
 pub mod error;
 pub mod models;
+pub mod notice;
 pub mod paths;
 pub mod store;
 pub mod sync;
 
 pub use constants::{UNKNOWN_ALBUM, UNKNOWN_ARTIST};
 pub use error::{CoreError, ErrorPayload, Result};
+pub use notice::{SystemNotice, SystemNoticeLevel, SystemNoticeSource};
