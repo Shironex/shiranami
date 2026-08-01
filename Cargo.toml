@@ -93,6 +93,19 @@ symphonia = { version = "0.6", features = [
 ] }
 ebur128 = "0.1.10"
 
+# Phase 6 (`shiranami-db`). Feature set as Appendix B pins it. `sqlite` brings
+# a bundled SQLite, so the engine is the same on every platform and in CI —
+# which matters more than usual here, because the `sqlite_master` diff test
+# compares schema *text* and a host libsqlite3 would put the build machine in
+# that comparison. `macros` is unused in Phase 6 and pinned for Phase 7's
+# `query_as!`; nothing compiles it until then.
+sqlx = { version = "0.9", default-features = false, features = [
+  "runtime-tokio",
+  "sqlite",
+  "macros",
+  "migrate",
+] }
+
 # Names the waveform-peaks cache files. v1 keyed them `sha256(path|mtime|size)`
 # truncated to 128 bits and v2 adopts that cache verbatim (§3.3), so the hash is
 # a compatibility constraint, not an implementation choice. Pinned to the 0.10

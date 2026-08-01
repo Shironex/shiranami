@@ -11,5 +11,18 @@ publish.workspace = true
 [dependencies]
 shiranami-core.workspace = true
 
+serde_json = { workspace = true }
+# Reproduces the drizzle ledger's `hash` column: sha256 of a migration's
+# statements rejoined on drizzle-kit's breakpoint marker.
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+serde = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
 [lints]
 workspace = true
