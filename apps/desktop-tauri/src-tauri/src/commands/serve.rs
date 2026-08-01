@@ -47,7 +47,12 @@ macro_rules! commands {
 pub(crate) use commands;
 
 /// How the webview addresses the loopback media server this session.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+///
+/// `Debug` is hand-written rather than derived. `SessionToken` redacts itself
+/// precisely so a token cannot reach a log line by being interpolated into a
+/// struct dump, and reading it out into a plain `String` here would reopen that
+/// hole one type further out.
+#[derive(Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ServeInfo {
     /// Scheme and authority, `http://127.0.0.1:<port>`. Not a secret.
@@ -58,6 +63,18 @@ pub struct ServeInfo {
     /// the containment guard allows. Never logged, never persisted, and dead the
     /// moment the process exits.
     pub token: String,
+}
+
+impl std::fmt::Debug for ServeInfo {
+    /// The origin prints; the token does not. Same rule as `SessionToken`, and
+    /// the origin is the half that is already logged at boot.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ServeInfo")
+            .field("origin", &self.origin)
+            .field("token", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Reports the loopback media server's origin and session token.
@@ -101,6 +118,26 @@ mod tests {
 
         assert_eq!(json["origin"], "http://127.0.0.1:52341");
         assert_eq!(json["token"], "abc123");
+    }
+
+    /// The credential must not survive a struct dump, which is the property
+    /// `SessionToken` exists to hold and this type could quietly have broken.
+    #[test]
+    fn the_token_never_prints_itself() {
+        let printed = format!(
+            "{:?}",
+            ServeInfo {
+                origin: "http://127.0.0.1:52341".to_owned(),
+                token: "s3cr3t-token-value".to_owned(),
+            }
+        );
+
+        assert!(!printed.contains("s3cr3t-token-value"));
+        assert!(printed.contains("<redacted>"));
+        assert!(
+            printed.contains("127.0.0.1:52341"),
+            "the origin is not a secret and is the half worth logging"
+        );
     }
 
     /// The two fields join with exactly one slash, and neither carries one of
