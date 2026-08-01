@@ -73,6 +73,8 @@ reqwest = { version = "0.13", default-features = false, features = [
 # range classification has nothing to classify. Phase 8 adds `fs` and `io-util`:
 # the audio route streams a file range off disk rather than buffering it, which
 # is the whole reason a 300 MB FLAC does not become 300 MB of resident memory.
+# Phase 11 adds `process`: yt-dlp, ffmpeg and `xattr` are child processes, and
+# `kill_on_drop(true)` — the R20 mitigation — is a `tokio::process` method.
 tokio = { version = "1", features = [
   "net",
   "rt",
@@ -80,6 +82,7 @@ tokio = { version = "1", features = [
   "time",
   "fs",
   "io-util",
+  "process",
 ] }
 url = "2.5"
 httpdate = "1"
@@ -244,6 +247,32 @@ fs4 = { version = "0.13", default-features = false }
 # B pin for exactly this and Phase 16 already needs it for the debug panel;
 # `system` is the only feature either use wants.
 sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+
+# Phase 11 (`shiranami-downloader`).
+#
+# `zip` is the one genuinely new dependency, and it pays for two things at once
+# (architecture §2.2 #19). On Windows it deletes v1's three-tier extraction
+# fallback — a worker thread trying adm-zip, then `tar`, then PowerShell — and on
+# macOS it deletes the `unzip` child process, so ffmpeg installation stops
+# shelling out to a tool that may not be on a Finder-launched PATH at all (R19).
+# `deflate` is the only compression method the evermeet and gyan.dev archives
+# use; the rest are decoders we would be exposing for no reason. Entry paths are
+# validated through `enclosed_name()`, which v1's PowerShell path could not do.
+zip = { version = "6", default-features = false, features = ["deflate"] }
+# `regex` is also used by the downloader's six ported patterns — the
+# version-segment scan, ffmpeg's version line, yt-dlp's `Destination:` and
+# `[download] N%` progress lines, the `__NEXT_DATA__` script tag, and the
+# Spotify title/artists fallback — via the featured pin above (metadata's
+# feature set covers them; the downloader's own tests prove it).
+# `normalizeForMatch` opens with `.normalize('NFKD')` before stripping combining
+# marks, which is what makes "Söng" and "song" compare equal in the Spotify
+# matcher. Without it the diacritic strip has nothing decomposed to strip.
+unicode-normalization = "0.1"
+# The process seam is an `Arc<dyn ProcessRunner>` so the queue's state machine
+# can be driven without a real yt-dlp. Native `async fn` in traits is not
+# dyn-compatible, and this is the standard way to get there without hand-writing
+# `Pin<Box<dyn Future>>` at every implementation site.
+async-trait = "0.1"
 
 tempfile = "3"
 

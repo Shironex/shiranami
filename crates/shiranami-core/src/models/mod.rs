@@ -27,6 +27,7 @@
 
 pub mod dependencies;
 pub mod download_queue;
+pub mod downloader;
 pub mod folder;
 pub mod history;
 pub mod lyrics;
@@ -43,6 +44,10 @@ pub mod weather;
 pub use dependencies::{InstallDependenciesResult, Tool, ToolInstallResult};
 pub use download_queue::{
     DownloadQueueItem, DownloadQueueSnapshot, DownloadQueueStatus, EnqueueDownloadInput,
+};
+pub use downloader::{
+    CachedToolStatus, DependencyCheck, DependencyInstallProgress, DownloadLocation,
+    DownloadProgress, DownloadProgressStatus, ToolStatus,
 };
 pub use folder::WatchedFolder;
 pub use history::{

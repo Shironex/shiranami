@@ -1131,3 +1131,35 @@ note Phase 4 left on `instant.rs` for the parse direction.
 without its crate enabling tokio's `macros` feature; it compiled only through unification with its
 own dev-dependency, so `cargo check -p shiranami-metadata` failed on its own and no crate
 depending on metadata could be built in isolation.
+
+## Phase 11 implementation amendments (2026-08-01, `v2-downloader`)
+
+**Structure.** `spawn` (argv + the `ProcessRunner` seam + classifier + version compare) · `bin` (layout, fetch, archive, install, the two managers, combined status) · `download` (one run: output parsing + the runner) · `queue` (pure state machine + async driver + persistence + throttle) · `extract` (detect, youtube, spotify + its fallbacks, matcher, service). `src/bin/` is a library module, so the package sets `autobins = false` rather than letting cargo infer binary targets from it.
+
+**The queue is split into a pure state machine and a driver.** v1 interleaved transitions with their consequences inside each method, so every test of a transition first needed a fake persistence, a fake broadcaster and a controllable runner. `queue::state` is synchronous, returns `Effect`s, and touches no I/O; `queue::manager` performs them. This is also what satisfies `await_holding_lock` by construction — the `std::sync::Mutex` is taken, effects are collected, the lock drops, then anything awaits.
+
+**Two v1 bugs fixed in port.** A download directory that failed to resolve threw synchronously out of `start()` and left the item wedged in `active` holding a concurrency slot nothing would ever free; it now settles as `error`. And `canceled` vs `error` was decided by asking the `AbortController` whether it had fired, with the rejected error's name as a "secondary guard" — two sources of truth, now one typed `DownloadFailure` variant.
+
+**One v1 bug preserved deliberately**, pinned by a test: a yt-dlp JSON entry with no `id` yields `https://www.youtube.com/watch?v=undefined`, because v1 interpolated `data.id` before applying its own default. The renderer has received that string for every id-less entry since the feature shipped.
+
+**`zip` replaces four extraction paths** (§2.2 #19 anticipated one). v1 had a Windows worker thread trying adm-zip → `tar` → PowerShell, plus a macOS `unzip` child. All four are gone, which also removes three processes that may be missing from a Finder-launched PATH (R19) and adds zip-slip refusal via `enclosed_name`, which the PowerShell and `tar` paths could not do at all.
+
+**Bounded output capture, asymmetrically.** v1 accumulated both child streams without limit. stdout keeps its _head_ (64 MiB) because `--dump-json` and `--get-url` read from the front; stderr keeps its _tail_ (1 MiB) because the classifier reads from the back. Truncation is recorded rather than hidden.
+
+**Child-process hardening beyond v1:** `kill_on_drop(true)` plus an explicit kill-and-reap on cancel or timeout (R20); `stdin` is `/dev/null`, closing nightcore's implicit stdin-EOF gap; both pipes drain concurrently, since draining stdout first deadlocks a child that fills the stderr buffer. `--version` deliberately carries **no** `--ignore-config`, matching v1's `execFile` argv exactly.
+
+**Platform is a value, not a `cfg`.** `bin::layout::Platform` is threaded as a parameter, so the Windows asset URL and file names are asserted on a macOS runner. v1 could only test this by reassigning `process.platform`, and two of its tests left the property non-configurable for whatever ran next. v1's dev-mode walk-up from `app.getAppPath()` to the workspace root is dropped — it derives a runtime path from the build tree, which §2.3 forbids; the bin directory is a parameter.
+
+**Progress events are de-duplicated, not throttled, on the install path.** v1 fired the callback per chunk (~19,000 calls to deliver 101 values for a 150 MB archive). Only changes are reported: same values, same order. The queue's own 250 ms trailing throttle and its immediate flush-and-cancel on structural change are unchanged (R24). v1's exact ffmpeg progress sequence (`23, 45, 46, 50, 73, 95, 96, 98, 100`) is pinned by test.
+
+**Quarantine stripping no longer shares one try/catch** across ffmpeg and ffprobe, where a failure on the first left the second unrunnable.
+
+**Wire types added to `shiranami-core::models`:** `ToolStatus`, `DownloadLocation`, `CachedToolStatus`, `DependencyCheck`, `DownloadProgress`, `DependencyInstallProgress`. They lived in `contracts/src/ipc/preload-api.ts`, which Phase 2 did not port — the same gap and the same resolution as Phase 7's history types. The `downloader.*` error codes were never in a registry at all (v1 built them at the `new IpcError(...)` site), so they are declared in `downloader::error::code` with a mirror test that re-reads v1's source.
+
+**SSRF guard placement mirrors v1 exactly.** Untrusted URLs are checked with `is_http_url` at the extraction boundary and again in `append_url_arg`, which also inserts `--`. The DNS-resolving guard stays where v1 had it (radio proxy, cover art) and is _not_ applied to binary downloads — those URLs are compile-time constants, and resolving them a second time would refuse a corporate mirror behind the system proxy that `shiranami-net` exists to keep working.
+
+**Appendix B additions:** `zip` (new), and direct pins for `regex`, `unicode-normalization` and `async-trait`, all three already resolved transitively. `tokio` gains `process` workspace-wide and `macros` for this crate only. `reqwest` is a direct dependency for header _vocabulary_ only — this crate constructs no client.
+
+**Real-yt-dlp tests are gated on the binary's presence** so CI stays hermetic, and carry a `SHIRANAMI_YTDLP_PATH` override so the skip is provably a skip: pointing it at `/bin/echo` fails two of the three (R17's lesson, applied to a skipping test).
+
+**Fixtures.** `spotify-embed-playlist.html` is copied into `crates/shiranami-downloader/fixtures/` so the suite survives Phase 20 deleting `apps/desktop`, with a test asserting byte-identity while both exist — the treatment `shiranami-db` gave `v1-schema.json`. Both paths are prettier-ignored.
