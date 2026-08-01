@@ -47,7 +47,10 @@ pub mod cors;
 pub mod error;
 pub mod media_types;
 pub mod range;
+pub mod state;
 pub mod token;
+pub mod upstream;
 
 pub use error::ServeError;
+pub use state::{ServeConfig, ServeState};
 pub use token::SessionToken;
