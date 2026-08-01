@@ -15,7 +15,7 @@ let pendingSleeps: Array<{ dueAt: number; resolve: () => void }> = [];
 
 const now = () => currentTime;
 const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
+  new Promise<void>(resolve => {
     pendingSleeps.push({ dueAt: currentTime + ms, resolve });
   });
 
@@ -33,9 +33,9 @@ async function advance(ms: number): Promise<void> {
   await flush();
   // Resolve any due sleeps, then flush again.
   while (true) {
-    const ready = pendingSleeps.filter((s) => s.dueAt <= currentTime);
+    const ready = pendingSleeps.filter(s => s.dueAt <= currentTime);
     if (ready.length === 0) break;
-    pendingSleeps = pendingSleeps.filter((s) => s.dueAt > currentTime);
+    pendingSleeps = pendingSleeps.filter(s => s.dueAt > currentTime);
     for (const s of ready) s.resolve();
     await flush();
   }
@@ -121,10 +121,10 @@ describe('MinIntervalGate', () => {
     const gate = new MinIntervalGate({ minIntervalMs: 500, now, sleep });
     const seen: number[] = [];
 
-    const promises = [1, 2, 3, 4, 5].map((n) =>
+    const promises = [1, 2, 3, 4, 5].map(n =>
       gate.run(async () => {
         seen.push(n);
-      }),
+      })
     );
 
     // First runs immediately at t=0.

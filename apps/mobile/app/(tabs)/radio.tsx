@@ -52,7 +52,7 @@ export default function RadioScreen() {
     db.getAllAsync<{ station_uuid: string }>('SELECT station_uuid FROM radio_favorites').then(
       rows => {
         setFavoriteIds(new Set(rows.map(r => r.station_uuid)));
-      },
+      }
     );
   }, []);
 
@@ -70,7 +70,7 @@ export default function RadioScreen() {
       };
       setQueue([track], 0);
     },
-    [setCurrentStation, setQueue],
+    [setCurrentStation, setQueue]
   );
 
   const handleToggleFavorite = useCallback(
@@ -85,17 +85,24 @@ export default function RadioScreen() {
            (id, station_uuid, name, url, url_resolved, homepage, favicon, country, country_code, language, codec, bitrate, tags)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
-            `rf-${station.id}`, station.id, station.name, station.url,
-            station.urlResolved || station.url, station.homepage || null,
-            station.favicon || null, station.country || null,
-            station.countryCode || null, station.language?.join(',') || null,
-            station.codec || null, station.bitrate || null,
+            `rf-${station.id}`,
+            station.id,
+            station.name,
+            station.url,
+            station.urlResolved || station.url,
+            station.homepage || null,
+            station.favicon || null,
+            station.country || null,
+            station.countryCode || null,
+            station.language?.join(',') || null,
+            station.codec || null,
+            station.bitrate || null,
             station.tags?.join(',') || null,
-          ],
+          ]
         );
       }
     },
-    [favoriteIds, toggleFavorite, db],
+    [favoriteIds, toggleFavorite, db]
   );
 
   const handleSearch = useCallback(() => {
@@ -141,7 +148,7 @@ export default function RadioScreen() {
         </Pressable>
       );
     },
-    [currentStation?.id, favoriteIds, playStation, handleToggleFavorite],
+    [currentStation?.id, favoriteIds, playStation, handleToggleFavorite]
   );
 
   return (
@@ -159,9 +166,7 @@ export default function RadioScreen() {
             }}
             style={[s.tab, activeTab === tab.key && s.tabActive]}
           >
-            <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>
-              {tab.label}
-            </Text>
+            <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>{tab.label}</Text>
           </Pressable>
         ))}
       </View>

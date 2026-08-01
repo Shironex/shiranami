@@ -32,7 +32,12 @@ function parseLrc(lrc: string): LyricLine[] {
   return lines.sort((a, b) => a.time - b.time);
 }
 
-async function fetchFromLrclib(title: string, artist: string, album?: string, duration?: number): Promise<LyricsResult> {
+async function fetchFromLrclib(
+  title: string,
+  artist: string,
+  album?: string,
+  duration?: number
+): Promise<LyricsResult> {
   const params = new URLSearchParams({
     track_name: title,
     artist_name: artist,
@@ -43,9 +48,14 @@ async function fetchFromLrclib(title: string, artist: string, album?: string, du
   const res = await fetch(`${LRCLIB_BASE}/get?${params}`);
   if (!res.ok) {
     // Try search fallback
-    const searchRes = await fetch(`${LRCLIB_BASE}/search?q=${encodeURIComponent(`${title} ${artist}`)}`);
+    const searchRes = await fetch(
+      `${LRCLIB_BASE}/search?q=${encodeURIComponent(`${title} ${artist}`)}`
+    );
     if (!searchRes.ok) return { synced: null, plain: null };
-    const results = await searchRes.json() as Array<{ syncedLyrics?: string; plainLyrics?: string }>;
+    const results = (await searchRes.json()) as Array<{
+      syncedLyrics?: string;
+      plainLyrics?: string;
+    }>;
     if (!results.length) return { synced: null, plain: null };
     const best = results[0];
     return {
@@ -54,7 +64,7 @@ async function fetchFromLrclib(title: string, artist: string, album?: string, du
     };
   }
 
-  const data = await res.json() as { syncedLyrics?: string; plainLyrics?: string };
+  const data = (await res.json()) as { syncedLyrics?: string; plainLyrics?: string };
   return {
     synced: data.syncedLyrics ? parseLrc(data.syncedLyrics) : null,
     plain: data.plainLyrics ?? null,
@@ -105,7 +115,7 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
       }
       return -1;
     },
-    [lyrics.synced],
+    [lyrics.synced]
   );
 
   return { lyrics, loading, getActiveLine };

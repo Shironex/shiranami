@@ -38,7 +38,7 @@ are used:
   (`OnboardingKanji`) is painted as `::before` generated content
   (`content: attr(data-kanji)`) and additionally `aria-hidden`, so the glyph
   never enters the accessibility tree at all. axe's color-contrast rule still
-  measures `aria-hidden` *text nodes*, so rendering the wash as CSS content
+  measures `aria-hidden` _text nodes_, so rendering the wash as CSS content
   (not a text node) is what stops it from flagging the intentional 5%-alpha
   wash as a contrast failure.
 

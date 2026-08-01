@@ -36,8 +36,12 @@ function MiniPlayerInner() {
 
           {/* Track info */}
           <View style={s.info}>
-            <Text style={s.title} numberOfLines={1}>{currentTrack.title}</Text>
-            <Text style={s.artist} numberOfLines={1}>{currentTrack.artist}</Text>
+            <Text style={s.title} numberOfLines={1}>
+              {currentTrack.title}
+            </Text>
+            <Text style={s.artist} numberOfLines={1}>
+              {currentTrack.artist}
+            </Text>
           </View>
 
           {/* Controls */}

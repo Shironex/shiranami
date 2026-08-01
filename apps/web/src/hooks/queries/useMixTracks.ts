@@ -16,13 +16,13 @@ export function useMixTracks(mixId: MixId | null): Track[] {
     switch (mixId) {
       case 'most-played':
         return [...library]
-          .filter((t) => (t.playCount ?? 0) > 0)
+          .filter(t => (t.playCount ?? 0) > 0)
           .sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))
           .slice(0, MIX_LIMIT);
 
       case 'recently-added':
         return [...library]
-          .filter((t) => t.createdAt)
+          .filter(t => t.createdAt)
           .sort((a, b) => {
             const da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -40,17 +40,15 @@ export function useMixTracks(mixId: MixId | null): Track[] {
             trackIds.push(entry.trackId);
           }
         }
-        const libraryMap = new Map(library.map((t) => [t.id, t]));
+        const libraryMap = new Map(library.map(t => [t.id, t]));
         return trackIds
-          .map((id) => libraryMap.get(id))
+          .map(id => libraryMap.get(id))
           .filter((t): t is Track => t != null)
           .slice(0, MIX_LIMIT);
       }
 
       case 'never-played':
-        return library
-          .filter((t) => !t.playCount || t.playCount === 0)
-          .slice(0, MIX_LIMIT);
+        return library.filter(t => !t.playCount || t.playCount === 0).slice(0, MIX_LIMIT);
 
       default:
         return [];

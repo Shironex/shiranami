@@ -87,24 +87,24 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
   const counts = useMemo(
     () => ({
       all: releases.length,
-      feature: releases.filter((r) => r.kind === 'feature').length,
-      fix: releases.filter((r) => r.kind === 'fix').length,
-      perf: releases.filter((r) => r.kind === 'perf').length,
-      polish: releases.filter((r) => r.kind === 'polish').length,
+      feature: releases.filter(r => r.kind === 'feature').length,
+      fix: releases.filter(r => r.kind === 'fix').length,
+      perf: releases.filter(r => r.kind === 'perf').length,
+      polish: releases.filter(r => r.kind === 'polish').length,
     }),
     [releases]
   );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return releases.filter((release) => {
+    return releases.filter(release => {
       if (filter !== 'all' && release.kind !== filter) return false;
       if (!q) return true;
       const hay = [
         release.title,
         release.description,
         release.version,
-        ...release.categories.flatMap((c) => [c.label, ...c.entries]),
+        ...release.categories.flatMap(c => [c.label, ...c.entries]),
       ]
         .join(' ')
         .toLowerCase();
@@ -126,7 +126,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
     <>
       <div className="filters page">
         <div className="filter-group">
-          {chips.map((chip) => (
+          {chips.map(chip => (
             <button
               key={chip.k}
               type="button"
@@ -140,7 +140,13 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
         </div>
         <div className="filter-spacer" />
         <div className="search-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <circle cx="11" cy="11" r="7" />
             <path d="m20 20-3.5-3.5" strokeLinecap="round" />
           </svg>
@@ -148,7 +154,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
             type="search"
             placeholder={copy.searchPlaceholder}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             aria-label={copy.searchPlaceholder}
           />
         </div>
@@ -175,7 +181,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
             </span>
           </div>
         ) : (
-          filtered.map((release) => {
+          filtered.map(release => {
             const isLatest = release === latest;
             const releaseIndex = releases.indexOf(release);
             return (
@@ -271,7 +277,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
         <div className="jump-bar">
           <h5>{copy.jumpTitle}</h5>
           <div className="jump-list">
-            {releases.map((release) => (
+            {releases.map(release => (
               <a key={release.version} href={`#v${release.version}`}>
                 <span className="jv">v{release.version}</span>
                 <span className="jt">{release.title}</span>

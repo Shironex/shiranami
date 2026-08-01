@@ -32,15 +32,11 @@ describe('share payload schemas', () => {
 
   describe('shareCacheYoutubeIdArgs', () => {
     it('accepts (uuid, youtubeId)', () => {
-      expect(
-        shareCacheYoutubeIdArgs.safeParse([UUID, 'dQw4w9WgXcQ']).success,
-      ).toBe(true);
+      expect(shareCacheYoutubeIdArgs.safeParse([UUID, 'dQw4w9WgXcQ']).success).toBe(true);
     });
 
     it('rejects non-uuid track id', () => {
-      expect(
-        shareCacheYoutubeIdArgs.safeParse(['bad', 'dQw4w9WgXcQ']).success,
-      ).toBe(false);
+      expect(shareCacheYoutubeIdArgs.safeParse(['bad', 'dQw4w9WgXcQ']).success).toBe(false);
     });
 
     it('rejects empty youtubeId', () => {

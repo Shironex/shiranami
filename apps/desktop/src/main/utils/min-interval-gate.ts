@@ -31,7 +31,7 @@ export class MinIntervalGate {
     // duration to the monotonic clock — durations are clock-agnostic, so
     // correctness holds either way.
     this.now = options.now ?? (() => performance.now());
-    this.sleep = options.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.sleep = options.sleep ?? (ms => new Promise(r => setTimeout(r, ms)));
   }
 
   run<T>(fn: () => Promise<T>): Promise<T> {
@@ -44,16 +44,13 @@ export class MinIntervalGate {
         // Use max() so a bumpBy() called during `fn` (e.g. from a 429
         // handler inside the wrapped op) isn't clobbered by the baseline
         // interval.
-        this.nextAllowedAt = Math.max(
-          this.nextAllowedAt,
-          this.now() + this.minIntervalMs,
-        );
+        this.nextAllowedAt = Math.max(this.nextAllowedAt, this.now() + this.minIntervalMs);
       }
     });
     // Keep the tail chain alive even if the slot rejects.
     this.tail = runSlot.then(
       () => undefined,
-      () => undefined,
+      () => undefined
     );
     return runSlot;
   }

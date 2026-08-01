@@ -18,7 +18,7 @@ export const playlistTracks = sqliteTable(
       .references(() => tracks.id, { onDelete: 'cascade' }),
     position: integer('position').notNull(),
   },
-  (table) => [unique().on(table.playlistId, table.trackId)],
+  table => [unique().on(table.playlistId, table.trackId)]
 );
 
 export type PlaylistTrack = typeof playlistTracks.$inferSelect;

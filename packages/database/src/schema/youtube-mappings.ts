@@ -8,7 +8,10 @@ import { tracks } from './tracks.js';
 
 export const youtubeMappings = sqliteTable('youtube_mappings', {
   id: text('id').primaryKey(),
-  trackId: text('track_id').notNull().references(() => tracks.id, { onDelete: 'cascade' }).unique(),
+  trackId: text('track_id')
+    .notNull()
+    .references(() => tracks.id, { onDelete: 'cascade' })
+    .unique(),
   youtubeId: text('youtube_id').notNull(),
   searchedAt: text('searched_at')
     .notNull()

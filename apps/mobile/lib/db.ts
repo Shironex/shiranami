@@ -99,11 +99,11 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     `CREATE TABLE IF NOT EXISTS _migrations (
       version INTEGER PRIMARY KEY,
       applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`,
+    )`
   );
 
   const applied = await db.getAllAsync<{ version: number }>(
-    'SELECT version FROM _migrations ORDER BY version',
+    'SELECT version FROM _migrations ORDER BY version'
   );
   const appliedSet = new Set(applied.map(r => r.version));
 
