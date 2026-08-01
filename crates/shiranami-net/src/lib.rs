@@ -17,9 +17,11 @@
 #![warn(missing_docs)]
 
 pub mod error;
+pub mod gate;
 pub mod retry_after;
 pub mod url_safety;
 
 pub use error::{HttpError, Result};
+pub use gate::{HOST_GATES, HostGates, MinIntervalGate};
 pub use retry_after::{DEFAULT_429_BACKOFF, RETRY_AFTER_MAX, parse_retry_after};
 pub use url_safety::{Resolver, UrlGuard, UrlGuardReason, is_http_url, parse_stream_url};
