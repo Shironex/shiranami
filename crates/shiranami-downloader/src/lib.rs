@@ -39,6 +39,7 @@
 // `shiranami-core` and `shiranami-net` do.
 #![warn(missing_docs)]
 
+pub mod bin;
 pub mod error;
 pub mod spawn;
 

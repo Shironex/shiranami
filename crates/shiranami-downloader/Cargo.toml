@@ -20,6 +20,11 @@ shiranami-db.workspace = true
 
 async-trait = { workspace = true }
 regex = { workspace = true }
+# Header vocabulary only — `HeaderName`, `HeaderValue`, and the well-known
+# constants. This crate constructs no `reqwest::Client`; that invariant belongs
+# to `shiranami-net` and is untouched. `shiranami-serve` reaches the same types
+# through axum's re-export, which this crate has no reason to depend on.
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
