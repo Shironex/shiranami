@@ -61,6 +61,7 @@ macro_rules! namespaces {
         $crate::commands::registry::gather! {
             queue = [
                 // ══════════════ THE SHARED LINE LIST ══════════════
+                db_tracks,
                 health,
                 store,
                 // ═════════════════════════════════════════════════

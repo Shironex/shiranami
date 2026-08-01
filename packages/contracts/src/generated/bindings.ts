@@ -11,6 +11,182 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  `db:tracks:get-all` — the whole library, newest first. */
+	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
+	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
+	dbTracksAdd: (track: TrackCreateInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4, generated at insert). */
+	id: string,
+	/**  Absolute path to the audio file on disk. */
+	filePath: string,
+	/**  Display title. Falls back to the file stem when the tag is missing. */
+	title: string,
+	/**  Track artist; `None` when untagged. */
+	artist: string | null,
+	/**  Album artist, used to group albums. Never falls back to `artist` here. */
+	albumArtist: string | null,
+	/**  Album name; `None` when untagged. */
+	album: string | null,
+	/**  Duration in seconds. */
+	duration: number | null,
+	/**  Genre tag. */
+	genre: string | null,
+	/**  Release year. */
+	year: number | null,
+	/**  Position within the album. */
+	trackNumber: number | null,
+	/**  Disc number for multi-disc releases. */
+	discNumber: number | null,
+	/**  Cached cover URL, keyed by the content hash stored at scan time. */
+	albumArt: string | null,
+	/**  Integrated loudness (LUFS); `None` = unanalysed. */
+	loudnessLufs: number | null,
+	/**  Favourite flag; nullable in SQLite, so nullable here. */
+	isFavorite: boolean | null,
+	/**  Lifetime play count. */
+	playCount: number | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_tracks_add", { track }),
+	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
+	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
+	/**  `db:tracks:remove` — delete one track. */
+	dbTracksRemove: (id: string) => __TAURI_INVOKE<null>("db_tracks_remove", { id }),
+	/**
+	 *  `db:tracks:remove-many` — delete a batch.
+	 * 
+	 *  The orphaned-art sweep v1 fired afterwards is deferred; see the module docs.
+	 */
+	dbTracksRemoveMany: (ids: string[]) => __TAURI_INVOKE<null>("db_tracks_remove_many", { ids }),
+	/**  `db:tracks:update` — patch one track. */
+	dbTracksUpdate: (id: string, data: TrackUpdateInput_Deserialize) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4, generated at insert). */
+	id: string,
+	/**  Absolute path to the audio file on disk. */
+	filePath: string,
+	/**  Display title. Falls back to the file stem when the tag is missing. */
+	title: string,
+	/**  Track artist; `None` when untagged. */
+	artist: string | null,
+	/**  Album artist, used to group albums. Never falls back to `artist` here. */
+	albumArtist: string | null,
+	/**  Album name; `None` when untagged. */
+	album: string | null,
+	/**  Duration in seconds. */
+	duration: number | null,
+	/**  Genre tag. */
+	genre: string | null,
+	/**  Release year. */
+	year: number | null,
+	/**  Position within the album. */
+	trackNumber: number | null,
+	/**  Disc number for multi-disc releases. */
+	discNumber: number | null,
+	/**  Cached cover URL, keyed by the content hash stored at scan time. */
+	albumArt: string | null,
+	/**  Integrated loudness (LUFS); `None` = unanalysed. */
+	loudnessLufs: number | null,
+	/**  Favourite flag; nullable in SQLite, so nullable here. */
+	isFavorite: boolean | null,
+	/**  Lifetime play count. */
+	playCount: number | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_tracks_update", { id, data }),
+	/**
+	 *  `db:tracks:update-many` — patch a batch.
+	 * 
+	 *  Returns nothing, as v1 did: its sole consumer (the metadata-enrich apply
+	 *  step) re-reads the library through `get-all` afterwards, so the repository
+	 *  issues no `RETURNING` and coalesces equal patches into one statement each.
+	 */
+	dbTracksUpdateMany: (updates: TrackUpdateEntry_Deserialize[]) => __TAURI_INVOKE<null>("db_tracks_update_many", { updates }),
+	/**  `db:tracks:toggle-favorite` — flip the flag, SQL-side. */
+	dbTracksToggleFavorite: (id: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4, generated at insert). */
+	id: string,
+	/**  Absolute path to the audio file on disk. */
+	filePath: string,
+	/**  Display title. Falls back to the file stem when the tag is missing. */
+	title: string,
+	/**  Track artist; `None` when untagged. */
+	artist: string | null,
+	/**  Album artist, used to group albums. Never falls back to `artist` here. */
+	albumArtist: string | null,
+	/**  Album name; `None` when untagged. */
+	album: string | null,
+	/**  Duration in seconds. */
+	duration: number | null,
+	/**  Genre tag. */
+	genre: string | null,
+	/**  Release year. */
+	year: number | null,
+	/**  Position within the album. */
+	trackNumber: number | null,
+	/**  Disc number for multi-disc releases. */
+	discNumber: number | null,
+	/**  Cached cover URL, keyed by the content hash stored at scan time. */
+	albumArt: string | null,
+	/**  Integrated loudness (LUFS); `None` = unanalysed. */
+	loudnessLufs: number | null,
+	/**  Favourite flag; nullable in SQLite, so nullable here. */
+	isFavorite: boolean | null,
+	/**  Lifetime play count. */
+	playCount: number | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_tracks_toggle_favorite", { id }),
+	/**  `db:tracks:get-favorites` — the favourites, in library order. */
+	dbTracksGetFavorites: () => __TAURI_INVOKE<Track[]>("db_tracks_get_favorites"),
+	/**  `db:tracks:increment-play-count` — bump the counter, SQL-side. */
+	dbTracksIncrementPlayCount: (id: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4, generated at insert). */
+	id: string,
+	/**  Absolute path to the audio file on disk. */
+	filePath: string,
+	/**  Display title. Falls back to the file stem when the tag is missing. */
+	title: string,
+	/**  Track artist; `None` when untagged. */
+	artist: string | null,
+	/**  Album artist, used to group albums. Never falls back to `artist` here. */
+	albumArtist: string | null,
+	/**  Album name; `None` when untagged. */
+	album: string | null,
+	/**  Duration in seconds. */
+	duration: number | null,
+	/**  Genre tag. */
+	genre: string | null,
+	/**  Release year. */
+	year: number | null,
+	/**  Position within the album. */
+	trackNumber: number | null,
+	/**  Disc number for multi-disc releases. */
+	discNumber: number | null,
+	/**  Cached cover URL, keyed by the content hash stored at scan time. */
+	albumArt: string | null,
+	/**  Integrated loudness (LUFS); `None` = unanalysed. */
+	loudnessLufs: number | null,
+	/**  Favourite flag; nullable in SQLite, so nullable here. */
+	isFavorite: boolean | null,
+	/**  Lifetime play count. */
+	playCount: number | null,
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_tracks_increment_play_count", { id }),
+	/**  `db:tracks:exists` — whether this path is already in the library. */
+	dbTracksExists: (filePath: string) => __TAURI_INVOKE<boolean>("db_tracks_exists", { filePath }),
+	/**  `db:tracks:exists-many` — which of these paths are already in the library. */
+	dbTracksExistsMany: (filePaths: string[]) => __TAURI_INVOKE<string[]>("db_tracks_exists_many", { filePaths }),
+	/**  `db:tracks:get-id-by-path` — the id of the track holding this file. */
+	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
 	/**
@@ -1473,6 +1649,49 @@ export type TrackMetadata = {
 	discNumber: number | null,
 	/**  Cover URL, or `None` when the file carries no embedded cover. */
 	albumArt: string | null,
+};
+
+/**
+ *  One `(id, patch)` pair for `db:tracks:update-many`.
+ * 
+ *  v1's argument was `z.array(z.object({ id: uuid, data: updateTrackSchema }))`,
+ *  so the field is `data` and not `patch` — the renderer builds these objects
+ *  and a rename here is a silently ignored update there.
+ */
+export type TrackUpdateEntry = TrackUpdateEntry_Serialize | TrackUpdateEntry_Deserialize;
+
+/**
+ *  One `(id, patch)` pair for `db:tracks:update-many`.
+ * 
+ *  v1's argument was `z.array(z.object({ id: uuid, data: updateTrackSchema }))`,
+ *  so the field is `data` and not `patch` — the renderer builds these objects
+ *  and a rename here is a silently ignored update there.
+ */
+export type TrackUpdateEntry_Deserialize = {
+	/**  The track to update. */
+	id: string,
+	/**
+	 *  The patch. An absent field leaves its column alone; an explicit `null`
+	 *  clears it.
+	 */
+	data: TrackUpdateInput_Deserialize,
+};
+
+/**
+ *  One `(id, patch)` pair for `db:tracks:update-many`.
+ * 
+ *  v1's argument was `z.array(z.object({ id: uuid, data: updateTrackSchema }))`,
+ *  so the field is `data` and not `patch` — the renderer builds these objects
+ *  and a rename here is a silently ignored update there.
+ */
+export type TrackUpdateEntry_Serialize = {
+	/**  The track to update. */
+	id: string,
+	/**
+	 *  The patch. An absent field leaves its column alone; an explicit `null`
+	 *  clears it.
+	 */
+	data: TrackUpdateInput_Serialize,
 };
 
 /**
