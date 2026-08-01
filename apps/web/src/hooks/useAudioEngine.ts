@@ -20,6 +20,7 @@ import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { toStreamUrl } from '@/lib/bridge/stream-urls';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
@@ -29,10 +30,17 @@ const MAX_SESSION_DELTA_SECONDS = 1;
 
 type Deck = 'A' | 'B';
 
+/**
+ * The URL a deck loads for a track.
+ *
+ * §2.4 replaced v1's `shiranami-audio://` and `shiranami-radio://` schemes with
+ * the loopback server, whose origin carries an ephemeral port and a per-session
+ * token and therefore cannot be a literal. The construction moved to the bridge,
+ * which is the one place that knows them; this stays the single call site it is
+ * reached from, exactly as §2.4's renderer row scopes it.
+ */
 function getTrackSrc(track: Track): string {
-  if (track.filePath.startsWith('shiranami-radio://')) return track.filePath;
-  const normalized = track.filePath.replace(/\\/g, '/');
-  return `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+  return toStreamUrl(track.filePath);
 }
 
 /**
@@ -489,8 +497,9 @@ export function useAudioEngine() {
       deckARef.current.preload = 'auto';
       // Required so MediaElementAudioSourceNode receives actual samples;
       // without it Web Audio outputs silent zeroes for cross-origin sources.
-      // shiranami-audio:// is registered with corsEnabled, so the protocol
-      // handler serves with permissive CORS headers.
+      // The loopback server answers every media route with
+      // `Access-Control-Allow-Origin: *` (§2.4, Spike A) precisely so this
+      // holds — a missing header here is a silent player, not an error.
       deckARef.current.crossOrigin = 'anonymous';
     }
     if (!deckBRef.current) {

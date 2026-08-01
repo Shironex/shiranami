@@ -68,8 +68,8 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
     const img = new Image();
     // Required for getImageData / FastAverageColor: without crossOrigin the
     // canvas the image is drawn onto is tainted and pixel reads SecurityError.
-    // shiranami-art:// is registered with corsEnabled, so the protocol handler
-    // serves the cover with permissive CORS headers and the load succeeds.
+    // The loopback art route answers with `Access-Control-Allow-Origin: *`
+    // (§2.4), so the cover loads and the canvas stays readable.
     img.crossOrigin = 'anonymous';
     img.src = albumArt;
 
