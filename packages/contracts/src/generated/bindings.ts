@@ -49,6 +49,75 @@ export const commands = {
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 } | null>("db_folders_update_scanned", { id }),
+	/**  `db:smart-playlists:get-all` — every smart playlist, newest first. */
+	dbSmartPlaylistsGetAll: () => __TAURI_INVOKE<SmartPlaylist[]>("db_smart_playlists_get_all"),
+	/**  `db:smart-playlists:get` — one smart playlist by id. */
+	dbSmartPlaylistsGet: (id: string) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description; nullable in SQLite, and nullable on the wire. */
+	description: string | null,
+	/**  How the rules combine. */
+	matchType: SmartPlaylistMatchType,
+	/**  The rules themselves. */
+	rules: SmartPlaylistRule[],
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_smart_playlists_get", { id }),
+	/**  `db:smart-playlists:create` — persist a rule definition. */
+	dbSmartPlaylistsCreate: (data: SmartPlaylistCreateInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description; nullable in SQLite, and nullable on the wire. */
+	description: string | null,
+	/**  How the rules combine. */
+	matchType: SmartPlaylistMatchType,
+	/**  The rules themselves. */
+	rules: SmartPlaylistRule[],
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_smart_playlists_create", { data }),
+	/**  `db:smart-playlists:update` — patch one, returning the row. */
+	dbSmartPlaylistsUpdate: (id: string, data: SmartPlaylistUpdateInput) => __TAURI_INVOKE<{
+	/**  Primary key (UUID v4). */
+	id: string,
+	/**  Display name. */
+	name: string,
+	/**  Free-text description; nullable in SQLite, and nullable on the wire. */
+	description: string | null,
+	/**  How the rules combine. */
+	matchType: SmartPlaylistMatchType,
+	/**  The rules themselves. */
+	rules: SmartPlaylistRule[],
+	/**  ISO-8601 creation timestamp. */
+	createdAt: string,
+	/**  ISO-8601 last-update timestamp. */
+	updatedAt: string,
+} | null>("db_smart_playlists_update", { id, data }),
+	/**  `db:smart-playlists:delete` — remove one. Nothing cascades; it owns no rows. */
+	dbSmartPlaylistsDelete: (id: string) => __TAURI_INVOKE<null>("db_smart_playlists_delete", { id }),
+	/**
+	 *  `db:smart-playlists:get-tracks` — evaluate a saved playlist's rules.
+	 * 
+	 *  An unknown id reads as an empty list rather than an error, as in v1: a
+	 *  playlist deleted in another window should read as empty, not as a failure.
+	 */
+	dbSmartPlaylistsGetTracks: (id: string) => __TAURI_INVOKE<Track[]>("db_smart_playlists_get_tracks", { id }),
+	/**
+	 *  `db:smart-playlists:preview` — evaluate an unsaved definition.
+	 * 
+	 *  The live rule-editor preview, so it runs on every keystroke in the editor and
+	 *  persists nothing.
+	 */
+	dbSmartPlaylistsPreview: (definition: SmartPlaylistDefinition) => __TAURI_INVOKE<Track[]>("db_smart_playlists_preview", { definition }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
 	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
@@ -1452,6 +1521,23 @@ export type SmartPlaylist = {
 	updatedAt: string,
 };
 
+/**
+ *  The payload `db:smart-playlists:create` takes.
+ * 
+ *  v1's `smartPlaylistCreateInput`, field for field. `description` is optional
+ *  rather than nullable because the zod schema was `z.string().optional()`.
+ */
+export type SmartPlaylistCreateInput = {
+	/**  Display name. Non-empty. */
+	name: string,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  How the rules combine. */
+	matchType: SmartPlaylistMatchType,
+	/**  The rules themselves. */
+	rules: SmartPlaylistRule[],
+};
+
 /**  The persisted rule definition, stored JSON-serialized in the `rules` column. */
 export type SmartPlaylistDefinition = {
 	/**  How the rules combine. */
@@ -1530,6 +1616,18 @@ export type SmartPlaylistRule = {
 	value: string,
 	/**  Upper bound, for [`SmartPlaylistOperator::Between`] only. */
 	valueTo?: string | null,
+};
+
+/**  The patch `db:smart-playlists:update` takes. Absent fields are left alone. */
+export type SmartPlaylistUpdateInput = {
+	/**  Display name. Non-empty when present. */
+	name?: string | null,
+	/**  Free-text description. */
+	description?: string | null,
+	/**  How the rules combine. */
+	matchType?: SmartPlaylistMatchType | null,
+	/**  The rules, replacing the stored set wholesale. */
+	rules?: SmartPlaylistRule[] | null,
 };
 
 /**

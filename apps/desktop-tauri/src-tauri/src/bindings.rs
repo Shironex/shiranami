@@ -206,6 +206,13 @@ mod tests {
             "dbFoldersAdd",
             "dbFoldersRemove",
             "dbFoldersUpdateScanned",
+            "dbSmartPlaylistsGetAll",
+            "dbSmartPlaylistsGet",
+            "dbSmartPlaylistsCreate",
+            "dbSmartPlaylistsUpdate",
+            "dbSmartPlaylistsDelete",
+            "dbSmartPlaylistsGetTracks",
+            "dbSmartPlaylistsPreview",
         ];
 
         for command in PORTED_NAMES {
