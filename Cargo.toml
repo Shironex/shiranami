@@ -144,6 +144,22 @@ fast_image_resize = { version = "6.1", features = ["image"] }
 futures = { version = "0.3", default-features = false, features = ["std"] }
 tokio-util = { version = "0.7", default-features = false }
 
+# The search-title cleaner is nine regexes ported verbatim from
+# `metadata-lookup.ts`, one of which is a long alternation over YouTube-title
+# noise. Hand-rolling that alternation would be a rewrite of the thing this
+# phase is supposed to port faithfully, so the dependency buys fidelity.
+# `unicode-perl` is on because `\s` must match what JavaScript's `\s` matches,
+# which includes NBSP and the Unicode line separators — YouTube titles carry
+# them. `\d` and `\b` are pinned back to ASCII at their use sites, since
+# JavaScript's are ASCII-only and a Unicode `\b` would split CJK titles
+# differently.
+regex = { version = "1.11", default-features = false, features = [
+  "std",
+  "perf",
+  "unicode-case",
+  "unicode-perl",
+] }
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
