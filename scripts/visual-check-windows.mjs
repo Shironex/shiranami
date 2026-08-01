@@ -209,11 +209,14 @@ try {
     }
   }
 
-  for (const error of pageErrors) {
-    failures.push(`uncaught page error: ${error}`);
+  // Both arrays hold strings already rendered at capture time — the page-error
+  // handler keeps the full stack, which is richer than the `.message` the
+  // no-error-stringify rule steers toward. Named for what they hold, not `error`.
+  for (const stack of pageErrors) {
+    failures.push(`uncaught page error: ${stack}`);
   }
-  for (const error of consoleErrors) {
-    failures.push(`console error: ${error}`);
+  for (const text of consoleErrors) {
+    failures.push(`console error: ${text}`);
   }
 } finally {
   // Disconnect only — closing the pages would take the app down mid-teardown.
