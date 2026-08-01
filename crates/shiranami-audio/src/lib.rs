@@ -12,3 +12,25 @@
 //!
 //! Ported in Phase 5; LUFS must land within ±0.1 LU of the C++ addon on the
 //! fixture set. See `docs/v2/architecture.md` §2.9.
+//!
+//! # Shape
+//!
+//! One decoder, several consumers. [`decode::decode_file`] pushes interleaved
+//! `f32` frames at a [`sink::PcmSink`]; the analysers are sinks. Nothing here
+//! spawns a thread or touches an async runtime: every entry point is a
+//! synchronous, CPU-bound function over one file, and the caller decides how
+//! many run at once. Architecture §2.1 puts `rayon` in `shiranami-library`'s
+//! folder scan, not at this layer — the unit of parallelism for analysis is a
+//! track, and this crate never sees more than one.
+
+// Every item here is either renderer-visible contract or a ported guard, and an
+// undocumented one is a contract nobody can read.
+#![warn(missing_docs)]
+
+pub mod decode;
+pub mod error;
+pub mod sink;
+
+pub use decode::{DecodeSummary, decode_file};
+pub use error::{AudioError, Result};
+pub use sink::{PcmSink, PcmSpec};
