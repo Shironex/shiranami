@@ -26,3 +26,8 @@ apps/landing/.astro/
 apps/mobile/.expo/
 apps/mobile/expo-env.d.ts
 apps/server/src/generated/
+
+# Written by v1's own writeCachedPeaks (JSON.stringify, no trailing newline).
+# The peaks-cache compatibility test asserts the v2 writer reproduces these
+# bytes exactly, so reformatting them would assert the formatter instead.
+crates/shiranami-audio/tests/fixtures/v1-peaks-cache/
