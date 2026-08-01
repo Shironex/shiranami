@@ -11,6 +11,53 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**
+	 *  `db:history:record-play` — record a finished play and bump the play count.
+	 * 
+	 *  Returns the inserted `play_history` row, as v1 did. The scrobble it fires
+	 *  afterwards is deliberately invisible in the return value: it is
+	 *  best-effort, it retries out of a persisted queue, and the renderer has never
+	 *  waited on it.
+	 */
+	dbHistoryRecordPlay: (data: RecordPlayInput) => __TAURI_INVOKE<PlayHistoryRecord>("db_history_record_play", { data }),
+	/**  `db:history:get-recent` — the most recent plays, newest first. */
+	dbHistoryGetRecent: (options: {
+	/**
+	 *  Page size. Clamped to `1..=100` by the repository, defaulting to 30.
+	 * 
+	 *  Signed, and exported as a plain `number` rather than left as an `i64`
+	 *  that specta would refuse. `u32` would be the tidier type and is wrong:
+	 *  v1's clamp was `Math.max(1, …)`, so a renderer sending `0` or a negative
+	 *  page size got `1` back, where an unsigned field would reject the call
+	 *  outright. The clamp lives in the repository; this only has to be able to
+	 *  carry what the clamp was written to absorb.
+	 */
+	limit?: number,
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningHistoryEntry[]>("db_history_get_recent", { options }),
+	/**  `db:history:get-summary` — totals and the top-five leaderboards. */
+	dbHistoryGetSummary: (options: {
+	/**  Inclusive ISO-8601 lower bound. */
+	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. */
+	until?: string | null,
+} | null) => __TAURI_INVOKE<ListeningStatsSummary>("db_history_get_summary", { options }),
+	/**  `db:history:get-activity` — plays and minutes per calendar day. */
+	dbHistoryGetActivity: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningActivityPoint[]>("db_history_get_activity", { options }),
+	/**  `db:history:get-hourly-activity` — plays bucketed by local weekday and hour. */
+	dbHistoryGetHourlyActivity: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<ListeningHourlyActivityPoint[]>("db_history_get_hourly_activity", { options }),
+	/**  `db:history:get-weekly-insights` — session count and the top-five albums. */
+	dbHistoryGetWeeklyInsights: (options: {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+} | null) => __TAURI_INVOKE<WeeklyInsights>("db_history_get_weekly_insights", { options }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
 	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
@@ -1193,6 +1240,31 @@ export type RadioStationInput = {
 	tags?: string | null,
 };
 
+/**
+ *  The optional `{ limit, since }` argument of `db:history:get-recent`.
+ * 
+ *  v1's `z.object({ limit: z.number().int().optional(), since:
+ *  z.string().nullable().optional() }).optional()`. Both fields accept absent
+ *  *and* explicit `null`, which is why they are `Option` with a serde default:
+ *  the renderer builds this object conditionally and sends `{ since: null }`
+ *  for "all time".
+ */
+export type RecentQuery = {
+	/**
+	 *  Page size. Clamped to `1..=100` by the repository, defaulting to 30.
+	 * 
+	 *  Signed, and exported as a plain `number` rather than left as an `i64`
+	 *  that specta would refuse. `u32` would be the tidier type and is wrong:
+	 *  v1's clamp was `Math.max(1, …)`, so a renderer sending `0` or a negative
+	 *  page size got `1` back, where an unsigned field would reject the call
+	 *  outright. The clamp lives in the repository; this only has to be able to
+	 *  carry what the clamp was written to absorb.
+	 */
+	limit?: number,
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+};
+
 /**  Shelf identifiers: one cache row and one renderer section per kind. */
 export type RecommendationKind = 
 /**  "Recommended from your library" — existing local tracks. */
@@ -1352,6 +1424,12 @@ export type SimilarTrackResult = {
 	similarity: number,
 };
 
+/**  The optional `{ since }` argument the three activity channels share. */
+export type SinceQuery = {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+};
+
 /**  Which flavour of mix was generated. */
 export type SmartMixKind = 
 /**  Low-energy instrumental focus mix. */
@@ -1492,6 +1570,21 @@ export type SmartPlaylistRule = {
 	value: string,
 	/**  Upper bound, for [`SmartPlaylistOperator::Between`] only. */
 	valueTo?: string | null,
+};
+
+/**
+ *  The optional `{ since, until }` argument of `db:history:get-summary`.
+ * 
+ *  The only history channel with an upper bound, and it is **exclusive** — that
+ *  is what lets the renderer ask for "the seven days before the current seven"
+ *  to compute a week-over-week trend without the two windows sharing a boundary
+ *  play.
+ */
+export type SummaryQuery = {
+	/**  Inclusive ISO-8601 lower bound. */
+	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. */
+	until?: string | null,
 };
 
 /**

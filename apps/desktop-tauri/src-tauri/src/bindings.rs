@@ -202,6 +202,10 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "dbHistoryRecordPlay",
+            "dbHistoryGetRecent",
+            "dbHistoryGetHourlyActivity",
+            "dbHistoryGetWeeklyInsights",
         ];
 
         for command in PORTED_NAMES {
