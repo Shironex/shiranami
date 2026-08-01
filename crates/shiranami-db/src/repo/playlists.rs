@@ -181,6 +181,17 @@ fn playlist(row: &SqliteRow) -> Result<Playlist> {
     read(row).map_err(failed("read a playlist row"))
 }
 
+/// Every non-null `cover_art` value, for the album-art orphan prune.
+///
+/// The sibling of `tracks::album_art_urls`; see it for why the values are raw
+/// and why the read is `DISTINCT`.
+pub async fn cover_art_urls(conn: &mut SqliteConnection) -> Result<Vec<String>> {
+    sqlx::query_scalar("SELECT DISTINCT cover_art FROM playlists WHERE cover_art IS NOT NULL")
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(failed("read the referenced playlist covers"))
+}
+
 /// The column-by-column mapping, kept separate so the error is named once.
 fn read(row: &SqliteRow) -> sqlx::Result<Playlist> {
     Ok(Playlist {

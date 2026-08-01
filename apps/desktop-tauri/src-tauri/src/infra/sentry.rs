@@ -145,38 +145,25 @@ pub fn init(settings: &SettingsStore) -> Option<SentryGuard> {
         .get(shiranami_core::store::RendererStoreKey::AppPerformanceMonitoringEnabled)
         == Some(serde_json::Value::Bool(true));
 
-    // `ClientOptions` is `#[non_exhaustive]`, so it is filled in rather than
-    // written as a literal — which is also what keeps a sentry upgrade that adds
-    // a field from being a compile error here.
-    let mut options = sentry::ClientOptions::default();
-    options.release = Some(format!("shiranami@{}", env!("CARGO_PKG_VERSION")).into());
-    options.environment = Some(
-        if packaged {
-            "production"
-        } else {
-            "development"
-        }
-        .into(),
-    );
-    // Never the default PII bundle: §3.4's whole posture is that this app knows
-    // what a user listens to.
-    options.send_default_pii = false;
-
-    // v1 passed `tracesSampleRate` directly; sentry-rust 0.49 replaced that
-    // field with a strategy, where a rate of zero and "off" are distinguishable.
-    // `Disabled` is the honest spelling of "performance monitoring was not
-    // consented to" — `FixedRate(0.0)` still honours an *inherited* sampling
-    // decision, which for an app that starts its own traces would mean sampling
-    // after the user declined.
-    let rate = traces_sample_rate(performance, packaged);
-    options.traces_sampling_strategy = if rate > 0.0 {
-        sentry::TracesSamplingStrategy::FixedRate(rate)
-    } else {
-        sentry::TracesSamplingStrategy::Disabled
+    let options = sentry::ClientOptions {
+        release: Some(format!("shiranami@{}", env!("CARGO_PKG_VERSION")).into()),
+        environment: Some(
+            if packaged {
+                "production"
+            } else {
+                "development"
+            }
+            .into(),
+        ),
+        // Never the default PII bundle: §3.4's whole posture is that this app
+        // knows what a user listens to.
+        send_default_pii: false,
+        // v1's `tracesSampleRate`, spelled the same in this sentry line.
+        traces_sample_rate: traces_sample_rate(performance, packaged),
+        before_send: Some(Arc::new(|event| Some(scrub_event(event)))),
+        before_breadcrumb: Some(Arc::new(scrub_breadcrumb)),
+        ..Default::default()
     };
-
-    options.before_send = Some(Arc::new(|event| Some(scrub_event(event))));
-    options.before_breadcrumb = Some(Arc::new(scrub_breadcrumb));
 
     let guard = sentry::init((dsn, options));
 

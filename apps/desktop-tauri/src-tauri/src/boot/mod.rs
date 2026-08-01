@@ -2,8 +2,9 @@
 //!
 //! [`timer`] stamps each stage; [`services`] constructs everything
 //! `crate::state::Deferred` names; [`sequence`] runs them in the documented
-//! order and is the only caller of the other two.
+//! order; [`reconcile`] starts the work step 6 puts *off* the setup hook.
 
+pub mod reconcile;
 pub mod sequence;
 pub mod services;
 pub mod timer;

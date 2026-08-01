@@ -384,7 +384,13 @@ tauri-plugin-autostart = "2"
 # read *before* `tauri::Builder` and the plugin skipped entirely when it is
 # absent — a no-op DSN is not enough (§2.8 step 3).
 tauri-plugin-sentry = "0.5"
-sentry = { version = "0.49", default-features = false, features = [
+# **0.42, not Appendix B's 0.49.** `tauri-plugin-sentry` 0.5 depends on sentry
+# 0.42 and its `init` takes *its* `sentry::Client`, so the two pins Appendix B
+# lists side by side cannot both hold: cargo resolves them as two distinct
+# crates and the plugin refuses a client built from the other one. Matching the
+# plugin keeps both halves of §2.2 #5 — the plugin and the Rust SDK — where
+# keeping 0.49 would mean dropping the plugin entirely.
+sentry = { version = "0.42", default-features = false, features = [
   # `rustls` rather than native-tls, feature-unified with `reqwest` above.
   "reqwest",
   "rustls",

@@ -66,6 +66,17 @@ pub enum BootError {
     Serve(String),
 }
 
+/// What `finish` hands back for `run()` to install.
+pub struct Booted {
+    /// The managed state every command reaches through.
+    pub state: AppState,
+    /// The folders cache and its authority, for the invalidation hooks.
+    pub folders: Arc<Folders>,
+    /// The concrete services `crate::boot::reconcile` drives. See
+    /// [`services::Handles`] for why these are not in `Deferred`.
+    pub handles: services::Handles,
+}
+
 /// Everything built before `tauri::Builder`.
 pub struct Preflight {
     /// The app data directory, resolved without the app.
@@ -150,10 +161,7 @@ pub fn preflight() -> Preflight {
 ///
 /// [`BootError`] for anything that makes a usable app impossible. The caller
 /// aborts `setup()` rather than continuing — see the module docs.
-pub async fn finish(
-    app: &AppHandle,
-    preflight: &mut Preflight,
-) -> Result<(AppState, Arc<Folders>), BootError> {
+pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted, BootError> {
     // Tauri's resolver is the authority; core's copy exists so the settings
     // store can resolve a path without an app, and the two must not disagree.
     let data_dir = app
@@ -221,7 +229,7 @@ pub async fn finish(
     preflight.timer.stage(Stage::Serve);
 
     // ── the deferred services ───────────────────────────────────────────────
-    let mut deferred = services::build(&Ingredients {
+    let (mut deferred, handles) = services::build(&Ingredients {
         app: app.clone(),
         pool: opened.pool.clone(),
         settings: Arc::clone(&preflight.settings),
@@ -237,7 +245,11 @@ pub async fn finish(
     let state = AppState::from_parts(opened.pool, Arc::clone(&preflight.settings), http, deferred);
     preflight.timer.stage(Stage::Services);
 
-    Ok((state, folders))
+    Ok(Booted {
+        state,
+        folders,
+        handles,
+    })
 }
 
 #[cfg(test)]

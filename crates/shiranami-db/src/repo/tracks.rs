@@ -462,6 +462,24 @@ fn push_ids(builder: &mut QueryBuilder<Sqlite>, ids: &[String]) {
     }
 }
 
+/// Every non-null `album_art` value the library holds.
+///
+/// For the album-art orphan prune (`shiranami_metadata::art::prune_orphans`),
+/// which needs to know which cache files are still referenced. Values come back
+/// **raw** — `shiranami-art://` URLs, remote `https://` covers and legacy
+/// `data:` URLs alike — because deciding which of those name a cache file is
+/// the prune's job, and a repository that filtered here would be a second
+/// opinion on it.
+///
+/// `DISTINCT` because a compilation shares one cover across every track on it,
+/// and the caller only asks "is this file referenced at all".
+pub async fn album_art_urls(conn: &mut SqliteConnection) -> Result<Vec<String>> {
+    sqlx::query_scalar("SELECT DISTINCT album_art FROM tracks WHERE album_art IS NOT NULL")
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(failed("read the referenced album art"))
+}
+
 /// Collapse `(id, patch)` pairs into one entry per distinct patch.
 ///
 /// Insertion-ordered, like the `Map` v1 built, so the statements run in the

@@ -39,6 +39,26 @@ use crate::downloads::{
 };
 use crate::state::Deferred;
 
+/// The concrete Discord service, as boot builds it.
+///
+/// Named because `crate::boot::reconcile` drives its `pump` and the seam
+/// deliberately does not expose one — `crate::seam::Presence` has exactly the
+/// four operations v1's four channels name, and advancing a clock is not one of
+/// them.
+pub type DiscordService = DiscordPresence<DiscordIpcSocket, EventNoticeSink>;
+
+/// What boot keeps that the command layer must not reach.
+///
+/// Everything in [`Deferred`] is behind a seam or an `Arc` the command layer
+/// holds. These two are neither: they are the concrete objects whose *drivers*
+/// live in `crate::boot::reconcile`, and putting them in `Deferred` would offer
+/// a command a `pump` it has no business calling.
+#[derive(Default)]
+pub struct Handles {
+    /// The presence service, for the pump.
+    pub discord: Option<Arc<DiscordService>>,
+}
+
 /// Everything boot has already built that a deferred service might need.
 pub struct Ingredients {
     /// The app handle every event sink emits through.
@@ -61,7 +81,7 @@ pub struct Ingredients {
 
 /// Build every deferred service except the serve handle, which boot starts
 /// itself because the folders cache it needs is a boot artefact too.
-pub fn build(ingredients: &Ingredients) -> Deferred {
+pub fn build(ingredients: &Ingredients) -> (Deferred, Handles) {
     let processes = Arc::new(TokioRunner::new());
     let bin = bin_dir(&ingredients.data_dir);
 
@@ -86,14 +106,18 @@ pub fn build(ingredients: &Ingredients) -> Deferred {
     ));
 
     let downloads = build_queue(ingredients, &processes, &bin);
+    let discord = build_discord(ingredients);
 
-    Deferred {
+    let deferred = Deferred {
         // Started by `boot::sequence`; see the doc above.
         serve: None,
         downloads: Some(downloads),
         downloader: Some(downloader),
         scrobbler: build_scrobbler(ingredients.e2e, &ingredients.settings, &ingredients.http),
-        discord: build_discord(ingredients),
+        discord: discord.clone().map(|service| {
+            Arc::new(crate::adapters::DiscordAdapter::new(service))
+                as Arc<dyn crate::seam::Presence>
+        }),
         // Both are OS surfaces and both are boot decisions of their own.
         media_controls: None,
         updater: None,
@@ -103,7 +127,9 @@ pub fn build(ingredients: &Ingredients) -> Deferred {
             &ingredients.http,
         )),
         search: Some(search),
-    }
+    };
+
+    (deferred, Handles { discord })
 }
 
 /// The download queue, with its four real collaborators.
@@ -164,8 +190,15 @@ fn build_scrobbler(
     )))
 }
 
-/// Discord Rich Presence, behind the seam.
-fn build_discord(ingredients: &Ingredients) -> Option<Arc<dyn crate::seam::Presence>> {
+/// Discord Rich Presence, as the concrete service.
+///
+/// Returned concrete rather than behind the seam because it has **two**
+/// consumers with different needs: the command layer sees
+/// `crate::seam::Presence` (four methods, v1's four channels), and
+/// `crate::boot::reconcile` drives the `pump` the seam does not carry. Building
+/// it once and adapting the copy the commands get is what keeps a single socket
+/// behind both.
+fn build_discord(ingredients: &Ingredients) -> Option<Arc<DiscordService>> {
     if ingredients.e2e {
         return None;
     }
@@ -174,16 +207,11 @@ fn build_discord(ingredients: &Ingredients) -> Option<Arc<dyn crate::seam::Prese
         ingredients.app.clone(),
     )));
 
-    // Wrapped in the seam adapter rather than handed over raw: the crate's two
-    // presence calls are synchronous and the seam's are not, and `crate::adapters`
-    // is where that difference is reconciled once.
-    Some(Arc::new(crate::adapters::DiscordAdapter::new(Arc::new(
-        DiscordPresence::new(
-            Arc::clone(&ingredients.settings),
-            DiscordIpcSocket::new(SHIRANAMI_DISCORD_CLIENT_ID),
-            notices,
-        ),
-    ))))
+    Some(Arc::new(DiscordPresence::new(
+        Arc::clone(&ingredients.settings),
+        DiscordIpcSocket::new(SHIRANAMI_DISCORD_CLIENT_ID),
+        notices,
+    )))
 }
 
 /// Lyrics, over the folders cache.

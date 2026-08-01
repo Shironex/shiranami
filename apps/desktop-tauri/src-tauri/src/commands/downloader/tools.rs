@@ -214,7 +214,7 @@ fn cached(state: &AppState) -> Option<CachedToolStatus> {
 }
 
 /// Probe both tools, resolve the location, and write the cache.
-async fn refresh(app: &AppHandle, state: &AppState) -> CommandResult<CachedToolStatus> {
+pub(crate) async fn refresh(app: &AppHandle, state: &AppState) -> CommandResult<CachedToolStatus> {
     let services = services(state)?;
     let tools = services.tools();
 

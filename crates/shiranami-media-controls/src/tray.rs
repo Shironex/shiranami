@@ -100,6 +100,37 @@ pub enum TrayItemId {
 }
 
 impl TrayItemId {
+    /// Every id, so the shell can resolve a menu-event string back to a variant
+    /// without restating the mapping.
+    ///
+    /// `tauri::tray` hands a menu click back as the id **string** it was
+    /// registered under, so the shell has to go from `&str` to `TrayItemId` on
+    /// every click. Without this it would need its own `match` over the same
+    /// five literals [`TrayItemId::as_str`] already owns — a second spelling of
+    /// the mapping, and one that silently stops handling an id when a sixth is
+    /// added here.
+    pub const ALL: [Self; 5] = [
+        Self::TogglePlay,
+        Self::Previous,
+        Self::Next,
+        Self::Show,
+        Self::Quit,
+    ];
+
+    /// The variant registered under `id`, if any.
+    ///
+    /// Not `std::str::FromStr`: that trait is fallible with an error type, and
+    /// "this menu id is not one of ours" is an ordinary `None` rather than a
+    /// parse failure worth naming. A `FromStr` impl would also invite
+    /// `"quit".parse()` at a call site with no type annotation nearby.
+    #[allow(
+        clippy::should_implement_trait,
+        reason = "an unknown menu id is a None, not a parse error"
+    )]
+    pub fn from_str(id: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|item| item.as_str() == id)
+    }
+
     /// The id string the shell registers this item under.
     pub fn as_str(self) -> &'static str {
         match self {
@@ -533,5 +564,24 @@ mod tests {
             id: TrayItemId::Quit,
             label: "Zakończ".to_owned()
         }));
+    }
+
+    /// `ALL` and `as_str` cannot drift: every variant appears exactly once, and
+    /// every id round-trips. Without this, adding a sixth item would leave the
+    /// shell silently ignoring its clicks.
+    #[test]
+    fn every_id_round_trips_through_its_string() {
+        assert_eq!(TrayItemId::ALL.len(), 5);
+
+        let mut seen = std::collections::HashSet::new();
+        for id in TrayItemId::ALL {
+            assert!(seen.insert(id.as_str()), "{} appears twice", id.as_str());
+            assert_eq!(TrayItemId::from_str(id.as_str()), Some(id));
+        }
+    }
+
+    #[test]
+    fn an_unknown_menu_id_resolves_to_nothing() {
+        assert_eq!(TrayItemId::from_str("not-a-tray-item"), None);
     }
 }
