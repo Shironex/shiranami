@@ -936,6 +936,17 @@ export const commands = {
 	scrobbleListenbrainzConnect: (token: string) => __TAURI_INVOKE<ScrobbleConnectResult>("scrobble_listenbrainz_connect", { token }),
 	/**  `scrobble:listenbrainz-disconnect` — forget the stored token. */
 	scrobbleListenbrainzDisconnect: () => __TAURI_INVOKE<ScrobbleStatus>("scrobble_listenbrainz_disconnect"),
+	/**
+	 *  Reports the loopback media server's origin and session token.
+	 * 
+	 *  # Errors
+	 * 
+	 *  [`not_booted`] when the server is absent, which means `setup()` did not get
+	 *  as far as starting it. Refusing is the only honest answer — a fabricated
+	 *  origin would turn every cover and every track into a silent 404 that looks
+	 *  like a missing file rather than a failed boot.
+	 */
+	serveInfo: () => __TAURI_INVOKE<ServeInfo>("serve_info"),
 	/**  `share:track` — create a share link for one track. */
 	shareTrack: (trackId: string) => __TAURI_INVOKE<Json>("share_track", { trackId }),
 	/**
@@ -2715,6 +2726,20 @@ export type SearchResult = {
 	matchConfidence?: number | null,
 	/**  Confidence bucket for the score above. */
 	matchFlag?: MatchFlag | null,
+};
+
+/**  How the webview addresses the loopback media server this session. */
+export type ServeInfo = {
+	/**  Scheme and authority, `http://127.0.0.1:<port>`. Not a secret. */
+	origin: string,
+	/**
+	 *  This session's path token, the first segment of every media URL.
+	 * 
+	 *  A capability, not an identifier: anything holding it can read every file
+	 *  the containment guard allows. Never logged, never persisted, and dead the
+	 *  moment the process exits.
+	 */
+	token: string,
 };
 
 /**

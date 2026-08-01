@@ -261,6 +261,10 @@ mod tests {
             // Ports no v1 channel: the shim's `db:backup:export` needs a save
             // panel and lane 6 grants the webview no dialog capability.
             "dialogSaveFile",
+            // Ports no v1 channel either: v1's media URLs were a custom scheme,
+            // which is the same string in every session. §2.4's loopback origin
+            // and token are not, so the webview has to ask for them.
+            "serveInfo",
             "shellShowInFolder",
             "shellTrashFile",
             "debugStart",

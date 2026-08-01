@@ -60,6 +60,7 @@ pub mod playlist;
 pub mod radio;
 pub mod recommendations;
 pub mod scrobble;
+pub mod serve;
 pub mod share;
 pub mod shell;
 pub mod storage;
