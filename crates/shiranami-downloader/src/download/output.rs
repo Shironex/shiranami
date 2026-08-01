@@ -21,20 +21,13 @@ use regex::Regex;
 /// `[download] Destination: /path/to/file.webm`, and the `[ExtractAudio]` and
 /// `[ffmpeg]` variants of the same line.
 static DESTINATION: LazyLock<Regex> = LazyLock::new(|| {
-    #[expect(
-        clippy::unwrap_used,
-        reason = "a literal pattern that compiles at first use or never"
-    )]
-    Regex::new(r"\[[^\]]+\]\s+Destination:\s+(.+)").unwrap()
+    Regex::new(r"\[[^\]]+\]\s+Destination:\s+(.+)")
+        .expect("a literal pattern in this module compiles")
 });
 
 /// `[download]  42.3% of 4.20MiB at 1.10MiB/s ETA 00:02`.
 static PERCENT: LazyLock<Regex> = LazyLock::new(|| {
-    #[expect(
-        clippy::unwrap_used,
-        reason = "a literal pattern that compiles at first use or never"
-    )]
-    Regex::new(r"\[download\]\s+([\d.]+)%").unwrap()
+    Regex::new(r"\[download\]\s+([\d.]+)%").expect("a literal pattern in this module compiles")
 });
 
 /// What one line of yt-dlp's stdout told us.

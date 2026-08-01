@@ -19,12 +19,7 @@ use regex::Regex;
 
 /// The first dotted-numeric run in a string.
 static VERSION_RUN: LazyLock<Regex> = LazyLock::new(|| {
-    #[expect(
-        clippy::unwrap_used,
-        reason = "a literal pattern that compiles at first use or never; a panic \
-                  here is a build-time mistake, not a runtime condition"
-    )]
-    Regex::new(r"\d+(?:\.\d+)*").unwrap()
+    Regex::new(r"\d+(?:\.\d+)*").expect("a literal pattern in this module compiles")
 });
 
 /// A version segment wider than this is not a version.

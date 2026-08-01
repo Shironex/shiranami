@@ -17,8 +17,12 @@ pnpm-lock.yaml
 packages/contracts/src/generated/
 
 # Captured verbatim from Spotify's embed endpoint; must stay byte-identical to
-# the real (minified) response the parser is tested against.
+# the real (minified) response the parser is tested against. Copied into
+# `shiranami-downloader` so the Rust suite survives Phase 20 deleting
+# `apps/desktop`; a test asserts the two are the same bytes, which reformatting
+# either one would break.
 apps/desktop/src/main/ipc/__fixtures__/spotify-embed-playlist.html
+crates/shiranami-downloader/fixtures/
 
 # Local generated artifacts (gitignored, but this repo's prettier setup does
 # not read .gitignore, so format:check trips over them in a used checkout).

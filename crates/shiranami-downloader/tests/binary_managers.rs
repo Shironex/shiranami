@@ -5,6 +5,7 @@
 //! (so progress is unknowable rather than wrong), and the cleanup that has to
 //! happen when a download fails partway.
 
+#[path = "support/http_server.rs"]
 mod support;
 
 use std::sync::Mutex;

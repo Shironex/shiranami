@@ -42,6 +42,7 @@
 pub mod bin;
 pub mod download;
 pub mod error;
+pub mod extract;
 pub mod queue;
 pub mod spawn;
 
