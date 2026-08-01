@@ -21,6 +21,8 @@
 //! | [`state`] | v1's `MediaPlaybackState`, and what "nothing is playing" means |
 //! | [`os`] | that state as the OS wants it — the ported `setPositionState` guards live here |
 //! | [`command`] | OS events in, v1's `media:command` vocabulary out |
+//! | [`coalesce`] | v1's 1 Hz throttle, with §2.2's immediate-on-structural-change |
+//! | [`service`] | the three above, over a backend |
 //! | [`backend`] | **the seam** — `MediaControlsBackend`, and the null implementation |
 
 // Every item here is either a ported guard or a contract the shell wires to. An
@@ -29,16 +31,20 @@
 #![warn(missing_docs)]
 
 pub mod backend;
+pub mod coalesce;
 pub mod command;
 pub mod error;
 pub mod os;
+pub mod service;
 pub mod state;
 
 #[cfg(test)]
 mod fake;
 
 pub use backend::{CommandSink, MediaControlsBackend, NullBackend};
+pub use coalesce::{GateOutcome, UPDATE_INTERVAL, UpdateGate};
 pub use command::{MediaCommand, RemoteEvent, SeekDirection};
 pub use error::{MediaControlsError, Result};
 pub use os::{OsMetadata, OsPlayback};
+pub use service::{Applied, MediaControlsService};
 pub use state::{MediaState, NowPlaying};
