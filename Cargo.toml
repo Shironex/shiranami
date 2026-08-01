@@ -202,6 +202,14 @@ regex = { version = "1.11", default-features = false, features = [
 
 tempfile = "3"
 
+# Phase 13 (`shiranami-media-controls`). `default-features = false` drops
+# `use_dbus`, whose `dbus`/`dbus-crossroads` pull in a `libdbus-1-dev` system
+# dependency. Only the MPRIS backend needs them and we ship no Linux target, but
+# the leaf crate additionally gates the whole dependency behind
+# `cfg(any(windows, macos))` so an ubuntu clippy job never has to install it —
+# which is exactly why Appendix B's CI table makes `rust-cross-check` required.
+souvlaki = { version = "0.8", default-features = false }
+
 # Lints are declared once and inherited by every member via `[lints] workspace
 # = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
 [workspace.lints.rust]
