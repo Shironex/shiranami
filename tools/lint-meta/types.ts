@@ -14,6 +14,10 @@ export interface IMetaContext {
   readonly root: string;
   readonly sourceFiles: readonly string[];
   readonly workflowFiles: readonly string[];
+  // Rust tier (`crates/*` + the Tauri shell). Scanned as text only — the meta
+  // lint must never need cargo or Tauri's system dependencies to run.
+  readonly rustFiles: readonly string[];
+  readonly rustManifests: readonly string[];
 }
 
 export interface IMetaRule {

@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, statSync, type Stats } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 
 import type { IMetaContext } from './types';
 
@@ -19,6 +19,16 @@ function safeStat(path: string): Stats | null {
 
 export const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 
+export const RUST_EXTENSIONS = new Set(['.rs']);
+const MANIFEST_EXTENSIONS = new Set(['.toml']);
+
+/*
+ * Where first-party Rust lives: the domain crates and the Tauri shell's own
+ * sources. `target/` is excluded by SKIP_DIRS below.
+ */
+const RUST_SOURCE_ROOTS = ['crates', join('apps', 'desktop-tauri', 'src-tauri', 'src')] as const;
+const RUST_MANIFEST_ROOTS = ['crates', join('apps', 'desktop-tauri', 'src-tauri')] as const;
+
 // Per-workspace subdirs holding first-party source worth scanning.
 const WORKSPACE_SOURCE_SUBDIRS = ['src', 'test', 'tests'] as const;
 
@@ -32,9 +42,9 @@ const WORKSPACE_GROUPS = ['apps', 'packages'] as const;
  */
 const SKIP_WORKSPACES = new Set(['mobile']);
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', 'generated']);
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage', 'generated', 'target']);
 
-export function collectSourceFiles(dir: string): string[] {
+function collectFiles(dir: string, extensions: ReadonlySet<string>): string[] {
   const out: string[] = [];
   let entries: string[];
 
@@ -55,16 +65,30 @@ export function collectSourceFiles(dir: string): string[] {
       if (SKIP_DIRS.has(entry)) {
         continue;
       }
-      out.push(...collectSourceFiles(full));
+      out.push(...collectFiles(full, extensions));
       continue;
     }
 
-    if (stat.isFile() && SOURCE_EXTENSIONS.has(extname(full))) {
+    if (stat.isFile() && extensions.has(extname(full))) {
       out.push(full);
     }
   }
 
   return out;
+}
+
+export function collectSourceFiles(dir: string): string[] {
+  return collectFiles(dir, SOURCE_EXTENSIONS);
+}
+
+export function collectRustFiles(root: string): string[] {
+  return RUST_SOURCE_ROOTS.flatMap(rel => collectFiles(join(root, rel), RUST_EXTENSIONS));
+}
+
+export function collectRustManifests(root: string): string[] {
+  return RUST_MANIFEST_ROOTS.flatMap(rel =>
+    collectFiles(join(root, rel), MANIFEST_EXTENSIONS)
+  ).filter(file => basename(file) === 'Cargo.toml');
 }
 
 function listWorkspaces(root: string): string[] {
@@ -145,5 +169,7 @@ export function buildContext(root: string): IMetaContext {
     root,
     sourceFiles,
     workflowFiles: findWorkflows(resolveWorkflowsDir(root)),
+    rustFiles: collectRustFiles(root),
+    rustManifests: collectRustManifests(root),
   };
 }
