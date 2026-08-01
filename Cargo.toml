@@ -45,6 +45,18 @@ serde_json = "1"
 tauri = { version = "2.11", features = ["tray-icon", "image-png"] }
 tauri-build = "2"
 tauri-plugin-single-instance = "2.4"
+thiserror = "2"
+tracing = "0.1"
+
+# Exact pins, as nuclear ships (architecture D6/R11): tauri-specta is
+# perpetually pre-1.0, and a floating rc would resolve differently between a
+# local run and CI — which is precisely how a regenerate-and-diff guard starts
+# failing for reasons that have nothing to do with drift.
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+specta-serde = "=0.0.12"
+
+tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
 # = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.

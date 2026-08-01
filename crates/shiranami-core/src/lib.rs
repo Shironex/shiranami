@@ -11,3 +11,16 @@
 //! on it, so anything added here is added to everything.
 //!
 //! Ported in Phase 2. See `docs/v2/architecture.md` §2.1–§2.3 and §3.4.
+
+// Every item here is renderer-visible contract, a ported guard, or both. An
+// undocumented one is a contract nobody can read, so the crate gates on it.
+#![warn(missing_docs)]
+
+pub mod bindings;
+pub mod constants;
+pub mod error;
+pub mod models;
+pub mod sync;
+
+pub use constants::{UNKNOWN_ALBUM, UNKNOWN_ARTIST};
+pub use error::{CoreError, ErrorPayload, Result};
