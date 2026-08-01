@@ -10,3 +10,35 @@
 //!
 //! Ported in Phase 13; exactly one OS entry must appear. See
 //! `docs/v2/architecture.md` §2.7.
+//!
+//! # Shape
+//!
+//! Everything that can be tested without a desktop is, and the part that cannot
+//! is one trait wide:
+//!
+//! | Module | What it owns |
+//! | ------ | ------------ |
+//! | [`state`] | v1's `MediaPlaybackState`, and what "nothing is playing" means |
+//! | [`os`] | that state as the OS wants it — the ported `setPositionState` guards live here |
+//! | [`command`] | OS events in, v1's `media:command` vocabulary out |
+//! | [`backend`] | **the seam** — `MediaControlsBackend`, and the null implementation |
+
+// Every item here is either a ported guard or a contract the shell wires to. An
+// undocumented one is a contract nobody can read, so this crate gates on
+// documentation the way `shiranami-core` and `shiranami-serve` do.
+#![warn(missing_docs)]
+
+pub mod backend;
+pub mod command;
+pub mod error;
+pub mod os;
+pub mod state;
+
+#[cfg(test)]
+mod fake;
+
+pub use backend::{CommandSink, MediaControlsBackend, NullBackend};
+pub use command::{MediaCommand, RemoteEvent, SeekDirection};
+pub use error::{MediaControlsError, Result};
+pub use os::{OsMetadata, OsPlayback};
+pub use state::{MediaState, NowPlaying};
