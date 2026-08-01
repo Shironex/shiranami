@@ -236,6 +236,15 @@ rayon = "1.12"
 # nothing here uses.
 fs4 = { version = "0.13", default-features = false }
 
+# Scan telemetry. v1 sampled `process.memoryUsage().rss` either side of a scan
+# and logged `rssDeltaMB`, because the whole point of its `utilityProcess`
+# migration was that killing the child returned RSS to the OS; Phase 10's
+# done-criteria keep the measurement even though v2 has no child to kill, since
+# it is the signal that would catch a scan that leaks. `sysinfo` is the Appendix
+# B pin for exactly this and Phase 16 already needs it for the debug panel;
+# `system` is the only feature either use wants.
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+
 tempfile = "3"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
