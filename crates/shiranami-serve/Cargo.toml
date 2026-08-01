@@ -12,5 +12,25 @@ publish.workspace = true
 shiranami-core.workspace = true
 shiranami-net.workspace = true
 
+axum = { workspace = true }
+bytes = { workspace = true }
+futures-util = { workspace = true }
+getrandom = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+# The integration tests are HTTP clients: they bind the real server on an
+# ephemeral port and speak to it the way WebKit does, because a Range matrix
+# asserted against handler functions would not catch a header the framework
+# drops on the way out.
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
 [lints]
 workspace = true

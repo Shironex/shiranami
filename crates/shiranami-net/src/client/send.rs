@@ -42,6 +42,10 @@ const USER_AGENT: &str = concat!("shiranami/", env!("CARGO_PKG_VERSION"));
 #[derive(Debug, Clone)]
 pub struct HttpClient {
     inner: Client,
+    /// The redirect-less sibling backing [`HttpClient::stream`]. reqwest's
+    /// redirect policy is per-client, so the radio proxy's manual hop loop needs
+    /// its own; see `client::stream`.
+    unredirected: Client,
     gates: Arc<HostGates>,
     guard: UrlGuard,
 }
@@ -65,6 +69,7 @@ impl HttpClient {
 
         Ok(Self {
             inner,
+            unredirected: crate::client::stream::build_unredirected(USER_AGENT)?,
             gates: Arc::new(HostGates::new()),
             guard,
         })
@@ -73,6 +78,11 @@ impl HttpClient {
     /// The SSRF guard, so callers needing hop-by-hop checks share this instance.
     pub fn guard(&self) -> &UrlGuard {
         &self.guard
+    }
+
+    /// The redirect-less client, for [`HttpClient::stream`].
+    pub(super) fn unredirected(&self) -> &Client {
+        &self.unredirected
     }
 
     /// The rate gate `url`'s host runs under, if it has one.
