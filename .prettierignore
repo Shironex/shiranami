@@ -19,3 +19,10 @@ packages/contracts/src/generated/
 # Captured verbatim from Spotify's embed endpoint; must stay byte-identical to
 # the real (minified) response the parser is tested against.
 apps/desktop/src/main/ipc/__fixtures__/spotify-embed-playlist.html
+
+# Local generated artifacts (gitignored, but this repo's prettier setup does
+# not read .gitignore, so format:check trips over them in a used checkout).
+apps/landing/.astro/
+apps/mobile/.expo/
+apps/mobile/expo-env.d.ts
+apps/server/src/generated/

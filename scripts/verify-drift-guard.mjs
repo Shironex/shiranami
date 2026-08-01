@@ -79,7 +79,7 @@ const dirty = git(['status', '--porcelain', '--', GENERATED, TARGET]).stdout.tri
 if (dirty !== '') {
   fail(
     `uncommitted changes under ${GENERATED} or ${TARGET} — commit or stash them first ` +
-      `(this check mutates and restores those paths):\n${dirty}`,
+      `(this check mutates and restores those paths):\n${dirty}`
   );
 }
 
@@ -108,13 +108,13 @@ const fromCrate = readFileSync(path.join(ROOT, TARGET_BINDING), 'utf8');
 if (fromRoot !== fromCrate) {
   fail(
     'the export produced different output from the repo root than from the crate directory, ' +
-      'so the export path depends on the caller’s cwd — this is nightcore #422 exactly',
+      'so the export path depends on the caller’s cwd — this is nightcore #422 exactly'
   );
 }
 if (git(['diff', '--exit-code', '--', GENERATED]).status !== 0) {
   fail(
     `${GENERATED} is already dirty after a plain re-export — the committed bindings are stale. ` +
-      `Run \`cargo test -p shiranami-core --lib bindings\` and commit the result.`,
+      `Run \`cargo test -p shiranami-core --lib bindings\` and commit the result.`
   );
 }
 
@@ -123,11 +123,11 @@ const targetAbsolute = path.join(ROOT, TARGET);
 const original = readFileSync(targetAbsolute, 'utf8');
 const eol = original.includes('\r\n') ? '\r\n' : '\n';
 const lines = original.split(eol);
-const anchor = lines.findIndex((line) => line.trim().startsWith(TARGET_ANCHOR));
+const anchor = lines.findIndex(line => line.trim().startsWith(TARGET_ANCHOR));
 if (anchor === -1) {
   fail(
     `anchor \`${TARGET_ANCHOR}\` not found in ${TARGET} — the probe type was renamed or moved; ` +
-      `point this script at another \`#[derive(specta::Type)]\` type`,
+      `point this script at another \`#[derive(specta::Type)]\` type`
   );
 }
 // Walk back over the item's attribute and doc-comment block so the marker lands
@@ -178,5 +178,5 @@ if (restored !== '') {
 }
 
 console.log(
-  '✔ drift-guard verification: the gate detected a perturbed type and the tree is clean again.',
+  '✔ drift-guard verification: the gate detected a perturbed type and the tree is clean again.'
 );
