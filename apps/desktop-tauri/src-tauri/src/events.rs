@@ -44,6 +44,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri_specta::Event;
 
+use crate::commands::debug::MetricsSnapshot;
 use crate::wire::Json;
 use shiranami_core::SystemNotice;
 use shiranami_core::models::{DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot};
@@ -98,8 +99,9 @@ events! {
     ///
     /// **Shape changes in v2** (§2.2 #31): there is no Chromium `getAppMetrics`
     /// equivalent, so this carries `sysinfo` per-process CPU and RSS only. An
-    /// accepted, recorded loss rather than a port gap.
-    DebugMetrics = "debug:metrics" => Json;
+    /// accepted, recorded loss rather than a port gap — see
+    /// `crate::commands::debug` for exactly what was dropped and why.
+    DebugMetrics = "debug:metrics" => MetricsSnapshot;
 
     /// The OS remote fired — play, pause, next, previous, seek.
     ///

@@ -13,6 +13,7 @@
 pub mod arch_guards;
 pub mod bindings;
 pub mod commands;
+pub mod compact;
 pub mod error;
 pub mod events;
 pub mod paths;
@@ -52,7 +53,7 @@ pub fn run() {
         }))
         // §2.8 step 4's remaining plugins, in its order. Both are reached from
         // Rust only: `capabilities/default.json` grants neither its JS
-        // permission, so the webview cannot call `open_path` or raise a picker
+        // permission, so the webview cannot call `open_path` or open a picker
         // except through a command that validates the argument first. Granting
         // `opener:default` would hand the renderer an unguarded
         // `reveal_item_in_dir` and make `crate::paths::ensure_allowed`
@@ -66,10 +67,24 @@ pub fn run() {
                 .open_js_links_on_click(false)
                 .build(),
         )
+        // Phase 14 lane 6's two holders. Unlike `AppState` these open nothing
+        // and order against nothing — both are `Default` and purely in-memory —
+        // so managing them here rather than deferring to Phase 16's `setup()`
+        // costs no ordering guarantee and lets the window and debug namespaces
+        // answer for real from this phase onward.
+        .manage(compact::CompactModeState::default())
+        .manage(commands::debug::DebugSampler::default())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             // Required for the typed events to be addressable from the webview.
             specta.mount_events(app);
+
+            // `window:maximized-change` is derived rather than delivered: Tauri
+            // has no maximize event, so the titlebar's restore icon depends on
+            // this hook existing. See `commands::window`.
+            if let Some(main) = app.get_webview_window("main") {
+                commands::window::forward_maximized_changes(&main.as_ref().window());
+            }
             Ok(())
         })
         .run(tauri::generate_context!())

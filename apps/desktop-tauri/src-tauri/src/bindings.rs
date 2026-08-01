@@ -202,6 +202,12 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            "windowMinimize",
+            "windowMaximize",
+            "windowClose",
+            "windowIsMaximized",
+            "windowSetAlwaysOnTop",
+            "windowSetCompactMode",
             "appGetVersion",
             "appOpenLogsFolder",
             "appGetLocaleCountry",
@@ -209,6 +215,8 @@ mod tests {
             "dialogOpenFile",
             "shellShowInFolder",
             "shellTrashFile",
+            "debugStart",
+            "debugStop",
         ];
 
         for command in PORTED_NAMES {
