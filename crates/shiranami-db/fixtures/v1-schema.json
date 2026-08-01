@@ -1,0 +1,1300 @@
+{
+  "_generator": "scripts/verify-db-baseline.mjs — regenerate with `pnpm verify:db-baseline --write`. Do not edit by hand.",
+  "_source": "packages/database/drizzle/*/migration.sql, applied in folder order",
+  "userVersion": 8,
+  "drizzleMigrations": [
+    {
+      "name": "20260101000000_baseline",
+      "hash": "7bf112ccf769a7f160e5413236cf0dad4153c761676071f0abdc4b3177563d76",
+      "createdAt": 1767225600000
+    },
+    {
+      "name": "20260101000001_album_artist",
+      "hash": "a155165daed7d775c038da2ca1069ed7f534c71e16618a728406b1db9ff05f7e",
+      "createdAt": 1767225601000
+    },
+    {
+      "name": "20260101000002_track_loudness",
+      "hash": "51821ce17ed9bce4a784fc9720c019c44bed344b503a28d087d47c08eaf87c3c",
+      "createdAt": 1767225602000
+    },
+    {
+      "name": "20260101000003_negative_signals",
+      "hash": "1d58b392a3bdb392be62a14dc38323a8876901e6fd8b78e9f129906fbf9993d0",
+      "createdAt": 1767225603000
+    },
+    {
+      "name": "20260101000004_smart_playlists",
+      "hash": "47223fa2db755f26f7d326c0ac17d6ee7ef5b2b5725c2ee27e0c4398f0660147",
+      "createdAt": 1767225604000
+    },
+    {
+      "name": "20260101000005_download_queue",
+      "hash": "3a8cf7d0731cf4d71bba43f8e99c1e306d295fe140146589edbfe71cc7d2bcf7",
+      "createdAt": 1767225605000
+    },
+    {
+      "name": "20260101000006_unbake_album_artist",
+      "hash": "e0ad55654e8a5218ac0725141f93b4e193153cb33b20af2850015008f02ac931",
+      "createdAt": 1767225606000
+    },
+    {
+      "name": "20260101000007_heal_legacy_tables",
+      "hash": "6e8a72a3a909abe65f2474b6f34e76a386d265ddd45c53994afae83c668bf8c3",
+      "createdAt": 1767225607000
+    },
+    {
+      "name": "20260101000008_query_indexes",
+      "hash": "a300b87f99ac12d1fd032da208b9cc6c20f764ef4f2fff3c439aec28e183a330",
+      "createdAt": 1767225608000
+    }
+  ],
+  "objects": [
+    {
+      "type": "index",
+      "name": "idx_folders_path",
+      "tableName": "folders",
+      "sql": "CREATE INDEX `idx_folders_path` ON `folders`(`path`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_negative_signals_artist",
+      "tableName": "negative_signals",
+      "sql": "CREATE INDEX `idx_negative_signals_artist` ON `negative_signals`(`artist`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_negative_signals_track_id",
+      "tableName": "negative_signals",
+      "sql": "CREATE INDEX `idx_negative_signals_track_id` ON `negative_signals`(`track_id`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_play_history_played_at",
+      "tableName": "play_history",
+      "sql": "CREATE INDEX `idx_play_history_played_at` ON `play_history`(`played_at`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_play_history_track_id",
+      "tableName": "play_history",
+      "sql": "CREATE INDEX `idx_play_history_track_id` ON `play_history`(`track_id`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_playlist_tracks_playlist_position",
+      "tableName": "playlist_tracks",
+      "sql": "CREATE INDEX `idx_playlist_tracks_playlist_position` ON `playlist_tracks`(`playlist_id`,`position`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_playlist_tracks_track_id",
+      "tableName": "playlist_tracks",
+      "sql": "CREATE INDEX `idx_playlist_tracks_track_id` ON `playlist_tracks`(`track_id`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_radio_favorites_station_uuid",
+      "tableName": "radio_favorites",
+      "sql": "CREATE INDEX `idx_radio_favorites_station_uuid` ON `radio_favorites`(`station_uuid`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_tracks_album",
+      "tableName": "tracks",
+      "sql": "CREATE INDEX `idx_tracks_album` ON `tracks`(`album`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_tracks_album_artist",
+      "tableName": "tracks",
+      "sql": "CREATE INDEX `idx_tracks_album_artist` ON `tracks`(`album_artist`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_tracks_artist",
+      "tableName": "tracks",
+      "sql": "CREATE INDEX `idx_tracks_artist` ON `tracks`(`artist`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_tracks_file_path",
+      "tableName": "tracks",
+      "sql": "CREATE INDEX `idx_tracks_file_path` ON `tracks`(`file_path`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_tracks_is_favorite",
+      "tableName": "tracks",
+      "sql": "CREATE INDEX `idx_tracks_is_favorite` ON `tracks`(`is_favorite`)"
+    },
+    {
+      "type": "index",
+      "name": "idx_youtube_mappings_track_id",
+      "tableName": "youtube_mappings",
+      "sql": "CREATE INDEX `idx_youtube_mappings_track_id` ON `youtube_mappings`(`track_id`)"
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_download_queue_1",
+      "tableName": "download_queue",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_folders_1",
+      "tableName": "folders",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_folders_2",
+      "tableName": "folders",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_negative_signals_1",
+      "tableName": "negative_signals",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_negative_signals_2",
+      "tableName": "negative_signals",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_play_history_1",
+      "tableName": "play_history",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_playlist_tracks_1",
+      "tableName": "playlist_tracks",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_playlist_tracks_2",
+      "tableName": "playlist_tracks",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_playlists_1",
+      "tableName": "playlists",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_radio_favorites_1",
+      "tableName": "radio_favorites",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_radio_favorites_2",
+      "tableName": "radio_favorites",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_recommendations_1",
+      "tableName": "recommendations",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_smart_playlists_1",
+      "tableName": "smart_playlists",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_tracks_1",
+      "tableName": "tracks",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_tracks_2",
+      "tableName": "tracks",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_youtube_mappings_1",
+      "tableName": "youtube_mappings",
+      "sql": null
+    },
+    {
+      "type": "index",
+      "name": "sqlite_autoindex_youtube_mappings_2",
+      "tableName": "youtube_mappings",
+      "sql": null
+    },
+    {
+      "type": "table",
+      "name": "download_queue",
+      "tableName": "download_queue",
+      "sql": "CREATE TABLE `download_queue` (\n\t`id` text PRIMARY KEY,\n\t`url` text NOT NULL,\n\t`youtube_id` text,\n\t`title` text NOT NULL,\n\t`thumbnail` text,\n\t`status` text NOT NULL,\n\t`file_path` text,\n\t`batch_id` text,\n\t`batch_index` integer,\n\t`batch_source_title` text,\n\t`batch_create_playlist` integer,\n\t`enqueued_at` integer NOT NULL,\n\t`started_at` integer,\n\t`finished_at` integer\n)"
+    },
+    {
+      "type": "table",
+      "name": "folders",
+      "tableName": "folders",
+      "sql": "CREATE TABLE `folders` (\n\t`id` text PRIMARY KEY,\n\t`path` text NOT NULL UNIQUE,\n\t`last_scanned` text,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL\n)"
+    },
+    {
+      "type": "table",
+      "name": "negative_signals",
+      "tableName": "negative_signals",
+      "sql": "CREATE TABLE `negative_signals` (\n\t`id` text PRIMARY KEY,\n\t`track_id` text NOT NULL UNIQUE,\n\t`artist` text,\n\t`source` text DEFAULT 'context-menu' NOT NULL,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL,\n\tCONSTRAINT `fk_negative_signals_track_id_tracks_id_fk` FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON DELETE CASCADE\n)"
+    },
+    {
+      "type": "table",
+      "name": "play_history",
+      "tableName": "play_history",
+      "sql": "CREATE TABLE `play_history` (\n\t`id` text PRIMARY KEY,\n\t`track_id` text NOT NULL,\n\t`played_at` text DEFAULT (datetime('now')) NOT NULL,\n\t`played_seconds` real NOT NULL,\n\t`completion_ratio` real NOT NULL,\n\t`completed` integer DEFAULT false NOT NULL,\n\t`source` text DEFAULT 'library' NOT NULL,\n\tCONSTRAINT `fk_play_history_track_id_tracks_id_fk` FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON DELETE CASCADE\n)"
+    },
+    {
+      "type": "table",
+      "name": "playlist_tracks",
+      "tableName": "playlist_tracks",
+      "sql": "CREATE TABLE `playlist_tracks` (\n\t`id` text PRIMARY KEY,\n\t`playlist_id` text NOT NULL,\n\t`track_id` text NOT NULL,\n\t`position` integer NOT NULL,\n\tCONSTRAINT `fk_playlist_tracks_playlist_id_playlists_id_fk` FOREIGN KEY (`playlist_id`) REFERENCES `playlists`(`id`) ON DELETE CASCADE,\n\tCONSTRAINT `fk_playlist_tracks_track_id_tracks_id_fk` FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON DELETE CASCADE,\n\tCONSTRAINT `playlist_tracks_playlist_id_track_id_unique` UNIQUE(`playlist_id`,`track_id`)\n)"
+    },
+    {
+      "type": "table",
+      "name": "playlists",
+      "tableName": "playlists",
+      "sql": "CREATE TABLE `playlists` (\n\t`id` text PRIMARY KEY,\n\t`name` text NOT NULL,\n\t`description` text,\n\t`cover_art` text,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL,\n\t`updated_at` text DEFAULT (datetime('now')) NOT NULL\n)"
+    },
+    {
+      "type": "table",
+      "name": "radio_favorites",
+      "tableName": "radio_favorites",
+      "sql": "CREATE TABLE `radio_favorites` (\n\t`id` text PRIMARY KEY,\n\t`station_uuid` text NOT NULL UNIQUE,\n\t`name` text NOT NULL,\n\t`url` text NOT NULL,\n\t`url_resolved` text NOT NULL,\n\t`homepage` text,\n\t`favicon` text,\n\t`country` text,\n\t`country_code` text,\n\t`language` text,\n\t`codec` text,\n\t`bitrate` integer,\n\t`tags` text,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL\n)"
+    },
+    {
+      "type": "table",
+      "name": "recommendations",
+      "tableName": "recommendations",
+      "sql": "CREATE TABLE `recommendations` (\n\t`kind` text PRIMARY KEY,\n\t`payload` text NOT NULL,\n\t`generated_at` text DEFAULT (datetime('now')) NOT NULL\n)"
+    },
+    {
+      "type": "table",
+      "name": "smart_playlists",
+      "tableName": "smart_playlists",
+      "sql": "CREATE TABLE `smart_playlists` (\n\t`id` text PRIMARY KEY,\n\t`name` text NOT NULL,\n\t`description` text,\n\t`match_type` text DEFAULT 'all' NOT NULL,\n\t`rules` text DEFAULT '[]' NOT NULL,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL,\n\t`updated_at` text DEFAULT (datetime('now')) NOT NULL\n)"
+    },
+    {
+      "type": "table",
+      "name": "tracks",
+      "tableName": "tracks",
+      "sql": "CREATE TABLE `tracks` (\n\t`id` text PRIMARY KEY,\n\t`file_path` text NOT NULL UNIQUE,\n\t`title` text NOT NULL,\n\t`artist` text DEFAULT 'Unknown Artist',\n\t`album` text DEFAULT 'Unknown Album',\n\t`duration` real,\n\t`genre` text,\n\t`year` integer,\n\t`track_number` integer,\n\t`disc_number` integer,\n\t`album_art` text,\n\t`is_favorite` integer DEFAULT false,\n\t`play_count` integer DEFAULT 0,\n\t`created_at` text DEFAULT (datetime('now')) NOT NULL,\n\t`updated_at` text DEFAULT (datetime('now')) NOT NULL\n, `album_artist` text, `loudness_lufs` real)"
+    },
+    {
+      "type": "table",
+      "name": "youtube_mappings",
+      "tableName": "youtube_mappings",
+      "sql": "CREATE TABLE `youtube_mappings` (\n\t`id` text PRIMARY KEY,\n\t`track_id` text NOT NULL UNIQUE,\n\t`youtube_id` text NOT NULL,\n\t`searched_at` text DEFAULT (datetime('now')) NOT NULL,\n\tCONSTRAINT `fk_youtube_mappings_track_id_tracks_id_fk` FOREIGN KEY (`track_id`) REFERENCES `tracks`(`id`) ON DELETE CASCADE\n)"
+    }
+  ],
+  "tables": {
+    "download_queue": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "youtube_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "thumbnail",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "file_path",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "batch_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "batch_index",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "batch_source_title",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "batch_create_playlist",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "enqueued_at",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "started_at",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "finished_at",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_download_queue_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "folders": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "path",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "last_scanned",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_folders_path",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "path"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_folders_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_folders_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "path"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "negative_signals": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "track_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "artist",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'context-menu'",
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_negative_signals_artist",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "artist"
+          ]
+        },
+        {
+          "name": "idx_negative_signals_track_id",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_negative_signals_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_negative_signals_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "tracks",
+          "from": "track_id",
+          "to": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ]
+    },
+    "play_history": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "track_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "played_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        },
+        {
+          "name": "played_seconds",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "completion_ratio",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "completed",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "false",
+          "primaryKey": 0
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'library'",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_play_history_played_at",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "played_at"
+          ]
+        },
+        {
+          "name": "idx_play_history_track_id",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_play_history_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "tracks",
+          "from": "track_id",
+          "to": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ]
+    },
+    "playlist_tracks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "playlist_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "track_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "position",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_playlist_tracks_playlist_position",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "playlist_id",
+            "position"
+          ]
+        },
+        {
+          "name": "idx_playlist_tracks_track_id",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_playlist_tracks_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_playlist_tracks_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "playlist_id",
+            "track_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "playlists",
+          "from": "playlist_id",
+          "to": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "table": "tracks",
+          "from": "track_id",
+          "to": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ]
+    },
+    "playlists": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "cover_art",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_playlists_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "radio_favorites": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "station_uuid",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "url",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "url_resolved",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "homepage",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "favicon",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "country",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "country_code",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "language",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "codec",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "bitrate",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "tags",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_radio_favorites_station_uuid",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "station_uuid"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_radio_favorites_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_radio_favorites_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "station_uuid"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "recommendations": {
+      "columns": [
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "payload",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "generated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_recommendations_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "kind"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "smart_playlists": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "match_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'all'",
+          "primaryKey": 0
+        },
+        {
+          "name": "rules",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'[]'",
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_smart_playlists_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "tracks": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "file_path",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "artist",
+          "type": "TEXT",
+          "notNull": false,
+          "default": "'Unknown Artist'",
+          "primaryKey": 0
+        },
+        {
+          "name": "album",
+          "type": "TEXT",
+          "notNull": false,
+          "default": "'Unknown Album'",
+          "primaryKey": 0
+        },
+        {
+          "name": "duration",
+          "type": "REAL",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "genre",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "year",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "track_number",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "disc_number",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "album_art",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "is_favorite",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": "false",
+          "primaryKey": 0
+        },
+        {
+          "name": "play_count",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": "0",
+          "primaryKey": 0
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        },
+        {
+          "name": "album_artist",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "loudness_lufs",
+          "type": "REAL",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_tracks_album",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "album"
+          ]
+        },
+        {
+          "name": "idx_tracks_album_artist",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "album_artist"
+          ]
+        },
+        {
+          "name": "idx_tracks_artist",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "artist"
+          ]
+        },
+        {
+          "name": "idx_tracks_file_path",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "file_path"
+          ]
+        },
+        {
+          "name": "idx_tracks_is_favorite",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "is_favorite"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_tracks_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_tracks_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "file_path"
+          ]
+        }
+      ],
+      "foreignKeys": []
+    },
+    "youtube_mappings": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": 1
+        },
+        {
+          "name": "track_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "youtube_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": 0
+        },
+        {
+          "name": "searched_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": 0
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_youtube_mappings_track_id",
+          "unique": false,
+          "origin": "c",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_youtube_mappings_1",
+          "unique": true,
+          "origin": "pk",
+          "partial": false,
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_youtube_mappings_2",
+          "unique": true,
+          "origin": "u",
+          "partial": false,
+          "columns": [
+            "track_id"
+          ]
+        }
+      ],
+      "foreignKeys": [
+        {
+          "table": "tracks",
+          "from": "track_id",
+          "to": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ]
+    }
+  }
+}

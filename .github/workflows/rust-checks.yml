@@ -23,6 +23,11 @@ on:
       # the bindings or the prover has to re-run the gate that owns them.
       - 'packages/contracts/src/generated/**'
       - 'scripts/verify-drift-guard.mjs'
+      # v1's migrations are the reference the committed schema fixture is
+      # generated from, so a change there has to re-run the fixture check.
+      - 'packages/database/drizzle/**'
+      - 'packages/database/src/migrate.ts'
+      - 'scripts/verify-db-baseline.mjs'
       - '.github/workflows/rust-checks.yml'
   pull_request:
     branches: [master, v2]
@@ -38,6 +43,11 @@ on:
       # the bindings or the prover has to re-run the gate that owns them.
       - 'packages/contracts/src/generated/**'
       - 'scripts/verify-drift-guard.mjs'
+      # v1's migrations are the reference the committed schema fixture is
+      # generated from, so a change there has to re-run the fixture check.
+      - 'packages/database/drizzle/**'
+      - 'packages/database/src/migrate.ts'
+      - 'scripts/verify-db-baseline.mjs'
       - '.github/workflows/rust-checks.yml'
 
 concurrency:
@@ -120,6 +130,16 @@ jobs:
       # risk R17), and a guard that silently no-ops is worse than no guard.
       - name: Drift guard is not vacuous
         run: pnpm verify:drift-guard
+
+      # `crates/shiranami-db/fixtures/v1-schema.json` is the reference the
+      # `sqlite_master` diff test proves the squashed baseline against, and it
+      # is generated from `packages/database`. The cargo test is hermetic
+      # against the committed file, so only this step can notice that the file
+      # has stopped describing v1 (architecture §3.2, risk R6). Uses nothing but
+      # Node builtins — `node:sqlite`, no `node_modules` — which is why it fits
+      # in this install-free job.
+      - name: v1 schema fixture is not stale
+        run: pnpm verify:db-baseline
 
   rust-cross-check:
     # souvlaki, taskbar progress, WebView2 browser args and the macOS keychain
