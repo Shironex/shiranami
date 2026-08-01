@@ -41,6 +41,7 @@
     "generate-icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/screenshot-app.mjs",
     "canary:analyser": "node scripts/analyser-canary.mjs",
+    "check:mock-mode": "node scripts/check-mock-mode.mjs",
     "prepare": "husky"
   },
   "engines": {
