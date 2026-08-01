@@ -21,6 +21,8 @@ fs4 = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
 specta = { workspace = true }
+specta-typescript = { workspace = true }
+sysinfo = { workspace = true }
 thiserror = { workspace = true }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
