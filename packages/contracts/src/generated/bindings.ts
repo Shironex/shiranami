@@ -236,6 +236,24 @@ export const commands = {
 	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
 	/**  Reports that the Rust side is alive and which version is running. */
 	healthCheck: () => __TAURI_INVOKE<HealthReport>("health_check"),
+	/**  `radio:favorites:get-all` — every saved station, newest first. */
+	radioFavoritesGetAll: () => __TAURI_INVOKE<RadioFavorite[]>("radio_favorites_get_all"),
+	/**
+	 *  `radio:favorites:add` — save a station and return the stored row.
+	 * 
+	 *  Rejects when the station is already saved; see the module docs.
+	 */
+	radioFavoritesAdd: (station: RadioStationInput) => __TAURI_INVOKE<RadioFavorite>("radio_favorites_add", { station }),
+	/**
+	 *  `radio:favorites:remove` — forget a station, by directory id.
+	 * 
+	 *  Keyed on `station_uuid` rather than the row id, because that is the id the
+	 *  renderer holds while browsing the directory. Removing a station that was
+	 *  never saved is not an error, as it was not in v1.
+	 */
+	radioFavoritesRemove: (stationUuid: string) => __TAURI_INVOKE<null>("radio_favorites_remove", { stationUuid }),
+	/**  `radio:favorites:is-favorite` — whether a station is saved. */
+	radioFavoritesIsFavorite: (stationUuid: string) => __TAURI_INVOKE<boolean>("radio_favorites_is_favorite", { stationUuid }),
 	/**
 	 *  `store:get` — read one renderer-visible key.
 	 * 

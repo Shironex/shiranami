@@ -206,6 +206,8 @@ mod tests {
             "dbHistoryGetRecent",
             "dbHistoryGetHourlyActivity",
             "dbHistoryGetWeeklyInsights",
+            "radioFavoritesGetAll",
+            "radioFavoritesIsFavorite",
         ];
 
         for command in PORTED_NAMES {
