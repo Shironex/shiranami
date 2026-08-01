@@ -15,6 +15,7 @@ pub mod bindings;
 pub mod commands;
 pub mod error;
 pub mod events;
+pub mod paths;
 pub mod seam;
 pub mod state;
 pub mod wire;
