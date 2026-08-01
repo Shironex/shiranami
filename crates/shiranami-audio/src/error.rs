@@ -96,12 +96,19 @@ pub enum AudioError {
 impl AudioError {
     /// Build an [`AudioError::Io`] without the caller owning the path first.
     pub(crate) fn io(operation: &'static str, path: &Path, source: std::io::Error) -> Self {
-        Self::Io { operation, path: path.to_path_buf(), source }
+        Self::Io {
+            operation,
+            path: path.to_path_buf(),
+            source,
+        }
     }
 
     /// Build an [`AudioError::Decode`] from anything the decoder can display.
     pub(crate) fn decode(path: &Path, reason: impl std::fmt::Display) -> Self {
-        Self::Decode { path: path.to_path_buf(), reason: reason.to_string() }
+        Self::Decode {
+            path: path.to_path_buf(),
+            reason: reason.to_string(),
+        }
     }
 }
 

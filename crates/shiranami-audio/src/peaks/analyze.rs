@@ -75,7 +75,9 @@ impl PcmSink for PeakAccumulator {
 /// `RangeError` for the same input.
 pub fn peaks_from_file(path: &Path, buckets: usize) -> Result<WaveformPeaks> {
     if buckets == 0 {
-        return Err(AudioError::BadRequest("buckets must be greater than zero".to_owned()));
+        return Err(AudioError::BadRequest(
+            "buckets must be greater than zero".to_owned(),
+        ));
     }
 
     let mut accumulator = PeakAccumulator::new();

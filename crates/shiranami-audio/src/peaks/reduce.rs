@@ -44,7 +44,9 @@ impl FrameEnvelope {
     /// An empty envelope with room for `frames` frames.
     #[must_use]
     pub fn with_capacity(frames: usize) -> Self {
-        Self { max_abs: Vec::with_capacity(frames) }
+        Self {
+            max_abs: Vec::with_capacity(frames),
+        }
     }
 
     /// Fold one buffer of channel-interleaved frames into the envelope.
@@ -58,7 +60,8 @@ impl FrameEnvelope {
         for frame in interleaved.chunks_exact(usize::from(channels)) {
             // `f32::max` returns the non-NaN operand, so a NaN sample is
             // ignored exactly as C++'s `if (a > peak)` ignored it.
-            self.max_abs.push(frame.iter().fold(0.0_f32, |peak, s| peak.max(s.abs())));
+            self.max_abs
+                .push(frame.iter().fold(0.0_f32, |peak, s| peak.max(s.abs())));
         }
     }
 

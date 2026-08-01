@@ -86,10 +86,9 @@ impl LoudnessAnalyzer {
     /// [`AudioError::Analysis`] if no frames were ever accepted, or if the
     /// analyser rejects the query.
     pub fn finish(&self) -> Result<IntegratedLoudness> {
-        let state = self
-            .state
-            .as_ref()
-            .ok_or_else(|| AudioError::Analysis { reason: "no frames were analysed".to_owned() })?;
+        let state = self.state.as_ref().ok_or_else(|| AudioError::Analysis {
+            reason: "no frames were analysed".to_owned(),
+        })?;
 
         match state.loudness_global() {
             // `is_finite` filters the −∞ of digital silence and any NaN,
@@ -97,34 +96,35 @@ impl LoudnessAnalyzer {
             // path's rejection of a non-finite `input_i`.
             Ok(lufs) if lufs.is_finite() => Ok(IntegratedLoudness::Measured(lufs)),
             Ok(_) => Ok(IntegratedLoudness::Silent),
-            Err(error) => Err(AudioError::Analysis { reason: error.to_string() }),
+            Err(error) => Err(AudioError::Analysis {
+                reason: error.to_string(),
+            }),
         }
     }
 }
 
 impl PcmSink for LoudnessAnalyzer {
     fn begin(&mut self, spec: PcmSpec) -> Result<()> {
-        let state = EbuR128::new(u32::from(spec.channels), spec.sample_rate, Mode::I).map_err(
-            |error| AudioError::Analysis {
-                reason: format!(
-                    "{error} ({} ch @ {} Hz)",
-                    spec.channels, spec.sample_rate
-                ),
-            },
-        )?;
+        let state =
+            EbuR128::new(u32::from(spec.channels), spec.sample_rate, Mode::I).map_err(|error| {
+                AudioError::Analysis {
+                    reason: format!("{error} ({} ch @ {} Hz)", spec.channels, spec.sample_rate),
+                }
+            })?;
         self.state = Some(state);
         Ok(())
     }
 
     fn accept(&mut self, interleaved: &[f32]) -> Result<()> {
-        let state = self
-            .state
-            .as_mut()
-            .ok_or_else(|| AudioError::Analysis { reason: "frames arrived before the stream format".to_owned() })?;
+        let state = self.state.as_mut().ok_or_else(|| AudioError::Analysis {
+            reason: "frames arrived before the stream format".to_owned(),
+        })?;
 
         state
             .add_frames_f32(interleaved)
-            .map_err(|error| AudioError::Analysis { reason: error.to_string() })
+            .map_err(|error| AudioError::Analysis {
+                reason: error.to_string(),
+            })
     }
 }
 

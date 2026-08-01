@@ -96,18 +96,27 @@ pub fn decode_file(path: &Path, sink: &mut dyn PcmSink) -> Result<DecodeSummary>
     }
 
     let mut format = symphonia::default::get_probe()
-        .probe(&hint, stream, FormatOptions::default(), MetadataOptions::default())
+        .probe(
+            &hint,
+            stream,
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
         .map_err(|error| AudioError::decode(path, error))?;
 
     let track = format
         .default_track(TrackType::Audio)
-        .ok_or_else(|| AudioError::NoAudioTrack { path: path.to_path_buf() })?;
+        .ok_or_else(|| AudioError::NoAudioTrack {
+            path: path.to_path_buf(),
+        })?;
     let track_id = track.id;
     let parameters = track
         .codec_params
         .as_ref()
         .and_then(|params| params.audio())
-        .ok_or_else(|| AudioError::NoAudioTrack { path: path.to_path_buf() })?;
+        .ok_or_else(|| AudioError::NoAudioTrack {
+            path: path.to_path_buf(),
+        })?;
 
     let mut decoder = symphonia::default::get_codecs()
         .make_audio_decoder(parameters, &AudioDecoderOptions::default())

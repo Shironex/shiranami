@@ -116,16 +116,22 @@ pub fn write_cached_peaks(dir: &Path, key: &str, peaks: &[f32]) -> Result<()> {
         .map_err(|source| AudioError::io("create the waveform cache directory", dir, source))?;
 
     let path = cache_path(dir, key);
-    match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+    {
         Ok(mut file) => {
             use std::io::Write as _;
             file.write_all(encode_peaks(peaks).as_bytes())
                 .map_err(|source| AudioError::io("write the waveform cache file", &path, source))
         }
         Err(error) if error.kind() == ErrorKind::AlreadyExists => Ok(()),
-        Err(source) => {
-            Err(AudioError::io("create the waveform cache file", &path, source))
-        }
+        Err(source) => Err(AudioError::io(
+            "create the waveform cache file",
+            &path,
+            source,
+        )),
     }
 }
 
@@ -147,7 +153,11 @@ fn encode_peaks(peaks: &[f32]) -> String {
         if index > 0 {
             out.push(',');
         }
-        let value = if peak.is_finite() { f64::from(*peak) } else { 0.0 };
+        let value = if peak.is_finite() {
+            f64::from(*peak)
+        } else {
+            0.0
+        };
         out.push_str(&format!("{value}"));
     }
     out.push_str("]}");
