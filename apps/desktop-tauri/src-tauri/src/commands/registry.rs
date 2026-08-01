@@ -93,6 +93,7 @@ macro_rules! namespace_list {
             health
             media
             store
+            system
             updater
             weather
             // ═════════════════════════════════════════════════
