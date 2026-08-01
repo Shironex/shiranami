@@ -9,3 +9,10 @@
 //!
 //! `core` is ported in Phase 4, `service` after the repositories land in Phase
 //! 7. See `docs/v2/architecture.md` §2.2 (#24, #37).
+
+// The scoring functions and their knobs are the whole public surface of this
+// crate, and the numbers they produce are a user-visible contract. An
+// undocumented one is a contract nobody can read, so the crate gates on it.
+#![warn(missing_docs)]
+
+pub mod core;
