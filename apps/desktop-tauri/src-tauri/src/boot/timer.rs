@@ -36,6 +36,19 @@ pub enum Stage {
     /// First, because every stage after it logs and a failure before it is
     /// invisible.
     Logging,
+    /// The v1 tree has been copied, or found absent, or deliberately declined
+    /// (§3.1).
+    ///
+    /// **§2.8 lists this *after* `Settings`; it runs before.** The reason is
+    /// that continuity is what puts `config.json` in the v2 directory in the
+    /// first place. Loading the settings store first would read an empty
+    /// document on the one launch where a returning user's preferences matter
+    /// most — their theme, their language, their Last.fm credentials — and
+    /// would decide Sentry consent from a default rather than from the value
+    /// the user actually set in v1. §2.8's ordering was written before §3.4
+    /// settled that the v1 settings file is read *in place* rather than
+    /// converted, which is what makes the dependency run this way round.
+    Continuity,
     /// The atomic JSON settings store is readable. Ahead of the database
     /// because the download location, the paused flag and the tool-status
     /// cache all live in it, and ahead of Sentry's *runtime* half because
@@ -64,8 +77,9 @@ impl Stage {
     /// adding a variant in the middle of the enum would silently redefine the
     /// sequence, where adding one here is a visible edit to the thing under
     /// test.
-    pub const EXPECTED_ORDER: [Self; 7] = [
+    pub const EXPECTED_ORDER: [Self; 8] = [
         Self::Logging,
+        Self::Continuity,
         Self::Settings,
         Self::Database,
         Self::FoldersCache,
@@ -78,6 +92,7 @@ impl Stage {
     pub fn label(self) -> &'static str {
         match self {
             Self::Logging => "logging",
+            Self::Continuity => "continuity",
             Self::Settings => "settings",
             Self::Database => "database",
             Self::FoldersCache => "folders-cache",

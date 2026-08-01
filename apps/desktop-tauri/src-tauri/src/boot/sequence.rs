@@ -32,6 +32,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use shiranami_core::migrate::MigrateError;
 use shiranami_core::paths::FoldersCache;
 use shiranami_core::store::SettingsStore;
 use tauri::{AppHandle, Manager as _};
@@ -53,6 +54,21 @@ pub enum BootError {
     /// The library could not be opened, adopted or migrated.
     #[error("could not open the music library: {0}")]
     Database(#[from] shiranami_db::DbError),
+
+    /// The v1 library could not be copied into the v2 directory (§3.1).
+    ///
+    /// The most important variant in this enum, and the only one whose absence
+    /// would be a *silent* fault: continuing past a failed migration means
+    /// opening a fresh empty database beside a v1 tree full of the user's
+    /// music, which is R6 and is the failure §3.1 step 7 exists to forbid —
+    /// *"never 'helpfully' continue into a fresh empty DB — that is the 'where
+    /// did my library go?' failure mode"*.
+    ///
+    /// Carries a rendered string for the same reason [`BootError::Serve`] does:
+    /// the message is what the refusal dialog shows, and it already names the
+    /// path and the underlying reason.
+    #[error("could not bring your library across from the previous version: {0}")]
+    Continuity(String),
 
     /// The loopback server could not bind, or its HTTP client could not build.
     /// Fatal rather than degraded: with no server there is no audio and no
@@ -83,6 +99,17 @@ pub struct Preflight {
     pub data_dir: PathBuf,
     /// The settings store, already readable.
     pub settings: Arc<SettingsStore>,
+    /// What first-run continuity did, or why it could not (§3.1).
+    ///
+    /// Held rather than acted on because [`preflight`] has no way to refuse a
+    /// launch: it runs before `tauri::Builder` exists, so there is no window to
+    /// put a dialog on. [`finish`] turns an error here into
+    /// [`BootError::Continuity`] **before** anything opens the database, which
+    /// is the ordering step 7 actually requires.
+    pub continuity: std::result::Result<shiranami_core::migrate::Outcome, MigrateError>,
+    /// The script that re-seeds the renderer's `localStorage` from the v1
+    /// bridge's dump (§3.5), when there is anything to seed.
+    pub renderer_seed: Option<String>,
     /// Keeps the file appender's worker alive; see [`logging::LogGuard`].
     pub logging: logging::LogGuard,
     /// `Some` only when consent, packaging and a DSN all agree. Its presence is
@@ -125,6 +152,29 @@ pub fn preflight() -> Preflight {
         "shiranami starting"
     );
 
+    // ── first-run data continuity (§3.1) ────────────────────────────────────
+    //
+    // Before the settings store, not after it as §2.8's list reads: this is the
+    // step that *puts* `config.json` in the v2 directory, so loading first
+    // would read an empty document on exactly the launch where a returning
+    // user's preferences matter. See `Stage::Continuity`.
+    //
+    // A failure is carried rather than thrown — there is no window to explain
+    // it on yet — and `finish` refuses the launch before the database opens.
+    let continuity = shiranami_core::migrate::run(
+        shiranami_core::paths::legacy_data_dir().as_deref(),
+        &data_dir,
+    );
+    match &continuity {
+        Ok(outcome) => tracing::info!(?outcome, "first-run data continuity"),
+        Err(error) => tracing::error!(%error, "first-run data continuity failed"),
+    }
+    let renderer_seed = continuity
+        .as_ref()
+        .ok()
+        .and_then(|outcome| crate::window::renderer_seed_script(&data_dir, outcome));
+    timer.stage(Stage::Continuity);
+
     let (settings, quarantined) =
         SettingsStore::load(data_dir.join(shiranami_core::paths::SETTINGS_FILE));
     if let Some(path) = quarantined {
@@ -144,6 +194,8 @@ pub fn preflight() -> Preflight {
     Preflight {
         data_dir,
         settings,
+        continuity,
+        renderer_seed,
         logging,
         sentry,
         timer,
@@ -173,11 +225,18 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
 
     std::fs::create_dir_all(&data_dir).map_err(|_| BootError::NoDataDirectory)?;
 
-    // ── the database ────────────────────────────────────────────────────────
+    // ── first-run continuity's verdict (§3.1 step 7) ────────────────────────
     //
-    // Phase 17's first-run continuity goes *here*, between the directory and
-    // this call: it has to copy the v1 tree before anything opens the file for
-    // writing.
+    // Checked *before* the open below, and that ordering is the whole point: a
+    // migration that failed leaves a v1 tree full of music beside an empty v2
+    // directory, and `shiranami_db::open` would happily create a fresh database
+    // there. The user would launch into an empty library with their music still
+    // on disk and nothing to say so.
+    if let Err(error) = &preflight.continuity {
+        return Err(BootError::Continuity(error.to_string()));
+    }
+
+    // ── the database ────────────────────────────────────────────────────────
     let opened = shiranami_db::open(&data_dir.join("shiranami.db")).await?;
     tracing::info!(adoption = ?opened.adoption, "library opened");
     preflight.timer.stage(Stage::Database);
@@ -290,20 +349,20 @@ mod tests {
     }
 
     /// The split between the two halves does not reorder anything: preflight
-    /// stamps §2.8's first two stages and `finish` stamps the rest, in the same
-    /// sequence `boot::timer` pins.
+    /// stamps §2.8's first three stages and `finish` stamps the rest, in the
+    /// same sequence `boot::timer` pins.
     #[test]
-    fn the_preflight_stages_are_the_first_two_of_section_2_8() {
+    fn the_preflight_stages_are_the_first_three_of_section_2_8() {
         assert_eq!(
-            &Stage::EXPECTED_ORDER[..2],
-            &[Stage::Logging, Stage::Settings]
+            &Stage::EXPECTED_ORDER[..3],
+            &[Stage::Logging, Stage::Continuity, Stage::Settings]
         );
     }
 
     #[test]
     fn the_setup_stages_are_the_remaining_five() {
         assert_eq!(
-            &Stage::EXPECTED_ORDER[2..],
+            &Stage::EXPECTED_ORDER[3..],
             &[
                 Stage::Database,
                 Stage::FoldersCache,
@@ -312,5 +371,47 @@ mod tests {
                 Stage::Window,
             ]
         );
+    }
+
+    /// The ordering §3.1 depends on and §2.8 does not state: the v1 tree is
+    /// copied before the settings store reads `config.json`, because the copy is
+    /// what puts that file there.
+    #[test]
+    fn continuity_runs_before_the_settings_store_loads() {
+        let order = Stage::EXPECTED_ORDER;
+        let continuity = order.iter().position(|s| *s == Stage::Continuity);
+        let settings = order.iter().position(|s| *s == Stage::Settings);
+
+        assert!(
+            continuity < settings,
+            "the settings file arrives *from* the migration; loading first reads an empty document"
+        );
+    }
+
+    /// …and before the database is opened, which is the one that loses a
+    /// library (R6). `finish` returns `BootError::Continuity` above the `open`
+    /// call; this pins the vocabulary that makes the ordering readable.
+    #[test]
+    fn continuity_runs_before_the_database_opens() {
+        let order = Stage::EXPECTED_ORDER;
+        assert!(
+            order.iter().position(|s| *s == Stage::Continuity)
+                < order.iter().position(|s| *s == Stage::Database)
+        );
+    }
+
+    /// §3.1 step 7's message, as a user reads it. It has to name the previous
+    /// version — "could not copy a file" with no context does not tell someone
+    /// that their library is safe and still where they left it.
+    #[test]
+    fn a_failed_migration_refuses_the_launch_and_says_what_failed() {
+        let rendered = BootError::Continuity(
+            "could not copy /v1/shiranami.db to /v2/shiranami.db: no space left on device"
+                .to_owned(),
+        )
+        .to_string();
+
+        assert!(rendered.contains("previous version"), "{rendered}");
+        assert!(rendered.contains("no space left on device"), "{rendered}");
     }
 }

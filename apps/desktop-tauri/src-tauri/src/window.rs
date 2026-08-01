@@ -93,6 +93,97 @@ pub fn initialization_script(e2e: bool) -> String {
     )
 }
 
+/// §3.5's `localStorage` seed, as an initialization script — or `None` when
+/// there is nothing to seed.
+///
+/// Electron's Chromium partition, WKWebView's WebKit store and WebView2's store
+/// are three separate origins, so every `shiranami.*` key a returning user had
+/// — theme, accent, sidebar layout, grid sizes, the onboarding flag — resets on
+/// the first v2 launch. The v1.x bridge dumps them to `renderer-state.json`
+/// (§4.1's "data prep"); this puts them back.
+///
+/// # Nothing is ever overwritten
+///
+/// Each key is written only when `localStorage` has no value for it. That makes
+/// the script idempotent — it runs on *every* launch, not just the first,
+/// because the dump stays in the data directory — and means a preference the
+/// user changes in v2 is never reverted by the v1 snapshot on the next start.
+/// The alternative, consuming the file after one run, would lose the seed
+/// entirely if the first launch crashed before the renderer stored anything.
+///
+/// # The onboarding fallback, and what already covers it
+///
+/// §3.5 asks for `onboardingComplete` to be re-derived from a populated library
+/// even when the dump is absent. Most of that need turns out to be met already:
+/// `useOnboardingStore` and `useSupportBannerStore` both mirror to the settings
+/// store (`app.onboardingCompleted`, `app.supportBannerSeen`) and re-read it on
+/// boot through `hydrateOnboarding`, so migrating `config.json` restores both
+/// without any help from here. What that misses is a v1 user whose mirror was
+/// never written, so the fallback below seeds the flag whenever a v1 library was
+/// actually copied — a returning user, by definition. It is derived from the
+/// migration outcome rather than from a track count because this script is built
+/// before the database stage; a library that migrated at all is the same
+/// population.
+pub fn renderer_seed_script(
+    data_dir: &std::path::Path,
+    outcome: &shiranami_core::migrate::Outcome,
+) -> Option<String> {
+    let dump = shiranami_core::migrate::RendererState::read(data_dir);
+    let entries: Vec<(String, String)> = dump
+        .as_ref()
+        .map(|state| {
+            state
+                .seedable()
+                .map(|(key, value)| (key.to_owned(), value.to_owned()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let onboarding = outcome.carries_a_v1_library();
+    if entries.is_empty() && !onboarding {
+        return None;
+    }
+
+    // `serde_json` does the escaping. Hand-quoting a value that is itself JSON —
+    // which every zustand slice is — is how a stray backslash becomes a syntax
+    // error in a script that runs before any page code, taking the whole app
+    // with it.
+    let seeds = entries
+        .iter()
+        .filter_map(|(key, value)| {
+            Some(format!(
+                "    seed({}, {});\n",
+                serde_json::to_string(key).ok()?,
+                serde_json::to_string(value).ok()?
+            ))
+        })
+        .collect::<String>();
+
+    // Matches `useOnboardingStore`'s persisted shape: zustand's `persist`
+    // wrapper stores `{ state, version }`, and `partialize` keeps exactly one
+    // field. Written through the same never-overwrite `seed` helper, so a dump
+    // that already carried the real slice wins over this reconstruction.
+    let fallback = if onboarding {
+        "    seed('shiranami.onboarding', '{\"state\":{\"hasCompletedOnboarding\":true},\"version\":1}');\n"
+    } else {
+        ""
+    };
+
+    Some(format!(
+        r#"(function () {{
+  // Architecture §3.5: the v1 renderer's localStorage, put back after the
+  // move from Chromium's partition to this webview's.
+  function seed(key, value) {{
+    try {{
+      if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    }} catch (error) {{
+      console.warn('[shiranami] could not seed', key, error);
+    }}
+  }}
+{seeds}{fallback}}})();"#
+    ))
+}
+
 /// Install the two hooks that must exist before the user can touch the window.
 ///
 /// Called once, at the end of boot, after `AppState` is managed — the close
@@ -163,6 +254,119 @@ fn restore_compact_mode(window: &WebviewWindow) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shiranami_core::migrate::{Migrated, Outcome};
+
+    fn migrated() -> Outcome {
+        Outcome::Migrated(Migrated {
+            copied_bytes: 1,
+            v1_version: None,
+            resumed: false,
+        })
+    }
+
+    fn dump(dir: &std::path::Path, body: &str) {
+        std::fs::write(dir.join("renderer-state.json"), body).expect("write the dump");
+    }
+
+    /// The seed puts the v1 keys back, and puts them back *verbatim* — a zustand
+    /// slice is itself JSON, so the value is a string containing quotes and
+    /// braces and must survive into the script escaped rather than interpolated.
+    #[test]
+    fn the_seed_restores_the_dumped_keys_with_their_values_escaped() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        dump(
+            dir.path(),
+            r#"{"keys":{"shiranami.theme":"\"dark\"","shiranami.app-store":"{\"state\":{\"uiScale\":115}}"}}"#,
+        );
+
+        let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed is produced");
+
+        assert!(script.contains(r#"seed("shiranami.theme", "\"dark\"")"#), "{script}");
+        assert!(
+            script.contains(r#"seed("shiranami.app-store", "{\"state\":{\"uiScale\":115}}")"#),
+            "{script}"
+        );
+    }
+
+    /// The property that lets the script run on every launch instead of once: it
+    /// never overwrites a value the user has since changed in v2.
+    #[test]
+    fn the_seed_only_writes_keys_local_storage_does_not_already_hold() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        dump(dir.path(), r#"{"keys":{"shiranami.theme":"\"dark\""}}"#);
+
+        let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed");
+
+        assert!(
+            script.contains("getItem(key) === null"),
+            "a seed that overwrote would revert a v2 preference on the next start: {script}"
+        );
+    }
+
+    /// A dump can only reach `localStorage` through the prefix filter, because
+    /// this script runs before page code and anything it writes is
+    /// indistinguishable from something the app stored itself.
+    #[test]
+    fn a_tampered_dump_cannot_seed_keys_outside_the_shiranami_namespace() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        dump(
+            dir.path(),
+            r#"{"keys":{"shiranami.theme":"\"dark\"","authToken":"stolen"}}"#,
+        );
+
+        let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed");
+
+        assert!(script.contains("shiranami.theme"), "{script}");
+        assert!(!script.contains("authToken"), "{script}");
+        assert!(!script.contains("stolen"), "{script}");
+    }
+
+    /// §3.5's belt-and-braces: a v1 user who never got the bridge release has no
+    /// dump at all, and must not be re-onboarded on top of a migration.
+    #[test]
+    fn a_migration_with_no_dump_still_seeds_the_onboarding_flag() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+
+        let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed");
+
+        assert!(script.contains("shiranami.onboarding"), "{script}");
+        assert!(script.contains("hasCompletedOnboarding"), "{script}");
+    }
+
+    /// …and a genuinely fresh install is not told it has already onboarded.
+    #[test]
+    fn a_fresh_install_gets_no_seed_at_all() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+
+        for outcome in [Outcome::NoLegacyData, Outcome::AlreadyMigrated] {
+            assert!(
+                renderer_seed_script(dir.path(), &outcome).is_none(),
+                "{outcome:?} has no v1 renderer state to restore"
+            );
+        }
+    }
+
+    /// The dump wins over the reconstruction when both could supply the flag —
+    /// the real slice carries whatever else the store persisted.
+    #[test]
+    fn a_dumped_onboarding_slice_is_seeded_before_the_fallback() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        dump(
+            dir.path(),
+            r#"{"keys":{"shiranami.onboarding":"{\"state\":{\"hasCompletedOnboarding\":true},\"version\":9}"}}"#,
+        );
+
+        let script = renderer_seed_script(dir.path(), &migrated()).expect("a seed");
+        let dumped = script.find(r#""version\":9"#).expect("the dumped slice is present");
+        let fallback = script.find(r#"'{"state":{"hasCompletedOnboarding":true},"version":1}'"#);
+
+        if let Some(fallback) = fallback {
+            assert!(
+                dumped < fallback,
+                "the dump has to be seeded first, since `seed` never overwrites"
+            );
+        }
+    }
 
     /// The shim reads `window.__SHIRANAMI_E2E__` and compares it with `=== true`
     /// (`bridge/environment.ts`), so the script has to emit a real boolean

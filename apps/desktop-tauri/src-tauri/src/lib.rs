@@ -64,13 +64,43 @@ pub fn run() {
     // names the handler does not answer to.
     let specta = bindings::builder();
 
+    // The webview's pre-page script: `__SHIRANAMI_E2E__`, the mediaSession
+    // suppression (D10), and §3.5's `localStorage` seed when a v1 dump was
+    // migrated.
+    //
+    // It is delivered as a **plugin** because `tauri.conf.json` declares the
+    // main window, so Tauri builds it during `build()` and there is no
+    // `WebviewWindowBuilder` here to hang an `initialization_script` on.
+    // `plugin::Builder::js_init_script` injects into every webview with the
+    // same before-any-page-script timing, which is the property
+    // `bridge/environment.ts` depends on — it reads both globals synchronously
+    // at module scope, long before an `invoke` could answer.
+    //
+    // Phase 16 wrote `window::initialization_script` and never called it, so
+    // until now neither global reached the webview and the renderer's
+    // mediaSession was still live.
+    let mut init_script = window::initialization_script(e2e);
+    if let Some(seed) = preflight.renderer_seed.take() {
+        init_script.push('\n');
+        init_script.push_str(&seed);
+    }
+
     let mut builder = tauri::Builder::default()
         // First, and for two independent reasons. See the doc above.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // A second launch may carry a `shiranami://` link in its argv, which
             // is how Windows and Linux deliver one to a running app.
             deep_link::on_second_instance(app, &args);
-        }));
+        }))
+        .plugin(
+            // The `C` parameter is the plugin's `tauri.conf.json` config
+            // section. `()` says "this plugin has none" — which matters: a
+            // plugin with an inferred config type would fail the builder the
+            // way `tauri-plugin-updater` did when its section was absent.
+            tauri::plugin::Builder::<tauri::Wry, ()>::new("shiranami-init")
+                .js_init_script(init_script)
+                .build(),
+        );
 
     // The updater plugin is registered only on a build that has one, behind the
     // *same* predicate `crate::updater::build` uses — so "the plugin is loaded"
@@ -139,8 +169,22 @@ pub fn run() {
             // on the main thread before the event loop starts, so it is not a
             // runtime worker and nothing is waiting on it. Every stage below has
             // to complete before the first command can be answered.
-            let booted =
-                tauri::async_runtime::block_on(boot::sequence::finish(&handle, &mut preflight))?;
+            let booted = match tauri::async_runtime::block_on(boot::sequence::finish(
+                &handle,
+                &mut preflight,
+            )) {
+                Ok(booted) => booted,
+                // §3.1 step 7. The refusal was already true — an `Err` here
+                // aborts `build()` — but it was silent: a user who
+                // double-clicked an icon has no stderr to read the panic
+                // on, so the app simply failed to appear. The dialog is
+                // what makes "refuse to start" a *clear* error rather than
+                // an absent one.
+                Err(error) => {
+                    boot::refuse::refuse_to_start(&handle, &error);
+                    return Err(Box::new(error));
+                }
+            };
 
             let folders = std::sync::Arc::clone(&booted.folders);
             app.manage(booted.state);
