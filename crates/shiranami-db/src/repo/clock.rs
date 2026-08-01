@@ -27,3 +27,10 @@
 /// The clock moves from the Node process to SQLite, which is the same system
 /// UTC clock the column defaults already read.
 pub(crate) const ISO_8601_NOW: &str = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
+
+/// What a `DEFAULT (datetime('now'))` column writes: `2026-08-01 12:34:56`.
+///
+/// Second resolution, no `T`, no zone suffix. Used where a v1 handler set a
+/// timestamp with drizzle's ``sql`datetime('now')` `` rather than a JavaScript
+/// date — `smart_playlists.updated_at` is the one that does.
+pub(crate) const SQLITE_NOW: &str = "datetime('now')";

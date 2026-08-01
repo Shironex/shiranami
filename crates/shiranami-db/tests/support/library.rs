@@ -12,8 +12,11 @@
 
 #![allow(dead_code, reason = "each test file uses a different subset")]
 
-use shiranami_core::models::{PlaylistCreateInput, TrackCreateInput, TrackUpdateInput};
-use shiranami_db::repo::{playlist_tracks, playlists, tracks};
+use shiranami_core::models::{
+    PlaylistCreateInput, SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType,
+    SmartPlaylistOperator, SmartPlaylistRule, TrackCreateInput, TrackUpdateInput,
+};
+use shiranami_db::repo::{playlist_tracks, playlists, smart_playlists, tracks};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
 
@@ -139,6 +142,67 @@ pub(crate) async fn playlist_track_ids(library: &Library, playlist_id: &str) -> 
         .expect("the membership must read")
         .into_iter()
         .map(|track| track.id)
+        .collect()
+}
+
+/// A smart-playlist rule with no upper bound.
+pub(crate) fn rule(
+    field: SmartPlaylistField,
+    operator: SmartPlaylistOperator,
+    value: &str,
+) -> SmartPlaylistRule {
+    SmartPlaylistRule {
+        field,
+        operator,
+        value: value.to_owned(),
+        value_to: None,
+    }
+}
+
+/// A rule definition.
+pub(crate) fn definition(
+    match_type: SmartPlaylistMatchType,
+    rules: Vec<SmartPlaylistRule>,
+) -> SmartPlaylistDefinition {
+    SmartPlaylistDefinition { match_type, rules }
+}
+
+/// Add a track carrying a genre and a year, returning its id.
+pub(crate) async fn tagged(
+    library: &Library,
+    title: &str,
+    genre: &str,
+    year: Option<i32>,
+) -> String {
+    tracks::add(
+        &library.pool,
+        &TrackCreateInput {
+            file_path: format!("/music/{title}.mp3"),
+            title: title.to_owned(),
+            artist: Some("Test Artist".to_owned()),
+            album: Some("Test Album".to_owned()),
+            genre: Some(genre.to_owned()),
+            year,
+            duration: Some(200.0),
+            ..TrackCreateInput::default()
+        },
+    )
+    .await
+    .expect("the track must insert")
+    .expect("an insert returns its row")
+    .id
+}
+
+/// Evaluate a definition and return the matching titles.
+pub(crate) async fn preview(
+    library: &Library,
+    definition: &SmartPlaylistDefinition,
+) -> Vec<String> {
+    smart_playlists::preview(&library.pool, definition)
+        .await
+        .expect("the preview must evaluate")
+        .into_iter()
+        .map(|track| track.title)
         .collect()
 }
 

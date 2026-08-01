@@ -28,6 +28,8 @@ pub(crate) mod conn;
 pub mod folders;
 pub mod playlist_tracks;
 pub mod playlists;
+pub mod smart_playlists;
+pub mod smart_rules;
 pub(crate) mod track_patch;
 pub(crate) mod track_row;
 pub mod tracks;
