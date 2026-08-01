@@ -21,14 +21,12 @@ describe('dialog payload schemas', () => {
       expect(
         dialogOpenFileArgs.safeParse([
           { filters: [{ name: 'Audio', extensions: ['mp3', 'flac'] }] },
-        ]).success,
+        ]).success
       ).toBe(true);
     });
 
     it('rejects malformed filter', () => {
-      expect(
-        dialogOpenFileArgs.safeParse([{ filters: [{ name: 'Audio' }] }]).success,
-      ).toBe(false);
+      expect(dialogOpenFileArgs.safeParse([{ filters: [{ name: 'Audio' }] }]).success).toBe(false);
     });
   });
 });

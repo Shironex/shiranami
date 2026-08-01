@@ -13,8 +13,8 @@ export interface UsePrimaryRGBResult {
 const FALLBACK: [number, number, number] = [155, 125, 235];
 
 function parsePrimaryRGB(raw: string): [number, number, number] {
-  const parts = raw.split(',').map((p) => Number(p.trim()));
-  if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
+  const parts = raw.split(',').map(p => Number(p.trim()));
+  if (parts.length === 3 && parts.every(n => !Number.isNaN(n))) {
     return parts as [number, number, number];
   }
   return FALLBACK;
@@ -22,9 +22,7 @@ function parsePrimaryRGB(raw: string): [number, number, number] {
 
 function readFromDocument(): [number, number, number] {
   if (typeof document === 'undefined') return FALLBACK;
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue('--primary-rgb')
-    .trim();
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--primary-rgb').trim();
   if (!raw) return FALLBACK;
   return parsePrimaryRGB(raw);
 }

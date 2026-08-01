@@ -25,7 +25,7 @@ interface DownloadActions {
 
 const INITIAL_LABEL = () => i18n.t('installingMissingTools', { ns: 'toast' });
 
-export const useDownloadStore = create<DownloadState & DownloadActions>((set) => ({
+export const useDownloadStore = create<DownloadState & DownloadActions>(set => ({
   isDependencyInstallInProgress: false,
   dependencyInstallProgress: 0,
   dependencyInstallLabel: INITIAL_LABEL(),
@@ -39,7 +39,7 @@ export const useDownloadStore = create<DownloadState & DownloadActions>((set) =>
       dependencyInstallTarget: null,
     }),
 
-  updateDependencyInstall: (progress) =>
+  updateDependencyInstall: progress =>
     set({
       isDependencyInstallInProgress: true,
       dependencyInstallProgress: progress.overallPercent,

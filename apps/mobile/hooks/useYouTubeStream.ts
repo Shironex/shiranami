@@ -26,7 +26,7 @@ export function useYouTubeStream() {
         setStreaming(null);
       }
     },
-    [setQueue],
+    [setQueue]
   );
 
   return { streamResult, streaming };

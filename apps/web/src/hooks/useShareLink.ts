@@ -24,9 +24,7 @@ export function useShareLink(): UseShareLinkResult {
   const [error, setError] = useState('');
 
   const run = useCallback(
-    async (
-      fn: () => Promise<{ code: string; url: string; expiresAt: string }>,
-    ) => {
+    async (fn: () => Promise<{ code: string; url: string; expiresAt: string }>) => {
       if (!IS_ELECTRON) return;
       setState('loading');
       setError('');
@@ -40,18 +38,17 @@ export function useShareLink(): UseShareLinkResult {
         setState('error');
       }
     },
-    [],
+    []
   );
 
   const shareTrack = useCallback(
     (trackId: string) => run(() => window.electronAPI.share.track(trackId)),
-    [run],
+    [run]
   );
 
   const sharePlaylist = useCallback(
-    (playlistId: string) =>
-      run(() => window.electronAPI.share.playlist(playlistId)),
-    [run],
+    (playlistId: string) => run(() => window.electronAPI.share.playlist(playlistId)),
+    [run]
   );
 
   const reset = useCallback(() => {

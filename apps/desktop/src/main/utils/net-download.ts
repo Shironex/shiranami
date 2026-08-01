@@ -14,7 +14,7 @@ export function downloadFile(
   return new Promise<void>((resolve, reject) => {
     const request = net.request(url);
 
-    request.on('response', (response) => {
+    request.on('response', response => {
       // Follow redirects are handled automatically by net.request
       const statusCode = response.statusCode;
 
@@ -23,10 +23,7 @@ export function downloadFile(
         return;
       }
 
-      const contentLength = parseInt(
-        response.headers['content-length'] as string,
-        10
-      );
+      const contentLength = parseInt(response.headers['content-length'] as string, 10);
       let downloaded = 0;
 
       const writeStream = fs.createWriteStream(destPath);
@@ -35,10 +32,7 @@ export function downloadFile(
         writeStream.write(chunk);
         downloaded += chunk.length;
         if (contentLength > 0 && onProgress) {
-          const percent = Math.min(
-            100,
-            Math.round((downloaded / contentLength) * 100)
-          );
+          const percent = Math.min(100, Math.round((downloaded / contentLength) * 100));
           onProgress(percent);
         }
       });

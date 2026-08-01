@@ -111,9 +111,7 @@ export function useTracks() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const rows = await db.getAllAsync<RawTrack>(
-      'SELECT * FROM tracks ORDER BY created_at DESC',
-    );
+    const rows = await db.getAllAsync<RawTrack>('SELECT * FROM tracks ORDER BY created_at DESC');
     setTracks(rows.map(mapTrack));
     setLoading(false);
   }, [db]);
@@ -128,13 +126,23 @@ export function useTracks() {
       await db.runAsync(
         `INSERT INTO tracks (id, file_path, title, artist, album, duration, genre, year, track_number, album_art)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, track.filePath, track.title, track.artist, track.album, track.duration,
-         track.genre, track.year, track.trackNumber, track.albumArt],
+        [
+          id,
+          track.filePath,
+          track.title,
+          track.artist,
+          track.album,
+          track.duration,
+          track.genre,
+          track.year,
+          track.trackNumber,
+          track.albumArt,
+        ]
       );
       await refresh();
       return id;
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const remove = useCallback(
@@ -142,38 +150,47 @@ export function useTracks() {
       await db.runAsync('DELETE FROM tracks WHERE id = ?', [id]);
       await refresh();
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const toggleFavorite = useCallback(
     async (id: string) => {
       await db.runAsync(
-        'UPDATE tracks SET is_favorite = NOT is_favorite, updated_at = datetime(\'now\') WHERE id = ?',
-        [id],
+        "UPDATE tracks SET is_favorite = NOT is_favorite, updated_at = datetime('now') WHERE id = ?",
+        [id]
       );
       await refresh();
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const incrementPlayCount = useCallback(
     async (id: string) => {
       await db.runAsync(
-        'UPDATE tracks SET play_count = play_count + 1, updated_at = datetime(\'now\') WHERE id = ?',
-        [id],
+        "UPDATE tracks SET play_count = play_count + 1, updated_at = datetime('now') WHERE id = ?",
+        [id]
       );
     },
-    [db],
+    [db]
   );
 
   const getFavorites = useCallback(async () => {
     const rows = await db.getAllAsync<RawTrack>(
-      'SELECT * FROM tracks WHERE is_favorite = 1 ORDER BY updated_at DESC',
+      'SELECT * FROM tracks WHERE is_favorite = 1 ORDER BY updated_at DESC'
     );
     return rows.map(mapTrack);
   }, [db]);
 
-  return { tracks, loading, refresh, add, remove, toggleFavorite, incrementPlayCount, getFavorites };
+  return {
+    tracks,
+    loading,
+    refresh,
+    add,
+    remove,
+    toggleFavorite,
+    incrementPlayCount,
+    getFavorites,
+  };
 }
 
 // ==========================================
@@ -191,7 +208,7 @@ export function usePlaylists() {
        FROM playlists p
        LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
        GROUP BY p.id
-       ORDER BY p.updated_at DESC`,
+       ORDER BY p.updated_at DESC`
     );
     setPlaylists(
       rows.map(r => ({
@@ -202,7 +219,7 @@ export function usePlaylists() {
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,
         trackCount: r.track_count,
-      })),
+      }))
     );
     setLoading(false);
   }, [db]);
@@ -214,14 +231,15 @@ export function usePlaylists() {
   const create = useCallback(
     async (name: string, description?: string) => {
       const id = randomUUID();
-      await db.runAsync(
-        'INSERT INTO playlists (id, name, description) VALUES (?, ?, ?)',
-        [id, name, description ?? null],
-      );
+      await db.runAsync('INSERT INTO playlists (id, name, description) VALUES (?, ?, ?)', [
+        id,
+        name,
+        description ?? null,
+      ]);
       await refresh();
       return id;
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const remove = useCallback(
@@ -229,7 +247,7 @@ export function usePlaylists() {
       await db.runAsync('DELETE FROM playlists WHERE id = ?', [id]);
       await refresh();
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const addTrack = useCallback(
@@ -237,29 +255,28 @@ export function usePlaylists() {
       const id = randomUUID();
       const maxPos = await db.getFirstAsync<{ max_pos: number | null }>(
         'SELECT MAX(position) as max_pos FROM playlist_tracks WHERE playlist_id = ?',
-        [playlistId],
+        [playlistId]
       );
       const position = (maxPos?.max_pos ?? -1) + 1;
       await db.runAsync(
         'INSERT OR IGNORE INTO playlist_tracks (id, playlist_id, track_id, position) VALUES (?, ?, ?, ?)',
-        [id, playlistId, trackId, position],
+        [id, playlistId, trackId, position]
       );
-      await db.runAsync(
-        'UPDATE playlists SET updated_at = datetime(\'now\') WHERE id = ?',
-        [playlistId],
-      );
+      await db.runAsync("UPDATE playlists SET updated_at = datetime('now') WHERE id = ?", [
+        playlistId,
+      ]);
     },
-    [db],
+    [db]
   );
 
   const removeTrack = useCallback(
     async (playlistId: string, trackId: string) => {
-      await db.runAsync(
-        'DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?',
-        [playlistId, trackId],
-      );
+      await db.runAsync('DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?', [
+        playlistId,
+        trackId,
+      ]);
     },
-    [db],
+    [db]
   );
 
   const getTracks = useCallback(
@@ -269,11 +286,11 @@ export function usePlaylists() {
          JOIN playlist_tracks pt ON pt.track_id = t.id
          WHERE pt.playlist_id = ?
          ORDER BY pt.position ASC`,
-        [playlistId],
+        [playlistId]
       );
       return rows.map(mapTrack);
     },
-    [db],
+    [db]
   );
 
   const reorder = useCallback(
@@ -282,12 +299,12 @@ export function usePlaylists() {
         for (let i = 0; i < trackIds.length; i++) {
           await db.runAsync(
             'UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?',
-            [i, playlistId, trackIds[i]],
+            [i, playlistId, trackIds[i]]
           );
         }
       });
     },
-    [db],
+    [db]
   );
 
   return { playlists, loading, refresh, create, remove, addTrack, removeTrack, getTracks, reorder };
@@ -307,22 +324,24 @@ export function useHistory() {
       await db.runAsync(
         `INSERT INTO play_history (id, track_id, played_seconds, completion_ratio, completed, source)
          VALUES (?, ?, ?, ?, ?, 'library')`,
-        [id, trackId, playedSeconds, completionRatio, completed ? 1 : 0],
+        [id, trackId, playedSeconds, completionRatio, completed ? 1 : 0]
       );
     },
-    [db],
+    [db]
   );
 
   const getRecent = useCallback(
     async (limit = 50): Promise<(PlayHistoryEntry & { track: Track })[]> => {
-      const rows = await db.getAllAsync<RawTrack & {
-        ph_id: string;
-        ph_played_at: string;
-        ph_played_seconds: number;
-        ph_completion_ratio: number;
-        ph_completed: number;
-        ph_source: string;
-      }>(
+      const rows = await db.getAllAsync<
+        RawTrack & {
+          ph_id: string;
+          ph_played_at: string;
+          ph_played_seconds: number;
+          ph_completion_ratio: number;
+          ph_completed: number;
+          ph_source: string;
+        }
+      >(
         `SELECT t.*, ph.id as ph_id, ph.played_at as ph_played_at,
                 ph.played_seconds as ph_played_seconds, ph.completion_ratio as ph_completion_ratio,
                 ph.completed as ph_completed, ph.source as ph_source
@@ -330,7 +349,7 @@ export function useHistory() {
          JOIN tracks t ON t.id = ph.track_id
          ORDER BY ph.played_at DESC
          LIMIT ?`,
-        [limit],
+        [limit]
       );
       return rows.map(r => ({
         id: r.ph_id,
@@ -343,7 +362,7 @@ export function useHistory() {
         track: mapTrack(r),
       }));
     },
-    [db],
+    [db]
   );
 
   const getSummary = useCallback(async () => {
@@ -355,7 +374,7 @@ export function useHistory() {
       `SELECT COUNT(*) as total_plays,
               COALESCE(SUM(played_seconds), 0) as total_seconds,
               COUNT(DISTINCT track_id) as unique_tracks
-       FROM play_history`,
+       FROM play_history`
     );
     return {
       totalPlays: result?.total_plays ?? 0,
@@ -409,7 +428,7 @@ export function useRadioFavorites() {
         bitrate: r.bitrate,
         tags: r.tags,
         createdAt: r.created_at,
-      })),
+      }))
     );
     setLoading(false);
   }, [db]);
@@ -425,13 +444,25 @@ export function useRadioFavorites() {
         `INSERT OR IGNORE INTO radio_favorites
          (id, station_uuid, name, url, url_resolved, homepage, favicon, country, country_code, language, codec, bitrate, tags)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, station.stationUuid, station.name, station.url, station.urlResolved,
-         station.homepage, station.favicon, station.country, station.countryCode,
-         station.language, station.codec, station.bitrate, station.tags],
+        [
+          id,
+          station.stationUuid,
+          station.name,
+          station.url,
+          station.urlResolved,
+          station.homepage,
+          station.favicon,
+          station.country,
+          station.countryCode,
+          station.language,
+          station.codec,
+          station.bitrate,
+          station.tags,
+        ]
       );
       await refresh();
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const remove = useCallback(
@@ -439,18 +470,18 @@ export function useRadioFavorites() {
       await db.runAsync('DELETE FROM radio_favorites WHERE station_uuid = ?', [stationUuid]);
       await refresh();
     },
-    [db, refresh],
+    [db, refresh]
   );
 
   const isFavorite = useCallback(
     async (stationUuid: string): Promise<boolean> => {
       const row = await db.getFirstAsync<{ count: number }>(
         'SELECT COUNT(*) as count FROM radio_favorites WHERE station_uuid = ?',
-        [stationUuid],
+        [stationUuid]
       );
       return (row?.count ?? 0) > 0;
     },
-    [db],
+    [db]
   );
 
   return { favorites, loading, refresh, add, remove, isFavorite };

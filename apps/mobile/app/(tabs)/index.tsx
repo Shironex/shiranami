@@ -54,7 +54,7 @@ export default function LibraryScreen() {
           albumArt: r.album_art ?? undefined,
           isFavorite: !!r.is_favorite,
           playCount: r.play_count ?? 0,
-        })),
+        }))
       );
     });
   }, [db, setLibrary]);
@@ -76,7 +76,7 @@ export default function LibraryScreen() {
     (index: number) => {
       setQueue(sorted, index);
     },
-    [sorted, setQueue],
+    [sorted, setQueue]
   );
 
   const handleFavorite = useCallback(
@@ -84,10 +84,10 @@ export default function LibraryScreen() {
       toggleFavorite(trackId);
       db.runAsync(
         "UPDATE tracks SET is_favorite = NOT is_favorite, updated_at = datetime('now') WHERE id = ?",
-        [trackId],
+        [trackId]
       );
     },
-    [toggleFavorite, db],
+    [toggleFavorite, db]
   );
 
   const cycleSortKey = useCallback(() => {
@@ -104,7 +104,7 @@ export default function LibraryScreen() {
         onFavoritePress={() => handleFavorite(item.id)}
       />
     ),
-    [currentTrack?.id, handlePlay, handleFavorite],
+    [currentTrack?.id, handlePlay, handleFavorite]
   );
 
   const keyExtractor = useCallback((item: Track) => item.id, []);
@@ -134,18 +134,10 @@ export default function LibraryScreen() {
         <View style={s.empty}>
           <Library size={48} color={colors.mutedForeground} />
           <Text style={s.emptyTitle}>No tracks yet</Text>
-          <Text style={s.emptySubtitle}>
-            Import music from your device to get started
-          </Text>
-          <Pressable
-            onPress={importFiles}
-            disabled={importing}
-            style={s.importBtn}
-          >
+          <Text style={s.emptySubtitle}>Import music from your device to get started</Text>
+          <Pressable onPress={importFiles} disabled={importing} style={s.importBtn}>
             <Plus size={18} color={colors.primaryForeground} />
-            <Text style={s.importBtnText}>
-              {importing ? 'Importing...' : 'Import Music'}
-            </Text>
+            <Text style={s.importBtnText}>{importing ? 'Importing...' : 'Import Music'}</Text>
           </Pressable>
         </View>
       ) : (
@@ -160,11 +152,7 @@ export default function LibraryScreen() {
 
       {/* FAB */}
       {library.length > 0 && (
-        <Pressable
-          onPress={importFiles}
-          disabled={importing}
-          style={[s.fab, { bottom: 16 }]}
-        >
+        <Pressable onPress={importFiles} disabled={importing} style={[s.fab, { bottom: 16 }]}>
           <Plus size={24} color={colors.primaryForeground} />
         </Pressable>
       )}

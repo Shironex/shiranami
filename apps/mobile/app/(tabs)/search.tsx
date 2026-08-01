@@ -31,16 +31,8 @@ function formatViewCount(count?: number): string {
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const {
-    query,
-    setQuery,
-    results,
-    suggestions,
-    loading,
-    error,
-    search,
-    clear,
-  } = useYouTubeSearch();
+  const { query, setQuery, results, suggestions, loading, error, search, clear } =
+    useYouTubeSearch();
   const { streamResult, streaming } = useYouTubeStream();
 
   const renderResult = useCallback(
@@ -72,7 +64,9 @@ export default function SearchScreen() {
 
           {/* Info */}
           <View style={s.resultInfo}>
-            <Text style={s.resultTitle} numberOfLines={2}>{item.title}</Text>
+            <Text style={s.resultTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
             <Text style={s.resultMeta} numberOfLines={1}>
               {item.uploader}
               {item.viewCount ? ` · ${formatViewCount(item.viewCount)}` : ''}
@@ -81,7 +75,7 @@ export default function SearchScreen() {
         </Pressable>
       );
     },
-    [streamResult, streaming],
+    [streamResult, streaming]
   );
 
   const renderSuggestion = useCallback(
@@ -91,10 +85,12 @@ export default function SearchScreen() {
         style={({ pressed }) => [s.suggestion, pressed && s.pressed]}
       >
         <Search size={14} color={colors.mutedForeground} />
-        <Text style={s.suggestionText} numberOfLines={1}>{item}</Text>
+        <Text style={s.suggestionText} numberOfLines={1}>
+          {item}
+        </Text>
       </Pressable>
     ),
-    [search],
+    [search]
   );
 
   return (

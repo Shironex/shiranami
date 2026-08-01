@@ -29,9 +29,7 @@ const validTrack = {
 describe('db:tracks payload schemas', () => {
   describe('newTrackSchema', () => {
     it('accepts a minimal valid track', () => {
-      expect(
-        newTrackSchema.safeParse({ filePath: '/a.mp3', title: 'x' }).success,
-      ).toBe(true);
+      expect(newTrackSchema.safeParse({ filePath: '/a.mp3', title: 'x' }).success).toBe(true);
     });
 
     it('rejects when title missing', () => {
@@ -43,9 +41,7 @@ describe('db:tracks payload schemas', () => {
     });
 
     it('rejects when filePath is empty string', () => {
-      expect(
-        newTrackSchema.safeParse({ filePath: '', title: 'x' }).success,
-      ).toBe(false);
+      expect(newTrackSchema.safeParse({ filePath: '', title: 'x' }).success).toBe(false);
     });
   });
 
@@ -80,9 +76,7 @@ describe('db:tracks payload schemas', () => {
     });
 
     it('rejects a missing-title track', () => {
-      expect(
-        tracksAddArgs.safeParse([{ filePath: '/a.mp3' }]).success,
-      ).toBe(false);
+      expect(tracksAddArgs.safeParse([{ filePath: '/a.mp3' }]).success).toBe(false);
     });
   });
 
@@ -129,18 +123,12 @@ describe('db:tracks payload schemas', () => {
   describe('tracksUpdateManyArgs', () => {
     it('accepts an array of {id, data}', () => {
       expect(
-        tracksUpdateManyArgs.safeParse([
-          [{ id: UUID, data: { artist: 'new' } }],
-        ]).success,
+        tracksUpdateManyArgs.safeParse([[{ id: UUID, data: { artist: 'new' } }]]).success
       ).toBe(true);
     });
 
     it('rejects when id is not a uuid', () => {
-      expect(
-        tracksUpdateManyArgs.safeParse([
-          [{ id: 'bad', data: {} }],
-        ]).success,
-      ).toBe(false);
+      expect(tracksUpdateManyArgs.safeParse([[{ id: 'bad', data: {} }]]).success).toBe(false);
     });
   });
 

@@ -63,9 +63,7 @@ describe('useAudioPreview', () => {
       await result.current.handlePreview(fakeItem);
     });
 
-    expect(window.electronAPI.downloader.getStreamUrl).toHaveBeenCalledWith(
-      fakeItem.webpage_url
-    );
+    expect(window.electronAPI.downloader.getStreamUrl).toHaveBeenCalledWith(fakeItem.webpage_url);
 
     const state = usePlaybackStore.getState();
     expect(state.queue).toHaveLength(1);
@@ -94,9 +92,7 @@ describe('useAudioPreview', () => {
       await result.current.handlePreview(itemNoWebpage);
     });
 
-    expect(window.electronAPI.downloader.getStreamUrl).toHaveBeenCalledWith(
-      itemNoWebpage.url
-    );
+    expect(window.electronAPI.downloader.getStreamUrl).toHaveBeenCalledWith(itemNoWebpage.url);
   });
 
   it('toggles play when the same preview track is already current', async () => {
@@ -187,7 +183,10 @@ describe('useAudioPreview', () => {
   it('sets previewLoadingId during fetch and clears it after', async () => {
     let resolveStream!: (value: string) => void;
     vi.mocked(window.electronAPI.downloader.getStreamUrl).mockImplementation(
-      () => new Promise((resolve) => { resolveStream = resolve; })
+      () =>
+        new Promise(resolve => {
+          resolveStream = resolve;
+        })
     );
 
     const { result } = renderHook(() => useAudioPreview());
@@ -225,9 +224,7 @@ describe('useAudioPreview', () => {
   });
 
   it('shows error toast with unknownError for non-Error exceptions', async () => {
-    vi.mocked(window.electronAPI.downloader.getStreamUrl).mockRejectedValue(
-      'some string error'
-    );
+    vi.mocked(window.electronAPI.downloader.getStreamUrl).mockRejectedValue('some string error');
 
     const { result } = renderHook(() => useAudioPreview());
 
@@ -294,9 +291,7 @@ describe('useAudioPreview (non-Electron)', () => {
       default: { t: (key: string) => key },
     }));
 
-    const { useAudioPreview: useAudioPreviewNonElectron } = await import(
-      '@/hooks/useAudioPreview'
-    );
+    const { useAudioPreview: useAudioPreviewNonElectron } = await import('@/hooks/useAudioPreview');
 
     // Reset the electronAPI mock so we can assert it was never called
     vi.mocked(window.electronAPI.downloader.getStreamUrl).mockReset();

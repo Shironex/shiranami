@@ -7,18 +7,13 @@ import { validateEnv } from './env';
 async function bootstrap() {
   validateEnv();
 
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter(),
-    { bufferLogs: true },
-  );
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
+    bufferLogs: true,
+  });
 
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
-  const corsOrigins = [
-    'https://shiranami.app',
-    'http://localhost:15175',
-  ];
+  const corsOrigins = ['https://shiranami.app', 'http://localhost:15175'];
   // Allow additional mobile/dev origins via env
   const mobileOrigins = process.env.MOBILE_ORIGINS;
   if (mobileOrigins) {

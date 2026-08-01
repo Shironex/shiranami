@@ -23,11 +23,7 @@ export async function setupTrackPlayer(): Promise<void> {
       Capability.SeekTo,
       Capability.Stop,
     ],
-    compactCapabilities: [
-      Capability.Play,
-      Capability.Pause,
-      Capability.SkipToNext,
-    ],
+    compactCapabilities: [Capability.Play, Capability.Pause, Capability.SkipToNext],
     android: {
       appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
     },
@@ -53,7 +49,7 @@ export async function playbackService() {
     TrackPlayer.skipToPrevious();
   });
 
-  TrackPlayer.addEventListener(Event.RemoteSeek, (event) => {
+  TrackPlayer.addEventListener(Event.RemoteSeek, event => {
     TrackPlayer.seekTo(event.position);
   });
 
