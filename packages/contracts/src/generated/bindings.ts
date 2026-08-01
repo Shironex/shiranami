@@ -214,6 +214,26 @@ export const commands = {
 	/**  `store:delete` — remove one renderer-visible key. */
 	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
 	/**
+	 *  `updater:check-for-updates` — ask whether this build updates itself, and
+	 *  start a check if it does.
+	 * 
+	 *  Cannot fail. See the module docs: v1 catches its own check failure and still
+	 *  answers `{ enabled: true }`, so a failing check reaches the user as an
+	 *  `updater:error` event. An absent seam answers `{ enabled: false }`, which is
+	 *  v1's answer in dev and on macOS.
+	 */
+	updaterCheckForUpdates: () => __TAURI_INVOKE<UpdaterCheck>("updater_check_for_updates"),
+	/**  `updater:start-download` — download the update that was found. */
+	updaterStartDownload: () => __TAURI_INVOKE<null>("updater_start_download"),
+	/**
+	 *  `updater:install-now` — quit and install.
+	 * 
+	 *  v1's `quitAndInstall()` does not return in the success case: the app exits.
+	 *  The renderer's mutation is therefore never observed resolving, only
+	 *  rejecting, which is why this returns `void` rather than a status.
+	 */
+	updaterInstallNow: () => __TAURI_INVOKE<null>("updater_install_now"),
+	/**
 	 *  `weather:geocode` — resolve a free-text city to coordinates.
 	 * 
 	 *  `Ok(None)` is "no such city", which is not an error. See the module docs.
@@ -1842,22 +1862,90 @@ export type TrackUpdateInput_Serialize = {
 	albumArt?: string | null,
 };
 
+/**
+ *  Byte progress for `updater:download-progress`.
+ * 
+ *  Ported from electron-updater's `ProgressInfo`, minus `delta`, which v1 did
+ *  not forward. Every field is a JavaScript `number`: `transferred` and `total`
+ *  are byte counts and `percent` is 0–100 (the renderer does
+ *  `Math.round(p.percent)`), so they are `f64` here rather than integer types
+ *  that specta would emit as `bigint`.
+ */
+export type UpdateDownloadProgress = {
+	/**  Current transfer rate in bytes per second. */
+	bytesPerSecond: number,
+	/**  Percentage complete, 0–100. */
+	percent: number,
+	/**  Bytes received so far. */
+	transferred: number,
+	/**  Total bytes to receive. */
+	total: number,
+};
+
+/**
+ *  Release metadata for `updater:update-available` and
+ *  `updater:update-downloaded`.
+ * 
+ *  A field-for-field port of `UpdateInfo` in
+ *  `packages/contracts/src/ipc/preload-api.ts`, which v1 assembled from
+ *  electron-updater's own `UpdateInfo` — dropping everything else it carried,
+ *  and flattening `releaseNotes` on the way (see [`UpdateInfo::release_notes`]).
+ */
+export type UpdateInfo = {
+	/**  The version being offered, as the manifest spells it. */
+	version: string,
+	/**
+	 *  The release notes, or `None` when the release has none.
+	 * 
+	 *  electron-updater typed this `string | Array<ReleaseNoteInfo> | null` and
+	 *  v1 normalised it before sending: an array became its entries' `note`
+	 *  fields joined by a blank line, an empty value became `null`. The wire
+	 *  type is therefore `string | null`, and the key is always present.
+	 */
+	releaseNotes: string | null,
+	/**
+	 *  The release timestamp, as a string, exactly as the manifest carries it.
+	 * 
+	 *  Never parsed on either side of the boundary in v1, so it stays a string
+	 *  rather than becoming an instant that would have to round-trip.
+	 */
+	releaseDate: string,
+};
+
+/**
+ *  What `updater:check-for-updates` answers.
+ * 
+ *  v1's return type was the inline object `{ enabled: boolean }`, and `enabled`
+ *  means "this build has a working updater", not "an update was found" — the
+ *  answer to *that* arrives as an event. `useUpdater` reads only this field.
+ */
+export type UpdaterCheck = {
+	/**  Whether this build can update itself at all. */
+	enabled: boolean,
+};
+
 /**  The updater started a check. */
 export type UpdaterCheckingForUpdate = null;
 
 /**  Byte progress downloading an update. */
-export type UpdaterDownloadProgress = Json;
+export type UpdaterDownloadProgress = UpdateDownloadProgress;
 
 /**  The updater failed. The payload is the message, as v1 sent it. */
 export type UpdaterError = string;
 
 /**  An update is available. */
-export type UpdaterUpdateAvailable = Json;
+export type UpdaterUpdateAvailable = UpdateInfo;
 
 /**  An update finished downloading and is ready to install. */
-export type UpdaterUpdateDownloaded = Json;
+export type UpdaterUpdateDownloaded = UpdateInfo;
 
-/**  The app is already current. */
+/**
+ *  The app is already current.
+ * 
+ *  Carries nothing on purpose: v1's handler receives the `UpdateInfo`,
+ *  logs the version and then calls `sendToRenderer(channel)` with **no**
+ *  second argument. The renderer's listener is `(callback: () => void)`.
+ */
 export type UpdaterUpdateNotAvailable = null;
 
 /**

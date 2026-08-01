@@ -204,6 +204,9 @@ mod tests {
             "dbTracksUpdateMany",
             "mediaPlaybackState",
             "mediaClearState",
+            "updaterCheckForUpdates",
+            "updaterStartDownload",
+            "updaterInstallNow",
         ];
 
         for command in PORTED_NAMES {

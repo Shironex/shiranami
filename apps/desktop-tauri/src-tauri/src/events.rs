@@ -44,6 +44,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri_specta::Event;
 
+use crate::commands::updater::{UpdateDownloadProgress, UpdateInfo};
 use crate::wire::Json;
 use shiranami_core::SystemNotice;
 use shiranami_core::models::{DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot};
@@ -153,16 +154,20 @@ events! {
     UpdaterCheckingForUpdate = "updater:checking-for-update" => ();
 
     /// An update is available.
-    UpdaterUpdateAvailable = "updater:update-available" => Json;
+    UpdaterUpdateAvailable = "updater:update-available" => UpdateInfo;
 
     /// The app is already current.
+    ///
+    /// Carries nothing on purpose: v1's handler receives the `UpdateInfo`,
+    /// logs the version and then calls `sendToRenderer(channel)` with **no**
+    /// second argument. The renderer's listener is `(callback: () => void)`.
     UpdaterUpdateNotAvailable = "updater:update-not-available" => ();
 
     /// Byte progress downloading an update.
-    UpdaterDownloadProgress = "updater:download-progress" => Json;
+    UpdaterDownloadProgress = "updater:download-progress" => UpdateDownloadProgress;
 
     /// An update finished downloading and is ready to install.
-    UpdaterUpdateDownloaded = "updater:update-downloaded" => Json;
+    UpdaterUpdateDownloaded = "updater:update-downloaded" => UpdateInfo;
 
     /// The updater failed. The payload is the message, as v1 sent it.
     UpdaterError = "updater:error" => String;
