@@ -127,8 +127,13 @@ pub async fn recommendations_get(
         }))
 }
 
-/// `recommendations:refresh` — rebuild what can be rebuilt, then return both
-/// shelves.
+/// `recommendations:refresh` — rebuild both shelves, then return them.
+///
+/// The library half is one SQL recompute. The discover half spawns yt-dlp
+/// against three seeds' RD mixes, so it runs through [`crate::discover`] with
+/// **no connection held** — the pool has one and the fan-out takes seconds —
+/// and behind the latch that stops it overlapping the background refresh.
+/// Absent under the E2E harness, where the shelf is served from its cache.
 ///
 /// On failure this falls back to *reading* the shelves rather than to an empty
 /// pair, exactly as v1's `() => getRecommendationShelves()` did — the user
@@ -141,6 +146,15 @@ pub async fn recommendations_refresh(
     state: State<'_, AppState>,
 ) -> CommandResult<RecommendationShelves> {
     let now_ms = instant::now_ms();
+
+    if let Some(discover) = state.deferred().discover.clone() {
+        // Before the library recompute rather than after it, so the shelves
+        // read at the end include the shelf this just wrote — v1 returned both
+        // halves from one refresh and the renderer compares `generatedAt`
+        // across the call to decide whether it degraded to the cache.
+        discover.run(&state, now_ms).await;
+    }
+
     let mut conn = state.conn().await?;
 
     match service::refresh(&mut conn, now_ms).await {

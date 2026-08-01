@@ -168,6 +168,15 @@ pub struct Deferred {
     /// binary, which is a boot-time answer — the binary may not be on disk yet
     /// on a first run.
     pub search: Option<Arc<shiranami_downloader::search::SearchService>>,
+
+    /// The discover shelf's yt-dlp fan-out, and the latch that coalesces it.
+    ///
+    /// Deferred for `search`'s reason — it needs the resolved path to the
+    /// managed yt-dlp — and held rather than rebuilt per call for a second one:
+    /// the latch is the state, and a per-call refresh would be two latches and
+    /// therefore none. Absent under `SHIRANAMI_E2E=1`, where no external binary
+    /// may run.
+    pub discover: Option<Arc<crate::discover::DiscoverRefresh>>,
 }
 
 impl AppState {

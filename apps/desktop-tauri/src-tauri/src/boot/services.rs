@@ -30,6 +30,7 @@ use shiranami_integrations::discord::{DiscordIpcSocket, DiscordPresence};
 use shiranami_integrations::lyrics::{LrclibClient, LyricsPolicy, LyricsService};
 use shiranami_integrations::scrobble::{LastfmCredentials, Scrobbler};
 use shiranami_net::HttpClient;
+use shiranami_recommendation::service::DiscoverFetcher;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
 
@@ -105,6 +106,17 @@ pub fn build(ingredients: &Ingredients) -> (Deferred, Handles) {
         shiranami_downloader::bin::layout::yt_dlp_path(&bin, Platform::HOST),
     ));
 
+    // A third service over the same runner and path, for `search`'s reason and
+    // one more: the discover fan-out is the only caller that needs a *latch*,
+    // and a latch that lives beside the fetcher cannot be forgotten by a caller
+    // that builds its own.
+    let discover = (!ingredients.e2e).then(|| {
+        Arc::new(crate::discover::DiscoverRefresh::new(DiscoverFetcher::new(
+            Arc::clone(&processes) as Arc<dyn shiranami_downloader::spawn::ProcessRunner>,
+            shiranami_downloader::bin::layout::yt_dlp_path(&bin, Platform::HOST),
+        )))
+    });
+
     let downloads = build_queue(ingredients, &processes, &bin);
     let discord = build_discord(ingredients);
 
@@ -127,6 +139,7 @@ pub fn build(ingredients: &Ingredients) -> (Deferred, Handles) {
             &ingredients.http,
         )),
         search: Some(search),
+        discover,
     };
 
     (deferred, Handles { discord })

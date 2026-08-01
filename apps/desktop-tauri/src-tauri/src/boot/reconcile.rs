@@ -229,9 +229,13 @@ fn start_discord_pump(app: &AppHandle, presence: Arc<DiscordService>) {
 
 /// v1's 30-second, stale-gated, coalesced background refresh.
 ///
-/// The staleness check happens **at fire time**, not at schedule time: a user
-/// who opened the recommendations tab in the first thirty seconds has already
-/// warmed the cache, and refreshing again would spawn yt-dlp for nothing.
+/// Both shelves, in v1's order: the library shelf is a bounded SQL recompute
+/// and runs unconditionally, then the discover shelf's yt-dlp fan-out runs only
+/// if its cache has aged out. The staleness check happens **at fire time**, not
+/// at schedule time — a user who opened the recommendations tab in the first
+/// thirty seconds has already warmed the cache, and refreshing again would
+/// spawn yt-dlp for nothing. [`crate::discover`] owns that gate and the latch
+/// that keeps this run and a user's Refresh from fanning out together.
 fn schedule_recommendation_refresh(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -240,14 +244,27 @@ fn schedule_recommendation_refresh(app: &AppHandle) {
         let Some(state) = app.try_state::<AppState>() else {
             return;
         };
-        let Ok(mut conn) = state.conn().await else {
-            return;
-        };
-
         let now = shiranami_core::time::now_ms();
-        match shiranami_recommendation::service::refresh(&mut conn, now).await {
-            Ok(_) => tracing::debug!("the background recommendation refresh completed"),
-            Err(error) => tracing::warn!(%error, "the background recommendation refresh failed"),
+
+        {
+            // Scoped so the connection is released before the fan-out below,
+            // which spawns yt-dlp and waits seconds for it. The pool holds one
+            // connection; holding it across that would stall every command the
+            // user made meanwhile.
+            let Ok(mut conn) = state.conn().await else {
+                return;
+            };
+
+            match shiranami_recommendation::service::refresh(&mut conn, now).await {
+                Ok(_) => tracing::debug!("the background library refresh completed"),
+                Err(error) => tracing::warn!(%error, "the background library refresh failed"),
+            }
+        }
+
+        // Absent under the E2E harness, which is also why the whole function is
+        // unreachable there.
+        if let Some(discover) = state.deferred().discover.clone() {
+            discover.run_if_stale(&state, now).await;
         }
     });
 }

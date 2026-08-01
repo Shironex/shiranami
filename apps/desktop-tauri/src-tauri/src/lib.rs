@@ -18,6 +18,7 @@ pub mod boot;
 pub mod commands;
 pub mod compact;
 pub mod deep_link;
+pub mod discover;
 pub mod downloads;
 pub mod error;
 pub mod events;
