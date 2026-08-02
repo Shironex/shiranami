@@ -29,6 +29,19 @@ vi.mock('@shiranami/contracts/bindings', () => ({
   events: {},
 }));
 
+// `src/test/setup.ts` imports `@/lib/i18n`, which reaches `@/lib/platform`,
+// which imports the bridge's install seam — so by the time this file runs, the
+// whole shim including `../commands` is already in the module registry, bound
+// to the *real* generated bindings. The `vi.mock` above registers after that
+// and would never be consulted; the dynamic imports below would hand back the
+// cached modules and the assertions would silently be measuring real `invoke`
+// calls against an absent `__TAURI_INTERNALS__`.
+//
+// Resetting the registry here is what makes the mock reachable. It has to be
+// between the mock and the imports, which is why they are dynamic in the first
+// place.
+vi.resetModules();
+
 const { dbBackupApi } = await import('./namespaces/db-backup');
 const { orUndefined } = await import('./wire');
 
