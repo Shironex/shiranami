@@ -432,3 +432,17 @@ incremental = true
 lto = true
 codegen-units = 1
 strip = true
+
+# Phase 19. `strip = true` above keeps the shipped binary small, and these two
+# put the symbols in a sidecar next to it rather than throwing them away —
+# `.dSYM` on macOS, `.pdb` on Windows MSVC — for the release workflow to upload
+# to Sentry.
+#
+# Without them the minidump handler Phase 16 wired (`sentry-rust-minidump`)
+# reports crashes as bare addresses that no one can resolve. `1` is line tables
+# only, which is all a symbolicated stack trace needs; full `debug = true` would
+# pay for variable info nothing reads.
+#
+# The shipped bytes are unchanged: `strip` runs after the sidecar is produced.
+debug = 1
+split-debuginfo = "packed"

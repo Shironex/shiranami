@@ -112,6 +112,14 @@ jobs:
       - name: v1 album-art fixture is not stale
         run: pnpm verify:art-baseline
 
+      # The release manifests are read by the v1 Electron bridge and by
+      # `tauri-plugin-updater`, neither of which is in this repo's test surface,
+      # and the bridge's failure mode for a malformed manifest is *silence* —
+      # it goes dormant and logs one line. So the generator's guards are checked
+      # here, on every change, rather than first at release time.
+      - name: Release manifest generator self-test
+        run: pnpm verify:release-manifests
+
       - name: Format check
         run: pnpm format:check
 
