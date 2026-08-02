@@ -200,6 +200,12 @@ export default defineConfig(
       'apps/desktop-tauri/src-tauri/gen/**',
       'packages/eslint-plugin/dist/**',
       '.design-sync/**',
+      // Agent worktrees are whole checkouts of this repo nested inside it. They
+      // have their own `eslint.config.mjs` and their own (often unbuilt)
+      // `node_modules`, so `eslint .` at the root tries to load a plugin from a
+      // sibling checkout and dies before it lints anything of ours. Never
+      // authored here, and never present in CI.
+      '.claude/worktrees/**',
       '**/*.js',
     ],
   }
