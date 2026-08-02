@@ -57,7 +57,16 @@ export default function NowPlayingHero(props: INowPlayingHeroProps) {
                 transition={{ type: 'spring', damping: 20, stiffness: 250 }}
                 onDoubleClick={nowPlayingViewEnabled ? onEnterNowPlaying : undefined}
                 className={cn(
-                  'w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center',
+                  // `relative` is load-bearing, not cosmetic: the two overlays
+                  // above are absolutely positioned, so they paint above any
+                  // in-flow sibling. Motion only lifts this wrapper out of the
+                  // in-flow paint phase while the entrance spring is running
+                  // (a live transform creates a stacking context); once it
+                  // settles at scale 1 motion writes `transform: none` and the
+                  // artwork would drop behind the frosted surface — picking up
+                  // its 70% dark fill and blur(10px) backdrop-filter under
+                  // image themes. Positioning it keeps it on top for good.
+                  'relative w-24 h-24 rounded-xl overflow-hidden shadow-2xl shadow-black/30 shrink-0 bg-muted flex items-center justify-center',
                   nowPlayingViewEnabled && 'cursor-pointer transition-transform hover:scale-[1.02]'
                 )}
               >
