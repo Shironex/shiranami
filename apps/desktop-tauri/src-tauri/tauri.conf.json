@@ -30,8 +30,41 @@
     }
   },
   "bundle": {
-    "active": false,
-    "targets": "all",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"]
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Shironex",
+    "homepage": "https://shiranami.app",
+    "copyright": "Copyright (c) 2026 Shironex. All rights reserved.",
+    "category": "Music",
+    "shortDescription": "Your personal music sanctuary",
+    "longDescription": "Shiranami is a local-first music player: your own library, your own files, no account and no streaming service in between.",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "windows/installer-hooks.nsh",
+        "displayLanguageSelector": false,
+        "languages": ["English"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/Shironex/shiranami/releases/latest/download/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYyNDA5OEZFMTQ0M0FERTkKUldUcHJVTVUvcGhBOHFOcGxqT2lmMGNDSzJGYWJOQW1oRksreFVsUkFFOW9HTm8rZ2VXbmNwd24K",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }
