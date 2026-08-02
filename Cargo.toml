@@ -386,6 +386,15 @@ tauri-plugin-os = "2.3"
 tauri-plugin-global-shortcut = "2.3"
 tauri-plugin-autostart = "2"
 
+# Phase 18 ring 3, behind the shell's `e2e` feature and compiled into no other
+# build. An embedded W3C WebDriver server, which §8 records as the *only* way to
+# drive the app on macOS: `_electron.launch` has no Tauri equivalent and
+# `tauri-driver` is Windows/Linux-only because WKWebView exposes no CDP and no
+# WebDriver of its own. Version-locked to the `@wdio/tauri-service` npm package
+# that speaks to it — both are published from one repository at one version, and
+# a mismatch surfaces as a session that never starts.
+tauri-plugin-wdio-webdriver = "1.2"
+
 # Opt-in crash reporting (§2.2 #5), by the `@sentry/electron` author. The plugin
 # auto-injects a browser-side Sentry, which is precisely why consent has to be
 # read *before* `tauri::Builder` and the plugin skipped entirely when it is
