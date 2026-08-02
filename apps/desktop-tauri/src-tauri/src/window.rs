@@ -53,6 +53,57 @@ use crate::state::AppState;
 /// the renderer's player, and a `undefined` property there would be a
 /// `TypeError` on the first track rather than a quiet no-op.
 pub fn initialization_script(e2e: bool) -> String {
+    let mut script = base_initialization_script(e2e);
+    if e2e {
+        script.push('\n');
+        script.push_str(HARNESS_TAURI_GLOBAL);
+    }
+    script
+}
+
+/// `window.__TAURI__`, synthesised for the E2E harness and nothing else.
+///
+/// # Why the harness needs a global the app deliberately does not enable
+///
+/// `bridge/environment.ts` states the app's position: it detects the webview
+/// through `__TAURI_INTERNALS__` and does **not** turn on `withGlobalTauri`,
+/// because `window.__TAURI__` is a convenience global nothing in the renderer
+/// reads. That stays true — this does not enable the config flag.
+///
+/// `@wdio/tauri-service` disagrees. Its `ensureActiveWindowFocus` runs from
+/// `beforeCommand` on `$`, `$$`, `findElement`, `findElements`, `elementClick`
+/// and `getTitle`, and reaches the backend through `window.__TAURI__.core.invoke`.
+/// When that global is absent it does not fail fast: it busy-waits 5000 ms, then
+/// throws, and the service logs the throw and carries on. The command still
+/// works — it just costs five seconds, *every time*. A spec doing a few dozen
+/// element lookups therefore took seventeen minutes instead of tens of seconds.
+///
+/// So this exists to make the harness's own plumbing work, which is why it is
+/// behind the same `e2e` flag as `__SHIRANAMI_E2E__` rather than in
+/// `tauri.conf.json`: a production build must not grow a global that forwards
+/// arbitrary command names, and this way it provably cannot.
+///
+/// `__TAURI_INTERNALS__` is read *inside* `invoke` rather than captured, so this
+/// does not depend on whether Tauri's own injection has run by the time this
+/// script does.
+const HARNESS_TAURI_GLOBAL: &str = r#"(function () {
+  if (window.__TAURI__) return;
+  Object.defineProperty(window, '__TAURI__', {
+    value: {
+      core: {
+        invoke: function (command, args, options) {
+          return window.__TAURI_INTERNALS__.invoke(command, args, options);
+        },
+      },
+    },
+    writable: false,
+    // Configurable, unlike the two globals above: this one exists for a tool,
+    // and a tool that needs to substitute it should be able to.
+    configurable: true,
+  });
+})();"#;
+
+fn base_initialization_script(e2e: bool) -> String {
     format!(
         r#"(function () {{
   Object.defineProperty(window, '__SHIRANAMI_E2E__', {{
@@ -416,12 +467,43 @@ mod tests {
     /// by anything injected into it — cannot undo either one.
     #[test]
     fn neither_global_can_be_reassigned() {
-        let script = initialization_script(true);
+        let script = initialization_script(false);
 
         assert_eq!(
             script.matches("writable: false").count(),
             2,
             "the E2E flag and the media session are both locked"
         );
+    }
+
+    /// The harness global is the one thing here that must be provably absent
+    /// from a normal run: it forwards an arbitrary command name to
+    /// `__TAURI_INTERNALS__.invoke`, which is fine for a test harness and is not
+    /// something a shipped build should carry.
+    #[test]
+    fn the_tauri_global_is_only_written_under_the_e2e_flag() {
+        assert!(
+            !initialization_script(false).contains("__TAURI__"),
+            "a non-E2E build must not synthesise window.__TAURI__"
+        );
+
+        let e2e = initialization_script(true);
+        assert!(e2e.contains("__TAURI__"));
+        // Read at call time, not captured — the injection order between this
+        // script and Tauri's own internals is not guaranteed.
+        assert!(e2e.contains("window.__TAURI_INTERNALS__.invoke(command, args, options)"));
+    }
+
+    /// It exists for `@wdio/tauri-service`, whose `ensureActiveWindowFocus`
+    /// reaches for exactly this path and costs five seconds per element lookup
+    /// when it is missing.
+    #[test]
+    fn the_tauri_global_exposes_the_core_invoke_path_the_service_uses() {
+        let script = initialization_script(true);
+
+        let core = script
+            .find("core:")
+            .expect("the service reads `window.__TAURI__.core.invoke`");
+        assert!(script[core..].contains("invoke:"));
     }
 }
