@@ -2631,8 +2631,13 @@ it.
 
 `debug = 1` + `split-debuginfo = "packed"`. Phase 16 recorded that Sentry's
 reporting path had never run for want of a DSN; without symbols it would have
-run and produced addresses nobody can resolve. The shipped bytes do not change
-— `strip` still runs, and it runs after the sidecar is written.
+run and produced addresses nobody can resolve.
+
+Measured rather than assumed, because `strip` running after the sidecar is
+written suggested the shipped bytes would be identical and they are not quite:
+the binary goes 30,322,736 → 30,339,264 (+16 KB, +0.05%) and the DMG
+17,631,857 → 17,635,339 (+3.4 KB). The sidecar it buys is a 176 MiB `.dSYM`,
+which is uploaded and never shipped.
 
 ### Packaged-build evidence (macOS, 2026-08-02)
 
