@@ -2503,3 +2503,195 @@ existing workspace rows: `buffered` bounds the fan-out at four while keeping
 seed order, `CancellationToken` is what the reused `ProcessRunner` seam takes,
 and `tokio::fs` answers "is yt-dlp installed?" the way `YtDlpManager` answers
 it. No new external dependency was added to the workspace.
+
+## Phase 19 implementation amendments (2026-08-02, merged to `v2`)
+
+Packaging, the updater keypair, the two release manifests and a
+dispatch-only release workflow. The gate — "a draft release builds on both
+platforms and both signatures verify" — is **half met**: the macOS half was
+built and its updater signature verifies cryptographically against the key in
+`tauri.conf.json`; the Windows half has never been built or run, because there
+is no Windows machine in this loop.
+
+### `installMode: "passive"` is two settings, and neither is spelled that way
+
+§4.2 says "Tauri NSIS is configured `installMode: "passive"`, **per-user**
+(`currentUser`)". Those are two different config keys in two different places,
+and only one of them takes the word `passive`:
+
+- `bundle.windows.nsis.installMode` is **scope only** — its enum is
+  `currentUser | perMachine | both` and there is no passive member. It is set to
+  `currentUser`, which is what matches v1's electron-builder scope; §4.2's
+  warning about orphaning the old install is about this one.
+- `plugins.updater.windows.installMode` is where `passive` lives. It is how
+  `tauri-plugin-updater` _runs_ an installer it downloaded, and it maps to the
+  NSIS `/P /R` arguments — the same `/P` the shipped v1 bridge already spawns
+  with (`NSIS_PASSIVE_FLAG`).
+
+Both are set. The bridge's own comment ("matches the `installMode: "passive"`
+the v2 bundle is configured with") reads the same conflation and is describing
+the `/P` it passes, which is correct behaviour under a wrong name.
+
+### The v1 uninstall key is a GUID, not the appId
+
+§4.2 says the preinstall hook reads
+`HKCU\…\Uninstall\{appId}`. electron-builder does not register there. It
+computes `UUIDv5(appId, 50e065bc-3134-11e6-9bab-38c9862bdaf3)` and uses that as
+the subkey name (`NsisTarget.js`, `APP_GUID` / `UNINSTALL_APP_KEY`). For
+`com.shironex.shiranami` that is `9bc71796-dfb5-5190-a5bb-18e27e535d9a`, and it
+is stable because it is a pure function of the appId — which §3.1 already pins,
+since the app directories derive from it too.
+
+The hook tries that GUID first, then the literal appId (for a v1.x that ever
+sets `nsis.guid`), then HKLM in both registry views. Every branch falls through
+to a no-op: a stale Add/Remove Programs entry is cosmetic, a failed v2 install
+is not.
+
+It passes `/S` and never `--delete-app-data`. That is load-bearing rather than
+polite — §3.1's continuity copies the tree the uninstaller would otherwise
+remove, and §4's whole safety net is that v1 stays reinstallable.
+
+**This hook has never executed.** NSIS is not exercised by `cargo test` or any
+CI job, and it needs a real before/after on the user's Windows PC: install v1,
+install v2 over it, confirm one entry in Add/Remove Programs and a populated
+library on first run.
+
+### `createUpdaterArtifacts` has no per-platform form
+
+It is one global boolean, and Windows needs it. So macOS also produces a
+`Shiranami.app.tar.gz` + `.sig` that nothing consumes — `updater::is_supported`
+excludes macOS until the Developer ID cert lands (§4.3). Rather than pretend
+otherwise, `latest.json` is generated with a **Windows key only**. When the
+cert arrives the macOS half of the feed becomes a manifest change, not a build
+one.
+
+### The two manifests are different files for different readers
+
+`latest.json` (the plugin's feed) and `v2.json` (the v1 bridge's handover
+manifest) are generated together by `scripts/build-update-manifests.mjs` and
+must never be confused. The generator's guards restate the bridge's zod schema
+and its `installerFileName` regex, and they exist because **that reader fails
+silently**: a manifest it rejects makes it go dormant with one log line, which
+would surface as "nobody ever crossed over", months later, with nothing in any
+log to say why. `--self-test` requires each guard to reject, the same shape and
+the same R17 reason as `verify:drift-guard`, and runs in CI on every change.
+
+`v2.json` is generated `enabled: false`. Generating it is not publishing the
+rollout; Phase 20 flips it. It also still needs a **host**: the bridge polls
+`https://shiranami.app/v2.json`, which is the landing site, and this workflow
+only uploads it as a release asset. Putting it at that URL is a Phase 20 step.
+
+### `bump-version` was not extended, and that is deliberate
+
+The phase table says "`bump-version` extended to `Cargo.toml` +
+`tauri.conf.json`". Instead there is a separate `scripts/set-version-v2.mjs`.
+`bump-version.mjs` and `set-version-ci.sh` own the _v1_ line — root
+`package.json`, `apps/desktop`, `apps/landing`, `apps/web`, `packages/*` — and
+§4.4 commits to ~6 months of v1 patches _after_ v2 ships. For that whole window
+the two version lines are independent, and a shared stamper would set the Rust
+workspace to 1.0.1 during a v1 patch release. Phase 20 folds the three files
+into one when the Electron app is deleted.
+
+### Four things the first real `tauri build` taught
+
+1. **`TAURI_SIGNING_PRIVATE_KEY` must be the key's _contents_.** The bundler
+   reads only that variable; `TAURI_SIGNING_PRIVATE_KEY_PATH` is understood by
+   `tauri signer sign` and ignored by the build, which fails at the very end
+   with "a public key has been found, but no private key" after the bundles are
+   already written. The Actions secret therefore holds the file's text.
+2. **`bundle_dmg.sh` needs `CI` set on a developer machine.** Its cosmetic
+   AppleScript asks Finder to position icons in the mounted volume, and from a
+   non-interactive session that returns AppleEvent timeout (-1712) and fails the
+   whole build after the `.app` is already correct. `CI=1` makes create-dmg skip
+   it (`--skip-jenkins`). GitHub runners set `CI` themselves, so the workflow
+   needs nothing; a local `pnpm tauri build` needs `CI=1 pnpm tauri build`.
+3. **`tauri icon` also emits `android/` and `ios/`.** Dropped — v2 is macOS and
+   Windows, and `apps/mobile` is Expo and does not read from here. It also
+   downsizes `icons/icon.png` to 512, so the 1024 source moved to
+   `assets/brand/` where Phase 20's deletion of `apps/desktop` cannot take it.
+4. **macOS is arm64 only**, matching what v1 actually shipped: electron-builder's
+   `dmg` target with no `arch` builds for the host and the host is arm64. Intel
+   Macs have never had a Shiranami build. A universal binary is a deliberate
+   future change, not something to slip in with the bundle config.
+
+### Two fixes cherry-picked from the Phase 18 E2E lane
+
+`v2` carried two packaged-build bugs that `pnpm tauri:dev` cannot show, both
+found on `v2-e2e` and both fatal here: `sideEffects` listing only CSS let Rollup
+drop the bare `import '@/lib/bridge/install'` entirely, and chunk hoisting froze
+`IS_ELECTRON = false` before the bridge installed, booting packaged builds into
+permanent mock mode. `b2887ba2` is cherry-picked onto `v2` (`-x`, so the origin
+is in the message) rather than re-derived — **the coordinator should expect it
+on both branches at merge.** The third bug that lane found,
+`tauri/custom-protocol` missing from the `e2e` feature, does not reach here: the
+CLI adds that feature for `tauri build`, and only a bare `cargo build` misses
+it.
+
+### Release profile gains symbols
+
+`debug = 1` + `split-debuginfo = "packed"`. Phase 16 recorded that Sentry's
+reporting path had never run for want of a DSN; without symbols it would have
+run and produced addresses nobody can resolve. The shipped bytes do not change
+— `strip` still runs, and it runs after the sidecar is written.
+
+### Packaged-build evidence (macOS, 2026-08-02)
+
+Run against an isolated `HOME`, the Phase 17/18 pattern, never the real profile.
+
+|                              | v1 (Electron 41) |   v2 (Tauri) |                         |
+| ---------------------------- | ---------------: | -----------: | ----------------------- |
+| macOS DMG                    |        133.8 MiB | **16.8 MiB** | 8.0× smaller            |
+| Windows installer            |        111.3 MiB |    not built | —                       |
+| `.app` on disk               |                — |        30 MB |                         |
+| Idle RSS, all processes      |          ~688 MB |  **~291 MB** | 2.4× lower              |
+| Cold boot to `boot complete` |                — |   **189 ms** | `database` 186 ms of it |
+
+The RAM figures are indicative, not a benchmark. v2's was measured on an empty
+library and v1's on a 519-track one, which flatters v2; RSS double-counts shared
+framework pages; and the three WebKit XPC services are attributed to v2 in full
+even though macOS shares them, which cuts the other way.
+
+Mock mode was ruled out by what the run _wrote_, not by looking at it:
+`config.json` gained `downloads.toolStatusCache` and `player.volume` a second
+after `boot complete`, and `toolStatusCache` is only ever written by a
+`#[tauri::command]`. A renderer in mock mode invokes nothing. Independently, the
+built chunk has the install seam at byte 75,915 and the `IS_ELECTRON` derivation
+at 142,191 — the ordering the cherry-pick above exists to guarantee.
+
+The updater signature over `Shiranami.app.tar.gz` verifies as Ed25519 against
+the public key committed in `tauri.conf.json`, key ID `F24098FE1443ADE9`.
+
+### What Phase 19 did not do
+
+- **Nothing Windows has run.** No NSIS installer built, no preinstall hook
+  executed, no Authenticode path exercised, no `latest.json` consumed by a real
+  updater. All of it is written against the documented contracts and needs the
+  user's Windows PC — which is already the plan of record, since the
+  post-approval decisions replaced Spike B with exactly that.
+- **No release has been dispatched.** The workflow has never run; its YAML
+  parses and its manifest generator is tested against real artifacts, and that
+  is the whole of the evidence.
+- **macOS is still unsigned and un-notarized**, so the DMG carries a Gatekeeper
+  warning. Unchanged from v1 and blocked on the same pending certificate.
+- **`v2.json` is not hosted anywhere.** Phase 20 puts it at
+  `https://shiranami.app/v2.json` and flips `enabled`.
+- **The updater's `latest.json` endpoint resolves to `releases/latest`,** which
+  skips prereleases. An `-rc` build cannot serve itself an update; 2.0.0 stable
+  can.
+
+### The secrets the release workflow expects
+
+| Name                                                              | Kind         | Status            | What it is                                                                                                                                                                   |
+| ----------------------------------------------------------------- | ------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`                                       | secret       | **must be added** | Contents of `~/.tauri/shiranami-v2.key`. Losing it means installed v2 users can never be updated again, ever (§4.4) — password manager _and_ an offline copy.                |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`                              | secret       | optional          | The key was generated with an empty passphrase, so this can be absent. Referenced anyway so a future re-key needs no workflow edit.                                          |
+| `WINDOWS_CERTIFICATE`                                             | secret       | pending cert      | Base64 of the code-signing `.pfx`.                                                                                                                                           |
+| `WINDOWS_CERTIFICATE_PASSWORD`                                    | secret       | pending cert      | Its password.                                                                                                                                                                |
+| `WINDOWS_SIGNING_ENABLED`                                         | **variable** | pending cert      | Set to `true` with the two above, never before. `secrets` is not readable from an `if:`, so this one variable is what switches the signing and the verifying steps together. |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_DSN` | secrets      | already exist     | Reused from v1's `release.yml`; `SENTRY_DSN` is `option_env!`-compiled, so it must be present at build time or the build simply has no telemetry.                            |
+| `SHIRANAMI_LASTFM_API_KEY`, `SHIRANAMI_LASTFM_SECRET`             | secrets      | already exist     | Also `option_env!`; absent means the Last.fm UI reports itself unavailable.                                                                                                  |
+
+The passphrase is empty on purpose. It would have lived in the same vault as
+the key and in the same Actions secret set, defending nothing, while adding a
+second thing whose loss is unrecoverable — and §4.4 already names that loss as
+the permanent one.
