@@ -39,6 +39,20 @@ describe('NowPlayingHero', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('positions the artwork wrapper so the frosted surface cannot paint over it', () => {
+    usePlaybackStore.setState({
+      currentTrack: makeTrack({ albumArt: 'file:///covers/late-nights.jpg' }),
+    });
+    render(<NowPlayingHero />);
+
+    // The hero's two overlays (.now-playing-hero-surface and the blurred
+    // backdrop) are absolutely positioned, so they outrank any in-flow
+    // sibling in paint order. Without `relative` here the artwork renders
+    // behind them once the entrance spring settles — dark and blurred.
+    const artwork = screen.getByRole('img', { name: 'Midnight study session' });
+    expect(artwork.parentElement?.className).toContain('relative');
+  });
+
   it('honors the show predicate — collapses when it returns false', () => {
     usePlaybackStore.setState({ currentTrack: makeTrack({ title: 'Hidden track' }) });
     render(<NowPlayingHero show={() => false} />);
