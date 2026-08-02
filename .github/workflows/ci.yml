@@ -26,6 +26,7 @@ jobs:
       code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.database == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.recommendation == 'true' || steps.filter.outputs.tooling == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' || steps.filter.outputs.server == 'true' }}
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
+      desktopTauri: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktopTauri == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -67,6 +68,16 @@ jobs:
               - 'apps/web/**'
             desktop:
               - 'apps/desktop/**'
+            # The v2 shell and everything its E2E binary links. `crates/**` and
+            # the workspace manifests are in here because the suite drives a
+            # real `cargo build` of the whole tree, so a change three crates
+            # down is a change to the thing under test.
+            desktopTauri:
+              - 'apps/desktop-tauri/**'
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
             server:
               - 'apps/server/**'
               - 'Dockerfile.server'
@@ -327,10 +338,75 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  e2e-tauri:
+    name: E2E (v2 shell)
+    needs: changes
+    if: needs.changes.outputs.desktopTauri == 'true'
+    # macOS, and not by preference. WKWebView exposes neither CDP nor a
+    # WebDriver of its own, so `tauri-driver` does not exist here and the
+    # embedded `tauri-plugin-wdio-webdriver` is the only way in — which is also
+    # the platform the suite is written against: it redirects `HOME` and asserts
+    # on `~/Library/Application Support` and a `darwin` platform string.
+    runs-on: macos-latest
+    # A cold Rust build of eleven crates plus twelve app launches.
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-e2e-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-e2e-
+
+      # Builds the frontend first and then the binary that embeds it. The `e2e`
+      # feature carries `tauri/custom-protocol`, without which `tauri-codegen`
+      # embeds no assets at all and points the webview at the Vite dev server —
+      # a binary that boots to a blank page and fails every spec on a timeout.
+      - name: Build the E2E binary
+        run: pnpm --filter @shiranami/desktop-tauri run e2e:build
+
+      - name: Run E2E tests
+        run: pnpm --filter @shiranami/desktop-tauri run test:e2e
+
+      # The app's own log per profile — for a failure, the Rust side's account
+      # of the same run. `.tmp` is gitignored and holds nothing else.
+      - name: Upload E2E profiles on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-tauri-profiles
+          path: apps/desktop-tauri/e2e/.tmp/
+          retention-days: 7
+          if-no-files-found: ignore
+
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, test-storybook, mock-mode, size, e2e, landing]
+    needs:
+      [
+        lint,
+        typecheck,
+        test,
+        test-storybook,
+        mock-mode,
+        size,
+        e2e,
+        e2e-tauri,
+        landing,
+      ]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome
