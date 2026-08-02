@@ -32,7 +32,6 @@
 
 use std::sync::Arc;
 
-use shiranami_media_controls::souvlaki_backend::SouvlakiConfig;
 use shiranami_media_controls::{CommandSink, MediaControlsService};
 use tauri::{AppHandle, WebviewWindow};
 
@@ -80,7 +79,7 @@ pub fn build(app: &AppHandle, window: &WebviewWindow, e2e: bool) -> Option<Arc<d
 fn build_service(
     window: &WebviewWindow,
 ) -> Option<MediaControlsService<shiranami_media_controls::souvlaki_backend::SouvlakiBackend>> {
-    use shiranami_media_controls::souvlaki_backend::SouvlakiBackend;
+    use shiranami_media_controls::souvlaki_backend::{SouvlakiBackend, SouvlakiConfig};
 
     let config = SouvlakiConfig {
         // Windows only, and souvlaki #67 means it is not honoured there either
@@ -125,8 +124,10 @@ fn window_handle(window: &WebviewWindow) -> Option<isize> {
     }
 }
 
-/// Every other platform ignores it, and macOS genuinely has none to give.
-#[cfg(not(target_os = "windows"))]
+/// macOS genuinely has no handle to give; Linux never builds a service that
+/// would ask (which is why this is not `cfg(not(windows))` — clippy on the
+/// ubuntu job flags that variant as dead code).
+#[cfg(target_os = "macos")]
 fn window_handle(_window: &WebviewWindow) -> Option<isize> {
     None
 }
