@@ -4,7 +4,8 @@
   "description": "Shiranami web frontend",
   "private": true,
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "**/lib/bridge/install.ts"
   ],
   "type": "module",
   "scripts": {
