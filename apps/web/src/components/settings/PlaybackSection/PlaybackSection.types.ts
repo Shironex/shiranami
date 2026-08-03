@@ -1,3 +1,5 @@
+import type { LoudnessLevelingMode } from '@/stores/usePlaybackStore';
+
 export interface IPlaybackSectionView {
   /** Localized card title. */
   readonly title: string;
@@ -50,6 +52,17 @@ export interface IPlaybackSectionView {
   readonly loudnessMax: number;
   /** Set the loudness target in LUFS. */
   readonly onLoudnessTargetChange: (lufs: number) => void;
+
+  /** Localized "leveling mode" row label. */
+  readonly loudnessModeLabel: string;
+  /** Localized "leveling mode" row description. */
+  readonly loudnessModeDescription: string;
+  /** Current leveling mode. */
+  readonly loudnessLevelingMode: LoudnessLevelingMode;
+  /** The two mode options, localized. */
+  readonly loudnessModeOptions: ReadonlyArray<{ value: LoudnessLevelingMode; label: string }>;
+  /** Set the leveling mode. */
+  readonly onLoudnessLevelingModeChange: (mode: LoudnessLevelingMode) => void;
 
   /** Whether a library-wide loudness analysis run is in progress. */
   readonly loudnessAnalysisRunning: boolean;

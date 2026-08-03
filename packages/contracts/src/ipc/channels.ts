@@ -98,6 +98,7 @@ export const IPC_CHANNELS = {
       exists: 'db:tracks:exists',
       existsMany: 'db:tracks:exists-many',
       getIdByPath: 'db:tracks:get-id-by-path',
+      search: 'db:tracks:search',
     },
     history: {
       recordPlay: 'db:history:record-play',
@@ -203,6 +204,13 @@ export const IPC_CHANNELS = {
     // DB row. Distinct from the automatic enrichment flow above.
     writeTags: 'metadata:write-tags',
   },
+  doctor: {
+    // The Library Doctor (F8, v2-only): decode-truth health findings —
+    // truncation, damaged packets, duration lies, clipping, silence.
+    scan: 'doctor:scan',
+    cancel: 'doctor:cancel',
+    progress: 'doctor:progress',
+  },
   loudness: {
     // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
     // Measures integrated loudness per track and persists it on the DB row.
@@ -298,3 +306,21 @@ export const ALL_IPC_CHANNELS: readonly IpcChannelName[] = (() => {
   collectChannels(IPC_CHANNELS, channels);
   return Object.freeze(channels) as readonly IpcChannelName[];
 })();
+
+/**
+ * Channels born in v2 with no v1 counterpart. They live in the manifest tree
+ * above so consumers address them normally, but they are NOT part of the
+ * frozen 155-channel port surface: the v1 Electron preload implements them as
+ * optional members and the renderer feature-detects. The Rust era pin
+ * (`events.rs` / the registry counts) parses this list — a v2-born channel
+ * missing here, or a v1 channel appearing here, fails the build's era tests.
+ */
+export const V2_ONLY_CHANNELS = [
+  'analysis:analyze',
+  'analysis:cancel',
+  'analysis:progress',
+  'db:tracks:search',
+  'doctor:scan',
+  'doctor:cancel',
+  'doctor:progress',
+] as const;

@@ -1,5 +1,10 @@
 import { Settings2 } from 'lucide-react';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import {
+  SettingsCard,
+  SettingsSelectRow,
+  SettingsToggleRow,
+} from '@/components/settings/SettingsCard';
+import type { LoudnessLevelingMode } from '@/stores/usePlaybackStore';
 import { CrossfadePreview } from '@/components/settings/CrossfadePreview';
 import { ResumePreview } from '@/components/settings/ResumePreview';
 import { LoudnessPreview } from '@/components/settings/LoudnessPreview';
@@ -34,6 +39,11 @@ export default function PlaybackSection() {
     loudnessMin,
     loudnessMax,
     onLoudnessTargetChange,
+    loudnessModeLabel,
+    loudnessModeDescription,
+    loudnessLevelingMode,
+    loudnessModeOptions,
+    onLoudnessLevelingModeChange,
     loudnessAnalysisRunning,
     loudnessAnalysisStatus,
     loudnessAnalyzeLabel,
@@ -119,6 +129,14 @@ export default function PlaybackSection() {
               <span className="text-[10px] text-muted-foreground/60">{loudnessMin} LUFS</span>
               <span className="text-[10px] text-muted-foreground/60">{loudnessMax} LUFS</span>
             </div>
+
+            <SettingsSelectRow
+              label={loudnessModeLabel}
+              description={loudnessModeDescription}
+              value={loudnessLevelingMode}
+              onValueChange={value => onLoudnessLevelingModeChange(value as LoudnessLevelingMode)}
+              options={loudnessModeOptions}
+            />
 
             <div className="flex items-center justify-between gap-3 mt-3">
               <p className="text-xs text-muted-foreground">{loudnessAnalysisStatus}</p>

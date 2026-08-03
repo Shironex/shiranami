@@ -10,6 +10,13 @@ export interface LoudnessAnalyzeInput {
   id: string;
   filePath: string;
   title: string;
+  /**
+   * Album tag, for album-gain grouping (F5). Send `null` for untagged tracks
+   * and for the unknown-album pile — they fold into no album.
+   */
+  album?: string | null;
+  /** Album artist (display collapse: album artist falling back to artist). */
+  albumArtist?: string | null;
 }
 
 /** Per-track progress event streamed during a loudness-analysis run. */

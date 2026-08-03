@@ -5,34 +5,44 @@
 //! schema second: a schema regression is a bug, but a row that stops existing
 //! between v1 and v2 is the failure this whole phase exists to prevent.
 
+#[path = "support/adopted.rs"]
+mod adopted;
 #[path = "support/schema.rs"]
 mod schema;
 #[path = "support/v1.rs"]
 mod v1;
 
-use std::path::Path;
-
-use shiranami_db::{Adoption, MIGRATOR, SCHEMA_FLOOR};
+use shiranami_core::models::{TrackCreateInput, TrackUpdateInput};
+use shiranami_db::Adoption;
+use shiranami_db::repo::tracks;
 use sqlx::SqliteConnection;
 
-use schema::{column_names, count, index_names, row_counts, scalar, table_names};
+use adopted::{
+    assert_adopted_invariants, assert_rows_preserved, expected_sqlx_versions, ledger_names, open,
+    sqlx_versions,
+};
+use schema::{column_names, count, index_names, row_counts, scalar};
 use v1::{
     build_v1_database, connect, create_legacy_tables, create_old_era_tracks_table, exec,
-    has_column, seed_rows, user_version,
+    has_column, seed_rows,
 };
 
-/// Names in `__drizzle_migrations`, which adoption must leave truthful.
-async fn ledger_names(conn: &mut SqliteConnection) -> Vec<String> {
-    sqlx::query_scalar("SELECT name FROM `__drizzle_migrations` ORDER BY id")
-        .fetch_all(conn)
+/// The search index really works on whatever database this is, not merely
+/// exists: a track inserted through the repository is findable at once, a
+/// retitle re-indexes it, and a delete removes it — the three triggers
+/// migration `0004` installs, proven through the real write paths.
+async fn assert_track_search_is_usable(conn: &mut SqliteConnection) {
+    let probe = TrackCreateInput {
+        file_path: "/music/fts-probe.mp3".to_owned(),
+        title: "Umibe Sunset".to_owned(),
+        ..TrackCreateInput::default()
+    };
+    let added = tracks::add(&mut *conn, &probe)
         .await
-        .expect("the drizzle ledger must be readable")
-}
+        .expect("insert the probe track")
+        .expect("a row");
 
-/// Versions recorded in `_sqlx_migrations`.
-async fn sqlx_versions(conn: &mut SqliteConnection) -> Vec<i64> {
-    sqlx::query_scalar("SELECT version FROM _sqlx_migrations ORDER BY version")
-        .fetch_all(conn)
+    let found = tracks::search(&mut *conn, "umibe", 10)
         .await
         .expect("the sqlx ledger must be readable")
 }
@@ -119,18 +129,46 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
 fn assert_rows_preserved(before: &[(String, i64)], after: &[(String, i64)]) {
     for (table, rows) in before {
         let found = after
-            .iter()
-            .find(|(name, _)| name == table)
-            .unwrap_or_else(|| panic!("`{table}` disappeared during adoption"));
-        assert_eq!(found.1, *rows, "`{table}` changed row count");
-    }
+        .expect("search");
+    assert!(
+        found.iter().any(|track| track.id == added.id),
+        "an inserted track must be findable immediately"
+    );
 
-    for (table, rows) in after {
-        if before.iter().any(|(name, _)| name == table) {
-            continue;
-        }
-        assert_eq!(*rows, 0, "the new table `{table}` arrived with rows in it");
-    }
+    let retitle = TrackUpdateInput {
+        title: Some("Hoshizora Drive".to_owned()),
+        ..TrackUpdateInput::default()
+    };
+    tracks::update(&mut *conn, &added.id, &retitle)
+        .await
+        .expect("retitle the probe track");
+    assert!(
+        tracks::search(&mut *conn, "umibe", 10)
+            .await
+            .expect("search")
+            .iter()
+            .all(|track| track.id != added.id),
+        "the old title must stop matching once the row is retitled"
+    );
+    assert!(
+        tracks::search(&mut *conn, "hoshizora", 10)
+            .await
+            .expect("search")
+            .iter()
+            .any(|track| track.id == added.id),
+        "the new title must match after the retitle"
+    );
+
+    tracks::remove(&mut *conn, &added.id)
+        .await
+        .expect("remove the probe track");
+    assert!(
+        tracks::search(&mut *conn, "hoshizora", 10)
+            .await
+            .expect("search")
+            .is_empty(),
+        "a deleted track must leave the index"
+    );
 }
 
 /// The scrobble queue really works on whatever database this is, not merely
@@ -171,16 +209,6 @@ async fn assert_scrobble_queue_is_usable(conn: &mut SqliteConnection) {
     exec(&mut *conn, "DELETE FROM scrobble_queue").await;
 }
 
-/// Open through the crate's real boot path.
-async fn open(path: &Path) -> Adoption {
-    let opened = shiranami_db::open(path)
-        .await
-        .expect("the database must open");
-    let adoption = opened.adoption.clone();
-    opened.pool.close().await;
-    adoption
-}
-
 #[tokio::test]
 async fn a_fresh_install_gets_the_baseline_and_a_rollback_ledger() {
     let directory = tempfile::tempdir().expect("a temp dir");
@@ -218,6 +246,10 @@ async fn the_post_baseline_migration_runs_on_an_adopted_v1_database() {
         !v1::has_table(&mut seeded, "scrobble_queue").await,
         "the fixture must start without v2's table, or this proves nothing"
     );
+    assert!(
+        !v1::has_table(&mut seeded, "tracks_fts").await,
+        "the fixture must start without v2's search index, or this proves nothing"
+    );
     let before = row_counts(&mut seeded).await;
     drop(seeded);
 
@@ -226,6 +258,19 @@ async fn the_post_baseline_migration_runs_on_an_adopted_v1_database() {
     let mut conn = connect(&path).await;
     assert_adopted_invariants(&mut conn).await;
     assert_scrobble_queue_is_usable(&mut conn).await;
+
+    // The rebuild half of migration `0004`: a row that predates the index —
+    // seeded under v1, so no trigger ever saw it — must still be findable.
+    let seeded_hit = tracks::search(&mut conn, "gamma", 10)
+        .await
+        .expect("search");
+    assert_eq!(
+        seeded_hit.len(),
+        1,
+        "a track seeded before the index existed must be reachable via the rebuild"
+    );
+    assert_track_search_is_usable(&mut conn).await;
+
     assert_rows_preserved(&before, &row_counts(&mut conn).await);
 }
 
@@ -241,6 +286,7 @@ async fn the_post_baseline_migration_runs_on_a_fresh_database() {
     let mut conn = connect(&path).await;
     assert_adopted_invariants(&mut conn).await;
     assert_scrobble_queue_is_usable(&mut conn).await;
+    assert_track_search_is_usable(&mut conn).await;
 
     // The rollback ledger is v1's nine names and nothing else. A v2-only table
     // must not leak into the chain a rolled-back v1 build would try to replay.
@@ -503,6 +549,10 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "track_number",
         "updated_at",
         "year",
+        // v2's own, from migration `0005` (feature wave F5).
+        "album_loudness_lufs",
+        "loudness_range",
+        "true_peak_db",
     ];
     expected.sort_unstable();
 

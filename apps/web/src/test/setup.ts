@@ -139,6 +139,11 @@ function createElectronAPIMock(): ElectronAPI {
       cancel: asyncFn(undefined),
       onProgress: vi.fn(() => noopUnsub()),
     },
+    doctor: {
+      scan: asyncFn({ scanned: 0, healthy: 0, cancelled: false, findings: [] }),
+      cancel: asyncFn(undefined),
+      onProgress: vi.fn(() => noopUnsub()),
+    },
     waveform: {
       getPeaks: asyncFn(null),
     },
@@ -181,6 +186,7 @@ function createElectronAPIMock(): ElectronAPI {
         existsMany: asyncFn([]),
         updateMany: asyncFn(undefined),
         getIdByPath: asyncFn(null),
+        search: asyncFn([]),
       },
       history: {
         recordPlay: vi.fn(),

@@ -141,3 +141,59 @@ fn the_default_bucket_count_is_v1s_frozen_contract() {
 
     assert_eq!(waveform.peaks.len(), 512);
 }
+
+// ── the summary's defect counters (F8) ────────────────────────────────────────
+
+/// A clean file carries clean counters — the Doctor's "healthy" verdict is
+/// only as truthful as this baseline.
+#[test]
+fn a_clean_file_reports_neither_truncation_nor_skips() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("clean.wav");
+    let frames = synth::SAMPLE_RATE as usize;
+    synth::write_wav_i16(
+        &path,
+        synth::SAMPLE_RATE,
+        2,
+        &synth::sine_i16(frames, 440.0, 8_192),
+    );
+
+    let mut sink = shiranami_audio::LoudnessAnalyzer::new();
+    let summary = shiranami_audio::decode_file(&path, &mut sink).expect("decode");
+
+    assert!(!summary.truncated);
+    assert_eq!(summary.skipped_packets, 0);
+    assert_eq!(summary.frames, frames as u64);
+}
+
+/// A half-downloaded file decodes its readable prefix *and says so*: the
+/// `UnexpectedEof` that used to end the loop silently now lands in the
+/// summary, which is the whole point of the Doctor's truncation finding.
+#[test]
+fn a_truncated_file_reports_truncation_and_its_real_length() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("cut.wav");
+    let frames = synth::SAMPLE_RATE as usize;
+    synth::write_wav_i16(
+        &path,
+        synth::SAMPLE_RATE,
+        2,
+        &synth::sine_i16(frames, 440.0, 8_192),
+    );
+    // Cut the file mid-data — the header still claims the full second, so the
+    // demuxer hits EOF partway through a packet, exactly like an interrupted
+    // download.
+    let bytes = std::fs::read(&path).expect("read back");
+    let cut = 44 + (bytes.len() - 44) / 2 - 1;
+    std::fs::write(&path, &bytes[..cut]).expect("truncate");
+
+    let mut sink = shiranami_audio::LoudnessAnalyzer::new();
+    let summary = shiranami_audio::decode_file(&path, &mut sink).expect("the prefix decodes");
+
+    assert!(summary.truncated, "the cut must be reported, not swallowed");
+    assert!(
+        summary.frames < frames as u64,
+        "the decoded length is the real length, not the claimed one"
+    );
+    assert_eq!(summary.skipped_packets, 0);
+}

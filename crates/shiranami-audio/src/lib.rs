@@ -67,6 +67,9 @@ pub use bpm::{TempoAnalyzer, bpm_from_file};
 pub use decode::{DecodeSummary, decode_file};
 pub use error::{AudioError, Result};
 pub use key::{KeyAnalyzer, KeyEstimate, key_from_file};
-pub use loudness::{IntegratedLoudness, measure_integrated_loudness};
+pub use loudness::{
+    IntegratedLoudness, LoudnessAnalyzer, LoudnessProfile, album_integrated_loudness,
+    measure_integrated_loudness, measure_loudness_profile,
+};
 pub use peaks::{WAVEFORM_PEAK_COUNT, WaveformPeaks, peaks_from_file, reduce_peaks};
 pub use sink::{PcmSink, PcmSpec};

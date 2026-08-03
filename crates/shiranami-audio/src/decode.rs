@@ -54,6 +54,17 @@ pub struct DecodeSummary {
     pub spec: PcmSpec,
     /// Total frames pushed at the sink.
     pub frames: u64,
+    /// Whether the stream ended mid-packet (`UnexpectedEof`) — the signature
+    /// of a truncated or half-downloaded file. The decode still succeeds with
+    /// everything read up to that point; this flag is what lets a caller
+    /// (feature wave F8, the Library Doctor) report the file instead of
+    /// silently analysing its readable prefix.
+    pub truncated: bool,
+    /// Packets the decoder rejected and the loop skipped. Zero for a healthy
+    /// file; a damaged-but-readable file counts its bad frames here rather
+    /// than hiding them (each one cost the analysis a few milliseconds of
+    /// audio).
+    pub skipped_packets: u64,
 }
 
 impl DecodeSummary {
@@ -135,9 +146,11 @@ pub fn decode_file(path: &Path, sink: &mut dyn PcmSink) -> Result<DecodeSummary>
             // A truncated file ends mid-packet. v1's dr_libs simply stopped at
             // the last whole frame it could read, so ending the decode here
             // keeps a half-downloaded track analysable instead of failing it.
+            // The summary carries the fact (F8) rather than discarding it.
             Err(SymphoniaError::IoError(error))
                 if error.kind() == std::io::ErrorKind::UnexpectedEof =>
             {
+                state.truncated = true;
                 break;
             }
             Err(error) => return Err(AudioError::decode(path, error)),
@@ -149,7 +162,10 @@ pub fn decode_file(path: &Path, sink: &mut dyn PcmSink) -> Result<DecodeSummary>
 
         let audio = match decoder.decode(&packet) {
             Ok(audio) => audio,
-            Err(SymphoniaError::DecodeError(_) | SymphoniaError::IoError(_)) => continue,
+            Err(SymphoniaError::DecodeError(_) | SymphoniaError::IoError(_)) => {
+                state.skipped_packets += 1;
+                continue;
+            }
             Err(error) => return Err(AudioError::decode(path, error)),
         };
 
@@ -176,14 +192,19 @@ pub fn decode_file(path: &Path, sink: &mut dyn PcmSink) -> Result<DecodeSummary>
             reason: "the file decoded to no audio frames".to_owned(),
         })?,
         frames: state.frames,
+        truncated: state.truncated,
+        skipped_packets: state.skipped_packets,
     })
 }
 
-/// Tracks the one-format-per-file invariant and the running frame count.
+/// Tracks the one-format-per-file invariant, the running frame count, and the
+/// two defect counters the summary surfaces (F8).
 #[derive(Default)]
 struct DecodeState {
     spec: Option<PcmSpec>,
     frames: u64,
+    truncated: bool,
+    skipped_packets: u64,
 }
 
 impl DecodeState {

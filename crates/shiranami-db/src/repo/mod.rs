@@ -43,6 +43,8 @@ pub mod playlist_tracks;
 pub mod playlists;
 pub mod smart_playlists;
 pub mod smart_rules;
+// Feature wave F5 — the loudness columns, re-exported through `tracks`.
+pub(crate) mod track_loudness;
 pub(crate) mod track_patch;
 pub(crate) mod track_row;
 pub mod tracks;

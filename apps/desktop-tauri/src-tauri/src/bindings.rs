@@ -202,6 +202,9 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            // Ports no v1 channel: v1 never searched over IPC — its renderer
+            // filtered the in-memory library, the path FTS5 replaces (F6).
+            "dbTracksSearch",
             "dbFoldersGetAll",
             "dbFoldersAdd",
             "dbFoldersRemove",
@@ -265,6 +268,10 @@ mod tests {
             // which is the same string in every session. §2.4's loopback origin
             // and token are not, so the webview has to ask for them.
             "serveInfo",
+            // Port no v1 channels: the Library Doctor (F8) reports what only
+            // v2's real decoder can see, so v1 had nothing to say here.
+            "doctorScan",
+            "doctorCancel",
             "shellShowInFolder",
             "shellTrashFile",
             "debugStart",

@@ -85,6 +85,7 @@ macro_rules! commands {
                 crate::commands::db_tracks::db_tracks_exists,
                 crate::commands::db_tracks::db_tracks_exists_many,
                 crate::commands::db_tracks::db_tracks_get_id_by_path,
+                crate::commands::db_tracks::db_tracks_search,
             ]
         }
     };
@@ -249,6 +250,24 @@ pub async fn db_tracks_get_id_by_path(
 ) -> CommandResult<Option<String>> {
     let mut conn = state.conn().await?;
     tracks::get_id_by_path(&mut conn, &file_path).await.wire()
+}
+
+/// `db:tracks:search` — ranked FTS5 search over the library (feature wave F6).
+///
+/// No v1 counterpart: v1's renderer substring-filtered the in-memory library.
+/// The repository owns the query grammar (prefix terms, diacritic folding,
+/// `bm25` ranking); this layer only clamps the limit so an absent value means
+/// "a screenful", not "the whole library".
+#[tauri::command]
+#[specta::specta]
+pub async fn db_tracks_search(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<u32>,
+) -> CommandResult<Vec<Track>> {
+    let limit = i64::from(limit.unwrap_or(100));
+    let mut conn = state.conn().await?;
+    tracks::search(&mut conn, &query, limit).await.wire()
 }
 
 #[cfg(test)]

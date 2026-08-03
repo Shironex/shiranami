@@ -23,6 +23,12 @@ export interface Track {
   playCount: number | null;
   createdAt: string;
   updatedAt: string;
+  /** Album-level integrated loudness (LUFS); null = unanalysed or no album. */
+  albumLoudnessLufs: number | null;
+  /** Loudest true peak (dBTP); null = unanalysed or digital silence. */
+  truePeakDb: number | null;
+  /** Loudness range (EBU Tech 3342, LU); null = unanalysed. */
+  loudnessRange: number | null;
 }
 
 /**
@@ -110,6 +116,12 @@ export interface DisplayTrack {
   playCount?: number;
   /** Integrated loudness (LUFS) for loudness leveling; absent = unanalysed. */
   loudnessLufs?: number | null;
+  /** Album-level integrated loudness (LUFS); absent = unanalysed or no album. */
+  albumLoudnessLufs?: number | null;
+  /** Loudest true peak (dBTP), the boost guard; absent = unanalysed. */
+  truePeakDb?: number | null;
+  /** Loudness range (LU), a dynamics figure; absent = unanalysed. */
+  loudnessRange?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }

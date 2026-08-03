@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
 import { ScanProgressCard } from '@/components/library/ScanProgressCard';
 import { DiskUsageSection } from '@/components/settings/DiskUsageSection';
+import { LibraryDoctorCard } from '@/components/settings/LibraryDoctorCard';
 import { useLibrarySection } from './LibrarySection.hooks';
 
 export default function LibrarySection() {
@@ -20,6 +21,7 @@ export default function LibrarySection() {
     t,
     tc,
     isElectron,
+    showDoctor,
     trackCountLabel,
     hasTracks,
     isScanning,
@@ -69,6 +71,8 @@ export default function LibrarySection() {
       </SettingsCard>
 
       {isElectron && <DiskUsageSection />}
+
+      {showDoctor && <LibraryDoctorCard />}
 
       {isElectron && (
         <SettingsCard

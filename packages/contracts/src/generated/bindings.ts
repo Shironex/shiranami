@@ -367,6 +367,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_add", { track }),
 	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
 	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
@@ -430,6 +439,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_update", { id, data }),
 	/**
 	 *  `db:tracks:update-many` — patch a batch.
@@ -491,6 +509,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_toggle_favorite", { id }),
 	/**  `db:tracks:get-favorites` — the favourites, in library order. */
 	dbTracksGetFavorites: () => __TAURI_INVOKE<Track[]>("db_tracks_get_favorites"),
@@ -546,6 +573,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_increment_play_count", { id }),
 	/**  `db:tracks:exists` — whether this path is already in the library. */
 	dbTracksExists: (filePath: string) => __TAURI_INVOKE<boolean>("db_tracks_exists", { filePath }),
@@ -553,6 +589,15 @@ export const commands = {
 	dbTracksExistsMany: (filePaths: string[]) => __TAURI_INVOKE<string[]>("db_tracks_exists_many", { filePaths }),
 	/**  `db:tracks:get-id-by-path` — the id of the track holding this file. */
 	dbTracksGetIdByPath: (filePath: string) => __TAURI_INVOKE<string | null>("db_tracks_get_id_by_path", { filePath }),
+	/**
+	 *  `db:tracks:search` — ranked FTS5 search over the library (feature wave F6).
+	 * 
+	 *  No v1 counterpart: v1's renderer substring-filtered the in-memory library.
+	 *  The repository owns the query grammar (prefix terms, diacritic folding,
+	 *  `bm25` ranking); this layer only clamps the limit so an absent value means
+	 *  "a screenful", not "the whole library".
+	 */
+	dbTracksSearch: (query: string, limit: number | null) => __TAURI_INVOKE<Track[]>("db_tracks_search", { query, limit }),
 	/**  `debug:start` — begin sampling and pushing `debug:metrics`. */
 	debugStart: () => __TAURI_INVOKE<null>("debug_start"),
 	/**  `debug:stop` — end sampling. Idempotent, as v1's was. */
@@ -638,6 +683,21 @@ export const commands = {
 	 *  Same fallback semantics as its sibling above.
 	 */
 	discordRpcClearPresence: () => __TAURI_INVOKE<null>("discord_rpc_clear_presence"),
+	/**
+	 *  `doctor:scan` — decode every submitted file once and report what only a
+	 *  real decoder can see.
+	 * 
+	 *  Sequential, one file at a time, like the loudness batch and for the same
+	 *  reason: the decode is CPU-saturating and the unit of work is a track.
+	 */
+	doctorScan: (input: DoctorScanInput[]) => __TAURI_INVOKE<DoctorScanResult>("doctor_scan", { input }),
+	/**
+	 *  `doctor:cancel` — stop the active health check.
+	 * 
+	 *  Best-effort: the run notices at its next per-file checkpoint and returns
+	 *  its partial findings.
+	 */
+	doctorCancel: () => __TAURI_INVOKE<null>("doctor_cancel"),
 	/**
 	 *  `downloader:check` — yt-dlp's installed state, version and update status.
 	 * 
@@ -828,12 +888,19 @@ export const commands = {
 	 */
 	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
 	/**
-	 *  `loudness:analyze` — measure and persist integrated loudness for a batch.
+	 *  `loudness:analyze` — measure and persist the loudness profile for a batch.
 	 * 
 	 *  Sequential, one track at a time, as v1 was: the decode is already
-	 *  CPU-saturating and the unit of parallelism this crate's docs name is a track.
-	 *  Already-measured tracks are skipped by re-reading the row, which keeps the
+	 *  CPU-saturating and the unit of parallelism this crate's docs name is a
+	 *  track. F5 adds *album grouping* around that loop: tracks sharing a real
+	 *  album tag are processed as one unit so their analyser states can fold into
+	 *  an album loudness, and a group where every member already carries its full
+	 *  profile is skipped whole. The skip test re-reads the rows, which keeps the
 	 *  run idempotent even when the renderer passes a stale "needs analysis" set.
+	 * 
+	 *  Continuity: a v1-measured `loudness_lufs` is never overwritten — such a
+	 *  track *is* re-decoded once to learn its true peak and album state, but the
+	 *  stored integrated value stays exactly what v1 wrote.
 	 */
 	loudnessAnalyze: (input: LoudnessAnalyzeInput[]) => __TAURI_INVOKE<LoudnessAnalyzeResult>("loudness_analyze", { input }),
 	/**
@@ -1182,6 +1249,7 @@ export const commands = {
 export const events = {
 	analysisProgress: makeEvent<AnalysisProgress>("analysis:progress"),
 	debugMetrics: makeEvent<DebugMetrics>("debug:metrics"),
+	doctorProgress: makeEvent<DoctorProgress>("doctor:progress"),
 	downloaderDependencyInstallProgress: makeEvent<DownloaderDependencyInstallProgress>("downloader:dependency-install-progress"),
 	downloaderFfmpegInstallProgress: makeEvent<DownloaderFfmpegInstallProgress>("downloader:ffmpeg-install-progress"),
 	downloaderInstallProgress: makeEvent<DownloaderInstallProgress>("downloader:install-progress"),
@@ -1555,6 +1623,99 @@ export type DisplayTrack = {
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt?: string | null,
 };
+
+/**
+ *  One per-file finding.
+ * 
+ *  Numbers ride as typed fields rather than a prebuilt message so the
+ *  renderer owns the copy (en + pl) and the formatting.
+ */
+export type DoctorFinding = {
+	/**  The library row this is about. */
+	trackId: string,
+	/**  Display title, so the report reads without a library join. */
+	title: string,
+	/**  The file on disk. */
+	filePath: string,
+	/**  What was found. */
+	kind: DoctorFindingKind,
+	/**  How loudly to present it. */
+	severity: DoctorSeverity,
+	/**  `DurationMismatch`: what the container claims, in seconds. */
+	expectedSeconds?: number | null,
+	/**  `DurationMismatch`: what actually decoded, in seconds. */
+	actualSeconds?: number | null,
+	/**  `DamagedPackets`: how many packets were skipped. */
+	skippedPackets?: number | null,
+	/**  `Clipping`: the measured true peak, in dBTP. */
+	truePeakDb?: number | null,
+};
+
+/**  What kind of defect (or caveat) a finding reports. */
+export type DoctorFindingKind = 
+/**  The file is gone from disk. */
+"missingFile" | 
+/**  The container would not open or the decode failed outright. */
+"unreadable" | 
+/**  The container holds no audio stream. */
+"noAudio" | 
+/**
+ *  The codec is outside this build's coverage (Opus/WMA) — the file is
+ *  not analysable here, which is not the same as broken.
+ */
+"unsupportedCodec" | 
+/**  The stream ends mid-packet: a truncated or half-downloaded file. */
+"truncated" | 
+/**  Some packets would not decode and were skipped. */
+"damagedPackets" | 
+/**  The container's duration claim disagrees with the decoded length. */
+"durationMismatch" | 
+/**  The master's true peak clears full scale (inter-sample clipping). */
+"clipping" | 
+/**  The audio is digital silence end to end. */
+"silent";
+
+/**  Progress through a Library Doctor health check (F8, v2-only). */
+export type DoctorProgress = Json;
+
+/**  One track offered up for a health check. */
+export type DoctorScanInput = {
+	/**  The library row, echoed on findings so the renderer can link back. */
+	id: string,
+	/**  The file to decode. */
+	filePath: string,
+	/**  Display title, echoed on progress ticks and findings. */
+	title: string,
+	/**
+	 *  The duration the library believes (container/tag metadata, seconds).
+	 *  Compared against the frames that actually decode.
+	 */
+	duration?: number | null,
+};
+
+/**  What a finished — or cancelled — health check covered. */
+export type DoctorScanResult = {
+	/**  Files examined (including the ones findings are about). */
+	scanned: number,
+	/**  Files with nothing to report. */
+	healthy: number,
+	/**
+	 *  Whether the run stopped early at the user's request. The findings are
+	 *  the partial truth up to that point, not a failure.
+	 */
+	cancelled: boolean,
+	/**  Every finding, in scan order. One file can produce several. */
+	findings: DoctorFinding[],
+};
+
+/**  How loudly the renderer should present a finding. */
+export type DoctorSeverity = 
+/**  The file cannot be played or read as audio. */
+"error" | 
+/**  The file plays, but part of it is missing or damaged. */
+"warning" | 
+/**  Worth knowing; nothing is wrong with the file on disk. */
+"info";
 
 /**  Where finished downloads land, plus whether that is still the default. */
 export type DownloadLocation = {
@@ -2136,7 +2297,11 @@ export type LookupSource =
  */
 "preview";
 
-/**  One track offered up for analysis. v1's `LoudnessAnalyzeInput`. */
+/**
+ *  One track offered up for analysis. v1's `LoudnessAnalyzeInput`, plus the
+ *  two album fields F5 grouping reads — both optional, so v1's three-field
+ *  payload still parses and simply never folds.
+ */
 export type LoudnessAnalyzeInput = {
 	/**  The row to measure and update. */
 	id: string,
@@ -2144,6 +2309,16 @@ export type LoudnessAnalyzeInput = {
 	filePath: string,
 	/**  Display title, echoed on every progress tick. */
 	title: string,
+	/**
+	 *  Album tag, for album-gain grouping. Absent, empty or the
+	 *  `Unknown Album` sentinel all mean "this track folds into no album".
+	 */
+	album?: string | null,
+	/**
+	 *  Album artist (the renderer sends its display collapse, album artist
+	 *  falling back to artist), so two artists' same-named albums stay apart.
+	 */
+	albumArtist?: string | null,
 };
 
 /**  What a finished — or cancelled — run counted. */
@@ -3255,6 +3430,15 @@ export type Track = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 };
 
 /**

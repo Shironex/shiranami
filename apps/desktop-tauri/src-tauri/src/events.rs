@@ -11,6 +11,17 @@
 //! tests below — today `analysis:progress`). They are held apart from the
 //! twenty so the v1 parity pin stays exact: a v2 channel must *not* appear in
 //! v1's manifest, and the twenty must, and both directions are asserted.
+//! The event channels — v1's twenty plus v2's own — and the one place their
+//! names are written.
+//!
+//! §2.6 fixes the *ported* surface at 155 channels: 135 invoke and **20
+//! events**. v2 features add beyond that (the Library Doctor's progress, F8)
+//! without disturbing the frozen twenty. v1
+//! leaves the split implicit — `ALL_IPC_CHANNELS` is one flat list, and whether
+//! an entry is an invoke or an event is discoverable only by finding either a
+//! `createIpcListener` in the preload or a `webContents.send` in the main
+//! process. This module makes it explicit, which is the single largest
+//! readability gain the port gets for free.
 //!
 //! # One channel-name registry
 //!
@@ -162,6 +173,8 @@ events! {
     /// parallel and has no meaningful "current track". See
     /// `crate::commands::analysis`.
     AnalysisProgress = "analysis:progress" => Json;
+    /// Progress through a Library Doctor health check (F8, v2-only).
+    DoctorProgress = "doctor:progress" => Json;
 
     /// A `shiranami://` deep link arrived.
     ///
@@ -205,8 +218,9 @@ mod tests {
 
     /// Channels born in v2, with no v1 counterpart. Kept apart from the twenty
     /// so the parity pin below stays a pin: these must NOT appear in v1's
-    /// manifest, and everything else must.
-    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress"];
+    /// manifest, and everything else must. Today: the one-pass analysis
+    /// engine's progress and the Library Doctor's progress (F8).
+    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress", "doctor:progress"];
 
     #[test]
     fn every_event_channel_has_a_typed_event() {
@@ -239,18 +253,31 @@ mod tests {
         ))
         .expect("read v1's channel manifest");
 
+        // The manifest may carry v2-born channels (consumers address one tree),
+        // so the era split is pinned against its explicit `V2_ONLY_CHANNELS`
+        // list rather than against file absence.
+        let v2_block = manifest
+            .split("export const V2_ONLY_CHANNELS")
+            .nth(1)
+            .expect("channels.ts declares V2_ONLY_CHANNELS");
+
         for name in ALL_EVENT_NAMES {
             let quoted = format!("'{name}'");
             if V2_EVENT_CHANNELS.contains(name) {
                 assert!(
-                    !manifest.contains(&quoted),
-                    "`{name}` is declared v2-only but v1's manifest carries it"
+                    v2_block.contains(&quoted),
+                    "`{name}` is declared v2-only in Rust but channels.ts's \
+                     V2_ONLY_CHANNELS list does not carry it"
                 );
             } else {
                 assert!(
                     manifest.contains(&quoted),
                     "`{name}` is not a channel v1 declares — an event name that no \
                      renderer listens on fires into nothing, silently"
+                );
+                assert!(
+                    !v2_block.contains(&quoted),
+                    "`{name}` is a ported v1 channel but channels.ts marks it v2-only"
                 );
             }
         }

@@ -1,11 +1,78 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { libraryKeys } from '@/hooks/queries/useLibrary';
+import { IS_ELECTRON } from '@/lib/platform';
+import { mapDbTracksToTracks } from '@/lib/trackMapper';
+import type { Track } from '@/stores/types';
 import type { ILibraryViewView } from './LibraryView.types';
+
+/**
+ * Past this many tracks, search routes through the FTS5 index (`db:tracks:
+ * search`) instead of the in-memory substring filter. Small libraries keep the
+ * client path: it is exact-substring, needs no debounce and no IPC round-trip,
+ * and at this size a linear scan is already instant. The index buys ranking,
+ * diacritic folding and flat latency as the library grows.
+ */
+const FTS_SEARCH_THRESHOLD = 2000;
+
+/** Matches handed back per query — a virtual-list screenful many times over. */
+const FTS_SEARCH_LIMIT = 1000;
+
+/** Keystroke settle time before a query crosses the bridge. */
+const FTS_SEARCH_DEBOUNCE_MS = 120;
+
+/**
+ * The filtered library backing the track list: the client substring filter
+ * below the threshold, ranked FTS5 results above it. While an FTS response is
+ * in flight the previous ranked list (or, first time, the client filter) keeps
+ * the rows from flashing empty.
+ */
+function useSearchedLibrary(library: Track[], searchQuery: string): Track[] {
+  const trimmed = searchQuery.trim();
+  // Feature-detected, not merely platform-gated: `search` is a v2-only
+  // optional member of the shared preload contract, and under a v1 preload
+  // the client filter below is the graceful whole of search.
+  const searchIndex = IS_ELECTRON ? window.electronAPI.db.tracks.search : undefined;
+  const ftsEligible = searchIndex != null && library.length > FTS_SEARCH_THRESHOLD;
+
+  const [debouncedQuery, setDebouncedQuery] = useState(trimmed);
+  useEffect(() => {
+    if (!ftsEligible) return undefined;
+    const timer = setTimeout(() => setDebouncedQuery(trimmed), FTS_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [trimmed, ftsEligible]);
+
+  const ftsResults = useQuery({
+    // Under the `library` key prefix on purpose: a rescan invalidates
+    // `libraryKeys.all`, and prefix invalidation refetches these too.
+    queryKey: [...libraryKeys.all, 'search', debouncedQuery],
+    queryFn: async () =>
+      searchIndex ? mapDbTracksToTracks(await searchIndex(debouncedQuery, FTS_SEARCH_LIMIT)) : [],
+    enabled: ftsEligible && debouncedQuery.length > 0,
+    placeholderData: keepPreviousData,
+  });
+
+  const clientFiltered = useMemo(() => {
+    if (!trimmed) return library;
+    const q = trimmed.toLowerCase();
+    return library.filter(
+      track =>
+        track.title.toLowerCase().includes(q) ||
+        track.artist.toLowerCase().includes(q) ||
+        track.album.toLowerCase().includes(q)
+    );
+  }, [library, trimmed]);
+
+  if (!trimmed) return library;
+  if (!ftsEligible) return clientFiltered;
+  return ftsResults.data ?? clientFiltered;
+}
 
 export function useLibraryView(): ILibraryViewView {
   const { t } = useTranslation('library');
@@ -31,16 +98,7 @@ export function useLibraryView(): ILibraryViewView {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredLibrary = useMemo(() => {
-    if (!searchQuery.trim()) return library;
-    const q = searchQuery.toLowerCase();
-    return library.filter(
-      track =>
-        track.title.toLowerCase().includes(q) ||
-        track.artist.toLowerCase().includes(q) ||
-        track.album.toLowerCase().includes(q)
-    );
-  }, [library, searchQuery]);
+  const filteredLibrary = useSearchedLibrary(library, searchQuery);
 
   const filteredRef = useRef(filteredLibrary);
   filteredRef.current = filteredLibrary;
