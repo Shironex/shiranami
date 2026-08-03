@@ -1121,9 +1121,11 @@ export const commands = {
 	 *  A sanctuary the OS blanks after two minutes is worse than none, but
 	 *  *failing* to acquire the assertion must not fail entering the sanctuary —
 	 *  so this logs and carries on, the same judgement the five infallible window
-	 *  commands above make.
+	 *  commands above make. `async` for the arch guard (sync commands share the
+	 *  paint thread), which with borrowed `State` forces the `Result` return —
+	 *  always `Ok`, per the judgement above.
 	 */
-	windowSetDisplaySleepInhibited: (inhibited: boolean) => __TAURI_INVOKE<void>("window_set_display_sleep_inhibited", { inhibited }),
+	windowSetDisplaySleepInhibited: (inhibited: boolean) => __TAURI_INVOKE<null>("window_set_display_sleep_inhibited", { inhibited }),
 };
 
 /** Events */

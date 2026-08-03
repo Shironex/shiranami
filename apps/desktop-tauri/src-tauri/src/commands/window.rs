@@ -159,10 +159,15 @@ pub struct SleepInhibitor {
 /// A sanctuary the OS blanks after two minutes is worse than none, but
 /// *failing* to acquire the assertion must not fail entering the sanctuary —
 /// so this logs and carries on, the same judgement the five infallible window
-/// commands above make.
+/// commands above make. `async` for the arch guard (sync commands share the
+/// paint thread), which with borrowed `State` forces the `Result` return —
+/// always `Ok`, per the judgement above.
 #[tauri::command]
 #[specta::specta]
-pub fn window_set_display_sleep_inhibited(state: State<'_, SleepInhibitor>, inhibited: bool) {
+pub async fn window_set_display_sleep_inhibited(
+    state: State<'_, SleepInhibitor>,
+    inhibited: bool,
+) -> CommandResult<()> {
     let guard = if inhibited {
         match keepawake::Builder::default()
             .display(true)
@@ -182,6 +187,7 @@ pub fn window_set_display_sleep_inhibited(state: State<'_, SleepInhibitor>, inhi
     };
 
     *lock_or_recover(&state.inner) = guard;
+    Ok(())
 }
 
 /// `window:set-compact-mode` — enter, resize or leave the mini-player.
