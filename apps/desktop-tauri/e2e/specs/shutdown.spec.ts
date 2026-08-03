@@ -26,7 +26,7 @@
 
 import { browser } from '@wdio/globals';
 
-import { waitForStores, waitForShell } from '../helpers/app.js';
+import { waitForStores, waitForShell, forgetSession } from '../helpers/app.js';
 import { profile } from '../helpers/profile.js';
 import { readLog, waitForLogLine, linesMatching } from '../helpers/logs.js';
 
@@ -38,6 +38,15 @@ describe('shutdown', () => {
     await waitForShell();
     // The server has to be up for its shutdown to mean anything.
     await waitForLogLine(HOME, 'the loopback media server is listening', { timeout: 30_000 });
+  });
+
+  after(() => {
+    // The app this file quit took its WebDriver server with it, so the runner's
+    // closing `DELETE /session/<id>` has nothing to reach. See `forgetSession`
+    // for why that would otherwise fail a spec whose assertions all passed.
+    // Nothing after the quit issues a browser command — every assertion below
+    // reads the log off disk.
+    forgetSession();
   });
 
   it('quits on a renderer close request and runs the graceful path', async () => {

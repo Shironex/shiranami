@@ -118,6 +118,44 @@ export async function bootIntoView(view: string): Promise<void> {
   );
 }
 
+/**
+ * Tell the runner its session is gone, for a spec that quit the app on purpose.
+ *
+ * `@wdio/runner` ends every worker with `DELETE /session/<id>`. When the app is
+ * still running that is routine; when a spec has deliberately quit it, the
+ * WebDriver server answering that route died with the process, the request can
+ * only `ECONNREFUSED`, and the runner reports a failed session — turning a file
+ * whose assertions all passed into a red one. `endSession` skips the request
+ * entirely when `sessionId` is falsy, so clearing it states the truth rather
+ * than swallowing an error afterwards.
+ *
+ * # Why this cannot just assign to the imported `browser`
+ *
+ * `@wdio/globals` exports a `Proxy` with a **`get` trap and no `set` trap**, so
+ * `browser.sessionId = undefined` silently writes to the proxy's dummy target
+ * and the real instance never sees it. The write has to land on the object the
+ * runner holds: the injected `globalThis.browser` when `injectGlobals` is on
+ * (the default, and this suite's setting), and otherwise the `_wdioGlobals`
+ * registry the proxy itself reads through.
+ *
+ * Calling `deleteSession()` from the spec is not an alternative — it throws on
+ * the same refused connection, and the runner only clears `sessionId` *after* a
+ * delete that succeeded.
+ */
+export function forgetSession(): void {
+  const injected = (globalThis as { browser?: { sessionId?: string } }).browser;
+  if (injected !== undefined) {
+    injected.sessionId = undefined;
+  }
+
+  const registry = (globalThis as { _wdioGlobals?: Map<string, { sessionId?: string }> })
+    ._wdioGlobals;
+  const registered = registry?.get('browser');
+  if (registered !== undefined) {
+    registered.sessionId = undefined;
+  }
+}
+
 /** Seed library rows through the production IPC, exactly as v1's helper did. */
 export async function seedTracks(
   tracks: { title: string; filePath: string; artist?: string; album?: string; duration?: number }[]
