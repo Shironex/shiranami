@@ -61,6 +61,23 @@ impl IntegratedLoudness {
     }
 }
 
+/// Everything one decode measures about a track's loudness (feature wave F5).
+///
+/// The integrated value is the one the ±0.1 LU parity bar covers; the other
+/// two are v2-only additions with no v1 counterpart to stay comparable with.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LoudnessProfile {
+    /// Gated whole-programme loudness, as [`measure_integrated_loudness`]
+    /// reports it.
+    pub integrated: IntegratedLoudness,
+    /// The loudest true peak across channels, in dBTP — `ebur128`'s 4× polyphase
+    /// oversample, so an inter-sample over reads above 0.0. `None` for digital
+    /// silence, where there is no peak to speak of.
+    pub true_peak_db: Option<f64>,
+    /// Loudness range per EBU Tech 3342, in LU. `None` when non-finite.
+    pub loudness_range: Option<f64>,
+}
+
 /// A [`PcmSink`] that feeds frames to the EBU R128 analyser as they decode.
 ///
 /// Unlike the peak envelope this keeps no audio at all — the analyser's state is
@@ -70,6 +87,7 @@ impl IntegratedLoudness {
 #[derive(Debug, Default)]
 pub struct LoudnessAnalyzer {
     state: Option<EbuR128>,
+    channels: u16,
 }
 
 impl LoudnessAnalyzer {
@@ -86,9 +104,7 @@ impl LoudnessAnalyzer {
     /// [`AudioError::Analysis`] if no frames were ever accepted, or if the
     /// analyser rejects the query.
     pub fn finish(&self) -> Result<IntegratedLoudness> {
-        let state = self.state.as_ref().ok_or_else(|| AudioError::Analysis {
-            reason: "no frames were analysed".to_owned(),
-        })?;
+        let state = self.ready()?;
 
         match state.loudness_global() {
             // `is_finite` filters the −∞ of digital silence and any NaN,
@@ -101,17 +117,105 @@ impl LoudnessAnalyzer {
             }),
         }
     }
+
+    /// Read the full loudness profile accumulated so far.
+    ///
+    /// # Errors
+    ///
+    /// [`AudioError::Analysis`] under the same conditions as [`finish`], which
+    /// this extends rather than replaces — `finish` is the parity-pinned v1
+    /// surface, this is the F5 surface beside it.
+    ///
+    /// [`finish`]: LoudnessAnalyzer::finish
+    pub fn profile(&self) -> Result<LoudnessProfile> {
+        let integrated = self.finish()?;
+        let state = self.ready()?;
+
+        // Loudest linear true peak across channels, then into dBTP. Digital
+        // silence peaks at exactly 0.0 linear, whose log is −∞ — that is the
+        // `None`, matching how `Silent` stores no LUFS.
+        let mut peak = 0.0_f64;
+        for channel in 0..u32::from(self.channels) {
+            let value = state
+                .true_peak(channel)
+                .map_err(|error| AudioError::Analysis {
+                    reason: error.to_string(),
+                })?;
+            peak = peak.max(value);
+        }
+        let true_peak_db = Some(20.0 * peak.log10()).filter(|db| db.is_finite());
+
+        let range = state
+            .loudness_range()
+            .map_err(|error| AudioError::Analysis {
+                reason: error.to_string(),
+            })?;
+        let loudness_range = Some(range).filter(|lra| lra.is_finite());
+
+        Ok(LoudnessProfile {
+            integrated,
+            true_peak_db,
+            loudness_range,
+        })
+    }
+
+    /// The analyser state, or the "no frames" failure both readers share.
+    fn ready(&self) -> Result<&EbuR128> {
+        self.state.as_ref().ok_or_else(|| AudioError::Analysis {
+            reason: "no frames were analysed".to_owned(),
+        })
+    }
+}
+
+/// Album-level integrated loudness: one BS.1770 gate over the union of every
+/// track's blocks, via `EbuR128::loudness_global_multiple` (feature wave F5).
+///
+/// This is the ReplayGain "album gain" primitive — the quiet interlude stays
+/// quiet relative to its record because the gate is computed once across the
+/// whole album rather than per track. The caller keeps each track's
+/// [`LoudnessAnalyzer`] alive for the duration of the album and hands them all
+/// in; an album is small (tens of tracks) and each state is a fixed handful of
+/// filter histories, so this stays O(album), never O(library).
+///
+/// # Errors
+///
+/// [`AudioError::Analysis`] if the slice is empty, if any analyser never
+/// accepted a frame, or if the fold itself is rejected.
+pub fn album_integrated_loudness(analyzers: &[LoudnessAnalyzer]) -> Result<IntegratedLoudness> {
+    if analyzers.is_empty() {
+        return Err(AudioError::Analysis {
+            reason: "no tracks were analysed for the album".to_owned(),
+        });
+    }
+
+    let mut states = Vec::with_capacity(analyzers.len());
+    for analyzer in analyzers {
+        states.push(analyzer.ready()?);
+    }
+
+    match EbuR128::loudness_global_multiple(states.into_iter()) {
+        Ok(lufs) if lufs.is_finite() => Ok(IntegratedLoudness::Measured(lufs)),
+        Ok(_) => Ok(IntegratedLoudness::Silent),
+        Err(error) => Err(AudioError::Analysis {
+            reason: error.to_string(),
+        }),
+    }
 }
 
 impl PcmSink for LoudnessAnalyzer {
     fn begin(&mut self, spec: PcmSpec) -> Result<()> {
+        // `TRUE_PEAK` and `LRA` ride the same pass (F5). Neither changes what
+        // `loudness_global` reports, so the ±0.1 LU parity bar is untouched;
+        // true peak costs a 4× oversample, which is small next to the decode.
+        let mode = Mode::I | Mode::TRUE_PEAK | Mode::LRA;
         let state =
-            EbuR128::new(u32::from(spec.channels), spec.sample_rate, Mode::I).map_err(|error| {
+            EbuR128::new(u32::from(spec.channels), spec.sample_rate, mode).map_err(|error| {
                 AudioError::Analysis {
                     reason: format!("{error} ({} ch @ {} Hz)", spec.channels, spec.sample_rate),
                 }
             })?;
         self.state = Some(state);
+        self.channels = spec.channels;
         Ok(())
     }
 
@@ -139,4 +243,18 @@ pub fn measure_integrated_loudness(path: &Path) -> Result<IntegratedLoudness> {
     let mut analyzer = LoudnessAnalyzer::new();
     decode_file(path, &mut analyzer)?;
     analyzer.finish()
+}
+
+/// Measure a file's full loudness profile — integrated, true peak and range —
+/// in one decode.
+///
+/// # Errors
+///
+/// Exactly [`measure_integrated_loudness`]'s. A caller that also needs the
+/// analyser afterwards (the album fold) drives [`decode_file`] with a
+/// [`LoudnessAnalyzer`] itself instead.
+pub fn measure_loudness_profile(path: &Path) -> Result<LoudnessProfile> {
+    let mut analyzer = LoudnessAnalyzer::new();
+    decode_file(path, &mut analyzer)?;
+    analyzer.profile()
 }
