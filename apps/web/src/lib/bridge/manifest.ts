@@ -1,5 +1,6 @@
 /**
- * Where each of v1's 155 IPC channels lives on the shim.
+ * Where each IPC channel lives on the shim — v1's 155 plus v2's own
+ * (`db:tracks:search`).
  *
  * This is the drift guard, and its type does half the work on its own:
  * `Record<IpcChannelName, ChannelPath>` is keyed by the union of every leaf in
@@ -99,6 +100,7 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'db:tracks:exists': ['db', 'tracks', 'exists'],
   'db:tracks:exists-many': ['db', 'tracks', 'existsMany'],
   'db:tracks:get-id-by-path': ['db', 'tracks', 'getIdByPath'],
+  'db:tracks:search': ['db', 'tracks', 'search'],
 
   // ── db:history ──────────────────────────────────────────────────────────
   'db:history:record-play': ['db', 'history', 'recordPlay'],

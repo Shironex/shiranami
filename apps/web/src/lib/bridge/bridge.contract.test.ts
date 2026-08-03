@@ -63,9 +63,9 @@ describe('bridge channel coverage', () => {
     expect(mapped).toHaveLength(ALL_IPC_CHANNELS.length);
   });
 
-  it('covers all 155 channels — 135 invoke plus 20 events', () => {
-    expect(ALL_IPC_CHANNELS.length).toBe(155);
-    expect(mapped).toHaveLength(155);
+  it('covers all 156 channels — 135 v1 invoke, one v2 invoke, 20 events', () => {
+    expect(ALL_IPC_CHANNELS.length).toBe(156);
+    expect(mapped).toHaveLength(156);
   });
 
   it('resolves every mapped channel to a function on the installed surface', () => {

@@ -98,6 +98,7 @@ export const IPC_CHANNELS = {
       exists: 'db:tracks:exists',
       existsMany: 'db:tracks:exists-many',
       getIdByPath: 'db:tracks:get-id-by-path',
+      search: 'db:tracks:search',
     },
     history: {
       recordPlay: 'db:history:record-play',

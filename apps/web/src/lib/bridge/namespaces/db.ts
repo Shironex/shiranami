@@ -35,6 +35,7 @@ const tracksApi: DbTracksApi = {
   exists: filePath => commands.dbTracksExists(filePath),
   existsMany: filePaths => commands.dbTracksExistsMany(filePaths),
   getIdByPath: filePath => commands.dbTracksGetIdByPath(filePath),
+  search: (query, limit) => asContract<Track[]>(commands.dbTracksSearch(query, limit ?? null)),
 };
 
 const historyApi: DbHistoryApi = {

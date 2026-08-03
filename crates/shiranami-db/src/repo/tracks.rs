@@ -58,6 +58,57 @@ pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<Track>> {
     track_row::tracks(&rows)
 }
 
+/// Ranked full-text search over the library, best match first.
+///
+/// Backed by the `tracks_fts` index (migration `0004`). Each term of the query
+/// must appear somewhere in the row, the last term may be half-typed (every
+/// term is a prefix query), and rows are ordered by `bm25` with column weights
+/// that put a title hit above an artist hit above album/genre metadata —
+/// `rowid` breaks ties so equal scores keep insertion order. The tokenizer
+/// folds diacritics on both sides, so "beyonce" finds "Beyoncé".
+///
+/// An empty or punctuation-only query returns no rows rather than the whole
+/// library — "show everything" is [`get_all`]'s job, and the renderer only
+/// calls this once the user has typed something.
+pub async fn search(conn: &mut SqliteConnection, query: &str, limit: i64) -> Result<Vec<Track>> {
+    let expression = fts_match_expression(query);
+    if expression.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let rows = sqlx::query(
+        "SELECT tracks.* FROM tracks_fts JOIN tracks ON tracks.rowid = tracks_fts.rowid \
+         WHERE tracks_fts MATCH ?1 \
+         ORDER BY bm25(tracks_fts, 8.0, 4.0, 2.0, 2.0, 1.0), tracks.rowid ASC \
+         LIMIT ?2",
+    )
+    .bind(expression)
+    .bind(limit)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(failed("search the library"))?;
+
+    track_row::tracks(&rows)
+}
+
+/// Build an FTS5 `MATCH` expression from raw user input.
+///
+/// FTS5 gives `"`, `*`, `-`, `^`, parentheses and the bare keywords
+/// `AND`/`OR`/`NOT`/`NEAR` meaning, so raw input containing any of them is a
+/// syntax error rather than a search. The input is therefore split on every
+/// non-alphanumeric character — the same boundary the `unicode61` tokenizer
+/// uses, so "don't" becomes the two tokens the index actually holds — and each
+/// run becomes a quoted prefix query. Purely alphanumeric terms cannot smuggle
+/// an operator, which turns the whole query grammar off.
+fn fts_match_expression(query: &str) -> String {
+    query
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|term| !term.is_empty())
+        .map(|term| format!("\"{term}\"*"))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// Insert one track, or hand back the row that already holds its `file_path`.
 ///
 /// `file_path` is `UNIQUE` and the renderer's import is a non-atomic
@@ -502,4 +553,45 @@ fn group_by_patch(updates: &[(String, TrackUpdateInput)]) -> Vec<(TrackUpdateInp
     }
 
     groups
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fts_match_expression;
+
+    #[test]
+    fn terms_become_quoted_prefix_queries() {
+        assert_eq!(fts_match_expression("lofi beats"), r#""lofi"* "beats"*"#);
+    }
+
+    /// Every FTS5 operator must come out defanged: split on non-alphanumeric
+    /// boundaries, nothing but the letters survives into the quoted terms.
+    #[test]
+    fn fts_operators_cannot_reach_the_query_grammar() {
+        assert_eq!(
+            fts_match_expression(r#"a* (b) -c "d" e^"#),
+            r#""a"* "b"* "c"* "d"* "e"*"#
+        );
+    }
+
+    /// The split boundary mirrors the `unicode61` tokenizer: "don't" is indexed
+    /// as the two tokens `don` and `t`, so the query must ask for both rather
+    /// than the single token `dont` the index does not hold.
+    #[test]
+    fn punctuated_words_split_the_way_the_tokenizer_splits_them() {
+        assert_eq!(fts_match_expression("don't stop"), r#""don"* "t"* "stop"*"#);
+    }
+
+    #[test]
+    fn punctuation_only_input_produces_an_empty_expression() {
+        assert_eq!(fts_match_expression("  \"*-^()  "), "");
+        assert_eq!(fts_match_expression(""), "");
+    }
+
+    /// Diacritics pass through untouched — `remove_diacritics 2` folds them at
+    /// query time, so both "beyoncé" and "beyonce" must reach FTS5 as-is.
+    #[test]
+    fn diacritics_survive_into_the_expression() {
+        assert_eq!(fts_match_expression("beyoncé"), r#""beyoncé"*"#);
+    }
 }

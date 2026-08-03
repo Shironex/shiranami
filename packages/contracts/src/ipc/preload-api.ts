@@ -215,6 +215,8 @@ export interface DbTracksApi {
   exists: (filePath: string) => Promise<boolean>;
   existsMany: (filePaths: string[]) => Promise<string[]>;
   getIdByPath: (filePath: string) => Promise<string | null>;
+  /** Ranked FTS5 search, best match first. An empty query returns no rows. */
+  search: (query: string, limit?: number) => Promise<Track[]>;
 }
 
 export interface DbHistoryApi {

@@ -202,6 +202,9 @@ mod tests {
             "dbTracksAddMany",
             "dbTracksExistsMany",
             "dbTracksUpdateMany",
+            // Ports no v1 channel: v1 never searched over IPC — its renderer
+            // filtered the in-memory library, the path FTS5 replaces (F6).
+            "dbTracksSearch",
             "dbFoldersGetAll",
             "dbFoldersAdd",
             "dbFoldersRemove",
