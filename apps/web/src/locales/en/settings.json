@@ -442,6 +442,8 @@
       "title": "Accent color",
       "desc": "Pick the highlight color used across the app. Auto follows the active theme.",
       "auto": "Auto (theme accent)",
+      "followArt": "Follow the record",
+      "followArtDesc": "Borrow the accent from the playing album's cover. Eases between records; black-and-white covers keep your chosen accent.",
       "custom": "Custom color",
       "apply": "Use {{name}} accent",
       "reset": "Reset",

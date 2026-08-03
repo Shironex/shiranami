@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { FastAverageColor } from 'fast-average-color';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useAccentStore, applyAccent } from '@/stores/useAccentStore';
+import {
+  extractPalette,
+  artAccentHex,
+  artInk,
+  ART_SWATCH_ORDER,
+  type ArtPalette,
+} from '@/lib/artPalette';
 
 const fac = new FastAverageColor();
 
@@ -8,12 +16,15 @@ export interface AmbientColor {
   rgb: string; // e.g. "120, 80, 200"
   hex: string; // e.g. "#7850c8"
   isDark: boolean;
+  /** Five-swatch palette extracted from the cover, or null (no/unreadable art). */
+  palette: ArtPalette | null;
 }
 
 export const DEFAULT_COLOR: AmbientColor = {
   rgb: '59, 130, 246', // blue-500
   hex: '#3b82f6',
   isDark: true,
+  palette: null,
 };
 
 const AmbientColorContext = createContext<AmbientColor>(DEFAULT_COLOR);
@@ -47,8 +58,50 @@ function writeCache(url: string, color: AmbientColor): void {
   }
 }
 
+// The palette needs actual pixels; 32×32 keeps the scan ~1k pixels regardless
+// of the source art size. One module-level canvas is reused across covers.
+const PALETTE_SAMPLE_SIZE = 32;
+let paletteCanvas: HTMLCanvasElement | null = null;
+
+function extractPaletteFromImage(img: HTMLImageElement): ArtPalette | null {
+  try {
+    paletteCanvas ??= document.createElement('canvas');
+    paletteCanvas.width = PALETTE_SAMPLE_SIZE;
+    paletteCanvas.height = PALETTE_SAMPLE_SIZE;
+    const ctx = paletteCanvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, PALETTE_SAMPLE_SIZE, PALETTE_SAMPLE_SIZE);
+    const data = ctx.getImageData(0, 0, PALETTE_SAMPLE_SIZE, PALETTE_SAMPLE_SIZE).data;
+    return extractPalette(data);
+  } catch {
+    // Tainted canvas / decode failure: the average color still works, the
+    // palette features just degrade to their theme fallbacks.
+    return null;
+  }
+}
+
+/**
+ * Publish the palette as `--art-1…5` + `--art-ink` inline on <html> so any
+ * stylesheet (and the poster/bloom layers) can borrow the record's colors.
+ * Cleared when no palette is available so themes fall back cleanly.
+ */
+function applyArtProperties(palette: ArtPalette | null): void {
+  if (typeof document === 'undefined') return;
+  const style = document.documentElement.style;
+  if (!palette) {
+    for (let i = 0; i < ART_SWATCH_ORDER.length; i++) style.removeProperty(`--art-${i + 1}`);
+    style.removeProperty('--art-ink');
+    return;
+  }
+  ART_SWATCH_ORDER.forEach((name, i) => {
+    style.setProperty(`--art-${i + 1}`, palette[name].hex);
+  });
+  style.setProperty('--art-ink', artInk(palette));
+}
+
 export function AmbientColorProvider({ children }: { children: ReactNode }) {
   const albumArt = usePlaybackStore(s => s.currentTrack?.albumArt);
+  const followArtAccent = useAccentStore(s => s.followArtAccent);
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
 
   useEffect(() => {
@@ -81,6 +134,7 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
           rgb: `${result.value[0]}, ${result.value[1]}, ${result.value[2]}`,
           hex: result.hex,
           isDark: result.isDark,
+          palette: extractPaletteFromImage(img),
         };
         writeCache(albumArt, next);
         setColor(next);
@@ -98,6 +152,25 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [albumArt]);
+
+  // Keep the `--art-*` custom properties in step with the extracted palette.
+  useEffect(() => {
+    applyArtProperties(color.palette);
+    return () => applyArtProperties(null);
+  }, [color]);
+
+  // "Follow the record": while enabled, the app's accent is the cover's
+  // clamped vibrant swatch — written through the same four custom properties
+  // as a manual accent, which is what recolors every canvas visualizer via
+  // usePrimaryRGB's MutationObserver. Monochrome covers (null) degrade to the
+  // user's stored accent rather than graying the app.
+  useEffect(() => {
+    if (!followArtAccent) return;
+    applyAccent(artAccentHex(color.palette) ?? useAccentStore.getState().accentColor);
+    return () => {
+      applyAccent(useAccentStore.getState().accentColor);
+    };
+  }, [followArtAccent, color]);
 
   return <AmbientColorContext.Provider value={color}>{children}</AmbientColorContext.Provider>;
 }

@@ -1,5 +1,5 @@
 import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
@@ -48,6 +48,8 @@ export default function AppearanceSection() {
     onResetBg,
     hasAccentOverride,
     onResetAccent,
+    followArtAccent,
+    onFollowArtChange,
   } = useAppearanceSection();
 
   const languageButtons = languageOptions.map(lang => (
@@ -228,6 +230,17 @@ export default function AppearanceSection() {
           ) : undefined
         }
       >
+        {/* "Follow the record" — the accent becomes the playing cover's
+            clamped vibrant swatch. The manual picker below stays usable while
+            this is on; picking a swatch turns follow-art back off (an explicit
+            choice always wins). */}
+        <SettingsToggleRow
+          label={t('app.accent.followArt')}
+          description={t('app.accent.followArtDesc')}
+          checked={followArtAccent}
+          onCheckedChange={onFollowArtChange}
+        />
+
         <div className="px-3 pb-1">
           <AccentColorPicker />
         </div>

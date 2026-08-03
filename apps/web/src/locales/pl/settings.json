@@ -458,6 +458,8 @@
       "title": "Kolor akcentu",
       "desc": "Wybierz kolor wyróżnień używany w całej aplikacji. Auto podąża za aktywnym motywem.",
       "auto": "Auto (akcent motywu)",
+      "followArt": "Podążaj za płytą",
+      "followArtDesc": "Akcent zapożyczony z okładki odtwarzanego albumu. Płynnie przechodzi między płytami; czarno-białe okładki zachowują wybrany akcent.",
       "custom": "Własny kolor",
       "apply": "Użyj akcentu {{name}}",
       "reset": "Resetuj",

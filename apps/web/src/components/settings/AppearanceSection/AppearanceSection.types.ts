@@ -99,4 +99,8 @@ export interface IAppearanceSectionView {
   readonly hasAccentOverride: boolean;
   /** Reset the accent override (back to auto). */
   readonly onResetAccent: () => void;
+  /** "Follow the record": accent derived from the playing cover's palette. */
+  readonly followArtAccent: boolean;
+  /** Toggle the follow-the-record accent. */
+  readonly onFollowArtChange: (enabled: boolean) => void;
 }

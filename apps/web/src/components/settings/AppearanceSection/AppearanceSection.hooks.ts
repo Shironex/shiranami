@@ -44,6 +44,8 @@ export function useAppearanceSection(): IAppearanceSectionView {
   const resetBg = useThemeBgStore(s => s.resetBg);
   const accentColor = useAccentStore(s => s.accentColor);
   const resetAccent = useAccentStore(s => s.resetAccent);
+  const followArtAccent = useAccentStore(s => s.followArtAccent);
+  const setFollowArtAccent = useAccentStore(s => s.setFollowArtAccent);
 
   const languageOptions = SUPPORTED_LANGUAGES.map(lang => ({
     code: lang.code,
@@ -106,7 +108,9 @@ export function useAppearanceSection(): IAppearanceSectionView {
     onSetBgDim: setBgDim,
     onResetBg: resetBg,
 
-    hasAccentOverride: accentColor !== null,
+    hasAccentOverride: accentColor !== null || followArtAccent,
     onResetAccent: resetAccent,
+    followArtAccent,
+    onFollowArtChange: setFollowArtAccent,
   };
 }
