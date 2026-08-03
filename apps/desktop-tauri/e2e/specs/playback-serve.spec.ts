@@ -144,7 +144,12 @@ describe('playback serve', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(response.bytes).toBe(0);
+    // Not an *empty* body: `error.rs` answers a refusal with the short plaintext
+    // reason it ported from v1's protocol handlers ("Not Found", "Forbidden"),
+    // and its own unit tests pin those strings. What matters here is that the
+    // refusal carried no file content, so that is what is asserted.
+    expect(response.contentType).not.toMatch(/^audio\//);
+    expect(response.bytes).toBeLessThan(fileSize);
   });
 
   it('refuses a path outside the library', async () => {
@@ -155,7 +160,9 @@ describe('playback serve', () => {
     );
 
     expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(response.bytes).toBe(0);
+    // As above: a `Forbidden` body is nine bytes of prose, not the file.
+    expect(response.contentType).not.toMatch(/^audio\//);
+    expect(response.bytes).toBeLessThan(fileSize);
   });
 
   it('logged the served request', async () => {
