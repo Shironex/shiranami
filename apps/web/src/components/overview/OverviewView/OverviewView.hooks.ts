@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useViewStore } from '@/stores/useViewStore';
 import { useOverviewData } from '@/hooks/useOverviewData';
+import { useWeeklyRecap } from '@/hooks/useWeeklyRecap';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import type { IOverviewView } from './OverviewView.types';
 
@@ -26,6 +27,7 @@ export function useOverviewView(): IOverviewView {
   } = useOverviewData();
   const { handleOpenFolder } = useLibraryActions();
   const navigateTo = useViewStore(s => s.navigateTo);
+  const { recap, visible: showRecap } = useWeeklyRecap();
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
   const showClock = useInterfaceStore(s => s.overviewClock);
@@ -53,6 +55,8 @@ export function useOverviewView(): IOverviewView {
     libraryLoaded,
     isLoading,
     isError,
+    recap,
+    showRecap,
     showStats,
     showTopWeek,
     showClock,
@@ -78,5 +82,6 @@ export function useOverviewView(): IOverviewView {
     },
     onOpenFolder: () => void handleOpenFolder(),
     onNavigateLibrary: () => navigateTo('library'),
+    onNavigateHistory: () => navigateTo('history'),
   };
 }

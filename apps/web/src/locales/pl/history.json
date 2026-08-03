@@ -39,5 +39,10 @@
   "activityBarTitle": "{{label}}: {{count}} odtworzeń, {{minutes}} min słuchania",
   "activityGraphLabel": "Aktywność słuchania: {{total}} odtworzeń w ciągu {{days}} dni",
   "errorTitle": "Nie udało się załadować historii słuchania",
-  "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie."
+  "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie.",
+  "recaps": {
+    "title": "Podsumowania",
+    "caption": "Tygodnie w skrócie — każdy zostaje tu, gdy dobiegnie końca.",
+    "quietWeek": "Cichy tydzień. Też dobrze."
+  }
 }

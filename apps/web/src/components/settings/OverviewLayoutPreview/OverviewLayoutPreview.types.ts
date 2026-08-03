@@ -40,6 +40,8 @@ export interface IOverviewBlockProps {
 export interface IOverviewLayoutPreviewView {
   /** Localized preview panel title (also used as the aria-label). */
   readonly title: string;
+  /** Weekly-recap card block state. */
+  readonly recap: IOverviewBlockState;
   /** Stats strip block state. */
   readonly stats: IOverviewBlockState;
   /** Top-tracks-this-week block state. */
@@ -72,4 +74,6 @@ export interface IOverviewLayoutPreviewView {
   readonly recTiles: readonly number[];
   /** Recently-added skeleton rows. */
   readonly recentRows: readonly IOverviewBarRow[];
+  /** Weekly-recap skeleton prose rows. */
+  readonly recapRows: readonly IOverviewBarRow[];
 }

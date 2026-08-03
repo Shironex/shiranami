@@ -26,6 +26,20 @@
     "hoursAndMinutes": "{{hours}} i {{minutes}}"
   },
   "driftNote": "Sen przyszedł o {{time}} — zaczynamy tam, gdzie skończyliśmy.",
+  "recap": {
+    "title": "Tydzień,",
+    "titleEm": "w skrócie.",
+    "time_one": "{{duration}} muzyki, w jednej sesji.",
+    "time_few": "{{duration}} muzyki w {{count}} sesjach.",
+    "time_many": "{{duration}} muzyki w {{count}} sesjach.",
+    "time_other": "{{duration}} muzyki w {{count}} sesjach.",
+    "track_one": "Coś Cię ciągnęło do {{title}}.",
+    "track_few": "Coś Cię ciągnęło do {{title}} — {{count}} razy.",
+    "track_many": "Coś Cię ciągnęło do {{title}} — {{count}} razy.",
+    "track_other": "Coś Cię ciągnęło do {{title}} — {{count}} razy.",
+    "loudest": "Najgłośniej o {{hour}}.",
+    "archiveAction": "Minione tygodnie"
+  },
   "clock": {
     "week": "TYDZ. {{week}}",
     "ariaLabel": "Aktualna godzina, {{time}}"

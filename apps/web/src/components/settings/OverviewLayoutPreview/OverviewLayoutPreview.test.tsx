@@ -21,11 +21,11 @@ describe('OverviewLayoutPreview', () => {
     expect(screen.getByRole('img', { name: 'Overview preview' })).toBeInTheDocument();
   });
 
-  it('renders all seven widget blocks expanded with the shipping defaults', () => {
+  it('renders all eight widget blocks expanded with the shipping defaults', () => {
     const { container } = render(<OverviewLayoutPreview />);
 
     const blocks = container.querySelectorAll(BLOCK);
-    expect(blocks).toHaveLength(7);
+    expect(blocks).toHaveLength(8);
     for (const block of blocks) {
       expect(block).toHaveClass('opacity-100');
     }
@@ -35,23 +35,34 @@ describe('OverviewLayoutPreview', () => {
     const { container } = render(<OverviewLayoutPreview />);
 
     const blocks = container.querySelectorAll(BLOCK);
-    // stats, topWeek, clock, topAlbums, mixes, recommendations, recentlyAdded.
-    expect(blocks[0].firstElementChild?.children).toHaveLength(4);
-    expect(blocks[1].firstElementChild?.children).toHaveLength(3);
-    expect(blocks[2].firstElementChild?.children).toHaveLength(7);
-    expect(blocks[3].firstElementChild?.children).toHaveLength(3);
-    expect(blocks[4].firstElementChild?.children).toHaveLength(4);
-    expect(blocks[5].firstElementChild?.children).toHaveLength(5);
-    expect(blocks[6].firstElementChild?.children).toHaveLength(2);
+    // recap, stats, topWeek, clock, topAlbums, mixes, recommendations,
+    // recentlyAdded.
+    expect(blocks[0].firstElementChild?.children).toHaveLength(3);
+    expect(blocks[1].firstElementChild?.children).toHaveLength(4);
+    expect(blocks[2].firstElementChild?.children).toHaveLength(3);
+    expect(blocks[3].firstElementChild?.children).toHaveLength(7);
+    expect(blocks[4].firstElementChild?.children).toHaveLength(3);
+    expect(blocks[5].firstElementChild?.children).toHaveLength(4);
+    expect(blocks[6].firstElementChild?.children).toHaveLength(5);
+    expect(blocks[7].firstElementChild?.children).toHaveLength(2);
   });
 
   it('folds a widget block away when its toggle is off', () => {
     useInterfaceStore.setState({ overviewStats: false });
     const { container } = render(<OverviewLayoutPreview />);
 
-    const stats = container.querySelectorAll(BLOCK)[0];
+    const stats = container.querySelectorAll(BLOCK)[1];
     expect(stats).toHaveClass('max-h-0', 'opacity-0');
     expect(stats).not.toHaveClass('max-h-8');
+  });
+
+  it('folds the recap block away when its toggle is off', () => {
+    useInterfaceStore.setState({ overviewRecap: false });
+    const { container } = render(<OverviewLayoutPreview />);
+
+    const recap = container.querySelectorAll(BLOCK)[0];
+    expect(recap).toHaveClass('max-h-0', 'opacity-0');
+    expect(recap).not.toHaveClass('max-h-14');
   });
 
   it('drops the clock/albums column when both of its widgets are off', () => {
@@ -59,7 +70,7 @@ describe('OverviewLayoutPreview', () => {
     const { container } = render(<OverviewLayoutPreview />);
 
     // The column is unmounted rather than collapsed, so two blocks disappear.
-    expect(container.querySelectorAll(BLOCK)).toHaveLength(5);
+    expect(container.querySelectorAll(BLOCK)).toHaveLength(6);
   });
 
   it('drops the whole week grid when every widget in it is off', () => {
@@ -70,7 +81,7 @@ describe('OverviewLayoutPreview', () => {
     });
     const { container } = render(<OverviewLayoutPreview />);
 
-    expect(container.querySelectorAll(BLOCK)).toHaveLength(4);
+    expect(container.querySelectorAll(BLOCK)).toHaveLength(5);
   });
 
   it('spotlights only the block matching the hovered settings row', () => {
@@ -78,7 +89,7 @@ describe('OverviewLayoutPreview', () => {
 
     const highlighted = container.querySelectorAll('.ring-1');
     expect(highlighted).toHaveLength(1);
-    expect(container.querySelectorAll(BLOCK)[4]).toHaveClass('ring-1', 'ring-primary/40');
+    expect(container.querySelectorAll(BLOCK)[5]).toHaveClass('ring-1', 'ring-primary/40');
   });
 
   it('does not spotlight a hidden block', () => {

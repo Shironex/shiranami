@@ -2,6 +2,7 @@ import { AlertCircle, Disc3, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { GreetingHero } from '@/components/overview/GreetingHero';
+import { WeeklyRecapCard } from '@/components/shared/WeeklyRecapCard';
 import { StatStrip } from '@/components/overview/StatStrip';
 import { TopThisWeek } from '@/components/overview/TopThisWeek';
 import { ListeningClock } from '@/components/overview/ListeningClock';
@@ -31,6 +32,8 @@ export default function OverviewView() {
     libraryLoaded,
     isLoading,
     isError,
+    recap,
+    showRecap,
     showStats,
     showTopWeek,
     showClock,
@@ -45,7 +48,13 @@ export default function OverviewView() {
     onRetry,
     onOpenFolder,
     onNavigateLibrary,
+    onNavigateHistory,
   } = useOverviewView();
+
+  // The week's recap appears on its own after a week completes, then folds
+  // itself away into the History archive a few days later.
+  const recapCard =
+    showRecap && recap ? <WeeklyRecapCard recap={recap} onOpenArchive={onNavigateHistory} /> : null;
 
   if (isError) {
     return (
@@ -85,6 +94,8 @@ export default function OverviewView() {
     <div className="flex-1 overflow-y-auto scrollbar-thin">
       <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6">
         <GreetingHero />
+
+        {recapCard}
 
         {hasHistory ? (
           <>

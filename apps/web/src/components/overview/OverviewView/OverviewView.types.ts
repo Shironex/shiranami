@@ -1,6 +1,7 @@
 import type { HeatmapModel } from '../overviewUtils';
 import type { ListeningAlbumStat, ListeningStatsSummary } from '@/types/electron';
 import type { Track } from '@/stores/types';
+import type { WeeklyRecap } from '@/hooks/queries/useRecap';
 
 /** Localized copy for the error / first-run / empty surfaces. */
 export interface IOverviewCopy {
@@ -40,6 +41,11 @@ export interface IOverviewView {
   /** Whether the overview data query errored. */
   readonly isError: boolean;
 
+  /** Last completed week's recap, when it earned a card. */
+  readonly recap: WeeklyRecap | null;
+  /** Whether the recap card is in its reveal window (and enabled). */
+  readonly showRecap: boolean;
+
   // Section visibility (interface-store driven).
   readonly showStats: boolean;
   readonly showTopWeek: boolean;
@@ -64,4 +70,6 @@ export interface IOverviewView {
   readonly onOpenFolder: () => void;
   /** Navigate to the library view (top-week action). */
   readonly onNavigateLibrary: () => void;
+  /** Navigate to History (the recap card's "Past weeks" action). */
+  readonly onNavigateHistory: () => void;
 }

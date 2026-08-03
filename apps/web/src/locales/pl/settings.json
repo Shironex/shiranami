@@ -496,6 +496,8 @@
       "elements": {
         "topBarLanguageSwitcher": "Przełącznik języka",
         "topBarLanguageSwitcherDesc": "Szybka zmiana języka na górnym pasku. Wybór języka pozostaje dostępny w ustawieniach wyglądu.",
+        "overviewRecap": "Tygodniowe podsumowanie",
+        "overviewRecapDesc": "Kilka cichych zdań o każdym zakończonym tygodniu; minione tygodnie zostają w Historii",
         "overviewStats": "Pasek statystyk",
         "overviewStatsDesc": "Czas słuchania, sesje i trend w tym tygodniu",
         "overviewTopWeek": "Top tego tygodnia",

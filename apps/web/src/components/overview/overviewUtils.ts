@@ -1,5 +1,6 @@
 import i18n from '@/lib/i18n';
 import { pad2 } from '@shiranami/shared';
+import { formatHoursMinutes, formatListeningDuration } from '@/lib/listeningDuration';
 import type { WeatherCondition } from '@shiranami/contracts';
 import type { ListeningHourlyActivityPoint } from '@/types/electron';
 
@@ -92,36 +93,10 @@ export function formatRelativeTime(iso: string | undefined, locale: string): str
   return rtf.format(Math.round(days / 30), 'month');
 }
 
-/**
- * Format a minute total as "14h 32m" / "32m". Returns the parts so the
- * renderer can style the units (`h`/`m`) smaller, mirroring the mockup's
- * `<span>` unit treatment.
- */
-export function formatHoursMinutes(totalMinutes: number): { hours: number; minutes: number } {
-  const safe = Math.max(0, Math.round(totalMinutes));
-  return { hours: Math.floor(safe / 60), minutes: safe % 60 };
-}
-
-/**
- * Humanized listening duration for the session summary line. Rolls minutes into
- * hours past 60 ("1 hour and 4 minutes" / "1 godzina i 4 minuty") rather than a
- * flat "64 minutes", leaning on i18next plurals for both units so PL forms
- * (godzina/godziny/godzin, minuta/minuty/minut) resolve correctly.
- */
-export function formatListeningDuration(totalMinutes: number): string {
-  const { hours, minutes } = formatHoursMinutes(totalMinutes);
-  const minutesLabel = i18n.t('session.minutes', { ns: 'overview', count: minutes });
-  if (hours <= 0) return minutesLabel;
-
-  const hoursLabel = i18n.t('session.hours', { ns: 'overview', count: hours });
-  if (minutes === 0) return hoursLabel;
-
-  return i18n.t('session.hoursAndMinutes', {
-    ns: 'overview',
-    hours: hoursLabel,
-    minutes: minutesLabel,
-  });
-}
+// Duration prose moved to `@/lib/listeningDuration` so the shared weekly-recap
+// card can narrate durations without a cross-feature import; re-exported here
+// for the overview widgets that always used them from this module.
+export { formatHoursMinutes, formatListeningDuration };
 
 /**
  * Signed delta label for the week-over-week trend ("+2h 18m", "-45m"). Returns

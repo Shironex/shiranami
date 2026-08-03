@@ -11,6 +11,7 @@ const STORE_KEY = 'shiranami.interface-store';
 
 interface PersistedInterfaceState {
   topBarLanguageSwitcher: boolean;
+  overviewRecap: boolean;
   overviewStats: boolean;
   overviewTopWeek: boolean;
   overviewClock: boolean;
@@ -33,6 +34,7 @@ interface PersistedInterfaceState {
 
 export const INTERFACE_DEFAULTS: PersistedInterfaceState = {
   topBarLanguageSwitcher: true,
+  overviewRecap: true,
   overviewStats: true,
   overviewTopWeek: true,
   overviewClock: true,

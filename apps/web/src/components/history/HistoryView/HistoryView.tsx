@@ -7,6 +7,7 @@ import { HistoryHeroSection } from '@/components/history/HistoryHeroSection';
 import { HistoryTopTrackRow } from '@/components/history/HistoryTopTrackRow';
 import { HistoryTopArtistRow } from '@/components/history/HistoryTopArtistRow';
 import { HistoryRecentRow } from '@/components/history/HistoryRecentRow';
+import { RecapShelf } from '@/components/history/RecapShelf';
 import { HistoryStatCard } from './HistoryStatCard';
 import { HistoryViewSkeleton } from './HistoryViewSkeleton';
 import { useHistoryView } from './HistoryView.hooks';
@@ -79,6 +80,10 @@ export default function HistoryView() {
             <HistoryActivityGraph points={view.activitySeries} range={view.selectedRange} />
           </div>
         </section>
+
+        {/* Past weeks' recaps, derived on demand — where Overview's card folds
+            away to, and reachable without waiting for one. */}
+        <RecapShelf />
 
         <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="rounded-[24px] border border-border/25 glass-panel p-4">

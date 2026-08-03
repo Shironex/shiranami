@@ -14,6 +14,7 @@ import type {
 } from './InterfaceSection.types';
 
 const OVERVIEW_TOGGLES: OverviewWidgetKey[] = [
+  'overviewRecap',
   'overviewStats',
   'overviewTopWeek',
   'overviewClock',

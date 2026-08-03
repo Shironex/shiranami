@@ -31,6 +31,7 @@ function OverviewBlock({
 export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps) {
   const {
     title,
+    recap,
     stats,
     topWeek,
     clock,
@@ -47,6 +48,7 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     mixTiles,
     recTiles,
     recentRows,
+    recapRows,
   } = useOverviewLayoutPreview(props);
 
   const statsTileEls = statsTiles.map(i => (
@@ -89,6 +91,14 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     </div>
   ));
 
+  const recapRowEls = recapRows.map(row => (
+    <div
+      key={row.key}
+      className="h-1.5 rounded-full bg-muted-foreground/25"
+      style={{ width: `${row.widthPx}px` }}
+    />
+  ));
+
   return (
     <SettingsPreview title={title}>
       <div
@@ -105,6 +115,16 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
               <div className="h-1 w-14 rounded-full bg-muted-foreground/25" />
             </div>
           </div>
+
+          {/* Weekly recap card */}
+          <OverviewBlock
+            visible={recap.visible}
+            highlighted={recap.highlighted}
+            expandedClass="max-h-14"
+            className="border border-border/25 bg-muted/15"
+          >
+            <div className="space-y-1.5 p-2">{recapRowEls}</div>
+          </OverviewBlock>
 
           {/* Stats strip */}
           <OverviewBlock
