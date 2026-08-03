@@ -135,6 +135,15 @@ symphonia = { version = "0.6", features = [
 ] }
 ebur128 = "0.1.10"
 
+# The v2 feature wave's tempo/key rung (research-rust F2) — the one DSP
+# addition §2.9 predicted ("`realfft` for BPM post-v2"). MIT, pure Rust, wraps
+# `rustfft`'s real-to-complex transform for the key detector's chromagram. The
+# licence matters as much as the function: the off-the-shelf analysis crates
+# (`bliss-audio`, `aubio-rs`) are GPL and unusable under this repo's
+# source-available licence, so the DSP is hand-rolled on this instead
+# (research-rust §0.9).
+realfft = "3.5"
+
 # Phase 6 (`shiranami-db`). Feature set as Appendix B pins it. `sqlite` brings
 # a bundled SQLite, so the engine is the same on every platform and in CI —
 # which matters more than usual here, because the `sqlite_master` diff test
