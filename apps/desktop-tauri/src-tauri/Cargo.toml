@@ -100,6 +100,13 @@ async-trait = { workspace = true }
 # started by a different invoke, so the token outlives the command that made it.
 tokio-util = { workspace = true }
 
+# The one-pass analysis batch (`analysis:analyze`) runs one decode per core on
+# a private pool, the same shape `shiranami-library`'s folder scan owns — see
+# that crate for why the pool is private rather than the global one. The
+# decode itself stays in `shiranami-audio`, which deliberately never spawns;
+# how many run at once is precisely the command layer's decision to make.
+rayon = { workspace = true }
+
 # The composition root depends on every domain crate; no domain crate depends
 # on it. Wiring lives here, logic never does — any file in this crate that
 # grows past 400 code lines means logic leaked out of a crate.

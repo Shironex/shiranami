@@ -276,6 +276,10 @@ mod tests {
             "libraryValidateFiles",
             "loudnessAnalyze",
             "loudnessCancel",
+            // Ports no v1 channel: the v2 feature wave's one-pass analysis
+            // engine (decode once, measure everything, all cores).
+            "analysisAnalyze",
+            "analysisCancel",
             "metadataLookup",
             "metadataEnrichTracks",
             "metadataEnrichPreview",

@@ -1,11 +1,16 @@
-//! The twenty event channels, and the one place their names are written.
+//! The event channels, and the one place their names are written.
 //!
-//! §2.6 fixes the surface at 155 channels: 135 invoke and **20 events**. v1
-//! leaves the split implicit — `ALL_IPC_CHANNELS` is one flat list, and whether
-//! an entry is an invoke or an event is discoverable only by finding either a
-//! `createIpcListener` in the preload or a `webContents.send` in the main
-//! process. This module makes it explicit, which is the single largest
-//! readability gain the port gets for free.
+//! §2.6 fixes the *ported* surface at 155 channels: 135 invoke and **20
+//! events**. v1 leaves the split implicit — `ALL_IPC_CHANNELS` is one flat
+//! list, and whether an entry is an invoke or an event is discoverable only by
+//! finding either a `createIpcListener` in the preload or a `webContents.send`
+//! in the main process. This module makes it explicit, which is the single
+//! largest readability gain the port gets for free.
+//!
+//! The v2 feature wave adds channels of its own ([`V2_EVENT_CHANNELS`] in the
+//! tests below — today `analysis:progress`). They are held apart from the
+//! twenty so the v1 parity pin stays exact: a v2 channel must *not* appear in
+//! v1's manifest, and the twenty must, and both directions are asserted.
 //!
 //! # One channel-name registry
 //!
@@ -20,10 +25,11 @@
 //! Without the attribute, `tauri-specta`'s derive kebab-cases the struct name —
 //! `ScanProgress` would become `scan-progress` and the renderer would listen on
 //! a channel nothing emits. Every event below therefore names its channel
-//! explicitly, and [`the_event_names_are_v1s_channel_strings`] pins all twenty
-//! against the literals `packages/contracts/src/ipc/channels.ts` declares.
+//! explicitly, and [`the_event_names_split_cleanly_across_the_two_eras`] pins
+//! the v1 twenty against the literals `packages/contracts/src/ipc/channels.ts`
+//! declares.
 //!
-//! [`the_event_names_are_v1s_channel_strings`]: tests::the_event_names_are_v1s_channel_strings
+//! [`the_event_names_split_cleanly_across_the_two_eras`]: tests::the_event_names_split_cleanly_across_the_two_eras
 //!
 //! # Payload shape
 //!
@@ -88,7 +94,8 @@ macro_rules! events {
         ///
         /// One list, unlike commands: events have no per-namespace ownership
         /// question, because a lane that emits one is *using* a type declared
-        /// here rather than declaring a new one. The twenty are frozen by v1.
+        /// here rather than declaring a new one. The v1 twenty are frozen;
+        /// v2 additions land in the same list and in `V2_EVENT_CHANNELS`.
         pub fn collect() -> ::tauri_specta::Events {
             ::tauri_specta::collect_events![$($name),*]
         }
@@ -149,6 +156,13 @@ events! {
     /// Progress through an EBU R128 loudness analysis.
     LoudnessProgress = "loudness:progress" => Json;
 
+    /// Progress through a one-pass analysis batch (v2, no v1 counterpart).
+    ///
+    /// The payload carries a settled-count rather than an index — the run is
+    /// parallel and has no meaningful "current track". See
+    /// `crate::commands::analysis`.
+    AnalysisProgress = "analysis:progress" => Json;
+
     /// A `shiranami://` deep link arrived.
     ///
     /// The payload is the raw URL. v1 matched its scheme case-sensitively and
@@ -189,9 +203,19 @@ mod tests {
     /// `commands::registry`.
     const V1_EVENT_CHANNEL_COUNT: usize = 20;
 
+    /// Channels born in v2, with no v1 counterpart. Kept apart from the twenty
+    /// so the parity pin below stays a pin: these must NOT appear in v1's
+    /// manifest, and everything else must.
+    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress"];
+
     #[test]
-    fn every_v1_event_channel_has_a_typed_event() {
-        assert_eq!(ALL_EVENT_NAMES.len(), V1_EVENT_CHANNEL_COUNT);
+    fn every_event_channel_has_a_typed_event() {
+        assert_eq!(
+            ALL_EVENT_NAMES.len(),
+            V1_EVENT_CHANNEL_COUNT + V2_EVENT_CHANNELS.len(),
+            "an event was added without deciding which era it belongs to — \
+             extend V2_EVENT_CHANNELS for a new channel, never the v1 count"
+        );
     }
 
     /// The names are the renderer's contract, so they are pinned against
@@ -202,8 +226,13 @@ mod tests {
     /// register as `library-scan-progress` and the renderer's listener on
     /// `library:scan-progress` would simply never fire — a failure with no error
     /// anywhere, which is the worst kind this port can produce.
+    ///
+    /// Both directions are checked: a v1 channel must be in the manifest, and a
+    /// v2 channel must **not** be — a v2 name that shows up there means it
+    /// collided with something v1 shipped, which is a different channel wearing
+    /// the same string.
     #[test]
-    fn the_event_names_are_v1s_channel_strings() {
+    fn the_event_names_split_cleanly_across_the_two_eras() {
         let manifest = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/../../../packages/contracts/src/ipc/channels.ts"
@@ -211,11 +240,19 @@ mod tests {
         .expect("read v1's channel manifest");
 
         for name in ALL_EVENT_NAMES {
-            assert!(
-                manifest.contains(&format!("'{name}'")),
-                "`{name}` is not a channel v1 declares — an event name that no \
-                 renderer listens on fires into nothing, silently"
-            );
+            let quoted = format!("'{name}'");
+            if V2_EVENT_CHANNELS.contains(name) {
+                assert!(
+                    !manifest.contains(&quoted),
+                    "`{name}` is declared v2-only but v1's manifest carries it"
+                );
+            } else {
+                assert!(
+                    manifest.contains(&quoted),
+                    "`{name}` is not a channel v1 declares — an event name that no \
+                     renderer listens on fires into nothing, silently"
+                );
+            }
         }
     }
 

@@ -450,6 +450,59 @@ pub async fn set_bpm_key(
     Ok(())
 }
 
+/// One track's measurements from an analysis run, ready to persist.
+///
+/// A `None` field means "not measured this run — leave the column alone",
+/// which is how a run that only filled gaps avoids clobbering values it never
+/// recomputed. `bpm_key` is all-or-nothing because the engine estimates the
+/// pair together (see [`set_bpm_key`]); its inner `None`s are real `NULL`s.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnalysisWrite {
+    /// The row to update.
+    pub id: String,
+    /// A fresh loudness measurement, or `None` to leave the column untouched.
+    pub loudness_lufs: Option<f64>,
+    /// A fresh tempo/key estimate, or `None` to leave both columns untouched.
+    pub bpm_key: Option<(Option<f64>, Option<String>)>,
+}
+
+/// Persist a batch of analysis measurements in one transaction.
+///
+/// The analysis engine decodes on every core at once but the pool holds a
+/// single connection, so per-track write-through would serialise the whole run
+/// on the database. Chunked batches through this function are the "parallel
+/// analysis, serialized writes" half of that bargain: the caller accumulates
+/// results while decodes continue, then pays one acquire and one commit per
+/// chunk.
+pub async fn record_analysis_many(
+    conn: &mut SqliteConnection,
+    writes: &[AnalysisWrite],
+) -> Result<()> {
+    if writes.is_empty() {
+        return Ok(());
+    }
+
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(failed("begin recording the analysis batch"))?;
+
+    for write in writes {
+        if let Some(lufs) = write.loudness_lufs {
+            set_loudness_lufs(&mut tx, &write.id, lufs).await?;
+        }
+        if let Some((bpm, musical_key)) = &write.bpm_key {
+            set_bpm_key(&mut tx, &write.id, *bpm, musical_key.as_deref()).await?;
+        }
+    }
+
+    tx.commit()
+        .await
+        .map_err(failed("record the analysis batch"))?;
+
+    Ok(())
+}
+
 /// Run a single-row `UPDATE … RETURNING *` keyed on `id`.
 ///
 /// Shared by the two counter-style channels, whose only difference is the `SET`
