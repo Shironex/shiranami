@@ -87,7 +87,44 @@ function capability(name: string, specs: string[], extra: Record<string, string>
     'tauri:options': { application: APP_BINARY },
     'wdio:tauriServiceOptions': serviceOptions(name, extra),
     specs: specs.map(spec => path.join(REPO_ROOT, 'apps/desktop-tauri/e2e/specs', spec)),
+    // Read back by `E2E_PROFILE` filtering below; wdio ignores unknown keys.
+    'shiranami:profile': name,
   };
+}
+
+/**
+ * Narrow the run to named profiles: `E2E_PROFILE=migrated`, or a comma list.
+ *
+ * # Why `--spec` alone is not enough
+ *
+ * wdio's `--spec` is a *global* filter: it replaces the spec list of **every**
+ * capability rather than selecting the one that declared the file. So
+ * `--spec shutdown.spec.ts` runs that file three times — once per profile —
+ * and the two that were never meant to see it fail on a `before` hook. The
+ * onboarding profile has no store registry to wait for (that is the point of
+ * it), and the library profile has no migrated log to read, so both sit out
+ * their timeouts and report failures that say nothing about the subject.
+ *
+ * Pairing the two — `E2E_PROFILE=migrated … --spec shutdown.spec.ts` — is what
+ * makes "run this one spec" mean what it looks like it means. Unset, every
+ * profile runs, which is what CI and a plain `pnpm test:e2e` do.
+ */
+function selectedCapabilities<T extends { 'shiranami:profile': string }>(all: T[]): T[] {
+  const requested = process.env.E2E_PROFILE?.split(',')
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+
+  if (requested === undefined || requested.length === 0) return all;
+
+  const unknown = requested.filter(name => !all.some(cap => cap['shiranami:profile'] === name));
+  if (unknown.length > 0) {
+    throw new Error(
+      `E2E_PROFILE names no such profile: ${unknown.join(', ')}. ` +
+        `Known profiles: ${all.map(cap => cap['shiranami:profile']).join(', ')}.`
+    );
+  }
+
+  return all.filter(cap => requested.includes(cap['shiranami:profile']));
 }
 
 export const config: WebdriverIO.Config = {
@@ -100,7 +137,7 @@ export const config: WebdriverIO.Config = {
   maxInstances: 1,
   specFileRetries: isCi ? 1 : 0,
 
-  capabilities: [
+  capabilities: selectedCapabilities([
     capability('onboarding', ['cold-boot.spec.ts'], {
       // Explicitly absent rather than merely unset, so the reason is greppable:
       // SHIRANAMI_E2E would hide the wizard this capability exists to see.
@@ -122,7 +159,7 @@ export const config: WebdriverIO.Config = {
       // Last on purpose: it quits the app.
       'shutdown.spec.ts',
     ]),
-  ],
+  ]),
 
   services: [['tauri', {}]],
 
