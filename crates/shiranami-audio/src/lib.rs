@@ -50,6 +50,7 @@
 #![warn(missing_docs)]
 
 pub mod analysis;
+pub mod bpm;
 pub mod decode;
 pub mod error;
 pub mod loudness;
@@ -57,6 +58,7 @@ pub mod peaks;
 pub mod sink;
 
 pub use analysis::FanOutSink;
+pub use bpm::{TempoAnalyzer, bpm_from_file};
 pub use decode::{DecodeSummary, decode_file};
 pub use error::{AudioError, Result};
 pub use loudness::{IntegratedLoudness, measure_integrated_loudness};
