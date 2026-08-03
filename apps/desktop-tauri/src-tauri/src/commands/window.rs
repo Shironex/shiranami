@@ -43,6 +43,7 @@ use tauri::{LogicalPosition, LogicalSize, State};
 use tauri_specta::Event as _;
 
 use shiranami_core::store::{MainStoreKey, SettingsStore};
+use shiranami_core::sync::lock_or_recover;
 
 use crate::compact::{
     Bounds, Compact, CompactDimensions, CompactModeState, CompactPlan, DEFAULT_MIN_HEIGHT,
@@ -64,6 +65,8 @@ macro_rules! commands {
                 crate::commands::window::window_is_maximized,
                 crate::commands::window::window_set_always_on_top,
                 crate::commands::window::window_set_compact_mode,
+                crate::commands::window::window_set_fullscreen,
+                crate::commands::window::window_set_display_sleep_inhibited,
             ]
         }
     };
@@ -120,6 +123,65 @@ pub async fn window_is_maximized(window: tauri::Window) -> bool {
 #[specta::specta]
 pub async fn window_set_always_on_top(window: tauri::Window, always_on_top: bool) {
     report("set always-on-top", window.set_always_on_top(always_on_top));
+}
+
+/// `window:set-fullscreen` — Sanctuary Mode's edge-to-edge presentation.
+/// Ports no v1 channel (v1 had no fullscreen anywhere).
+///
+/// On macOS this is **simple** fullscreen — the pre-Lion AppKit mode — rather
+/// than native fullscreen, deliberately: native fullscreen creates a Space,
+/// animates for a second in each direction, and detaches the window from
+/// Mission Control's normal flow, all wrong for a mode bound to a single
+/// keypress that a pointer-move may exit. Tauri's `set_simple_fullscreen`
+/// makes the fallback to native `set_fullscreen` on the other platforms
+/// itself, so the choice is pinned in one call.
+///
+/// Infallible like minimize/maximize: a compositor that declines fullscreen
+/// leaves the sanctuary rendering windowed, which is degraded, not broken —
+/// not worth an unhandled rejection inside a keypress handler.
+#[tauri::command]
+#[specta::specta]
+pub async fn window_set_fullscreen(window: tauri::Window, fullscreen: bool) {
+    report("set fullscreen", window.set_simple_fullscreen(fullscreen));
+}
+
+/// Managed holder for the display-sleep assertion. Dropping the guard releases
+/// the assertion, so "inhibit off" is `None` by construction and process exit
+/// can never leak a permanently-awake display.
+#[derive(Default)]
+pub struct SleepInhibitor {
+    inner: std::sync::Mutex<Option<keepawake::KeepAwake>>,
+}
+
+/// `window:set-display-sleep-inhibited` — hold the display awake while the
+/// sanctuary doubles as a screensaver. Ports no v1 channel.
+///
+/// A sanctuary the OS blanks after two minutes is worse than none, but
+/// *failing* to acquire the assertion must not fail entering the sanctuary —
+/// so this logs and carries on, the same judgement the five infallible window
+/// commands above make.
+#[tauri::command]
+#[specta::specta]
+pub fn window_set_display_sleep_inhibited(state: State<'_, SleepInhibitor>, inhibited: bool) {
+    let guard = if inhibited {
+        match keepawake::Builder::default()
+            .display(true)
+            .reason("Sanctuary Mode is showing the now-playing display")
+            .app_name("Shiranami")
+            .app_reverse_domain("com.shironex.shiranami")
+            .create()
+        {
+            Ok(awake) => Some(awake),
+            Err(error) => {
+                tracing::warn!(%error, "could not inhibit display sleep");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    *lock_or_recover(&state.inner) = guard;
 }
 
 /// `window:set-compact-mode` — enter, resize or leave the mini-player.

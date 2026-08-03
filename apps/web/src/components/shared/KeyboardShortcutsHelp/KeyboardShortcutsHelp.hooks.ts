@@ -55,6 +55,7 @@ function getShortcutCategories(): IShortcutCategories {
         { keys: [MOD, 'Shift', 'T'], actionKey: 'toggleAlwaysOnTop' },
         { keys: [MOD, 'Shift', 'P'], actionKey: 'toggleNowPlaying' },
         { keys: ['V'], actionKey: 'toggleVisualizer' },
+        { keys: ['F'], actionKey: 'toggleSanctuary' },
         { keys: ['?'], actionKey: 'showHelp' },
         { keys: ['Esc'], actionKey: 'closePanel' },
       ],

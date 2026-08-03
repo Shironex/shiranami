@@ -8,6 +8,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useSanctuaryStore } from '@/stores/useSanctuaryStore';
 
 /**
  * Canonical navigation order for the number-key shortcuts and the
@@ -232,6 +233,22 @@ export function useKeyboardShortcuts() {
           useUIStore.getState().toggleVisualizer();
           return;
         }
+        case 'F':
+        case 'f': {
+          // F: toggle Sanctuary Mode (fullscreen immersive player). Needs a
+          // track — the silent-failure path surfaces as a toast, same as the
+          // Now Playing shortcut.
+          e.preventDefault();
+          if (!usePlaybackStore.getState().currentTrack) {
+            toast.info(i18n.t('sanctuaryNoTrack', { ns: 'toast' }), {
+              id: 'sanctuary-no-track',
+              duration: 4000,
+            });
+            return;
+          }
+          useSanctuaryStore.getState().toggleSanctuary();
+          return;
+        }
         case '?': {
           e.preventDefault();
           window.dispatchEvent(new CustomEvent(DIALOG_EVENTS.openShortcutHelp));
@@ -239,6 +256,13 @@ export function useKeyboardShortcuts() {
         }
         case 'Escape': {
           if (document.querySelector('[data-radix-portal]')) return;
+          // Sanctuary sits above everything, so Esc leaves it first.
+          const sanctuary = useSanctuaryStore.getState();
+          if (sanctuary.sanctuaryActive) {
+            e.preventDefault();
+            sanctuary.exitSanctuary();
+            return;
+          }
           // Now Playing is a modal-like full-screen view; Esc should
           // dismiss it before any background-state cleanup. Standard
           // modal interaction.

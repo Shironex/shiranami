@@ -37,6 +37,7 @@ import onboardingEn from '@/locales/en/onboarding.json';
 import recommendationsEn from '@/locales/en/recommendations.json';
 import smartPlaylistsEn from '@/locales/en/smartPlaylists.json';
 import downloadsEn from '@/locales/en/downloads.json';
+import sanctuaryEn from '@/locales/en/sanctuary.json';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -103,9 +104,10 @@ const namespaces = [
   'recommendations',
   'smartPlaylists',
   'downloads',
+  'sanctuary',
 ] as const;
 
-// English is the fallback locale, so its 33 namespaces stay statically bundled
+// English is the fallback locale, so its 34 namespaces stay statically bundled
 // into the entry chunk — every key must resolve synchronously even when another
 // locale is active and missing a key. Every other locale is loaded on demand by
 // the backend below so its namespaces never weigh down first paint.
@@ -143,6 +145,7 @@ const englishResources: ResourceLanguage = {
   recommendations: recommendationsEn,
   smartPlaylists: smartPlaylistsEn,
   downloads: downloadsEn,
+  sanctuary: sanctuaryEn,
 };
 
 // Per-namespace lazy importers for the non-English locales. English is excluded

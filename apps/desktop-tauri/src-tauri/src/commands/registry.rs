@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 138;
+pub const COMMAND_COUNT: usize = 140;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Three of them:
+/// Five of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -82,7 +82,10 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// - `serve_info` — v1's media URLs were a custom scheme, which is a constant
 ///   and needs no channel to discover. §2.4's loopback origin is per-session,
 ///   so it does. See [`crate::commands::serve`].
-pub const NON_V1_COMMANDS: usize = 3;
+/// - `window_set_fullscreen` and `window_set_display_sleep_inhibited` —
+///   Sanctuary Mode (v2 feature wave); v1 had no fullscreen surface at all.
+///   See [`crate::commands::window`].
+pub const NON_V1_COMMANDS: usize = 5;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

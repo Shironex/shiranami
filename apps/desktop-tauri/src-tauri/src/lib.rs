@@ -159,6 +159,9 @@ pub fn run() {
         // and order against nothing — both are `Default` and purely in-memory.
         .manage(compact::CompactModeState::default())
         .manage(commands::debug::DebugSampler::default())
+        // Sanctuary Mode's display-sleep assertion: also `Default`, also
+        // purely in-memory — the guard object inside is the whole state.
+        .manage(commands::window::SleepInhibitor::default())
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             // Required for the typed events to be addressable from the webview.

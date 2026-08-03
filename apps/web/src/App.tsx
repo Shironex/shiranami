@@ -37,6 +37,7 @@ const SmartPlaylistsView = lazy(
   () => import('@/components/smart-playlists/SmartPlaylistsView/SmartPlaylistsView')
 );
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView/NowPlayingView'));
+const SanctuaryView = lazy(() => import('@/components/sanctuary/SanctuaryView/SanctuaryView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
 const PlaylistDetailView = lazy(
   () => import('@/components/playlists/PlaylistDetailView/PlaylistDetailView')
@@ -70,11 +71,13 @@ import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useSystemNotices } from '@/hooks/useSystemNotices';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
 import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
+import { useSanctuaryStore } from '@/stores/useSanctuaryStore';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
@@ -144,6 +147,7 @@ function App() {
   useUpdateNotifications();
   useSystemNotices();
   useKeyboardShortcuts();
+  useSanctuaryAutoEnter();
   const debugOpen = useDebugPanel();
 
   useEffect(() => {
@@ -183,6 +187,11 @@ function App() {
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
   const compactMode = useCompactStore(s => s.compactMode);
+  const sanctuaryActive = useSanctuaryStore(s => s.sanctuaryActive);
+  // Sanctuary replaces the whole shell (sidebar, top bar, player bar) with the
+  // fullscreen immersive player; the z-0 theme/bloom layers stay mounted
+  // beneath it. Compact mode wins if both are somehow set.
+  const showSanctuary = sanctuaryActive && !compactMode;
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   // Lyrics/queue panel shows beside the center views except in now-playing,
   // where both are inline. Which side it docks on comes from useLayoutStore.
@@ -343,11 +352,21 @@ function App() {
               </Suspense>
             </ErrorBoundary>
 
-            {compactMode ? (
+            {compactMode && (
               <ErrorBoundary viewName="CompactPlayer" compact>
                 <CompactPlayer />
               </ErrorBoundary>
-            ) : (
+            )}
+
+            {showSanctuary && (
+              <ErrorBoundary viewName="SanctuaryView">
+                <Suspense fallback={null}>
+                  <SanctuaryView />
+                </Suspense>
+              </ErrorBoundary>
+            )}
+
+            {!compactMode && !showSanctuary && (
               <>
                 {/* Skip to content link for keyboard users */}
                 <a

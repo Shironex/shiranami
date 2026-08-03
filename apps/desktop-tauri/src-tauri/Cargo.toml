@@ -42,6 +42,10 @@ trash = { workspace = true }
 sys-locale = { workspace = true }
 sysinfo = { workspace = true }
 
+# Sanctuary Mode (v2): the display-sleep assertion `window:set-display-sleep-
+# inhibited` holds while the fullscreen sanctuary doubles as a screensaver.
+keepawake = { workspace = true }
+
 # The debug sampler's 1 Hz tick (`tauri::async_runtime` re-exports spawn and
 # channels but not timers), and `join!` for the two tool-status probes v1 ran
 # with `Promise.all`. Deliberately *not* for `spawn` — R16 bans the bare form

@@ -428,6 +428,21 @@
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",
     "effectsDesc": "Widoki pełnoekranowe i dodatkowe efekty renderowania",
+    "sanctuary": {
+      "title": "Tryb sanktuarium",
+      "desc": "Naciśnij F podczas odtwarzania: aplikacja rozpływa się w pełnoekranowy odtwarzacz — okładka, tekst i światło.",
+      "variantTitle": "Na środku sceny",
+      "variantDesc": "Co wypełnia ekran: okładka płyty albo duży zegar z utworem poniżej.",
+      "variant": {
+        "cover": "Okładka",
+        "clock": "Zegar"
+      },
+      "autoEnter": "Uruchamiaj samoczynnie",
+      "autoEnterDesc": "Po chwili bezruchu podczas odtwarzania biurko cicho zamienia się w lofi ekran. Dowolny klawisz lub ruch myszy natychmiast przywraca aplikację.",
+      "minutesTitle": "Bezruch przed uruchomieniem",
+      "minutesDesc": "Jak długo aplikacja czeka bez żadnej aktywności, zanim uruchomi tryb samoczynnie.",
+      "minutes": "{{count}} min"
+    },
     "effectPreview": {
       "nowPlayingView": "Podgląd widoku Teraz odtwarzane",
       "libraryBanner": "Podgląd banera",

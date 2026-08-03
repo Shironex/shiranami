@@ -412,6 +412,21 @@
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects",
     "effectsDesc": "Immersive surfaces and rendering extras",
+    "sanctuary": {
+      "title": "Sanctuary Mode",
+      "desc": "Press F while music plays: the app dissolves into a fullscreen player — the cover, the lyric, and the light.",
+      "variantTitle": "Center stage",
+      "variantDesc": "What fills the screen: the record's cover, or a large clock with the track underneath.",
+      "variant": {
+        "cover": "Cover",
+        "clock": "Clock"
+      },
+      "autoEnter": "Enter on its own",
+      "autoEnterDesc": "After a stretch of stillness while music plays, your desk quietly becomes a lofi display. Any key or pointer move brings the app right back.",
+      "minutesTitle": "Stillness before entering",
+      "minutesDesc": "How long the app waits without any activity before entering by itself.",
+      "minutes": "{{count}} min"
+    },
     "effectPreview": {
       "nowPlayingView": "Now Playing preview",
       "libraryBanner": "Banner preview",

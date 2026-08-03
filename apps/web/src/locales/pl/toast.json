@@ -133,6 +133,7 @@
   "enrichPartial": "Uzupełniono metadane {{success}} z {{total}} utworów (nie udało się: {{failed}})",
   "nowPlayingDisabled": "Widok Teraz odtwarzane jest wyłączony — włącz go w ustawieniach Wygląd",
   "nowPlayingNoTrack": "Najpierw coś włącz, aby otworzyć Teraz odtwarzane",
+  "sanctuaryNoTrack": "Najpierw coś włącz, aby wejść do trybu sanktuarium",
   "failedLoadLibrary": "Nie udało się załadować biblioteki",
   "failedLoadHistory": "Nie udało się załadować historii",
   "scanCancelled": "Skanowanie anulowane",
