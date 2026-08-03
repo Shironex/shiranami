@@ -162,7 +162,7 @@ async fn the_summary_window_excludes_its_upper_bound() {
 async fn activity_buckets_by_calendar_day_oldest_first() {
     let mut fixture = with_a_small_library().await;
 
-    let points = history::activity(fixture.conn(), None)
+    let points = history::activity(fixture.conn(), None, None)
         .await
         .expect("the activity must read");
 
@@ -182,12 +182,31 @@ async fn activity_buckets_by_calendar_day_oldest_first() {
 async fn activity_honours_the_since_bound() {
     let mut fixture = with_a_small_library().await;
 
-    let points = history::activity(fixture.conn(), Some("2026-06-02T00:00:00.000Z"))
+    let points = history::activity(fixture.conn(), Some("2026-06-02T00:00:00.000Z"), None)
         .await
         .expect("the activity must read");
 
     let days: Vec<_> = points.iter().map(|point| point.date.as_str()).collect();
     assert_eq!(days, ["2026-06-02", "2026-06-03"]);
+}
+
+#[tokio::test]
+async fn activity_window_excludes_its_upper_bound() {
+    let mut fixture = with_a_small_library().await;
+
+    let points = history::activity(
+        fixture.conn(),
+        Some("2026-06-01T00:00:00.000Z"),
+        Some("2026-06-03T00:00:00.000Z"),
+    )
+    .await
+    .expect("the activity must read");
+
+    // June 3's play sits exactly at and past the bound's day — a closed past
+    // window (a finished week's recap) must not borrow it. Exclusive, exactly
+    // as `summary`'s `until` has always been.
+    let days: Vec<_> = points.iter().map(|point| point.date.as_str()).collect();
+    assert_eq!(days, ["2026-06-01", "2026-06-02"]);
 }
 
 // ── hourly activity ───────────────────────────────────────────────────────────
@@ -196,7 +215,7 @@ async fn activity_honours_the_since_bound() {
 async fn hourly_activity_buckets_every_play_into_a_valid_local_cell() {
     let mut fixture = with_a_small_library().await;
 
-    let points = history::hourly_activity(fixture.conn(), None)
+    let points = history::hourly_activity(fixture.conn(), None, None)
         .await
         .expect("the hourly activity must read");
 
@@ -226,6 +245,25 @@ async fn hourly_activity_buckets_every_play_into_a_valid_local_cell() {
     );
 }
 
+#[tokio::test]
+async fn hourly_activity_window_excludes_its_upper_bound() {
+    let mut fixture = with_a_small_library().await;
+
+    let points = history::hourly_activity(
+        fixture.conn(),
+        Some("2026-06-01T00:00:00.000Z"),
+        Some("2026-06-02T00:00:00.000Z"),
+    )
+    .await
+    .expect("the hourly activity must read");
+
+    // The window bounds compare against the STORED (UTC) timestamp while the
+    // bucket keys localise, so the assertable fact is the total: exactly June
+    // 1's two plays, wherever the machine's timezone puts their cells.
+    let total: u32 = points.iter().map(|point| point.play_count).sum();
+    assert_eq!(total, 2, "only the closed window's plays are bucketed");
+}
+
 // ── weekly insights ───────────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -245,7 +283,7 @@ async fn a_gap_over_thirty_minutes_starts_a_new_session() {
         play(&mut fixture, id, "t1", at).await;
     }
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 
@@ -253,10 +291,40 @@ async fn a_gap_over_thirty_minutes_starts_a_new_session() {
 }
 
 #[tokio::test]
+async fn the_insights_window_excludes_its_upper_bound() {
+    let mut fixture = with_one_track().await;
+    for (id, at) in [
+        // Two sessions inside the window (the 31-minute gap splits them) …
+        ("h1", "2026-06-01T12:00:00.000Z"),
+        ("h2", "2026-06-01T12:31:00.000Z"),
+        // … and one more play exactly at the (exclusive) upper bound. Counting
+        // it would both add a phantom session and leak the next window's play
+        // into a finished week's recap.
+        ("h3", "2026-06-02T00:00:00.000Z"),
+    ] {
+        play(&mut fixture, id, "t1", at).await;
+    }
+
+    let insights = history::weekly_insights(
+        fixture.conn(),
+        Some("2026-06-01T00:00:00.000Z"),
+        Some("2026-06-02T00:00:00.000Z"),
+    )
+    .await
+    .expect("the insights must read");
+
+    assert_eq!(insights.session_count, 2);
+    assert_eq!(
+        insights.top_albums[0].play_count, 2,
+        "the album chart is windowed by the same exclusive bound"
+    );
+}
+
+#[tokio::test]
 async fn an_empty_window_has_no_sessions() {
     let mut fixture = with_one_track().await;
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 
@@ -294,7 +362,7 @@ async fn albums_group_on_the_album_artist_tag_not_the_track_artist() {
     play(&mut fixture, "h1", "t1", "2026-06-01T10:00:00.000Z").await;
     play(&mut fixture, "h2", "t2", "2026-06-01T11:00:00.000Z").await;
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 
@@ -336,7 +404,7 @@ async fn an_untagged_album_falls_back_to_a_track_artist_then_to_the_sentinel() {
     play(&mut fixture, "h1", "t1", "2026-06-01T10:00:00.000Z").await;
     play(&mut fixture, "h2", "t2", "2026-06-01T11:00:00.000Z").await;
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 
@@ -389,7 +457,7 @@ async fn albums_with_no_title_are_left_out_of_the_chart() {
     play(&mut fixture, "h2", "t2", "2026-06-01T11:00:00.000Z").await;
     play(&mut fixture, "h3", "t3", "2026-06-01T12:00:00.000Z").await;
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 
@@ -428,7 +496,7 @@ async fn the_album_chart_keeps_the_top_five_by_play_count() {
         }
     }
 
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
 

@@ -71,7 +71,7 @@ async fn the_history_reads_work_against_an_adopted_database() {
     // adopted database it is the second-to-last column rather than mid-table.
     // The weekly-insights query names it, which is the whole reason column
     // *order* is allowed to differ between a fresh and an adopted file.
-    let insights = history::weekly_insights(fixture.conn(), None)
+    let insights = history::weekly_insights(fixture.conn(), None, None)
         .await
         .expect("the insights must read");
     assert!(

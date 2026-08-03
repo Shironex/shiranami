@@ -172,23 +172,30 @@ pub async fn summary(
 /// stable, timezone-independent day boundaries matter more than matching the
 /// user's midnight, and v1 made the same split.
 ///
+/// `until` is **exclusive**, mirroring [`summary`] — it is what lets a closed
+/// past window (a recap of a finished week, browsed later) recompute exactly,
+/// without borrowing plays from the day the next window starts on.
+///
 /// # Errors
 ///
 /// Returns [`DbError::Query`] if the query fails.
 pub async fn activity(
     conn: &mut SqliteConnection,
     since: Option<&str>,
+    until: Option<&str>,
 ) -> Result<Vec<ListeningActivityPoint>> {
     let rows = sqlx::query_as::<_, ActivityRow>(
         "SELECT substr(played_at, 1, 10)                     AS date, \
                 COUNT(*)                                     AS play_count, \
                 COALESCE(SUM(played_seconds) / 60.0, 0.0)    AS listened_minutes \
            FROM play_history \
-          WHERE ?1 IS NULL OR played_at >= ?1 \
+          WHERE (?1 IS NULL OR played_at >= ?1) \
+            AND (?2 IS NULL OR played_at < ?2) \
           GROUP BY substr(played_at, 1, 10) \
           ORDER BY substr(played_at, 1, 10)",
     )
     .bind(since)
+    .bind(until)
     .fetch_all(conn)
     .await
     .map_err(|source| DbError::Query {
@@ -210,12 +217,15 @@ pub async fn activity(
 /// into a 7×24 grid by key, so any order works, and adding an `ORDER BY` would
 /// be a sort no caller asked for. Tests sort before asserting.
 ///
+/// `until` is **exclusive**, mirroring [`summary`] — see [`activity`].
+///
 /// # Errors
 ///
 /// Returns [`DbError::Query`] if the query fails.
 pub async fn hourly_activity(
     conn: &mut SqliteConnection,
     since: Option<&str>,
+    until: Option<&str>,
 ) -> Result<Vec<ListeningHourlyActivityPoint>> {
     let rows = sqlx::query_as::<_, HourlyRow>(
         "SELECT strftime('%w', played_at, 'localtime')       AS dow, \
@@ -223,11 +233,13 @@ pub async fn hourly_activity(
                 COUNT(*)                                     AS play_count, \
                 COALESCE(SUM(played_seconds) / 60.0, 0.0)    AS listened_minutes \
            FROM play_history \
-          WHERE ?1 IS NULL OR played_at >= ?1 \
+          WHERE (?1 IS NULL OR played_at >= ?1) \
+            AND (?2 IS NULL OR played_at < ?2) \
           GROUP BY strftime('%w', played_at, 'localtime'), \
                    strftime('%H', played_at, 'localtime')",
     )
     .bind(since)
+    .bind(until)
     .fetch_all(conn)
     .await
     .map_err(|source| DbError::Query {
@@ -240,12 +252,17 @@ pub async fn hourly_activity(
 
 /// The weekly-insights card: session count and the top-five albums.
 ///
+/// `until` is **exclusive**, mirroring [`summary`] — see [`activity`]. The
+/// session walk only sees plays inside the window, exactly as v1's JavaScript
+/// walk only saw the rows the (windowed) query handed it.
+///
 /// # Errors
 ///
 /// Returns [`DbError::Query`] if either query fails.
 pub async fn weekly_insights(
     conn: &mut SqliteConnection,
     since: Option<&str>,
+    until: Option<&str>,
 ) -> Result<WeeklyInsights> {
     // Albums, with three expressions that each fix a specific way the naive
     // version is wrong (all three are v1's, verbatim in intent):
@@ -260,20 +277,22 @@ pub async fn weekly_insights(
     //    enormous nameless "album".
     let top_albums = sqlx::query_as::<_, AlbumRow>(
         "SELECT COALESCE(NULLIF(t.album, ''), '') AS album, \
-                MAX(COALESCE(NULLIF(TRIM(t.album_artist), ''), NULLIF(t.artist, ''), ?2)) \
+                MAX(COALESCE(NULLIF(TRIM(t.album_artist), ''), NULLIF(t.artist, ''), ?3)) \
                                                   AS artist, \
                 MAX(t.album_art)                  AS album_art, \
                 COUNT(*)                          AS play_count \
            FROM play_history ph \
            INNER JOIN tracks t ON ph.track_id = t.id \
-          WHERE ?1 IS NULL OR ph.played_at >= ?1 \
+          WHERE (?1 IS NULL OR ph.played_at >= ?1) \
+            AND (?2 IS NULL OR ph.played_at < ?2) \
           GROUP BY COALESCE(NULLIF(TRIM(t.album_artist), ''), ''), \
                    COALESCE(NULLIF(t.album, ''), '') \
          HAVING COALESCE(NULLIF(t.album, ''), '') <> '' \
           ORDER BY COUNT(*) DESC \
-          LIMIT ?3",
+          LIMIT ?4",
     )
     .bind(since)
+    .bind(until)
     .bind(UNKNOWN_ARTIST)
     .bind(TOP_LIMIT)
     .fetch_all(&mut *conn)
@@ -313,12 +332,14 @@ pub async fn weekly_insights(
                           CAST(ROUND((julianday(played_at) - 2440587.5) * 86400000.0) \
                                AS INTEGER) AS at \
                      FROM play_history \
-                    WHERE ?1 IS NULL OR played_at >= ?1 \
+                    WHERE (?1 IS NULL OR played_at >= ?1) \
+                      AND (?2 IS NULL OR played_at < ?2) \
                ) \
          ) \
-         WHERE prev IS NULL OR (at - prev) > ?2",
+         WHERE prev IS NULL OR (at - prev) > ?3",
     )
     .bind(since)
+    .bind(until)
     .bind(SESSION_GAP_MS)
     .fetch_one(&mut *conn)
     .await

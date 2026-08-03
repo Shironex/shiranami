@@ -227,11 +227,20 @@ export interface DbHistoryApi {
     since?: string | null;
     until?: string | null;
   }) => Promise<ListeningStatsSummary>;
-  getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+  /** `until` is exclusive on all three activity reads, mirroring `getSummary` —
+   *  optional, so every v1 `{ since }`-only call shape keeps working. */
+  getActivity: (options?: {
+    since?: string | null;
+    until?: string | null;
+  }) => Promise<ListeningActivityPoint[]>;
   getHourlyActivity: (options?: {
     since?: string | null;
+    until?: string | null;
   }) => Promise<ListeningHourlyActivityPoint[]>;
-  getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
+  getWeeklyInsights: (options?: {
+    since?: string | null;
+    until?: string | null;
+  }) => Promise<WeeklyInsights>;
 }
 
 export interface DbFoldersApi {

@@ -128,14 +128,25 @@ pub struct SummaryQuery {
     pub until: Option<String>,
 }
 
-/// The optional `{ since }` argument the three activity channels share.
+/// The optional `{ since, until }` argument the three activity channels share.
+///
+/// Both bounds are optional, so every v1 call shape (`{ since }`, `{ since:
+/// null }`, `{}`, and an absent options object) still parses unchanged —
+/// `until` is a pure extension. Like [`SummaryQuery`], `until` is
+/// **exclusive**: it exists so a *closed past window* (a finished week's
+/// recap, browsed from the archive weeks later) recomputes exactly instead of
+/// bleeding into the days that followed it.
 #[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SinceQuery {
+pub struct WindowQuery {
     /// Inclusive ISO-8601 lower bound. `None` reads the whole history.
     #[serde(default)]
     #[specta(optional)]
     pub since: Option<String>,
+    /// Exclusive ISO-8601 upper bound. `None` reads through to now.
+    #[serde(default)]
+    #[specta(optional)]
+    pub until: Option<String>,
 }
 
 /// `db:history:record-play` — record a finished play and bump the play count.
@@ -253,14 +264,18 @@ pub async fn db_history_get_summary(
 #[specta::specta]
 pub async fn db_history_get_activity(
     state: State<'_, AppState>,
-    options: Option<SinceQuery>,
+    options: Option<WindowQuery>,
 ) -> CommandResult<Vec<ListeningActivityPoint>> {
     let options = options.unwrap_or_default();
 
     let mut conn = state.conn().await?;
-    history::activity(&mut conn, options.since.as_deref())
-        .await
-        .wire()
+    history::activity(
+        &mut conn,
+        options.since.as_deref(),
+        options.until.as_deref(),
+    )
+    .await
+    .wire()
 }
 
 /// `db:history:get-hourly-activity` — plays bucketed by local weekday and hour.
@@ -268,14 +283,18 @@ pub async fn db_history_get_activity(
 #[specta::specta]
 pub async fn db_history_get_hourly_activity(
     state: State<'_, AppState>,
-    options: Option<SinceQuery>,
+    options: Option<WindowQuery>,
 ) -> CommandResult<Vec<ListeningHourlyActivityPoint>> {
     let options = options.unwrap_or_default();
 
     let mut conn = state.conn().await?;
-    history::hourly_activity(&mut conn, options.since.as_deref())
-        .await
-        .wire()
+    history::hourly_activity(
+        &mut conn,
+        options.since.as_deref(),
+        options.until.as_deref(),
+    )
+    .await
+    .wire()
 }
 
 /// `db:history:get-weekly-insights` — session count and the top-five albums.
@@ -283,14 +302,18 @@ pub async fn db_history_get_hourly_activity(
 #[specta::specta]
 pub async fn db_history_get_weekly_insights(
     state: State<'_, AppState>,
-    options: Option<SinceQuery>,
+    options: Option<WindowQuery>,
 ) -> CommandResult<WeeklyInsights> {
     let options = options.unwrap_or_default();
 
     let mut conn = state.conn().await?;
-    history::weekly_insights(&mut conn, options.since.as_deref())
-        .await
-        .wire()
+    history::weekly_insights(
+        &mut conn,
+        options.since.as_deref(),
+        options.until.as_deref(),
+    )
+    .await
+    .wire()
 }
 
 #[cfg(test)]
@@ -363,17 +386,19 @@ mod tests {
             }
             {
                 let mut conn = state.conn().await.expect("acquire");
-                history::activity(&mut conn, None).await.expect("read");
-            }
-            {
-                let mut conn = state.conn().await.expect("acquire");
-                history::hourly_activity(&mut conn, None)
+                history::activity(&mut conn, None, None)
                     .await
                     .expect("read");
             }
             {
                 let mut conn = state.conn().await.expect("acquire");
-                history::weekly_insights(&mut conn, None)
+                history::hourly_activity(&mut conn, None, None)
+                    .await
+                    .expect("read");
+            }
+            {
+                let mut conn = state.conn().await.expect("acquire");
+                history::weekly_insights(&mut conn, None, None)
                     .await
                     .expect("read");
             }
@@ -449,9 +474,28 @@ mod tests {
         assert_eq!(summary.since.as_deref(), Some("a"));
         assert_eq!(summary.until.as_deref(), Some("b"));
 
-        let since: SinceQuery =
+        // The activity channels' argument is `since`-only in every v1 call
+        // site; all three historical shapes must keep parsing now that the
+        // struct also carries the (optional) `until` extension.
+        let since: WindowQuery =
             serde_json::from_str(r#"{"since":"a"}"#).expect("v1's shape parses");
         assert_eq!(since.since.as_deref(), Some("a"));
+        assert_eq!(since.until, None, "absent `until` means an open window");
+
+        let nulled_window: WindowQuery =
+            serde_json::from_str(r#"{"since":null}"#).expect("an explicit null parses");
+        assert_eq!(nulled_window.since, None);
+        assert_eq!(nulled_window.until, None);
+
+        let empty_window: WindowQuery = serde_json::from_str("{}").expect("an empty object parses");
+        assert_eq!(empty_window.since, None);
+        assert_eq!(empty_window.until, None);
+
+        // And the extension itself: a closed window names both bounds.
+        let closed: WindowQuery =
+            serde_json::from_str(r#"{"since":"a","until":"b"}"#).expect("the new shape parses");
+        assert_eq!(closed.since.as_deref(), Some("a"));
+        assert_eq!(closed.until.as_deref(), Some("b"));
     }
 
     /// v1's schemas make the whole options object optional, and the renderer

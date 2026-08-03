@@ -128,16 +128,22 @@ export const commands = {
 	dbHistoryGetActivity: (options: {
 	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
 	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. `None` reads through to now. */
+	until?: string | null,
 } | null) => __TAURI_INVOKE<ListeningActivityPoint[]>("db_history_get_activity", { options }),
 	/**  `db:history:get-hourly-activity` — plays bucketed by local weekday and hour. */
 	dbHistoryGetHourlyActivity: (options: {
 	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
 	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. `None` reads through to now. */
+	until?: string | null,
 } | null) => __TAURI_INVOKE<ListeningHourlyActivityPoint[]>("db_history_get_hourly_activity", { options }),
 	/**  `db:history:get-weekly-insights` — session count and the top-five albums. */
 	dbHistoryGetWeeklyInsights: (options: {
 	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
 	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. `None` reads through to now. */
+	until?: string | null,
 } | null) => __TAURI_INVOKE<WeeklyInsights>("db_history_get_weekly_insights", { options }),
 	/**  `db:playlists:get-all` — every playlist, newest first. */
 	dbPlaylistsGetAll: () => __TAURI_INVOKE<Playlist[]>("db_playlists_get_all"),
@@ -2770,12 +2776,6 @@ export type SimilarTrackResult = {
 	similarity: number,
 };
 
-/**  The optional `{ since }` argument the three activity channels share. */
-export type SinceQuery = {
-	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
-	since?: string | null,
-};
-
 /**
  *  The single object argument `recommendations:smart-mixes` takes.
  * 
@@ -3515,6 +3515,23 @@ export type WeeklyInsights = {
 
 /**  The main window was maximized or restored. */
 export type WindowMaximizedChange = boolean;
+
+/**
+ *  The optional `{ since, until }` argument the three activity channels share.
+ * 
+ *  Both bounds are optional, so every v1 call shape (`{ since }`, `{ since:
+ *  null }`, `{}`, and an absent options object) still parses unchanged —
+ *  `until` is a pure extension. Like [`SummaryQuery`], `until` is
+ *  **exclusive**: it exists so a *closed past window* (a finished week's
+ *  recap, browsed from the archive weeks later) recomputes exactly instead of
+ *  bleeding into the days that followed it.
+ */
+export type WindowQuery = {
+	/**  Inclusive ISO-8601 lower bound. `None` reads the whole history. */
+	since?: string | null,
+	/**  Exclusive ISO-8601 upper bound. `None` reads through to now. */
+	until?: string | null,
+};
 
 /**
  *  The tag editor's submission. v1's `WriteTagsInput`.
