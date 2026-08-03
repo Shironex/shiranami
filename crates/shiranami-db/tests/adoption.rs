@@ -62,11 +62,17 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         SCHEMA_FLOOR,
         "the compatibility floor is frozen for the handover window"
     );
-    assert_eq!(
-        ledger_names(&mut *conn).await.len(),
-        9,
-        "a v1 build opening this file must find its whole chain applied"
-    );
+    // Every chain name present, not an exact count: a database that ran the
+    // stranded dev migration legitimately carries a tenth name, and what a
+    // rolled-back v1 build needs is its own nine — drizzle matches by name-set
+    // membership and ignores names that are not its own.
+    let names = ledger_names(&mut *conn).await;
+    for (name, _) in &v1::V1_SQL {
+        assert!(
+            names.contains(&(*name).to_owned()),
+            "a v1 build opening this file must find `{name}` applied; have {names:?}"
+        );
+    }
 
     let tables = table_names(&mut *conn).await;
     for expected in [
@@ -88,6 +94,17 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         assert!(
             tables.contains(&expected.to_owned()),
             "`{expected}` is missing after adoption; have {tables:?}"
+        );
+    }
+
+    // Migration `0003`'s columns — the column-adding sibling of the
+    // `scrobble_queue` check above, proving an `ALTER TABLE` migration reaches
+    // every database shape too.
+    let columns = column_names(&mut *conn, "tracks").await;
+    for expected in ["bpm", "musical_key"] {
+        assert!(
+            columns.contains(&expected.to_owned()),
+            "`tracks.{expected}` is missing after adoption; have {columns:?}"
         );
     }
 }
@@ -247,6 +264,7 @@ async fn a_current_v1_database_is_adopted_without_touching_its_data() {
             legacy: false,
             healed_disc_number: false,
             replayed: Vec::new(),
+            satisfied: Vec::new(),
         },
         "a database already on the current chain needs no DDL at all"
     );
@@ -464,11 +482,13 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
     // Column *set*, not order: `ALTER TABLE` appends, so a healed `tracks` has
     // `disc_number` at the end rather than in the middle. v1 produces exactly
     // the same shape, and every query on both sides names its columns.
+    // `bpm` and `musical_key` are v2's own, from migration `0003`.
     let mut expected = vec![
         "album",
         "album_art",
         "album_artist",
         "artist",
+        "bpm",
         "created_at",
         "disc_number",
         "duration",
@@ -477,6 +497,7 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "id",
         "is_favorite",
         "loudness_lufs",
+        "musical_key",
         "play_count",
         "title",
         "track_number",

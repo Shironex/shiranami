@@ -118,6 +118,24 @@ pub(crate) fn is_known(name: &str) -> bool {
     V1_MIGRATIONS.iter().any(|migration| migration.name == name)
 }
 
+/// The stranded dev migration from the unmerged `feat/native-bpm-key-addon`
+/// branch: `ALTER TABLE tracks ADD bpm real; ADD musical_key text`.
+///
+/// Never shipped, but real databases carry it — the developer's own v1 profile
+/// ran that branch (architecture, Phase 18 amendments), and refusing it as
+/// [`UnknownV1Migration`](crate::error::DbError::UnknownV1Migration) was
+/// correct only until v2 grew a migration with the same intent. v2's
+/// `0003_track_bpm_key.sql` now creates the **identical** column set, so a
+/// ledger naming this migration describes schema this build fully understands:
+/// adoption verifies the columns are really present and records `0003` as
+/// satisfied instead of running it (see [`super::run`]).
+///
+/// It is deliberately *not* part of [`V1_MIGRATIONS`]: it is not in v1's chain,
+/// must never be replayed onto a database that lacks it, and a v1 build rolling
+/// back neither knows nor cares about the name — drizzle matches only its own
+/// migrations against the ledger.
+pub(crate) const STRANDED_BPM_KEY_NAME: &str = "20260101000008_track_bpm_key";
+
 #[cfg(test)]
 mod tests {
     use super::*;

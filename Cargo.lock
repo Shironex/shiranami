@@ -3187,7 +3187,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4082,6 +4082,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "realfft"
+version = "3.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f821338fddb99d089116342c46e9f1fbf3828dba077674613e734e01d6ea8677"
+dependencies = [
+ "rustfft",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4904,6 +4913,7 @@ name = "shiranami-audio"
 version = "2.0.0-alpha.0"
 dependencies = [
  "ebur128",
+ "realfft",
  "serde_json",
  "sha2 0.10.9",
  "shiranami-core",
@@ -4950,6 +4960,7 @@ version = "2.0.0-alpha.0"
 dependencies = [
  "async-trait",
  "fix-path-env",
+ "rayon",
  "sentry",
  "serde",
  "serde_json",

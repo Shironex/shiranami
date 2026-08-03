@@ -142,6 +142,7 @@ async fn a_v1_profile_migrates_with_identical_counts_and_a_second_run_is_a_no_op
             legacy: false,
             healed_disc_number: false,
             replayed: Vec::new(),
+            satisfied: Vec::new(),
         },
         "a current v1 database is adopted with no DDL replayed"
     );

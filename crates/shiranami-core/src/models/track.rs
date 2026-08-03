@@ -41,6 +41,18 @@ pub struct Track {
     pub album_art: Option<String>,
     /// Integrated loudness (LUFS); `None` = unanalysed.
     pub loudness_lufs: Option<f64>,
+    /// Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+    ///
+    /// Written by the analysis engine (migration `0003`); fractional, because
+    /// the estimator refines its lag below the integer grid. Renderers round
+    /// for display.
+    pub bpm: Option<f64>,
+    /// Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+    /// tonal centre.
+    ///
+    /// The string format is the C++ addon branch's, which dev profiles already
+    /// persisted — see `shiranami-audio`'s `KeyEstimate`.
+    pub musical_key: Option<String>,
     /// Favourite flag; nullable in SQLite, so nullable here.
     pub is_favorite: Option<bool>,
     /// Lifetime play count.
@@ -254,6 +266,12 @@ pub struct DisplayTrack {
     /// Integrated loudness (LUFS) for loudness levelling.
     #[specta(optional)]
     pub loudness_lufs: Option<f64>,
+    /// Estimated tempo in BPM, from the analysis engine.
+    #[specta(optional)]
+    pub bpm: Option<f64>,
+    /// Estimated musical key, e.g. `"C major"`.
+    #[specta(optional)]
+    pub musical_key: Option<String>,
     /// ISO-8601 creation timestamp.
     #[specta(optional)]
     pub created_at: Option<String>,

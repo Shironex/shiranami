@@ -71,8 +71,9 @@ pub(crate) use commands;
 /// The cache directory under the app data root. v1's `'waveform-peaks'`.
 ///
 /// §3.3 copies this directory across from the v1 profile, so the name is a
-/// compatibility surface rather than a choice.
-const PEAKS_DIR: &str = "waveform-peaks";
+/// compatibility surface rather than a choice. `pub(crate)` because the
+/// analysis batch writes through the same cache — one constant, one directory.
+pub(crate) const PEAKS_DIR: &str = "waveform-peaks";
 
 /// What `waveform:get-peaks` answers with.
 ///
@@ -177,8 +178,9 @@ fn peaks_for(file_path: &str, peaks_dir: Option<&Path>) -> Option<WaveformPeaksR
 /// `as_secs_f64()`, which for a present-day timestamp has already spent its
 /// mantissa on the seconds and would quantise the milliseconds. The cache key
 /// rounds this to an integer, so a drift of one millisecond is a permanently
-/// missed cache for that track.
-fn mtime_ms(metadata: &std::fs::Metadata) -> f64 {
+/// missed cache for that track. `pub(crate)` so the analysis batch keys the
+/// cache identically — a second implementation is exactly how the drift starts.
+pub(crate) fn mtime_ms(metadata: &std::fs::Metadata) -> f64 {
     let Ok(modified) = metadata.modified() else {
         return 0.0;
     };

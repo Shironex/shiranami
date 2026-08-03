@@ -39,6 +39,7 @@ pub mod registry;
 // fmt` was silently skipping every file below. With the surface complete, the
 // list is spelled out; `registry`'s gather side still consumes the shared line
 // list, and a namespace listed there without a module here is a compile error.
+pub mod analysis;
 pub mod app;
 pub mod db_backup;
 pub mod db_folders;

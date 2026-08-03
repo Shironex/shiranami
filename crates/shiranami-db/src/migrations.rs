@@ -27,6 +27,15 @@ pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 /// The version of the squashed baseline, from its filename.
 const BASELINE_VERSION: i64 = 1;
 
+/// The version of `0003_track_bpm_key.sql`, from its filename.
+///
+/// Named here because adoption needs to address it: a database carrying the
+/// stranded v1 dev migration `20260101000008_track_bpm_key` already has the
+/// exact schema this migration creates, and adoption records it as satisfied
+/// rather than letting the migrator fail on a duplicate column (see
+/// [`crate::adopt::run`]).
+pub(crate) const TRACK_BPM_KEY_VERSION: i64 = 3;
+
 /// sqlx's ledger table.
 ///
 /// A constant rather than `MIGRATOR.table_name` at every call site so the
@@ -37,11 +46,16 @@ pub(crate) const LEDGER_TABLE: &str = "_sqlx_migrations";
 
 /// The compiled-in baseline migration.
 fn baseline() -> Result<&'static Migration> {
+    compiled(BASELINE_VERSION)
+}
+
+/// The compiled-in migration at `version`.
+fn compiled(version: i64) -> Result<&'static Migration> {
     MIGRATOR
         .iter()
-        .find(|migration| migration.version == BASELINE_VERSION)
+        .find(|migration| migration.version == version)
         .ok_or_else(|| DbError::LedgerConflict {
-            reason: format!("this build has no migration {BASELINE_VERSION}"),
+            reason: format!("this build has no migration {version}"),
         })
 }
 
@@ -109,31 +123,43 @@ pub(crate) fn verify_baseline(row: &BaselineRow) -> Result<()> {
 }
 
 /// Record the baseline as applied without running its DDL.
+pub(crate) async fn stamp_baseline(conn: &mut SqliteConnection) -> Result<()> {
+    stamp_version(conn, BASELINE_VERSION).await
+}
+
+/// Record a compiled-in migration as applied without running its DDL.
 ///
 /// `execution_time` is zero because nothing executed; sqlx only reports that
 /// column, never validates it. `installed_on` is left to the column default so
 /// the timestamp comes from SQLite, as it does for a migration sqlx applies
-/// itself.
-pub(crate) async fn stamp_baseline(conn: &mut SqliteConnection) -> Result<()> {
-    let baseline = baseline()?;
+/// itself. The checksum comes from the compiled-in migration set, so the next
+/// `MIGRATOR.run()` validates the stamp exactly as it would a real run and a
+/// later edit to the file is caught rather than silently accepted.
+///
+/// Only two call sites may exist: the baseline (every adoption) and
+/// [`TRACK_BPM_KEY_VERSION`] (a database carrying the stranded v1 dev
+/// migration, whose schema is verified first). A stamp is a claim the schema
+/// already exists, and a claim without a verification is exactly risk R6.
+pub(crate) async fn stamp_version(conn: &mut SqliteConnection, version: i64) -> Result<()> {
+    let migration = compiled(version)?;
 
     sqlx::query(
         "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time)
          VALUES (?1, ?2, TRUE, ?3, 0)",
     )
-    .bind(baseline.version)
-    .bind(baseline.description.as_ref())
-    .bind(baseline.checksum.as_ref())
+    .bind(migration.version)
+    .bind(migration.description.as_ref())
+    .bind(migration.checksum.as_ref())
     .execute(&mut *conn)
     .await
     .map_err(|source| DbError::Query {
-        operation: "record the baseline migration as applied",
+        operation: "record a migration as applied without running it",
         source,
     })?;
 
     tracing::info!(
-        version = baseline.version,
-        "stamped the squashed baseline as applied without running its DDL"
+        version = migration.version,
+        "recorded a migration as applied without running its DDL"
     );
 
     Ok(())
@@ -164,9 +190,10 @@ mod tests {
         );
     }
 
-    /// Adoption stamps only the baseline. A second migration would arrive
-    /// unstamped and be run for real against an adopted database — correct, and
-    /// only correct if it was written knowing that.
+    /// Adoption stamps the baseline, and `0003` only on a database that
+    /// verifiably ran the stranded dev migration; every other post-baseline
+    /// migration arrives unstamped and is run for real against an adopted
+    /// database — correct, and only correct if it was written knowing that.
     #[test]
     fn later_migrations_are_run_not_stamped() {
         for migration in MIGRATOR.iter().filter(|m| m.version != BASELINE_VERSION) {

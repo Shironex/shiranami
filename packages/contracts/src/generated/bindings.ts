@@ -11,6 +11,15 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
+	/**  `analysis:analyze` — one decode per track, every measurement, all cores. */
+	analysisAnalyze: (input: AnalysisInput[]) => __TAURI_INVOKE<AnalysisBatchResult>("analysis_analyze", { input }),
+	/**
+	 *  `analysis:cancel` — stop the active run.
+	 * 
+	 *  Best-effort: workers notice at their next checkpoint and the run resolves
+	 *  with its partial counts. A no-op when nothing is running.
+	 */
+	analysisCancel: () => __TAURI_INVOKE<null>("analysis_cancel"),
 	/**  `app:get-version` — the version the About dialog and the updater compare. */
 	appGetVersion: () => __TAURI_INVOKE<string>("app_get_version"),
 	/**
@@ -334,6 +343,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -381,6 +406,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -426,6 +467,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -465,6 +522,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -1107,6 +1180,7 @@ export const commands = {
 
 /** Events */
 export const events = {
+	analysisProgress: makeEvent<AnalysisProgress>("analysis:progress"),
 	debugMetrics: makeEvent<DebugMetrics>("debug:metrics"),
 	downloaderDependencyInstallProgress: makeEvent<DownloaderDependencyInstallProgress>("downloader:dependency-install-progress"),
 	downloaderFfmpegInstallProgress: makeEvent<DownloaderFfmpegInstallProgress>("downloader:ffmpeg-install-progress"),
@@ -1130,6 +1204,40 @@ export const events = {
 };
 
 /* Types */
+/**  What a finished — or cancelled — run counted. */
+export type AnalysisBatchResult = {
+	/**  Tracks decoded and measured this run. */
+	analyzed: number,
+	/**  Tracks needing nothing, or no longer on disk. */
+	skipped: number,
+	/**  Tracks that failed to decode. */
+	failed: number,
+};
+
+/**  One track offered up for analysis. */
+export type AnalysisInput = {
+	/**  The row to measure and update. */
+	id: string,
+	/**
+	 *  The file to decode. A `String` and not a `PathBuf` for the same reason
+	 *  `waveform:get-peaks` takes one: the peaks-cache key hashes this exact
+	 *  string, and a `PathBuf` round trip is a silent rewrite the key cannot
+	 *  survive.
+	 */
+	filePath: string,
+	/**  Display title, echoed on every progress tick. */
+	title: string,
+};
+
+/**
+ *  Progress through a one-pass analysis batch (v2, no v1 counterpart).
+ * 
+ *  The payload carries a settled-count rather than an index — the run is
+ *  parallel and has no meaningful "current track". See
+ *  `crate::commands::analysis`.
+ */
+export type AnalysisProgress = Json;
+
 /**
  *  Cached snapshot of both tools' status, reused across renderer reloads.
  * 
@@ -1438,6 +1546,10 @@ export type DisplayTrack = {
 	playCount?: number | null,
 	/**  Integrated loudness (LUFS) for loudness levelling. */
 	loudnessLufs?: number | null,
+	/**  Estimated tempo in BPM, from the analysis engine. */
+	bpm?: number | null,
+	/**  Estimated musical key, e.g. `"C major"`. */
+	musicalKey?: string | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt?: string | null,
 	/**  ISO-8601 last-update timestamp. */
@@ -3119,6 +3231,22 @@ export type Track = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */

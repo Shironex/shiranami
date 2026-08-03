@@ -211,6 +211,8 @@ mod tests {
             disc_number: None,
             album_art: None,
             loudness_lufs: None,
+            bpm: None,
+            musical_key: None,
             is_favorite: None,
             play_count: None,
             created_at: "2026-08-01T00:00:00.000Z".to_owned(),
