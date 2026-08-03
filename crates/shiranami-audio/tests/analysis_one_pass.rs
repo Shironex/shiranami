@@ -21,7 +21,10 @@ use shiranami_audio::loudness::{
     IntegratedLoudness, LoudnessAnalyzer, measure_integrated_loudness,
 };
 use shiranami_audio::peaks::{PeakAccumulator, peaks_from_file};
-use shiranami_audio::{FanOutSink, PcmSink, PcmSpec, decode_file};
+use shiranami_audio::{
+    AnalyzeRequest, FanOutSink, PcmSink, PcmSpec, analyze_file, bpm_from_file, decode_file,
+    key_from_file,
+};
 
 /// One decode through the fan-out, then each analyser finished on its own.
 fn one_pass(path: &Path, buckets: usize) -> (Vec<f32>, IntegratedLoudness) {
@@ -164,4 +167,109 @@ fn an_empty_fan_out_is_a_valid_if_pointless_sink() {
     let summary =
         decode_file(&synth::fixture("sine.wav"), &mut fan_out).expect("decode with no analysers");
     assert_eq!(summary.frames, 48_000);
+}
+
+// ── analyze_file: the everything-from-one-decode entry point ─────────────────
+
+/// A mono 44.1 kHz signal with both a beat and a tonal centre: a C-major triad
+/// under a 120 BPM click, so all four analysers have something real to measure.
+fn musical_wav(path: &Path) {
+    const RATE: u32 = 44_100;
+    let total = RATE as usize * 8;
+    let period = RATE as usize / 2; // 120 BPM
+    let burst = RATE as usize / 20;
+
+    let samples: Vec<i16> = (0..total)
+        .map(|n| {
+            let t = n as f64 / f64::from(RATE);
+            // C4 + E4 + G4 at a modest level.
+            let triad: f64 = [261.63, 329.63, 392.00]
+                .iter()
+                .map(|f| (std::f64::consts::TAU * f * t).sin())
+                .sum::<f64>()
+                / 3.0;
+            let click = if n % period < burst { 0.6 } else { 0.0 };
+            ((triad * 0.25 + click) * 32_000.0).clamp(-32_768.0, 32_767.0) as i16
+        })
+        .collect();
+    synth::write_wav_i16(path, RATE, 1, &samples);
+}
+
+#[test]
+fn analyze_file_matches_every_separate_path() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("musical.wav");
+    musical_wav(&path);
+
+    let analysis = analyze_file(&path, AnalyzeRequest::everything(8)).expect("one-pass analysis");
+
+    let separate_peaks = peaks_from_file(&path, 8).expect("peaks path");
+    let separate_loudness = measure_integrated_loudness(&path).expect("loudness path");
+    let separate_bpm = bpm_from_file(&path).expect("bpm path");
+    let separate_key = key_from_file(&path).expect("key path");
+
+    // Exact equality across all four: same decoder, same buffers, same order.
+    assert_eq!(
+        analysis.peaks.as_ref().map(|p| &p.peaks),
+        Some(&separate_peaks.peaks)
+    );
+    assert_eq!(analysis.loudness, Some(separate_loudness));
+    assert_eq!(analysis.bpm, separate_bpm);
+    assert_eq!(analysis.key, separate_key);
+
+    // And the measurements themselves are what the signal encodes.
+    let bpm = analysis.bpm.expect("a click track has a tempo");
+    assert!((bpm - 120.0).abs() <= 6.0, "estimated {bpm} BPM");
+    assert_eq!(analysis.key.expect("a triad has a key").name, "C major");
+}
+
+#[test]
+fn a_partial_request_measures_only_what_it_asked_for() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("musical.wav");
+    musical_wav(&path);
+
+    let analysis = analyze_file(
+        &path,
+        AnalyzeRequest {
+            peak_buckets: None,
+            loudness: false,
+            tempo: true,
+            key: false,
+        },
+    )
+    .expect("tempo-only analysis");
+
+    assert!(analysis.peaks.is_none());
+    assert!(analysis.loudness.is_none());
+    assert!(analysis.key.is_none());
+    assert_eq!(analysis.bpm, bpm_from_file(&path).expect("bpm path"));
+}
+
+#[test]
+fn a_request_that_measures_nothing_is_refused() {
+    let request = AnalyzeRequest {
+        peak_buckets: None,
+        loudness: false,
+        tempo: false,
+        key: false,
+    };
+    assert!(request.is_empty());
+
+    let error = analyze_file(&synth::fixture("sine.wav"), request)
+        .expect_err("an empty request must be refused before decoding");
+    assert!(
+        matches!(error, shiranami_audio::AudioError::BadRequest(_)),
+        "{error:?}"
+    );
+}
+
+#[test]
+fn zero_peak_buckets_is_refused_exactly_as_peaks_from_file_refuses_it() {
+    let error = analyze_file(&synth::fixture("sine.wav"), AnalyzeRequest::everything(0))
+        .expect_err("zero buckets must be refused");
+    assert!(
+        matches!(error, shiranami_audio::AudioError::BadRequest(_)),
+        "{error:?}"
+    );
 }
