@@ -1,9 +1,22 @@
 import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { Track } from '@/stores/types';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 
 import AmbientBackground from './AmbientBackground';
+import { ART_BLOOM_LAYERS } from './AmbientBackground.hooks';
+
+const track: Track = {
+  id: 'track-1',
+  title: 'Test Track',
+  artist: 'Tester',
+  album: 'Fixtures',
+  duration: 200,
+  filePath: '/music/test.mp3',
+  albumArt: undefined,
+  isFavorite: false,
+};
 
 afterEach(() => {
   usePlaybackStore.setState({ currentTrack: null });
@@ -33,5 +46,36 @@ describe('AmbientBackground', () => {
     const { container } = render(<AmbientBackground />);
 
     expect(container.querySelector('.noise')).toBeNull();
+  });
+
+  it('renders one bloom layer per configured copy when the track has art', () => {
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/abc.jpg' },
+    });
+
+    const { container } = render(<AmbientBackground />);
+
+    const bloom = container.querySelector('[data-slot="art-bloom"]');
+    expect(bloom).not.toBeNull();
+    expect(bloom!.querySelectorAll('img')).toHaveLength(ART_BLOOM_LAYERS.length);
+    // The bloom replaces the glow, not stacks on it.
+    expect(container.querySelector('[data-slot="ambient-glow"]')).toBeNull();
+  });
+
+  it('falls back to the color glow when the track has no art', () => {
+    usePlaybackStore.setState({ currentTrack: track });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('[data-slot="ambient-glow"]')).not.toBeNull();
+    expect(container.querySelector('[data-slot="art-bloom"]')).toBeNull();
+  });
+
+  it('keeps every drift period in minutes, never seconds', () => {
+    // The calm contract: rotation slower than once per five minutes for every
+    // layer. A "faster" tuning pass would flip this from ambience to motion.
+    for (const layer of ART_BLOOM_LAYERS) {
+      expect(layer.duration).toBeGreaterThanOrEqual(300);
+    }
   });
 });

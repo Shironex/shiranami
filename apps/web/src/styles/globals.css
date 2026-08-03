@@ -217,6 +217,23 @@
   }
 }
 
+/* ── Artwork Bloom — the album cover dissolved into light (AmbientBackground).
+   Four blurred, saturated copies of the current cover drift along slow circular
+   paths while counter-rotating. One keyframe serves every layer: the off-center
+   transform-origin each layer sets inline turns the rotation into an orbit, and
+   `reverse`/duration come from the layer config. Periods are minutes, not
+   seconds — the drift should be impossible to catch in the act. Outside
+   @theme inline because layers reference it from raw inline `animation:`
+   styles (same pattern as the EQ bars). ── */
+@keyframes art-bloom-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
 /* EQ bar animations - must be outside @theme inline for Tailwind v4 */
 @keyframes eq-bar-1 {
   0%,
@@ -357,7 +374,8 @@
   .animate-pulse-subtle,
   .float-mascot,
   .overview-blink,
-  .progress-sweep {
+  .progress-sweep,
+  .art-bloom-layer {
     animation: none !important;
   }
   .animate-marquee {
