@@ -15,8 +15,10 @@ export interface ISanctuaryViewView {
   readonly chromeVisible: boolean;
   /** Lyrics data layer (synced lines, active line, click-to-seek). */
   readonly lyrics: LyricsView;
-  /** The active synced lyric line's text, or null (no lyrics / instrumental). */
-  readonly activeLineText: string | null;
+  /** Synced lyrics exist — the ±1 focus stage renders under the cover. */
+  readonly hasSyncedLyrics: boolean;
+  /** Idle-line dim for the focus stage (the user's synced preference). */
+  readonly lyricsSyncedDimOpacity: number;
   /** Waveform seekbar vs. plain seek bar, mirroring the player-bar setting. */
   readonly showWaveformSeekbar: boolean;
   /** Clock variant: the large time label. */

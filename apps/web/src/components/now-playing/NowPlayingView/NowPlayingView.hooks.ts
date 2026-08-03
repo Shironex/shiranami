@@ -70,7 +70,14 @@ export function useNowPlayingView(): INowPlayingViewView {
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
+  const lyricsPresentation = useLyricsAppearanceStore(s => s.lyricsPresentation);
+
   const lyrics = useLyricsView();
+
+  // The focus stage only replaces the *synced* list — loading, plain-text and
+  // empty states keep the classic LyricsBody branches.
+  const showLyricsFocus =
+    lyricsPresentation === 'focus' && !lyrics.isLoading && (lyrics.synced?.length ?? 0) > 0;
 
   const lyricsClasses = useMemo(
     () => ({
@@ -124,6 +131,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
+    showLyricsFocus,
     lyricsPlainOpacity,
     lyricsSyncedDimOpacity,
     onTogglePanel: togglePanel,

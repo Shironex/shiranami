@@ -308,7 +308,13 @@
       "opacityTitle": "Dim opacity",
       "opacityDesc": "How visible non-active lines are. The current line stays at full contrast.",
       "fontSizeTitle": "Font size",
-      "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically."
+      "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically.",
+      "presentationTitle": "Presentation",
+      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches."
+    },
+    "presentation": {
+      "list": "List",
+      "focus": "Focus"
     },
     "size": {
       "sm": "Small",

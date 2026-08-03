@@ -68,6 +68,8 @@ export interface INowPlayingViewView {
   readonly lyricsClasses: INowPlayingLyricsClasses;
   /** Lyrics data layer (synced/plain lines, active line, loading, click handler). */
   readonly lyrics: LyricsView;
+  /** Render the depth-of-field focus stage instead of the synced list. */
+  readonly showLyricsFocus: boolean;
   /** Idle-line opacity for plain lyrics. */
   readonly lyricsPlainOpacity: number;
   /** Dim opacity for inactive synced lyrics. */

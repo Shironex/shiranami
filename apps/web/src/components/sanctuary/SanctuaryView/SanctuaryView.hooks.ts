@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
+import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
 import { useSanctuaryStore, SANCTUARY_CHROME_TIMEOUT_MS } from '@/stores/useSanctuaryStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
@@ -18,6 +19,7 @@ const GLOBAL_SANCTUARY_KEYS = new Set(['f', 'F', 'Escape']);
 export function useSanctuaryView(): ISanctuaryViewView {
   const { t, i18n } = useTranslation('sanctuary');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const variant = useSanctuaryStore(s => s.sanctuaryVariant);
   const setVariant = useSanctuaryStore(s => s.setSanctuaryVariant);
   const exitSanctuary = useSanctuaryStore(s => s.exitSanctuary);
@@ -84,11 +86,6 @@ export function useSanctuaryView(): ISanctuaryViewView {
     if (!currentTrack) exitSanctuary();
   }, [currentTrack, exitSanctuary]);
 
-  const activeLineText =
-    lyrics.synced && lyrics.activeLine >= 0
-      ? (lyrics.synced[lyrics.activeLine]?.text ?? null)
-      : null;
-
   const weatherLabel =
     weather.data !== undefined
       ? `${Math.round(weather.data.tempC)}° · ${weather.data.label}`
@@ -102,7 +99,8 @@ export function useSanctuaryView(): ISanctuaryViewView {
     // its controls is not a screensaver) but without the fade transition.
     chromeVisible,
     lyrics,
-    activeLineText,
+    hasSyncedLyrics: (lyrics.synced?.length ?? 0) > 0,
+    lyricsSyncedDimOpacity,
     showWaveformSeekbar,
     timeLabel: now.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }),
     dateLabel: now.toLocaleDateString(i18n.language, {

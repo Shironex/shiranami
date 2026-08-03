@@ -1,5 +1,6 @@
 import { Music, Clock3, Disc3, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
 import { WaveformSeekbar } from '@/components/player/WaveformSeekbar';
@@ -22,7 +23,9 @@ export default function SanctuaryView() {
     currentTrack,
     variant,
     chromeVisible,
-    activeLineText,
+    lyrics,
+    hasSyncedLyrics,
+    lyricsSyncedDimOpacity,
     showWaveformSeekbar,
     timeLabel,
     dateLabel,
@@ -43,6 +46,20 @@ export default function SanctuaryView() {
   );
 
   const trackLine = `${currentTrack.artist} · ${currentTrack.album}`;
+
+  // Built above JSX render position (declarative-JSX rule): the ±1 focus
+  // stage, or nothing for tracks without synced lyrics.
+  const lyricStage =
+    hasSyncedLyrics && lyrics.synced ? (
+      <LyricsFocus
+        synced={lyrics.synced}
+        activeLine={lyrics.activeLine}
+        onLineClick={lyrics.handleLineClick}
+        syncedDimOpacity={lyricsSyncedDimOpacity}
+        windowSize={1}
+        containerClassName="flex-none max-h-48"
+      />
+    ) : null;
 
   return (
     <div
@@ -110,14 +127,7 @@ export default function SanctuaryView() {
               <p className="text-sm text-muted-foreground mt-1.5 truncate">{trackLine}</p>
             </div>
 
-            {activeLineText && (
-              <p
-                aria-live="polite"
-                className="font-serif italic text-xl text-foreground/75 text-center max-w-[60ch] text-balance"
-              >
-                {activeLineText}
-              </p>
-            )}
+            {lyricStage}
           </>
         ) : (
           <>

@@ -2,6 +2,7 @@ import { Music, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { LyricsBody } from '@/components/lyrics/LyricsBody';
+import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { EqualizerPanel } from '@/components/player/EqualizerPanel';
 import { PlayerControls } from '@/components/player/PlayerControls';
@@ -28,6 +29,7 @@ export default function NowPlayingView() {
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
+    showLyricsFocus,
     lyricsPlainOpacity,
     lyricsSyncedDimOpacity,
     onTogglePanel,
@@ -58,6 +60,19 @@ export default function NowPlayingView() {
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
   ));
+
+  // The depth-of-field lyrics stage (built above the return like the toggles).
+  // Null when the classic LyricsBody should render instead — the shell keys
+  // the swap off that null so exactly one presentation mounts.
+  const lyricsFocusStage =
+    showLyricsFocus && lyrics.synced ? (
+      <LyricsFocus
+        synced={lyrics.synced}
+        activeLine={lyrics.activeLine}
+        onLineClick={lyrics.handleLineClick}
+        syncedDimOpacity={lyricsSyncedDimOpacity}
+      />
+    ) : null;
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
@@ -222,28 +237,31 @@ export default function NowPlayingView() {
                         {t('lyrics')}
                       </h2>
                     </div>
-                    <LyricsBody
-                      synced={lyrics.synced}
-                      plain={lyrics.plain}
-                      activeLine={lyrics.activeLine}
-                      isLoading={lyrics.isLoading}
-                      onLineClick={lyrics.handleLineClick}
-                      loadingLabel={t('findingLyrics')}
-                      emptyLabel={t('noLyrics')}
-                      syncedDimOpacity={lyricsSyncedDimOpacity}
-                      plainOpacity={lyricsPlainOpacity}
-                      syncedWrapperClassName="contents"
-                      syncedContainerClassName="pr-2 @3xl:pr-4"
-                      syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
-                      syncedBottomSpacerClassName="h-[40vh]"
-                      syncedBaseClassName={lyricsClasses.syncedBase}
-                      syncedActiveClassName={lyricsClasses.syncedActive}
-                      syncedPastClassName={lyricsClasses.syncedPast}
-                      syncedIdleClassName={lyricsClasses.syncedIdle}
-                      plainContainerClassName="pr-2 @3xl:pr-4"
-                      plainTextClassName={lyricsClasses.plainText}
-                      emptyClassName="text-muted-foreground/25"
-                    />
+                    {lyricsFocusStage}
+                    {lyricsFocusStage === null && (
+                      <LyricsBody
+                        synced={lyrics.synced}
+                        plain={lyrics.plain}
+                        activeLine={lyrics.activeLine}
+                        isLoading={lyrics.isLoading}
+                        onLineClick={lyrics.handleLineClick}
+                        loadingLabel={t('findingLyrics')}
+                        emptyLabel={t('noLyrics')}
+                        syncedDimOpacity={lyricsSyncedDimOpacity}
+                        plainOpacity={lyricsPlainOpacity}
+                        syncedWrapperClassName="contents"
+                        syncedContainerClassName="pr-2 @3xl:pr-4"
+                        syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
+                        syncedBottomSpacerClassName="h-[40vh]"
+                        syncedBaseClassName={lyricsClasses.syncedBase}
+                        syncedActiveClassName={lyricsClasses.syncedActive}
+                        syncedPastClassName={lyricsClasses.syncedPast}
+                        syncedIdleClassName={lyricsClasses.syncedIdle}
+                        plainContainerClassName="pr-2 @3xl:pr-4"
+                        plainTextClassName={lyricsClasses.plainText}
+                        emptyClassName="text-muted-foreground/25"
+                      />
+                    )}
                   </>
                 )}
 

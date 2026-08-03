@@ -324,7 +324,13 @@
       "opacityTitle": "Przezroczystość przyciemnienia",
       "opacityDesc": "Jak widoczne są nieaktywne linie. Bieżąca linia pozostaje w pełnym kontraście.",
       "fontSizeTitle": "Rozmiar czcionki",
-      "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie."
+      "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie.",
+      "presentationTitle": "Prezentacja",
+      "presentationDesc": "Lista pokazuje wszystkie wersy; Fokus wyświetla bieżący wers dużą czcionką szeryfową, sąsiednie wersy się oddalają, a w partiach instrumentalnych oddychają kropki."
+    },
+    "presentation": {
+      "list": "Lista",
+      "focus": "Fokus"
     },
     "size": {
       "sm": "Mały",

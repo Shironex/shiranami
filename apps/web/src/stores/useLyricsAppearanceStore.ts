@@ -1,6 +1,8 @@
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
 
 export type LyricsFontSize = 'sm' | 'base' | 'lg' | 'xl';
+/** How synced lyrics are presented: the classic list, or the depth-of-field focus stage. */
+export type LyricsPresentation = 'list' | 'focus';
 
 export const LYRICS_PLAIN_OPACITY_MIN = 0.5;
 export const LYRICS_PLAIN_OPACITY_MAX = 1.0;
@@ -13,6 +15,7 @@ export const LYRICS_SYNCED_DIM_OPACITY_MAX = 1.0;
 export const LYRICS_SYNCED_DIM_OPACITY_STEP = 0.05;
 export const LYRICS_SYNCED_DIM_OPACITY_DEFAULT = 0.45;
 export const LYRICS_SYNCED_FONT_SIZE_DEFAULT: LyricsFontSize = 'base';
+export const LYRICS_PRESENTATION_DEFAULT: LyricsPresentation = 'list';
 
 /**
  * Original synced view used past=0.25 / idle=0.45. We preserve that ratio
@@ -77,12 +80,16 @@ function coerceLyricsSyncedFontSize(v: unknown): LyricsFontSize {
     ? v
     : LYRICS_SYNCED_FONT_SIZE_DEFAULT;
 }
+function coerceLyricsPresentation(v: unknown): LyricsPresentation {
+  return v === 'list' || v === 'focus' ? v : LYRICS_PRESENTATION_DEFAULT;
+}
 
 interface PersistedLyricsAppearanceState {
   lyricsPlainOpacity: number;
   lyricsPlainFontSize: LyricsFontSize;
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
+  lyricsPresentation: LyricsPresentation;
 }
 
 function sanitize(
@@ -98,6 +105,8 @@ function sanitize(
     out.lyricsSyncedDimOpacity = coerceLyricsSyncedDimOpacity(persisted.lyricsSyncedDimOpacity);
   if (persisted.lyricsSyncedFontSize !== undefined)
     out.lyricsSyncedFontSize = coerceLyricsSyncedFontSize(persisted.lyricsSyncedFontSize);
+  if (persisted.lyricsPresentation !== undefined)
+    out.lyricsPresentation = coerceLyricsPresentation(persisted.lyricsPresentation);
   return out;
 }
 
@@ -133,6 +142,7 @@ interface LyricsAppearanceState {
   lyricsPlainFontSize: LyricsFontSize;
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
+  lyricsPresentation: LyricsPresentation;
 }
 
 interface LyricsAppearanceActions {
@@ -141,6 +151,7 @@ interface LyricsAppearanceActions {
   resetLyricsPlainAppearance: () => void;
   setLyricsSyncedDimOpacity: (value: number) => void;
   setLyricsSyncedFontSize: (size: LyricsFontSize) => void;
+  setLyricsPresentation: (presentation: LyricsPresentation) => void;
   resetLyricsAppearance: () => void;
 }
 
@@ -152,6 +163,7 @@ export const useLyricsAppearanceStore = createPersistedStore<
     lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
     lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
     lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+    lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
 
     setLyricsPlainOpacity: value => {
       set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
@@ -171,12 +183,16 @@ export const useLyricsAppearanceStore = createPersistedStore<
     setLyricsSyncedFontSize: size => {
       set({ lyricsSyncedFontSize: coerceLyricsSyncedFontSize(size) });
     },
+    setLyricsPresentation: presentation => {
+      set({ lyricsPresentation: coerceLyricsPresentation(presentation) });
+    },
     resetLyricsAppearance: () => {
       set({
         lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
         lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
         lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
         lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+        lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
       });
     },
   }),
@@ -188,6 +204,7 @@ export const useLyricsAppearanceStore = createPersistedStore<
       lyricsPlainFontSize: s.lyricsPlainFontSize,
       lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
       lyricsSyncedFontSize: s.lyricsSyncedFontSize,
+      lyricsPresentation: s.lyricsPresentation,
     }),
     sanitize: (persisted, current) => ({
       ...current,
