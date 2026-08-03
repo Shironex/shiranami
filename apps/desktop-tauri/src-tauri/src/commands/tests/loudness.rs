@@ -11,6 +11,16 @@ fn track(id: &str, file_path: &str) -> LoudnessAnalyzeInput {
         id: id.to_owned(),
         file_path: PathBuf::from(file_path),
         title: format!("Track {id}"),
+        album: None,
+        album_artist: None,
+    }
+}
+
+fn album_track(id: &str, album: &str, album_artist: Option<&str>) -> LoudnessAnalyzeInput {
+    LoudnessAnalyzeInput {
+        album: Some(album.to_owned()),
+        album_artist: album_artist.map(str::to_owned),
+        ..track(id, &format!("/music/{id}.mp3"))
     }
 }
 
@@ -314,6 +324,8 @@ fn every_status_serializes_as_v1_spelled_it() {
 
 // ── the wire shapes ──────────────────────────────────────────────────────
 
+/// v1's three-field payload must keep parsing: the two F5 album fields are
+/// additive, and a renderer that never sends them gets a run that never folds.
 #[test]
 fn the_input_parses_v1s_object() {
     let parsed: LoudnessAnalyzeInput = serde_json::from_str(
@@ -324,6 +336,93 @@ fn the_input_parses_v1s_object() {
 
     assert_eq!(parsed.file_path, Path::new("/music/a.mp3"));
     assert_eq!(parsed.title, "A");
+    assert_eq!(parsed.album, None);
+    assert_eq!(parsed.album_artist, None);
+}
+
+// ── album grouping ───────────────────────────────────────────────────────
+
+/// The untagged pile must not become one giant pseudo-album: no album, an
+/// empty album, and the `Unknown Album` sentinel all mean "folds nowhere".
+#[test]
+fn untagged_and_unknown_albums_have_no_key() {
+    assert_eq!(album_key(&track("a", "/music/a.mp3")), None);
+    assert_eq!(album_key(&album_track("b", "", None)), None);
+    assert_eq!(album_key(&album_track("c", "   ", None)), None);
+    assert_eq!(album_key(&album_track("d", UNKNOWN_ALBUM, None)), None);
+}
+
+/// Two artists' same-named albums stay two albums.
+#[test]
+fn the_album_key_disambiguates_by_album_artist() {
+    let one = album_key(&album_track("a", "Greatest Hits", Some("Aoi"))).expect("a key");
+    let other = album_key(&album_track("b", "Greatest Hits", Some("Kaze"))).expect("a key");
+
+    assert_ne!(one, other);
+}
+
+/// Grouping is by key across the whole input (the renderer's order is not
+/// trusted to be album-contiguous), in first-appearance order; untagged
+/// tracks are singleton groups that never fold.
+#[test]
+fn interleaved_input_still_groups_by_album() {
+    let input = vec![
+        album_track("a1", "Nocturne", Some("Aoi")),
+        track("solo", "/music/solo.mp3"),
+        album_track("d1", "Drift", Some("Kaze")),
+        album_track("a2", "Nocturne", Some("Aoi")),
+    ];
+
+    let groups = album_groups(&input);
+
+    assert_eq!(groups.len(), 3);
+    assert!(groups[0].folds);
+    assert_eq!(
+        groups[0]
+            .members
+            .iter()
+            .map(|t| t.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a1", "a2"]
+    );
+    assert!(!groups[1].folds, "an untagged track folds into no album");
+    assert_eq!(groups[1].members[0].id, "solo");
+    assert!(groups[2].folds);
+    assert_eq!(groups[2].members[0].id, "d1");
+}
+
+/// The group skip test: a row is pending when either per-track value is
+/// missing, or — only for folding groups — when the album value is.
+#[test]
+fn the_pending_test_covers_all_three_columns() {
+    let full = StoredLoudness {
+        lufs: Some(-12.0),
+        true_peak_db: Some(-1.0),
+        album_loudness_lufs: Some(-13.0),
+    };
+    let no_album = StoredLoudness {
+        album_loudness_lufs: None,
+        ..full
+    };
+    let no_peak = StoredLoudness {
+        true_peak_db: None,
+        ..full
+    };
+
+    assert!(
+        needs_analysis(None, false),
+        "an unknown row is fully pending"
+    );
+    assert!(!needs_analysis(Some(full), true));
+    assert!(
+        !needs_analysis(Some(no_album), false),
+        "a singleton needs no album value"
+    );
+    assert!(needs_analysis(Some(no_album), true), "a folding group does");
+    assert!(
+        needs_analysis(Some(no_peak), false),
+        "a v1-measured row still owes its true peak"
+    );
 }
 
 /// The three counters the renderer reports. A cancelled run answers with

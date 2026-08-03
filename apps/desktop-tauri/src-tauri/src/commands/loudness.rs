@@ -1,21 +1,24 @@
 //! `loudness:*` — the EBU R128 analysis batch, and its cancel.
 //!
 //! Two channels, ported from `apps/desktop/src/main/ipc/loudness.ts`. The
-//! measurement is `shiranami_audio::measure_integrated_loudness`; the loop, the
-//! skip test, the counters, the progress ticks and the persistence are the
+//! measurement is `shiranami_audio`'s loudness profile — integrated, true peak
+//! and range from one decode — plus the F5 album fold; the loop, the skip
+//! test, the counters, the progress ticks and the persistence are the
 //! handler's, and so are here.
 //!
 //! # The one namespace in this lane that writes rows
 //!
 //! `library` and `storage` deliberately hold no connection. This one does: the
-//! measured LUFS lands in `tracks.loudness_lufs`, which is the **only** input to
-//! volume levelling — the renderer computes `clamp(target - measured, ±12 dB)`
-//! and multiplies the deck's gain node by it. A run that measured without
-//! persisting would re-measure the whole library on every launch.
+//! measured values land in the `tracks` loudness columns, which are the
+//! **only** input to volume levelling — the renderer computes
+//! `clamp(target - measured, ±12 dB)` (peak-guarded since F5) and multiplies
+//! the deck's gain node by it. A run that measured without persisting would
+//! re-measure the whole library on every launch.
 //!
-//! The connection is therefore taken **twice per track and held across
-//! neither** decode: once to read the skip test, once to write the result. That
-//! is a deliberate departure from v1's shape, which held one `better-sqlite3`
+//! The connection is therefore taken briefly and **held across no decode**:
+//! once per album group to read the skip states, once per track to write its
+//! profile, once per folded album to stamp the album value. That is a
+//! deliberate departure from v1's shape, which held one `better-sqlite3`
 //! handle for the whole run — it had no pool to starve. Here the pool holds a
 //! single connection, and keeping it across a multi-minute decode of a
 //! two-thousand-track library would stall every query in the app for the
@@ -35,14 +38,19 @@
 //! lives in `shiranami-metadata`: v1 declared it in the handler file, not in a
 //! shared contract, so the command layer is its home.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde::{Deserialize, Serialize};
-use shiranami_audio::{AudioError, IntegratedLoudness, measure_integrated_loudness};
+use shiranami_audio::{
+    AudioError, IntegratedLoudness, LoudnessAnalyzer, LoudnessProfile, album_integrated_loudness,
+    decode_file,
+};
+use shiranami_core::UNKNOWN_ALBUM;
 use shiranami_core::error::ErrorPayload;
 use shiranami_db::repo::tracks;
+use shiranami_db::repo::tracks::{LoudnessProfileUpdate, StoredLoudness};
 use specta::Type;
 // `usize` is a BigInt-style type specta refuses to emit, because a `u64` cannot
 // round-trip through a JavaScript number. These counters are bounded by the
@@ -85,7 +93,9 @@ pub const LOUDNESS_BUSY_CODE: &str = "loudness.busy";
 
 // ── wire types ───────────────────────────────────────────────────────────────
 
-/// One track offered up for analysis. v1's `LoudnessAnalyzeInput`.
+/// One track offered up for analysis. v1's `LoudnessAnalyzeInput`, plus the
+/// two album fields F5 grouping reads — both optional, so v1's three-field
+/// payload still parses and simply never folds.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LoudnessAnalyzeInput {
@@ -95,6 +105,14 @@ pub struct LoudnessAnalyzeInput {
     pub file_path: PathBuf,
     /// Display title, echoed on every progress tick.
     pub title: String,
+    /// Album tag, for album-gain grouping. Absent, empty or the
+    /// `Unknown Album` sentinel all mean "this track folds into no album".
+    #[specta(optional)]
+    pub album: Option<String>,
+    /// Album artist (the renderer sends its display collapse, album artist
+    /// falling back to artist), so two artists' same-named albums stay apart.
+    #[specta(optional)]
+    pub album_artist: Option<String>,
 }
 
 /// What a finished — or cancelled — run counted.
@@ -253,12 +271,19 @@ pub async fn loudness_cancel(runs: State<'_, LoudnessRuns>) -> CommandResult<()>
     Ok(())
 }
 
-/// `loudness:analyze` — measure and persist integrated loudness for a batch.
+/// `loudness:analyze` — measure and persist the loudness profile for a batch.
 ///
 /// Sequential, one track at a time, as v1 was: the decode is already
-/// CPU-saturating and the unit of parallelism this crate's docs name is a track.
-/// Already-measured tracks are skipped by re-reading the row, which keeps the
+/// CPU-saturating and the unit of parallelism this crate's docs name is a
+/// track. F5 adds *album grouping* around that loop: tracks sharing a real
+/// album tag are processed as one unit so their analyser states can fold into
+/// an album loudness, and a group where every member already carries its full
+/// profile is skipped whole. The skip test re-reads the rows, which keeps the
 /// run idempotent even when the renderer passes a stale "needs analysis" set.
+///
+/// Continuity: a v1-measured `loudness_lufs` is never overwritten — such a
+/// track *is* re-decoded once to learn its true peak and album state, but the
+/// stored integrated value stays exactly what v1 wrote.
 #[tauri::command]
 #[specta::specta]
 pub async fn loudness_analyze(
@@ -271,73 +296,127 @@ pub async fn loudness_analyze(
     let cancel = guard.token.clone();
     let total = input.len();
     let mut counts = LoudnessAnalyzeResult::default();
+    // Tracks settled so far — the `index` of v1's flat loop, maintained by
+    // hand because grouping reorders iteration without changing the contract:
+    // settled ticks report `settled + 1`, cancellation reports `settled`.
+    let mut settled = 0_usize;
 
-    for (index, track) in input.iter().enumerate() {
-        if cancel.is_cancelled() {
-            emit(&app, cancelled_at(index, total, &track.title));
-            break;
-        }
-
-        // The skip test. Acquired and released before the decode below, never
-        // held across it.
-        let measured = {
+    'groups: for group in album_groups(&input) {
+        // The group's skip test. Acquired and released before any decode,
+        // never held across one.
+        let pending = {
             let mut conn = state.conn().await?;
-            tracks::loudness_lufs(&mut conn, &track.id).await.wire()?
+            let mut pending = false;
+            for member in &group.members {
+                let stored = tracks::loudness_state(&mut conn, &member.id).await.wire()?;
+                if needs_analysis(stored, group.folds) {
+                    pending = true;
+                    break;
+                }
+            }
+            pending
         };
-        if measured.is_some() {
-            counts.skipped += 1;
-            emit(&app, tick(index + 1, total, track, LoudnessStatus::Skipped));
+        if !pending {
+            for member in &group.members {
+                counts.skipped += 1;
+                settled += 1;
+                emit(&app, tick(settled, total, member, LoudnessStatus::Skipped));
+            }
             continue;
         }
 
-        emit(
-            &app,
-            tick(index + 1, total, track, LoudnessStatus::Analyzing),
-        );
+        // Analyser states kept alive for the fold at the end of the group.
+        let mut folded: Vec<(String, LoudnessAnalyzer)> = Vec::new();
 
-        let file_path = track.file_path.clone();
-        let outcome = off_thread("measure the track's loudness", move || {
-            Ok(measure_integrated_loudness(&file_path))
-        })
-        .await?;
+        for member in &group.members {
+            if cancel.is_cancelled() {
+                emit(&app, cancelled_at(settled, total, &member.title));
+                break 'groups;
+            }
 
-        // v1 re-checks after the measurement: cancellation resolved
-        // `measureLoudness` to null, and reporting that as `skipped` would
-        // credit the user with a decision the run made for them.
-        if cancel.is_cancelled() {
-            emit(&app, cancelled_at(index, total, &track.title));
-            break;
+            emit(
+                &app,
+                tick(settled + 1, total, member, LoudnessStatus::Analyzing),
+            );
+
+            let file_path = member.file_path.clone();
+            let outcome = off_thread("measure the track's loudness", move || {
+                Ok(profile_file(&file_path))
+            })
+            .await?;
+
+            // v1 re-checks after the measurement: cancellation resolved
+            // `measureLoudness` to null, and reporting that as `skipped` would
+            // credit the user with a decision the run made for them.
+            if cancel.is_cancelled() {
+                emit(&app, cancelled_at(settled, total, &member.title));
+                break 'groups;
+            }
+
+            match outcome {
+                Ok((analyzer, profile)) => {
+                    if let IntegratedLoudness::Measured(lufs) = profile.integrated {
+                        let mut conn = state.conn().await?;
+                        let update = LoudnessProfileUpdate {
+                            lufs: Some(lufs),
+                            true_peak_db: profile.true_peak_db,
+                            loudness_range: profile.loudness_range,
+                        };
+                        tracks::set_loudness_profile(&mut conn, &member.id, &update)
+                            .await
+                            .wire()?;
+                        drop(conn);
+
+                        counts.analyzed += 1;
+                        settled += 1;
+                        emit(&app, tick(settled, total, member, LoudnessStatus::Done));
+
+                        if group.folds {
+                            folded.push((member.id.clone(), analyzer));
+                        }
+                    } else {
+                        // Digital silence reads as −∞ LUFS: a real measurement
+                        // of nothing. Nothing stored, nothing folded — the
+                        // BS.1770 gate would drop its blocks anyway.
+                        counts.skipped += 1;
+                        settled += 1;
+                        emit(&app, tick(settled, total, member, LoudnessStatus::Skipped));
+                    }
+                }
+                // A file that is simply gone is v1's `null`, which counted as
+                // a skip. It is not a decode failure and calling it one would
+                // report an unplugged drive as a library full of broken files.
+                Err(error) if is_missing(&error) => {
+                    counts.skipped += 1;
+                    settled += 1;
+                    emit(&app, tick(settled, total, member, LoudnessStatus::Skipped));
+                }
+                Err(error) => {
+                    tracing::error!(%error, track = %member.title, "loudness analysis failed");
+                    counts.failed += 1;
+                    settled += 1;
+                    emit(&app, tick(settled, total, member, LoudnessStatus::Error));
+                }
+            }
         }
 
-        match outcome {
-            Ok(IntegratedLoudness::Measured(lufs)) => {
-                let mut conn = state.conn().await?;
-                tracks::set_loudness_lufs(&mut conn, &track.id, lufs)
-                    .await
-                    .wire()?;
-                drop(conn);
-
-                counts.analyzed += 1;
-                emit(&app, tick(index + 1, total, track, LoudnessStatus::Done));
-            }
-            // Digital silence reads as −∞ LUFS: a real measurement of nothing.
-            // There is nothing to level, so no value is stored — v1 skipped it
-            // for the same reason, and did not hand it to ffmpeg either.
-            Ok(IntegratedLoudness::Silent) => {
-                counts.skipped += 1;
-                emit(&app, tick(index + 1, total, track, LoudnessStatus::Skipped));
-            }
-            // A file that is simply gone is v1's `null`, which counted as a
-            // skip. It is not a decode failure and calling it one would report
-            // an unplugged drive as a library full of broken files.
-            Err(error) if is_missing(&error) => {
-                counts.skipped += 1;
-                emit(&app, tick(index + 1, total, track, LoudnessStatus::Skipped));
-            }
-            Err(error) => {
-                tracing::error!(%error, track = %track.title, "loudness analysis failed");
-                counts.failed += 1;
-                emit(&app, tick(index + 1, total, track, LoudnessStatus::Error));
+        // The album fold, over whichever members measured. A fold over a
+        // partial album (a member failed or went missing) is still the honest
+        // ReplayGain answer for the files that exist; a fold failure costs the
+        // album value, never the run.
+        if group.folds && !folded.is_empty() {
+            let (ids, analyzers): (Vec<String>, Vec<LoudnessAnalyzer>) = folded.into_iter().unzip();
+            match album_integrated_loudness(&analyzers) {
+                Ok(IntegratedLoudness::Measured(album_lufs)) => {
+                    let mut conn = state.conn().await?;
+                    tracks::set_album_loudness(&mut conn, &ids, album_lufs)
+                        .await
+                        .wire()?;
+                }
+                Ok(IntegratedLoudness::Silent) => {}
+                Err(error) => {
+                    tracing::warn!(%error, "the album loudness fold failed; track values stand");
+                }
             }
         }
     }
@@ -351,6 +430,83 @@ pub async fn loudness_analyze(
     );
 
     Ok(counts)
+}
+
+// ── grouping ─────────────────────────────────────────────────────────────────
+
+/// One unit of the analysis run: an album's worth of tracks, or a lone track.
+#[derive(Debug)]
+struct AlbumGroup<'input> {
+    /// Whether the members share a real album tag and fold into an album
+    /// loudness. Untagged and `Unknown Album` tracks form singleton groups
+    /// that never fold — the whole untagged pile must not become one record.
+    folds: bool,
+    members: Vec<&'input LoudnessAnalyzeInput>,
+}
+
+/// The identity tracks must share to fold: `(album artist, album)`.
+fn album_key(track: &LoudnessAnalyzeInput) -> Option<(String, String)> {
+    let album = track.album.as_deref().map(str::trim).unwrap_or_default();
+    if album.is_empty() || album == UNKNOWN_ALBUM {
+        return None;
+    }
+
+    let artist = track
+        .album_artist
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default();
+    Some((artist.to_owned(), album.to_owned()))
+}
+
+/// Partition the input into albums (first-appearance order) and singletons.
+fn album_groups(input: &[LoudnessAnalyzeInput]) -> Vec<AlbumGroup<'_>> {
+    let mut groups: Vec<AlbumGroup<'_>> = Vec::new();
+    let mut by_key: std::collections::HashMap<(String, String), usize> =
+        std::collections::HashMap::new();
+
+    for track in input {
+        match album_key(track) {
+            Some(key) => match by_key.get(&key) {
+                Some(&index) => groups[index].members.push(track),
+                None => {
+                    by_key.insert(key, groups.len());
+                    groups.push(AlbumGroup {
+                        folds: true,
+                        members: vec![track],
+                    });
+                }
+            },
+            None => groups.push(AlbumGroup {
+                folds: false,
+                members: vec![track],
+            }),
+        }
+    }
+
+    groups
+}
+
+/// Whether a stored state still owes this run a decode.
+///
+/// An unknown row reads as fully pending, the same collapse the v1 skip test
+/// made. A known row is pending when either per-track value is missing, or —
+/// for folding groups — when its album loudness is: one pending member makes
+/// the *whole group* decode, because the fold needs every member's state.
+fn needs_analysis(stored: Option<StoredLoudness>, folds: bool) -> bool {
+    let Some(stored) = stored else { return true };
+
+    stored.lufs.is_none()
+        || stored.true_peak_db.is_none()
+        || (folds && stored.album_loudness_lufs.is_none())
+}
+
+/// One decode → the analyser (kept for the fold) and its finished profile.
+fn profile_file(path: &Path) -> shiranami_audio::Result<(LoudnessAnalyzer, LoudnessProfile)> {
+    let mut analyzer = LoudnessAnalyzer::new();
+    decode_file(path, &mut analyzer)?;
+    let profile = analyzer.profile()?;
+    Ok((analyzer, profile))
 }
 
 /// Whether this failure is "the file is not there" rather than "it will not

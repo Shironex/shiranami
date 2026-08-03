@@ -1,6 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { clamp01 } from '@shiranami/shared';
-import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
+import {
+  usePlaybackStore,
+  currentTimeRef,
+  type LoudnessLevelingMode,
+} from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
@@ -15,7 +19,7 @@ import {
   setPreampDb,
 } from '@/lib/audioAnalyser';
 import { useEqStore } from '@/stores/useEqStore';
-import { computeLoudnessGainDb, dbToLinear } from '@/lib/loudness';
+import { computeLevelingGainDb, dbToLinear, type TrackLoudness } from '@/lib/loudness';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
@@ -58,15 +62,17 @@ export function fadeIn(progress: number): number {
  * Linear (amplitude) gain factor for loudness leveling on a single track.
  * Returns 1 (no-op) when leveling is disabled or the track's loudness is
  * unmeasured/non-finite, otherwise 10^(dB/20) for the computed ReplayGain-style
- * adjustment. Exported for unit testing.
+ * adjustment — mode picks track vs album reference, and the true-peak guard
+ * caps boosts (see `computeLevelingGainDb`). Exported for unit testing.
  */
 export function loudnessLinearGain(
-  measuredLufs: number | null | undefined,
+  track: TrackLoudness | null,
   enabled: boolean,
+  mode: LoudnessLevelingMode,
   targetLufs: number
 ): number {
   if (!enabled) return 1;
-  const db = computeLoudnessGainDb(measuredLufs, targetLufs);
+  const db = computeLevelingGainDb(track, mode, targetLufs);
   return dbToLinear(db);
 }
 
@@ -103,40 +109,52 @@ export function useAudioEngine() {
   });
 
   // Per-deck loudness state. `deckLufsRef` holds each deck's loaded track's
-  // measured integrated loudness (the source of truth — the incoming/idle deck's
+  // measured loudness surface (the source of truth — the incoming/idle deck's
   // track is not `currentTrack`, so we can't re-derive it from the store on a
   // mid-crossfade toggle). `deckLoudnessRef` caches the linear gain factor
   // applied on top of the user volume in `setVolume`. Both are set at every
   // deck-load point so each deck's track is normalized independently.
-  const deckLufsRef = useRef<{ A: number | null | undefined; B: number | null | undefined }>({
+  const deckLufsRef = useRef<{ A: TrackLoudness | null; B: TrackLoudness | null }>({
     A: null,
     B: null,
   });
   const deckLoudnessRef = useRef<{ A: number; B: number }>({ A: 1, B: 1 });
 
-  /** Recompute and cache a deck's linear loudness factor from its stored LUFS
-   * and the current loudness settings. Returns the factor. */
+  /** Recompute and cache a deck's linear loudness factor from its stored
+   * loudness surface and the current loudness settings. Returns the factor. */
   function updateDeckLoudness(deck: Deck): number {
     const pb = usePlaybackStore.getState();
     const factor = loudnessLinearGain(
       deckLufsRef.current[deck],
       pb.loudnessEnabled,
+      pb.loudnessLevelingMode,
       pb.loudnessTargetLufs
     );
     deckLoudnessRef.current[deck] = factor;
     return factor;
   }
 
-  /** Store a deck's track LUFS and refresh its cached loudness factor, logging
-   * the applied adjustment when leveling is on and a measurement exists. */
+  /** Store a deck's track loudness surface and refresh its cached factor,
+   * logging the applied adjustment when leveling is on and a measurement
+   * exists. */
   function setDeckTrackLoudness(deck: Deck, track: Track | null) {
-    deckLufsRef.current[deck] = track?.loudnessLufs;
+    deckLufsRef.current[deck] = track
+      ? {
+          loudnessLufs: track.loudnessLufs,
+          albumLoudnessLufs: track.albumLoudnessLufs,
+          truePeakDb: track.truePeakDb,
+        }
+      : null;
     const factor = updateDeckLoudness(deck);
     const pb = usePlaybackStore.getState();
     if (pb.loudnessEnabled && track && track.loudnessLufs != null) {
-      const db = computeLoudnessGainDb(track.loudnessLufs, pb.loudnessTargetLufs);
+      const db = computeLevelingGainDb(
+        deckLufsRef.current[deck],
+        pb.loudnessLevelingMode,
+        pb.loudnessTargetLufs
+      );
       logger.info(
-        `[loudness] Deck ${deck} "${track.title}" ${track.loudnessLufs.toFixed(1)} LUFS → ${db >= 0 ? '+' : ''}${db.toFixed(1)} dB (×${factor.toFixed(3)})`
+        `[loudness] Deck ${deck} "${track.title}" ${track.loudnessLufs.toFixed(1)} LUFS (${pb.loudnessLevelingMode}) → ${db >= 0 ? '+' : ''}${db.toFixed(1)} dB (×${factor.toFixed(3)})`
       );
     }
   }
@@ -931,12 +949,18 @@ export function useAudioEngine() {
   useEffect(() => {
     let prevEnabled = usePlaybackStore.getState().loudnessEnabled;
     let prevTarget = usePlaybackStore.getState().loudnessTargetLufs;
+    let prevMode = usePlaybackStore.getState().loudnessLevelingMode;
     const unsub = usePlaybackStore.subscribe(state => {
-      if (state.loudnessEnabled === prevEnabled && state.loudnessTargetLufs === prevTarget) {
+      if (
+        state.loudnessEnabled === prevEnabled &&
+        state.loudnessTargetLufs === prevTarget &&
+        state.loudnessLevelingMode === prevMode
+      ) {
         return;
       }
       prevEnabled = state.loudnessEnabled;
       prevTarget = state.loudnessTargetLufs;
+      prevMode = state.loudnessLevelingMode;
       updateDeckLoudness('A');
       updateDeckLoudness('B');
       if (!crossfadeRef.current.active) {

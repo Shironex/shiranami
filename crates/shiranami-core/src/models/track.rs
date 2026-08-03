@@ -49,6 +49,13 @@ pub struct Track {
     pub created_at: String,
     /// ISO-8601 last-update timestamp.
     pub updated_at: String,
+    /// Integrated loudness of the track's album (LUFS), gated once across
+    /// every member; `None` = unanalysed, no album, or the unknown-album pile.
+    pub album_loudness_lufs: Option<f64>,
+    /// Loudest true peak (dBTP); `None` = unanalysed or digital silence.
+    pub true_peak_db: Option<f64>,
+    /// Loudness range (EBU Tech 3342, LU); `None` = unanalysed.
+    pub loudness_range: Option<f64>,
 }
 
 /// Insert shape: `id` and the timestamps are DB-generated and may be omitted.

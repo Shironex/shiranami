@@ -460,6 +460,10 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "track_number",
         "updated_at",
         "year",
+        // v2's own, from migration `0005` (feature wave F5).
+        "album_loudness_lufs",
+        "loudness_range",
+        "true_peak_db",
     ];
     expected.sort_unstable();
 

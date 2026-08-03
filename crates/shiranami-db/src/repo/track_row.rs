@@ -71,5 +71,8 @@ fn read(row: &SqliteRow) -> sqlx::Result<Track> {
         play_count: row.try_get("play_count")?,
         created_at: row.try_get("created_at")?,
         updated_at: row.try_get("updated_at")?,
+        album_loudness_lufs: row.try_get("album_loudness_lufs")?,
+        true_peak_db: row.try_get("true_peak_db")?,
+        loudness_range: row.try_get("loudness_range")?,
     })
 }

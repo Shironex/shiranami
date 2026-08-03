@@ -30,6 +30,13 @@ use crate::repo::ids;
 use crate::repo::track_patch;
 use crate::repo::track_row::{self, LIBRARY_ORDER, TRACK_SELECT};
 
+// The loudness columns live in their own module (one file, one job); callers
+// keep addressing them as `tracks::…`, so the split is invisible at call sites.
+pub use crate::repo::track_loudness::{
+    LoudnessProfileUpdate, StoredLoudness, loudness_lufs, loudness_state, set_album_loudness,
+    set_loudness_lufs, set_loudness_profile,
+};
+
 /// Rows per `INSERT`, as v1 sized it.
 ///
 /// Twelve columns per track, so a full chunk binds 1,200 parameters — an order
@@ -402,42 +409,6 @@ pub async fn get_id_by_path(
         .fetch_optional(&mut *conn)
         .await
         .map_err(failed("look up the track id by path"))
-}
-
-/// The track's measured integrated loudness, or `None` when it has none.
-///
-/// `None` deliberately folds together "no such track" and "the column is
-/// `NULL`", because its one caller — `loudness:analyze` — treats both the same
-/// way: a track it cannot find and a track never measured are both tracks to
-/// measure. v1 read the same single column for the same skip test
-/// (`loudness.ts:96-101`) rather than loading the row.
-pub async fn loudness_lufs(conn: &mut SqliteConnection, id: &str) -> Result<Option<f64>> {
-    let found: Option<Option<f64>> =
-        sqlx::query_scalar("SELECT loudness_lufs FROM tracks WHERE id = ?1")
-            .bind(id)
-            .fetch_optional(&mut *conn)
-            .await
-            .map_err(failed("read the track's measured loudness"))?;
-
-    Ok(found.flatten())
-}
-
-/// Record a track's measured integrated loudness, in LUFS.
-///
-/// The only column written, exactly as v1 wrote it
-/// (`db.update(tracks).set({ loudnessLufs })`). `updated_at` is deliberately
-/// untouched: the value is a backend measurement rather than a user edit, and
-/// bumping the timestamp would reorder nothing but would make an analysis run
-/// look like a library-wide modification.
-pub async fn set_loudness_lufs(conn: &mut SqliteConnection, id: &str, lufs: f64) -> Result<()> {
-    sqlx::query("UPDATE tracks SET loudness_lufs = ?1 WHERE id = ?2")
-        .bind(lufs)
-        .bind(id)
-        .execute(&mut *conn)
-        .await
-        .map_err(failed("record the track's measured loudness"))?;
-
-    Ok(())
 }
 
 /// Run a single-row `UPDATE … RETURNING *` keyed on `id`.

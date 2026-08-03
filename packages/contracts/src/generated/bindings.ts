@@ -336,6 +336,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_add", { track }),
 	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
 	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
@@ -383,6 +392,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_update", { id, data }),
 	/**
 	 *  `db:tracks:update-many` — patch a batch.
@@ -428,6 +446,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_toggle_favorite", { id }),
 	/**  `db:tracks:get-favorites` — the favourites, in library order. */
 	dbTracksGetFavorites: () => __TAURI_INVOKE<Track[]>("db_tracks_get_favorites"),
@@ -467,6 +494,15 @@ export const commands = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 } | null>("db_tracks_increment_play_count", { id }),
 	/**  `db:tracks:exists` — whether this path is already in the library. */
 	dbTracksExists: (filePath: string) => __TAURI_INVOKE<boolean>("db_tracks_exists", { filePath }),
@@ -758,12 +794,19 @@ export const commands = {
 	 */
 	libraryValidateFiles: (filePaths: string[]) => __TAURI_INVOKE<string[]>("library_validate_files", { filePaths }),
 	/**
-	 *  `loudness:analyze` — measure and persist integrated loudness for a batch.
+	 *  `loudness:analyze` — measure and persist the loudness profile for a batch.
 	 * 
 	 *  Sequential, one track at a time, as v1 was: the decode is already
-	 *  CPU-saturating and the unit of parallelism this crate's docs name is a track.
-	 *  Already-measured tracks are skipped by re-reading the row, which keeps the
+	 *  CPU-saturating and the unit of parallelism this crate's docs name is a
+	 *  track. F5 adds *album grouping* around that loop: tracks sharing a real
+	 *  album tag are processed as one unit so their analyser states can fold into
+	 *  an album loudness, and a group where every member already carries its full
+	 *  profile is skipped whole. The skip test re-reads the rows, which keeps the
 	 *  run idempotent even when the renderer passes a stale "needs analysis" set.
+	 * 
+	 *  Continuity: a v1-measured `loudness_lufs` is never overwritten — such a
+	 *  track *is* re-decoded once to learn its true peak and album state, but the
+	 *  stored integrated value stays exactly what v1 wrote.
 	 */
 	loudnessAnalyze: (input: LoudnessAnalyzeInput[]) => __TAURI_INVOKE<LoudnessAnalyzeResult>("loudness_analyze", { input }),
 	/**
@@ -2027,7 +2070,11 @@ export type LookupSource =
  */
 "preview";
 
-/**  One track offered up for analysis. v1's `LoudnessAnalyzeInput`. */
+/**
+ *  One track offered up for analysis. v1's `LoudnessAnalyzeInput`, plus the
+ *  two album fields F5 grouping reads — both optional, so v1's three-field
+ *  payload still parses and simply never folds.
+ */
 export type LoudnessAnalyzeInput = {
 	/**  The row to measure and update. */
 	id: string,
@@ -2035,6 +2082,16 @@ export type LoudnessAnalyzeInput = {
 	filePath: string,
 	/**  Display title, echoed on every progress tick. */
 	title: string,
+	/**
+	 *  Album tag, for album-gain grouping. Absent, empty or the
+	 *  `Unknown Album` sentinel all mean "this track folds into no album".
+	 */
+	album?: string | null,
+	/**
+	 *  Album artist (the renderer sends its display collapse, album artist
+	 *  falling back to artist), so two artists' same-named albums stay apart.
+	 */
+	albumArtist?: string | null,
 };
 
 /**  What a finished — or cancelled — run counted. */
@@ -3136,6 +3193,15 @@ export type Track = {
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt: string,
+	/**
+	 *  Integrated loudness of the track's album (LUFS), gated once across
+	 *  every member; `None` = unanalysed, no album, or the unknown-album pile.
+	 */
+	albumLoudnessLufs: number | null,
+	/**  Loudest true peak (dBTP); `None` = unanalysed or digital silence. */
+	truePeakDb: number | null,
+	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
+	loudnessRange: number | null,
 };
 
 /**

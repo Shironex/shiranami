@@ -215,6 +215,9 @@ mod tests {
             play_count: None,
             created_at: "2026-08-01T00:00:00.000Z".to_owned(),
             updated_at: "2026-08-01T00:00:00.000Z".to_owned(),
+            album_loudness_lufs: None,
+            true_peak_db: None,
+            loudness_range: None,
         }
     }
 

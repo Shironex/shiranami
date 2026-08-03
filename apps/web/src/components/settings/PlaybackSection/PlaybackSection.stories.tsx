@@ -86,6 +86,9 @@ export const CrossfadeAndLoudnessOn: Story = {
     await expect(canvas.getByRole('switch', { name: 'Loudness leveling' })).toBeChecked();
     // Crossfade duration, loudness target, and sleep-fade sliders are all shown.
     await expect(canvas.getAllByRole('slider')).toHaveLength(3);
+    // The F5 leveling-mode select rides the enabled block, defaulting to Track.
+    const mode = canvas.getByRole('combobox', { name: 'Leveling mode' });
+    await expect(mode).toHaveTextContent('Track');
 
     usePlaybackStore.setState({ crossfadeEnabled: false, loudnessEnabled: false });
   },
