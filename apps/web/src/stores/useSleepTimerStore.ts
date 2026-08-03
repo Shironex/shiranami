@@ -1,11 +1,23 @@
 import { create } from 'zustand';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useWindDownStore } from '@/stores/useWindDownStore';
+import { orderQueueCalmestFirst } from '@/lib/windDownQueue';
 
 export const SLEEP_TIMER_PRESETS = [15, 30, 45, 60, 90] as const;
 
 /** Bounds (in minutes) for the custom sleep-timer duration input. */
 export const SLEEP_TIMER_MIN_MINUTES = 1;
 export const SLEEP_TIMER_MAX_MINUTES = 600;
+
+/** Length of the authored wind-down ending. */
+export const WIND_DOWN_MINUTES = 15;
+
+/**
+ * The UI dim ramps over this window at the end of a wind-down. Shorter timers
+ * (never the built-in wind-down, but a defensive clamp regardless) ramp over
+ * their whole length instead.
+ */
+export const WIND_DOWN_DIM_WINDOW_SECONDS = 10 * 60;
 
 interface SleepTimerState {
   /** Timestamp (ms) when the timer expires, or null if inactive */
@@ -14,10 +26,24 @@ interface SleepTimerState {
   duration: number | null;
   /** Remaining seconds, updated by the tick interval */
   remaining: number;
+  /**
+   * Whether this timer is the authored wind-down ending (dim + calmest-first
+   * queue + closing line + next-launch memory) rather than a plain stop-after.
+   * Stays true through the expiry fade so the ending can complete, and clears
+   * with it.
+   */
+  windDown: boolean;
 }
 
 interface SleepTimerActions {
   start: (minutes: number) => void;
+  /**
+   * Start the wind-down ending: a fixed-length timer that also reorders the
+   * upcoming queue calmest-first (stored LUFS; un-analysed tracks keep their
+   * order at the end) so the quietest thing left plays while the listener
+   * drifts.
+   */
+  startWindDown: () => void;
   cancel: () => void;
   tick: () => void;
 }
@@ -61,6 +87,7 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
   endTime: null,
   duration: null,
   remaining: 0,
+  windDown: false,
 
   start: minutes => {
     // Enforce the bounds at the store boundary so every caller (presets, custom
@@ -70,14 +97,33 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
       Math.max(SLEEP_TIMER_MIN_MINUTES, Math.trunc(minutes))
     );
     const endTime = Date.now() + normalized * 60 * 1000;
-    set({ endTime, duration: normalized, remaining: normalized * 60 });
+    // A plain timer replaces any wind-down in flight — its ending with it.
+    set({ endTime, duration: normalized, remaining: normalized * 60, windDown: false });
+    startTick();
+  },
+
+  startWindDown: () => {
+    const playback = usePlaybackStore.getState();
+    const calmed = orderQueueCalmestFirst(playback.queue, playback.queueIndex);
+    // setState (not an action) mirrors how usePlaybackResume restores the
+    // queue: only the order of the upcoming tracks changes, so the current
+    // track, index and play state all stay exactly where they are.
+    usePlaybackStore.setState({ queue: calmed });
+
+    const endTime = Date.now() + WIND_DOWN_MINUTES * 60 * 1000;
+    set({
+      endTime,
+      duration: WIND_DOWN_MINUTES,
+      remaining: WIND_DOWN_MINUTES * 60,
+      windDown: true,
+    });
     startTick();
   },
 
   cancel: () => {
     clearTick();
     clearFade();
-    set({ endTime: null, duration: null, remaining: 0 });
+    set({ endTime: null, duration: null, remaining: 0, windDown: false });
   },
 
   tick: () => {
@@ -88,12 +134,16 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
 
     if (remaining <= 0) {
       clearTick();
+      // `windDown` deliberately survives expiry: the overlay holds its dim
+      // through the fade, and the completion below decides how it ends.
       set({ endTime: null, duration: null, remaining: 0 });
 
       const playback = usePlaybackStore.getState();
       // If nothing is playing there's nothing to fade — pause immediately.
+      // No wind-down completion either: silence can't drift off.
       if (!playback.isPlaying) {
         playback.pause();
+        set({ windDown: false });
         return;
       }
 
@@ -106,11 +156,19 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
       fadeTimeout = setTimeout(() => {
         fadeTimeout = null;
         const state = usePlaybackStore.getState();
+        const wasWindDown = get().windDown;
+        set({ windDown: false });
         // The fade may have been abandoned by a manual pause/resume; if so the
-        // engine already cleared the signal — don't pause a resumed user.
+        // engine already cleared the signal — don't pause a resumed user, and
+        // don't record an ending that didn't happen.
         if (!state._sleepFading) return;
         state._setSleepFading(false);
         state.pause();
+        if (wasWindDown) {
+          // The ending genuinely completed: remember the moment (closing line
+          // now, "you drifted off at HH:MM" on the next launch).
+          useWindDownStore.getState().recordCompletion(state.currentTrack?.title ?? null);
+        }
       }, fadeMs);
     } else {
       set({ remaining });

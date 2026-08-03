@@ -22,6 +22,7 @@ import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SidePanel } from '@/components/shared/SidePanel';
 import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
+import { WindDownOverlay } from '@/components/shared/WindDownOverlay';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
@@ -314,6 +315,12 @@ function App() {
           >
             <ThemeBackground />
             <AmbientBackground />
+            {/* Wind-down dim + closing line. Fixed at z-[60] (over the shell,
+                under splash/toasts) and pointer-events-none, so it composes
+                above the theme/ambient layers without blocking anything. */}
+            <ErrorBoundary viewName="WindDownOverlay">
+              <WindDownOverlay />
+            </ErrorBoundary>
             <ErrorBoundary viewName="CommandPalette">
               <CommandPalette />
             </ErrorBoundary>

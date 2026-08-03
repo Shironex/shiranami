@@ -1,4 +1,4 @@
-import { Timer, TimerOff } from 'lucide-react';
+import { MoonStar, Timer, TimerOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -15,6 +15,7 @@ export default function SleepTimer() {
     customError,
     customInputRef,
     isActive,
+    isWindDown,
     remainingLabel,
     tooltipText,
     triggerLabel,
@@ -23,6 +24,7 @@ export default function SleepTimer() {
     maxMinutes,
     onOpenChange,
     onSelectPreset,
+    onSelectWindDown,
     onCancel,
     onShowCustom,
     onShowPresets,
@@ -70,7 +72,7 @@ export default function SleepTimer() {
       <PopoverContent side="top" align="center" className="w-48">
         <div className="space-y-2">
           <p className="text-xs font-medium text-foreground px-1">
-            {isActive ? t('active') : t('stopAfter')}
+            {isActive ? (isWindDown ? t('windingDown') : t('active')) : t('stopAfter')}
           </p>
 
           {isActive && (
@@ -92,6 +94,25 @@ export default function SleepTimer() {
                 )}
               >
                 {t('custom')}
+              </button>
+
+              <div className="my-1 border-t border-border/40" aria-hidden="true" />
+
+              <button
+                onClick={onSelectWindDown}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg transition-colors',
+                  'hover:bg-accent/50',
+                  'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <span className="flex items-center gap-1.5 text-sm">
+                  <MoonStar className="size-3.5 text-primary/70" aria-hidden="true" />
+                  {t('windDown')}
+                </span>
+                <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground/60">
+                  {t('windDownHint')}
+                </span>
               </button>
             </div>
           ) : (

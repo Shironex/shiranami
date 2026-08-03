@@ -13,6 +13,7 @@ export default function GreetingHero() {
     greeting,
     greetingSubline,
     subtitle,
+    driftNote,
     watermark,
     reducedMotion,
     weatherActive,
@@ -52,6 +53,12 @@ export default function GreetingHero() {
           </h2>
 
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+
+          {driftNote && (
+            <p className="max-w-prose text-xs italic leading-relaxed text-primary/75">
+              {driftNote}
+            </p>
+          )}
         </div>
 
         <ClockCard glyph={clockGlyph} weatherRow={weatherRow} />

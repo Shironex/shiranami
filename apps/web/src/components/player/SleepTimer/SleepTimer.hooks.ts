@@ -50,10 +50,13 @@ export function useSleepTimer(): ISleepTimerView {
 
   const endTime = useSleepTimerStore(s => s.endTime);
   const remaining = useSleepTimerStore(s => s.remaining);
+  const windDown = useSleepTimerStore(s => s.windDown);
   const start = useSleepTimerStore(s => s.start);
+  const startWindDown = useSleepTimerStore(s => s.startWindDown);
   const cancel = useSleepTimerStore(s => s.cancel);
 
   const isActive = endTime !== null;
+  const isWindDown = isActive && windDown;
 
   const onOpenChange = useCallback((next: boolean) => {
     if (next) {
@@ -71,6 +74,11 @@ export function useSleepTimer(): ISleepTimerView {
     },
     [start]
   );
+
+  const onSelectWindDown = useCallback(() => {
+    startWindDown();
+    setOpen(false);
+  }, [startWindDown]);
 
   const onCancel = useCallback(() => {
     cancel();
@@ -125,6 +133,12 @@ export function useSleepTimer(): ISleepTimerView {
 
   const remainingLabel = formatRemaining(remaining);
 
+  const tooltipText = isActive
+    ? isWindDown
+      ? t('windDownIn', { time: remainingLabel })
+      : t('sleepIn', { time: remainingLabel })
+    : t('label');
+
   return {
     t,
     open,
@@ -133,14 +147,16 @@ export function useSleepTimer(): ISleepTimerView {
     customError,
     customInputRef,
     isActive,
+    isWindDown,
     remainingLabel,
-    tooltipText: isActive ? t('sleepIn', { time: remainingLabel }) : t('label'),
+    tooltipText,
     triggerLabel: t('label'),
     presets,
     minMinutes: SLEEP_TIMER_MIN_MINUTES,
     maxMinutes: SLEEP_TIMER_MAX_MINUTES,
     onOpenChange,
     onSelectPreset,
+    onSelectWindDown,
     onCancel,
     onShowCustom,
     onShowPresets,

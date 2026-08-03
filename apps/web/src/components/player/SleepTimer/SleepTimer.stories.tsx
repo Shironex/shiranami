@@ -6,8 +6,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { SleepTimer } from './index';
 
 /** Seed the sleep-timer store the trigger/popover reflect. */
-function seedTimer(endTime: number | null, remaining: number): void {
-  useSleepTimerStore.setState({ endTime, remaining });
+function seedTimer(endTime: number | null, remaining: number, windDown = false): void {
+  useSleepTimerStore.setState({ endTime, remaining, windDown });
 }
 
 /**
@@ -59,6 +59,25 @@ export const Idle: Story = {
     // labelled by their pluralized minutes text; "Custom" reveals the input mode.
     await expect(await screen.findByRole('button', { name: 'Custom' })).toBeInTheDocument();
     await expect(screen.getByRole('button', { name: '15 minutes' })).toBeInTheDocument();
+    // The wind-down ending sits under the presets with its one-line hint.
+    await expect(screen.getByRole('button', { name: /Wind down/ })).toBeInTheDocument();
+  },
+};
+
+/** Winding down — the running wind-down labels itself so the dim reads as intended. */
+export const WindingDown: Story = {
+  decorators: [
+    Story => {
+      seedTimer(Date.now() + 480_000, 480, true);
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('button', { name: 'Sleep timer' }));
+    // The panel heading swaps from "Timer active" to "Winding down".
+    await expect(await screen.findByText('Winding down')).toBeInTheDocument();
+    await expect(screen.getByRole('button', { name: 'Cancel timer' })).toBeInTheDocument();
   },
 };
 

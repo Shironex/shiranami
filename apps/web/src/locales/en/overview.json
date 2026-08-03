@@ -21,6 +21,7 @@
     "hours_other": "{{count}} hours",
     "hoursAndMinutes": "{{hours}} and {{minutes}}"
   },
+  "driftNote": "You drifted off at {{time}} — picked up where you left off.",
   "clock": {
     "week": "WK {{week}}",
     "ariaLabel": "Current time, {{time}}"

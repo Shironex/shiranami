@@ -25,6 +25,7 @@
     "hours_other": "{{count}} godzin",
     "hoursAndMinutes": "{{hours}} i {{minutes}}"
   },
+  "driftNote": "Sen przyszedł o {{time}} — zaczynamy tam, gdzie skończyliśmy.",
   "clock": {
     "week": "TYDZ. {{week}}",
     "ariaLabel": "Aktualna godzina, {{time}}"

@@ -27,6 +27,8 @@ export interface ISleepTimerView {
   readonly customInputRef: RefObject<HTMLInputElement | null>;
   /** Whether a timer is currently running. */
   readonly isActive: boolean;
+  /** Whether the running timer is the wind-down ending (labels swap). */
+  readonly isWindDown: boolean;
   /** Formatted remaining time (mm:ss; minutes uncapped). */
   readonly remainingLabel: string;
   /** Localized trigger tooltip (countdown when active). */
@@ -43,6 +45,8 @@ export interface ISleepTimerView {
   readonly onOpenChange: (next: boolean) => void;
   /** Start the timer for a preset and close. */
   readonly onSelectPreset: (minutes: number) => void;
+  /** Start the wind-down ending and close. */
+  readonly onSelectWindDown: () => void;
   /** Cancel a running timer and close. */
   readonly onCancel: () => void;
   /** Switch the popover to the custom-minutes face. */

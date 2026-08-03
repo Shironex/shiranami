@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSleepTimerStore } from './useSleepTimerStore';
+import { useSleepTimerStore, WIND_DOWN_MINUTES } from './useSleepTimerStore';
 import { usePlaybackStore } from './usePlaybackStore';
+import { useWindDownStore } from './useWindDownStore';
+import type { Track } from './types';
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -8,16 +10,37 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
 }));
 
+function makeTrack(id: string, loudnessLufs: number | null): Track {
+  return {
+    id,
+    title: id,
+    artist: 'Aoi',
+    album: 'Nocturne',
+    duration: 200,
+    filePath: `/music/${id}.mp3`,
+    loudnessLufs,
+  };
+}
+
 function resetStore() {
   useSleepTimerStore.setState({
     endTime: null,
     duration: null,
     remaining: 0,
+    windDown: false,
   });
   usePlaybackStore.setState({
     isPlaying: false,
     sleepFadeDuration: 8,
     _sleepFading: false,
+    queue: [],
+    queueIndex: -1,
+    currentTrack: null,
+  });
+  useWindDownStore.setState({
+    lastCompletion: null,
+    noteAcknowledged: false,
+    closingLineUntil: null,
   });
 }
 
@@ -146,6 +169,116 @@ describe('useSleepTimerStore', () => {
     it('does nothing if endTime is null', () => {
       useSleepTimerStore.getState().tick();
       expect(useSleepTimerStore.getState().remaining).toBe(0);
+    });
+  });
+
+  describe('wind down', () => {
+    it('starts a wind-down timer with the authored length', () => {
+      useSleepTimerStore.getState().startWindDown();
+
+      const s = useSleepTimerStore.getState();
+      expect(s.windDown).toBe(true);
+      expect(s.duration).toBe(WIND_DOWN_MINUTES);
+      expect(s.remaining).toBe(WIND_DOWN_MINUTES * 60);
+      expect(s.endTime).not.toBeNull();
+    });
+
+    it('reorders the upcoming queue calmest-first without touching the current track', () => {
+      const queue = [
+        makeTrack('played', -5),
+        makeTrack('current', -10),
+        makeTrack('loud', -7),
+        makeTrack('unknown', null),
+        makeTrack('calm', -21),
+      ];
+      usePlaybackStore.setState({ queue, queueIndex: 1, currentTrack: queue[1], isPlaying: true });
+
+      useSleepTimerStore.getState().startWindDown();
+
+      const playback = usePlaybackStore.getState();
+      expect(playback.queue.map(t => t.id)).toEqual([
+        'played',
+        'current',
+        'calm',
+        'loud',
+        'unknown',
+      ]);
+      expect(playback.queueIndex).toBe(1);
+      expect(playback.currentTrack?.id).toBe('current');
+      expect(playback.isPlaying).toBe(true);
+    });
+
+    it('a plain preset started afterwards drops the wind-down mode', () => {
+      useSleepTimerStore.getState().startWindDown();
+      useSleepTimerStore.getState().start(30);
+
+      expect(useSleepTimerStore.getState().windDown).toBe(false);
+    });
+
+    it('records the completion (with the carrying track) once the fade runs out', () => {
+      const track = makeTrack('carrying', -18);
+      usePlaybackStore.setState({
+        isPlaying: true,
+        sleepFadeDuration: 8,
+        queue: [track],
+        queueIndex: 0,
+        currentTrack: track,
+      });
+
+      useSleepTimerStore.getState().startWindDown();
+      vi.advanceTimersByTime(WIND_DOWN_MINUTES * 60 * 1000);
+
+      // Expired into the fade: the mode survives so the dim can hold.
+      expect(useSleepTimerStore.getState().windDown).toBe(true);
+      expect(useWindDownStore.getState().lastCompletion).toBeNull();
+
+      vi.advanceTimersByTime(8 * 1000);
+
+      const windDown = useWindDownStore.getState();
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
+      expect(useSleepTimerStore.getState().windDown).toBe(false);
+      expect(windDown.lastCompletion?.trackTitle).toBe('carrying');
+      expect(windDown.noteAcknowledged).toBe(false);
+      expect(windDown.closingLineUntil).not.toBeNull();
+    });
+
+    it('records nothing when the timer expires over silence', () => {
+      usePlaybackStore.setState({ isPlaying: false });
+
+      useSleepTimerStore.getState().startWindDown();
+      vi.advanceTimersByTime(WIND_DOWN_MINUTES * 60 * 1000);
+
+      expect(useSleepTimerStore.getState().windDown).toBe(false);
+      expect(useWindDownStore.getState().lastCompletion).toBeNull();
+    });
+
+    it('records nothing when cancelled mid-fade', () => {
+      usePlaybackStore.setState({ isPlaying: true, sleepFadeDuration: 8 });
+
+      useSleepTimerStore.getState().startWindDown();
+      vi.advanceTimersByTime(WIND_DOWN_MINUTES * 60 * 1000);
+      useSleepTimerStore.getState().cancel();
+      vi.advanceTimersByTime(8 * 1000);
+
+      expect(useSleepTimerStore.getState().windDown).toBe(false);
+      expect(useWindDownStore.getState().lastCompletion).toBeNull();
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
+    });
+
+    it('records nothing when a manual resume abandons the fade', () => {
+      usePlaybackStore.setState({ isPlaying: true, sleepFadeDuration: 8 });
+
+      useSleepTimerStore.getState().startWindDown();
+      vi.advanceTimersByTime(WIND_DOWN_MINUTES * 60 * 1000);
+      expect(usePlaybackStore.getState()._sleepFading).toBe(true);
+
+      // The audio engine clears the signal on a manual pause/resume mid-fade.
+      usePlaybackStore.setState({ _sleepFading: false, isPlaying: true });
+      vi.advanceTimersByTime(8 * 1000);
+
+      expect(useSleepTimerStore.getState().windDown).toBe(false);
+      expect(useWindDownStore.getState().lastCompletion).toBeNull();
+      expect(usePlaybackStore.getState().isPlaying).toBe(true);
     });
   });
 });

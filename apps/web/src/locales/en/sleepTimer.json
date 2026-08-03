@@ -12,5 +12,10 @@
   "customPlaceholder": "e.g. 25",
   "customStart": "Start",
   "customBack": "Back",
-  "customError": "Enter a number between 1 and 600"
+  "customError": "Enter a number between 1 and 600",
+  "windDown": "Wind down",
+  "windDownHint": "15 minutes · the room dims, the calmest tracks go first",
+  "windingDown": "Winding down",
+  "windDownIn": "Winding down · {{time}}",
+  "closingLine": "Sleep well. I'll keep your place."
 }

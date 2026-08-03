@@ -15,7 +15,9 @@ function renderSleepTimer() {
 const mockState = vi.hoisted(() => ({
   endTime: null as number | null,
   remaining: 0,
+  windDown: false,
   start: vi.fn(),
+  startWindDown: vi.fn(),
   cancel: vi.fn(),
 }));
 
@@ -41,7 +43,9 @@ describe('SleepTimer', () => {
     vi.clearAllMocks();
     mockState.endTime = null;
     mockState.remaining = 0;
+    mockState.windDown = false;
     mockState.start.mockReset();
+    mockState.startWindDown.mockReset();
     mockState.cancel.mockReset();
   });
 
@@ -189,6 +193,39 @@ describe('SleepTimer', () => {
 
     await user.click(screen.getByRole('button', { name: 'label' }));
     expect(screen.getByText('custom')).toBeInTheDocument();
+  });
+
+  it('renders the wind-down option under the presets', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.getByText('windDown')).toBeInTheDocument();
+    expect(screen.getByText('windDownHint')).toBeInTheDocument();
+  });
+
+  it('starts the wind-down ending when its option is clicked', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('windDown'));
+
+    expect(mockState.startWindDown).toHaveBeenCalledOnce();
+    expect(mockState.start).not.toHaveBeenCalled();
+  });
+
+  it('shows the winding-down heading while a wind-down runs', async () => {
+    mockState.endTime = Date.now() + 900_000;
+    mockState.remaining = 900;
+    mockState.windDown = true;
+
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.getByText('windingDown')).toBeInTheDocument();
+    expect(screen.queryByText('active')).not.toBeInTheDocument();
   });
 
   it('clicking Custom switches to input view', async () => {

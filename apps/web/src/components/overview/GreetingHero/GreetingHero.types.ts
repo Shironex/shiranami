@@ -9,6 +9,11 @@ export interface IGreetingHeroView {
   readonly greetingSubline: string;
   /** Session summary / no-tracks copy under the greeting. */
   readonly subtitle: string;
+  /**
+   * Morning-after wind-down acknowledgement ("You drifted off at 01:14 …"),
+   * or undefined when no fresh, unacknowledged wind-down completion exists.
+   */
+  readonly driftNote: string | undefined;
   /** Large decorative kanji watermark for the current time of day. */
   readonly watermark: string;
   /** Whether the blinking eyebrow dot animation should be suppressed. */

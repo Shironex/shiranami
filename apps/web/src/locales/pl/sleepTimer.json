@@ -14,5 +14,10 @@
   "customPlaceholder": "np. 25",
   "customStart": "Uruchom",
   "customBack": "Wstecz",
-  "customError": "Wprowadź liczbę od 1 do 600"
+  "customError": "Wprowadź liczbę od 1 do 600",
+  "windDown": "Wyciszenie",
+  "windDownHint": "15 minut · pokój przygasa, najspokojniejsze utwory grają pierwsze",
+  "windingDown": "Wyciszanie",
+  "windDownIn": "Wyciszanie · {{time}}",
+  "closingLine": "Śpij dobrze. Zatrzymam Twoje miejsce."
 }
