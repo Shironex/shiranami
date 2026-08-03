@@ -328,6 +328,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -375,6 +391,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -420,6 +452,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -459,6 +507,22 @@ export const commands = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */
@@ -1432,6 +1496,10 @@ export type DisplayTrack = {
 	playCount?: number | null,
 	/**  Integrated loudness (LUFS) for loudness levelling. */
 	loudnessLufs?: number | null,
+	/**  Estimated tempo in BPM, from the analysis engine. */
+	bpm?: number | null,
+	/**  Estimated musical key, e.g. `"C major"`. */
+	musicalKey?: string | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt?: string | null,
 	/**  ISO-8601 last-update timestamp. */
@@ -3119,6 +3187,22 @@ export type Track = {
 	albumArt: string | null,
 	/**  Integrated loudness (LUFS); `None` = unanalysed. */
 	loudnessLufs: number | null,
+	/**
+	 *  Estimated tempo in BPM; `None` = unanalysed or no detectable beat.
+	 * 
+	 *  Written by the analysis engine (migration `0003`); fractional, because
+	 *  the estimator refines its lag below the integer grid. Renderers round
+	 *  for display.
+	 */
+	bpm: number | null,
+	/**
+	 *  Estimated musical key, e.g. `"C major"`; `None` = unanalysed or no
+	 *  tonal centre.
+	 * 
+	 *  The string format is the C++ addon branch's, which dev profiles already
+	 *  persisted — see `shiranami-audio`'s `KeyEstimate`.
+	 */
+	musicalKey: string | null,
 	/**  Favourite flag; nullable in SQLite, so nullable here. */
 	isFavorite: boolean | null,
 	/**  Lifetime play count. */

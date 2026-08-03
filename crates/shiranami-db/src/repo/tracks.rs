@@ -389,6 +389,67 @@ pub async fn set_loudness_lufs(conn: &mut SqliteConnection, id: &str, lufs: f64)
     Ok(())
 }
 
+/// What the analysis engine's skip test reads: the three persisted
+/// measurements, in one row read.
+///
+/// `None` for the whole struct means "no such track", which the analysis batch
+/// treats the same as unmeasured — a row it cannot find is a row it cannot
+/// skip, mirroring [`loudness_lufs`]'s reasoning one level up.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct TrackAnalysisState {
+    /// `tracks.loudness_lufs`.
+    pub loudness_lufs: Option<f64>,
+    /// `tracks.bpm`.
+    pub bpm: Option<f64>,
+    /// `tracks.musical_key`.
+    pub musical_key: Option<String>,
+}
+
+/// Read a track's persisted analysis measurements.
+pub async fn analysis_state(
+    conn: &mut SqliteConnection,
+    id: &str,
+) -> Result<Option<TrackAnalysisState>> {
+    let found: Option<(Option<f64>, Option<f64>, Option<String>)> =
+        sqlx::query_as("SELECT loudness_lufs, bpm, musical_key FROM tracks WHERE id = ?1")
+            .bind(id)
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(failed("read the track's analysis state"))?;
+
+    Ok(
+        found.map(|(loudness_lufs, bpm, musical_key)| TrackAnalysisState {
+            loudness_lufs,
+            bpm,
+            musical_key,
+        }),
+    )
+}
+
+/// Record a track's estimated tempo and key in one statement.
+///
+/// Both columns written together because the engine measures them together;
+/// a `None` clears nothing — it writes `NULL`, which is the honest "analysed,
+/// nothing detectable" state. `updated_at` is deliberately untouched for the
+/// same reason [`set_loudness_lufs`] leaves it: a backend measurement is not a
+/// user edit.
+pub async fn set_bpm_key(
+    conn: &mut SqliteConnection,
+    id: &str,
+    bpm: Option<f64>,
+    musical_key: Option<&str>,
+) -> Result<()> {
+    sqlx::query("UPDATE tracks SET bpm = ?1, musical_key = ?2 WHERE id = ?3")
+        .bind(bpm)
+        .bind(musical_key)
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .map_err(failed("record the track's tempo and key"))?;
+
+    Ok(())
+}
+
 /// Run a single-row `UPDATE … RETURNING *` keyed on `id`.
 ///
 /// Shared by the two counter-style channels, whose only difference is the `SET`

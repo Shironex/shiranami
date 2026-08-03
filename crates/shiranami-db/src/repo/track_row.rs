@@ -67,6 +67,8 @@ fn read(row: &SqliteRow) -> sqlx::Result<Track> {
         disc_number: row.try_get("disc_number")?,
         album_art: row.try_get("album_art")?,
         loudness_lufs: row.try_get("loudness_lufs")?,
+        bpm: row.try_get("bpm")?,
+        musical_key: row.try_get("musical_key")?,
         is_favorite: row.try_get("is_favorite")?,
         play_count: row.try_get("play_count")?,
         created_at: row.try_get("created_at")?,
