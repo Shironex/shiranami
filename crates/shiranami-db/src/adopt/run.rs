@@ -14,8 +14,21 @@
 //! | v1, all nine migrations applied            | stamp the baseline; no DDL                                 |
 //! | v1, behind by N                            | replay the missing N, then stamp                           |
 //! | v1, pre-migrator (tables, no ledger)       | stamp the baseline without DDL, heal, replay 001–008       |
+//! | v1 + the stranded `track_bpm_key` dev migration | verify its columns exist, then also stamp `0003`      |
 //! | already adopted                            | verify and no-op                                           |
 //! | damaged, too new, or unrecognised          | refuse                                                     |
+//!
+//! The stranded row is the feature wave's addition (research-rust F2's
+//! migration collision). The unmerged `feat/native-bpm-key-addon` branch
+//! applied `20260101000008_track_bpm_key` to real dev profiles, and until v2
+//! grew `0003_track_bpm_key.sql` the only safe answer was refusal #10
+//! (`UnknownV1Migration`). Now that `0003` creates the identical column set,
+//! the name is recognised: adoption **verifies** `tracks.bpm` and
+//! `tracks.musical_key` really exist — a ledger that names the migration
+//! without its schema is still refused — and records `0003` as satisfied so
+//! the migrator does not fail re-adding the columns. Only that one name gets
+//! this treatment; every other unknown ledger entry still refuses, because an
+//! unknown migration is schema v2 cannot reason about.
 
 use std::collections::BTreeSet;
 
@@ -42,6 +55,11 @@ pub enum Adoption {
         healed_disc_number: bool,
         /// The v1 migrations replayed to bring the schema up to the baseline.
         replayed: Vec<String>,
+        /// v2 migration versions recorded as applied without running, because a
+        /// recognised v1 dev migration already created their exact schema —
+        /// today only `3`, for a ledger carrying the stranded
+        /// `20260101000008_track_bpm_key`. Empty for every shipped-v1 profile.
+        satisfied: Vec<i64>,
     },
     /// An earlier run already adopted this database.
     AlreadyAdopted,
@@ -85,7 +103,27 @@ pub async fn adopt(conn: &mut SqliteConnection) -> Result<Adoption> {
         });
     }
 
-    apply_adoption(conn, &applied, legacy).await
+    // The stranded dev migration is recognised only with its schema actually
+    // present. Verified here, read-only, before the adoption transaction opens:
+    // a ledger that names it over a database without the columns is lying in
+    // exactly the way the baseline check above refuses, and stamping `0003`
+    // from it would leave the migrator claiming columns that are not there.
+    let stranded_bpm_key = applied.contains(v1::STRANDED_BPM_KEY_NAME);
+    if stranded_bpm_key {
+        for column in ["bpm", "musical_key"] {
+            if !ledger::has_column(&mut *conn, "tracks", column).await? {
+                return Err(DbError::UnsupportedLedger {
+                    reason: format!(
+                        "the drizzle ledger records `{}` as applied, but `tracks` has no \
+                         `{column}` column",
+                        v1::STRANDED_BPM_KEY_NAME
+                    ),
+                });
+            }
+        }
+    }
+
+    apply_adoption(conn, &applied, legacy, stranded_bpm_key).await
 }
 
 /// The `_sqlx_migrations` baseline row, or `None` if this database has never
@@ -107,7 +145,10 @@ async fn existing_baseline_row(
 ///
 /// A name the frozen chain does not contain means v1 shipped a migration after
 /// v2 froze its copy. v2 has no idea what it did, so it cannot claim its
-/// baseline matches — refuse (see [`v1`]).
+/// baseline matches — refuse (see [`v1`]). The one exception is
+/// [`v1::STRANDED_BPM_KEY_NAME`], the addon branch's dev migration, whose
+/// schema v2's own `0003` reproduces exactly; it passes through here and the
+/// caller verifies its columns really exist before honouring it.
 async fn read_applied(
     conn: &mut SqliteConnection,
     shape: ledger::Shape,
@@ -119,7 +160,7 @@ async fn read_applied(
     };
 
     for name in &names {
-        if !v1::is_known(name) {
+        if !v1::is_known(name) && name != v1::STRANDED_BPM_KEY_NAME {
             return Err(DbError::UnknownV1Migration {
                 name: name.clone(),
                 known: v1::V1_MIGRATIONS.len(),
@@ -139,6 +180,7 @@ async fn apply_adoption(
     conn: &mut SqliteConnection,
     applied: &BTreeSet<String>,
     legacy: bool,
+    stranded_bpm_key: bool,
 ) -> Result<Adoption> {
     let mut tx = conn.begin().await.map_err(|source| DbError::Query {
         operation: "begin the adoption transaction",
@@ -177,6 +219,18 @@ async fn apply_adoption(
     migrations::ensure_table(&mut tx).await?;
     migrations::stamp_baseline(&mut tx).await?;
 
+    // The stranded dev migration's schema was verified by the caller; record
+    // v2's identical `0003` as satisfied so the migrator does not fail
+    // re-adding columns the branch already added. `0002` is deliberately NOT
+    // here: the stranded profile has never seen it, and the migrator runs it
+    // for real exactly as it does on any adopted database — sqlx applies
+    // whatever the ledger is missing regardless of what sorts after it.
+    let mut satisfied = Vec::new();
+    if stranded_bpm_key {
+        migrations::stamp_version(&mut tx, migrations::TRACK_BPM_KEY_VERSION).await?;
+        satisfied.push(migrations::TRACK_BPM_KEY_VERSION);
+    }
+
     // Inside the transaction, unlike v1, which stamped after its migrator
     // returned. `PRAGMA user_version` is transactional, so keeping it here
     // means the stamp and the ledger it describes commit together.
@@ -191,6 +245,7 @@ async fn apply_adoption(
         legacy,
         healed_disc_number,
         replayed = replayed.len(),
+        satisfied = satisfied.len(),
         "adopted a v1 database"
     );
 
@@ -198,5 +253,6 @@ async fn apply_adoption(
         legacy,
         healed_disc_number,
         replayed,
+        satisfied,
     })
 }

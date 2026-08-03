@@ -273,3 +273,36 @@ async fn a_file_that_is_not_a_database_is_refused() {
         "got {error:?}"
     );
 }
+
+/// The stranded `track_bpm_key` name is recognised only **with** its schema.
+/// A ledger that names it over a database missing the columns is lying the
+/// same way a baseline row over a table-less database lies, and honouring it
+/// would stamp `0003` for columns that are not there.
+#[tokio::test]
+async fn the_stranded_bpm_key_name_without_its_columns_is_refused() {
+    let directory = tempfile::tempdir().expect("a temp dir");
+    let path = directory.path().join("shiranami.db");
+
+    let mut seeded = connect(&path).await;
+    build_v1_database(&mut seeded, 9).await;
+    seed_rows(&mut seeded).await;
+    // The ledger row alone — no ALTER TABLEs ever ran.
+    exec(
+        &mut seeded,
+        "INSERT INTO `__drizzle_migrations` (hash, created_at, name, applied_at)
+         VALUES ('x', 1767225608000, '20260101000008_track_bpm_key', '2026-06-24T00:00:00.000Z')",
+    )
+    .await;
+    drop(seeded);
+
+    let error = refusal(&path).await;
+    assert!(
+        matches!(&error, DbError::UnsupportedLedger { reason }
+            if reason.contains("track_bpm_key") && reason.contains("bpm")),
+        "got {error:?}"
+    );
+
+    let mut conn = connect(&path).await;
+    assert_untouched(&mut conn).await;
+    assert_eq!(count(&mut conn, "tracks").await, 3, "the library is intact");
+}

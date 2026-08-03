@@ -62,11 +62,17 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         SCHEMA_FLOOR,
         "the compatibility floor is frozen for the handover window"
     );
-    assert_eq!(
-        ledger_names(&mut *conn).await.len(),
-        9,
-        "a v1 build opening this file must find its whole chain applied"
-    );
+    // Every chain name present, not an exact count: a database that ran the
+    // stranded dev migration legitimately carries a tenth name, and what a
+    // rolled-back v1 build needs is its own nine — drizzle matches by name-set
+    // membership and ignores names that are not its own.
+    let names = ledger_names(&mut *conn).await;
+    for (name, _) in &v1::V1_SQL {
+        assert!(
+            names.contains(&(*name).to_owned()),
+            "a v1 build opening this file must find `{name}` applied; have {names:?}"
+        );
+    }
 
     let tables = table_names(&mut *conn).await;
     for expected in [
@@ -88,6 +94,17 @@ async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         assert!(
             tables.contains(&expected.to_owned()),
             "`{expected}` is missing after adoption; have {tables:?}"
+        );
+    }
+
+    // Migration `0003`'s columns — the column-adding sibling of the
+    // `scrobble_queue` check above, proving an `ALTER TABLE` migration reaches
+    // every database shape too.
+    let columns = column_names(&mut *conn, "tracks").await;
+    for expected in ["bpm", "musical_key"] {
+        assert!(
+            columns.contains(&expected.to_owned()),
+            "`tracks.{expected}` is missing after adoption; have {columns:?}"
         );
     }
 }
@@ -230,6 +247,132 @@ async fn the_post_baseline_migration_runs_on_a_fresh_database() {
     assert_eq!(ledger_names(&mut conn).await.len(), 9);
 }
 
+// ── The stranded `track_bpm_key` dev migration ───────────────────────────────
+
+/// The addon branch's migration name, exactly as its drizzle folder spelt it.
+const STRANDED_NAME: &str = "20260101000008_track_bpm_key";
+
+/// Apply the stranded dev migration the way `feat/native-bpm-key-addon`'s
+/// drizzle did: the two `ALTER TABLE`s plus a ledger row. The SQL is the
+/// branch's `migration.sql` verbatim.
+async fn apply_stranded_bpm_key(conn: &mut SqliteConnection) {
+    exec(&mut *conn, "ALTER TABLE `tracks` ADD `bpm` real").await;
+    exec(&mut *conn, "ALTER TABLE `tracks` ADD `musical_key` text").await;
+    exec(
+        &mut *conn,
+        &format!(
+            "INSERT INTO `__drizzle_migrations` (hash, created_at, name, applied_at)
+             VALUES ('hash-of-{STRANDED_NAME}', 1767225608000, '{STRANDED_NAME}',
+                     '2026-06-24T00:00:00.000Z')"
+        ),
+    )
+    .await;
+}
+
+/// The C++-measured values a dev profile carries in those columns.
+async fn seed_stranded_measurements(conn: &mut SqliteConnection) {
+    exec(
+        &mut *conn,
+        "UPDATE tracks SET bpm = 84.9, musical_key = 'A minor' WHERE id = 't1'",
+    )
+    .await;
+}
+
+async fn stranded_measurement(conn: &mut SqliteConnection) -> (Option<f64>, Option<String>) {
+    sqlx::query_as("SELECT bpm, musical_key FROM tracks WHERE id = 't1'")
+        .fetch_one(conn)
+        .await
+        .expect("t1 must still exist")
+}
+
+/// The developer's own dev-profile shape (architecture, Phase 18 amendments):
+/// the full v1 chain plus the stranded `track_bpm_key` migration, previously
+/// refusal #10. v2's `0003` creates the identical columns, so adoption now
+/// verifies the schema and records `0003` as satisfied instead of refusing —
+/// and the C++-measured values survive in place.
+#[tokio::test]
+async fn a_profile_carrying_the_stranded_bpm_key_migration_is_adopted() {
+    let directory = tempfile::tempdir().expect("a temp dir");
+    let path = directory.path().join("shiranami.db");
+
+    let mut seeded = connect(&path).await;
+    build_v1_database(&mut seeded, 9).await;
+    seed_rows(&mut seeded).await;
+    apply_stranded_bpm_key(&mut seeded).await;
+    seed_stranded_measurements(&mut seeded).await;
+    let before = row_counts(&mut seeded).await;
+    drop(seeded);
+
+    assert_eq!(
+        open(&path).await,
+        Adoption::Adopted {
+            legacy: false,
+            healed_disc_number: false,
+            replayed: Vec::new(),
+            satisfied: vec![3],
+        },
+        "the stranded migration must be honoured as `0003`, not replayed or refused"
+    );
+
+    let mut conn = connect(&path).await;
+    assert_adopted_invariants(&mut conn).await;
+    assert_scrobble_queue_is_usable(&mut conn).await;
+    assert_rows_preserved(&before, &row_counts(&mut conn).await);
+
+    // The dev profile's measurements survive in place — the whole point of
+    // adopting rather than dropping and re-adding the columns.
+    assert_eq!(
+        stranded_measurement(&mut conn).await,
+        (Some(84.9), Some("A minor".to_owned()))
+    );
+
+    // The drizzle ledger keeps all ten names, stranded one included: v2 leaves
+    // that table truthful, and neither a shipped v1 nor the branch build finds
+    // anything missing on rollback.
+    let names = ledger_names(&mut conn).await;
+    assert_eq!(names.len(), 10);
+    assert!(names.contains(&STRANDED_NAME.to_owned()));
+    drop(conn);
+
+    // Reopening is the ordinary already-adopted no-op; the migrator validates
+    // the stamped `0003` checksum like any other applied migration.
+    assert_eq!(open(&path).await, Adoption::AlreadyAdopted);
+}
+
+/// The other stranded shape: a profile whose v1 chain stopped where the branch
+/// forked — `query_indexes` (the shipped ninth migration, which shares the
+/// `…08` number with the branch's) was never applied. Adoption must both
+/// replay the real ninth migration and honour the stranded one.
+#[tokio::test]
+async fn a_branch_era_profile_missing_query_indexes_is_healed_and_adopted() {
+    let directory = tempfile::tempdir().expect("a temp dir");
+    let path = directory.path().join("shiranami.db");
+
+    let mut seeded = connect(&path).await;
+    build_v1_database(&mut seeded, 8).await;
+    seed_rows(&mut seeded).await;
+    apply_stranded_bpm_key(&mut seeded).await;
+    seed_stranded_measurements(&mut seeded).await;
+    drop(seeded);
+
+    assert_eq!(
+        open(&path).await,
+        Adoption::Adopted {
+            legacy: false,
+            healed_disc_number: false,
+            replayed: vec!["20260101000008_query_indexes".to_owned()],
+            satisfied: vec![3],
+        },
+    );
+
+    let mut conn = connect(&path).await;
+    assert_adopted_invariants(&mut conn).await;
+    assert_eq!(
+        stranded_measurement(&mut conn).await,
+        (Some(84.9), Some("A minor".to_owned()))
+    );
+}
+
 #[tokio::test]
 async fn a_current_v1_database_is_adopted_without_touching_its_data() {
     let directory = tempfile::tempdir().expect("a temp dir");
@@ -247,6 +390,7 @@ async fn a_current_v1_database_is_adopted_without_touching_its_data() {
             legacy: false,
             healed_disc_number: false,
             replayed: Vec::new(),
+            satisfied: Vec::new(),
         },
         "a database already on the current chain needs no DDL at all"
     );
@@ -464,11 +608,13 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
     // Column *set*, not order: `ALTER TABLE` appends, so a healed `tracks` has
     // `disc_number` at the end rather than in the middle. v1 produces exactly
     // the same shape, and every query on both sides names its columns.
+    // `bpm` and `musical_key` are v2's own, from migration `0003`.
     let mut expected = vec![
         "album",
         "album_art",
         "album_artist",
         "artist",
+        "bpm",
         "created_at",
         "disc_number",
         "duration",
@@ -477,6 +623,7 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "id",
         "is_favorite",
         "loudness_lufs",
+        "musical_key",
         "play_count",
         "title",
         "track_number",
