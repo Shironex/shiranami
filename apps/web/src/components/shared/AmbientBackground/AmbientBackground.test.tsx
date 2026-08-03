@@ -71,6 +71,41 @@ describe('AmbientBackground', () => {
     expect(container.querySelector('[data-slot="art-bloom"]')).toBeNull();
   });
 
+  it('cross-dissolves on a track change: one incoming and one outgoing layer', () => {
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/aaa.jpg' },
+    });
+    const { container, rerender } = render(<AmbientBackground />);
+
+    usePlaybackStore.setState({
+      currentTrack: { ...track, id: 'track-2', albumArt: 'http://127.0.0.1:1/art/bbb.jpg' },
+    });
+    rerender(<AmbientBackground />);
+
+    expect(container.querySelector('[data-slot="art-bloom"]')).not.toBeNull();
+    expect(container.querySelector('[data-slot="art-bloom-outgoing"]')).not.toBeNull();
+  });
+
+  it('replaces the outgoing layer on a rapid skip instead of stacking', () => {
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/aaa.jpg' },
+    });
+    const { container, rerender } = render(<AmbientBackground />);
+
+    for (const id of ['b', 'c', 'd', 'e']) {
+      usePlaybackStore.setState({
+        currentTrack: { ...track, id, albumArt: `http://127.0.0.1:1/art/${id}.jpg` },
+      });
+      rerender(<AmbientBackground />);
+    }
+
+    // Five fast skips: exactly one incoming + one outgoing, never a pile.
+    expect(container.querySelectorAll('[data-slot="art-bloom"]')).toHaveLength(1);
+    expect(
+      container.querySelectorAll('[data-slot="art-bloom-outgoing"]').length
+    ).toBeLessThanOrEqual(1);
+  });
+
   it('keeps every drift period in minutes, never seconds', () => {
     // The calm contract: rotation slower than once per five minutes for every
     // layer. A "faster" tuning pass would flip this from ambience to motion.

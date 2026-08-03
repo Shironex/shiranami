@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { FastAverageColor } from 'fast-average-color';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAccentStore, applyAccent } from '@/stores/useAccentStore';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { startAccentTween } from '@/lib/accentTween';
+import { rgbToHex } from '@/lib/color';
 import {
   extractPalette,
   artAccentHex,
@@ -99,9 +102,29 @@ function applyArtProperties(palette: ArtPalette | null): void {
   style.setProperty('--art-ink', artInk(palette));
 }
 
+/**
+ * The accent currently painted on <html>, resolved through the cascade so an
+ * inline override and a bare theme accent both answer. Null when the triplet
+ * cannot be read (jsdom, boot races) — callers then skip the ease and snap.
+ */
+function currentAppliedAccentHex(): string | null {
+  if (typeof document === 'undefined' || typeof getComputedStyle !== 'function') return null;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--primary-rgb').trim();
+  const parts = raw.split(',').map(p => Number(p.trim()));
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return rgbToHex({ r: parts[0], g: parts[1], b: parts[2] });
+}
+
+/** The visual fade window, matched to the audio crossfade when it is on. */
+function visualFadeMs(): number {
+  const { crossfadeEnabled, crossfadeDuration } = usePlaybackStore.getState();
+  return crossfadeEnabled ? crossfadeDuration * 1000 : 1200;
+}
+
 export function AmbientColorProvider({ children }: { children: ReactNode }) {
   const albumArt = usePlaybackStore(s => s.currentTrack?.albumArt);
   const followArtAccent = useAccentStore(s => s.followArtAccent);
+  const reducedMotion = useReducedMotion();
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
 
   useEffect(() => {
@@ -163,14 +186,25 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
   // clamped vibrant swatch — written through the same four custom properties
   // as a manual accent, which is what recolors every canvas visualizer via
   // usePrimaryRGB's MutationObserver. Monochrome covers (null) degrade to the
-  // user's stored accent rather than graying the app.
+  // user's stored accent rather than graying the app. On a track change the
+  // accent *eases* hue-to-hue in OKLCH over the audio-fade window instead of
+  // snapping (instant under reduced motion); starting a new ease cancels the
+  // running one so a rapid skip never queues tweens.
   useEffect(() => {
     if (!followArtAccent) return;
-    applyAccent(artAccentHex(color.palette) ?? useAccentStore.getState().accentColor);
+    const target = artAccentHex(color.palette) ?? useAccentStore.getState().accentColor;
+    let cancelTween = () => {};
+    const from = target !== null ? currentAppliedAccentHex() : null;
+    if (target !== null && from !== null) {
+      cancelTween = startAccentTween(from, target, reducedMotion ? 0 : visualFadeMs(), applyAccent);
+    } else {
+      applyAccent(target);
+    }
     return () => {
+      cancelTween();
       applyAccent(useAccentStore.getState().accentColor);
     };
-  }, [followArtAccent, color]);
+  }, [followArtAccent, color, reducedMotion]);
 
   return <AmbientColorContext.Provider value={color}>{children}</AmbientColorContext.Provider>;
 }

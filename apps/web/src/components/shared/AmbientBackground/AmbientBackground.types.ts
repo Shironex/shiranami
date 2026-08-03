@@ -18,15 +18,29 @@ export interface IArtBloomLayer {
   readonly origin: string;
 }
 
+/**
+ * The two-slot bloom crossfader: at most one incoming and one outgoing cover.
+ * A track change moves `current` into `previous` (replacing — never queueing —
+ * whatever was already fading out), so a rapid five-track skip renders two
+ * layers, not five.
+ */
+export interface IArtBloomSlots {
+  readonly current: string | null;
+  readonly previous: string | null;
+}
+
 export interface IAmbientBackgroundView {
   /** Low-performance mode disables the whole layer (the shell renders nothing). */
   readonly enabled: boolean;
   /** Render the grain/noise overlay. */
   readonly showNoiseOverlay: boolean;
-  /** Render the artwork bloom (a playing track with cover art). */
-  readonly showArtBloom: boolean;
-  /** The current cover URL feeding the bloom layers (content-addressed). */
-  readonly artUrl: string | null;
+  /** The bloom crossfader slots (cover URLs, content-addressed). */
+  readonly bloomSlots: IArtBloomSlots;
+  /** Bloom cross-dissolve window in seconds — the audio crossfade's when it is
+   *  enabled, a calm default otherwise, 0 under reduced motion. */
+  readonly artFadeDuration: number;
+  /** The outgoing cover finished dissolving — release its slot. */
+  readonly onPreviousBloomDone: () => void;
   /** Render the color-glow fallback (a playing track without cover art). */
   readonly showGlow: boolean;
   /** Stable key for the glow element — changes the cross-fade when the color changes. */

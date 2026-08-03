@@ -9,32 +9,16 @@ import { useAmbientBackground, ART_BLOOM_LAYERS } from './AmbientBackground.hook
  * static collage under prefers-reduced-motion (see globals.css), and the whole
  * layer cross-fades on track change (instant under reduced motion).
  */
-export default function AmbientBackground() {
-  const {
-    enabled,
-    showNoiseOverlay,
-    showArtBloom,
-    artUrl,
-    showGlow,
-    glowKey,
-    glowBackground,
-    transitionDuration,
-    bloomKey,
-    showBloom,
-  } = useAmbientBackground();
-
-  if (!enabled) return null;
-
-  // Built outside JSX render position (declarative-JSX rule) — one blurred
-  // cover copy per layer. The inline `transform` centers each layer on its
-  // anchor; while the spin animation runs it overrides that transform with the
-  // same translate plus rotation, and under reduced motion the stylesheet
-  // cancels the animation so the inline centering is what remains (a static
-  // collage, not a missing background).
-  const bloomLayers = ART_BLOOM_LAYERS.map(layer => (
+function bloomLayers(artUrl: string) {
+  // One blurred cover copy per layer. The inline `transform` centers each
+  // layer on its anchor; while the spin animation runs it overrides that
+  // transform with the same translate plus rotation, and under reduced motion
+  // the stylesheet cancels the animation so the inline centering is what
+  // remains (a static collage, not a missing background).
+  return ART_BLOOM_LAYERS.map(layer => (
     <img
       key={`${layer.size}-${layer.top}`}
-      src={artUrl ?? undefined}
+      src={artUrl}
       alt=""
       draggable={false}
       decoding="async"
@@ -53,32 +37,70 @@ export default function AmbientBackground() {
       }}
     />
   ));
+}
+
+export default function AmbientBackground() {
+  const {
+    enabled,
+    showNoiseOverlay,
+    bloomSlots,
+    artFadeDuration,
+    onPreviousBloomDone,
+    showGlow,
+    glowKey,
+    glowBackground,
+    transitionDuration,
+    bloomKey,
+    showBloom,
+  } = useAmbientBackground();
+
+  if (!enabled) return null;
+
+  // Built outside JSX render position (declarative-JSX rule). The incoming
+  // cover dissolves in while the outgoing one dissolves out over the same
+  // window — a cross-dissolve for the eyes, riding the audio fade. Slot keys
+  // remount the motion elements on replacement, which is the cancel semantics:
+  // a superseded outgoing layer is dropped, never queued behind a new one.
+  const incoming = bloomSlots.current ? (
+    <motion.div
+      key={`in-${bloomSlots.current}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: artFadeDuration }}
+      className="fixed inset-0 overflow-hidden pointer-events-none z-0"
+      data-slot="art-bloom"
+      aria-hidden="true"
+    >
+      {bloomLayers(bloomSlots.current)}
+      {/* The bloom's own dim: it paints above ThemeBackground's scrim, so it
+          must carry its own contrast floor rather than rely on one underneath
+          it. bg-background keeps the veil theme-correct on both themes. */}
+      <div className="absolute inset-0 bg-background/25" />
+    </motion.div>
+  ) : null;
+
+  const outgoing = bloomSlots.previous ? (
+    <motion.div
+      key={`out-${bloomSlots.previous}`}
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      transition={{ duration: artFadeDuration }}
+      onAnimationComplete={onPreviousBloomDone}
+      className="fixed inset-0 overflow-hidden pointer-events-none z-0"
+      data-slot="art-bloom-outgoing"
+      aria-hidden="true"
+    >
+      {bloomLayers(bloomSlots.previous)}
+      <div className="absolute inset-0 bg-background/25" />
+    </motion.div>
+  ) : null;
 
   return (
     <>
       {showNoiseOverlay && <div className="noise" />}
 
-      <AnimatePresence>
-        {showArtBloom && (
-          <motion.div
-            key={artUrl}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: transitionDuration }}
-            className="fixed inset-0 overflow-hidden pointer-events-none z-0"
-            data-slot="art-bloom"
-            aria-hidden="true"
-          >
-            {bloomLayers}
-            {/* The bloom's own dim: it paints above ThemeBackground's scrim, so
-                it must carry its own contrast floor rather than rely on one
-                underneath it. bg-background keeps the veil theme-correct on
-                both light and dark themes. */}
-            <div className="absolute inset-0 bg-background/25" />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {outgoing}
+      {incoming}
 
       <AnimatePresence>
         {showGlow && (
