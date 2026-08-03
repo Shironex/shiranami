@@ -295,30 +295,30 @@ fn shutdown(app: &tauri::AppHandle) {
 
 /// The §2.4 half of [`shutdown`], split out so the flush cannot be skipped by an
 /// early return on a process that never finished booting.
+///
+/// # This used to be an `Arc::try_unwrap`, and it never once succeeded
+///
+/// `ServeHandle::shutdown` consumed `self`, so reaching it meant unwrapping the
+/// `Arc` that `Deferred` holds — and `Deferred` *is* one of the references, kept
+/// alive by the `AppState` this function has to borrow to find the handle at
+/// all. The count was therefore never below two and the unwrap always took its
+/// `Err` arm, logging "the media server is still referenced" and leaving the
+/// listener to `process::exit`. Nothing user-visible broke, which is why three
+/// phases of review missed it: the process died a moment later either way.
+///
+/// The first E2E run of this path caught it on the first try. `shutdown` now
+/// takes `&self`, so the shared reference is enough and there is no unwrap left
+/// to fail.
 fn stop_media_server(app: &tauri::AppHandle) {
     let Some(state) = app.try_state::<state::AppState>() else {
         return;
     };
-    let Some(serve) = state.deferred().serve.clone() else {
+    let Some(serve) = state.deferred().serve.as_ref() else {
         return;
     };
 
-    // `ServeHandle::shutdown` consumes `self`, and `Deferred` holds it behind an
-    // `Arc` so a command can read the base URL. Unwrapping the `Arc` is the only
-    // way to call it, and it succeeds exactly when nothing else holds a
-    // reference — which at exit is the normal case. When it does not, dropping
-    // the process takes the listener with it a moment later, so a missed
-    // graceful shutdown costs an in-flight range request that was about to be
-    // cancelled anyway.
-    match std::sync::Arc::try_unwrap(serve) {
-        Ok(handle) => {
-            tauri::async_runtime::block_on(handle.shutdown());
-            tracing::info!("the loopback media server is stopped");
-        }
-        Err(_) => {
-            tracing::warn!("the media server is still referenced; leaving it to process exit")
-        }
-    }
+    tauri::async_runtime::block_on(serve.shutdown());
+    tracing::info!("the loopback media server is stopped");
 }
 
 /// Brings the existing main window back to the foreground.
