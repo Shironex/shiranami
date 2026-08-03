@@ -44,91 +44,6 @@ async fn assert_track_search_is_usable(conn: &mut SqliteConnection) {
 
     let found = tracks::search(&mut *conn, "umibe", 10)
         .await
-        .expect("the sqlx ledger must be readable")
-}
-
-/// Every migration compiled into this build, in version order.
-///
-/// Derived rather than hard-coded, because the property under test is not "there
-/// are two migrations" but "adoption stamps the baseline and *runs* everything
-/// after it". Adoption stamps only version 1; if a later migration were ever
-/// stamped instead of applied, its DDL would silently never reach an adopted
-/// database and the failure would surface as a missing table months later.
-fn expected_sqlx_versions() -> Vec<i64> {
-    MIGRATOR.iter().map(|migration| migration.version).collect()
-}
-
-/// The state every successful open has to leave behind, whatever it started
-/// from: the whole sqlx chain applied, the floor stamped, and a complete v1
-/// ledger for a build the user might roll back to.
-async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
-    assert_eq!(
-        sqlx_versions(&mut *conn).await,
-        expected_sqlx_versions(),
-        "every sqlx migration must be recorded exactly once, in order"
-    );
-    assert_eq!(
-        user_version(&mut *conn).await,
-        SCHEMA_FLOOR,
-        "the compatibility floor is frozen for the handover window"
-    );
-    // Every chain name present, not an exact count: a database that ran the
-    // stranded dev migration legitimately carries a tenth name, and what a
-    // rolled-back v1 build needs is its own nine — drizzle matches by name-set
-    // membership and ignores names that are not its own.
-    let names = ledger_names(&mut *conn).await;
-    for (name, _) in &v1::V1_SQL {
-        assert!(
-            names.contains(&(*name).to_owned()),
-            "a v1 build opening this file must find `{name}` applied; have {names:?}"
-        );
-    }
-
-    let tables = table_names(&mut *conn).await;
-    for expected in [
-        "download_queue",
-        "folders",
-        "negative_signals",
-        "play_history",
-        "playlist_tracks",
-        "playlists",
-        "radio_favorites",
-        "recommendations",
-        // v2's own, from migration `0002` — no v1 counterpart, so its presence
-        // here is what proves post-baseline migrations reach adopted databases.
-        "scrobble_queue",
-        "smart_playlists",
-        "tracks",
-        "youtube_mappings",
-    ] {
-        assert!(
-            tables.contains(&expected.to_owned()),
-            "`{expected}` is missing after adoption; have {tables:?}"
-        );
-    }
-
-    // Migration `0003`'s columns — the column-adding sibling of the
-    // `scrobble_queue` check above, proving an `ALTER TABLE` migration reaches
-    // every database shape too.
-    let columns = column_names(&mut *conn, "tracks").await;
-    for expected in ["bpm", "musical_key"] {
-        assert!(
-            columns.contains(&expected.to_owned()),
-            "`tracks.{expected}` is missing after adoption; have {columns:?}"
-        );
-    }
-}
-
-/// Every table the database had before still holds exactly the rows it held,
-/// and any table adoption *added* arrived empty.
-///
-/// Stricter than comparing the two lists outright, which stopped being the right
-/// assertion once v2 gained migrations of its own: a new empty table is what an
-/// additive migration is supposed to look like, while a new table with rows in
-/// it, or any change to a v1 count, is data loss or invention.
-fn assert_rows_preserved(before: &[(String, i64)], after: &[(String, i64)]) {
-    for (table, rows) in before {
-        let found = after
         .expect("search");
     assert!(
         found.iter().any(|track| track.id == added.id),
@@ -528,13 +443,11 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
     // Column *set*, not order: `ALTER TABLE` appends, so a healed `tracks` has
     // `disc_number` at the end rather than in the middle. v1 produces exactly
     // the same shape, and every query on both sides names its columns.
-    // `bpm` and `musical_key` are v2's own, from migration `0003`.
     let mut expected = vec![
         "album",
         "album_art",
         "album_artist",
         "artist",
-        "bpm",
         "created_at",
         "disc_number",
         "duration",
@@ -543,13 +456,14 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "id",
         "is_favorite",
         "loudness_lufs",
-        "musical_key",
         "play_count",
         "title",
         "track_number",
         "updated_at",
         "year",
-        // v2's own, from migration `0005` (feature wave F5).
+        // v2's own: migration `0003` (bpm/key) and `0005` (feature wave F5).
+        "bpm",
+        "musical_key",
         "album_loudness_lufs",
         "loudness_range",
         "true_peak_db",

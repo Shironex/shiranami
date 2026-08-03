@@ -74,11 +74,27 @@ pub(crate) async fn assert_adopted_invariants(conn: &mut SqliteConnection) {
         SCHEMA_FLOOR,
         "the compatibility floor is frozen for the handover window"
     );
-    assert_eq!(
-        ledger_names(&mut *conn).await.len(),
-        9,
-        "a v1 build opening this file must find its whole chain applied"
-    );
+    // Every chain name present, not an exact count: a database that ran the
+    // stranded dev migration legitimately carries a tenth name, and what a
+    // rolled-back v1 build needs is its own nine — drizzle matches by name-set
+    // membership and ignores names that are not its own.
+    let names = ledger_names(&mut *conn).await;
+    for (name, _) in &super::v1::V1_SQL {
+        assert!(
+            names.contains(&(*name).to_owned()),
+            "a v1 build opening this file must find `{name}` applied; have {names:?}"
+        );
+    }
+
+    // Migration `0003`'s columns — proving an `ALTER TABLE` migration reaches
+    // every database shape too.
+    let columns = super::schema::column_names(&mut *conn, "tracks").await;
+    for expected in ["bpm", "musical_key"] {
+        assert!(
+            columns.contains(&expected.to_owned()),
+            "`tracks.{expected}` is missing after adoption; have {columns:?}"
+        );
+    }
 
     let tables = table_names(&mut *conn).await;
     for expected in [
