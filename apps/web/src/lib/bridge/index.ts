@@ -26,6 +26,7 @@ import { dbApi } from './namespaces/db';
 import { debugApi } from './namespaces/debug';
 import { dialogApi } from './namespaces/dialog';
 import { discordApi } from './namespaces/discord';
+import { doctorApi } from './namespaces/doctor';
 import { downloaderApi } from './namespaces/downloader';
 import { libraryApi } from './namespaces/library';
 import { loudnessApi } from './namespaces/loudness';
@@ -54,6 +55,7 @@ export function createElectronApi(): ElectronAPI {
     dialog: dialogApi,
     app: appApi,
     library: libraryApi,
+    doctor: doctorApi,
     loudness: loudnessApi,
     waveform: waveformApi,
     db: dbApi,

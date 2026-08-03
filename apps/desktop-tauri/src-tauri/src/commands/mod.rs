@@ -49,6 +49,7 @@ pub mod db_tracks;
 pub mod debug;
 pub mod dialog;
 pub mod discord;
+pub mod doctor;
 pub mod downloader;
 pub mod health;
 pub mod library;

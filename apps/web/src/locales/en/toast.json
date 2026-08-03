@@ -120,5 +120,6 @@
   "failedLoadLibrary": "Failed to load library",
   "failedLoadHistory": "Failed to load history",
   "scanCancelled": "Scan cancelled",
-  "loudnessAnalysisFailed": "Loudness analysis failed"
+  "loudnessAnalysisFailed": "Loudness analysis failed",
+  "doctorScanFailed": "Library health check failed"
 }

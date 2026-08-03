@@ -64,6 +64,7 @@ import type {
   RecordPlayInput,
   WeeklyInsights,
 } from './history';
+import type { DoctorProgress, DoctorScanInput, DoctorScanResult } from './doctor';
 import type { LoudnessAnalyzeInput, LoudnessAnalyzeResult, LoudnessProgress } from './loudness';
 import type {
   EnrichProgress,
@@ -133,6 +134,19 @@ export interface LibraryApi {
   validateFiles: (filePaths: string[]) => Promise<string[]>;
   onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
   cancelScan: () => Promise<void>;
+}
+
+// ── doctor ────────────────────────────────────────────────────────────────
+
+export interface DoctorApi {
+  /**
+   * Decode every submitted file once and report decode-truth findings —
+   * truncation, damaged packets, duration lies, clipping, silence. Findings
+   * are informative; nothing is fixed, deleted or written.
+   */
+  scan: (tracks: DoctorScanInput[]) => Promise<DoctorScanResult>;
+  cancel: () => Promise<void>;
+  onProgress: (callback: (data: DoctorProgress) => void) => () => void;
 }
 
 // ── loudness ──────────────────────────────────────────────────────────────
@@ -215,8 +229,13 @@ export interface DbTracksApi {
   exists: (filePath: string) => Promise<boolean>;
   existsMany: (filePaths: string[]) => Promise<string[]>;
   getIdByPath: (filePath: string) => Promise<string | null>;
-  /** Ranked FTS5 search, best match first. An empty query returns no rows. */
-  search: (query: string, limit?: number) => Promise<Track[]>;
+  /**
+   * Ranked FTS5 search, best match first; an empty query returns no rows.
+   * v2-only (F6), hence optional: the v1 preload also implements this
+   * interface and has no FTS index — the renderer feature-detects and keeps
+   * its client-side filter where this is absent.
+   */
+  search?: (query: string, limit?: number) => Promise<Track[]>;
 }
 
 export interface DbHistoryApi {
@@ -585,6 +604,12 @@ export interface SharedElectronApi {
   window: WindowApi;
   app: AppApi;
   library: LibraryApi;
+  /**
+   * The Library Doctor (F8). v2-only, hence optional: the v1 preload also
+   * implements this interface and its decoder cannot produce the findings —
+   * the renderer feature-detects and hides the card where this is absent.
+   */
+  doctor?: DoctorApi;
   loudness: LoudnessApi;
   waveform: WaveformApi;
   db: DbApi;

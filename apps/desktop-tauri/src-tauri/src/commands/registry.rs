@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 139;
+pub const COMMAND_COUNT: usize = 141;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Four of them:
+/// Six of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -85,7 +85,10 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// - `db_tracks_search` — v2's FTS5 library search (feature wave F6). v1 had
 ///   no search channel at all: its renderer filtered the in-memory library,
 ///   which is exactly what this command exists to replace.
-pub const NON_V1_COMMANDS: usize = 4;
+/// - `doctor_scan` and `doctor_cancel` — the Library Doctor (feature wave
+///   F8). v1's decoder could not see truncation, damaged packets or true
+///   peaks, so there was nothing to report and no channel to port.
+pub const NON_V1_COMMANDS: usize = 6;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///
@@ -114,6 +117,7 @@ macro_rules! namespace_list {
             debug
             dialog
             discord
+            doctor
             downloader
             health
             library

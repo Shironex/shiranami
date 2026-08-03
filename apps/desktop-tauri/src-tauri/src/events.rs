@@ -1,6 +1,9 @@
-//! The twenty event channels, and the one place their names are written.
+//! The event channels — v1's twenty plus v2's own — and the one place their
+//! names are written.
 //!
-//! §2.6 fixes the surface at 155 channels: 135 invoke and **20 events**. v1
+//! §2.6 fixes the *ported* surface at 155 channels: 135 invoke and **20
+//! events**. v2 features add beyond that (the Library Doctor's progress, F8)
+//! without disturbing the frozen twenty. v1
 //! leaves the split implicit — `ALL_IPC_CHANNELS` is one flat list, and whether
 //! an entry is an invoke or an event is discoverable only by finding either a
 //! `createIpcListener` in the preload or a `webContents.send` in the main
@@ -149,6 +152,9 @@ events! {
     /// Progress through an EBU R128 loudness analysis.
     LoudnessProgress = "loudness:progress" => Json;
 
+    /// Progress through a Library Doctor health check (F8, v2-only).
+    DoctorProgress = "doctor:progress" => Json;
+
     /// A `shiranami://` deep link arrived.
     ///
     /// The payload is the raw URL. v1 matched its scheme case-sensitively and
@@ -189,9 +195,16 @@ mod tests {
     /// `commands::registry`.
     const V1_EVENT_CHANNEL_COUNT: usize = 20;
 
+    /// Event channels v2 added beyond the frozen twenty: `doctor:progress`
+    /// (F8).
+    const V2_EVENT_CHANNELS: usize = 1;
+
     #[test]
-    fn every_v1_event_channel_has_a_typed_event() {
-        assert_eq!(ALL_EVENT_NAMES.len(), V1_EVENT_CHANNEL_COUNT);
+    fn every_event_channel_has_a_typed_event() {
+        assert_eq!(
+            ALL_EVENT_NAMES.len(),
+            V1_EVENT_CHANNEL_COUNT + V2_EVENT_CHANNELS
+        );
     }
 
     /// The names are the renderer's contract, so they are pinned against

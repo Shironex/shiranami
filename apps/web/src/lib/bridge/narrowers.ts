@@ -69,6 +69,9 @@ export const scanProgress = predicate(
 /** `loudness:progress`. */
 export const loudnessProgress = predicate(z.object({ ...progressBase, status: z.string() }));
 
+/** `doctor:progress`. */
+export const doctorProgress = predicate(z.object(progressBase));
+
 /** `metadata:enrich:progress`. */
 export const enrichProgress = predicate(z.object({ ...progressBase, status: z.string() }));
 

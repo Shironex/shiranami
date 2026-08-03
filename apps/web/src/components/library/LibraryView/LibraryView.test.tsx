@@ -36,6 +36,13 @@ function render(ui: ReactElement) {
   return renderBare(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
+/** The v2 mock always provides `search`; the contract types it optional. */
+function searchMock() {
+  const search = window.electronAPI.db.tracks.search;
+  if (!search) throw new Error('the test mock must provide db.tracks.search');
+  return vi.mocked(search);
+}
+
 function resetStores(): void {
   useLibraryStore.setState({ library: [], libraryLoaded: false });
   usePlaybackStore.setState({ currentTrack: null, isPlaying: false });
@@ -71,7 +78,7 @@ describe('LibraryView', () => {
   });
 
   it('filters client-side below the FTS threshold, without touching the bridge', async () => {
-    const search = vi.mocked(window.electronAPI.db.tracks.search);
+    const search = searchMock();
     search.mockClear();
     seedLibrary([
       makeTrack({ id: 'a', title: 'Sakura Rain', filePath: '/music/a.mp3' }),
@@ -88,7 +95,7 @@ describe('LibraryView', () => {
   });
 
   it('routes search through the FTS index once the library crosses the threshold', async () => {
-    const search = vi.mocked(window.electronAPI.db.tracks.search);
+    const search = searchMock();
     search.mockClear();
     seedLibrary(
       Array.from({ length: 2001 }, (_, index) =>

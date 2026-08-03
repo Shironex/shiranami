@@ -197,6 +197,7 @@ pub fn run() {
             app.manage(commands::library::ScanSlot::default());
             app.manage(commands::metadata::EnrichRuns::default());
             app.manage(commands::loudness::LoudnessRuns::default());
+            app.manage(commands::doctor::DoctorRuns::default());
             // Keeps the log appender's worker and the Sentry client alive for
             // the process's lifetime; both flush on drop.
             app.manage(preflight.logging);

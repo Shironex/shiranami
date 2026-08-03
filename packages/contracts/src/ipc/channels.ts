@@ -204,6 +204,13 @@ export const IPC_CHANNELS = {
     // DB row. Distinct from the automatic enrichment flow above.
     writeTags: 'metadata:write-tags',
   },
+  doctor: {
+    // The Library Doctor (F8, v2-only): decode-truth health findings —
+    // truncation, damaged packets, duration lies, clipping, silence.
+    scan: 'doctor:scan',
+    cancel: 'doctor:cancel',
+    progress: 'doctor:progress',
+  },
   loudness: {
     // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
     // Measures integrated loudness per track and persists it on the DB row.

@@ -35,7 +35,11 @@ const FTS_SEARCH_DEBOUNCE_MS = 120;
  */
 function useSearchedLibrary(library: Track[], searchQuery: string): Track[] {
   const trimmed = searchQuery.trim();
-  const ftsEligible = IS_ELECTRON && library.length > FTS_SEARCH_THRESHOLD;
+  // Feature-detected, not merely platform-gated: `search` is a v2-only
+  // optional member of the shared preload contract, and under a v1 preload
+  // the client filter below is the graceful whole of search.
+  const searchIndex = IS_ELECTRON ? window.electronAPI.db.tracks.search : undefined;
+  const ftsEligible = searchIndex != null && library.length > FTS_SEARCH_THRESHOLD;
 
   const [debouncedQuery, setDebouncedQuery] = useState(trimmed);
   useEffect(() => {
@@ -49,9 +53,7 @@ function useSearchedLibrary(library: Track[], searchQuery: string): Track[] {
     // `libraryKeys.all`, and prefix invalidation refetches these too.
     queryKey: [...libraryKeys.all, 'search', debouncedQuery],
     queryFn: async () =>
-      mapDbTracksToTracks(
-        await window.electronAPI.db.tracks.search(debouncedQuery, FTS_SEARCH_LIMIT)
-      ),
+      searchIndex ? mapDbTracksToTracks(await searchIndex(debouncedQuery, FTS_SEARCH_LIMIT)) : [],
     enabled: ftsEligible && debouncedQuery.length > 0,
     placeholderData: keepPreviousData,
   });

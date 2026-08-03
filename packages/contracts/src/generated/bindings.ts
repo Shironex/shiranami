@@ -605,6 +605,21 @@ export const commands = {
 	 */
 	discordRpcClearPresence: () => __TAURI_INVOKE<null>("discord_rpc_clear_presence"),
 	/**
+	 *  `doctor:scan` — decode every submitted file once and report what only a
+	 *  real decoder can see.
+	 * 
+	 *  Sequential, one file at a time, like the loudness batch and for the same
+	 *  reason: the decode is CPU-saturating and the unit of work is a track.
+	 */
+	doctorScan: (input: DoctorScanInput[]) => __TAURI_INVOKE<DoctorScanResult>("doctor_scan", { input }),
+	/**
+	 *  `doctor:cancel` — stop the active health check.
+	 * 
+	 *  Best-effort: the run notices at its next per-file checkpoint and returns
+	 *  its partial findings.
+	 */
+	doctorCancel: () => __TAURI_INVOKE<null>("doctor_cancel"),
+	/**
 	 *  `downloader:check` — yt-dlp's installed state, version and update status.
 	 * 
 	 *  A `handleWithFallback` channel in v1 whose fallback is now unreachable: the
@@ -1154,6 +1169,7 @@ export const commands = {
 /** Events */
 export const events = {
 	debugMetrics: makeEvent<DebugMetrics>("debug:metrics"),
+	doctorProgress: makeEvent<DoctorProgress>("doctor:progress"),
 	downloaderDependencyInstallProgress: makeEvent<DownloaderDependencyInstallProgress>("downloader:dependency-install-progress"),
 	downloaderFfmpegInstallProgress: makeEvent<DownloaderFfmpegInstallProgress>("downloader:ffmpeg-install-progress"),
 	downloaderInstallProgress: makeEvent<DownloaderInstallProgress>("downloader:install-progress"),
@@ -1489,6 +1505,99 @@ export type DisplayTrack = {
 	/**  ISO-8601 last-update timestamp. */
 	updatedAt?: string | null,
 };
+
+/**
+ *  One per-file finding.
+ * 
+ *  Numbers ride as typed fields rather than a prebuilt message so the
+ *  renderer owns the copy (en + pl) and the formatting.
+ */
+export type DoctorFinding = {
+	/**  The library row this is about. */
+	trackId: string,
+	/**  Display title, so the report reads without a library join. */
+	title: string,
+	/**  The file on disk. */
+	filePath: string,
+	/**  What was found. */
+	kind: DoctorFindingKind,
+	/**  How loudly to present it. */
+	severity: DoctorSeverity,
+	/**  `DurationMismatch`: what the container claims, in seconds. */
+	expectedSeconds?: number | null,
+	/**  `DurationMismatch`: what actually decoded, in seconds. */
+	actualSeconds?: number | null,
+	/**  `DamagedPackets`: how many packets were skipped. */
+	skippedPackets?: number | null,
+	/**  `Clipping`: the measured true peak, in dBTP. */
+	truePeakDb?: number | null,
+};
+
+/**  What kind of defect (or caveat) a finding reports. */
+export type DoctorFindingKind = 
+/**  The file is gone from disk. */
+"missingFile" | 
+/**  The container would not open or the decode failed outright. */
+"unreadable" | 
+/**  The container holds no audio stream. */
+"noAudio" | 
+/**
+ *  The codec is outside this build's coverage (Opus/WMA) — the file is
+ *  not analysable here, which is not the same as broken.
+ */
+"unsupportedCodec" | 
+/**  The stream ends mid-packet: a truncated or half-downloaded file. */
+"truncated" | 
+/**  Some packets would not decode and were skipped. */
+"damagedPackets" | 
+/**  The container's duration claim disagrees with the decoded length. */
+"durationMismatch" | 
+/**  The master's true peak clears full scale (inter-sample clipping). */
+"clipping" | 
+/**  The audio is digital silence end to end. */
+"silent";
+
+/**  Progress through a Library Doctor health check (F8, v2-only). */
+export type DoctorProgress = Json;
+
+/**  One track offered up for a health check. */
+export type DoctorScanInput = {
+	/**  The library row, echoed on findings so the renderer can link back. */
+	id: string,
+	/**  The file to decode. */
+	filePath: string,
+	/**  Display title, echoed on progress ticks and findings. */
+	title: string,
+	/**
+	 *  The duration the library believes (container/tag metadata, seconds).
+	 *  Compared against the frames that actually decode.
+	 */
+	duration?: number | null,
+};
+
+/**  What a finished — or cancelled — health check covered. */
+export type DoctorScanResult = {
+	/**  Files examined (including the ones findings are about). */
+	scanned: number,
+	/**  Files with nothing to report. */
+	healthy: number,
+	/**
+	 *  Whether the run stopped early at the user's request. The findings are
+	 *  the partial truth up to that point, not a failure.
+	 */
+	cancelled: boolean,
+	/**  Every finding, in scan order. One file can produce several. */
+	findings: DoctorFinding[],
+};
+
+/**  How loudly the renderer should present a finding. */
+export type DoctorSeverity = 
+/**  The file cannot be played or read as audio. */
+"error" | 
+/**  The file plays, but part of it is missing or damaged. */
+"warning" | 
+/**  Worth knowing; nothing is wrong with the file on disk. */
+"info";
 
 /**  Where finished downloads land, plus whether that is still the default. */
 export type DownloadLocation = {
