@@ -54,7 +54,9 @@ use crate::state::AppState;
 /// `TypeError` on the first track rather than a quiet no-op.
 pub fn initialization_script(e2e: bool) -> String {
     let mut script = base_initialization_script(e2e);
-    if e2e {
+    // Compile-time, not `e2e` — see [`HARNESS_TAURI_GLOBAL`]. The two flags mean
+    // different things and one capability sets them apart.
+    if cfg!(feature = "e2e") {
         script.push('\n');
         script.push_str(HARNESS_TAURI_GLOBAL);
     }
@@ -79,9 +81,26 @@ pub fn initialization_script(e2e: bool) -> String {
 /// element lookups therefore took seventeen minutes instead of tens of seconds.
 ///
 /// So this exists to make the harness's own plumbing work, which is why it is
-/// behind the same `e2e` flag as `__SHIRANAMI_E2E__` rather than in
-/// `tauri.conf.json`: a production build must not grow a global that forwards
-/// arbitrary command names, and this way it provably cannot.
+/// behind the `e2e` **Cargo feature** rather than in `tauri.conf.json`: a
+/// production build must not grow a global that forwards arbitrary command
+/// names, and a feature the release profile never enables is what makes that
+/// provable.
+///
+/// # Why the Cargo feature and not the `SHIRANAMI_E2E` env var
+///
+/// The two answer different questions. `SHIRANAMI_E2E` is about the *app*: it
+/// suppresses the first-run wizard, the tray and the updater, and exports the
+/// store registry. The `e2e` feature is about the *binary*: it compiles in the
+/// embedded WebDriver server this whole suite connects to.
+///
+/// They diverge in exactly one place, and it is deliberate. `wdio.conf.ts`'s
+/// `onboarding` capability sets `SHIRANAMI_E2E=0` precisely so the wizard is
+/// visible — it is the only spec that sees a genuine cold boot. Gating this
+/// global on the env var meant that capability, alone, ran without it and paid
+/// the five-second penalty below on *every* element lookup; `cold-boot.spec.ts`
+/// could not finish. The harness needs its plumbing regardless of what the app
+/// is pretending to be, so the gate belongs on the flag that describes the
+/// binary.
 ///
 /// `__TAURI_INTERNALS__` is read *inside* `invoke` rather than captured, so this
 /// does not depend on whether Tauri's own injection has run by the time this
@@ -480,23 +499,49 @@ mod tests {
     /// from a normal run: it forwards an arbitrary command name to
     /// `__TAURI_INTERNALS__.invoke`, which is fine for a test harness and is not
     /// something a shipped build should carry.
+    ///
+    /// Absent for **either** value of the runtime flag, because the gate is the
+    /// Cargo feature — a build without it cannot be talked into the global by an
+    /// environment variable.
+    #[cfg(not(feature = "e2e"))]
     #[test]
-    fn the_tauri_global_is_only_written_under_the_e2e_flag() {
+    fn a_build_without_the_e2e_feature_never_synthesises_the_tauri_global() {
         assert!(
             !initialization_script(false).contains("__TAURI__"),
-            "a non-E2E build must not synthesise window.__TAURI__"
+            "a production build must not synthesise window.__TAURI__"
         );
+        assert!(
+            !initialization_script(true).contains("__TAURI__"),
+            "SHIRANAMI_E2E must not be able to add the global to a non-e2e build"
+        );
+    }
 
-        let e2e = initialization_script(true);
-        assert!(e2e.contains("__TAURI__"));
-        // Read at call time, not captured — the injection order between this
-        // script and Tauri's own internals is not guaranteed.
-        assert!(e2e.contains("window.__TAURI_INTERNALS__.invoke(command, args, options)"));
+    /// The mirror of the above, and the property `cold-boot.spec.ts` needs:
+    /// present for either value of the runtime flag.
+    ///
+    /// The `onboarding` capability runs with `SHIRANAMI_E2E=0` so the first-run
+    /// wizard is visible. It still drives the app through `@wdio/tauri-service`,
+    /// so it still needs this global — gating it on the env var cost that
+    /// capability five seconds per element lookup and made its spec unrunnable.
+    #[cfg(feature = "e2e")]
+    #[test]
+    fn the_e2e_feature_synthesises_the_tauri_global_whatever_the_env_says() {
+        for flag in [false, true] {
+            let script = initialization_script(flag);
+            assert!(
+                script.contains("__TAURI__"),
+                "the e2e feature must synthesise the global with SHIRANAMI_E2E={flag}"
+            );
+            // Read at call time, not captured — the injection order between this
+            // script and Tauri's own internals is not guaranteed.
+            assert!(script.contains("window.__TAURI_INTERNALS__.invoke(command, args, options)"));
+        }
     }
 
     /// It exists for `@wdio/tauri-service`, whose `ensureActiveWindowFocus`
     /// reaches for exactly this path and costs five seconds per element lookup
     /// when it is missing.
+    #[cfg(feature = "e2e")]
     #[test]
     fn the_tauri_global_exposes_the_core_invoke_path_the_service_uses() {
         let script = initialization_script(true);
