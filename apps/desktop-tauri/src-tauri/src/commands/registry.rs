@@ -86,10 +86,16 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 ///   analysis engine. Born in v2: v1 had nothing that decoded once for every
 ///   measurement, and its loudness batch keeps its own ported channels
 ///   untouched. See [`crate::commands::analysis`].
-pub const NON_V1_COMMANDS: usize = 10;
+/// - `db_tracks_search` — v2's FTS5 library search (feature wave F6). v1 had
+///   no search channel at all: its renderer filtered the in-memory library,
+///   which is exactly what this command exists to replace.
+/// - `doctor_scan` and `doctor_cancel` — the Library Doctor (feature wave F8).
+///   v1's decoder could not see truncation, damaged packets or true peak, so
+///   there was nothing to report over a channel.
 /// - `window_set_fullscreen` and `window_set_display_sleep_inhibited` —
 ///   Sanctuary Mode (v2 feature wave); v1 had no fullscreen surface at all.
 ///   See [`crate::commands::window`].
+pub const NON_V1_COMMANDS: usize = 10;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///
