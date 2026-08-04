@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic2, ListMusic, SlidersVertical, type LucideIcon } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
+import { formatTempoKeyLine } from '@/lib/tempoKeyFormat';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
@@ -110,6 +111,10 @@ export function useNowPlayingView(): INowPlayingViewView {
 
   const durationLabel = useMemo(() => formatDuration(duration), [duration]);
 
+  // The analysis engine's estimates, when the track carries them: a small
+  // "≈ 82 BPM · A minor" line under the artist/album. Null hides the line.
+  const tempoKeyLine = formatTempoKeyLine(currentTrack?.bpm, currentTrack?.musicalKey);
+
   // Exit if no track is playing.
   useEffect(() => {
     if (!currentTrack) {
@@ -122,6 +127,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     hasTrack: Boolean(currentTrack),
     currentTrack,
     durationLabel,
+    tempoKeyLine,
     showWaveformSeekbar,
     panel,
     panelVisible: panel !== null,

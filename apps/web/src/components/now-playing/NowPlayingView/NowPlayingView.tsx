@@ -20,6 +20,7 @@ export default function NowPlayingView() {
     hasTrack,
     currentTrack,
     durationLabel,
+    tempoKeyLine,
     showWaveformSeekbar,
     panel,
     panelVisible,
@@ -190,6 +191,11 @@ export default function NowPlayingView() {
               <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
                 {currentTrack.artist} · {currentTrack.album}
               </p>
+              {tempoKeyLine && (
+                <p className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums mt-1 truncate">
+                  {tempoKeyLine}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
 

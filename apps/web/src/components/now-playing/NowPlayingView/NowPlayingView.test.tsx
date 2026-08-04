@@ -91,6 +91,25 @@ describe('NowPlayingView', () => {
     expect(screen.getByTestId('lyrics-body')).toBeInTheDocument();
   });
 
+  it('shows the tempo and key estimates when the track carries them', () => {
+    usePlaybackStore.setState({
+      currentTrack: makeTrack({ bpm: 81.6, musicalKey: 'A minor' }),
+      duration: 215,
+    });
+
+    renderView(<NowPlayingView />);
+
+    expect(screen.getByText('≈ 82 BPM · A minor')).toBeInTheDocument();
+  });
+
+  it('omits the estimate line for an unanalysed track', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+
+    renderView(<NowPlayingView />);
+
+    expect(screen.queryByText(/BPM/)).not.toBeInTheDocument();
+  });
+
   it('switches the active panel when a toggle is pressed', () => {
     usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
     useUIStore.setState({ nowPlayingPanel: 'lyrics' });
