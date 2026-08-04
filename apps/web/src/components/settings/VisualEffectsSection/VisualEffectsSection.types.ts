@@ -39,4 +39,13 @@ export interface IVisualEffectsSectionView {
   readonly noiseOverlayEnabled: boolean;
   /** Toggle the noise overlay. */
   readonly onNoiseChange: (next: boolean) => void;
+
+  /** Localized "Tempo breathing" toggle label. */
+  readonly tempoBreathingLabel: string;
+  /** Localized "Tempo breathing" toggle description. */
+  readonly tempoBreathingDescription: string;
+  /** Whether tempo-locked breathing is enabled. */
+  readonly tempoBreathingEnabled: boolean;
+  /** Toggle tempo-locked breathing. */
+  readonly onTempoBreathingChange: (next: boolean) => void;
 }

@@ -12,6 +12,8 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setLowPerformanceMode = useUIStore(s => s.setLowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
   const setNoiseOverlayEnabled = useUIStore(s => s.setNoiseOverlayEnabled);
+  const tempoBreathingEnabled = useUIStore(s => s.tempoBreathingEnabled);
+  const setTempoBreathingEnabled = useUIStore(s => s.setTempoBreathingEnabled);
 
   return {
     title: t('app.effects'),
@@ -36,5 +38,10 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     noiseDescription: t('app.noiseOverlayDesc'),
     noiseOverlayEnabled,
     onNoiseChange: setNoiseOverlayEnabled,
+
+    tempoBreathingLabel: t('app.tempoBreathing'),
+    tempoBreathingDescription: t('app.tempoBreathingDesc'),
+    tempoBreathingEnabled,
+    onTempoBreathingChange: setTempoBreathingEnabled,
   };
 }

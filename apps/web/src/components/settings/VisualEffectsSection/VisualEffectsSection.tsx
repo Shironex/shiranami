@@ -27,6 +27,10 @@ export default function VisualEffectsSection() {
     noiseDescription,
     noiseOverlayEnabled,
     onNoiseChange,
+    tempoBreathingLabel,
+    tempoBreathingDescription,
+    tempoBreathingEnabled,
+    onTempoBreathingChange,
   } = useVisualEffectsSection();
 
   return (
@@ -66,6 +70,14 @@ export default function VisualEffectsSection() {
           divider
         />
         <NoiseOverlayPreview enabled={noiseOverlayEnabled} />
+
+        <SettingsToggleRow
+          label={tempoBreathingLabel}
+          description={tempoBreathingDescription}
+          checked={tempoBreathingEnabled}
+          onCheckedChange={onTempoBreathingChange}
+          divider
+        />
       </SettingsCard>
 
       {/* Sanctuary Mode (fullscreen immersive player) lives on the same

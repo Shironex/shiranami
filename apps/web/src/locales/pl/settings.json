@@ -463,6 +463,8 @@
     "lowPerfModeDesc": "Wyłącza wizualizator, rozmycie szkła, nakładkę szumu i gradienty tła. Zalecane na starszych komputerach lub z zintegrowaną kartą graficzną.",
     "noiseOverlay": "Tekstura szumu",
     "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona. Dodaje niewielkie obciążenie GPU.",
+    "tempoBreathing": "Oddychanie w tempie",
+    "tempoBreathingDesc": "Poświata okładki, unosząca się maskotka i pulsowanie kompaktowego odtwarzacza oddychają w tempie odtwarzanego utworu. Utwory bez danych o tempie zachowują stały rytm.",
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",
