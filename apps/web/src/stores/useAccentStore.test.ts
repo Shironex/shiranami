@@ -17,7 +17,7 @@ function rootStyle() {
 describe('useAccentStore', () => {
   beforeEach(() => {
     localStorage.clear();
-    useAccentStore.setState({ accentColor: ACCENT_DEFAULT });
+    useAccentStore.setState({ accentColor: ACCENT_DEFAULT, followArtAccent: false });
     applyAccent(null);
   });
 
@@ -67,6 +67,23 @@ describe('useAccentStore', () => {
     for (const preset of ACCENT_PRESETS) {
       expect(preset.hex).toMatch(/^#[0-9a-f]{6}$/);
     }
+  });
+
+  it('persists the follow-the-record flag', () => {
+    useAccentStore.getState().setFollowArtAccent(true);
+    expect(readPersisted().followArtAccent).toBe(true);
+  });
+
+  it('turns follow-art off when a manual accent is picked', () => {
+    useAccentStore.getState().setFollowArtAccent(true);
+    useAccentStore.getState().setAccentColor('#60b8e0');
+    expect(useAccentStore.getState().followArtAccent).toBe(false);
+  });
+
+  it('turns follow-art off on reset', () => {
+    useAccentStore.getState().setFollowArtAccent(true);
+    useAccentStore.getState().resetAccent();
+    expect(useAccentStore.getState().followArtAccent).toBe(false);
   });
 });
 

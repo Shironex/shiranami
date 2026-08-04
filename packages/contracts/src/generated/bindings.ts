@@ -1243,6 +1243,35 @@ export const commands = {
 	width: number,
 	height: number,
 } | null) => __TAURI_INVOKE<null>("window_set_compact_mode", { compactMode, dimensions }),
+	/**
+	 *  `window:set-fullscreen` — Sanctuary Mode's edge-to-edge presentation.
+	 *  Ports no v1 channel (v1 had no fullscreen anywhere).
+	 * 
+	 *  On macOS this is **simple** fullscreen — the pre-Lion AppKit mode — rather
+	 *  than native fullscreen, deliberately: native fullscreen creates a Space,
+	 *  animates for a second in each direction, and detaches the window from
+	 *  Mission Control's normal flow, all wrong for a mode bound to a single
+	 *  keypress that a pointer-move may exit. Tauri's `set_simple_fullscreen`
+	 *  makes the fallback to native `set_fullscreen` on the other platforms
+	 *  itself, so the choice is pinned in one call.
+	 * 
+	 *  Infallible like minimize/maximize: a compositor that declines fullscreen
+	 *  leaves the sanctuary rendering windowed, which is degraded, not broken —
+	 *  not worth an unhandled rejection inside a keypress handler.
+	 */
+	windowSetFullscreen: (fullscreen: boolean) => __TAURI_INVOKE<void>("window_set_fullscreen", { fullscreen }),
+	/**
+	 *  `window:set-display-sleep-inhibited` — hold the display awake while the
+	 *  sanctuary doubles as a screensaver. Ports no v1 channel.
+	 * 
+	 *  A sanctuary the OS blanks after two minutes is worse than none, but
+	 *  *failing* to acquire the assertion must not fail entering the sanctuary —
+	 *  so this logs and carries on, the same judgement the five infallible window
+	 *  commands above make. `async` for the arch guard (sync commands share the
+	 *  paint thread), which with borrowed `State` forces the `Result` return —
+	 *  always `Ok`, per the judgement above.
+	 */
+	windowSetDisplaySleepInhibited: (inhibited: boolean) => __TAURI_INVOKE<null>("window_set_display_sleep_inhibited", { inhibited }),
 };
 
 /** Events */

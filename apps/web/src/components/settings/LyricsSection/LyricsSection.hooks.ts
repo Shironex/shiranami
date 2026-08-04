@@ -16,6 +16,7 @@ import {
   LYRICS_SYNCED_DIM_OPACITY_STEP,
   LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+  LYRICS_PRESENTATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
 import type { ILyricsSectionView } from './LyricsSection.types';
 
@@ -37,6 +38,8 @@ export function useLyricsSection(): ILyricsSectionView {
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
   const setLyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.setLyricsSyncedDimOpacity);
   const setLyricsSyncedFontSize = useLyricsAppearanceStore(s => s.setLyricsSyncedFontSize);
+  const lyricsPresentation = useLyricsAppearanceStore(s => s.lyricsPresentation);
+  const setLyricsPresentation = useLyricsAppearanceStore(s => s.setLyricsPresentation);
 
   const resetLyricsAppearance = useLyricsAppearanceStore(s => s.resetLyricsAppearance);
 
@@ -46,7 +49,8 @@ export function useLyricsSection(): ILyricsSectionView {
     lyricsPlainOpacity !== LYRICS_PLAIN_OPACITY_DEFAULT ||
     lyricsPlainFontSize !== LYRICS_PLAIN_FONT_SIZE_DEFAULT ||
     lyricsSyncedDimOpacity !== LYRICS_SYNCED_DIM_OPACITY_DEFAULT ||
-    lyricsSyncedFontSize !== LYRICS_SYNCED_FONT_SIZE_DEFAULT;
+    lyricsSyncedFontSize !== LYRICS_SYNCED_FONT_SIZE_DEFAULT ||
+    lyricsPresentation !== LYRICS_PRESENTATION_DEFAULT;
 
   return {
     t,
@@ -72,6 +76,8 @@ export function useLyricsSection(): ILyricsSectionView {
     syncedDimOpacityMin: LYRICS_SYNCED_DIM_OPACITY_MIN,
     syncedDimOpacityMax: LYRICS_SYNCED_DIM_OPACITY_MAX,
     syncedDimOpacityStep: LYRICS_SYNCED_DIM_OPACITY_STEP,
+    lyricsPresentation,
+    onSetPresentation: setLyricsPresentation,
 
     isModified,
     onReset: resetLyricsAppearance,

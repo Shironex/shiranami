@@ -117,6 +117,7 @@
   "enrichPartial": "Enriched {{success}} of {{total}} tracks ({{failed}} failed)",
   "nowPlayingDisabled": "Now Playing view is disabled — enable it in Appearance settings",
   "nowPlayingNoTrack": "Play something first to open Now Playing",
+  "sanctuaryNoTrack": "Play something first to enter Sanctuary Mode",
   "failedLoadLibrary": "Failed to load library",
   "failedLoadHistory": "Failed to load history",
   "scanCancelled": "Scan cancelled",

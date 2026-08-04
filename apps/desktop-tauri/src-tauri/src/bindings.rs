@@ -256,6 +256,9 @@ mod tests {
             "windowIsMaximized",
             "windowSetAlwaysOnTop",
             "windowSetCompactMode",
+            // Sanctuary Mode (v2): ports no v1 channel, see NON_V1_COMMANDS.
+            "windowSetFullscreen",
+            "windowSetDisplaySleepInhibited",
             "appGetVersion",
             "appOpenLogsFolder",
             "appGetLocaleCountry",

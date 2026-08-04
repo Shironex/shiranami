@@ -8,11 +8,13 @@ import {
   LYRICS_SYNCED_PAST_RATIO,
   nextLyricsFontSize,
   type LyricsFontSize,
+  type LyricsPresentation,
 } from '@/stores/useLyricsAppearanceStore';
 import { cn } from '@/lib/utils';
 import { useLyricsSection } from './LyricsSection.hooks';
 
 const FONT_SIZES: LyricsFontSize[] = ['sm', 'base', 'lg', 'xl'];
+const PRESENTATIONS: LyricsPresentation[] = ['list', 'focus'];
 
 export default function LyricsSection() {
   const {
@@ -32,6 +34,8 @@ export default function LyricsSection() {
     lyricsSyncedFontSize,
     onSetSyncedDimOpacity,
     onSetSyncedFontSize,
+    lyricsPresentation,
+    onSetPresentation,
     syncedDimOpacityMin,
     syncedDimOpacityMax,
     syncedDimOpacityStep,
@@ -91,6 +95,12 @@ export default function LyricsSection() {
             description={t('lyr.synced.fontSizeDesc')}
             value={lyricsSyncedFontSize}
             onChange={onSetSyncedFontSize}
+          />
+          <PresentationControl
+            title={t('lyr.synced.presentationTitle')}
+            description={t('lyr.synced.presentationDesc')}
+            value={lyricsPresentation}
+            onChange={onSetPresentation}
           />
           <SettingsPreview title={t('lyr.previewTitle')}>
             <SyncedPreview dimOpacity={lyricsSyncedDimOpacity} fontSize={lyricsSyncedFontSize} />
@@ -204,6 +214,44 @@ function FontSizeControl({ title, description, value, onChange }: IFontSizeContr
       <p className="text-xs text-muted-foreground mb-3">{description}</p>
       <div className="flex items-center gap-1.5" role="radiogroup" aria-label={title}>
         {sizeButtons}
+      </div>
+    </div>
+  );
+}
+
+interface IPresentationControlProps {
+  title: string;
+  description: string;
+  value: LyricsPresentation;
+  onChange: (presentation: LyricsPresentation) => void;
+}
+
+/** The list/focus picker — same pill radiogroup shape as the font sizes. */
+function PresentationControl({ title, description, value, onChange }: IPresentationControlProps) {
+  const { t } = useTranslation('settings');
+  const buttons = PRESENTATIONS.map(presentation => (
+    <button
+      key={presentation}
+      type="button"
+      role="radio"
+      aria-checked={value === presentation}
+      onClick={() => onChange(presentation)}
+      className={cn(
+        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        value === presentation
+          ? 'bg-primary/15 text-primary border border-primary/40'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
+      )}
+    >
+      {t(`lyr.presentation.${presentation}`)}
+    </button>
+  ));
+  return (
+    <div className="px-3">
+      <p className="text-sm font-medium text-foreground mb-1">{title}</p>
+      <p className="text-xs text-muted-foreground mb-3">{description}</p>
+      <div className="flex items-center gap-1.5" role="radiogroup" aria-label={title}>
+        {buttons}
       </div>
     </div>
   );

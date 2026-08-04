@@ -63,6 +63,12 @@ tauri-plugin-opener = "2.5"
 trash = "5"
 sys-locale = "0.3"
 
+# Sanctuary Mode's display-sleep inhibition (`window:set-display-sleep-inhibited`):
+# a screensaver surface the OS screensaver kills is worse than none. Plain crate,
+# same reasoning as `trash`/`sys-locale` — one guard object held in managed
+# state, nothing the webview may reach directly.
+keepawake = "0.6"
+
 # Exact pins, as nuclear ships (architecture D6/R11): tauri-specta is
 # perpetually pre-1.0, and a floating rc would resolve differently between a
 # local run and CI — which is precisely how a regenerate-and-diff guard starts

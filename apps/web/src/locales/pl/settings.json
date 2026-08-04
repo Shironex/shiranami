@@ -357,7 +357,13 @@
       "opacityTitle": "Przezroczystość przyciemnienia",
       "opacityDesc": "Jak widoczne są nieaktywne linie. Bieżąca linia pozostaje w pełnym kontraście.",
       "fontSizeTitle": "Rozmiar czcionki",
-      "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie."
+      "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie.",
+      "presentationTitle": "Prezentacja",
+      "presentationDesc": "Lista pokazuje wszystkie wersy; Fokus wyświetla bieżący wers dużą czcionką szeryfową, sąsiednie wersy się oddalają, a w partiach instrumentalnych oddychają kropki."
+    },
+    "presentation": {
+      "list": "Lista",
+      "focus": "Fokus"
     },
     "size": {
       "sm": "Mały",
@@ -461,6 +467,21 @@
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",
     "effectsDesc": "Widoki pełnoekranowe i dodatkowe efekty renderowania",
+    "sanctuary": {
+      "title": "Tryb sanktuarium",
+      "desc": "Naciśnij F podczas odtwarzania: aplikacja rozpływa się w pełnoekranowy odtwarzacz — okładka, tekst i światło.",
+      "variantTitle": "Na środku sceny",
+      "variantDesc": "Co wypełnia ekran: okładka płyty albo duży zegar z utworem poniżej.",
+      "variant": {
+        "cover": "Okładka",
+        "clock": "Zegar"
+      },
+      "autoEnter": "Uruchamiaj samoczynnie",
+      "autoEnterDesc": "Po chwili bezruchu podczas odtwarzania biurko cicho zamienia się w lofi ekran. Dowolny klawisz lub ruch myszy natychmiast przywraca aplikację.",
+      "minutesTitle": "Bezruch przed uruchomieniem",
+      "minutesDesc": "Jak długo aplikacja czeka bez żadnej aktywności, zanim uruchomi tryb samoczynnie.",
+      "minutes": "{{count}} min"
+    },
     "effectPreview": {
       "nowPlayingView": "Podgląd widoku Teraz odtwarzane",
       "libraryBanner": "Podgląd banera",
@@ -491,6 +512,8 @@
       "title": "Kolor akcentu",
       "desc": "Wybierz kolor wyróżnień używany w całej aplikacji. Auto podąża za aktywnym motywem.",
       "auto": "Auto (akcent motywu)",
+      "followArt": "Podążaj za płytą",
+      "followArtDesc": "Akcent zapożyczony z okładki odtwarzanego albumu. Płynnie przechodzi między płytami; czarno-białe okładki zachowują wybrany akcent.",
       "custom": "Własny kolor",
       "apply": "Użyj akcentu {{name}}",
       "reset": "Resetuj",

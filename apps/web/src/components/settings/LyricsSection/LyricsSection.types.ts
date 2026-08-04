@@ -1,5 +1,5 @@
 import type { useTranslation } from 'react-i18next';
-import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
+import type { LyricsFontSize, LyricsPresentation } from '@/stores/useLyricsAppearanceStore';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
@@ -44,10 +44,14 @@ export interface ILyricsSectionView {
   readonly syncedDimOpacityMin: number;
   readonly syncedDimOpacityMax: number;
   readonly syncedDimOpacityStep: number;
+  /** How synced lyrics present: the classic list or the focus stage. */
+  readonly lyricsPresentation: LyricsPresentation;
+  /** Set the synced-lyrics presentation. */
+  readonly onSetPresentation: (presentation: LyricsPresentation) => void;
 
   // --- Reset ---
   /** Whether any lyrics preference differs from default (shows the reset link). */
   readonly isModified: boolean;
-  /** Reset all four lyrics appearance preferences. */
+  /** Reset the lyrics appearance preferences. */
   readonly onReset: () => void;
 }
