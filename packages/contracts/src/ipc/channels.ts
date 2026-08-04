@@ -204,6 +204,14 @@ export const IPC_CHANNELS = {
     // DB row. Distinct from the automatic enrichment flow above.
     writeTags: 'metadata:write-tags',
   },
+  analysis: {
+    // One-pass analysis engine (F1/F2, v2-only): a single decode per track
+    // feeds waveform peaks, loudness and tempo/key; results persist on the
+    // track row. The batch skips tracks that already carry everything.
+    analyze: 'analysis:analyze',
+    cancel: 'analysis:cancel',
+    progress: 'analysis:progress',
+  },
   doctor: {
     // The Library Doctor (F8, v2-only): decode-truth health findings —
     // truncation, damaged packets, duration lies, clipping, silence.

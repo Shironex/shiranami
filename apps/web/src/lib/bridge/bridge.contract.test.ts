@@ -63,9 +63,9 @@ describe('bridge channel coverage', () => {
     expect(mapped).toHaveLength(ALL_IPC_CHANNELS.length);
   });
 
-  it('covers all 159 channels — 135 v1 invoke, 3 v2 invoke, 20 v1 + 1 v2 events', () => {
-    expect(ALL_IPC_CHANNELS.length).toBe(159);
-    expect(mapped).toHaveLength(159);
+  it('covers all 162 channels — 135 v1 invoke, 5 v2 invoke, 20 v1 + 2 v2 events', () => {
+    expect(ALL_IPC_CHANNELS.length).toBe(162);
+    expect(mapped).toHaveLength(162);
   });
 
   it('resolves every mapped channel to a function on the installed surface', () => {
@@ -89,10 +89,12 @@ describe('bridge channel coverage', () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it('exposes the 24 namespaces v1 exposed, plus doctor, plus the three non-channel members', () => {
+  it('exposes the 24 namespaces v1 exposed, plus analysis and doctor, plus the three non-channel members', () => {
     expect(Object.keys(api).sort()).toEqual(
       [
         '__e2e',
+        // v2's own (F1/F2) — no v1 counterpart.
+        'analysis',
         'app',
         'db',
         'debug',

@@ -15,6 +15,7 @@ export * from './domain/folder';
 export * from './ipc/channels';
 export * from './ipc/debug';
 export * from './ipc/metadata';
+export * from './ipc/analysis';
 export * from './ipc/doctor';
 export * from './ipc/loudness';
 export * from './ipc/waveform';

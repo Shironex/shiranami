@@ -193,6 +193,11 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'metadata:enrich:progress': ['metadata', 'onEnrichProgress'],
   'metadata:write-tags': ['metadata', 'writeTags'],
 
+  // ── analysis ────────────────────────────────────────────────────────────
+  'analysis:analyze': ['analysis', 'analyze'],
+  'analysis:cancel': ['analysis', 'cancel'],
+  'analysis:progress': ['analysis', 'onProgress'],
+
   // ── doctor ──────────────────────────────────────────────────────────────
   'doctor:scan': ['doctor', 'scan'],
   'doctor:cancel': ['doctor', 'cancel'],

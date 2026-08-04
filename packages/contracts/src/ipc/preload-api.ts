@@ -64,6 +64,7 @@ import type {
   RecordPlayInput,
   WeeklyInsights,
 } from './history';
+import type { AnalysisBatchResult, AnalysisInput, AnalysisProgress } from './analysis';
 import type { DoctorProgress, DoctorScanInput, DoctorScanResult } from './doctor';
 import type { LoudnessAnalyzeInput, LoudnessAnalyzeResult, LoudnessProgress } from './loudness';
 import type {
@@ -134,6 +135,19 @@ export interface LibraryApi {
   validateFiles: (filePaths: string[]) => Promise<string[]>;
   onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
   cancelScan: () => Promise<void>;
+}
+
+// ── analysis ──────────────────────────────────────────────────────────────
+
+export interface AnalysisApi {
+  /**
+   * Decode each submitted file once and persist every measurement the engine
+   * makes — waveform peaks, loudness, and tempo/key — on the track row.
+   * Tracks already carrying everything, and missing files, are skipped.
+   */
+  analyze: (tracks: AnalysisInput[]) => Promise<AnalysisBatchResult>;
+  cancel: () => Promise<void>;
+  onProgress: (callback: (data: AnalysisProgress) => void) => () => void;
 }
 
 // ── doctor ────────────────────────────────────────────────────────────────
@@ -613,6 +627,12 @@ export interface SharedElectronApi {
   window: WindowApi;
   app: AppApi;
   library: LibraryApi;
+  /**
+   * The one-pass analysis engine (F1/F2). v2-only, hence optional: the v1
+   * preload also implements this interface and has no engine to run — the
+   * renderer feature-detects and hides the card where this is absent.
+   */
+  analysis?: AnalysisApi;
   /**
    * The Library Doctor (F8). v2-only, hence optional: the v1 preload also
    * implements this interface and its decoder cannot produce the findings —

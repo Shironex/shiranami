@@ -21,6 +21,7 @@ import {
   VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
 import { detectPlatform, isE2eHarness } from './environment';
+import { analysisApi } from './namespaces/analysis';
 import { appApi } from './namespaces/app';
 import { dbApi } from './namespaces/db';
 import { debugApi } from './namespaces/debug';
@@ -55,6 +56,7 @@ export function createElectronApi(): ElectronAPI {
     dialog: dialogApi,
     app: appApi,
     library: libraryApi,
+    analysis: analysisApi,
     doctor: doctorApi,
     loudness: loudnessApi,
     waveform: waveformApi,
