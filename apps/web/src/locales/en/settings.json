@@ -151,6 +151,15 @@
     "findingClipping": "True peak {{peak}} dBTP — above full scale",
     "findingSilent": "The audio is digital silence"
   },
+  "analysis": {
+    "title": "Tempo and key",
+    "subtitle": "The engine listens once and remembers the pace of every track",
+    "coverage": "{{analyzed}} of {{total}} tracks carry tempo and key estimates",
+    "coverageComplete": "Every track carries its tempo and key estimates",
+    "run": "Analyze library",
+    "cancel": "Cancel",
+    "progress": "Analysing {{current}} / {{total}}…"
+  },
   "diskUsage": {
     "title": "Disk Usage",
     "subtitle": "How much space your music takes and what's free on each drive",

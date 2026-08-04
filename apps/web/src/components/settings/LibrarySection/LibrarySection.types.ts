@@ -11,6 +11,8 @@ export interface ILibrarySectionView {
   readonly tc: TranslateFn;
   /** Whether the app is running in Electron (gates disk/backup cards). */
   readonly isElectron: boolean;
+  /** Whether to show the analysis card (desktop + analysis API + tracks). */
+  readonly showAnalysis: boolean;
   /** Whether to show the Library Doctor card (desktop + doctor API + tracks). */
   readonly showDoctor: boolean;
   /** Number of tracks in the library. */

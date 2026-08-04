@@ -173,6 +173,15 @@
     "findingClipping": "True peak {{peak}} dBTP — powyżej pełnej skali",
     "findingSilent": "Nagranie to cyfrowa cisza"
   },
+  "analysis": {
+    "title": "Tempo i tonacja",
+    "subtitle": "Silnik słucha raz i zapamiętuje puls każdego utworu",
+    "coverage": "{{analyzed}} z {{total}} utworów ma oszacowane tempo i tonację",
+    "coverageComplete": "Każdy utwór ma oszacowane tempo i tonację",
+    "run": "Analizuj bibliotekę",
+    "cancel": "Anuluj",
+    "progress": "Analizowanie {{current}} / {{total}}…"
+  },
   "diskUsage": {
     "title": "Wykorzystanie dysku",
     "subtitle": "Ile miejsca zajmuje Twoja muzyka i ile jest wolne na każdym dysku",
