@@ -138,5 +138,6 @@
   "failedLoadHistory": "Nie udało się załadować historii",
   "scanCancelled": "Skanowanie anulowane",
   "loudnessAnalysisFailed": "Analiza głośności nie powiodła się",
+  "analysisFailed": "Analiza biblioteki nie powiodła się",
   "doctorScanFailed": "Sprawdzanie biblioteki nie powiodło się"
 }

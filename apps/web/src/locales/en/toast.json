@@ -122,5 +122,6 @@
   "failedLoadHistory": "Failed to load history",
   "scanCancelled": "Scan cancelled",
   "loudnessAnalysisFailed": "Loudness analysis failed",
+  "analysisFailed": "Library analysis failed",
   "doctorScanFailed": "Library health check failed"
 }
