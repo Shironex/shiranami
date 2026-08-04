@@ -73,6 +73,7 @@ import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useSystemNotices } from '@/hooks/useSystemNotices';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
+import { useTempoBreathingPublisher } from '@/hooks/useTempoBreathing';
 import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -149,6 +150,7 @@ function App() {
   useSystemNotices();
   useKeyboardShortcuts();
   useSanctuaryAutoEnter();
+  useTempoBreathingPublisher();
   const debugOpen = useDebugPanel();
 
   useEffect(() => {

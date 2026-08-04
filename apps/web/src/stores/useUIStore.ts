@@ -154,6 +154,7 @@ interface PersistedUIState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  tempoBreathingEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -209,6 +210,8 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean')
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (typeof persisted.tempoBreathingEnabled === 'boolean')
+    out.tempoBreathingEnabled = persisted.tempoBreathingEnabled;
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -238,6 +241,7 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'libraryHeroCardEnabled',
   'lowPerformanceMode',
   'noiseOverlayEnabled',
+  'tempoBreathingEnabled',
   'landingView',
 ]);
 
@@ -364,6 +368,7 @@ interface UIState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  tempoBreathingEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -375,6 +380,7 @@ interface UIActions {
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
+  setTempoBreathingEnabled: (enabled: boolean) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -414,6 +420,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
+    tempoBreathingEnabled: true,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -438,6 +445,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setNoiseOverlayEnabled: enabled => {
       set({ noiseOverlayEnabled: enabled });
+    },
+    setTempoBreathingEnabled: enabled => {
+      set({ tempoBreathingEnabled: enabled });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -531,6 +541,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
+        tempoBreathingEnabled: s.tempoBreathingEnabled,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({
