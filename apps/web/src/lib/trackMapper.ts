@@ -36,6 +36,8 @@ export function mapDbTrackToTrack(t: DbTrackRecord): Track {
     albumLoudnessLufs: t.albumLoudnessLufs ?? null,
     truePeakDb: t.truePeakDb ?? null,
     loudnessRange: t.loudnessRange ?? null,
+    bpm: t.bpm ?? null,
+    musicalKey: t.musicalKey ?? null,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
