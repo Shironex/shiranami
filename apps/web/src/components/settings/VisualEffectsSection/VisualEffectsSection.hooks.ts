@@ -1,6 +1,13 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@/stores/useUIStore';
+import { useLibraryStore } from '@/stores/useLibraryStore';
+import { pendingAnalysisInput } from '@/hooks/useAnalysis';
+import { isRadioTrack } from '@/lib/utils';
 import type { IVisualEffectsSectionView } from './VisualEffectsSection.types';
+
+/** Below this tempo-data coverage the breathing toggle grows a gentle hint. */
+const BREATHING_HINT_COVERAGE = 0.5;
 
 export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const { t } = useTranslation('settings');
@@ -14,6 +21,18 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setNoiseOverlayEnabled = useUIStore(s => s.setNoiseOverlayEnabled);
   const tempoBreathingEnabled = useUIStore(s => s.tempoBreathingEnabled);
   const setTempoBreathingEnabled = useUIStore(s => s.setTempoBreathingEnabled);
+  const library = useLibraryStore(s => s.library);
+
+  // The silent-failure guard: a library without tempo data never breathes, and
+  // nothing on this card would say why. Below half coverage, point at the one
+  // click that fixes it (the analysis card in Library settings).
+  const showBreathingHint = useMemo(() => {
+    if (!tempoBreathingEnabled) return false;
+    const total = library.filter(track => !isRadioTrack(track.filePath)).length;
+    if (total === 0) return false;
+    const analyzed = total - pendingAnalysisInput(library).length;
+    return analyzed / total < BREATHING_HINT_COVERAGE;
+  }, [tempoBreathingEnabled, library]);
 
   return {
     title: t('app.effects'),
@@ -43,5 +62,6 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     tempoBreathingDescription: t('app.tempoBreathingDesc'),
     tempoBreathingEnabled,
     onTempoBreathingChange: setTempoBreathingEnabled,
+    tempoBreathingHint: showBreathingHint ? t('app.tempoBreathingHint') : null,
   };
 }

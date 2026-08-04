@@ -1,9 +1,28 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Track } from '@/stores/types';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useUIStore } from '@/stores/useUIStore';
 
 import VisualEffectsSection from './VisualEffectsSection';
+
+let nextId = 0;
+function makeTrack(overrides: Partial<Track> = {}): Track {
+  nextId += 1;
+  return {
+    id: `t${nextId}`,
+    title: `Track ${nextId}`,
+    artist: 'Idealism',
+    album: 'Midnight Tapes',
+    duration: 215,
+    filePath: `/music/${nextId}.mp3`,
+    isFavorite: false,
+    bpm: null,
+    musicalKey: null,
+    ...overrides,
+  };
+}
 
 function reset(): void {
   useUIStore.setState({
@@ -13,6 +32,7 @@ function reset(): void {
     noiseOverlayEnabled: false,
     tempoBreathingEnabled: true,
   });
+  useLibraryStore.setState({ library: [], libraryLoaded: true });
   vi.clearAllMocks();
 }
 
@@ -38,6 +58,28 @@ describe('VisualEffectsSection', () => {
     await user.click(screen.getByRole('switch', { name: 'Tempo breathing' }));
 
     expect(setTempoBreathingEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it('hints at the analysis card when tempo coverage is low', () => {
+    useLibraryStore.setState({ library: [makeTrack(), makeTrack()] });
+
+    render(<VisualEffectsSection />);
+
+    expect(screen.getByText(/Run the analysis once/)).toBeInTheDocument();
+  });
+
+  it('drops the hint when coverage is healthy or breathing is off', () => {
+    useLibraryStore.setState({
+      library: [makeTrack({ bpm: 80, musicalKey: 'C major' })],
+    });
+
+    const { rerender } = render(<VisualEffectsSection />);
+    expect(screen.queryByText(/Run the analysis once/)).not.toBeInTheDocument();
+
+    useLibraryStore.setState({ library: [makeTrack()] });
+    useUIStore.setState({ tempoBreathingEnabled: false });
+    rerender(<VisualEffectsSection />);
+    expect(screen.queryByText(/Run the analysis once/)).not.toBeInTheDocument();
   });
 
   it('toggles low performance mode through the store setter', async () => {

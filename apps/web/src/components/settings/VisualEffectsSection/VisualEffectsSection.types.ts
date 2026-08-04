@@ -48,4 +48,9 @@ export interface IVisualEffectsSectionView {
   readonly tempoBreathingEnabled: boolean;
   /** Toggle tempo-locked breathing. */
   readonly onTempoBreathingChange: (next: boolean) => void;
+  /**
+   * Localized low-coverage hint pointing at the analysis card, or `null` when
+   * the toggle is off, the library is empty, or coverage is healthy.
+   */
+  readonly tempoBreathingHint: string | null;
 }

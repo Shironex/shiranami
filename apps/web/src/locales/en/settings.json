@@ -452,6 +452,7 @@
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default. Adds a small amount of GPU work.",
     "tempoBreathing": "Tempo breathing",
     "tempoBreathingDesc": "The artwork bloom, the floating mascot, and the compact player's pulse breathe at the tempo of the playing track. Tracks without tempo data keep their fixed rhythm.",
+    "tempoBreathingHint": "Most of your library has no tempo data yet, so the breathing rarely engages. Run the analysis once from the Library settings.",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects",

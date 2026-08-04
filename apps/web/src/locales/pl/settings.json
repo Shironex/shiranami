@@ -474,6 +474,7 @@
     "noiseOverlayDesc": "Subtelna tekstura ziarna filmu nałożona na interfejs. Domyślnie wyłączona. Dodaje niewielkie obciążenie GPU.",
     "tempoBreathing": "Oddychanie w tempie",
     "tempoBreathingDesc": "Poświata okładki, unosząca się maskotka i pulsowanie kompaktowego odtwarzacza oddychają w tempie odtwarzanego utworu. Utwory bez danych o tempie zachowują stały rytm.",
+    "tempoBreathingHint": "Większość biblioteki nie ma jeszcze danych o tempie, więc oddychanie rzadko się włącza. Uruchom analizę raz w ustawieniach biblioteki.",
     "sidebarPlaylists": "Pokaż playlisty",
     "sidebarPlaylistsDesc": "Wyświetlaj playlisty w panelu bocznym",
     "effects": "Efekty wizualne",

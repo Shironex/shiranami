@@ -1,5 +1,9 @@
-import { Sparkles } from 'lucide-react';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { AudioLines, Sparkles } from 'lucide-react';
+import {
+  SettingsCard,
+  SettingsInfoCallout,
+  SettingsToggleRow,
+} from '@/components/settings/SettingsCard';
 import { LibraryBannerPreview } from '@/components/settings/LibraryBannerPreview';
 import { LowPerformancePreview } from '@/components/settings/LowPerformancePreview';
 import { NoiseOverlayPreview } from '@/components/settings/NoiseOverlayPreview';
@@ -31,6 +35,7 @@ export default function VisualEffectsSection() {
     tempoBreathingDescription,
     tempoBreathingEnabled,
     onTempoBreathingChange,
+    tempoBreathingHint,
   } = useVisualEffectsSection();
 
   return (
@@ -78,6 +83,9 @@ export default function VisualEffectsSection() {
           onCheckedChange={onTempoBreathingChange}
           divider
         />
+        {tempoBreathingHint && (
+          <SettingsInfoCallout icon={AudioLines}>{tempoBreathingHint}</SettingsInfoCallout>
+        )}
       </SettingsCard>
 
       {/* Sanctuary Mode (fullscreen immersive player) lives on the same
