@@ -9,13 +9,13 @@ import { useAmbientBackground, ART_BLOOM_LAYERS } from './AmbientBackground.hook
  * static collage under prefers-reduced-motion (see globals.css), and the whole
  * layer cross-fades on track change (instant under reduced motion).
  */
-function bloomLayers(artUrl: string) {
+function bloomLayers(artUrl: string, breathing: boolean) {
   // One blurred cover copy per layer. The inline `transform` centers each
   // layer on its anchor; while the spin animation runs it overrides that
   // transform with the same translate plus rotation, and under reduced motion
   // the stylesheet cancels the animation so the inline centering is what
   // remains (a static collage, not a missing background).
-  return ART_BLOOM_LAYERS.map(layer => (
+  const layers = ART_BLOOM_LAYERS.map(layer => (
     <img
       key={`${layer.size}-${layer.top}`}
       src={artUrl}
@@ -37,6 +37,19 @@ function bloomLayers(artUrl: string) {
       }}
     />
   ));
+
+  // Tempo-locked breathing: while active, the whole layer set swells once a
+  // bar of the playing track. The wrapper is per-slot on purpose — a track
+  // change gives the incoming slot a fresh animation at phase zero, so a new
+  // tempo composes with the cross-dissolve instead of re-phasing mid-swell.
+  return (
+    <div
+      className={breathing ? 'absolute inset-0 bloom-breathe' : 'absolute inset-0'}
+      data-breathing={breathing || undefined}
+    >
+      {layers}
+    </div>
+  );
 }
 
 export default function AmbientBackground() {
@@ -52,6 +65,7 @@ export default function AmbientBackground() {
     transitionDuration,
     bloomKey,
     showBloom,
+    breathing,
   } = useAmbientBackground();
 
   if (!enabled) return null;
@@ -71,7 +85,7 @@ export default function AmbientBackground() {
       data-slot="art-bloom"
       aria-hidden="true"
     >
-      {bloomLayers(bloomSlots.current)}
+      {bloomLayers(bloomSlots.current, breathing)}
       {/* The bloom's own dim: it paints above ThemeBackground's scrim, so it
           must carry its own contrast floor rather than rely on one underneath
           it. bg-background keeps the veil theme-correct on both themes. */}
@@ -90,7 +104,7 @@ export default function AmbientBackground() {
       data-slot="art-bloom-outgoing"
       aria-hidden="true"
     >
-      {bloomLayers(bloomSlots.previous)}
+      {bloomLayers(bloomSlots.previous, breathing)}
       <div className="absolute inset-0 bg-background/25" />
     </motion.div>
   ) : null;

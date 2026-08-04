@@ -20,7 +20,11 @@ const track: Track = {
 
 afterEach(() => {
   usePlaybackStore.setState({ currentTrack: null });
-  useUIStore.setState({ lowPerformanceMode: false, noiseOverlayEnabled: false });
+  useUIStore.setState({
+    lowPerformanceMode: false,
+    noiseOverlayEnabled: false,
+    tempoBreathingEnabled: true,
+  });
 });
 
 describe('AmbientBackground', () => {
@@ -104,6 +108,52 @@ describe('AmbientBackground', () => {
     expect(
       container.querySelectorAll('[data-slot="art-bloom-outgoing"]').length
     ).toBeLessThanOrEqual(1);
+  });
+
+  it('breathes the bloom when the track has a stored BPM', () => {
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/abc.jpg', bpm: 80 },
+    });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('[data-slot="art-bloom"] .bloom-breathe')).not.toBeNull();
+  });
+
+  it('keeps the fixed drift when the track has no BPM', () => {
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/abc.jpg' },
+    });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('[data-slot="art-bloom"]')).not.toBeNull();
+    expect(container.querySelector('.bloom-breathe')).toBeNull();
+  });
+
+  it('does not breathe when the settings toggle is off', () => {
+    useUIStore.setState({ tempoBreathingEnabled: false });
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/abc.jpg', bpm: 80 },
+    });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('.bloom-breathe')).toBeNull();
+  });
+
+  it('does not breathe in low-performance mode fallback paths', () => {
+    // Low-perf unmounts the whole layer; the guard here is that the derived
+    // breathing flag also respects the decorative-motion gate, so a future
+    // partial-render path cannot leak a tempo-locked animation.
+    useUIStore.setState({ lowPerformanceMode: true });
+    usePlaybackStore.setState({
+      currentTrack: { ...track, albumArt: 'http://127.0.0.1:1/art/abc.jpg', bpm: 80 },
+    });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('.bloom-breathe')).toBeNull();
   });
 
   it('keeps every drift period in minutes, never seconds', () => {

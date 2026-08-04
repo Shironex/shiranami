@@ -53,4 +53,6 @@ export interface IAmbientBackgroundView {
   readonly bloomKey: string | undefined;
   /** Play the brief track-change glow "bloom" (off under reduced motion). */
   readonly showBloom: boolean;
+  /** Tempo-locked breathing engages (BPM known, toggle on, motion allowed). */
+  readonly breathing: boolean;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useTempoBreathing } from '@/hooks/useTempoBreathing';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import type {
@@ -77,6 +78,7 @@ export function useAmbientBackground(): IAmbientBackgroundView {
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
   const reducedMotion = useReducedMotion();
+  const tempoBreathing = useTempoBreathing();
 
   // The bloom needs canvas-free cover pixels; tracks without art keep the
   // extracted-color glow so the background never goes flat black.
@@ -121,5 +123,6 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     // `enabled`, so only the reduced-motion preference needs gating here.
     bloomKey: currentTrack?.id,
     showBloom: Boolean(currentTrack) && !reducedMotion,
+    breathing: tempoBreathing.active,
   };
 }

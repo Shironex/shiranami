@@ -234,6 +234,21 @@
   }
 }
 
+/* Tempo-locked breathing: the whole layer set swells once a bar of the playing
+   track (`--breath-bloom` is published by the tempo breathing hook; the class
+   is only applied while breathing is active). The scale is deliberately tiny —
+   blurred light inhaling, not a zoom. Outside @theme inline beside its sibling
+   art-bloom-spin. */
+@keyframes art-bloom-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
 /* EQ bar animations - must be outside @theme inline for Tailwind v4 */
 @keyframes eq-bar-1 {
   0%,
@@ -375,7 +390,9 @@
   .float-mascot,
   .overview-blink,
   .progress-sweep,
-  .art-bloom-layer {
+  .art-bloom-layer,
+  .bloom-breathe,
+  .pulse-beat {
     animation: none !important;
   }
   .animate-marquee {
@@ -582,9 +599,26 @@
 
 /* Shared mascot float — stable class so the global reduced-motion gate can
    neutralize it (replaces the duplicated arbitrary
-   animate-[shiranami-float_6s_ease-in-out_infinite] usages). */
+   animate-[shiranami-float_6s_ease-in-out_infinite] usages). The period rides
+   `--breath-float` when tempo breathing publishes it; the 6s fallback is the
+   original fixed float, so no BPM means exactly the old behavior. */
 @utility float-mascot {
-  animation: shiranami-float 6s ease-in-out infinite;
+  animation: shiranami-float var(--breath-float, 6s) ease-in-out infinite;
+}
+
+/* Tempo breathing on the artwork bloom: applied to a slot's layer-set wrapper
+   only while breathing is active, so the crossfader's incoming slot starts its
+   swell at phase zero and dissolves over the outgoing one. */
+@utility bloom-breathe {
+  animation: art-bloom-breathe var(--breath-bloom, 6s) ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Tempo breathing on the compact player's status dot: the subtle opacity pulse
+   at the track's folded bar period. Applied only while breathing is active —
+   the dot is steady otherwise, as before. */
+@utility pulse-beat {
+  animation: pulseSubtle var(--breath-pulse, 3s) ease-in-out infinite;
 }
 
 @utility eq-bar-1 {

@@ -30,6 +30,8 @@ export interface ICompactPlayerView {
   readonly showAmbient: boolean;
   /** Whether low-performance mode is on — softens animation. */
   readonly lowPerformanceMode: boolean;
+  /** Tempo-locked breathing: pulse the status dot at the track's bar period. */
+  readonly breathing: boolean;
 
   // --- Element visibility ---
   /** Whether the album-art button is shown. */

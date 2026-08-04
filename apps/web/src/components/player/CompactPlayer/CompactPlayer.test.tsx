@@ -86,6 +86,18 @@ describe('CompactPlayer', () => {
     expect(setCompactMode).toHaveBeenCalledWith(false);
   });
 
+  it('pulses the status dot when the track has a stored BPM', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack({ bpm: 80 }) });
+    const { container } = renderCompact();
+    expect(container.querySelector('.pulse-beat')).not.toBeNull();
+  });
+
+  it('keeps the status dot steady when the track has no BPM', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack() });
+    const { container } = renderCompact();
+    expect(container.querySelector('.pulse-beat')).toBeNull();
+  });
+
   it('shows the lyrics toggle only when the lyrics setting is on', () => {
     useCompactStore.setState({ compactShowLyrics: true });
     usePlaybackStore.setState({ currentTrack: makeTrack() });

@@ -30,6 +30,7 @@ export default function CompactPlayer() {
     compactAmbientIntensity,
     showAmbient,
     lowPerformanceMode,
+    breathing,
     compactShowAlbumArt,
     showAlbumLine,
     albumName,
@@ -73,7 +74,12 @@ export default function CompactPlayer() {
 
       <div className="drag flex h-9 shrink-0 items-center justify-between border-b border-border/20 px-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(var(--primary-rgb),0.45)]" />
+          {/* Tempo breathing: the dot pulses at the track's folded bar period
+              while breathing is active; steady otherwise, exactly as before. */}
+          <div
+            className={`size-2 shrink-0 rounded-full bg-primary/85 shadow-[0_0_10px_rgba(var(--primary-rgb),0.45)]${breathing ? ' pulse-beat' : ''}`}
+            data-breathing={breathing || undefined}
+          />
           <span className="shrink-0 font-display text-[11px] font-semibold text-foreground">
             {t('title')}
           </span>

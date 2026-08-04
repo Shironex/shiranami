@@ -62,6 +62,18 @@ export const Default: Story = {
   ],
 };
 
+/** A track with a stored BPM: the layer set swells once a bar (tempo breathing). */
+export const Breathing: Story = {
+  decorators: [
+    Story => {
+      usePlaybackStore.setState({
+        currentTrack: { ...track, albumArt: STORY_COVER, bpm: 80 },
+      });
+      return <Story />;
+    },
+  ],
+};
+
 /** A track without art falls back to the extracted-color glow. */
 export const GlowFallback: Story = {
   decorators: [
