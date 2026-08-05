@@ -41,6 +41,37 @@
  * prefix is a v1 art URL wherever it appears, and the renderer never learns the
  * scheme changed.
  *
+ * # And the same chokepoint has to run in reverse, on the way in
+ *
+ * The rewrite was first shipped as outbound-only, on the reasoning that nothing
+ * sends art URLs back. Two paths do, both by design:
+ *
+ * - `useMetadataEnrichStore.applyEnrichResults` reads `updatedFields.albumArt`
+ *   off an enrich result and posts it straight into `db:tracks:update-many`.
+ * - `scanHelpers.scanAndPersistFolder` reads `metadata.albumArt` off a scan
+ *   result and posts it into `db:tracks:add-many`.
+ *
+ * — plus "use this track's cover" on a playlist, which copies the same string
+ * into `playlists.cover_art`. Every one of them stored `http://127.0.0.1:{port}
+ * /{token}/art/…`: an address whose port and token die with the process. Those
+ * rows were `ECONNREFUSED` on the next launch, and — because the album-art
+ * prune recognises only the `shiranami-art://` form — a database full of them
+ * read as *nothing is referenced*, so the boot prune deleted the whole cover
+ * cache.
+ *
+ * [`toStoredArtUrl`] is the inverse, applied to every command's **arguments**
+ * at this same chokepoint. Symmetry is the point: a rewrite that only goes one
+ * way is a rewrite that leaks its session into the database, and a hand-kept
+ * list of the commands that accept art would drift exactly as a hand-kept list
+ * of the ones that return it would. `shiranami-db` refuses a non-canonical
+ * value independently, and migration `0007` repairs the rows already written;
+ * this is the half that stops producing them.
+ *
+ * One namespace is exempt, and for a reason that is the mirror image of the
+ * rule: `media_playback_state` hands the cover to the OS, which can only load
+ * an `http` URL. There the loopback form *is* the value that was wanted. See
+ * `keepsLoopbackArt`.
+ *
  * # Why audio is a function the renderer calls instead
  *
  * The audio URL is not stored anywhere — it is derived from `track.filePath` at
@@ -64,6 +95,23 @@ import { isTauri } from './environment';
 
 /** v1's album-art prefix, as `shiranami-metadata` writes it into the database. */
 const ART_PREFIX = 'shiranami-art://art/';
+
+/**
+ * A loopback media-server art URL, in any session's spelling.
+ *
+ * Matched on the *shape* rather than against the live [`base`], so a value that
+ * survived a restart — a persisted queue entry, a React Query cache rehydrated
+ * from an earlier run — is repaired too, and so the inverse still works in the
+ * degraded state where the shell never answered and the base is `null`.
+ *
+ * Deliberately strict where {@link toArtUrl} is permissive: exactly one token
+ * segment, one path component for the file name, and nothing but a query or
+ * fragment after it. The rewrite is the app's own output, so anything else was
+ * not produced here and is not this function's to reshape. Kept in step with
+ * `shiranami_core::art::loopback_art_file_name`, which a Rust test pins against
+ * the same corpus.
+ */
+const LOOPBACK_ART = /^https?:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):\d+\/[^/]+\/art\/([^/?#]+)/;
 
 /** v1's radio prefix. The stream URL follows as an encoded `url` parameter. */
 const RADIO_PREFIX = 'shiranami-radio://stream?url=';
@@ -159,6 +207,22 @@ export function toArtUrl(value: string): string {
 }
 
 /**
+ * Rewrite one string back to the form the database holds, or return it
+ * unchanged.
+ *
+ * The exact inverse of {@link toArtUrl}, and the only thing standing between a
+ * renderer that round-trips a value it was shown and a row addressed by a dead
+ * port. Anything that is not a loopback art URL — a `shiranami-art://` URL that
+ * was never rewritten, a remote cover, a radio favicon, a `data:` URL — is
+ * returned as it arrived.
+ */
+export function toStoredArtUrl(value: string): string {
+  const match = LOOPBACK_ART.exec(value);
+  if (match?.[1] === undefined) return value;
+  return `${ART_PREFIX}${match[1]}`;
+}
+
+/**
  * Deep-rewrite every v1 art URL in a command result.
  *
  * Copy-on-change: a payload with no art in it is returned by reference, so the
@@ -171,16 +235,27 @@ export function toArtUrl(value: string): string {
  */
 export function rewriteArtUrls<T>(value: T): T {
   if (base === null) return value;
-  return walk(value) as T;
+  return walk(value, toArtUrl) as T;
 }
 
-function walk(value: unknown): unknown {
-  if (typeof value === 'string') return toArtUrl(value);
+/**
+ * Deep-restore every loopback art URL in a command's arguments.
+ *
+ * The inbound counterpart of {@link rewriteArtUrls}, and unconditional: unlike
+ * the outbound direction there is no base to wait for, and a value written
+ * during a session whose server never answered would still be wrong.
+ */
+export function restoreArtUrls<T>(value: T): T {
+  return walk(value, toStoredArtUrl) as T;
+}
+
+function walk(value: unknown, map: (value: string) => string): unknown {
+  if (typeof value === 'string') return map(value);
 
   if (Array.isArray(value)) {
     let changed = false;
     const next = value.map(item => {
-      const rewritten = walk(item);
+      const rewritten = walk(item, map);
       if (rewritten !== item) changed = true;
       return rewritten;
     });
@@ -191,7 +266,7 @@ function walk(value: unknown): unknown {
     let changed = false;
     const next: Record<string, unknown> = {};
     for (const [key, item] of Object.entries(value)) {
-      const rewritten = walk(item);
+      const rewritten = walk(item, map);
       if (rewritten !== item) changed = true;
       next[key] = rewritten;
     }
@@ -239,12 +314,42 @@ export function toStreamUrl(filePath: string): string {
 }
 
 /**
- * Wrap a generated binding object so every result has its art URLs rewritten.
+ * The one namespace whose arguments keep the loopback URL.
+ *
+ * `media_playback_state` hands the cover to the **operating system**, not to
+ * storage: `shiranami-media-controls` accepts only `http`/`https` (souvlaki
+ * cannot load a custom scheme, and its macOS loader aborts the process on a
+ * cover it fails to read), and it resolves `{origin}/{token}/art/{name}` back
+ * to the cache file that name addresses. So this argument is an *outbound*
+ * value that happens to travel inward, and restoring it would put OS media
+ * controls back to the coverless state §2.4 left them in.
+ *
+ * A namespace prefix rather than a list of command names, because the property
+ * that earns the exemption is "it addresses the OS", which is what the whole
+ * namespace does — a `media_*` command added tomorrow inherits it correctly,
+ * where a name list would have to be remembered.
+ */
+const OS_FACING_NAMESPACE = /^media[A-Z]/;
+
+/** Whether a command's arguments are consumed by the OS rather than stored. */
+function keepsLoopbackArt(property: PropertyKey): boolean {
+  return typeof property === 'string' && OS_FACING_NAMESPACE.test(property);
+}
+
+/**
+ * Wrap a generated binding object so art URLs are rewritten on the way out and
+ * restored on the way in.
  *
  * The same proxy shape as `withRehydratedRejections`, and for the same stated
  * reason: a chokepoint cannot drift, where a hand-maintained list of the
  * ~24 art-bearing commands would — and would need editing again every time a
  * command starts returning a track.
+ *
+ * The argument pass runs *before* the call rather than after the result, so a
+ * command that both accepts and returns a track (`db:tracks:update` does) sees
+ * a canonical value going in and the caller still gets a displayable one back.
+ * The exception is [`keepsLoopbackArt`], the one place where the loopback URL
+ * is the value that was wanted.
  */
 export function withRewrittenArtUrls<T extends object>(source: T): T {
   const wrapped = new Map<PropertyKey, unknown>();
@@ -258,8 +363,9 @@ export function withRewrittenArtUrls<T extends object>(source: T): T {
       if (cached !== undefined) return cached;
 
       const call = value as (...args: unknown[]) => Promise<unknown>;
+      const restore = !keepsLoopbackArt(property);
       const rewriting = async (...args: unknown[]): Promise<unknown> => {
-        const result = await call.apply(target, args);
+        const result = await call.apply(target, restore ? restoreArtUrls(args) : args);
         await whenStreamUrlsReady();
         return rewriteArtUrls(result);
       };
