@@ -36,5 +36,10 @@ tracing = { workspace = true }
 [target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
 souvlaki = { workspace = true }
 
+[dev-dependencies]
+# `os::loadable_cover` refuses a cover it cannot read off disk, so its tests
+# need a disk to put covers on.
+tempfile = { workspace = true }
+
 [lints]
 workspace = true
