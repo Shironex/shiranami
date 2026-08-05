@@ -67,7 +67,7 @@ export const ART_BLOOM_LAYERS: readonly IArtBloomLayer[] = [
 /**
  * Owns the ambient background's state: the currently-playing track gate, the
  * cover URL feeding the artwork bloom, the extracted album-art color for the
- * no-art glow fallback, the noise-overlay/low-perf UI toggles, and the
+ * no-art glow fallback, the bloom/crossfade/noise/low-perf UI toggles, and the
  * reduced-motion preference. The shell only renders.
  */
 export function useAmbientBackground(): IAmbientBackgroundView {
@@ -77,12 +77,20 @@ export function useAmbientBackground(): IAmbientBackgroundView {
   const ambientColor = useAmbientColor();
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
+  const artworkBloomEnabled = useUIStore(s => s.artworkBloomEnabled);
+  const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
   const reducedMotion = useReducedMotion();
   const tempoBreathing = useTempoBreathing();
 
-  // The bloom needs canvas-free cover pixels; tracks without art keep the
-  // extracted-color glow so the background never goes flat black.
-  const artUrl = currentTrack?.albumArt ?? null;
+  // The bloom has its own first-class toggle; low-performance mode stays the
+  // master kill on top of it (it also unmounts the whole layer via `enabled`,
+  // but the derived flags respect it too so a partial-render path can't leak).
+  const bloomEnabled = artworkBloomEnabled && !lowPerformanceMode;
+
+  // The bloom needs canvas-free cover pixels; tracks without art — and users
+  // who turned the bloom off — keep the extracted-color glow so the
+  // background never goes flat black.
+  const artUrl = bloomEnabled ? (currentTrack?.albumArt ?? null) : null;
 
   // Two-slot crossfader: a track change moves the shown cover into the
   // outgoing slot, *replacing* whatever was already fading out. Cancel, not
@@ -111,18 +119,21 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     showNoiseOverlay: noiseOverlayEnabled,
     bloomSlots,
     // The visual change rides the audio one: the cross-dissolve spans the
-    // audio crossfade when it is on, a calm default when it is not, and is
-    // instant under reduced motion.
-    artFadeDuration: reducedMotion ? 0 : crossfadeEnabled ? crossfadeDuration : 1.2,
+    // audio crossfade when it is on, a calm default when it is not. Instant
+    // under reduced motion, and instant when the dedicated visual toggle
+    // (cover crossfade) is off — audio crossfade only lends its duration,
+    // it does not force the dissolve on.
+    artFadeDuration:
+      reducedMotion || !coverCrossfadeEnabled ? 0 : crossfadeEnabled ? crossfadeDuration : 1.2,
     onPreviousBloomDone,
     showGlow: Boolean(currentTrack) && !artUrl,
     glowKey: ambientColor.hex,
     glowBackground,
     transitionDuration: reducedMotion ? 0 : 2,
-    // Bloom pulse on track change. Low-perf already disables the whole layer via
-    // `enabled`, so only the reduced-motion preference needs gating here.
+    // Bloom pulse on track change. Rides the artwork-bloom toggle (with
+    // low-perf as the master kill), and reduced motion still kills the pulse.
     bloomKey: currentTrack?.id,
-    showBloom: Boolean(currentTrack) && !reducedMotion,
+    showBloom: Boolean(currentTrack) && !reducedMotion && bloomEnabled,
     breathing: tempoBreathing.active,
   };
 }
