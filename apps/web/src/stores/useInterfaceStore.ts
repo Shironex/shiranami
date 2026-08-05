@@ -11,6 +11,8 @@ const STORE_KEY = 'shiranami.interface-store';
 
 interface PersistedInterfaceState {
   topBarLanguageSwitcher: boolean;
+  /** The resident companion (Shio/Hotaru) across all its perches. */
+  companion: boolean;
   overviewRecap: boolean;
   overviewStats: boolean;
   overviewTopWeek: boolean;
@@ -34,6 +36,7 @@ interface PersistedInterfaceState {
 
 export const INTERFACE_DEFAULTS: PersistedInterfaceState = {
   topBarLanguageSwitcher: true,
+  companion: true,
   overviewRecap: true,
   overviewStats: true,
   overviewTopWeek: true,
