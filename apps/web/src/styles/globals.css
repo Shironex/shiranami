@@ -392,7 +392,16 @@
   .progress-sweep,
   .art-bloom-layer,
   .bloom-breathe,
-  .pulse-beat {
+  .pulse-beat,
+  .companion-sway,
+  .companion-sway-wide,
+  .companion-beat-bob,
+  .companion-beat-bob-fast,
+  .companion-hop,
+  .companion-sleep-breathe,
+  .companion-idle-float,
+  .companion-idle-blink,
+  .companion-bub-drift {
     animation: none !important;
   }
   .animate-marquee {
@@ -621,6 +630,120 @@
   animation: pulseSubtle var(--breath-pulse, 3s) ease-in-out infinite;
 }
 
+/* ── Companion loops (Shio & Hotaru) ─────────────────────────────────────
+   Compositor-only keyframes (transform/opacity) for the resident's loop
+   states. The listening loops ride the same --breath-* variables as the
+   bloom, with the pre-breathing fixed periods as fallbacks; sleep is a fixed
+   8s on purpose — a paused room has no beat. One-shots (wake, ripple,
+   level-up, click bounce) are WAAPI in the component so rapid skips cancel
+   them cleanly instead of queuing. */
+@keyframes companion-sway {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+@keyframes companion-sway-wide {
+  from {
+    transform: rotate(-8deg);
+  }
+  to {
+    transform: rotate(8deg);
+  }
+}
+@keyframes companion-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2.2px);
+  }
+}
+@keyframes companion-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-5px);
+  }
+  55% {
+    transform: translateY(0.5px);
+  }
+}
+@keyframes companion-sleep-breathe {
+  from {
+    transform: translateY(9px) scale(1, 0.8);
+  }
+  to {
+    transform: translateY(9px) scale(1.025, 0.815);
+  }
+}
+@keyframes companion-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1.6px);
+  }
+}
+@keyframes companion-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.15);
+  }
+}
+
+/* Listening: body sways at the folded bar period (the room's breath). */
+@utility companion-sway {
+  animation: companion-sway var(--breath-float, 6s) ease-in-out infinite alternate;
+}
+
+/* Grooving: amplitude doubles, period halves — still octave-folded calm. */
+@utility companion-sway-wide {
+  animation: companion-sway-wide calc(var(--breath-float, 6s) / 2) ease-in-out infinite alternate;
+}
+
+/* Crest / tendrils bob counter-phase to the pulse (the -50% delay). */
+@utility companion-beat-bob {
+  animation: companion-bob var(--breath-pulse, 3s) ease-in-out calc(var(--breath-pulse, 3s) / -2)
+    infinite alternate;
+}
+@utility companion-beat-bob-fast {
+  animation: companion-bob calc(var(--breath-pulse, 3s) / 2) ease-in-out infinite alternate;
+}
+
+/* Grooving hop: one small two-frame hop every second pulse period. */
+@utility companion-hop {
+  animation: companion-hop calc(var(--breath-pulse, 3s) * 2) ease-in-out infinite;
+}
+
+/* Sleeping: flattened mound at a fixed 8s — never the beat variable. */
+@utility companion-sleep-breathe {
+  animation: companion-sleep-breathe 8s ease-in-out infinite alternate;
+}
+
+/* Idle drift + occasional blink (nothing playing — fixed calm periods). */
+@utility companion-idle-float {
+  animation: companion-drift 6s ease-in-out infinite alternate;
+}
+@utility companion-idle-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: companion-blink 5.5s ease-in-out infinite;
+}
+
+/* Foam bubbles drift while listening. */
+@utility companion-bub-drift {
+  animation: companion-drift 3.4s ease-in-out infinite alternate;
+}
+
 @utility eq-bar-1 {
   animation: eq-bar-1 1.2s ease-in-out infinite;
 }
@@ -825,4 +948,200 @@
   .noise::before {
     display: none;
   }
+}
+
+/* ── Companion sprite (Shio & Hotaru) ────────────────────────────────────
+   The resident's layered SVG. Everything tinted rides --art-1…5 /
+   --primary-rgb (with theme fallbacks for paletteless covers), so the pet
+   visibly wears the record; the body foam is the brand's near-white constant
+   with a whisper of stroke for bright artwork; the face ink is a FIXED dark
+   — never the theme ink — so eyes can't dissolve white-on-white. Fill/stroke
+   transitions run at the visual crossfade's 1.2s default so the tint eases
+   with the palette instead of snapping. Stages are additive layer groups
+   revealed by data-stage; faces swap by data-face; sleep's static pose uses
+   the individual rotate/translate/scale properties so it composes with (and
+   survives) the transform-keyframe loops. */
+:root {
+  --companion-foam: oklch(0.96 0.01 260);
+  --companion-ink: oklch(0.28 0.05 285);
+}
+
+.companion-svg {
+  display: block;
+  overflow: visible;
+}
+.companion-svg .companion-foam {
+  fill: var(--companion-foam);
+  stroke: oklch(0.3 0.04 285 / 0.16);
+  stroke-width: 1;
+}
+.companion-svg .companion-tint {
+  fill: rgb(var(--primary-rgb) / 0.22);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-crest-face {
+  fill: color-mix(in srgb, var(--art-2, rgb(var(--primary-rgb))) 45%, transparent);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-pool {
+  fill: color-mix(in srgb, var(--art-4, oklch(0.32 0.05 282)) 45%, transparent);
+  transition:
+    fill 1.2s ease,
+    scale 0.5s ease;
+  transform-origin: 60px 96px;
+}
+.companion-svg .companion-bub {
+  fill: color-mix(in srgb, var(--art-3, oklch(0.55 0.08 285)) 60%, transparent);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-ink {
+  fill: var(--companion-ink);
+}
+.companion-svg .companion-ink-s {
+  stroke: var(--companion-ink);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.companion-svg .companion-blush {
+  fill: rgb(var(--primary-rgb) / 0.38);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-gear {
+  fill: rgb(var(--primary-rgb) / 0.92);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-earfill {
+  fill: rgb(var(--primary-rgb) / 0.4);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-tendril {
+  fill: none;
+  stroke: color-mix(in srgb, var(--art-2, rgb(var(--primary-rgb))) 55%, var(--companion-foam));
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  transition: stroke 1.2s ease;
+}
+.companion-svg .companion-tendril-accent {
+  stroke: color-mix(in srgb, rgb(var(--primary-rgb)) 80%, var(--companion-foam));
+}
+.companion-svg .companion-glow {
+  fill: color-mix(in srgb, rgb(var(--primary-rgb)) 60%, var(--companion-foam));
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-crescent {
+  fill: color-mix(in srgb, var(--art-5, oklch(0.9 0.05 285)) 85%, transparent);
+}
+.companion-svg .companion-lvbub {
+  opacity: 0;
+  fill: color-mix(in srgb, var(--art-5, oklch(0.9 0.05 285)) 80%, transparent);
+}
+.companion-svg .companion-ripple-ring {
+  fill: none;
+  stroke: rgb(var(--primary-rgb) / 0.6);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-origin: 60px 96px;
+}
+
+/* Transform seats. transform-box stays view-box (the SVG default), so px
+   origins address rig coordinates exactly like the design reference. The
+   peek/lean custom properties are set inline by the component on hover —
+   individual translate/rotate properties compose with the loop keyframes'
+   `transform`, so eyes can track the cursor mid-sway. */
+.companion-svg .companion-rig {
+  transform-origin: 60px 90px;
+  rotate: var(--companion-lean, 0deg);
+  transition: rotate 0.2s ease;
+}
+.companion-svg .companion-crest {
+  transition:
+    rotate 0.7s ease,
+    translate 0.7s ease,
+    scale 0.7s ease;
+}
+.companion-svg .companion-face {
+  translate: var(--companion-peek-x, 0px) var(--companion-peek-y, 0px);
+  transition: translate 0.15s ease;
+}
+
+/* Stage growth: additive layer groups (companion-s2 = "from stage II").
+   companion-s1-only marks the endearingly-unfinished hatchling parts that a
+   grown layer replaces (Shio's stub tail before the wave crest sprouts). */
+.companion-svg :is(.companion-s2, .companion-s3, .companion-s4, .companion-s5) {
+  display: none;
+}
+.companion-svg:not([data-stage='0']) .companion-s1-only {
+  display: none;
+}
+.companion-svg[data-stage='1'] .companion-s2 {
+  display: inline;
+}
+.companion-svg[data-stage='2'] :is(.companion-s2, .companion-s3) {
+  display: inline;
+}
+.companion-svg[data-stage='3'] :is(.companion-s2, .companion-s3, .companion-s4) {
+  display: inline;
+}
+.companion-svg[data-stage='4'] :is(.companion-s2, .companion-s3, .companion-s4, .companion-s5) {
+  display: inline;
+}
+
+/* Articulation, not mass: the whole rig grows ~10% across five stages so the
+   perch never crowds the player bar. */
+.companion-svg .companion-rig {
+  scale: 0.82;
+}
+.companion-svg[data-stage='1'] .companion-rig {
+  scale: 0.9;
+}
+.companion-svg[data-stage='2'] .companion-rig {
+  scale: 0.95;
+}
+.companion-svg[data-stage='3'] .companion-rig {
+  scale: 1;
+}
+.companion-svg[data-stage='4'] .companion-rig {
+  scale: 1.03;
+}
+
+/* Shio's wave-tail curls stage by stage (origin set inline on the tail). */
+.companion-svg[data-stage='1'] .companion-crest {
+  scale: 0.85;
+}
+.companion-svg[data-stage='2'] .companion-crest {
+  scale: 0.95;
+}
+.companion-svg[data-stage='3'] .companion-crest {
+  scale: 1.05;
+}
+.companion-svg[data-stage='4'] .companion-crest {
+  scale: 1.2;
+}
+
+/* Face variants — exactly one shows, chosen by data-face. */
+.companion-svg :is(.companion-f-half, .companion-f-closed) {
+  display: none;
+}
+.companion-svg[data-face='half'] .companion-f-open {
+  display: none;
+}
+.companion-svg[data-face='half'] .companion-f-half {
+  display: inline;
+}
+.companion-svg[data-face='closed'] .companion-f-open {
+  display: none;
+}
+.companion-svg[data-face='closed'] .companion-f-closed {
+  display: inline;
+}
+
+/* Sleep pose: the crest wilts and the pool draws in. Declarative (not a
+   keyframe) so reduced motion still lands on the correct static frame. */
+.companion-svg:is([data-state='sleeping'], [data-state='drowsy']) .companion-crest {
+  rotate: 16deg;
+  translate: 0 3px;
+}
+.companion-svg:is([data-state='sleeping'], [data-state='drowsy']) .companion-pool {
+  scale: 0.85;
 }

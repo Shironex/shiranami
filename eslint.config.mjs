@@ -24,6 +24,7 @@ const PROCESS_EXIT_ALLOWLIST = [
 // The Tier C architecture rules apply as `error` only to these; add one entry per
 // migration PR to widen the scope. Everything else keeps the recommended `off`.
 const MIGRATED_COMPONENT_FEATURES = [
+  'companion',
   'downloads',
   'debug',
   'favorites',
@@ -153,8 +154,13 @@ export default defineConfig(
       // loose `.tsx` at a feature root — which otherwise escape every body rule.
       'shiranami/no-state-in-component-body': ['error', { includeNestedComponents: true }],
       'shiranami/no-jsx-computation': 'error',
-      // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir).
-      'shiranami/no-cross-feature-imports': ['error', { sharedFeatures: ['shared', 'ui'] }],
+      // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir);
+      // companion = the resident sprite, perched across player/now-playing/
+      // sanctuary by design (research-visual Part 2).
+      'shiranami/no-cross-feature-imports': [
+        'error',
+        { sharedFeatures: ['shared', 'ui', 'companion'] },
+      ],
       'shiranami/max-hooks-per-file': 'error',
       'shiranami/interface-prefix-i': 'error',
     },
