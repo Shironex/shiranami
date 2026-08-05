@@ -65,6 +65,7 @@ use crate::commands::debug::MetricsSnapshot;
 use crate::commands::updater::{UpdateDownloadProgress, UpdateInfo};
 use crate::wire::Json;
 use shiranami_core::SystemNotice;
+use shiranami_core::companion::CompanionXpGain;
 use shiranami_core::models::{
     DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot, InstallProgress,
     PlaylistExtractProgress,
@@ -176,6 +177,13 @@ events! {
     /// Progress through a Library Doctor health check (F8, v2-only).
     DoctorProgress = "doctor:progress" => Json;
 
+    /// The companion accrued XP from a recorded play (v2 companion, no v1
+    /// counterpart). Fired by `db:history:record-play`'s accrual hook; the
+    /// payload carries the delta, the new lifetime total, the (possibly
+    /// freshly ratcheted) stage and whether a threshold was crossed, so the
+    /// pet can celebrate in real time without a follow-up read.
+    CompanionXp = "companion:xp" => CompanionXpGain;
+
     /// A `shiranami://` deep link arrived.
     ///
     /// The payload is the raw URL. v1 matched its scheme case-sensitively and
@@ -219,8 +227,9 @@ mod tests {
     /// Channels born in v2, with no v1 counterpart. Kept apart from the twenty
     /// so the parity pin below stays a pin: these must NOT appear in v1's
     /// manifest, and everything else must. Today: the one-pass analysis
-    /// engine's progress and the Library Doctor's progress (F8).
-    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress", "doctor:progress"];
+    /// engine's progress, the Library Doctor's progress (F8), and the
+    /// companion's XP accrual.
+    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress", "doctor:progress", "companion:xp"];
 
     #[test]
     fn every_event_channel_has_a_typed_event() {

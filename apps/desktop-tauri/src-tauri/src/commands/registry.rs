@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 145;
+pub const COMMAND_COUNT: usize = 148;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Ten of them:
+/// Thirteen of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -95,7 +95,15 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// - `window_set_fullscreen` and `window_set_display_sleep_inhibited` —
 ///   Sanctuary Mode (v2 feature wave); v1 had no fullscreen surface at all.
 ///   See [`crate::commands::window`].
-pub const NON_V1_COMMANDS: usize = 10;
+/// - `companion_get_state` — the v2 companion's ledger read (hatches the
+///   `companion_state` singleton from history on first call). Born in v2:
+///   v1 had no companion, so there is no channel to port. See
+///   [`crate::commands::companion`].
+/// - `companion_set_name` — the naming ceremony; born in v2 for the same
+///   reason.
+/// - `companion_set_species` — the Shio/Hotaru switch
+///   (`docs/v2/companion/decision.md`); born in v2 for the same reason.
+pub const NON_V1_COMMANDS: usize = 13;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///
@@ -116,6 +124,7 @@ macro_rules! namespace_list {
             // ══════════════ THE SHARED LINE LIST ══════════════
             analysis
             app
+            companion
             db_backup
             db_folders
             db_history

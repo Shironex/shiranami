@@ -219,6 +219,15 @@ export const IPC_CHANNELS = {
     cancel: 'doctor:cancel',
     progress: 'doctor:progress',
   },
+  companion: {
+    // The desk companion's ledger (v2-only): singleton state hatched from
+    // play history, the naming ceremony, and the Shio/Hotaru switch. The
+    // event streams XP accrued by db:history:record-play.
+    getState: 'companion:get-state',
+    setName: 'companion:set-name',
+    setSpecies: 'companion:set-species',
+    xp: 'companion:xp',
+  },
   loudness: {
     // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
     // Measures integrated loudness per track and persists it on the DB row.
@@ -331,4 +340,8 @@ export const V2_ONLY_CHANNELS = [
   'doctor:scan',
   'doctor:cancel',
   'doctor:progress',
+  'companion:get-state',
+  'companion:set-name',
+  'companion:set-species',
+  'companion:xp',
 ] as const;
