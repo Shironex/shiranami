@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { FastAverageColor } from 'fast-average-color';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useAccentStore, applyAccent } from '@/stores/useAccentStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { startAccentTween } from '@/lib/accentTween';
 import { rgbToHex } from '@/lib/color';
@@ -124,11 +125,18 @@ function visualFadeMs(): number {
 export function AmbientColorProvider({ children }: { children: ReactNode }) {
   const albumArt = usePlaybackStore(s => s.currentTrack?.albumArt);
   const followArtAccent = useAccentStore(s => s.followArtAccent);
+  const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const reducedMotion = useReducedMotion();
   const [color, setColor] = useState<AmbientColor>(DEFAULT_COLOR);
 
   useEffect(() => {
-    if (!albumArt) {
+    // Low-performance mode skips the whole extraction pass (image decode,
+    // FastAverageColor scan, palette canvas) — even on a cache hit, so no
+    // `--art-*` tokens are published. Everything degrades to the no-palette
+    // path: the tokens fall back to their neutral theme defaults and
+    // follow-art-accent quietly yields the user's stored/preset accent, the
+    // same way a monochrome sleeve (null palette) already does.
+    if (!albumArt || lowPerformanceMode) {
       setColor(DEFAULT_COLOR);
       return;
     }
@@ -174,7 +182,7 @@ export function AmbientColorProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [albumArt]);
+  }, [albumArt, lowPerformanceMode]);
 
   // Keep the `--art-*` custom properties in step with the extracted palette.
   useEffect(() => {
