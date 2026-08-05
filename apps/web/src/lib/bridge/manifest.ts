@@ -203,6 +203,12 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'doctor:cancel': ['doctor', 'cancel'],
   'doctor:progress': ['doctor', 'onProgress'],
 
+  // ── companion ───────────────────────────────────────────────────────────
+  'companion:get-state': ['companion', 'getState'],
+  'companion:set-name': ['companion', 'setName'],
+  'companion:set-species': ['companion', 'setSpecies'],
+  'companion:xp': ['companion', 'onXp'],
+
   // ── loudness / waveform ─────────────────────────────────────────────────
   'loudness:analyze': ['loudness', 'analyze'],
   'loudness:cancel': ['loudness', 'cancel'],

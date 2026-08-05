@@ -23,6 +23,7 @@ import {
 import { detectPlatform, isE2eHarness } from './environment';
 import { analysisApi } from './namespaces/analysis';
 import { appApi } from './namespaces/app';
+import { companionApi } from './namespaces/companion';
 import { dbApi } from './namespaces/db';
 import { debugApi } from './namespaces/debug';
 import { dialogApi } from './namespaces/dialog';
@@ -58,6 +59,7 @@ export function createElectronApi(): ElectronAPI {
     library: libraryApi,
     analysis: analysisApi,
     doctor: doctorApi,
+    companion: companionApi,
     loudness: loudnessApi,
     waveform: waveformApi,
     db: dbApi,
