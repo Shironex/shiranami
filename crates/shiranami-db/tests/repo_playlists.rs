@@ -250,3 +250,63 @@ async fn create_with_tracks_rolls_back_on_a_duplicate_id() {
         "and the playlist row goes with it"
     );
 }
+
+// ── the cover-art write guard ─────────────────────────────────────────────────
+
+/// "Use this track's cover" copies a value the renderer was shown, so
+/// `cover_art` takes the same guard `tracks.album_art` does — and for the same
+/// reason: the art prune counts playlist covers as references, and a loopback
+/// URL is not one it can recognise.
+#[tokio::test]
+async fn a_cover_that_arrives_as_a_loopback_url_is_stored_canonically() {
+    let mut library = fresh().await;
+
+    let created = playlists::create(
+        library.conn(),
+        &PlaylistCreateInput {
+            name: "Covered".to_owned(),
+            description: None,
+            cover_art: Some("http://127.0.0.1:60241/9f8e7d6c/art/abc123.jpg".to_owned()),
+        },
+    )
+    .await
+    .expect("create")
+    .expect("a row");
+    assert_eq!(
+        created.cover_art.as_deref(),
+        Some("shiranami-art://art/abc123.jpg")
+    );
+
+    let updated = playlists::update(
+        library.conn(),
+        &created.id,
+        &PlaylistUpdateInput {
+            cover_art: Some("http://localhost:50346/deadbeef/art/other.png".to_owned()),
+            ..PlaylistUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+    assert_eq!(
+        updated.cover_art.as_deref(),
+        Some("shiranami-art://art/other.png")
+    );
+
+    let remote = playlists::update(
+        library.conn(),
+        &created.id,
+        &PlaylistUpdateInput {
+            cover_art: Some("https://example.com/cover.jpg".to_owned()),
+            ..PlaylistUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+    assert_eq!(
+        remote.cover_art.as_deref(),
+        Some("https://example.com/cover.jpg"),
+        "a remote cover is a legitimate value and stays one"
+    );
+}

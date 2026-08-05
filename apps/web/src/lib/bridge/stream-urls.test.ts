@@ -14,10 +14,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   initStreamUrls,
+  restoreArtUrls,
   resetStreamUrlsForTests,
   rewriteArtUrls,
   streamUrlBase,
   toArtUrl,
+  toStoredArtUrl,
   toStreamUrl,
   whenStreamUrlsReady,
   withRewrittenArtUrls,
@@ -145,7 +147,116 @@ describe('the deep rewrite', () => {
   });
 });
 
+describe('the inbound restore', () => {
+  it('turns a loopback art URL back into the value the database holds', () => {
+    expect(toStoredArtUrl(`${BASE}/art/abc123.jpg`)).toBe('shiranami-art://art/abc123.jpg');
+  });
+
+  it('repairs a URL from a session that is already over', () => {
+    // The whole reason the match is on the shape rather than on the live base:
+    // a persisted queue entry or a rehydrated cache carries a dead port, and
+    // writing that back is the bug in its second, quieter form.
+    expect(toStoredArtUrl('http://127.0.0.1:60241/deadbeef/art/old.jpg')).toBe(
+      'shiranami-art://art/old.jpg'
+    );
+    expect(toStoredArtUrl('http://localhost:1/t/art/local.jpg')).toBe(
+      'shiranami-art://art/local.jpg'
+    );
+  });
+
+  it('drops a query string or fragment, which name no cache file', () => {
+    expect(toStoredArtUrl(`${BASE}/art/abc123.jpg?v=2`)).toBe('shiranami-art://art/abc123.jpg');
+    expect(toStoredArtUrl(`${BASE}/art/abc123.jpg#top`)).toBe('shiranami-art://art/abc123.jpg');
+  });
+
+  it('leaves everything that is not a loopback art URL alone', () => {
+    for (const value of [
+      'shiranami-art://art/already.jpg',
+      'https://example.com/cover.jpg',
+      // A remote cover whose path merely contains the art segment.
+      'https://example.com/tok/art/cover.jpg',
+      'data:image/png;base64,AA',
+      // A loopback URL for another route is not a cover.
+      `${BASE}/audio?path=%2Fmusic%2Fa.mp3`,
+      '/Users/me/Music/song.mp3',
+      '',
+    ]) {
+      expect(toStoredArtUrl(value)).toBe(value);
+    }
+  });
+
+  it('works without a base, so a shell that never answered still writes canonically', () => {
+    expect(streamUrlBase()).toBeNull();
+    expect(restoreArtUrls({ albumArt: `${BASE}/art/abc123.jpg` })).toEqual({
+      albumArt: 'shiranami-art://art/abc123.jpg',
+    });
+  });
+
+  it('reaches nested and differently-named fields, and shares nothing when unchanged', () => {
+    const restored = restoreArtUrls({
+      updates: [{ id: '1', data: { albumArt: `${BASE}/art/one.jpg` } }],
+      playlist: { coverArt: `${BASE}/art/two.jpg` },
+    });
+
+    expect(restored.updates[0].data.albumArt).toBe('shiranami-art://art/one.jpg');
+    expect(restored.playlist.coverArt).toBe('shiranami-art://art/two.jpg');
+
+    const untouched = { tracks: [{ id: '1', albumArt: null }] };
+    expect(restoreArtUrls(untouched)).toBe(untouched);
+  });
+});
+
 describe('the command wrapper', () => {
+  it('restores art URLs in the arguments before the command sees them', async () => {
+    await withServer();
+
+    const seen: unknown[] = [];
+    const wrapped = withRewrittenArtUrls({
+      dbTracksUpdateMany: (...args: unknown[]) => {
+        seen.push(...args);
+        return Promise.resolve(null);
+      },
+    });
+
+    // Exactly what `applyEnrichResults` posts: the rewritten value it was shown.
+    await wrapped.dbTracksUpdateMany([{ id: '1', data: { albumArt: `${BASE}/art/abc123.jpg` } }]);
+
+    expect(seen).toEqual([[{ id: '1', data: { albumArt: 'shiranami-art://art/abc123.jpg' } }]]);
+  });
+
+  it('leaves the OS media surface its loopback URL', async () => {
+    await withServer();
+
+    const seen: unknown[] = [];
+    const wrapped = withRewrittenArtUrls({
+      mediaPlaybackState: (...args: unknown[]) => {
+        seen.push(...args);
+        return Promise.resolve(null);
+      },
+      // A `media_*` command with no art still round-trips normally.
+      mediaClearState: () => Promise.resolve(null),
+    });
+
+    // souvlaki can only load http, and `shiranami-media-controls` resolves this
+    // URL back to the cache file it names. Restoring it here would put OS media
+    // controls back to coverless.
+    await wrapped.mediaPlaybackState({ title: 'A', albumArt: `${BASE}/art/abc123.jpg` });
+    await wrapped.mediaClearState();
+
+    expect(seen).toEqual([{ title: 'A', albumArt: `${BASE}/art/abc123.jpg` }]);
+  });
+
+  it('still returns a displayable URL from a command whose argument it restored', async () => {
+    await withServer();
+
+    const wrapped = withRewrittenArtUrls({
+      dbTracksUpdate: (_id: unknown, data: { albumArt: string }) => Promise.resolve(data),
+    });
+
+    const returned = await wrapped.dbTracksUpdate('1', { albumArt: `${BASE}/art/abc123.jpg` });
+    expect(returned.albumArt).toBe(`${BASE}/art/abc123.jpg`);
+  });
+
   it('rewrites results and waits for the base before answering', async () => {
     Object.defineProperty(window, TAURI_GLOBAL, { value: {}, configurable: true });
 

@@ -13,6 +13,7 @@ use sqlx::{Connection, QueryBuilder, Row, Sqlite, SqliteConnection, sqlite::Sqli
 use uuid::Uuid;
 
 use crate::error::Result;
+use crate::repo::art_url;
 use crate::repo::clock::ISO_8601_NOW;
 use crate::repo::conn::failed;
 use crate::repo::playlist_tracks;
@@ -70,7 +71,9 @@ pub async fn create(
     values.push_bind(Uuid::new_v4().to_string());
     values.push_bind(input.name.clone());
     values.push_bind(input.description.clone());
-    values.push_bind(input.cover_art.clone());
+    // "Use this track's cover" copies a value the renderer was shown, so this
+    // bind is normalised like `tracks.album_art` (see [`crate::repo::art_url`]).
+    values.push_bind(art_url::canonical(input.cover_art.as_deref()));
     builder.push(")");
     builder.push(RETURNING_PLAYLIST);
 
@@ -138,10 +141,15 @@ pub async fn update(
     let mut builder = QueryBuilder::<Sqlite>::new("UPDATE playlists SET ");
     let mut set = builder.separated(", ");
 
+    // Normalised on the way in, for the same reason as `create`. Unlike the
+    // track patch this field is a plain `Option`, so there is no clear-versus-
+    // absent distinction to preserve here.
+    let cover_art = art_url::canonical(patch.cover_art.as_deref());
+
     for (column, value) in [
         ("name = ", &patch.name),
         ("description = ", &patch.description),
-        ("cover_art = ", &patch.cover_art),
+        ("cover_art = ", &cover_art),
     ] {
         if let Some(text) = value {
             set.push(column);

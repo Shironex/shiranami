@@ -200,3 +200,132 @@ async fn update_many_does_not_merge_a_cleared_field_with_an_absent_one() {
     assert_eq!(find(&cleared).artist, None);
     assert_eq!(find(&kept).artist.as_deref(), Some("Test Artist"));
 }
+
+// ── the album-art write guard ─────────────────────────────────────────────────
+
+/// The bug this guard exists for: the renderer is *shown* a loopback URL and
+/// posts it back through the enrich apply path, which made a port and a session
+/// token durable — and, because the art prune recognises only the
+/// `shiranami-art://` form, made a full cover cache look unreferenced.
+#[tokio::test]
+async fn update_normalises_a_loopback_art_url_into_the_canonical_form() {
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/art.mp3", "Art").await;
+
+    let updated = tracks::update(
+        library.conn(),
+        &id,
+        &TrackUpdateInput {
+            album_art: Some(Some(
+                "http://127.0.0.1:60241/9f8e7d6c/art/abc123.jpg".to_owned(),
+            )),
+            ..TrackUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+
+    assert_eq!(
+        updated.album_art.as_deref(),
+        Some("shiranami-art://art/abc123.jpg"),
+        "a session-scoped address must never become durable"
+    );
+}
+
+/// The guard normalises; it does not filter. A remote cover is a legitimate
+/// value of the column and has to survive the write untouched, and the three
+/// patch states have to keep meaning what they meant.
+#[tokio::test]
+async fn update_leaves_a_remote_cover_and_the_patch_states_alone() {
+    let mut library = fresh().await;
+    let id = add_track(library.conn(), "/music/remote.mp3", "Remote").await;
+
+    let remote = tracks::update(
+        library.conn(),
+        &id,
+        &TrackUpdateInput {
+            album_art: Some(Some("https://example.com/cover.jpg".to_owned())),
+            ..TrackUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+    assert_eq!(
+        remote.album_art.as_deref(),
+        Some("https://example.com/cover.jpg")
+    );
+
+    let renamed = tracks::update(
+        library.conn(),
+        &id,
+        &TrackUpdateInput {
+            title: Some("Renamed".to_owned()),
+            ..TrackUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+    assert_eq!(
+        renamed.album_art.as_deref(),
+        Some("https://example.com/cover.jpg"),
+        "an absent field still says nothing"
+    );
+
+    let cleared = tracks::update(
+        library.conn(),
+        &id,
+        &TrackUpdateInput {
+            album_art: Some(None),
+            ..TrackUpdateInput::default()
+        },
+    )
+    .await
+    .expect("update")
+    .expect("a row");
+    assert_eq!(cleared.album_art, None, "an explicit clear still clears");
+}
+
+/// `db:tracks:update-many` is the channel the enrich apply path actually used,
+/// and it groups by patch — so the guard has to run before the grouping rather
+/// than after it.
+#[tokio::test]
+async fn update_many_normalises_every_grouped_art_value() {
+    let mut library = fresh().await;
+    let first = add_track(library.conn(), "/music/a.mp3", "A").await;
+    let second = add_track(library.conn(), "/music/b.mp3", "B").await;
+
+    let loopback = "http://127.0.0.1:50346/deadbeef/art/shared.jpg".to_owned();
+    tracks::update_many(
+        library.conn(),
+        &[
+            (
+                first.clone(),
+                TrackUpdateInput {
+                    album_art: Some(Some(loopback.clone())),
+                    ..TrackUpdateInput::default()
+                },
+            ),
+            (
+                second.clone(),
+                TrackUpdateInput {
+                    album_art: Some(Some(loopback)),
+                    ..TrackUpdateInput::default()
+                },
+            ),
+        ],
+    )
+    .await
+    .expect("update");
+
+    let all = tracks::get_all(library.conn()).await.expect("read");
+    for id in [&first, &second] {
+        let track = all.iter().find(|t| &t.id == id).expect("the track");
+        assert_eq!(
+            track.album_art.as_deref(),
+            Some("shiranami-art://art/shared.jpg")
+        );
+    }
+}

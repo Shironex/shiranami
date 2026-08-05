@@ -13,10 +13,30 @@
 //! crate sits at the same layer rank as the database crate and may not depend
 //! on it, so the dependency is inverted exactly the way `PathAuthority` inverts
 //! it for `shiranami-core::paths`. The composition root supplies the impl.
+//!
+//! # A value this module cannot read is never read as "references nothing"
+//!
+//! The original port had one fail-safe — an unavailable database skips the
+//! prune — and it was not enough. A renderer round-trip wrote loopback URLs
+//! (`http://127.0.0.1:<port>/<token>/art/<hash>.jpg`) into `tracks.album_art`,
+//! [`file_name_from_url`] answered `None` for every one of them because they
+//! are not `shiranami-art://` URLs, and the reference set came out **empty
+//! against a full cache**. The prune then did exactly what it is built to do
+//! and deleted every cover the user had.
+//!
+//! The lesson generalises past the bug that taught it: a parse failure and an
+//! absence of references are indistinguishable from here, and one of them means
+//! destroying data. So every value is now classified rather than filtered —
+//! [`Reference::Cached`] names a file, [`Reference::Elsewhere`] provably names
+//! none (a remote cover, a `data:` URL), and anything else is
+//! [`Reference::Unreadable`] and **aborts the whole pass**. Skipping a prune
+//! costs some disk; getting this wrong costs the user's covers.
 
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+
+use shiranami_core::art::{is_loopback_url, loopback_art_file_name};
 
 use crate::art::cache::{art_dir, file_name_from_url};
 
@@ -67,7 +87,14 @@ pub struct PruneReport {
 /// the most important line in the module.
 pub fn prune_orphans(data_dir: &Path, references: &dyn ArtReferences) -> PruneReport {
     let referenced = match collect_references(references) {
-        Ok(referenced) => referenced,
+        Ok(Some(referenced)) => referenced,
+        Ok(None) => {
+            // Skipping is the fail-safe. See the module docs: a value this
+            // module cannot classify is not evidence that nothing is
+            // referenced, and acting as if it were is how a full cache gets
+            // deleted.
+            return PruneReport::default();
+        }
         Err(error) => {
             tracing::warn!(%error, "album-art prune: reference lookup failed, skipping");
             return PruneReport::default();
@@ -109,21 +136,99 @@ pub fn prune_orphans(data_dir: &Path, references: &dyn ArtReferences) -> PruneRe
     report
 }
 
-/// Gather the referenced filenames, dropping every value that does not name one.
-fn collect_references(references: &dyn ArtReferences) -> ArtReferencesResult<HashSet<String>> {
+/// What one stored art value tells the prune.
+#[derive(Debug, PartialEq, Eq)]
+enum Reference {
+    /// Names a file in the cache.
+    Cached(String),
+    /// Provably names no cache file: a remote cover, a `data:` URL.
+    Elsewhere,
+    /// Not a shape this module knows. Never treated as "references nothing".
+    Unreadable,
+}
+
+/// Schemes whose values are covers the cache does not hold.
+///
+/// An allowlist rather than "anything with a scheme", because the whole point
+/// is that an unrecognised value stops the pass: a list that ended in a
+/// catch-all would be the bug this classification exists to prevent, written
+/// one layer further in.
+const ELSEWHERE_SCHEMES: &[&str] = &["https://", "http://", "data:", "blob:", "file://"];
+
+/// Read one stored `album_art` / `cover_art` value.
+fn classify(value: &str) -> Reference {
+    if let Some(name) = file_name_from_url(Some(value)) {
+        return Reference::Cached(name);
+    }
+
+    // A loopback art URL *is* a cache reference — it is the same file, spelled
+    // in the form the renderer displays. Recognising it is what keeps a
+    // database written before the write guard (or one migration `0007` has not
+    // reached yet) from reading as an empty reference set.
+    if let Some(name) = loopback_art_file_name(value) {
+        tracing::warn!(
+            "album-art prune: a non-canonical loopback art URL is stored; counting it as a \
+             reference"
+        );
+        return Reference::Cached(name.to_owned());
+    }
+
+    // Any other loopback URL in an art column is a session-scoped address that
+    // should never have been persisted, and this module cannot say which file
+    // — if any — it meant.
+    if is_loopback_url(value) {
+        return Reference::Unreadable;
+    }
+
+    if ELSEWHERE_SCHEMES
+        .iter()
+        .any(|scheme| value.starts_with(scheme))
+    {
+        return Reference::Elsewhere;
+    }
+
+    Reference::Unreadable
+}
+
+/// Gather the referenced filenames, or `None` if any value could not be read.
+///
+/// `None` is the fail-safe: the caller must skip the pass entirely rather than
+/// prune against a set it knows is incomplete.
+fn collect_references(
+    references: &dyn ArtReferences,
+) -> ArtReferencesResult<Option<HashSet<String>>> {
     let mut referenced = HashSet::new();
+    let mut unreadable = 0_usize;
 
     for value in references
         .track_art()?
         .iter()
         .chain(references.playlist_art()?.iter())
     {
-        if let Some(name) = file_name_from_url(Some(value)) {
-            referenced.insert(name);
+        match classify(value) {
+            Reference::Cached(name) => {
+                referenced.insert(name);
+            }
+            Reference::Elsewhere => {}
+            // Counted rather than returned early: one pass over the values
+            // costs nothing next to the deletions being refused, and the count
+            // is the number the log has to carry. The value itself is never
+            // logged — a `data:` URL is a whole image and a `file://` one is a
+            // path out of the user's library.
+            Reference::Unreadable => unreadable += 1,
         }
     }
 
-    Ok(referenced)
+    if unreadable > 0 {
+        tracing::warn!(
+            unreadable,
+            referenced = referenced.len(),
+            "album-art prune: unreadable art values, skipping rather than deleting"
+        );
+        return Ok(None);
+    }
+
+    Ok(Some(referenced))
 }
 
 /// Whether a directory entry is one the prune pass is allowed to delete.
@@ -279,6 +384,102 @@ mod tests {
             prune_orphans(directory.path(), &Fixed::new(&[], &[])),
             PruneReport::default()
         );
+    }
+
+    /// The regression this whole classification exists for.
+    ///
+    /// The renderer round-tripped `http://127.0.0.1:<port>/<token>/art/…` into
+    /// `tracks.album_art`; `file_name_from_url` answered `None` for every row,
+    /// the reference set came out empty against a full cache, and the boot
+    /// prune deleted 512 covers. The loopback form now resolves to the file it
+    /// names, so the cache survives even before migration `0007` reaches it.
+    #[test]
+    fn a_loopback_art_url_counts_as_a_reference_rather_than_as_nothing() {
+        let directory = seed(&["keep.jpg", "orphan.jpg"]);
+        let references = Fixed::new(
+            &["http://127.0.0.1:60241/9f8e7d6c/art/keep.jpg"],
+            &["http://localhost:60241/9f8e7d6c/art/keep.jpg"],
+        );
+
+        let report = prune_orphans(directory.path(), &references);
+
+        assert_eq!(report.referenced, 1);
+        assert_eq!(report.deleted, 1);
+        assert_eq!(entries(&directory), vec!["keep.jpg"]);
+    }
+
+    /// The generalisation: **any** value this module cannot read stops the
+    /// pass. A parse failure is not evidence of an unreferenced file.
+    #[test]
+    fn an_unreadable_value_deletes_nothing_at_all() {
+        for corrupt in [
+            // A loopback URL for another route: session-scoped, and this module
+            // cannot say which file it meant.
+            "http://127.0.0.1:60241/9f8e7d6c/audio?path=%2Fmusic%2Fa.mp3",
+            // A `shiranami-art://` URL with no file name.
+            "shiranami-art://art/",
+            // A scheme nothing in the app writes.
+            "shiranami-cover://art/x.jpg",
+            // A bare filename, which looks like a reference and is not one this
+            // module is willing to guess at.
+            "abc123.jpg",
+            // Empty, which a `NOT NULL`-less column can still hold.
+            "",
+        ] {
+            let directory = seed(&["a.jpg", "b.jpg"]);
+            let references = Fixed::new(&[&art_url_for("a.jpg"), corrupt], &[]);
+
+            let report = prune_orphans(directory.path(), &references);
+
+            assert_eq!(
+                report,
+                PruneReport::default(),
+                "{corrupt} did not stop the prune"
+            );
+            assert_eq!(
+                entries(&directory),
+                vec!["a.jpg", "b.jpg"],
+                "{corrupt} cost the user a file"
+            );
+        }
+    }
+
+    /// One unreadable value among many good ones is still enough to stop it:
+    /// the pass is all-or-nothing, because a partial reference set is exactly
+    /// what deletes live files.
+    #[test]
+    fn one_unreadable_value_stops_a_pass_full_of_readable_ones() {
+        let directory = seed(&["keep.jpg", "orphan.jpg"]);
+        let references = Fixed::new(
+            &[
+                &art_url_for("keep.jpg"),
+                "https://example.com/cover.jpg",
+                "not a url",
+            ],
+            &[],
+        );
+
+        prune_orphans(directory.path(), &references);
+
+        assert_eq!(entries(&directory), vec!["keep.jpg", "orphan.jpg"]);
+    }
+
+    #[test]
+    fn the_classifier_reads_each_shape_the_column_holds() {
+        assert_eq!(
+            classify(&art_url_for("x.jpg")),
+            Reference::Cached("x.jpg".to_owned())
+        );
+        assert_eq!(
+            classify("http://127.0.0.1:1/t/art/x.jpg"),
+            Reference::Cached("x.jpg".to_owned())
+        );
+        assert_eq!(
+            classify("https://example.com/cover.jpg"),
+            Reference::Elsewhere
+        );
+        assert_eq!(classify("data:image/png;base64,AA"), Reference::Elsewhere);
+        assert_eq!(classify("who knows"), Reference::Unreadable);
     }
 
     #[test]

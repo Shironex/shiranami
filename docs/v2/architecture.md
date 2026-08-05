@@ -2700,3 +2700,63 @@ The passphrase is empty on purpose. It would have lived in the same vault as
 the key and in the same Actions secret set, defending nothing, while adding a
 second thing whose loss is unrecoverable — and §4.4 already names that loss as
 the permanent one.
+
+## The art rewrite needed an inbound counterpart after all (2026-08-05)
+
+The loopback handover above records that the outbound rewrite "needs no inbound
+counterpart". That was wrong, and the cost was the user's cover cache.
+
+Two renderer paths post an art URL **back**: `applyEnrichResults` reads
+`updatedFields.albumArt` off an enrich result and sends it to
+`db:tracks:update-many`, and `scanAndPersistFolder` reads `metadata.albumArt`
+off a scan result and sends it to `db:tracks:add-many`. "Use this track's cover"
+does the same into `playlists.cover_art`. All three stored
+`http://127.0.0.1:{port}/{token}/art/…` — a port and a session token that die
+with the process.
+
+The second consequence is the serious one. `art::prune_orphans` recognises a
+cache reference only in the `shiranami-art://` form, so a database full of
+loopback URLs produced an **empty reference set against a full cache**, and the
+boot prune deleted every cover. `referenced=0` in the boot log is the fingerprint.
+
+Four changes, at four different depths, because one of them being right is not
+enough:
+
+1. **The renderer chokepoint runs in both directions.** `stream-urls.ts` gains
+   `toStoredArtUrl`/`restoreArtUrls`, applied to every command's arguments the
+   way the rewrite is applied to every result. The `media_*` namespace is
+   exempt: souvlaki can only load an `http` URL, so there the loopback form is
+   the value that was wanted.
+2. **The repositories normalise on write.** `shiranami-core::art` owns the
+   parse; `shiranami-db`'s `repo::art_url` runs it over `album_art` and
+   `cover_art` on every insert and patch, so the guarantee holds for any client,
+   the e2e harness included.
+3. **The prune fails safe on anything it cannot read.** A value is now
+   classified — a cache reference, provably somewhere else (`https:`, `data:`),
+   or _unreadable_ — and a single unreadable value skips the whole pass. The
+   old code filtered instead, which is what let a parse failure read as "nothing
+   is referenced".
+4. **Migration `0007_canonical_album_art.sql`** repairs the rows already
+   written, matched on a loopback origin so remote covers are left alone.
+
+### Recovering a cache the prune already deleted
+
+The names are content hashes and nothing rehashes them (D16), so both halves of
+a deleted cache are reproducible without touching the database:
+
+- Covers inherited from v1 are still in the v1 tree
+  (`~/Library/Application Support/Shiranami/album-art`, `%APPDATA%\Shiranami\album-art`).
+  Copying them back into the v2 directory (`…/com.shironex.shiranami/album-art`)
+  restores exactly the names the rows reference. First-run continuity will not
+  do it again — it declines once the v2 tree has a database of its own, which is
+  the R6 guard working correctly.
+- Covers cached by v2 come back from **Settings → Library → Rescan Library**:
+  the scan re-parses every discovered file with the art directory in hand, and
+  `resize → encode → hash` is deterministic, so each embedded cover is rewritten
+  under the same name the row already holds.
+
+What no existing path restores is a v1-hashed row whose file is gone and whose
+source has no embedded cover — v2's encoder cannot reproduce a sharp/nativeImage
+hash (see `art/mod.rs`). Regenerating those means re-extracting _and_ updating
+the row, which is the "regeneration happens only when the file is missing"
+clause D16 leaves open and which nothing implements yet.
