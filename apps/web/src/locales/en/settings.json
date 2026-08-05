@@ -346,7 +346,8 @@
       "fontSizeTitle": "Font size",
       "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically.",
       "presentationTitle": "Presentation",
-      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches."
+      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches.",
+      "focusHint": "The focus stage appears in the Now Playing view, which is currently turned off. Enable it under Visual effects and lyrics will take the stage there."
     },
     "presentation": {
       "list": "List",

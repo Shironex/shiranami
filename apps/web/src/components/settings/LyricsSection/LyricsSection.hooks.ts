@@ -18,6 +18,7 @@ import {
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
   LYRICS_PRESENTATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
+import { useUIStore } from '@/stores/useUIStore';
 import type { ILyricsSectionView } from './LyricsSection.types';
 
 export function useLyricsSection(): ILyricsSectionView {
@@ -42,6 +43,7 @@ export function useLyricsSection(): ILyricsSectionView {
   const setLyricsPresentation = useLyricsAppearanceStore(s => s.setLyricsPresentation);
 
   const resetLyricsAppearance = useLyricsAppearanceStore(s => s.resetLyricsAppearance);
+  const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
 
   const { t } = useTranslation('settings');
 
@@ -78,6 +80,11 @@ export function useLyricsSection(): ILyricsSectionView {
     syncedDimOpacityStep: LYRICS_SYNCED_DIM_OPACITY_STEP,
     lyricsPresentation,
     onSetPresentation: setLyricsPresentation,
+    // The silent-failure guard: Focus only renders inside the Now Playing
+    // view, so picking it with that view disabled would change nothing
+    // visible. An observation with the pointer, not a nag.
+    presentationHint:
+      lyricsPresentation === 'focus' && !nowPlayingViewEnabled ? t('lyr.synced.focusHint') : null,
 
     isModified,
     onReset: resetLyricsAppearance,
