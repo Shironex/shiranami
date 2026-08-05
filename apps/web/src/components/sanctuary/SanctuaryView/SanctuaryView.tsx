@@ -1,5 +1,6 @@
 import { Music, Clock3, Disc3, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Companion } from '@/components/companion/Companion';
 import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
@@ -30,6 +31,8 @@ export default function SanctuaryView() {
     timeLabel,
     dateLabel,
     weatherLabel,
+    companion,
+    companionKeepsWatch,
     exitLabel,
     variantToggleLabel,
     onExit,
@@ -46,6 +49,27 @@ export default function SanctuaryView() {
   );
 
   const trackLine = `${currentTrack.artist} · ${currentTrack.album}`;
+
+  // The resident is chrome: it fades with everything else. "Keeps watch"
+  // instead leaves it asleep in the corner at 40% — the screensaver inhabited.
+  const companionCameo = companion.enabled ? (
+    <div
+      aria-hidden="true"
+      className={cn(
+        'absolute bottom-20 left-6 z-10 pointer-events-none select-none',
+        'transition-opacity duration-500',
+        chromeVisible ? 'opacity-100' : companionKeepsWatch ? 'opacity-40' : 'opacity-0'
+      )}
+    >
+      <Companion
+        species={companion.species}
+        stage={companion.stage}
+        mode={chromeVisible ? companion.mode : 'sleeping'}
+        motion={companion.motion}
+        size={72}
+      />
+    </div>
+  ) : null;
 
   // Built above JSX render position (declarative-JSX rule): the ±1 focus
   // stage, or nothing for tracks without synced lyrics.
@@ -69,6 +93,8 @@ export default function SanctuaryView() {
         !chromeVisible && 'cursor-none'
       )}
     >
+      {companionCameo}
+
       {/* Top chrome: variant toggle + exit */}
       <div className={cn('absolute top-0 inset-x-0 z-10 flex justify-end gap-1 p-4', chromeClass)}>
         <Tooltip>

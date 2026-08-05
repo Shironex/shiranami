@@ -1,6 +1,7 @@
 import type { Track } from '@/stores/types';
 import type { SanctuaryVariant } from '@/stores/useSanctuaryStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
+import type { ICompanionPresence } from '@/hooks/useCompanionPresence';
 
 type LyricsView = ReturnType<typeof useLyricsView>;
 
@@ -27,6 +28,10 @@ export interface ISanctuaryViewView {
   readonly dateLabel: string;
   /** Clock variant: "12° · light rain" when weather is opted in, else null. */
   readonly weatherLabel: string | null;
+  /** The resident's live machine read — it rides the chrome fade here. */
+  readonly companion: ICompanionPresence;
+  /** "Keeps watch": stays asleep at 40% opacity when the chrome swims away. */
+  readonly companionKeepsWatch: boolean;
   /** Localized labels for the two chrome buttons. */
   readonly exitLabel: string;
   readonly variantToggleLabel: string;

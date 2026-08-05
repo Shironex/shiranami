@@ -66,9 +66,13 @@ export default function CompanionPerch() {
         >
           <Music2 className="h-3.5 w-3.5" strokeWidth={1.75} />
         </span>
-        {/* Body hitbox — the only interactive surface. */}
+        {/* Body hitbox — the only interactive surface (inert mid-hide so the
+            slide-down never shadows the player controls beneath). */}
         <div
-          className="absolute inset-x-2 top-1 bottom-1 pointer-events-auto cursor-grab active:cursor-grabbing"
+          className={cn(
+            'absolute inset-x-2 top-1 bottom-1 cursor-grab active:cursor-grabbing',
+            hiding ? 'pointer-events-none' : 'pointer-events-auto'
+          )}
           data-slot="companion-hitbox"
           onPointerEnter={onPointerEnter}
           onPointerMove={onPointerMove}

@@ -6,6 +6,7 @@ import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { CompanionPerch } from '@/components/companion/CompanionPerch';
 import { FavoriteBurst } from '../FavoriteBurst';
 import { PlayerControls } from '../PlayerControls';
 import { SeekBar } from '../SeekBar';
@@ -74,6 +75,9 @@ export default function PlayerBar() {
             'glass border-t border-border/30'
           )}
         >
+          {/* The resident sits on the bar's top edge, feet over the border. */}
+          <CompanionPerch />
+
           {/* Ambient glow — skipped in low performance mode */}
           {!lowPerformanceMode && (
             <div

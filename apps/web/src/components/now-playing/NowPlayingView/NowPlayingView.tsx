@@ -1,6 +1,7 @@
 import { Music, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { Companion } from '@/components/companion/Companion';
 import { LyricsBody } from '@/components/lyrics/LyricsBody';
 import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { QueuePanel } from '@/components/player/QueuePanel';
@@ -24,6 +25,8 @@ export default function NowPlayingView() {
     showWaveformSeekbar,
     panel,
     panelVisible,
+    companion,
+    companionVisible,
     panelButtons,
     panelGroupLabel,
     lowPerformanceMode,
@@ -128,52 +131,85 @@ export default function NowPlayingView() {
         >
           {/* Album art — scales dramatically with container. On track change it
               mirrors the PlayerBar's ±3° tilt spring (decorative: skipped under
-              reduced motion / low-performance mode). */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTrack.id}
-              initial={
-                albumArtTiltEnabled
-                  ? { scale: 0.9, opacity: 0, rotate: -3 }
-                  : { scale: 0.9, opacity: 0 }
-              }
-              animate={
-                albumArtTiltEnabled ? { scale: 1, opacity: 1, rotate: 0 } : { scale: 1, opacity: 1 }
-              }
-              exit={
-                albumArtTiltEnabled
-                  ? { scale: 0.9, opacity: 0, rotate: 3 }
-                  : { scale: 0.9, opacity: 0 }
-              }
-              transition={{ type: 'spring', damping: 22, stiffness: 250 }}
-              className={cn(
-                'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
-                'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
-                // The art is sized by max-width, and the box is aspect-square, so
-                // capping max-width also caps its height. The `calc(100vh - …)`
-                // term is a height budget that reserves room for the header, track
-                // info, seek bar and controls: on tall viewports the width clamp
-                // wins (art stays large), but on short ones (e.g. a 1080p screen at
-                // 150% display scaling → ~720px tall) the height budget wins and
-                // shrinks the art so the controls always clear the window bottom
-                // instead of sliding under the OS taskbar.
-                panelVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh_-_28rem),clamp(280px,22vw,480px))]'
-                  : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
-              )}
-            >
-              {currentTrack.albumArt ? (
-                <img
-                  src={currentTrack.albumArt}
-                  alt={currentTrack.album}
-                  className="w-full h-full object-cover"
-                  decoding="async"
+              reduced motion / low-performance mode). The relative wrapper owns
+              the sizing so the resident can perch on the frame's lower-right
+              corner *outside* the art's overflow clip. */}
+          <div
+            className={cn(
+              'relative shrink-0 aspect-square',
+              // The art is sized by max-width, and the box is aspect-square, so
+              // capping max-width also caps its height. The `calc(100vh - …)`
+              // term is a height budget that reserves room for the header, track
+              // info, seek bar and controls: on tall viewports the width clamp
+              // wins (art stays large), but on short ones (e.g. a 1080p screen at
+              // 150% display scaling → ~720px tall) the height budget wins and
+              // shrinks the art so the controls always clear the window bottom
+              // instead of sliding under the OS taskbar.
+              panelVisible
+                ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh_-_28rem),clamp(280px,22vw,480px))]'
+                : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
+            )}
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentTrack.id}
+                initial={
+                  albumArtTiltEnabled
+                    ? { scale: 0.9, opacity: 0, rotate: -3 }
+                    : { scale: 0.9, opacity: 0 }
+                }
+                animate={
+                  albumArtTiltEnabled
+                    ? { scale: 1, opacity: 1, rotate: 0 }
+                    : { scale: 1, opacity: 1 }
+                }
+                exit={
+                  albumArtTiltEnabled
+                    ? { scale: 0.9, opacity: 0, rotate: 3 }
+                    : { scale: 0.9, opacity: 0 }
+                }
+                transition={{ type: 'spring', damping: 22, stiffness: 250 }}
+                className={cn(
+                  'w-full h-full rounded-2xl @5xl:rounded-3xl overflow-hidden',
+                  'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center'
+                )}
+              >
+                {currentTrack.albumArt ? (
+                  <img
+                    src={currentTrack.albumArt}
+                    alt={currentTrack.album}
+                    className="w-full h-full object-cover"
+                    decoding="async"
+                  />
+                ) : (
+                  <Music className="w-16 h-16 text-muted-foreground/30" />
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* The resident, half overlapping the frame edge (display-only:
+                interactions stay on the player-bar perch). */}
+            {companionVisible && (
+              <div
+                aria-hidden="true"
+                className={cn(
+                  'absolute -bottom-2 -right-3 z-10 pointer-events-none select-none',
+                  'transition-opacity duration-300',
+                  companion.mode === 'hiding' && 'opacity-0'
+                )}
+              >
+                <Companion
+                  species={companion.species}
+                  stage={companion.stage}
+                  mode={companion.mode}
+                  overlay={companion.overlay}
+                  overlaySeq={companion.overlaySeq}
+                  motion={companion.motion}
+                  size={64}
                 />
-              ) : (
-                <Music className="w-16 h-16 text-muted-foreground/30" />
-              )}
-            </motion.div>
-          </AnimatePresence>
+              </div>
+            )}
+          </div>
 
           {/* Track info */}
           <AnimatePresence mode="wait">

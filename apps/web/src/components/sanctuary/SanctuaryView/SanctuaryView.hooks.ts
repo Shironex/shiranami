@@ -5,7 +5,9 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
 import { useSanctuaryStore, SANCTUARY_CHROME_TIMEOUT_MS } from '@/stores/useSanctuaryStore';
+import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
+import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useLyricsView } from '@/hooks/useLyricsView';
 import type { ISanctuaryViewView } from './SanctuaryView.types';
 
@@ -25,6 +27,11 @@ export function useSanctuaryView(): ISanctuaryViewView {
   const exitSanctuary = useSanctuaryStore(s => s.exitSanctuary);
   const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
   const lyrics = useLyricsView();
+
+  // The resident is chrome here — it rides the same fade; "keeps watch"
+  // instead leaves it asleep at 40% in a corner when the chrome swims away.
+  const companion = useCompanionPresence();
+  const companionKeepsWatch = useCompanionStore(s => s.sanctuaryKeepsWatch);
 
   const weatherEnabled = useWeatherStore(s => s.enabled);
   const weatherCoords = useWeatherStore(s => s.coords);
@@ -109,6 +116,8 @@ export function useSanctuaryView(): ISanctuaryViewView {
       month: 'long',
     }),
     weatherLabel,
+    companion,
+    companionKeepsWatch,
     exitLabel: t('exit'),
     variantToggleLabel: variant === 'cover' ? t('showClock') : t('showCover'),
     onExit: exitSanctuary,
