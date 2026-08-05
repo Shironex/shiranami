@@ -166,6 +166,27 @@ describe('useUIStore', () => {
   });
 });
 
+describe('nowPlayingViewEnabled default (v2)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to enabled on a fresh profile', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().nowPlayingViewEnabled).toBe(true);
+  });
+
+  it('keeps a persisted opt-out from before the default flip', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { nowPlayingViewEnabled: false }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().nowPlayingViewEnabled).toBe(false);
+  });
+});
+
 describe('visual-effect gates (artworkBloomEnabled / coverCrossfadeEnabled)', () => {
   beforeEach(() => {
     localStorage.clear();

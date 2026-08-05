@@ -441,7 +441,11 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     playlistGridSize: 'medium',
     albumSortMode: 'name',
     albumSortOrder: 'asc',
-    nowPlayingViewEnabled: false,
+    // On by default since v2: Lyric Focus and the BPM/key line live inside
+    // the Now Playing view, so a fresh profile should be able to reach them.
+    // Persisted users keep whatever they chose (sanitize honors the stored
+    // boolean); only fresh profiles pick up the new default.
+    nowPlayingViewEnabled: true,
     nowPlayingPanel: 'lyrics',
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
