@@ -4,6 +4,7 @@ import {
   SettingsToggleRow,
   SettingsSelectRow,
 } from '@/components/settings/SettingsCard';
+import { CompanionSection } from '@/components/settings/CompanionSection';
 import { LayoutPreview } from '@/components/settings/LayoutPreview';
 import { TopBarPreview } from '@/components/settings/TopBarPreview';
 import { OverviewLayoutPreview } from '@/components/settings/OverviewLayoutPreview';
@@ -103,6 +104,8 @@ export default function InterfaceSection() {
         />
         <TopBarPreview enabled={topBarLanguageSwitcher} />
       </SettingsCard>
+
+      <CompanionSection />
 
       <SettingsCard
         icon={LayoutDashboard}
