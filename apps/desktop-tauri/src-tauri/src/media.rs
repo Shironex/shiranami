@@ -30,6 +30,7 @@
 //! not register the handler, which would cost the feature in release builds too.
 //! [`is_supported`] does not exclude debug macOS for that reason.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use shiranami_media_controls::{CommandSink, MediaControlsService};
@@ -51,7 +52,17 @@ pub const fn is_supported(e2e: bool) -> bool {
 ///
 /// Returns `None` when this build has none — the command layer already answers
 /// for an absent seam, so there is no second path to keep in agreement.
-pub fn build(app: &AppHandle, window: &WebviewWindow, e2e: bool) -> Option<Arc<dyn MediaControls>> {
+///
+/// `art_dir` is the same directory the loopback server serves `/art/{name}`
+/// from. macOS needs it to turn a cover URL back into the file behind it before
+/// souvlaki is allowed near it — `shiranami_media_controls::os::loadable_cover`
+/// documents the abort that prevents.
+pub fn build(
+    app: &AppHandle,
+    window: &WebviewWindow,
+    e2e: bool,
+    art_dir: PathBuf,
+) -> Option<Arc<dyn MediaControls>> {
     if !is_supported(e2e) {
         tracing::debug!(e2e, "this build does not claim the OS media surface");
         return None;
@@ -65,7 +76,7 @@ pub fn build(app: &AppHandle, window: &WebviewWindow, e2e: bool) -> Option<Arc<d
         crate::tray::send_command(&handle, command);
     });
 
-    let mut service = build_service(window)?;
+    let mut service = build_service(window, art_dir)?;
 
     if let Err(error) = service.attach(sink) {
         tracing::warn!(%error, "the OS media surface refused the command handlers");
@@ -78,6 +89,7 @@ pub fn build(app: &AppHandle, window: &WebviewWindow, e2e: bool) -> Option<Arc<d
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 fn build_service(
     window: &WebviewWindow,
+    art_dir: PathBuf,
 ) -> Option<MediaControlsService<shiranami_media_controls::souvlaki_backend::SouvlakiBackend>> {
     use shiranami_media_controls::souvlaki_backend::{SouvlakiBackend, SouvlakiConfig};
 
@@ -85,6 +97,7 @@ fn build_service(
         // Windows only, and souvlaki #67 means it is not honoured there either
         // yet — carried so the value is right when the upstream fix lands.
         window_handle: window_handle(window),
+        art_dir: Some(art_dir),
         ..SouvlakiConfig::default()
     };
 
@@ -104,6 +117,7 @@ fn build_service(
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 fn build_service(
     _window: &WebviewWindow,
+    _art_dir: PathBuf,
 ) -> Option<MediaControlsService<shiranami_media_controls::NullBackend>> {
     None
 }

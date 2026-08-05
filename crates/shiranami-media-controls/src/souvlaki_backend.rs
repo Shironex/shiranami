@@ -70,6 +70,13 @@ pub struct SouvlakiConfig {
     /// The main window's `HWND`, as an integer. Required on Windows, ignored
     /// everywhere else.
     pub window_handle: Option<isize>,
+    /// Where the album-art cache lives, so a cover URL can be resolved to the
+    /// file it is served from.
+    ///
+    /// macOS-critical rather than cosmetic: [`crate::os::loadable_cover`]
+    /// documents the abort this prevents. `None` means "resolve nothing", which
+    /// costs the thumbnail and never the process.
+    pub art_dir: Option<std::path::PathBuf>,
 }
 
 impl Default for SouvlakiConfig {
@@ -78,6 +85,7 @@ impl Default for SouvlakiConfig {
             display_name: "Shiranami".to_owned(),
             dbus_name: "shiranami".to_owned(),
             window_handle: None,
+            art_dir: None,
         }
     }
 }
@@ -91,6 +99,10 @@ impl Default for SouvlakiConfig {
 #[derive(Debug)]
 pub struct SouvlakiBackend {
     controls: souvlaki::MediaControls,
+    /// Carried from [`SouvlakiConfig`] for [`crate::os::loadable_cover`], which
+    /// every `set_metadata` runs the cover through on macOS.
+    #[cfg_attr(target_os = "windows", allow(dead_code))]
+    art_dir: Option<std::path::PathBuf>,
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
@@ -111,7 +123,10 @@ impl SouvlakiBackend {
 
         let controls = souvlaki::MediaControls::new(platform).map_err(backend_error)?;
 
-        Ok(Self { controls })
+        Ok(Self {
+            controls,
+            art_dir: config.art_dir.clone(),
+        })
     }
 }
 
@@ -135,6 +150,8 @@ impl MediaControlsBackend for SouvlakiBackend {
     }
 
     fn set_metadata(&mut self, metadata: &OsMetadata) -> Result<()> {
+        let cover = self.cover_url(metadata);
+
         // Every field is `Some`, including the empty ones: on Windows a `None`
         // is skipped rather than cleared.
         self.controls
@@ -142,7 +159,7 @@ impl MediaControlsBackend for SouvlakiBackend {
                 title: Some(&metadata.title),
                 artist: Some(&metadata.artist),
                 album: Some(&metadata.album),
-                cover_url: metadata.cover_url.as_deref(),
+                cover_url: cover.as_deref(),
                 duration: metadata.duration,
             })
             .map_err(backend_error)
@@ -160,6 +177,32 @@ impl MediaControlsBackend for SouvlakiBackend {
         };
 
         self.controls.set_playback(playback).map_err(backend_error)
+    }
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+impl SouvlakiBackend {
+    /// The cover this backend will admit, which is not the same question on
+    /// both platforms.
+    ///
+    /// macOS resolves the renderer's loopback URL to the art file it is served
+    /// from and refuses anything it cannot verify, because souvlaki's macOS
+    /// artwork loader **aborts the process** on a cover it fails to load —
+    /// [`crate::os::loadable_cover`] has the whole story.
+    ///
+    /// Windows passes the URL through untouched. Its loader is
+    /// `RandomAccessStreamReference::CreateFromUri`, which answers with an
+    /// `Err` that `set_metadata` already turns into a warning; there is no
+    /// abort to prevent, so narrowing the accepted covers there would cost
+    /// remote thumbnails to fix a bug that platform does not have.
+    #[cfg(target_os = "macos")]
+    fn cover_url(&self, metadata: &OsMetadata) -> Option<String> {
+        crate::os::loadable_cover(metadata.cover_url.as_deref(), self.art_dir.as_deref())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn cover_url(&self, metadata: &OsMetadata) -> Option<String> {
+        metadata.cover_url.clone()
     }
 }
 

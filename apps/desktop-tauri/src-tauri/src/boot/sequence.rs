@@ -274,9 +274,13 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
     preflight.timer.stage(Stage::FoldersCache);
 
     // ── the loopback server ─────────────────────────────────────────────────
+    // Bound once and shared: the OS media surface resolves the cover URLs this
+    // server hands out back into the files under it, so the two reading a
+    // different directory would silently cost every now-playing thumbnail.
+    let art_dir = shiranami_metadata::art::art_dir(&data_dir);
     let serve = shiranami_serve::start(shiranami_serve::ServeConfig::new(
         Arc::clone(&cache),
-        shiranami_metadata::art::art_dir(&data_dir),
+        art_dir.clone(),
         (*http).clone(),
     ))
     .await
@@ -309,7 +313,7 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
     // this possible inside the same stage rather than after it.
     deferred.media_controls = app
         .get_webview_window("main")
-        .and_then(|window| crate::media::build(app, &window, preflight.e2e));
+        .and_then(|window| crate::media::build(app, &window, preflight.e2e, art_dir));
 
     let state = AppState::from_parts(opened.pool, Arc::clone(&preflight.settings), http, deferred);
     preflight.timer.stage(Stage::Services);
