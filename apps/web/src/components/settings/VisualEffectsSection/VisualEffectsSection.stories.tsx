@@ -5,12 +5,12 @@ import { useUIStore } from '@/stores/useUIStore';
 import VisualEffectsSection from './VisualEffectsSection';
 
 /**
- * settings · VisualEffectsSection. Five immersive-effect switches — Now Playing
- * view, Now playing banner, Low performance mode, Noise texture, and Tempo
- * breathing — each labelled via `aria-labelledby`, most paired with a live
- * preview tile beneath it. The switches read and write the UI store directly,
- * so flipping one updates the store and re-renders the matching preview.
- * Stories seed the store on entry.
+ * settings · VisualEffectsSection. Seven immersive-effect switches — Now
+ * Playing view, Now playing banner, Low performance mode, Noise texture,
+ * Artwork bloom, Cover crossfade, and Tempo breathing — each labelled via
+ * `aria-labelledby`, most paired with a live preview tile beneath it. The
+ * switches read and write the UI store directly, so flipping one updates the
+ * store and re-renders the matching preview. Stories seed the store on entry.
  *
  * a11y stays at `'todo'`: the embedded effect-preview tiles render decorative
  * mock chrome with low-opacity tinted text (e.g. amber "Reduced" badges on a
@@ -44,6 +44,8 @@ export const Default: Story = {
         lowPerformanceMode: false,
         noiseOverlayEnabled: false,
         tempoBreathingEnabled: true,
+        artworkBloomEnabled: true,
+        coverCrossfadeEnabled: true,
       });
       return <Story />;
     },
@@ -55,7 +57,38 @@ export const Default: Story = {
     await expect(canvas.getByRole('switch', { name: 'Now Playing view' })).toBeChecked();
     await expect(canvas.getByRole('switch', { name: 'Low performance mode' })).not.toBeChecked();
     await expect(canvas.getByRole('switch', { name: 'Noise texture' })).not.toBeChecked();
+    await expect(canvas.getByRole('switch', { name: 'Artwork bloom' })).toBeChecked();
+    await expect(canvas.getByRole('switch', { name: 'Cover crossfade' })).toBeChecked();
     await expect(canvas.getByRole('switch', { name: 'Tempo breathing' })).toBeChecked();
+  },
+};
+
+/** Switching the artwork bloom off flips both the switch and the backing store. */
+export const TogglesArtworkBloom: Story = {
+  decorators: [
+    Story => {
+      useUIStore.setState({
+        nowPlayingViewEnabled: true,
+        libraryHeroCardEnabled: true,
+        lowPerformanceMode: false,
+        noiseOverlayEnabled: false,
+        tempoBreathingEnabled: true,
+        artworkBloomEnabled: true,
+        coverCrossfadeEnabled: true,
+      });
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    const bloom = canvas.getByRole('switch', { name: 'Artwork bloom' });
+    await expect(bloom).toBeChecked();
+
+    await userEvent.click(bloom);
+
+    await waitFor(() => expect(bloom).not.toBeChecked());
+    await expect(useUIStore.getState().artworkBloomEnabled).toBe(false);
   },
 };
 

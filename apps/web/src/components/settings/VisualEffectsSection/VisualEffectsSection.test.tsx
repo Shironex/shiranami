@@ -31,6 +31,8 @@ function reset(): void {
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
     tempoBreathingEnabled: true,
+    artworkBloomEnabled: true,
+    coverCrossfadeEnabled: true,
   });
   useLibraryStore.setState({ library: [], libraryLoaded: true });
   vi.clearAllMocks();
@@ -46,7 +48,31 @@ describe('VisualEffectsSection', () => {
     expect(screen.getByText('Now Playing view')).toBeInTheDocument();
     expect(screen.getByText('Low performance mode')).toBeInTheDocument();
     expect(screen.getByText('Noise texture')).toBeInTheDocument();
+    expect(screen.getByText('Artwork bloom')).toBeInTheDocument();
+    expect(screen.getByText('Cover crossfade')).toBeInTheDocument();
     expect(screen.getByText('Tempo breathing')).toBeInTheDocument();
+  });
+
+  it('toggles the artwork bloom through the store setter', async () => {
+    const user = userEvent.setup();
+    const setArtworkBloomEnabled = vi.fn();
+    useUIStore.setState({ setArtworkBloomEnabled });
+    render(<VisualEffectsSection />);
+
+    await user.click(screen.getByRole('switch', { name: 'Artwork bloom' }));
+
+    expect(setArtworkBloomEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles the cover crossfade through the store setter', async () => {
+    const user = userEvent.setup();
+    const setCoverCrossfadeEnabled = vi.fn();
+    useUIStore.setState({ setCoverCrossfadeEnabled });
+    render(<VisualEffectsSection />);
+
+    await user.click(screen.getByRole('switch', { name: 'Cover crossfade' }));
+
+    expect(setCoverCrossfadeEnabled).toHaveBeenCalledWith(false);
   });
 
   it('toggles tempo breathing through the store setter', async () => {
