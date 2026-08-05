@@ -4,6 +4,7 @@ import type { Track } from '@/stores/types';
 import type { NowPlayingPanel } from '@/stores/useUIStore';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
+import type { ICompanionPresence } from '@/hooks/useCompanionPresence';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 type LyricsView = ReturnType<typeof useLyricsView>;
@@ -57,6 +58,10 @@ export interface INowPlayingViewView {
   readonly panel: NowPlayingPanel;
   /** Whether any panel is visible — drives the two-column vs centered layout. */
   readonly panelVisible: boolean;
+  /** The resident's live machine read for the album-art corner cameo. */
+  readonly companion: ICompanionPresence;
+  /** Render the corner cameo at all (master toggle). */
+  readonly companionVisible: boolean;
   /** Render-ready entries for the lyrics / queue / EQ toggle group. */
   readonly panelButtons: readonly INowPlayingPanelButton[];
   /** Localized label for the toggle group's `aria-label`. */

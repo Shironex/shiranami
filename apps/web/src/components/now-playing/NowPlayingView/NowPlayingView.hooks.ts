@@ -9,6 +9,7 @@ import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsView } from '@/hooks/useLyricsView';
+import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
 import { cn } from '@/lib/utils';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
@@ -75,6 +76,10 @@ export function useNowPlayingView(): INowPlayingViewView {
 
   const lyrics = useLyricsView();
 
+  // The resident relocates to the album art's lower-right corner here (the
+  // player bar — its usual perch — is hidden in this view).
+  const companion = useCompanionPresence();
+
   // The focus stage only replaces the *synced* list — loading, plain-text and
   // empty states keep the classic LyricsBody branches.
   const showLyricsFocus =
@@ -131,6 +136,8 @@ export function useNowPlayingView(): INowPlayingViewView {
     showWaveformSeekbar,
     panel,
     panelVisible: panel !== null,
+    companion,
+    companionVisible: companion.enabled,
     panelButtons,
     panelGroupLabel: t('panelGroup'),
     lowPerformanceMode,

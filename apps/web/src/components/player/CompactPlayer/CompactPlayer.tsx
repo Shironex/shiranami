@@ -19,6 +19,10 @@ import { useCompactPlayer } from './CompactPlayer.hooks';
 // the build used to warn about. It only renders when the user opens lyrics.
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel/LyricsPanel'));
 
+// TODO(companion): the resident deliberately skips the compact player for now
+// — at 500×214 a 40px sprite may be one element too many. Prototype a corner
+// perch in situ and either commit or cut it (research-visual Part 6).
+
 export default function CompactPlayer() {
   const {
     t,
