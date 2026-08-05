@@ -47,6 +47,24 @@ export const commands = {
 	 */
 	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
 	/**
+	 *  `companion:get-state` — the singleton, hatched from history on first read.
+	 * 
+	 *  The first call ever seeds `xp` from `SUM(played_seconds)` over the whole
+	 *  play history, so an existing user's pet hatches at a stage honoring
+	 *  everything they already listened to. See the module docs for the
+	 *  `lastSeenAt` read-then-stamp order.
+	 */
+	companionGetState: () => __TAURI_INVOKE<CompanionState>("companion_get_state"),
+	/**  `companion:set-name` — the naming ceremony. Returns the updated state. */
+	companionSetName: (name: string) => __TAURI_INVOKE<CompanionState>("companion_set_name", { name }),
+	/**
+	 *  `companion:set-species` — switch who lives with you.
+	 * 
+	 *  A preference, not a collection: stage, xp, name and accessories all
+	 *  survive the switch, so trying the other companion costs nothing.
+	 */
+	companionSetSpecies: (species: Species) => __TAURI_INVOKE<CompanionState>("companion_set_species", { species }),
+	/**
 	 *  `db:backup:export` — write a consistent copy of the library to `destination`.
 	 * 
 	 *  The snapshot is taken with `VACUUM INTO`, which is transactionally
@@ -1277,6 +1295,7 @@ export const commands = {
 /** Events */
 export const events = {
 	analysisProgress: makeEvent<AnalysisProgress>("analysis:progress"),
+	companionXp: makeEvent<CompanionXp>("companion:xp"),
 	debugMetrics: makeEvent<DebugMetrics>("debug:metrics"),
 	doctorProgress: makeEvent<DoctorProgress>("doctor:progress"),
 	downloaderDependencyInstallProgress: makeEvent<DownloaderDependencyInstallProgress>("downloader:dependency-install-progress"),
@@ -1367,6 +1386,51 @@ export type CachedToolStatus = {
 export type CompactDimensions = {
 	width: number,
 	height: number,
+};
+
+/**
+ *  The companion's persistent self — the `companion_state` singleton, on the
+ *  wire.
+ */
+export type CompanionState = {
+	/**  User-chosen name; `null` until the naming ceremony. */
+	name: string | null,
+	/**  Which companion is active. */
+	species: Species,
+	/**  Evolution stage reached — monotonic, ratcheted by [`accrue`]. */
+	stage: number,
+	/**  Lifetime XP in honest listened seconds. */
+	xp: number,
+	/**  Unlocked accessory ids (Phase 3's surface; empty until then). */
+	accessories: string[],
+	/**  ISO-8601 instant of the hatch, set when the row is first seeded. */
+	hatchedAt: string | null,
+	/**
+	 *  ISO-8601 instant of the previous sighting, for return-after-absence
+	 *  moods. `null` on the very first read.
+	 */
+	lastSeenAt: string | null,
+};
+
+/**
+ *  The companion accrued XP from a recorded play (v2 companion, no v1
+ *  counterpart). Fired by `db:history:record-play`'s accrual hook; the
+ *  payload carries the delta, the new lifetime total, the (possibly
+ *  freshly ratcheted) stage and whether a threshold was crossed, so the
+ *  pet can celebrate in real time without a follow-up read.
+ */
+export type CompanionXp = CompanionXpGain;
+
+/**  What one XP accrual did — the payload of the `companion:xp` event. */
+export type CompanionXpGain = {
+	/**  Seconds of honest listening this accrual added. */
+	xpGained: number,
+	/**  Lifetime XP after the accrual, in seconds. */
+	totalXp: number,
+	/**  The (possibly freshly ratcheted) stage after the accrual. */
+	stage: number,
+	/**  True when this accrual crossed a stage threshold. */
+	leveledUp: boolean,
 };
 
 /**
@@ -3289,6 +3353,19 @@ export type SmartPlaylistUpdateInput = {
 	/**  The rules, replacing the stored set wholesale. */
 	rules?: SmartPlaylistRule[] | null,
 };
+
+/**
+ *  Which companion lives with the listener.
+ * 
+ *  A preference, not a collection (`docs/v2/companion/decision.md`): one active
+ *  companion, switchable at any time, and growth belongs to the listener — the
+ *  stage survives a species change untouched.
+ */
+export type Species = 
+/**  潮 — the tide-cat; the wave lives in its tail. The default. */
+"shio" | 
+/**  蛍 — the star jelly, filling with glow-motes as it grows. */
+"hotaru";
 
 /**
  *  One immediate subdirectory of the scanned root, and its tracks.

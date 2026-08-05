@@ -31,6 +31,7 @@
 use specta::Types;
 use specta_typescript::Typescript;
 
+use crate::companion::{CompanionState, CompanionXpGain};
 use crate::error::ErrorPayload;
 use crate::models;
 use crate::notice::SystemNotice;
@@ -51,6 +52,10 @@ pub fn types() -> Types {
         .register::<SystemNotice>()
         // The settings key space the renderer is allowed to name.
         .register::<RendererStoreKey>()
+        // The companion's persistent self and its XP event payload (v2-only;
+        // `Species` arrives with its parent).
+        .register::<CompanionState>()
+        .register::<CompanionXpGain>()
         // Domain models, in the order `models::mod` declares them.
         .register::<models::InstallDependenciesResult>()
         .register::<models::ToolInstallResult>()

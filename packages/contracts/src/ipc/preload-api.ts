@@ -65,6 +65,7 @@ import type {
   WeeklyInsights,
 } from './history';
 import type { AnalysisBatchResult, AnalysisInput, AnalysisProgress } from './analysis';
+import type { CompanionSpecies, CompanionState, CompanionXpGain } from './companion';
 import type { DoctorProgress, DoctorScanInput, DoctorScanResult } from './doctor';
 import type { LoudnessAnalyzeInput, LoudnessAnalyzeResult, LoudnessProgress } from './loudness';
 import type {
@@ -161,6 +162,27 @@ export interface DoctorApi {
   scan: (tracks: DoctorScanInput[]) => Promise<DoctorScanResult>;
   cancel: () => Promise<void>;
   onProgress: (callback: (data: DoctorProgress) => void) => () => void;
+}
+
+// ── companion ─────────────────────────────────────────────────────────────
+
+export interface CompanionApi {
+  /**
+   * The companion's persistent self. The first call ever hatches the
+   * singleton, seeding its XP from the whole play history; `lastSeenAt` in
+   * the returned state is the *previous* sighting (the call stamps the new
+   * one after reading), so return-after-absence moods cost one round trip.
+   */
+  getState: () => Promise<CompanionState>;
+  /** The naming ceremony. Returns the updated state. */
+  setName: (name: string) => Promise<CompanionState>;
+  /**
+   * Switch who lives with you. Stage, XP, name and accessories all survive
+   * the switch — a preference, not a collection.
+   */
+  setSpecies: (species: CompanionSpecies) => Promise<CompanionState>;
+  /** XP accrued from a recorded play, streamed by `db:history:record-play`. */
+  onXp: (callback: (gain: CompanionXpGain) => void) => () => void;
 }
 
 // ── loudness ──────────────────────────────────────────────────────────────
@@ -639,6 +661,13 @@ export interface SharedElectronApi {
    * the renderer feature-detects and hides the card where this is absent.
    */
   doctor?: DoctorApi;
+  /**
+   * The desk companion's ledger (v2 companion, Phase 1). v2-only, hence
+   * optional: the v1 preload also implements this interface and has no
+   * companion — the renderer feature-detects and keeps the perch empty
+   * where this is absent.
+   */
+  companion?: CompanionApi;
   loudness: LoudnessApi;
   waveform: WaveformApi;
   db: DbApi;

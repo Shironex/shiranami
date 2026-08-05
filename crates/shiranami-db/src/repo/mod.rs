@@ -66,3 +66,7 @@ pub mod scrobble_queue;
 // queries.
 pub mod recommendations;
 pub mod youtube_mappings;
+
+// v2 companion (Phase 1, "the ledger") — the `companion_state` singleton from
+// migration `0006`, with no v1 counterpart of any kind.
+pub mod companion;

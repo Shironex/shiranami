@@ -275,6 +275,11 @@ mod tests {
             // v2's real decoder can see, so v1 had nothing to say here.
             "doctorScan",
             "doctorCancel",
+            // Port no v1 channels: the v2 companion's ledger — v1 had no
+            // companion at all. See NON_V1_COMMANDS.
+            "companionGetState",
+            "companionSetName",
+            "companionSetSpecies",
             "shellShowInFolder",
             "shellTrashFile",
             "debugStart",

@@ -47,18 +47,34 @@
 //! stream's "track" is whatever the station put in its metadata, and submitting
 //! those would fill a user's profile with stream titles. `source` defaults to
 //! `library` in the repository when the renderer sends none.
+//!
+//! # The companion accrues inside the connection scope, unlike the scrobble
+//!
+//! `record-play` is also the companion's XP accrual point
+//! (`docs/v2/companion/research-tech.md` §5): the honest listening clock that
+//! feeds `played_seconds` is the anti-gaming mechanism, so the ledger advances
+//! exactly where the history does. The accrual is a **local DB write**, so it
+//! runs inside the same acquired-connection scope as `record_play` — the
+//! discipline above applies to the scrobble because it awaits HTTP, not to
+//! writes on the connection already held. The `companion:xp` event is emitted
+//! after the connection drops (an emit needs no connection), and an accrual
+//! failure is logged rather than failing the play: the history row is the
+//! record of truth, the pet is delight.
 
+use shiranami_core::companion::CompanionXpGain;
 use shiranami_core::models::{
     ListeningActivityPoint, ListeningHistoryEntry, ListeningHourlyActivityPoint,
     ListeningStatsSummary, PlayHistoryRecord, RecordPlayInput, WeeklyInsights,
 };
 use shiranami_core::time::{instant, iso8601};
-use shiranami_db::repo::history;
+use shiranami_db::repo::{companion, history};
 use shiranami_integrations::scrobble::{ScrobblePlay, play_start_timestamp};
 use specta_typescript::Number;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_specta::Event as _;
 
 use crate::error::{CommandResult, WireResultExt as _};
+use crate::events::CompanionXp;
 use crate::state::AppState;
 
 /// Register this namespace's commands with [`crate::commands::registry`].
@@ -158,6 +174,7 @@ pub struct WindowQuery {
 #[tauri::command]
 #[specta::specta]
 pub async fn db_history_record_play(
+    app: AppHandle,
     state: State<'_, AppState>,
     data: RecordPlayInput,
 ) -> CommandResult<PlayHistoryRecord> {
@@ -165,16 +182,46 @@ pub async fn db_history_record_play(
     let now_ms = instant::now_ms();
     let now = iso8601::from_epoch_millis(now_ms);
 
-    let recorded = {
+    let (recorded, xp) = {
         let mut conn = state.conn().await?;
-        history::record_play(&mut conn, &id, &now, &data)
+        let recorded = history::record_play(&mut conn, &id, &now, &data)
             .await
-            .wire()?
+            .wire()?;
+        // The companion's ledger advances with the history, on the same
+        // connection — a local write, unlike the scrobble below. See the
+        // module docs for both halves of that sentence.
+        let xp = accrue_companion_xp(&mut conn, recorded.entry.played_seconds, &now).await;
+        (recorded, xp)
     };
 
     scrobble(&state, &data, &recorded, now_ms);
+    if let Some(gain) = xp {
+        // Dropped on failure like every fire-and-forget event: the accrual is
+        // already committed, and a pet that misses one celebration catches up
+        // on the next `companion:get-state`.
+        let _ = CompanionXp(gain).emit(&app);
+    }
 
     Ok(recorded.entry)
+}
+
+/// Accrue the recorded seconds onto the companion's ledger, best-effort.
+///
+/// `None` on failure, and the failure is logged rather than propagated: the
+/// play-history row is the record of truth and has already committed, so a
+/// companion hiccup must not turn a recorded play into a renderer error.
+async fn accrue_companion_xp(
+    conn: &mut sqlx::SqliteConnection,
+    played_seconds: f64,
+    now: &str,
+) -> Option<CompanionXpGain> {
+    match companion::accrue(conn, played_seconds, now).await {
+        Ok(gain) => Some(gain),
+        Err(error) => {
+            tracing::warn!(%error, "companion xp accrual failed");
+            None
+        }
+    }
 }
 
 /// Hand the play to the scrobbler, if there is one and the play qualifies.

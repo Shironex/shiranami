@@ -109,6 +109,16 @@ export const queueSnapshot = predicate(
   })
 );
 
+/** `companion:xp`. */
+export const companionXp = predicate(
+  z.object({
+    xpGained: z.number(),
+    totalXp: z.number(),
+    stage: z.number(),
+    leveledUp: z.boolean(),
+  })
+);
+
 // ── the rest ──────────────────────────────────────────────────────────────
 
 /** `system:notice`. */

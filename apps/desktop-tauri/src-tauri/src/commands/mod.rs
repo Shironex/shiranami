@@ -41,6 +41,7 @@ pub mod registry;
 // list, and a namespace listed there without a module here is a compile error.
 pub mod analysis;
 pub mod app;
+pub mod companion;
 pub mod db_backup;
 pub mod db_folders;
 pub mod db_history;
