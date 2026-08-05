@@ -48,6 +48,11 @@ export interface ILyricsSectionView {
   readonly lyricsPresentation: LyricsPresentation;
   /** Set the synced-lyrics presentation. */
   readonly onSetPresentation: (presentation: LyricsPresentation) => void;
+  /**
+   * Localized note that the focus stage lives in the Now Playing view, shown
+   * when Focus is selected while that view is disabled; `null` otherwise.
+   */
+  readonly presentationHint: string | null;
 
   // --- Reset ---
   /** Whether any lyrics preference differs from default (shows the reset link). */

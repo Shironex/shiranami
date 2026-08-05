@@ -31,6 +31,14 @@ export default function VisualEffectsSection() {
     noiseDescription,
     noiseOverlayEnabled,
     onNoiseChange,
+    artworkBloomLabel,
+    artworkBloomDescription,
+    artworkBloomEnabled,
+    onArtworkBloomChange,
+    coverCrossfadeLabel,
+    coverCrossfadeDescription,
+    coverCrossfadeEnabled,
+    onCoverCrossfadeChange,
     tempoBreathingLabel,
     tempoBreathingDescription,
     tempoBreathingEnabled,
@@ -75,6 +83,22 @@ export default function VisualEffectsSection() {
           divider
         />
         <NoiseOverlayPreview enabled={noiseOverlayEnabled} />
+
+        <SettingsToggleRow
+          label={artworkBloomLabel}
+          description={artworkBloomDescription}
+          checked={artworkBloomEnabled}
+          onCheckedChange={onArtworkBloomChange}
+          divider
+        />
+
+        <SettingsToggleRow
+          label={coverCrossfadeLabel}
+          description={coverCrossfadeDescription}
+          checked={coverCrossfadeEnabled}
+          onCheckedChange={onCoverCrossfadeChange}
+          divider
+        />
 
         <SettingsToggleRow
           label={tempoBreathingLabel}

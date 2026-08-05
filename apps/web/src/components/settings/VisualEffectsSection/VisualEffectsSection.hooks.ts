@@ -21,6 +21,10 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setNoiseOverlayEnabled = useUIStore(s => s.setNoiseOverlayEnabled);
   const tempoBreathingEnabled = useUIStore(s => s.tempoBreathingEnabled);
   const setTempoBreathingEnabled = useUIStore(s => s.setTempoBreathingEnabled);
+  const artworkBloomEnabled = useUIStore(s => s.artworkBloomEnabled);
+  const setArtworkBloomEnabled = useUIStore(s => s.setArtworkBloomEnabled);
+  const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
+  const setCoverCrossfadeEnabled = useUIStore(s => s.setCoverCrossfadeEnabled);
   const library = useLibraryStore(s => s.library);
 
   // The silent-failure guard: a library without tempo data never breathes, and
@@ -57,6 +61,16 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     noiseDescription: t('app.noiseOverlayDesc'),
     noiseOverlayEnabled,
     onNoiseChange: setNoiseOverlayEnabled,
+
+    artworkBloomLabel: t('app.artworkBloom'),
+    artworkBloomDescription: t('app.artworkBloomDesc'),
+    artworkBloomEnabled,
+    onArtworkBloomChange: setArtworkBloomEnabled,
+
+    coverCrossfadeLabel: t('app.coverCrossfade'),
+    coverCrossfadeDescription: t('app.coverCrossfadeDesc'),
+    coverCrossfadeEnabled,
+    onCoverCrossfadeChange: setCoverCrossfadeEnabled,
 
     tempoBreathingLabel: t('app.tempoBreathing'),
     tempoBreathingDescription: t('app.tempoBreathingDesc'),

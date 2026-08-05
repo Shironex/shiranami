@@ -346,7 +346,8 @@
       "fontSizeTitle": "Font size",
       "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically.",
       "presentationTitle": "Presentation",
-      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches."
+      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches.",
+      "focusHint": "The focus stage appears in the Now Playing view, which is currently turned off. Enable it under Visual effects and lyrics will take the stage there."
     },
     "presentation": {
       "list": "List",
@@ -450,6 +451,10 @@
     "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
     "noiseOverlay": "Noise texture",
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default. Adds a small amount of GPU work.",
+    "artworkBloom": "Artwork bloom",
+    "artworkBloomDesc": "Blurred copies of the record's cover drift slowly behind the app. When off, a calm color glow takes its place.",
+    "coverCrossfade": "Cover crossfade",
+    "coverCrossfadeDesc": "The artwork backdrop dissolves from one record into the next. This is the visual dissolve only — the audio crossfade lives in Playback.",
     "tempoBreathing": "Tempo breathing",
     "tempoBreathingDesc": "The artwork bloom, the floating mascot, and the compact player's pulse breathe at the tempo of the playing track. Tracks without tempo data keep their fixed rhythm.",
     "tempoBreathingHint": "Most of your library has no tempo data yet, so the breathing rarely engages. Run the analysis once from the Library settings.",

@@ -9,7 +9,9 @@ import {
   LYRICS_PLAIN_FONT_SIZE_DEFAULT,
   LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+  LYRICS_PRESENTATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 import LyricsSection from './LyricsSection';
 
@@ -32,7 +34,9 @@ function seedDefaults(): void {
     lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
     lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
     lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+    lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
   });
+  useUIStore.setState({ nowPlayingViewEnabled: true });
 }
 
 /**
@@ -118,6 +122,25 @@ export const SourcesPreferSynced: Story = {
     await expect(
       canvas.getByRole('switch', { name: 'Prefer synced lyrics from LRCLIB' })
     ).toBeChecked();
+  },
+};
+
+/**
+ * Focus selected while the Now Playing view is off — the info callout points
+ * at the view that actually hosts the focus stage (observation, not a nag).
+ */
+export const FocusHint: Story = {
+  decorators: [
+    Story => {
+      useLyricsAppearanceStore.setState({ lyricsPresentation: 'focus' });
+      useUIStore.setState({ nowPlayingViewEnabled: false });
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(canvas.getByText(/appears in the Now Playing view/)).toBeInTheDocument();
   },
 };
 

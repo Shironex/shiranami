@@ -155,6 +155,8 @@ interface PersistedUIState {
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
   tempoBreathingEnabled: boolean;
+  artworkBloomEnabled: boolean;
+  coverCrossfadeEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -212,6 +214,10 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
   if (typeof persisted.tempoBreathingEnabled === 'boolean')
     out.tempoBreathingEnabled = persisted.tempoBreathingEnabled;
+  if (typeof persisted.artworkBloomEnabled === 'boolean')
+    out.artworkBloomEnabled = persisted.artworkBloomEnabled;
+  if (typeof persisted.coverCrossfadeEnabled === 'boolean')
+    out.coverCrossfadeEnabled = persisted.coverCrossfadeEnabled;
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -242,6 +248,8 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'lowPerformanceMode',
   'noiseOverlayEnabled',
   'tempoBreathingEnabled',
+  'artworkBloomEnabled',
+  'coverCrossfadeEnabled',
   'landingView',
 ]);
 
@@ -366,9 +374,25 @@ interface UIState {
   nowPlayingViewEnabled: boolean;
   nowPlayingPanel: NowPlayingPanel;
   libraryHeroCardEnabled: boolean;
+  /**
+   * v2 visual-feature gate map — which store owns which toggle:
+   *
+   * - useUIStore (here): `artworkBloomEnabled` (four-layer album-art bloom +
+   *   its track-change pulse), `coverCrossfadeEnabled` (the visual dissolve
+   *   between records — distinct from the audio crossfade, which lives in
+   *   usePlaybackStore), `tempoBreathingEnabled` (BPM-locked breathing),
+   *   `noiseOverlayEnabled` (film-grain overlay), and `lowPerformanceMode`
+   *   (master kill for all ambient rendering, including palette extraction
+   *   in useAmbientColor).
+   * - useAccentStore: `followArtAccent` — accent follows the cover's palette.
+   * - useSanctuaryStore: Sanctuary Mode (fullscreen immersive player).
+   * - useLyricsAppearanceStore: `lyricsPresentation` — list vs. focus stage.
+   */
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
   tempoBreathingEnabled: boolean;
+  artworkBloomEnabled: boolean;
+  coverCrossfadeEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -381,6 +405,8 @@ interface UIActions {
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
   setTempoBreathingEnabled: (enabled: boolean) => void;
+  setArtworkBloomEnabled: (enabled: boolean) => void;
+  setCoverCrossfadeEnabled: (enabled: boolean) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -415,12 +441,18 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     playlistGridSize: 'medium',
     albumSortMode: 'name',
     albumSortOrder: 'asc',
-    nowPlayingViewEnabled: false,
+    // On by default since v2: Lyric Focus and the BPM/key line live inside
+    // the Now Playing view, so a fresh profile should be able to reach them.
+    // Persisted users keep whatever they chose (sanitize honors the stored
+    // boolean); only fresh profiles pick up the new default.
+    nowPlayingViewEnabled: true,
     nowPlayingPanel: 'lyrics',
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
     tempoBreathingEnabled: true,
+    artworkBloomEnabled: true,
+    coverCrossfadeEnabled: true,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -448,6 +480,12 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setTempoBreathingEnabled: enabled => {
       set({ tempoBreathingEnabled: enabled });
+    },
+    setArtworkBloomEnabled: enabled => {
+      set({ artworkBloomEnabled: enabled });
+    },
+    setCoverCrossfadeEnabled: enabled => {
+      set({ coverCrossfadeEnabled: enabled });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -542,6 +580,8 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
         tempoBreathingEnabled: s.tempoBreathingEnabled,
+        artworkBloomEnabled: s.artworkBloomEnabled,
+        coverCrossfadeEnabled: s.coverCrossfadeEnabled,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

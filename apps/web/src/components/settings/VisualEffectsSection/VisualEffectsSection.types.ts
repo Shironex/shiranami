@@ -40,6 +40,24 @@ export interface IVisualEffectsSectionView {
   /** Toggle the noise overlay. */
   readonly onNoiseChange: (next: boolean) => void;
 
+  /** Localized "Artwork bloom" toggle label. */
+  readonly artworkBloomLabel: string;
+  /** Localized "Artwork bloom" toggle description. */
+  readonly artworkBloomDescription: string;
+  /** Whether the four-layer album-art bloom is enabled. */
+  readonly artworkBloomEnabled: boolean;
+  /** Toggle the artwork bloom. */
+  readonly onArtworkBloomChange: (next: boolean) => void;
+
+  /** Localized "Cover crossfade" toggle label. */
+  readonly coverCrossfadeLabel: string;
+  /** Localized "Cover crossfade" toggle description. */
+  readonly coverCrossfadeDescription: string;
+  /** Whether the visual dissolve between records is enabled. */
+  readonly coverCrossfadeEnabled: boolean;
+  /** Toggle the visual cover crossfade. */
+  readonly onCoverCrossfadeChange: (next: boolean) => void;
+
   /** Localized "Tempo breathing" toggle label. */
   readonly tempoBreathingLabel: string;
   /** Localized "Tempo breathing" toggle description. */

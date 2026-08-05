@@ -1,6 +1,10 @@
-import { Captions } from 'lucide-react';
+import { Captions, MonitorPlay } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import {
+  SettingsCard,
+  SettingsInfoCallout,
+  SettingsToggleRow,
+} from '@/components/settings/SettingsCard';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -36,6 +40,7 @@ export default function LyricsSection() {
     onSetSyncedFontSize,
     lyricsPresentation,
     onSetPresentation,
+    presentationHint,
     syncedDimOpacityMin,
     syncedDimOpacityMax,
     syncedDimOpacityStep,
@@ -102,6 +107,11 @@ export default function LyricsSection() {
             value={lyricsPresentation}
             onChange={onSetPresentation}
           />
+          {presentationHint && (
+            <div className="px-3">
+              <SettingsInfoCallout icon={MonitorPlay}>{presentationHint}</SettingsInfoCallout>
+            </div>
+          )}
           <SettingsPreview title={t('lyr.previewTitle')}>
             <SyncedPreview dimOpacity={lyricsSyncedDimOpacity} fontSize={lyricsSyncedFontSize} />
           </SettingsPreview>
