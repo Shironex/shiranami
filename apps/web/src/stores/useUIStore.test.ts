@@ -166,6 +166,59 @@ describe('useUIStore', () => {
   });
 });
 
+describe('visual-effect gates (artworkBloomEnabled / coverCrossfadeEnabled)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults both gates to enabled on a fresh profile', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(true);
+    expect(store.getState().coverCrossfadeEnabled).toBe(true);
+  });
+
+  it('persists setArtworkBloomEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setArtworkBloomEnabled(false);
+    expect(store.getState().artworkBloomEnabled).toBe(false);
+    expect(readPersisted().artworkBloomEnabled).toBe(false);
+  });
+
+  it('persists setCoverCrossfadeEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setCoverCrossfadeEnabled(false);
+    expect(store.getState().coverCrossfadeEnabled).toBe(false);
+    expect(readPersisted().coverCrossfadeEnabled).toBe(false);
+  });
+
+  it('restores a persisted false through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { artworkBloomEnabled: false, coverCrossfadeEnabled: false },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(false);
+    expect(store.getState().coverCrossfadeEnabled).toBe(false);
+  });
+
+  it('ignores non-boolean garbage and keeps the enabled default', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { artworkBloomEnabled: 'nope', coverCrossfadeEnabled: 1 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(true);
+    expect(store.getState().coverCrossfadeEnabled).toBe(true);
+  });
+});
+
 describe('coerceVisualizerStyle (persist merge path)', () => {
   const ALL_STYLES = [
     'bars',
