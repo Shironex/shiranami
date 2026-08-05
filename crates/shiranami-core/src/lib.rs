@@ -17,6 +17,7 @@
 #![warn(missing_docs)]
 
 pub mod bindings;
+pub mod companion;
 pub mod constants;
 pub mod error;
 pub mod migrate;
