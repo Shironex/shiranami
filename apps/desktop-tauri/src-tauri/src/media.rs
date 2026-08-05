@@ -55,7 +55,7 @@ pub const fn is_supported(e2e: bool) -> bool {
 ///
 /// `art_dir` is the same directory the loopback server serves `/art/{name}`
 /// from. macOS needs it to turn a cover URL back into the file behind it before
-/// souvlaki is allowed near it — `shiranami_media_controls::os::loadable_cover`
+/// souvlaki is allowed near it — `shiranami_media_controls::cover::loadable_cover`
 /// documents the abort that prevents.
 pub fn build(
     app: &AppHandle,

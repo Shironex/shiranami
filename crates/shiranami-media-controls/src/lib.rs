@@ -55,6 +55,7 @@ pub mod autostart;
 pub mod backend;
 pub mod coalesce;
 pub mod command;
+pub mod cover;
 pub mod error;
 pub mod os;
 pub mod progress;

@@ -73,7 +73,7 @@ pub struct SouvlakiConfig {
     /// Where the album-art cache lives, so a cover URL can be resolved to the
     /// file it is served from.
     ///
-    /// macOS-critical rather than cosmetic: [`crate::os::loadable_cover`]
+    /// macOS-critical rather than cosmetic: [`crate::cover::loadable_cover`]
     /// documents the abort this prevents. `None` means "resolve nothing", which
     /// costs the thumbnail and never the process.
     pub art_dir: Option<std::path::PathBuf>,
@@ -99,7 +99,7 @@ impl Default for SouvlakiConfig {
 #[derive(Debug)]
 pub struct SouvlakiBackend {
     controls: souvlaki::MediaControls,
-    /// Carried from [`SouvlakiConfig`] for [`crate::os::loadable_cover`], which
+    /// Carried from [`SouvlakiConfig`] for [`crate::cover::loadable_cover`], which
     /// every `set_metadata` runs the cover through on macOS.
     #[cfg_attr(target_os = "windows", allow(dead_code))]
     art_dir: Option<std::path::PathBuf>,
@@ -188,7 +188,7 @@ impl SouvlakiBackend {
     /// macOS resolves the renderer's loopback URL to the art file it is served
     /// from and refuses anything it cannot verify, because souvlaki's macOS
     /// artwork loader **aborts the process** on a cover it fails to load —
-    /// [`crate::os::loadable_cover`] has the whole story.
+    /// [`crate::cover::loadable_cover`] has the whole story.
     ///
     /// Windows passes the URL through untouched. Its loader is
     /// `RandomAccessStreamReference::CreateFromUri`, which answers with an
@@ -197,7 +197,7 @@ impl SouvlakiBackend {
     /// remote thumbnails to fix a bug that platform does not have.
     #[cfg(target_os = "macos")]
     fn cover_url(&self, metadata: &OsMetadata) -> Option<String> {
-        crate::os::loadable_cover(metadata.cover_url.as_deref(), self.art_dir.as_deref())
+        crate::cover::loadable_cover(metadata.cover_url.as_deref(), self.art_dir.as_deref())
     }
 
     #[cfg(target_os = "windows")]
