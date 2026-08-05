@@ -22,6 +22,8 @@
 use shiranami_core::models::TrackUpdateInput;
 use sqlx::{QueryBuilder, Sqlite};
 
+use crate::repo::art_url;
+
 /// Push `col = ?` for every field the patch speaks about, comma-separated.
 ///
 /// Returns how many assignments were pushed. Zero means the patch said nothing,
@@ -50,13 +52,18 @@ pub(crate) fn push_assignments(
         count += 1;
     }
 
+    // The one column normalised on the way in — see [`crate::repo::art_url`] —
+    // so a loopback URL the renderer round-tripped cannot become durable.
+    // Every other column binds exactly what the patch said.
+    let album_art = art_url::canonical_patch(&patch.album_art);
+
     // Nullable columns: the three-state fields.
     for (column, value) in [
         ("artist = ", &patch.artist),
         ("album_artist = ", &patch.album_artist),
         ("album = ", &patch.album),
         ("genre = ", &patch.genre),
-        ("album_art = ", &patch.album_art),
+        ("album_art = ", &album_art),
     ] {
         if let Some(text) = value {
             set.push(column);

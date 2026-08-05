@@ -35,6 +35,7 @@
 //! order.
 
 // lane A — library side (tracks, folders, playlists, smart playlists)
+pub(crate) mod art_url;
 pub(crate) mod clock;
 pub(crate) mod conn;
 pub mod folders;

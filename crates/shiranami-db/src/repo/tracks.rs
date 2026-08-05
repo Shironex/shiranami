@@ -25,6 +25,7 @@ use sqlx::{Connection, QueryBuilder, Sqlite, SqliteConnection};
 use uuid::Uuid;
 
 use crate::error::Result;
+use crate::repo::art_url;
 use crate::repo::conn::failed;
 use crate::repo::ids;
 use crate::repo::track_patch;
@@ -468,7 +469,10 @@ async fn insert_chunk(
             .push_bind(track.year)
             .push_bind(track.track_number)
             .push_bind(track.disc_number)
-            .push_bind(track.album_art.clone());
+            // The one bind that is normalised rather than passed through: a
+            // renderer that posts back the loopback URL it was shown must not
+            // be able to make a session-scoped address durable.
+            .push_bind(art_url::canonical(track.album_art.as_deref()));
     });
 
     builder.push(" ON CONFLICT (file_path) DO NOTHING RETURNING *");

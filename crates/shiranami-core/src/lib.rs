@@ -4,9 +4,10 @@
 //! its serializable `{ code, message, details }` wire form, path handling
 //! (containment checks, the folders cache, legacy-directory resolution), the
 //! atomic JSON settings store with its renderer-writable key allowlist, system
-//! notices with their 5-minute per-`source:code` dedup, and the frozen
-//! sentinel mirror (`UNKNOWN_ARTIST` / `UNKNOWN_ALBUM`) that shipped migration
-//! SQL already depends on. It performs no network, database or child-process
+//! notices with their 5-minute per-`source:code` dedup, the canonical form of a
+//! stored cover-art value (which the database guards on writing and the art
+//! prune parses on reading), and the frozen sentinel mirror (`UNKNOWN_ARTIST` /
+//! `UNKNOWN_ALBUM`) that shipped migration SQL already depends on. It performs no network, database or child-process
 //! I/O, and it depends on no other workspace crate — every other crate depends
 //! on it, so anything added here is added to everything.
 //!
@@ -16,6 +17,7 @@
 // undocumented one is a contract nobody can read, so the crate gates on it.
 #![warn(missing_docs)]
 
+pub mod art;
 pub mod bindings;
 pub mod companion;
 pub mod constants;

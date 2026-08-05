@@ -380,3 +380,44 @@ async fn get_id_by_path_finds_the_track_or_nothing() {
         None
     );
 }
+
+// ── the album-art write guard ─────────────────────────────────────────────────
+
+/// The scan-and-persist path reads `metadata.albumArt` off a scan result the
+/// renderer has already had rewritten onto the loopback server, then posts it
+/// back through `db:tracks:add-many`. So an insert is a write path for this
+/// value exactly as an update is.
+#[tokio::test]
+async fn an_insert_normalises_a_loopback_art_url_and_leaves_a_remote_one() {
+    let mut library = fresh().await;
+
+    let inserted = tracks::add_many(
+        library.conn(),
+        &[
+            TrackCreateInput {
+                album_art: Some("http://127.0.0.1:60241/9f8e7d6c/art/abc123.jpg".to_owned()),
+                ..track("/music/loopback.mp3", "Loopback")
+            },
+            TrackCreateInput {
+                album_art: Some("https://example.com/cover.jpg".to_owned()),
+                ..track("/music/remote.mp3", "Remote")
+            },
+            TrackCreateInput {
+                album_art: None,
+                ..track("/music/none.mp3", "None")
+            },
+        ],
+    )
+    .await
+    .expect("the tracks insert");
+
+    assert_eq!(
+        inserted[0].album_art.as_deref(),
+        Some("shiranami-art://art/abc123.jpg")
+    );
+    assert_eq!(
+        inserted[1].album_art.as_deref(),
+        Some("https://example.com/cover.jpg")
+    );
+    assert_eq!(inserted[2].album_art, None);
+}
