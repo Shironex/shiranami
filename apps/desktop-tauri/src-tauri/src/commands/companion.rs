@@ -84,7 +84,9 @@ pub async fn companion_set_species(
     let now = iso8601::now();
 
     let mut conn = state.conn().await?;
-    companion::set_species(&mut conn, species, &now).await.wire()
+    companion::set_species(&mut conn, species, &now)
+        .await
+        .wire()
 }
 
 #[cfg(test)]

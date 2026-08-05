@@ -61,11 +61,11 @@
 //! failure is logged rather than failing the play: the history row is the
 //! record of truth, the pet is delight.
 
+use shiranami_core::companion::CompanionXpGain;
 use shiranami_core::models::{
     ListeningActivityPoint, ListeningHistoryEntry, ListeningHourlyActivityPoint,
     ListeningStatsSummary, PlayHistoryRecord, RecordPlayInput, WeeklyInsights,
 };
-use shiranami_core::companion::CompanionXpGain;
 use shiranami_core::time::{instant, iso8601};
 use shiranami_db::repo::{companion, history};
 use shiranami_integrations::scrobble::{ScrobblePlay, play_start_timestamp};
