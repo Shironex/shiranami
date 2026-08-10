@@ -269,6 +269,34 @@ impl LyricsPolicy for CachePolicy {
             .get(shiranami_core::store::RendererStoreKey::LyricsPreferSyncedFromLrclib)
             == Some(serde_json::Value::Bool(true))
     }
+
+    fn should_save_fetched_lyrics(&self) -> bool {
+        // `== Some(true)` and not `!= Some(false)`: an absent key is a user who
+        // has never opted in, and the one direction this must never get wrong is
+        // reading "unset" as "yes, write into my music folders".
+        self.settings
+            .get(shiranami_core::store::RendererStoreKey::LyricsSaveFetchedLyrics)
+            == Some(serde_json::Value::Bool(true))
+    }
+
+    fn is_lyrics_write_allowed(&self, path: &std::path::Path) -> bool {
+        // Deliberately **not** `is_path_allowed`, which the read side calls.
+        // That guard also grants the app data directory and any row in the
+        // `tracks` table — right for a read, too wide for a write: a standalone
+        // file imported through a file dialog years ago would be a writable
+        // destination anywhere on the disk. Writing is confined to the roots the
+        // user actually pointed the library at.
+        //
+        // The *directory* is the subject rather than the file, because that is
+        // what is written into, and a containment check on the file itself would
+        // pass for a path whose parent this app has no business creating files
+        // in.
+        let Some(directory) = path.parent() else {
+            return false;
+        };
+
+        shiranami_core::paths::is_path_within_any(directory, &self.folders.allowed_roots())
+    }
 }
 
 #[cfg(test)]

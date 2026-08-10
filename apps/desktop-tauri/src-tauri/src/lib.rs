@@ -193,15 +193,16 @@ pub fn run() {
             let folders = std::sync::Arc::clone(&booted.folders);
             app.manage(booted.state);
             app.manage(folders);
-            // The three cancel slots. Without these, `library:scan-cancel`,
-            // `metadata:enrich-cancel` and `audio:loudness-cancel` fail at
-            // runtime with "state not managed" — an accumulated Phase 16
-            // obligation, and one with no compile-time signal at all.
+            // The cancel slots. Without these, `library:scan-cancel`,
+            // `metadata:enrich-cancel`, `audio:loudness-cancel` and their v2
+            // siblings fail at runtime with "state not managed" — an accumulated
+            // Phase 16 obligation, and one with no compile-time signal at all.
             app.manage(commands::library::ScanSlot::default());
             app.manage(commands::metadata::EnrichRuns::default());
             app.manage(commands::loudness::LoudnessRuns::default());
             app.manage(commands::analysis::AnalysisRuns::default());
             app.manage(commands::doctor::DoctorRuns::default());
+            app.manage(commands::lyrics::LyricsSaveRuns::default());
             // Keeps the log appender's worker and the Sentry client alive for
             // the process's lifetime; both flush on drop.
             app.manage(preflight.logging);

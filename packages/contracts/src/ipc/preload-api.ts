@@ -18,6 +18,7 @@
 
 import type { WatchedFolder } from '../domain/folder';
 import type { LyricsResult } from '../domain/lyrics';
+import type { LyricsBatchProgress, LyricsBatchSummary, LyricsBatchTrack } from './lyrics';
 import type { PlaylistExtractResult, SearchResult, TrackMetadata } from '../domain/media';
 import type { InstallDependenciesResult } from '../domain/dependencies';
 import type { DownloadQueueSnapshot, EnqueueDownloadInput } from '../domain/download-queue';
@@ -238,6 +239,22 @@ export interface LyricsApi {
     duration?: number,
     filePath?: string
   ) => Promise<LyricsResult>;
+  /**
+   * Fetch and save lyrics for a set of tracks. Rejects with
+   * `lyrics.save_disabled` when the opt-in is off, and `lyrics.save_busy`
+   * when a run is already going.
+   *
+   * v2-only, hence optional — as with `analysis` and `doctor`, the v1 preload
+   * implements this interface and has no write-back to run, so the renderer
+   * feature-detects and hides the control where these are absent. Optional on
+   * the *members* rather than on the namespace because `lyrics.fetch` is a
+   * ported v1 channel and must stay unconditionally present.
+   */
+  saveBatch?: (tracks: LyricsBatchTrack[]) => Promise<LyricsBatchSummary>;
+  /** Stop the active write-back run. A no-op when idle. v2-only. */
+  saveCancel?: () => Promise<void>;
+  /** Subscribe to write-back progress. Returns an unsubscribe function. v2-only. */
+  onSaveProgress?: (callback: (progress: LyricsBatchProgress) => void) => () => void;
 }
 
 // ── weather ───────────────────────────────────────────────────────────────

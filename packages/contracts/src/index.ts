@@ -18,6 +18,7 @@ export * from './ipc/metadata';
 export * from './ipc/analysis';
 export * from './ipc/companion';
 export * from './ipc/doctor';
+export * from './ipc/lyrics';
 export * from './ipc/loudness';
 export * from './ipc/waveform';
 export * from './ipc/database';

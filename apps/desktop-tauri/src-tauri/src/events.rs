@@ -177,6 +177,13 @@ events! {
     /// Progress through a Library Doctor health check (F8, v2-only).
     DoctorProgress = "doctor:progress" => Json;
 
+    /// Progress through a lyrics write-back batch (v2, no v1 counterpart).
+    ///
+    /// v1 fetched lyrics one track at a time and kept them in memory, so there
+    /// was no library-wide pass to report on. See
+    /// `crate::commands::lyrics`.
+    LyricsSaveProgress = "lyrics:save-progress" => Json;
+
     /// The companion accrued XP from a recorded play (v2 companion, no v1
     /// counterpart). Fired by `db:history:record-play`'s accrual hook; the
     /// payload carries the delta, the new lifetime total, the (possibly
@@ -229,7 +236,12 @@ mod tests {
     /// manifest, and everything else must. Today: the one-pass analysis
     /// engine's progress, the Library Doctor's progress (F8), and the
     /// companion's XP accrual.
-    const V2_EVENT_CHANNELS: &[&str] = &["analysis:progress", "doctor:progress", "companion:xp"];
+    const V2_EVENT_CHANNELS: &[&str] = &[
+        "analysis:progress",
+        "doctor:progress",
+        "companion:xp",
+        "lyrics:save-progress",
+    ];
 
     #[test]
     fn every_event_channel_has_a_typed_event() {

@@ -1,11 +1,31 @@
-//! `lyrics:fetch` — the one lyrics channel.
+//! `lyrics:*` — the ported fetch channel, plus v2's write-back batch.
 //!
-//! Ported from `apps/desktop/src/main/ipc/lyrics.ts`, which is a one-line
-//! delegate to `fetchLyrics`. Everything interesting is one rank down and stays
-//! there: the precedence ladder (local synced → embedded synced → local plain →
-//! embedded plain → LRCLIB, reordered by `lyrics.preferSyncedFromLrclib`), the
-//! sidecar probing order, the LRU, the request coalescing, and the containment
-//! gate that keeps this channel from becoming an arbitrary-file reader.
+//! [`lyrics_fetch`] is ported from `apps/desktop/src/main/ipc/lyrics.ts`, which
+//! is a one-line delegate to `fetchLyrics`. Everything interesting is one rank
+//! down and stays there: the precedence ladder (local synced → embedded synced →
+//! local plain → embedded plain → LRCLIB, reordered by
+//! `lyrics.preferSyncedFromLrclib`), the sidecar probing order, the LRU, the
+//! request coalescing, and the containment gate that keeps this channel from
+//! becoming an arbitrary-file reader.
+//!
+//! # The write-back pair ports no v1 channel
+//!
+//! v1 kept fetched lyrics in a 200-entry in-memory MRU and nowhere else, so
+//! there was no library-wide pass to have a channel. [`lyrics_save_batch`] and
+//! [`lyrics_save_cancel`] are v2's, and what they do is written down in
+//! `shiranami_integrations::lyrics::writeback`: a synced LRCLIB hit becomes a
+//! `.lrc` beside the track, which the *existing* sidecar reader then serves on
+//! the next play with no network.
+//!
+//! # Both write paths answer to one setting
+//!
+//! `lyrics.saveFetchedLyrics` gates the automatic write-back **and** this batch,
+//! and the batch refuses outright ([`LYRICS_SAVE_DISABLED_CODE`]) rather than
+//! running to an all-skipped summary. Pressing a button is a clear intent, and
+//! it would be defensible to read it as consent on its own — but then there
+//! would be two answers to "may this app write into my music folders" and a user
+//! who turned the setting off would still have a button that wrote files. One
+//! switch, and the renderer disables the button when it is off.
 //!
 //! # What this layer owns
 //!
@@ -35,13 +55,23 @@
 //! send.
 
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
+use shiranami_core::error::ErrorPayload;
 use shiranami_core::models::lyrics::LyricsResult;
-use shiranami_integrations::lyrics::LyricsRequest;
-use tauri::State;
+use shiranami_integrations::lyrics::{
+    LyricsBatchProgress, LyricsBatchSummary, LyricsBatchTrack, LyricsRequest, LyricsService,
+    save_lyrics_for_tracks,
+};
+use tauri::{AppHandle, State};
+use tauri_specta::Event as _;
+use tokio_util::sync::CancellationToken;
 
 use crate::error::{CommandResult, WireResultExt as _, bad_request, not_booted};
+use crate::events::LyricsSaveProgress as LyricsSaveProgressEvent;
 use crate::state::AppState;
+use crate::wire::Json;
 
 /// Register this namespace's commands with [`crate::commands::registry`].
 macro_rules! commands {
@@ -50,11 +80,26 @@ macro_rules! commands {
             queue = [$($tail,)*],
             collected = [$($collected)*
                 crate::commands::lyrics::lyrics_fetch,
+                crate::commands::lyrics::lyrics_save_batch,
+                crate::commands::lyrics::lyrics_save_cancel,
             ]
         }
     };
 }
 pub(crate) use commands;
+
+/// The renderer-visible code for "a write-back run is already going".
+///
+/// Born in v2, so the declaration here *is* the contract — the same footing
+/// `analysis.busy` is on.
+pub const LYRICS_SAVE_BUSY_CODE: &str = "lyrics.save_busy";
+
+/// The renderer-visible code for "saving lyrics is turned off".
+///
+/// A refusal rather than an empty run, so a renderer that somehow reached the
+/// channel with the setting off gets an answer it can explain instead of a
+/// summary of nothing that looks like a failed fetch.
+pub const LYRICS_SAVE_DISABLED_CODE: &str = "lyrics.save_disabled";
 
 /// `lyrics:fetch` — resolve lyrics for one track.
 ///
@@ -80,6 +125,175 @@ pub async fn lyrics_fetch(
         .ok_or_else(|| not_booted("the lyrics service"))?;
 
     service.fetch(&request).await.wire()
+}
+
+/// `lyrics:save-cancel` — stop the active write-back run.
+///
+/// Best-effort and a no-op when idle: a queued track notices at its turn and the
+/// run resolves with its partial counts. Cancelling while nothing runs must not
+/// leave a flag behind that pre-cancels the next run — the regression
+/// `enrich::slot` records from v1.
+#[tauri::command]
+#[specta::specta]
+pub async fn lyrics_save_cancel(runs: State<'_, LyricsSaveRuns>) -> CommandResult<()> {
+    runs.cancel();
+    Ok(())
+}
+
+/// `lyrics:save-batch` — fetch and save lyrics for a set of tracks.
+///
+/// Refuses when `lyrics.saveFetchedLyrics` is off (see the module docs) and when
+/// a run already holds the slot. Otherwise it always resolves with a summary,
+/// including a cancelled or entirely-failed one: a run over a read-only library
+/// answers `failed == total` rather than throwing, because the counts are what
+/// the user needs told.
+#[tauri::command]
+#[specta::specta]
+pub async fn lyrics_save_batch(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    runs: State<'_, LyricsSaveRuns>,
+    tracks: Vec<LyricsBatchTrack>,
+) -> CommandResult<LyricsBatchSummary> {
+    let service = lyrics_service(&state)?;
+
+    // Asked before the slot is claimed, so a refused run leaves nothing behind.
+    // Asked of the *policy* rather than of the settings store directly: the
+    // service owns which key answers this, and a second reader here is a second
+    // place for the answer to drift.
+    if !service.is_saving_enabled() {
+        return Err(ErrorPayload {
+            code: LYRICS_SAVE_DISABLED_CODE.to_owned(),
+            message: "Saving fetched lyrics is turned off.".to_owned(),
+            details: None,
+        });
+    }
+
+    let guard = runs.claim()?;
+    let emit_app = app.clone();
+    let progress = move |progress: LyricsBatchProgress| emit(&emit_app, progress);
+
+    Ok(save_lyrics_for_tracks(&service, &tracks, guard.token(), &progress).await)
+}
+
+/// Emit one progress tick.
+///
+/// A dropped emit is logged and swallowed: the run is the point, and a webview
+/// that has gone away between two tracks is not a reason to abort a
+/// library-wide pass.
+fn emit(app: &AppHandle, progress: LyricsBatchProgress) {
+    let Ok(payload) = serde_json::to_value(&progress) else {
+        tracing::warn!("a lyrics write-back progress tick could not be serialized");
+        return;
+    };
+
+    if let Err(error) = LyricsSaveProgressEvent(Json(payload)).emit(app) {
+        tracing::debug!(%error, "dropped a lyrics write-back progress tick");
+    }
+}
+
+/// The service, or the not-booted error every lyrics command answers with.
+fn lyrics_service(state: &AppState) -> CommandResult<std::sync::Arc<LyricsService>> {
+    state
+        .deferred()
+        .lyrics
+        .as_ref()
+        .map(std::sync::Arc::clone)
+        .ok_or_else(|| not_booted("the lyrics service"))
+}
+
+// ── the run slot ─────────────────────────────────────────────────────────────
+
+/// Holds the one in-flight write-back run, if any.
+///
+/// Mirrors [`crate::commands::analysis::AnalysisRuns`] field for field — see
+/// `shiranami_metadata::enrich::slot` for why the mutex is `std::sync` and what
+/// the generation number closes (a run that finishes late must not clear a
+/// *newer* run's slot).
+///
+/// One slot rather than a queue because the renderer has one button and one
+/// progress bar, and a second concurrent run would have nowhere to report.
+#[derive(Debug, Default)]
+pub struct LyricsSaveRuns {
+    active: Mutex<Option<Run>>,
+    generations: AtomicU64,
+}
+
+/// The run currently holding the slot.
+#[derive(Debug)]
+struct Run {
+    token: CancellationToken,
+    generation: u64,
+}
+
+impl LyricsSaveRuns {
+    /// Take the slot, or fail with [`LYRICS_SAVE_BUSY_CODE`].
+    fn claim(&self) -> CommandResult<RunGuard<'_>> {
+        let mut active = lock(&self.active);
+
+        if active.is_some() {
+            return Err(ErrorPayload {
+                code: LYRICS_SAVE_BUSY_CODE.to_owned(),
+                message: "A lyrics save run is already in progress.".to_owned(),
+                details: None,
+            });
+        }
+
+        let token = CancellationToken::new();
+        let generation = self.generations.fetch_add(1, Ordering::SeqCst);
+        *active = Some(Run {
+            token: token.clone(),
+            generation,
+        });
+
+        Ok(RunGuard {
+            runs: self,
+            token,
+            generation,
+        })
+    }
+
+    /// Cancel the active run. Silently a no-op when idle.
+    fn cancel(&self) {
+        if let Some(run) = lock(&self.active).as_ref() {
+            tracing::info!("lyrics write-back cancellation requested");
+            run.token.cancel();
+        }
+    }
+}
+
+/// Proof that the caller holds the run slot; releases it on drop.
+#[derive(Debug)]
+struct RunGuard<'runs> {
+    runs: &'runs LyricsSaveRuns,
+    token: CancellationToken,
+    generation: u64,
+}
+
+impl RunGuard<'_> {
+    fn token(&self) -> &CancellationToken {
+        &self.token
+    }
+}
+
+impl Drop for RunGuard<'_> {
+    fn drop(&mut self) {
+        let mut active = lock(&self.runs.active);
+
+        if active
+            .as_ref()
+            .is_some_and(|current| current.generation == self.generation)
+        {
+            *active = None;
+        }
+    }
+}
+
+/// `lock_or_recover` for this module's one mutex.
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 /// v1's `lyricsFetchArgs`, applied to the arguments serde has already typed.
