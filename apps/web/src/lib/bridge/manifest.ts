@@ -83,6 +83,9 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
 
   // ── lyrics / weather ────────────────────────────────────────────────────
   'lyrics:fetch': ['lyrics', 'fetch'],
+  'lyrics:save-batch': ['lyrics', 'saveBatch'],
+  'lyrics:save-cancel': ['lyrics', 'saveCancel'],
+  'lyrics:save-progress': ['lyrics', 'onSaveProgress'],
   'weather:geocode': ['weather', 'geocode'],
   'weather:get-current': ['weather', 'getCurrent'],
 

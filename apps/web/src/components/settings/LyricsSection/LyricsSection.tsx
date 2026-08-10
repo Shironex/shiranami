@@ -1,4 +1,4 @@
-import { Captions, MonitorPlay } from 'lucide-react';
+import { Captions, Download, Loader2, MonitorPlay } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   SettingsCard,
@@ -6,6 +6,7 @@ import {
   SettingsToggleRow,
 } from '@/components/settings/SettingsCard';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
+import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
   LYR_SIZE_CLASS,
@@ -27,6 +28,16 @@ export default function LyricsSection() {
     preferSyncedFromLrclib,
     preferSyncedDisabled,
     onSetPreferSyncedFromLrclib,
+    saveFetchedLyrics,
+    saveFetchedDisabled,
+    onSetSaveFetchedLyrics,
+    saveRunning,
+    saveRunDisabled,
+    saveProgressLabel,
+    saveSummaryLabel,
+    saveDisabledHint,
+    onRunSave,
+    onCancelSave,
     lyricsPlainOpacity,
     lyricsPlainFontSize,
     onSetPlainOpacity,
@@ -59,6 +70,26 @@ export default function LyricsSection() {
             checked={preferSyncedFromLrclib}
             onCheckedChange={onSetPreferSyncedFromLrclib}
             disabled={preferSyncedDisabled}
+          />
+          <SettingsToggleRow
+            label={t('lyr.sources.saveFetchedTitle')}
+            description={t('lyr.sources.saveFetchedDesc')}
+            checked={saveFetchedLyrics}
+            onCheckedChange={onSetSaveFetchedLyrics}
+            disabled={saveFetchedDisabled}
+          />
+          <SaveLibraryControl
+            title={t('lyr.sources.saveRunTitle')}
+            description={t('lyr.sources.saveRunDesc')}
+            runLabel={t('lyr.sources.saveRun')}
+            cancelLabel={t('lyr.sources.saveCancel')}
+            running={saveRunning}
+            disabled={saveRunDisabled}
+            progressLabel={saveProgressLabel}
+            summaryLabel={saveSummaryLabel}
+            disabledHint={saveDisabledHint}
+            onRun={onRunSave}
+            onCancel={onCancelSave}
           />
         </Subsection>
 
@@ -149,6 +180,89 @@ function Subsection({ title, subtitle, children }: ISubsectionProps) {
         <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       </div>
       <div className="space-y-5">{children}</div>
+    </div>
+  );
+}
+
+interface ISaveLibraryControlProps {
+  title: string;
+  description: string;
+  runLabel: string;
+  cancelLabel: string;
+  running: boolean;
+  disabled: boolean;
+  progressLabel: string | null;
+  summaryLabel: string | null;
+  disabledHint: string | null;
+  onRun: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * The library-wide write-back run: one button, its progress, and its counts.
+ *
+ * Shaped after `LibraryAnalysisCard` — the same run/cancel swap and the same
+ * inline progress strip — because this is the same kind of thing to a user: one
+ * long pass over the library they can stop. It lives inside the Sources
+ * subsection rather than in its own card so it sits directly under the opt-in
+ * that gates it, which is the only place the disabled state reads as an
+ * explanation rather than as a bug.
+ */
+function SaveLibraryControl({
+  title,
+  description,
+  runLabel,
+  cancelLabel,
+  running,
+  disabled,
+  progressLabel,
+  summaryLabel,
+  disabledHint,
+  onRun,
+  onCancel,
+}: ISaveLibraryControlProps) {
+  // The three "show this strip" decisions, named here rather than chained in the
+  // markup: a run replaces both the hint and the counts while it is going, and
+  // that rule reads as one idea only when it is written as one.
+  const showHint = disabledHint !== null && !running;
+  const showProgress = running && progressLabel !== null;
+  const showSummary = !running && summaryLabel !== null;
+
+  return (
+    <div className="px-3 space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground mb-1">{title}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        {running ? (
+          <Button variant="ghost" size="sm" onClick={onCancel} className="shrink-0">
+            {cancelLabel}
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onRun}
+            disabled={disabled}
+            className="shrink-0 [&_svg]:size-3.5"
+          >
+            <Download />
+            {runLabel}
+          </Button>
+        )}
+      </div>
+
+      {showHint && <p className="text-xs text-muted-foreground">{disabledHint}</p>}
+
+      {showProgress && (
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+          <span className="text-sm text-muted-foreground truncate">{progressLabel}</span>
+        </div>
+      )}
+
+      {showSummary && <p className="text-xs text-muted-foreground tabular-nums">{summaryLabel}</p>}
     </div>
   );
 }

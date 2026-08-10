@@ -78,6 +78,9 @@ export const doctorProgress = predicate(z.object(progressBase));
 /** `metadata:enrich:progress`. */
 export const enrichProgress = predicate(z.object({ ...progressBase, status: z.string() }));
 
+/** `lyrics:save-progress`. */
+export const lyricsSaveProgress = predicate(z.object({ ...progressBase, status: z.string() }));
+
 /** `playlist:extract-progress`. */
 export const extractProgress = predicate(z.object(progressBase));
 

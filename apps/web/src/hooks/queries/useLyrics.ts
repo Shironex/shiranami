@@ -45,8 +45,15 @@ export function useLyricsQuery(
 
 const PREFER_SYNCED_STORE_KEY = 'lyrics.preferSyncedFromLrclib';
 
+/**
+ * Both lyric-preference query keys, kept together here even though the
+ * write-back pair's hooks live in `useLyricsSavePrefs` — they are one namespace
+ * to invalidate, and splitting the keys along with the hooks would leave two
+ * places to look for "what does a lyrics preference cache under?".
+ */
 export const lyricsPrefKeys = {
   preferSynced: ['lyrics-prefs', 'prefer-synced-from-lrclib'] as const,
+  saveFetched: ['lyrics-prefs', 'save-fetched-lyrics'] as const,
 };
 
 export function usePreferSyncedFromLrclibQuery() {

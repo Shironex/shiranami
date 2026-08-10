@@ -139,5 +139,6 @@
   "scanCancelled": "Skanowanie anulowane",
   "loudnessAnalysisFailed": "Analiza głośności nie powiodła się",
   "analysisFailed": "Analiza biblioteki nie powiodła się",
+  "lyricsSaveFailed": "Zapisywanie tekstów nie powiodło się",
   "doctorScanFailed": "Sprawdzanie biblioteki nie powiodło się"
 }

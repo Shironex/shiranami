@@ -123,5 +123,6 @@
   "scanCancelled": "Scan cancelled",
   "loudnessAnalysisFailed": "Loudness analysis failed",
   "analysisFailed": "Library analysis failed",
+  "lyricsSaveFailed": "Saving lyrics failed",
   "doctorScanFailed": "Library health check failed"
 }

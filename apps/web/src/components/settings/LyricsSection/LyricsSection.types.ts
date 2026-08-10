@@ -17,6 +17,32 @@ export interface ILyricsSectionView {
   /** Persist the source-precedence toggle and re-resolve current lyrics. */
   readonly onSetPreferSyncedFromLrclib: (value: boolean) => void;
 
+  // --- Write-back ---
+  /**
+   * When true, a synced hit from LRCLIB is saved as a `.lrc` beside the track.
+   * Off unless the user has said otherwise: this is the one setting that makes
+   * the app write into their music folders.
+   */
+  readonly saveFetchedLyrics: boolean;
+  /** True until the persisted value has seeded (or outside Electron). */
+  readonly saveFetchedDisabled: boolean;
+  /** Persist the write-back opt-in. */
+  readonly onSetSaveFetchedLyrics: (value: boolean) => void;
+  /** Whether a library-wide write-back run is going. */
+  readonly saveRunning: boolean;
+  /** Whether the run button is inert — the opt-in is off, or a run is queued. */
+  readonly saveRunDisabled: boolean;
+  /** Localized progress line while a run is going; `null` otherwise. */
+  readonly saveProgressLabel: string | null;
+  /** Localized counts from the last finished run; `null` before one. */
+  readonly saveSummaryLabel: string | null;
+  /** Localized note explaining why the run button is inert; `null` when it is not. */
+  readonly saveDisabledHint: string | null;
+  /** Start a library-wide write-back run. */
+  readonly onRunSave: () => void;
+  /** Stop the active run. */
+  readonly onCancelSave: () => void;
+
   // --- Plain lyrics ---
   /** Plain-lyrics text opacity (0–1). */
   readonly lyricsPlainOpacity: number;
