@@ -1,5 +1,10 @@
-import type { RadioApi } from '@shiranami/contracts';
+import { IPC_CHANNELS, type RadioApi, type RadioNowPlaying } from '@shiranami/contracts';
+import { events } from '@shiranami/contracts/bindings';
 import { commands } from '../commands';
+import { subscribeChannel } from '../events';
+import { radioNowPlaying } from '../narrowers';
+
+const C = IPC_CHANNELS.radio;
 
 export const radioApi: RadioApi = {
   favorites: {
@@ -10,4 +15,11 @@ export const radioApi: RadioApi = {
     },
     isFavorite: stationUuid => commands.radioFavoritesIsFavorite(stationUuid),
   },
+  onNowPlaying: callback =>
+    subscribeChannel<RadioNowPlaying>(
+      C.nowPlaying,
+      events.radioNowPlaying,
+      radioNowPlaying,
+      callback
+    ),
 };

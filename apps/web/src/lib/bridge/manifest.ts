@@ -179,6 +179,7 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'radio:favorites:add': ['radio', 'favorites', 'add'],
   'radio:favorites:remove': ['radio', 'favorites', 'remove'],
   'radio:favorites:is-favorite': ['radio', 'favorites', 'isFavorite'],
+  'radio:now-playing': ['radio', 'onNowPlaying'],
 
   // ── playlist ────────────────────────────────────────────────────────────
   'playlist:extract': ['playlist', 'extract'],

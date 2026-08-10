@@ -480,8 +480,32 @@ export interface RadioFavoritesApi {
   isFavorite: (stationUuid: string) => Promise<boolean>;
 }
 
+/**
+ * What a station said it is playing, de-framed from its ICY metadata.
+ *
+ * `raw` is the source of truth — the `StreamTitle` exactly as it decoded — and
+ * is what the UI renders. `artist`/`title` are a best-effort split on the
+ * `Artist - Title` convention and are null whenever the string does not carry
+ * it, which is often: idents, ads and bare track names all arrive here.
+ *
+ * `streamUrl` is the station URL the renderer asked for, so a title arriving
+ * late from a station the user already left can be ignored rather than shown.
+ */
+export interface RadioNowPlaying {
+  streamUrl: string;
+  raw: string;
+  artist: string | null;
+  title: string | null;
+}
+
 export interface RadioApi {
   favorites: RadioFavoritesApi;
+  /**
+   * The station's now-playing title, one call per *change*. v2-only: v1
+   * declined ICY metadata, so the Electron preload leaves this undefined and
+   * the renderer feature-detects.
+   */
+  onNowPlaying?: (callback: (playing: RadioNowPlaying) => void) => () => void;
 }
 
 // ── shell ─────────────────────────────────────────────────────────────────

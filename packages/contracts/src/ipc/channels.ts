@@ -188,6 +188,11 @@ export const IPC_CHANNELS = {
       remove: 'radio:favorites:remove',
       isFavorite: 'radio:favorites:is-favorite',
     },
+    // What the station says it is playing (v2-only). v1 declined ICY metadata
+    // outright, so there was nothing to carry; the stream proxy now de-frames
+    // it and emits one payload per *change* — stations re-send the same title
+    // every few seconds and the de-framer debounces that.
+    nowPlaying: 'radio:now-playing',
   },
   playlist: {
     extract: 'playlist:extract',
@@ -344,4 +349,5 @@ export const V2_ONLY_CHANNELS = [
   'companion:set-name',
   'companion:set-species',
   'companion:xp',
+  'radio:now-playing',
 ] as const;
