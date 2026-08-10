@@ -63,6 +63,22 @@ impl UpstreamHead {
     pub fn content_type(&self) -> Option<&str> {
         self.headers.get(CONTENT_TYPE)?.to_str().ok()
     }
+
+    /// The ICY metadata period in bytes, when the station granted one.
+    ///
+    /// `None` means the body is plain audio and must be forwarded untouched —
+    /// which covers a station that ignored our `Icy-MetaData: 1`, one that has
+    /// no metadata to send, and any response whose header we cannot make sense
+    /// of. Every one of those is ordinary, so none of them is logged.
+    ///
+    /// A zero is folded into `None` deliberately. It would otherwise describe a
+    /// period of no length at all, and a de-framer counting down from zero
+    /// would read every byte of audio as a metadata length byte — silence, from
+    /// a header a station had no reason to think was load-bearing.
+    pub fn metaint(&self) -> Option<usize> {
+        let raw = self.headers.get(ICY_METAINT)?.to_str().ok()?;
+        raw.trim().parse::<usize>().ok().filter(|value| *value > 0)
+    }
 }
 
 /// How the radio proxy reaches a station.
@@ -79,6 +95,13 @@ const RADIO_USER_AGENT: &str = concat!("Shiranami/", env!("CARGO_PKG_VERSION"));
 
 /// The header that asks a station to interleave metadata into the audio.
 const ICY_METADATA: HeaderName = HeaderName::from_static("icy-metadata");
+
+/// The header a station answers it with: the audio period between blocks.
+const ICY_METAINT: HeaderName = HeaderName::from_static("icy-metaint");
+
+/// What we ask for. v1 sent `0`; the flip to `1` is only safe because the route
+/// pairs it with a de-framer — hence a named constant with a test on it.
+const ICY_METADATA_WANTED: HeaderValue = HeaderValue::from_static("1");
 
 /// The production upstream: `shiranami-net`'s redirect-less streaming request.
 #[derive(Debug, Clone)]
@@ -98,10 +121,14 @@ impl RadioUpstream for NetUpstream {
         Box::pin(async move {
             let options = RequestOptions::guarded()
                 .with_header(USER_AGENT, HeaderValue::from_static(RADIO_USER_AGENT))
-                // v1 declined ICY metadata explicitly and never parsed a
-                // metaint. Asking for it and then ignoring it would splice
-                // metadata frames into the bytes the decoder receives.
-                .with_header(ICY_METADATA, HeaderValue::from_static("0"));
+                // v1 declined metadata (`0`) because asking for it and then
+                // ignoring it splices frame bytes into the decoder's input.
+                // v2 asks, and `crate::icy` de-frames — the route pairs this
+                // header with a `Deframer` whenever the station answers with an
+                // `icy-metaint`, and forwards the body untouched when it does
+                // not. Changing this to `1` without that pairing is the bug the
+                // v1 comment was describing.
+                .with_header(ICY_METADATA, ICY_METADATA_WANTED);
 
             let response = self
                 .client
@@ -147,8 +174,54 @@ mod tests {
     }
 
     #[test]
-    fn icy_metadata_is_declined_rather_than_omitted() {
+    fn the_icy_headers_are_spelled_the_way_stations_expect() {
         assert_eq!(ICY_METADATA.as_str(), "icy-metadata");
+        assert_eq!(ICY_METAINT.as_str(), "icy-metaint");
+    }
+
+    /// v1 sent `0` here. Sending `1` is only correct while
+    /// `routes::radio::respond` runs the body through a `Deframer` — flipping
+    /// it back to `0` would silently cost every now-playing title, and leaving
+    /// it at `1` with the de-framer removed would corrupt every stream.
+    #[test]
+    fn metadata_is_requested_rather_than_declined() {
+        assert_eq!(ICY_METADATA_WANTED.to_str().expect("ascii"), "1");
+    }
+
+    /// The three refusals, each of which must leave the body untouched rather
+    /// than start a de-framer against a period that is not there.
+    #[test]
+    fn an_absent_or_useless_metaint_reads_as_none() {
+        let head = |value: Option<&'static str>| {
+            let mut headers = HeaderMap::new();
+            if let Some(value) = value {
+                headers.insert(ICY_METAINT, HeaderValue::from_static(value));
+            }
+            UpstreamHead {
+                status: 200,
+                headers,
+                body: stream::empty().boxed(),
+            }
+        };
+
+        assert_eq!(head(None).metaint(), None, "no header at all");
+        assert_eq!(head(Some("0")).metaint(), None, "a period of no length");
+        assert_eq!(head(Some("banana")).metaint(), None, "not a number");
+        assert_eq!(head(Some("-16000")).metaint(), None, "not a length");
+    }
+
+    #[test]
+    fn a_metaint_is_read_and_tolerates_padding() {
+        let mut headers = HeaderMap::new();
+        headers.insert(ICY_METAINT, HeaderValue::from_static("  16000 "));
+
+        let head = UpstreamHead {
+            status: 200,
+            headers,
+            body: stream::empty().boxed(),
+        };
+
+        assert_eq!(head.metaint(), Some(16000));
     }
 
     #[test]

@@ -81,3 +81,138 @@ pub struct RadioFavorite {
     /// ISO-8601 creation timestamp.
     pub created_at: String,
 }
+
+/// What a station said it is playing, as one ICY `StreamTitle` arrived.
+///
+/// The raw string is the value; the split is a guess. `Artist - Title` is a
+/// convention stations mostly follow and nothing enforces — a station
+/// broadcasting `Now on Air: the breakfast show`, a sponsor read or a bare
+/// track name is not malformed. So `raw` is what arrived, byte for byte after
+/// decoding, and it is what the UI renders; `artist` and `title` are a
+/// best-effort derivation for consumers that want the pieces, and are absent
+/// whenever the string does not carry the separator.
+///
+/// `streamUrl` rides along because the renderer can have more than one station
+/// in flight: the previous one's proxy connection drains for a moment after the
+/// user switches, and without it that station's last title would overwrite the
+/// new one's first. It is the URL **as the renderer asked for it**, not the
+/// post-redirect one, because the renderer only knows the former — it is what
+/// its `filePath` encodes.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RadioNowPlaying {
+    /// The station URL the renderer requested, before any redirect hop.
+    pub stream_url: String,
+    /// The `StreamTitle` value exactly as it decoded. The source of truth.
+    pub raw: String,
+    /// The part before the first ` - `, when there is one.
+    pub artist: Option<String>,
+    /// The part after the first ` - `, when there is one.
+    pub title: Option<String>,
+}
+
+/// The separator the `Artist - Title` convention uses.
+///
+/// Spaces on both sides deliberately: a hyphen with none is far more often part
+/// of a name (`Jay-Z`, `Blink-182`, `re-entry`) than a separator, and splitting
+/// on it would corrupt more titles than it parsed.
+const ARTIST_TITLE_SEPARATOR: &str = " - ";
+
+impl RadioNowPlaying {
+    /// Derive the split from a raw `StreamTitle`.
+    ///
+    /// Splits on the **first** separator, so `Artist - Title - Remix` keeps the
+    /// remix with the title rather than inventing a third field. A split that
+    /// would leave either side empty is discarded whole: `" - Title"` names no
+    /// artist, and half a guess is worse than none.
+    #[must_use]
+    pub fn new(stream_url: impl Into<String>, raw: impl Into<String>) -> Self {
+        let raw = raw.into();
+        let (artist, title) = split_artist_title(&raw);
+        Self {
+            stream_url: stream_url.into(),
+            raw,
+            artist,
+            title,
+        }
+    }
+}
+
+/// The best-effort half of [`RadioNowPlaying::new`].
+fn split_artist_title(raw: &str) -> (Option<String>, Option<String>) {
+    let Some((artist, title)) = raw.split_once(ARTIST_TITLE_SEPARATOR) else {
+        return (None, None);
+    };
+
+    let artist = artist.trim();
+    let title = title.trim();
+    if artist.is_empty() || title.is_empty() {
+        return (None, None);
+    }
+
+    (Some(artist.to_owned()), Some(title.to_owned()))
+}
+
+#[cfg(test)]
+mod now_playing_tests {
+    use super::RadioNowPlaying;
+
+    #[test]
+    fn the_conventional_shape_splits() {
+        let playing = RadioNowPlaying::new("http://s/live", "Cornelius - Drop");
+        assert_eq!(playing.raw, "Cornelius - Drop");
+        assert_eq!(playing.artist.as_deref(), Some("Cornelius"));
+        assert_eq!(playing.title.as_deref(), Some("Drop"));
+    }
+
+    /// A station ident is not malformed, and must survive as itself.
+    #[test]
+    fn a_string_with_no_separator_keeps_only_the_raw() {
+        let playing = RadioNowPlaying::new("http://s/live", "SomaFM Groove Salad");
+        assert_eq!(playing.raw, "SomaFM Groove Salad");
+        assert_eq!(playing.artist, None);
+        assert_eq!(playing.title, None);
+    }
+
+    /// The hyphen inside a name is not a separator, which is the whole reason
+    /// the separator carries its spaces.
+    #[test]
+    fn a_hyphenated_name_is_not_split() {
+        let playing = RadioNowPlaying::new("http://s/live", "Blink-182");
+        assert_eq!(playing.artist, None);
+        assert_eq!(playing.title, None);
+    }
+
+    #[test]
+    fn only_the_first_separator_splits() {
+        let playing = RadioNowPlaying::new("http://s/live", "Artist - Title - Remix");
+        assert_eq!(playing.artist.as_deref(), Some("Artist"));
+        assert_eq!(playing.title.as_deref(), Some("Title - Remix"));
+    }
+
+    #[test]
+    fn a_half_empty_split_is_discarded() {
+        for raw in [" - Title", "Artist - ", " - "] {
+            let playing = RadioNowPlaying::new("http://s/live", raw);
+            assert_eq!(playing.artist, None, "{raw}");
+            assert_eq!(playing.title, None, "{raw}");
+        }
+    }
+
+    /// The event is `#[serde(transparent)]` over this type, so its keys are the
+    /// renderer's contract rather than an internal detail.
+    #[test]
+    fn the_payload_keys_are_camel_case() {
+        let json = serde_json::to_value(RadioNowPlaying::new("http://s/live", "A - B"))
+            .expect("serialize");
+        assert_eq!(
+            json,
+            serde_json::json!({
+                "streamUrl": "http://s/live",
+                "raw": "A - B",
+                "artist": "A",
+                "title": "B",
+            })
+        );
+    }
+}

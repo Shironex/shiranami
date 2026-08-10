@@ -19,6 +19,7 @@ use shiranami_core::paths::FoldersCache;
 use shiranami_net::url_safety::UrlGuard;
 
 use crate::art_cache::ArtCache;
+use crate::icy::NowPlayingSink;
 use crate::token::SessionToken;
 use crate::upstream::RadioUpstream;
 
@@ -39,6 +40,13 @@ pub struct ServeConfig {
     pub guard: UrlGuard,
     /// How the radio proxy reaches a station.
     pub upstream: Arc<dyn RadioUpstream>,
+    /// Where the radio proxy reports each new ICY `StreamTitle`.
+    ///
+    /// Defaults to [`NowPlayingSink::discarding`] via [`ServeConfig::new`], so
+    /// an embedder with no renderer to tell — the tests, a future headless
+    /// build — needs no wiring. `src-tauri` overwrites it with one that emits
+    /// the `radio:now-playing` event.
+    pub now_playing: NowPlayingSink,
 }
 
 impl ServeConfig {
@@ -54,6 +62,7 @@ impl ServeConfig {
             art_dir,
             guard: client.guard().clone(),
             upstream: Arc::new(crate::upstream::NetUpstream::new(client)),
+            now_playing: NowPlayingSink::discarding(),
         }
     }
 }
@@ -74,6 +83,7 @@ struct Inner {
     art_cache: ArtCache,
     guard: UrlGuard,
     upstream: Arc<dyn RadioUpstream>,
+    now_playing: NowPlayingSink,
 }
 
 impl ServeState {
@@ -88,6 +98,7 @@ impl ServeState {
                 art_cache: ArtCache::default(),
                 guard: config.guard,
                 upstream: config.upstream,
+                now_playing: config.now_playing,
             }),
         }
     }
@@ -128,6 +139,11 @@ impl ServeState {
     /// The radio upstream.
     pub fn upstream(&self) -> &Arc<dyn RadioUpstream> {
         &self.inner.upstream
+    }
+
+    /// Where to report ICY `StreamTitle`s.
+    pub fn now_playing(&self) -> &NowPlayingSink {
+        &self.inner.now_playing
     }
 }
 

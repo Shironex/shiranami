@@ -94,6 +94,7 @@ async fn a_migrated_art_cache_serves_v1s_covers_at_v1s_names() {
         art_dir: data.join("album-art"),
         guard: UrlGuard::with_resolver(Arc::new(TestResolver::new())),
         upstream: Arc::new(FakeUpstream::new()) as Arc<dyn RadioUpstream>,
+        now_playing: shiranami_serve::NowPlayingSink::discarding(),
     })
     .await
     .expect("the server binds");
