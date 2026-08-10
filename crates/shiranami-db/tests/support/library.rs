@@ -196,7 +196,56 @@ pub(crate) fn definition(
     match_type: SmartPlaylistMatchType,
     rules: Vec<SmartPlaylistRule>,
 ) -> SmartPlaylistDefinition {
-    SmartPlaylistDefinition { match_type, rules }
+    SmartPlaylistDefinition {
+        match_type,
+        rules,
+        limit: None,
+        order_by: None,
+    }
+}
+
+/// Set the analysis columns no create payload can reach.
+pub(crate) async fn set_analysis(
+    conn: &mut SqliteConnection,
+    id: &str,
+    bpm: Option<f64>,
+    loudness_lufs: Option<f64>,
+) {
+    sqlx::query("UPDATE tracks SET bpm = ?1, loudness_lufs = ?2 WHERE id = ?3")
+        .bind(bpm)
+        .bind(loudness_lufs)
+        .bind(id)
+        .execute(conn)
+        .await
+        .expect("the analysis columns must update");
+}
+
+/// Record one play `days_ago` days back, under the given source.
+///
+/// Written straight into `play_history` rather than through
+/// [`shiranami_db::repo::history`], which stamps the caller's "now" — every
+/// `last_played` rule turns on a play being *older* than a cutoff.
+pub(crate) async fn played(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    days_ago: u32,
+    source: &str,
+) {
+    sqlx::query(
+        "INSERT INTO play_history \
+           (id, track_id, played_at, played_seconds, completion_ratio, completed, source) \
+         VALUES (?1, ?2, datetime('now', ?3), 120, 1.0, 1, ?4)",
+    )
+    // A deterministic key rather than a UUID: `uuid` is a normal dependency of
+    // this crate, so an integration test cannot reach it, and one play per
+    // (track, age, source) is all any test here needs.
+    .bind(format!("{track_id}:{days_ago}:{source}"))
+    .bind(track_id)
+    .bind(format!("-{days_ago} days"))
+    .bind(source)
+    .execute(conn)
+    .await
+    .expect("the play must record");
 }
 
 /// Add a track carrying a genre and a year, returning its id.
