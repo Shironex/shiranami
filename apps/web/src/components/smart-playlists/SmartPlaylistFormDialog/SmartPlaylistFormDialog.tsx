@@ -17,7 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { FIELD_OPERATORS, valueKindFor } from '@/lib/smart-playlist-fields';
+import { FIELD_OPERATORS, SMART_PLAYLIST_FIELDS, valueKindFor } from '@/lib/smart-playlist-fields';
 import type { SmartPlaylistField } from '@shiranami/contracts';
 import { useSmartPlaylistFormDialog } from './SmartPlaylistFormDialog.hooks';
 import type { ISmartPlaylistFormDialogProps } from './SmartPlaylistFormDialog.types';
@@ -39,7 +39,6 @@ export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogP
     matchType,
     setMatchType,
     rules,
-    fields,
     limit,
     setLimit,
     sortField,
@@ -59,7 +58,7 @@ export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogP
     onCancel,
   } = useSmartPlaylistFormDialog(props);
 
-  const fieldOptions = fields.map(f => (
+  const fieldOptions = SMART_PLAYLIST_FIELDS.map(f => (
     <SelectItem key={f} value={f}>
       {t(`fields.${f}`)}
     </SelectItem>

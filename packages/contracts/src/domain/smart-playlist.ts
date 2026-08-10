@@ -12,12 +12,6 @@
  * truth: the `SmartPlaylistField` union, the IPC zod enum, and the renderer's
  * per-field operator map are all derived from it, so adding a field here is the
  * only edit needed to thread it through every layer.
- *
- * Two of these are not evaluable on every backend. `bpm` and `musicalKey` are
- * columns of the v2 (Rust) schema only — v1's drizzle schema never grew them
- * and its migration ledger is frozen — so the Electron evaluator cannot answer
- * a rule naming either. See `SMART_PLAYLIST_ANALYSIS_FIELDS` for what that
- * costs and how it is handled.
  */
 export const SMART_PLAYLIST_FIELDS = [
   'genre',
@@ -37,34 +31,6 @@ export const SMART_PLAYLIST_FIELDS = [
 
 /** Track columns a rule can match against. */
 export type SmartPlaylistField = (typeof SMART_PLAYLIST_FIELDS)[number];
-
-/**
- * Fields backed by columns the v2 (Rust) schema added and v1's never had.
- *
- * `crates/shiranami-db/migrations/0003_track_bpm_key.sql` introduced `bpm` and
- * `musical_key`; `packages/database/src/schema/tracks.ts` has neither, and
- * cannot grow them without desyncing the v1 migration list that v2's adoption
- * path embeds verbatim (`crates/shiranami-db/src/adopt/v1.rs`).
- *
- * The consequence is deliberate and is the reason this tuple is exported rather
- * than left implicit in each evaluator:
- *
- * - the rule builder offers these fields only where they can be evaluated;
- * - an evaluator that cannot answer a rule naming one **fails closed** — the
- *   whole definition selects nothing. A saved definition can still reach such a
- *   build through an adopted or synced database, and quietly dropping the rule
- *   would *widen* the playlist and present a wrong answer as a right one. An
- *   empty playlist is recoverable; a silently-widened one is not.
- */
-export const SMART_PLAYLIST_ANALYSIS_FIELDS = ['bpm', 'musicalKey'] as const;
-
-/** A field backed by a v2-only analysis column. */
-export type SmartPlaylistAnalysisField = (typeof SMART_PLAYLIST_ANALYSIS_FIELDS)[number];
-
-/** Whether a field is backed by a v2-only analysis column. */
-export function isAnalysisField(field: SmartPlaylistField): field is SmartPlaylistAnalysisField {
-  return (SMART_PLAYLIST_ANALYSIS_FIELDS as readonly string[]).includes(field);
-}
 
 /**
  * Comparison operators. Applicability depends on the field's type. Source of

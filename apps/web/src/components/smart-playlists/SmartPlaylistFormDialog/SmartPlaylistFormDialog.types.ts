@@ -36,8 +36,6 @@ export interface ISmartPlaylistFormDialogView {
   readonly setMatchType: (value: SmartPlaylistMatchType) => void;
   /** Current rule rows in form order. */
   readonly rules: readonly SmartPlaylistRule[];
-  /** Fields this build can evaluate, in picker order. */
-  readonly fields: readonly SmartPlaylistField[];
   /** Current limit as typed. Empty string means "no limit". */
   readonly limit: string;
   /** Updates the limit input. */

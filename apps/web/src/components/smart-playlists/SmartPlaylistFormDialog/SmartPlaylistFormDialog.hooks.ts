@@ -9,7 +9,7 @@ import type {
   SmartPlaylistRule,
   SmartPlaylistSortDirection,
 } from '@shiranami/contracts';
-import { availableFields, defaultOperatorFor } from '@/lib/smart-playlist-fields';
+import { defaultOperatorFor } from '@/lib/smart-playlist-fields';
 import {
   useCreateSmartPlaylistMutation,
   useSmartPlaylistPreviewQuery,
@@ -44,8 +44,6 @@ export function useSmartPlaylistFormDialog({
   const [limit, setLimit] = useState('');
   const [sortField, setSortField] = useState<SmartPlaylistField | ''>('');
   const [sortDirection, setSortDirection] = useState<SmartPlaylistSortDirection>('desc');
-
-  const fields = availableFields();
 
   const createMutation = useCreateSmartPlaylistMutation();
   const updateMutation = useUpdateSmartPlaylistMutation();
@@ -141,7 +139,6 @@ export function useSmartPlaylistFormDialog({
     matchType,
     setMatchType,
     rules,
-    fields,
     limit,
     setLimit,
     sortField,

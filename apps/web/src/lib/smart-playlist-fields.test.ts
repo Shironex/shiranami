@@ -1,6 +1,5 @@
-import { afterEach, describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
-  availableFields,
   defaultOperatorFor,
   FIELD_OPERATORS,
   SMART_PLAYLIST_FIELDS,
@@ -48,31 +47,5 @@ describe('smart-playlist-fields', () => {
     expect(valueKindFor('loudnessLufs', 'lessThan')).toBe('number');
     // musicalKey is a stored string, not a measurement.
     expect(valueKindFor('musicalKey', 'is')).toBe('text');
-  });
-
-  describe('availableFields', () => {
-    /** The global the Tauri webview injects before any page script runs. */
-    const TAURI_GLOBAL = '__TAURI_INTERNALS__';
-
-    afterEach(() => {
-      delete (window as Record<string, unknown>)[TAURI_GLOBAL];
-    });
-
-    it('hides the v2-only analysis fields on a build without those columns', () => {
-      const fields = availableFields();
-
-      expect(fields).not.toContain('bpm');
-      expect(fields).not.toContain('musicalKey');
-      // Everything backed by a column both schemas have stays offered.
-      expect(fields).toContain('lastPlayed');
-      expect(fields).toContain('duration');
-      expect(fields).toContain('loudnessLufs');
-    });
-
-    it('offers every field where the analysis columns exist', () => {
-      (window as Record<string, unknown>)[TAURI_GLOBAL] = {};
-
-      expect(availableFields()).toEqual(SMART_PLAYLIST_FIELDS);
-    });
   });
 });
