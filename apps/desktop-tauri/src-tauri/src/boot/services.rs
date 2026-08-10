@@ -18,6 +18,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use serde_json::Value;
 use shiranami_core::models::SHIRANAMI_DISCORD_CLIENT_ID;
 use shiranami_core::notice::NoticeGate;
 use shiranami_core::paths::FoldersCache;
@@ -245,8 +246,16 @@ fn build_lyrics(
     Arc::new(LyricsService::new(LrclibClient::new(http.clone()), policy))
 }
 
-/// The two app-level facts the lyrics ladder consults, answered from the two
-/// places that own them.
+/// The field inside the renderer `settings` blob that carries the lyrics
+/// write-back opt-in.
+///
+/// One constant rather than a literal at the read site, because the renderer
+/// writes the same name through `useSettingsQuery` and the two have to agree —
+/// a typo on either side is a toggle that silently never takes effect.
+const SAVE_FETCHED_LYRICS_FIELD: &str = "saveFetchedLyrics";
+
+/// The app-level facts the lyrics ladder consults, answered from the places
+/// that own them.
 struct CachePolicy {
     folders: Arc<FoldersCache>,
     settings: Arc<SettingsStore>,
@@ -271,12 +280,30 @@ impl LyricsPolicy for CachePolicy {
     }
 
     fn should_save_fetched_lyrics(&self) -> bool {
-        // `== Some(true)` and not `!= Some(false)`: an absent key is a user who
-        // has never opted in, and the one direction this must never get wrong is
-        // reading "unset" as "yes, write into my music folders".
+        // Read as a field **inside** the renderer's `settings` blob rather than
+        // from a dot-path key of its own, and that is not a stylistic choice.
+        //
+        // `RendererStoreKey` is pinned by `store::keys`' test to match v1's
+        // `RENDERER_STORE_KEYS` tuple *exactly*, so a dedicated key here would
+        // force a matching entry in `apps/desktop` — a v1 Electron file that v2
+        // work does not touch. Without that entry the Electron shell's zod
+        // guard rejects the write and the toggle breaks; with it, a v2-only
+        // feature has edited the legacy app. The blob is the way out: `settings`
+        // is already allowlisted on both sides and is typed
+        // `Record<string, unknown>` / `z.unknown()`, so a new field inside it is
+        // accepted by the Electron store and by this one with no schema change
+        // anywhere. `discord::settings` reads its legacy flag out of the same
+        // blob the same way.
+        //
+        // `== Some(true)` and not `!= Some(false)`: an absent field is a user
+        // who has never opted in, and the one direction this must never get
+        // wrong is reading "unset" as "yes, write into my music folders". An
+        // unreadable or unexpectedly shaped blob answers "off" for the same
+        // reason.
         self.settings
-            .get(shiranami_core::store::RendererStoreKey::LyricsSaveFetchedLyrics)
-            == Some(serde_json::Value::Bool(true))
+            .get(shiranami_core::store::RendererStoreKey::Settings)
+            .and_then(|blob| blob.get(SAVE_FETCHED_LYRICS_FIELD).and_then(Value::as_bool))
+            .unwrap_or(false)
     }
 
     fn is_lyrics_write_allowed(&self, path: &std::path::Path) -> bool {

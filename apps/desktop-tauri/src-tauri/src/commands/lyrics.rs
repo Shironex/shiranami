@@ -19,7 +19,7 @@
 //!
 //! # Both write paths answer to one setting
 //!
-//! `lyrics.saveFetchedLyrics` gates the automatic write-back **and** this batch,
+//! `settings.saveFetchedLyrics` gates the automatic write-back **and** this batch,
 //! and the batch refuses outright ([`LYRICS_SAVE_DISABLED_CODE`]) rather than
 //! running to an all-skipped summary. Pressing a button is a clear intent, and
 //! it would be defensible to read it as consent on its own — but then there
@@ -142,7 +142,7 @@ pub async fn lyrics_save_cancel(runs: State<'_, LyricsSaveRuns>) -> CommandResul
 
 /// `lyrics:save-batch` — fetch and save lyrics for a set of tracks.
 ///
-/// Refuses when `lyrics.saveFetchedLyrics` is off (see the module docs) and when
+/// Refuses when `settings.saveFetchedLyrics` is off (see the module docs) and when
 /// a run already holds the slot. Otherwise it always resolves with a summary,
 /// including a cancelled or entirely-failed one: a run over a read-only library
 /// answers `failed == total` rather than throwing, because the counts are what

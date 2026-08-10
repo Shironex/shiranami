@@ -65,12 +65,6 @@ export interface StoreSchema {
   // files. Default implicit `undefined` → false (local-first).
   'lyrics.preferSyncedFromLrclib': boolean;
 
-  // Renderer-writable (settings UI); read by the v2 lyrics service before it
-  // writes anything. When true, a synced LRCLIB hit is saved as a `.lrc` beside
-  // the track so it survives going offline. Default implicit `undefined` →
-  // false: nothing is ever written into a music folder without an opt-in.
-  'lyrics.saveFetchedLyrics': boolean;
-
   // Main-only (downloader.ts).
   'downloads.location': string;
   'downloads.toolStatusCache': ToolStatusCache;

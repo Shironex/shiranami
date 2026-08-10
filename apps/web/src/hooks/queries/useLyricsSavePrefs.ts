@@ -1,65 +1,52 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { IS_ELECTRON } from '@/lib/platform';
-import i18n from '@/lib/i18n';
-import { lyricsPrefKeys } from './useLyrics';
+import { useSettingsQuery, useUpdateSettingsMutation } from './useSettings';
 
 /**
- * The write-back opt-in, split out of `useLyrics` to keep each query file under
- * the four-hook cap.
+ * The lyrics write-back opt-in, kept as a field inside the renderer `settings`
+ * blob rather than as a dedicated electron-store key.
  *
- * `lyrics.saveFetchedLyrics` lives as an electron-store key rather than in the
- * renderer settings blob for the same reason `lyrics.preferSyncedFromLrclib`
- * does: the backend consumes it, here before it writes anything to disk.
+ * That placement is load-bearing, not incidental. A dot-path key of its own
+ * would have to be added to `RendererStoreKey`, which `store::keys`' test pins
+ * against v1's `RENDERER_STORE_KEYS` tuple *exactly* — so it would also have to
+ * be registered in `apps/desktop`, a v1 Electron file that v2 work does not
+ * touch. Skipping that registration is worse than untidy: the Electron shell
+ * guards `store:set` with a zod enum over that tuple, so the write would be
+ * rejected and the toggle would look like it saved when it had not.
  *
- * It is the only renderer-writable setting that causes the app to write into the
- * user's own music folders, so it is opt-in and the backend refuses at the trait
- * level until it is set — and `lyrics:save-batch` rejects with
- * `lyrics.save_disabled` rather than running to an all-skipped summary.
+ * The blob has neither problem. `settings` is already allowlisted on both
+ * sides and is typed `Record<string, unknown>` there and `z.unknown()` in the
+ * IPC schema, so a new field inside it is accepted by both shells with no
+ * schema change anywhere. The Rust policy reads the same field name out of the
+ * same blob (`boot::services::SAVE_FETCHED_LYRICS_FIELD`).
+ *
+ * The name is duplicated across that boundary and cannot be shared, so it is
+ * spelled once on each side and nowhere else — a typo is a toggle that never
+ * takes effect.
  */
-const SAVE_FETCHED_STORE_KEY = 'lyrics.saveFetchedLyrics';
+const SAVE_FETCHED_FIELD = 'saveFetchedLyrics';
 
+/**
+ * Whether fetched lyrics are saved beside the track.
+ *
+ * `=== true` rather than a truthiness check: an absent field is a user who has
+ * never opted in, and the one direction this must never get wrong is reading
+ * "unset" as "yes, write into my music folders" — the same rule the Rust side
+ * applies to the same field.
+ */
 export function useSaveFetchedLyricsQuery() {
-  return useQuery({
-    queryKey: lyricsPrefKeys.saveFetched,
-    queryFn: async (): Promise<boolean> => {
-      const value = await window.electronAPI.store.get<boolean>(SAVE_FETCHED_STORE_KEY);
-      // `=== true` and not a truthiness check: an absent key is a user who has
-      // never opted in, and the one direction this must never get wrong is
-      // reading "unset" as "yes, write into my music folders".
-      return value === true;
-    },
-    enabled: IS_ELECTRON,
-    staleTime: Infinity,
-  });
+  const query = useSettingsQuery();
+  return {
+    ...query,
+    data: query.data === undefined ? undefined : query.data?.[SAVE_FETCHED_FIELD] === true,
+  };
 }
 
 export function useUpdateSaveFetchedLyricsMutation() {
-  const queryClient = useQueryClient();
+  // The shared settings mutation already merges the patch over the cached blob
+  // and resyncs on failure, so the write cannot clobber a sibling field.
+  return useUpdateSettingsMutation();
+}
 
-  return useMutation({
-    mutationFn: async (value: boolean) => {
-      if (!IS_ELECTRON) return;
-      await window.electronAPI.store.set(SAVE_FETCHED_STORE_KEY, value);
-    },
-    // Optimistic flip with rollback, matching the precedence toggle in
-    // `useLyrics`: the switch tracks the click, and a failed write restores the
-    // previous value synchronously before the invalidate re-syncs.
-    onMutate: async value => {
-      await queryClient.cancelQueries({ queryKey: lyricsPrefKeys.saveFetched });
-      const previous = queryClient.getQueryData<boolean>(lyricsPrefKeys.saveFetched);
-      queryClient.setQueryData<boolean>(lyricsPrefKeys.saveFetched, value);
-      return { previous };
-    },
-    onError: (_err, _value, context) => {
-      if (context) {
-        queryClient.setQueryData(lyricsPrefKeys.saveFetched, context.previous);
-      }
-      toast.error(i18n.t('failedSaveSettings', { ns: 'toast' }));
-      queryClient.invalidateQueries({ queryKey: lyricsPrefKeys.saveFetched });
-    },
-    // Deliberately does NOT invalidate `lyricsKeys.all`: this setting changes
-    // what happens to a *file* after a fetch, never which source wins, so
-    // re-resolving the current track would be work with no visible result.
-  });
+/** The patch this toggle sends. Keeps the field name off the call site. */
+export function saveFetchedLyricsPatch(value: boolean) {
+  return { [SAVE_FETCHED_FIELD]: value };
 }

@@ -63,7 +63,7 @@ pub trait LyricsPolicy: Send + Sync {
     /// takes effect on the next track without a restart.
     fn prefer_synced_from_lrclib(&self) -> bool;
 
-    /// The `lyrics.saveFetchedLyrics` setting: may a synced LRCLIB hit be
+    /// The `settings.saveFetchedLyrics` setting: may a synced LRCLIB hit be
     /// written to a `.lrc` beside the track?
     ///
     /// **Defaults to `false` on the trait**, which is not a convenience. Writing

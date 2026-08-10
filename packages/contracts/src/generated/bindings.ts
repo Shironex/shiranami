@@ -939,7 +939,7 @@ export const commands = {
 	/**
 	 *  `lyrics:save-batch` — fetch and save lyrics for a set of tracks.
 	 * 
-	 *  Refuses when `lyrics.saveFetchedLyrics` is off (see the module docs) and when
+	 *  Refuses when `settings.saveFetchedLyrics` is off (see the module docs) and when
 	 *  a run already holds the slot. Otherwise it always resolves with a summary,
 	 *  including a cancelled or entirely-failed one: a run over a read-only library
 	 *  answers `failed == total` rather than throwing, because the counts are what

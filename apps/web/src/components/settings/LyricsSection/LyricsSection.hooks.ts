@@ -4,6 +4,7 @@ import {
   useUpdatePreferSyncedFromLrclibMutation,
 } from '@/hooks/queries/useLyrics';
 import {
+  saveFetchedLyricsPatch,
   useSaveFetchedLyricsQuery,
   useUpdateSaveFetchedLyricsMutation,
 } from '@/hooks/queries/useLyricsSavePrefs';
@@ -81,7 +82,7 @@ export function useLyricsSection(): ILyricsSectionView {
     // the backend had not agreed would be a promise nobody made.
     saveFetchedLyrics: saveFetched === true,
     saveFetchedDisabled: !IS_ELECTRON || saveFetched === undefined,
-    onSetSaveFetchedLyrics: value => updateSaveFetched.mutate(value),
+    onSetSaveFetchedLyrics: value => updateSaveFetched.mutate(saveFetchedLyricsPatch(value)),
 
     saveRunning: lyricsSave.running,
     // The button follows the opt-in, matching the backend, which refuses the

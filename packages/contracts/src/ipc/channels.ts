@@ -80,7 +80,7 @@ export const IPC_CHANNELS = {
     fetch: 'lyrics:fetch',
     // Write-back (v2-only): fetch synced lyrics for a set of tracks and save
     // each as a `.lrc` beside its audio file, so they survive going offline.
-    // Gated on the `lyrics.saveFetchedLyrics` opt-in; never overwrites a lyric
+    // Gated on the `settings.saveFetchedLyrics` opt-in; never overwrites a lyric
     // file the user already has.
     saveBatch: 'lyrics:save-batch',
     saveCancel: 'lyrics:save-cancel',

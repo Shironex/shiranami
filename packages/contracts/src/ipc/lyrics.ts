@@ -6,7 +6,7 @@
 // next play with no network at all.
 //
 // Two rules the renderer must not work around:
-//  - the whole surface is gated on the `lyrics.saveFetchedLyrics` opt-in, and
+//  - the whole surface is gated on the `settings.saveFetchedLyrics` opt-in, and
 //    `lyrics:save-batch` rejects with `lyrics.save_disabled` when it is off;
 //  - a lyric file the user already has is never overwritten — it is counted as
 //    skipped.
