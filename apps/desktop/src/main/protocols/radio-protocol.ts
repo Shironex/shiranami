@@ -1,8 +1,11 @@
 import { net, protocol } from 'electron';
+import { IPC_CHANNELS } from '@shiranami/contracts';
 import { logger } from '../app/logger';
 import { isStreamUrlAllowed } from '../shared/url-safety';
 import { userAgent } from '../shared/user-agent';
 import { DEFAULT_AUDIO_MIME } from '../shared/media-types';
+import { IcyDeframer, nowPlayingFrom, parseMetaint } from '../shared/icy';
+import { sendToRenderer } from '../utils/window';
 
 /**
  * Maximum redirect hops we will follow before giving up. Each hop's
@@ -67,7 +70,11 @@ export function registerRadioProtocol(): void {
         response = await net.fetch(currentUrl, {
           headers: {
             'User-Agent': userAgent(),
-            'Icy-MetaData': '0',
+            // Previously '0'. Asking for metadata and forwarding the body
+            // verbatim splices frame bytes into the decoder's input, which is
+            // why it was declined; `deframe` below is the half that makes
+            // asking safe. The two must change together.
+            'Icy-MetaData': '1',
           },
           signal: request.signal,
           redirect: 'manual',
@@ -131,7 +138,16 @@ export function registerRadioProtocol(): void {
       headers.set('Accept-Ranges', 'none');
       headers.set('Cache-Control', 'no-cache, no-store');
 
-      return new Response(response.body, {
+      // Only when the station actually granted a period. A body run through a
+      // de-framer that guessed at one would be corrupted rather than merely
+      // title-less, so an absent header is a hard "pass through".
+      const metaint = parseMetaint(response.headers.get('icy-metaint'));
+      const body =
+        metaint === null || response.body === null
+          ? response.body
+          : deframe(response.body, metaint, streamUrl);
+
+      return new Response(body, {
         status: 200,
         headers,
       });
@@ -146,4 +162,42 @@ export function registerRadioProtocol(): void {
   });
 
   logger.info('Radio protocol registered');
+}
+
+/**
+ * Strip ICY metadata frames out of a station's body, reporting each new title.
+ *
+ * The `Content-Length` question does not arise: a live stream never carries
+ * one and the handler sets no length header, so removing bytes from the body
+ * cannot disagree with anything already promised to the renderer.
+ *
+ * `streamUrl` is the URL the **renderer** asked for, not the post-redirect one,
+ * because it is the only URL the renderer can match against its own `filePath`
+ * — which is what lets it ignore a title arriving late from a station the user
+ * has already left.
+ */
+function deframe(
+  body: ReadableStream<Uint8Array>,
+  metaint: number,
+  streamUrl: string
+): ReadableStream<Uint8Array> {
+  const deframer = new IcyDeframer(metaint);
+
+  return body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        const frame = deframer.push(chunk);
+        for (const title of frame.titles) {
+          sendToRenderer(IPC_CHANNELS.radio.nowPlaying, {
+            streamUrl,
+            ...nowPlayingFrom(title),
+          });
+        }
+        // A chunk that was nothing but a block yields no audio. Enqueuing an
+        // empty buffer is harmless but pointless, and some consumers treat it
+        // as a hint that the producer is stalling.
+        if (frame.audio.length > 0) controller.enqueue(frame.audio);
+      },
+    })
+  );
 }
