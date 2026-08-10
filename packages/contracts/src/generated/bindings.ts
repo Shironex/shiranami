@@ -276,6 +276,10 @@ export const commands = {
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. `None` means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
@@ -293,6 +297,10 @@ export const commands = {
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. `None` means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
@@ -310,6 +318,10 @@ export const commands = {
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. `None` means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
@@ -3239,6 +3251,10 @@ export type SmartPlaylist = {
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. `None` means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 	/**  ISO-8601 last-update timestamp. */
@@ -3260,14 +3276,34 @@ export type SmartPlaylistCreateInput = {
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. Absent means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 };
 
-/**  The persisted rule definition, stored JSON-serialized in the `rules` column. */
+/**
+ *  The persisted rule definition, stored JSON-serialized in the `rules` column.
+ * 
+ *  # Storage shape
+ * 
+ *  The column has always held a JSON *array* of rules, and rows written before
+ *  `limit`/`order_by` existed still do. Rather than migrate — v1's ledger is
+ *  frozen by [`crate`]'s adoption contract — the column accepts two shapes and
+ *  readers take both: a bare array (legacy, no limit and no sort), or an
+ *  envelope `{"rules": [...], "limit": 25, "orderBy": {...}}`. Writers emit the
+ *  envelope only when a limit or a sort is set, so a definition using neither
+ *  round-trips exactly as an older build would have written it.
+ */
 export type SmartPlaylistDefinition = {
 	/**  How the rules combine. */
 	matchType: SmartPlaylistMatchType,
 	/**  The rules themselves. An empty list matches the whole library. */
 	rules: SmartPlaylistRule[],
+	/**  Maximum tracks to return. `None` means unbounded. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 };
 
 /**
@@ -3293,7 +3329,20 @@ export type SmartPlaylistField =
 /**  `tracks.is_favorite`. */
 "isFavorite" | 
 /**  `tracks.created_at`. */
-"dateAdded";
+"dateAdded" | 
+/**
+ *  The most recent library play, from `play_history` — no column of its
+ *  own. `NULL` (never played) is meaningful here rather than missing.
+ */
+"lastPlayed" | 
+/**  `tracks.bpm`. `NULL` until the analysis engine has run. */
+"bpm" | 
+/**  `tracks.duration`, in seconds. */
+"duration" | 
+/**  `tracks.loudness_lufs`. `NULL` until the analysis engine has run. */
+"loudnessLufs" | 
+/**  `tracks.musical_key`, the stored Camelot/name string. */
+"musicalKey";
 
 /**  How multiple rules combine. */
 export type SmartPlaylistMatchType = 
@@ -3316,8 +3365,30 @@ export type SmartPlaylistOperator =
 "lessThan" | 
 /**  Inclusive range across `value` (lower) and `value_to` (upper). */
 "between" | 
-/**  `date_added` within the last `value` days. */
-"inLastDays";
+/**  `date_added` / `last_played` within the last `value` days. */
+"inLastDays" | 
+/**
+ *  The negation of [`Self::InLastDays`].
+ * 
+ *  For `last_played` this deliberately includes tracks with no play history
+ *  at all: never played satisfies "not played in the last N days" for every
+ *  N. That is the rule people actually want, and the one a
+ *  `MAX(played_at) < cutoff` comparison quietly gets wrong.
+ */
+"notInLastDays";
+
+/**
+ *  An explicit sort, replacing the default library order (newest first).
+ * 
+ *  Paired with [`SmartPlaylistDefinition::limit`] this is what makes "top 25
+ *  most played" and "50 least recently played" expressible.
+ */
+export type SmartPlaylistOrderBy = {
+	/**  The field to sort on. */
+	field: SmartPlaylistField,
+	/**  Which way. */
+	direction: SmartPlaylistSortDirection,
+};
 
 /**
  *  A single rule.
@@ -3342,6 +3413,13 @@ export type SmartPlaylistRule = {
 	valueTo?: string | null,
 };
 
+/**  Sort direction for a [`SmartPlaylistOrderBy`]. */
+export type SmartPlaylistSortDirection = 
+/**  Ascending. SQLite sorts `NULL` lowest, so never-played sorts first. */
+"asc" | 
+/**  Descending. */
+"desc";
+
 /**  The patch `db:smart-playlists:update` takes. Absent fields are left alone. */
 export type SmartPlaylistUpdateInput = {
 	/**  Display name. Non-empty when present. */
@@ -3350,8 +3428,15 @@ export type SmartPlaylistUpdateInput = {
 	description?: string | null,
 	/**  How the rules combine. */
 	matchType?: SmartPlaylistMatchType | null,
-	/**  The rules, replacing the stored set wholesale. */
+	/**
+	 *  The rules, replacing the stored set wholesale. Written as a unit with
+	 *  `limit` and `order_by`, which share its stored column.
+	 */
 	rules?: SmartPlaylistRule[] | null,
+	/**  Maximum tracks to return. */
+	limit?: number | null,
+	/**  Explicit sort, replacing the default library order. */
+	orderBy?: SmartPlaylistOrderBy | null,
 };
 
 /**

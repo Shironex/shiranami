@@ -79,7 +79,7 @@ pub use recommendation::{
 pub use scrobble::{LastfmAuthStart, ScrobbleConnectError, ScrobbleConnectResult, ScrobbleStatus};
 pub use smart_playlist::{
     SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType,
-    SmartPlaylistOperator, SmartPlaylistRule,
+    SmartPlaylistOperator, SmartPlaylistOrderBy, SmartPlaylistRule, SmartPlaylistSortDirection,
 };
 pub use track::{DisplayTrack, NewTrack, Track, TrackCreateInput, TrackUpdateInput};
 pub use weather::{GeocodeResult, WeatherCondition, WeatherCurrent};
