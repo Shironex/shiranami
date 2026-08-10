@@ -1,8 +1,18 @@
-//! `radio:favorites:*` — the saved internet-radio stations.
+//! `radio:favorites:*` — the saved internet-radio stations — and `radio:log:*`,
+//! the diary of what they played.
 //!
-//! Four channels, ported from `apps/desktop/src/main/ipc/radio.ts`. The only
-//! namespace here whose table lives in `shiranami-db` but whose channels sit
-//! outside `db:*`, because v1 grouped them with the rest of the radio feature.
+//! Four ported channels, from `apps/desktop/src/main/ipc/radio.ts`, plus two
+//! born in v2. The only namespace here whose table lives in `shiranami-db` but
+//! whose channels sit outside `db:*`, because v1 grouped them with the rest of
+//! the radio feature.
+//!
+//! # The two v2 channels port nothing, because there was nothing
+//!
+//! v1's stream proxy declined ICY metadata outright, so no title ever reached
+//! the app and there was nothing to keep. `radio:log:record` and `radio:log:get`
+//! are the write and read halves of the table migration `0008` adds; the
+//! validation below is shared with the favourites, since both address a station
+//! by the same directory UUID.
 //!
 //! # What the argument type refuses to carry
 //!
@@ -45,8 +55,8 @@
 //! not parseable as absolute URLs, and refusing them here would make stations
 //! unsaveable that the player can still open.
 
-use shiranami_core::models::{RadioFavorite, RadioStationInput};
-use shiranami_db::repo::radio;
+use shiranami_core::models::{RadioFavorite, RadioLogEntry, RadioNowPlaying, RadioStationInput};
+use shiranami_db::repo::{radio, radio_log};
 use tauri::State;
 
 use crate::error::{CommandResult, WireResultExt as _, bad_request};
@@ -62,6 +72,8 @@ macro_rules! commands {
                 crate::commands::radio::radio_favorites_add,
                 crate::commands::radio::radio_favorites_remove,
                 crate::commands::radio::radio_favorites_is_favorite,
+                crate::commands::radio::radio_log_record,
+                crate::commands::radio::radio_log_get,
             ]
         }
     };
@@ -128,6 +140,63 @@ pub async fn radio_favorites_is_favorite(
     radio::is_favorite(&mut conn, &station_uuid).await.wire()
 }
 
+/// How many diary rows a caller gets when it does not say.
+///
+/// A screenful with room to scroll, not an export. The repository clamps the
+/// asked-for value to its own ceiling; this is only the absent-value default.
+const DEFAULT_LOG_PAGE: u32 = 100;
+
+/// `radio:log:record` — file one title against a station's diary.
+///
+/// Called by the renderer when the `radio:now-playing` event reports a change,
+/// which is the only thing that ever calls it: there is no timer and no poll.
+/// The write does not happen in the proxy that de-frames the title because that
+/// callback runs on the task polling the station's body — the audio the
+/// listener is hearing is behind it in the same stream, and
+/// [`shiranami_serve::NowPlayingSink`] says so in as many words.
+///
+/// The payload is the event's own, forwarded: `raw` plus the split the Rust
+/// side already derived. Re-deriving it here would be a second implementation
+/// of the same guess, free to disagree with the one the player is showing.
+/// `streamUrl` rides along on the event and is deliberately not stored — it
+/// exists so a title from a station the user already left can be discarded, and
+/// says nothing once the row is filed under a station.
+///
+/// Answers `null` when the title is a consecutive repeat of the station's most
+/// recent row, which is what a reconnect mid-song produces.
+#[tauri::command]
+#[specta::specta]
+pub async fn radio_log_record(
+    state: State<'_, AppState>,
+    station_uuid: String,
+    playing: RadioNowPlaying,
+) -> CommandResult<Option<RadioLogEntry>> {
+    validate_station_uuid(&station_uuid)?;
+    validate_title(&playing)?;
+
+    let mut conn = state.conn().await?;
+    radio_log::record(&mut conn, &station_uuid, &playing)
+        .await
+        .wire()
+}
+
+/// `radio:log:get` — one station's diary, newest first.
+#[tauri::command]
+#[specta::specta]
+pub async fn radio_log_get(
+    state: State<'_, AppState>,
+    station_uuid: String,
+    limit: Option<u32>,
+) -> CommandResult<Vec<RadioLogEntry>> {
+    validate_station_uuid(&station_uuid)?;
+    let limit = i64::from(limit.unwrap_or(DEFAULT_LOG_PAGE));
+
+    let mut conn = state.conn().await?;
+    radio_log::for_station(&mut conn, &station_uuid, limit)
+        .await
+        .wire()
+}
+
 /// v1's `z.string().uuid()`.
 ///
 /// The length check is what pins this to the **hyphenated** form. `Uuid` also
@@ -137,6 +206,21 @@ pub async fn radio_favorites_is_favorite(
 fn validate_station_uuid(station_uuid: &str) -> CommandResult<()> {
     if station_uuid.len() != HYPHENATED_UUID_LEN || uuid::Uuid::parse_str(station_uuid).is_err() {
         return Err(bad_request("the station id must be a UUID"));
+    }
+    Ok(())
+}
+
+/// A title worth keeping.
+///
+/// The de-framer never reports an empty `StreamTitle` — it reads one as "the
+/// station said nothing" and stays quiet — so an empty one here did not come
+/// from a station, and a blank diary line is a line nobody can read or act on.
+/// Nothing else is checked: idents, sponsor reads and titles that split badly
+/// are all things stations really broadcast, and refusing them would be the
+/// heuristic filtering this feature deliberately does not do.
+fn validate_title(playing: &RadioNowPlaying) -> CommandResult<()> {
+    if playing.raw.trim().is_empty() {
+        return Err(bad_request("the title must not be empty"));
     }
     Ok(())
 }
@@ -183,7 +267,7 @@ mod tests {
         }
     }
 
-    /// The four channels back to back over one `AppState`. A leaked connection
+    /// The six channels back to back over one `AppState`. A leaked connection
     /// would hang rather than fail, so the body runs under a timeout.
     #[tokio::test]
     async fn every_command_releases_the_connection_it_acquired() {
@@ -208,6 +292,22 @@ mod tests {
             {
                 let mut conn = state.conn().await.expect("acquire");
                 radio::remove(&mut conn, STATION).await.expect("forget");
+            }
+            {
+                let mut conn = state.conn().await.expect("acquire");
+                radio_log::record(
+                    &mut conn,
+                    STATION,
+                    &RadioNowPlaying::new("https://s.example/live", "Cornelius - Drop"),
+                )
+                .await
+                .expect("log");
+            }
+            {
+                let mut conn = state.conn().await.expect("acquire");
+                radio_log::for_station(&mut conn, STATION, 10)
+                    .await
+                    .expect("read the diary");
             }
         };
 
@@ -318,6 +418,23 @@ mod tests {
         input.url_resolved = "/relative/stream".to_owned();
 
         assert!(validate_station(&input).is_ok());
+    }
+
+    /// A station ident, a sponsor read and a title that splits badly are all
+    /// things stations really broadcast. Only "the station said nothing" is
+    /// refused.
+    #[test]
+    fn only_an_empty_title_is_refused() {
+        for raw in ["SomaFM Groove Salad", "Blink-182", " - Title", "Artist - "] {
+            let playing = RadioNowPlaying::new("https://s.example/live", raw);
+            assert!(validate_title(&playing).is_ok(), "`{raw}` must be storable");
+        }
+
+        for raw in ["", "   "] {
+            let playing = RadioNowPlaying::new("https://s.example/live", raw);
+            let error = validate_title(&playing).expect_err("an empty title is refused");
+            assert_eq!(error.code, codes::validation::BAD_REQUEST);
+        }
     }
 
     /// The row's identity columns are absent from the argument type, so a

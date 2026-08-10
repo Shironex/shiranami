@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 148;
+pub const COMMAND_COUNT: usize = 150;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Thirteen of them:
+/// Fifteen of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -103,7 +103,10 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 ///   reason.
 /// - `companion_set_species` — the Shio/Hotaru switch
 ///   (`docs/v2/companion/decision.md`); born in v2 for the same reason.
-pub const NON_V1_COMMANDS: usize = 13;
+/// - `radio_log_record` and `radio_log_get` — the radio diary. v1's stream
+///   proxy declined ICY metadata, so no station title ever reached the app and
+///   there was nothing to keep a record of. See [`crate::commands::radio`].
+pub const NON_V1_COMMANDS: usize = 15;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

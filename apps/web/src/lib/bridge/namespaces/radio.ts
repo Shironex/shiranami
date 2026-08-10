@@ -22,4 +22,11 @@ export const radioApi: RadioApi = {
       radioNowPlaying,
       callback
     ),
+  log: {
+    record: (stationUuid, playing) => commands.radioLogRecord(stationUuid, playing),
+    // The generated callable takes the limit positionally and nullably, where
+    // the contract leaves it optional — an absent limit is the command's own
+    // default page, not "no rows".
+    get: (stationUuid, limit) => commands.radioLogGet(stationUuid, limit ?? null),
+  },
 };

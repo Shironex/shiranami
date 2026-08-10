@@ -1036,6 +1036,50 @@ export const commands = {
 	/**  `radio:favorites:is-favorite` — whether a station is saved. */
 	radioFavoritesIsFavorite: (stationUuid: string) => __TAURI_INVOKE<boolean>("radio_favorites_is_favorite", { stationUuid }),
 	/**
+	 *  `radio:log:record` — file one title against a station's diary.
+	 * 
+	 *  Called by the renderer when the `radio:now-playing` event reports a change,
+	 *  which is the only thing that ever calls it: there is no timer and no poll.
+	 *  The write does not happen in the proxy that de-frames the title because that
+	 *  callback runs on the task polling the station's body — the audio the
+	 *  listener is hearing is behind it in the same stream, and
+	 *  [`shiranami_serve::NowPlayingSink`] says so in as many words.
+	 * 
+	 *  The payload is the event's own, forwarded: `raw` plus the split the Rust
+	 *  side already derived. Re-deriving it here would be a second implementation
+	 *  of the same guess, free to disagree with the one the player is showing.
+	 *  `streamUrl` rides along on the event and is deliberately not stored — it
+	 *  exists so a title from a station the user already left can be discarded, and
+	 *  says nothing once the row is filed under a station.
+	 * 
+	 *  Answers `null` when the title is a consecutive repeat of the station's most
+	 *  recent row, which is what a reconnect mid-song produces.
+	 */
+	radioLogRecord: (stationUuid: string, playing: RadioNowPlaying) => __TAURI_INVOKE<{
+	/**
+	 *  Primary key — a rowid alias, so it is also the insertion order. See the
+	 *  migration for why this table's id is an integer and not a UUID.
+	 * 
+	 *  `Number` for the same reason [`super::SearchResult::view_count`] carries
+	 *  it: specta refuses to emit a bare `i64` rather than silently promise a
+	 *  precision JavaScript does not have. A rowid is nowhere near `2^53`, so
+	 *  the annotation is the honest one and not a papering-over.
+	 */
+	id: number,
+	/**  The Radio Browser station id the title was heard on. */
+	stationUuid: string,
+	/**  The `StreamTitle` value exactly as it decoded. The source of truth. */
+	raw: string,
+	/**  The part before the first ` - `, when there was one. */
+	artist: string | null,
+	/**  The part after the first ` - `, when there was one. */
+	title: string | null,
+	/**  ISO-8601 instant the title was recorded. */
+	heardAt: string,
+} | null>("radio_log_record", { stationUuid, playing }),
+	/**  `radio:log:get` — one station's diary, newest first. */
+	radioLogGet: (stationUuid: string, limit: number | null) => __TAURI_INVOKE<RadioLogEntry[]>("radio_log_get", { stationUuid, limit }),
+	/**
 	 *  `recommendations:get` — both shelves, recomputing the library one if stale.
 	 * 
 	 *  Never rejects; see the module docs for why this one degrades.
@@ -2873,6 +2917,41 @@ export type RadioFavorite = {
 	tags: string | null,
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
+};
+
+/**
+ *  One line of the radio diary: a title a station sent, as it was stored.
+ * 
+ *  The mirror of a `radio_log` row (migration `0008`). It is the *kept* form of
+ *  a [`RadioNowPlaying`] — same `raw`, same best-effort split — minus the
+ *  stream URL, which exists on the event only so a late title from a station
+ *  the user already left can be discarded, and is meaningless once the row is
+ *  filed under a station.
+ * 
+ *  `raw` stays the field the UI renders and the field "get this track" searches
+ *  on. The split is a guess, and a guess the user must be able to see past.
+ */
+export type RadioLogEntry = {
+	/**
+	 *  Primary key — a rowid alias, so it is also the insertion order. See the
+	 *  migration for why this table's id is an integer and not a UUID.
+	 * 
+	 *  `Number` for the same reason [`super::SearchResult::view_count`] carries
+	 *  it: specta refuses to emit a bare `i64` rather than silently promise a
+	 *  precision JavaScript does not have. A rowid is nowhere near `2^53`, so
+	 *  the annotation is the honest one and not a papering-over.
+	 */
+	id: number,
+	/**  The Radio Browser station id the title was heard on. */
+	stationUuid: string,
+	/**  The `StreamTitle` value exactly as it decoded. The source of truth. */
+	raw: string,
+	/**  The part before the first ` - `, when there was one. */
+	artist: string | null,
+	/**  The part after the first ` - `, when there was one. */
+	title: string | null,
+	/**  ISO-8601 instant the title was recorded. */
+	heardAt: string,
 };
 
 /**
