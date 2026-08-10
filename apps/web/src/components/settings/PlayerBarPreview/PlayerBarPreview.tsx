@@ -139,20 +139,24 @@ export default function PlayerBarPreview(props: IPlayerBarPreviewProps) {
             </div>
           </div>
 
-          {/* Right: utility buttons + volume */}
-          <div className="flex items-center gap-0.5">
-            {utilityButtons}
-            <PlayerBarElement
-              visible={volume.visible}
-              highlighted={volume.highlighted}
-              expandedClass="max-w-14"
-              className="gap-1 p-1"
-            >
-              <Volume2 className="size-3 shrink-0 text-muted-foreground/70" />
-              <div className="h-1 w-7 shrink-0 overflow-hidden rounded-full bg-muted/35">
-                <div className="h-full w-2/3 rounded-full bg-foreground/40" />
-              </div>
-            </PlayerBarElement>
+          {/* Right: utility buttons + volume — riding the controls band, with a
+              phantom seek-row lane below (mirrors the real PlayerBar). */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-0.5">
+              {utilityButtons}
+              <PlayerBarElement
+                visible={volume.visible}
+                highlighted={volume.highlighted}
+                expandedClass="max-w-14"
+                className="gap-1 p-1"
+              >
+                <Volume2 className="size-3 shrink-0 text-muted-foreground/70" />
+                <div className="h-1 w-7 shrink-0 overflow-hidden rounded-full bg-muted/35">
+                  <div className="h-full w-2/3 rounded-full bg-foreground/40" />
+                </div>
+              </PlayerBarElement>
+            </div>
+            <div aria-hidden className={showWaveformSeekbar ? 'h-4' : 'h-1'} />
           </div>
         </div>
       </div>
