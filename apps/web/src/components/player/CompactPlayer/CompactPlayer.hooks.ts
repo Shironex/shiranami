@@ -14,6 +14,7 @@ import { isRadioTrack } from '@/lib/utils';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useTempoBreathing } from '@/hooks/useTempoBreathing';
 import { useWindowControls } from '@/hooks/useWindowControls';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import type { ICompactPlayerView } from './CompactPlayer.types';
 
 export function useCompactPlayer(): ICompactPlayerView {
@@ -102,6 +103,9 @@ export function useCompactPlayer(): ICompactPlayerView {
     [setLyricsOpen]
   );
 
+  // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+  // station name otherwise. `currentTrack.title` for everything else.
+  const radioTitle = useTrackTitle(currentTrack);
   const showSeekBar = compactShowSeek && !!currentTrack && !isRadioTrack(currentTrack.filePath);
   const showAmbient = !lowPerformanceMode && compactAmbientIntensity > 0;
   const albumName = currentTrack?.album ?? '';
@@ -110,7 +114,7 @@ export function useCompactPlayer(): ICompactPlayerView {
   return {
     t,
     currentTrack,
-    titleText: currentTrack?.title ?? t('nothingPlaying'),
+    titleText: currentTrack ? radioTitle : t('nothingPlaying'),
     artistText: currentTrack ? currentTrack.artist : t('idleSubtitle'),
     durationLabel: formatDuration(duration),
     ambientColor,

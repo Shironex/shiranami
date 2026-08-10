@@ -22,6 +22,7 @@ export default function PlayerBar() {
   const {
     t,
     currentTrack,
+    titleText,
     isFavorite,
     showSeekRow,
     ambientColor,
@@ -124,9 +125,7 @@ export default function PlayerBar() {
                 className="min-w-0"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {currentTrack.title}
-                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{titleText}</p>
                   {isRadioTrack(currentTrack.filePath) && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-semibold uppercase tracking-wider shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
