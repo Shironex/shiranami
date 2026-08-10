@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { SMART_PLAYLIST_FIELDS, SMART_PLAYLIST_OPERATORS } from '@shiranami/contracts';
+import {
+  SMART_PLAYLIST_FIELDS,
+  SMART_PLAYLIST_OPERATORS,
+  SMART_PLAYLIST_SORT_DIRECTIONS,
+} from '@shiranami/contracts';
 
 const uuid = z.string().uuid();
 const nonEmpty = z.string().min(1);
@@ -23,16 +27,46 @@ export const smartPlaylistRule = z.object({
 
 export const matchType = z.enum(['all', 'any']);
 
+export const smartPlaylistOrderBy = z.object({
+  field: ruleField,
+  direction: z.enum(SMART_PLAYLIST_SORT_DIRECTIONS),
+});
+
+/** A positive whole number of tracks. Absent means unbounded. */
+export const smartPlaylistLimit = z.number().int().positive();
+
 export const smartPlaylistDefinition = z.object({
   matchType,
   rules: z.array(smartPlaylistRule),
+  limit: smartPlaylistLimit.optional(),
+  orderBy: smartPlaylistOrderBy.optional(),
 });
+
+/**
+ * The two shapes the `rules` column can hold on read.
+ *
+ * A bare array is what every build before `limit`/`orderBy` wrote and what this
+ * one still writes when neither is set; the envelope carries them when they
+ * are. Ordered bare-array-first so the common, legacy case decides immediately.
+ * See `SmartPlaylistDefinition` in @shiranami/contracts for why there is no
+ * migration behind this.
+ */
+export const storedRules = z.union([
+  z.array(smartPlaylistRule),
+  z.object({
+    rules: z.array(smartPlaylistRule),
+    limit: smartPlaylistLimit.optional(),
+    orderBy: smartPlaylistOrderBy.optional(),
+  }),
+]);
 
 export const smartPlaylistCreateInput = z.object({
   name: nonEmpty,
   description: z.string().optional(),
   matchType,
   rules: z.array(smartPlaylistRule),
+  limit: smartPlaylistLimit.optional(),
+  orderBy: smartPlaylistOrderBy.optional(),
 });
 
 export const smartPlaylistUpdateInput = z.object({
@@ -40,6 +74,8 @@ export const smartPlaylistUpdateInput = z.object({
   description: z.string().optional(),
   matchType: matchType.optional(),
   rules: z.array(smartPlaylistRule).optional(),
+  limit: smartPlaylistLimit.optional(),
+  orderBy: smartPlaylistOrderBy.optional(),
 });
 
 export const smartPlaylistsGetAllArgs = z.tuple([]);
