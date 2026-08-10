@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use specta_typescript::Number;
 
 /// The station fields the renderer sends when saving a favourite.
 ///
@@ -215,4 +216,38 @@ mod now_playing_tests {
             })
         );
     }
+}
+
+/// One line of the radio diary: a title a station sent, as it was stored.
+///
+/// The mirror of a `radio_log` row (migration `0008`). It is the *kept* form of
+/// a [`RadioNowPlaying`] — same `raw`, same best-effort split — minus the
+/// stream URL, which exists on the event only so a late title from a station
+/// the user already left can be discarded, and is meaningless once the row is
+/// filed under a station.
+///
+/// `raw` stays the field the UI renders and the field "get this track" searches
+/// on. The split is a guess, and a guess the user must be able to see past.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RadioLogEntry {
+    /// Primary key — a rowid alias, so it is also the insertion order. See the
+    /// migration for why this table's id is an integer and not a UUID.
+    ///
+    /// `Number` for the same reason [`super::SearchResult::view_count`] carries
+    /// it: specta refuses to emit a bare `i64` rather than silently promise a
+    /// precision JavaScript does not have. A rowid is nowhere near `2^53`, so
+    /// the annotation is the honest one and not a papering-over.
+    #[specta(type = Number)]
+    pub id: i64,
+    /// The Radio Browser station id the title was heard on.
+    pub station_uuid: String,
+    /// The `StreamTitle` value exactly as it decoded. The source of truth.
+    pub raw: String,
+    /// The part before the first ` - `, when there was one.
+    pub artist: Option<String>,
+    /// The part after the first ` - `, when there was one.
+    pub title: Option<String>,
+    /// ISO-8601 instant the title was recorded.
+    pub heard_at: String,
 }

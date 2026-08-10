@@ -56,6 +56,9 @@ pub mod backup;
 pub mod download_queue;
 pub mod history;
 pub mod radio;
+// The radio diary (migration `0008`) — v2-born, like `scrobble_queue`: v1 kept
+// no record of what a station played, because it declined ICY metadata outright.
+pub mod radio_log;
 
 // Phase 12 lane B — the scrobble retry queue, which has no v1 table: v1 parked
 // failed submissions in a process-memory array. Migration `0002` adds it.
