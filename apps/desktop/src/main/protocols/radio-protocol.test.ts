@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let capturedHandler: ((req: Request) => Promise<Response>) | null = null;
 const mockFetch = vi.fn();
 const mockIsStreamUrlAllowed = vi.fn();
-const mockSendToRenderer = vi.fn();
 const loggerMock = {
   info: vi.fn(),
   warn: vi.fn(),
@@ -38,10 +37,6 @@ vi.mock('../shared/url-safety', () => ({
   isStreamUrlAllowed: (...args: unknown[]) => mockIsStreamUrlAllowed(...args),
 }));
 
-vi.mock('../utils/window', () => ({
-  sendToRenderer: (...args: unknown[]) => mockSendToRenderer(...args),
-}));
-
 import { registerRadioProtocol } from './radio-protocol';
 
 const STREAM_URL = 'http://stream.example.com/live';
@@ -70,7 +65,6 @@ describe('radio-protocol', () => {
     mockFetch.mockReset();
     mockIsStreamUrlAllowed.mockReset();
     mockIsStreamUrlAllowed.mockResolvedValue(okGuardFor(STREAM_URL));
-    mockSendToRenderer.mockReset();
     loggerMock.info.mockReset();
     loggerMock.warn.mockReset();
     loggerMock.error.mockReset();
@@ -113,7 +107,7 @@ describe('radio-protocol', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       STREAM_URL,
       expect.objectContaining({
-        headers: expect.objectContaining({ 'Icy-MetaData': '1' }),
+        headers: expect.objectContaining({ 'Icy-MetaData': '0' }),
         redirect: 'manual',
       })
     );
@@ -329,115 +323,5 @@ describe('radio-protocol', () => {
       const warns = loggerMock.warn.mock.calls.map(c => String(c[0]));
       expect(warns.some(m => m.includes('redirect chain exceeded'))).toBe(true);
     });
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  ICY metadata                                                       */
-/* ------------------------------------------------------------------ */
-
-/**
- * The proxy previously declined stream metadata so it would never have to
- * de-frame anything. Now that it asks, the assertion that matters is not "the
- * title arrived" but **"the audio is byte-identical"** — a framing mistake does
- * not fail loudly, it plays clicks.
- *
- * The framing state machine has its own tests over chunk-boundary permutations
- * (`../shared/icy.test.ts`). These prove the wiring: that the handler only
- * de-frames when the station granted a period, and that a title reaches the
- * renderer against the URL the renderer asked for.
- */
-describe('radio-protocol ICY metadata', () => {
-  const METAINT = 32;
-
-  function pcm(n: number, seed: number): Uint8Array {
-    return Uint8Array.from({ length: n }, (_, i) => (i % 251) + (seed % 5));
-  }
-
-  function block(body: string): Uint8Array {
-    const bytes = Array.from(Buffer.from(body, 'utf8'));
-    while (bytes.length % 16 !== 0) bytes.push(0);
-    return Uint8Array.from([bytes.length / 16, ...bytes]);
-  }
-
-  function concat(...parts: Uint8Array[]): Uint8Array {
-    const out = new Uint8Array(parts.reduce((sum, part) => sum + part.length, 0));
-    let at = 0;
-    for (const part of parts) {
-      out.set(part, at);
-      at += part.length;
-    }
-    return out;
-  }
-
-  function streamOf(...chunks: Uint8Array[]): ReadableStream<Uint8Array> {
-    return new ReadableStream({
-      start(controller) {
-        for (const chunk of chunks) controller.enqueue(chunk);
-        controller.close();
-      },
-    });
-  }
-
-  async function drain(res: Response): Promise<Uint8Array> {
-    return new Uint8Array(await res.arrayBuffer());
-  }
-
-  beforeEach(() => {
-    capturedHandler = null;
-    mockFetch.mockReset();
-    mockIsStreamUrlAllowed.mockReset();
-    mockIsStreamUrlAllowed.mockResolvedValue(okGuardFor(STREAM_URL));
-    mockSendToRenderer.mockReset();
-    registerRadioProtocol();
-  });
-
-  it('hands the decoder audio with no metadata in it, and reports the title', async () => {
-    const framed = concat(
-      pcm(METAINT, 0),
-      block("StreamTitle='Cornelius - Drop';"),
-      pcm(METAINT, 1),
-      Uint8Array.from([0]), // a period with nothing new to say
-      pcm(METAINT, 2)
-    );
-    // Split so the first block is cut in half: a station's chunking has nothing
-    // to do with its metaint, and this is the boundary that corrupts audio.
-    const cut = METAINT + 8;
-
-    mockFetch.mockResolvedValue(
-      makeResponse({
-        status: 200,
-        body: streamOf(framed.subarray(0, cut), framed.subarray(cut)),
-        headers: { 'content-type': 'audio/mpeg', 'icy-metaint': String(METAINT) },
-      })
-    );
-
-    const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
-
-    expect(res.status).toBe(200);
-    expect(await drain(res)).toEqual(concat(pcm(METAINT, 0), pcm(METAINT, 1), pcm(METAINT, 2)));
-    expect(mockSendToRenderer).toHaveBeenCalledTimes(1);
-    expect(mockSendToRenderer).toHaveBeenCalledWith('radio:now-playing', {
-      streamUrl: STREAM_URL,
-      raw: 'Cornelius - Drop',
-      artist: 'Cornelius',
-      title: 'Drop',
-    });
-  });
-
-  it('forwards a station that grants no metaint untouched', async () => {
-    const audio = pcm(512, 3);
-    mockFetch.mockResolvedValue(
-      makeResponse({
-        status: 200,
-        body: streamOf(audio),
-        headers: { 'content-type': 'audio/mpeg' },
-      })
-    );
-
-    const res = await capturedHandler!(new Request(STREAM_REQUEST_URL));
-
-    expect(await drain(res)).toEqual(audio);
-    expect(mockSendToRenderer).not.toHaveBeenCalled();
   });
 });
