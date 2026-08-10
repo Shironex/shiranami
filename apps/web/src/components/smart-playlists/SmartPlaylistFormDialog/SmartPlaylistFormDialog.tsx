@@ -17,9 +17,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { FIELD_OPERATORS, SMART_PLAYLIST_FIELDS, valueKindFor } from '@/lib/smart-playlist-fields';
+import { FIELD_OPERATORS, valueKindFor } from '@/lib/smart-playlist-fields';
+import type { SmartPlaylistField } from '@shiranami/contracts';
 import { useSmartPlaylistFormDialog } from './SmartPlaylistFormDialog.hooks';
 import type { ISmartPlaylistFormDialogProps } from './SmartPlaylistFormDialog.types';
+
+/**
+ * Stand-in for "no explicit sort" in the sort picker. Radix `Select` reserves
+ * the empty string to mean "nothing selected", so the absent case needs a real
+ * value; it never leaves this component.
+ */
+const NO_SORT = '__default__';
 
 export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogProps) {
   const {
@@ -31,6 +39,13 @@ export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogP
     matchType,
     setMatchType,
     rules,
+    fields,
+    limit,
+    setLimit,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
     isSaving,
     canSave,
     previewCount,
@@ -44,7 +59,7 @@ export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogP
     onCancel,
   } = useSmartPlaylistFormDialog(props);
 
-  const fieldOptions = SMART_PLAYLIST_FIELDS.map(f => (
+  const fieldOptions = fields.map(f => (
     <SelectItem key={f} value={f}>
       {t(`fields.${f}`)}
     </SelectItem>
@@ -194,6 +209,49 @@ export default function SmartPlaylistFormDialog(props: ISmartPlaylistFormDialogP
             <Plus className="size-4" />
             {t('addRule')}
           </Button>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3 text-xs text-muted-foreground">
+            <span>{t('sortPrefix')}</span>
+            {/* Radix Select cannot hold an empty string, so the "no explicit
+                sort" case travels as a sentinel and is mapped back at the edge. */}
+            <Select
+              value={sortField === '' ? NO_SORT : sortField}
+              onValueChange={v => setSortField(v === NO_SORT ? '' : (v as SmartPlaylistField))}
+            >
+              <SelectTrigger className="w-36" aria-label={t('sortFieldLabel')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_SORT}>{t('sortDefault')}</SelectItem>
+                {fieldOptions}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={sortDirection}
+              onValueChange={v => setSortDirection(v as typeof sortDirection)}
+              disabled={sortField === ''}
+            >
+              <SelectTrigger className="w-32" aria-label={t('sortDirectionLabel')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">{t('sortDesc')}</SelectItem>
+                <SelectItem value="asc">{t('sortAsc')}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <span>{t('limitPrefix')}</span>
+            <Input
+              type="number"
+              min={1}
+              className="h-8 w-24"
+              value={limit}
+              onChange={e => setLimit(e.target.value)}
+              placeholder={t('limitPlaceholder')}
+              aria-label={t('limitLabel')}
+            />
+          </div>
 
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {t('matchCount', { count: previewCount })}
