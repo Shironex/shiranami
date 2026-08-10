@@ -52,8 +52,8 @@ async fn an_exact_match_is_returned_without_a_search() {
     let LrclibOutcome::Found(found) = outcome else {
         panic!("expected a hit, got {outcome:?}");
     };
-    assert_eq!(found.synced.as_ref().map(Vec::len), Some(1));
-    assert_eq!(found.plain.as_deref(), Some("Hi"));
+    assert_eq!(found.result.synced.as_ref().map(Vec::len), Some(1));
+    assert_eq!(found.result.plain.as_deref(), Some("Hi"));
 
     assert_eq!(server.received(), 1, "a hit must not also run the searches");
     assert_eq!(
@@ -173,7 +173,7 @@ async fn a_record_with_no_lyrics_falls_through_to_the_search_endpoint() {
     let LrclibOutcome::Found(found) = outcome else {
         panic!("expected a hit, got {outcome:?}");
     };
-    assert_eq!(found.plain.as_deref(), Some("Found"));
+    assert_eq!(found.result.plain.as_deref(), Some("Found"));
 }
 
 /// The variants are tried in order until one answers, and no further.
@@ -208,7 +208,10 @@ async fn the_first_search_result_wins_even_when_it_carries_no_lyrics() {
     let LrclibOutcome::Found(found) = outcome else {
         panic!("expected a hit, got {outcome:?}");
     };
-    assert_eq!(found.plain, None, "the *first* result won, empty as it was");
+    assert_eq!(
+        found.result.plain, None,
+        "the *first* result won, empty as it was"
+    );
     assert_eq!(server.received(), 2, "the chain stopped at the first hit");
 }
 
@@ -286,7 +289,7 @@ async fn a_hit_after_a_failure_still_wins() {
     let LrclibOutcome::Found(found) = outcome else {
         panic!("expected a hit, got {outcome:?}");
     };
-    assert_eq!(found.plain.as_deref(), Some("Recovered"));
+    assert_eq!(found.result.plain.as_deref(), Some("Recovered"));
 }
 
 /// An unparseable body is a failure, not a miss — the same reasoning as a 500.

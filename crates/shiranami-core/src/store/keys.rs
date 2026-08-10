@@ -78,6 +78,14 @@ pub enum RendererStoreKey {
     /// Whether to prefer LRCLIB's synced lyrics over local files.
     #[serde(rename = "lyrics.preferSyncedFromLrclib")]
     LyricsPreferSyncedFromLrclib,
+    /// Whether a synced LRCLIB hit is saved as a `.lrc` beside the track.
+    ///
+    /// Absent means **off**, and absent is the shipped state: this is the only
+    /// renderer-writable key that causes a write into the user's own music
+    /// folders, so it is opt-in and the lyrics service refuses at the trait
+    /// level until it is set.
+    #[serde(rename = "lyrics.saveFetchedLyrics")]
+    LyricsSaveFetchedLyrics,
 }
 
 /// A settings key only the main process may touch.
@@ -115,7 +123,7 @@ pub enum MainStoreKey {
 
 impl RendererStoreKey {
     /// Every renderer-writable key, in the order the TypeScript tuple lists them.
-    pub const ALL: [Self; 17] = [
+    pub const ALL: [Self; 18] = [
         Self::Settings,
         Self::MusicFolders,
         Self::PlayerState,
@@ -133,6 +141,7 @@ impl RendererStoreKey {
         Self::SystemMinimizeToTray,
         Self::SystemCloseToTray,
         Self::LyricsPreferSyncedFromLrclib,
+        Self::LyricsSaveFetchedLyrics,
     ];
 
     /// The electron-store dot path this key lives at in the document.
@@ -159,6 +168,7 @@ impl RendererStoreKey {
             Self::SystemMinimizeToTray => "system.minimizeToTray",
             Self::SystemCloseToTray => "system.closeToTray",
             Self::LyricsPreferSyncedFromLrclib => "lyrics.preferSyncedFromLrclib",
+            Self::LyricsSaveFetchedLyrics => "lyrics.saveFetchedLyrics",
         }
     }
 }

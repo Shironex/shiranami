@@ -28,6 +28,7 @@ const RENDERER_STORE_KEYS = [
   'system.minimizeToTray',
   'system.closeToTray',
   'lyrics.preferSyncedFromLrclib',
+  'lyrics.saveFetchedLyrics',
 ] as const;
 
 // Compile-time guarantee: every entry is a StoreSchema key.

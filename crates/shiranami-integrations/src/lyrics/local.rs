@@ -106,6 +106,37 @@ fn candidate_paths(audio_file: &Path) -> Vec<PathBuf> {
     candidates
 }
 
+/// The first `.lrc` candidate that already exists on disk, if any.
+///
+/// The question write-back asks before it writes anything: *is one of the
+/// user's own timed files already answering for this track?* It is answered
+/// from [`candidate_paths`] rather than from a path this module builds a second
+/// time, because the whole safety of "never overwrite" rests on asking about the
+/// same six locations the reader consults. A `Lyrics/Song.lrc` the user
+/// hand-timed outranks nothing if a fresh sibling `Song.lrc` appears above it in
+/// the ladder — so *any* existing `.lrc` stops the write, not just one at the
+/// target path.
+///
+/// `.txt` candidates deliberately do not stop it. A plain-text file is only ever
+/// reached when the ladder found no timing at all, and the one path that fetches
+/// from the directory despite holding a local `.txt` is the user having asked
+/// for exactly that with `lyrics.preferSyncedFromLrclib`.
+///
+/// Synchronous: it is called from inside `spawn_blocking` beside the write.
+pub fn existing_lrc_sidecar(audio_file: &Path) -> Option<PathBuf> {
+    candidate_paths(audio_file)
+        .into_iter()
+        .filter(|candidate| {
+            candidate
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("lrc"))
+        })
+        // `try_exists` rather than `exists`: a permission error on a NAS share
+        // is not "there is no file there", and treating it as one is how a
+        // write-back lands on top of something it could not see.
+        .find(|candidate| candidate.try_exists().unwrap_or(true))
+}
+
 /// Load lyrics from a sidecar file, or `None` when no candidate exists.
 ///
 /// Never fails: an unreadable candidate is logged and skipped, because the
