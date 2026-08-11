@@ -36,6 +36,9 @@ function seedDiary(entries: RadioLogEntry[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   logGet.mockResolvedValue([]);
+  // `clearAllMocks` clears calls, not implementations, so a test that makes the
+  // enqueue reject would otherwise make every later one reject too.
+  enqueueDownload.mockResolvedValue(undefined);
   useRadioDiaryStore.setState({ stationUuid: null, entries: [], isLoading: false });
   // The shim's surface, narrowed to what this panel reaches for.
   (window as unknown as { electronAPI: unknown }).electronAPI = {
@@ -91,6 +94,58 @@ describe('RadioDiary', () => {
         expect.objectContaining({ youtubeId: 'yt-1', url: 'https://youtube.example/watch?v=yt-1' })
       );
     });
+  });
+
+  it('leaves the row retryable when the enqueue itself fails', async () => {
+    search.mockResolvedValue([
+      {
+        id: 'yt-1',
+        title: 'Cornelius - Drop',
+        uploader: 'Cornelius',
+        duration: 200,
+        thumbnail: 'https://img.example/1.jpg',
+        url: 'https://stream.example/1',
+        webpage_url: 'https://youtube.example/watch?v=yt-1',
+      },
+    ]);
+    // What a missing yt-dlp or a full disk looks like from here.
+    enqueueDownload.mockRejectedValue(new Error('yt-dlp is not installed'));
+    seedDiary([entry()]);
+
+    render(<RadioDiary stationUuid={STATION} stationName="Groove Salad" onClose={vi.fn()} />);
+    const action = await screen.findByRole('button', { name: /Cornelius - Drop/ });
+    await userEvent.click(action);
+
+    await waitFor(() => expect(enqueueDownload).toHaveBeenCalledTimes(1));
+
+    // The point of not claiming success is that the user can try again:
+    // `queued` disables the button, so a row that believed a download it never
+    // got would stay locked until the panel unmounted.
+    enqueueDownload.mockResolvedValue(undefined);
+    await userEvent.click(action);
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(action).toBeDisabled());
+  });
+
+  it('marks the row done once the enqueue actually resolves', async () => {
+    search.mockResolvedValue([
+      {
+        id: 'yt-1',
+        title: 'Cornelius - Drop',
+        uploader: 'Cornelius',
+        duration: 200,
+        thumbnail: 'https://img.example/1.jpg',
+        url: 'https://stream.example/1',
+        webpage_url: 'https://youtube.example/watch?v=yt-1',
+      },
+    ]);
+    seedDiary([entry()]);
+
+    render(<RadioDiary stationUuid={STATION} stationName="Groove Salad" onClose={vi.fn()} />);
+    const action = await screen.findByRole('button', { name: /Cornelius - Drop/ });
+    await userEvent.click(action);
+
+    await waitFor(() => expect(action).toBeDisabled());
   });
 
   it('downloads nothing until the action is clicked', async () => {

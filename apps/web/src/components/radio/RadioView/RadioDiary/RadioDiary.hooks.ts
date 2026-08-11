@@ -50,6 +50,12 @@ export function useRadioDiary({
    * caught on the radio lands in the queue the same way every other one does.
    *
    * Never automatic. This runs from a click and from nothing else.
+   *
+   * The row goes to `queued` only once `download` says the track is actually
+   * reaching the queue. It reports its own outcome precisely because the enqueue
+   * can fail on its own — yt-dlp not installed yet, a full disk — and `queued`
+   * disables the button, so believing an enqueue that never happened locks the
+   * user out of retrying a row that no download exists for.
    */
   const getTrack = useCallback(
     async (id: number, raw: string) => {
@@ -65,14 +71,16 @@ export function useRadioDiary({
           return;
         }
 
-        download({
+        const outcome = await download({
           youtubeId: best.id,
           title: best.title,
           uploader: best.uploader,
           thumbnail: best.thumbnail,
           url: best.webpage_url,
         });
-        setStatus(id, 'queued');
+        // `download` has already told the user why a failure failed, so this
+        // only has to leave the row retryable.
+        setStatus(id, outcome === 'failed' ? 'error' : 'queued');
       } catch (err) {
         logger.error('[radio] failed to look up a logged title', err);
         setStatus(id, 'error');
