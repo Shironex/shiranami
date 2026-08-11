@@ -56,6 +56,26 @@ describe('RadioDiary', () => {
     expect(await screen.findByText('Now on Air: the breakfast show')).toBeInTheDocument();
   });
 
+  it('folds a fancy-font title the way the player beside it does', async () => {
+    seedDiary([entry({ raw: '𝕹𝖔𝖜 𝕻𝖑𝖆𝖞𝖎𝖓𝖌: Cornelius - Drop', artist: null, title: null })]);
+
+    render(<RadioDiary stationUuid={STATION} stationName="Groove Salad" onClose={vi.fn()} />);
+
+    // The player's title line NFKC-folds; this panel sits next to it showing
+    // the same station's strings, so it has to reach the same answer.
+    expect(await screen.findByText('Now Playing: Cornelius - Drop')).toBeInTheDocument();
+  });
+
+  it('searches for the folded title, which is the only form yt-dlp can match', async () => {
+    search.mockResolvedValue([]);
+    seedDiary([entry({ raw: '𝐂𝐨𝐫𝐧𝐞𝐥𝐢𝐮𝐬 - 𝐃𝐫𝐨𝐩', artist: null, title: null })]);
+
+    render(<RadioDiary stationUuid={STATION} stationName="Groove Salad" onClose={vi.fn()} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Cornelius - Drop/ }));
+
+    await waitFor(() => expect(search).toHaveBeenCalledWith('Cornelius - Drop'));
+  });
+
   it('names the station whose diary it is', async () => {
     seedDiary([entry()]);
 

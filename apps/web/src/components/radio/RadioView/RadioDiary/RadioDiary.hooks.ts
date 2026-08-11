@@ -5,6 +5,7 @@ import i18n from '@/lib/i18n';
 import { logger } from '@/lib/logger';
 import { IS_ELECTRON } from '@/lib/platform';
 import { useDiscoverDownload } from '@/hooks/useDiscoverDownload';
+import { fold } from '@/hooks/useRadioNowPlaying';
 import { useRadioDiaryStore } from '@/stores/useRadioDiaryStore';
 import type {
   IRadioDiaryEntryView,
@@ -43,11 +44,14 @@ export function useRadioDiary({
   /**
    * Turn a station's title into a download.
    *
-   * The query is the **raw** title, not the derived split: it is what the user
-   * is looking at, and when the split came out wrong the raw string is the only
-   * one that still describes the song. Search and enqueue are both the existing
-   * paths — `downloader:search` and the discover shelf's enqueue — so a track
-   * caught on the radio lands in the queue the same way every other one does.
+   * The query is the whole title, not the derived split: it is what the user is
+   * looking at, and when the split came out wrong the full string is the only
+   * one that still describes the song. It is the *folded* form for the same
+   * reason it is folded on screen — a station broadcasting `𝕻𝖑𝖆𝖞𝖎𝖓𝖌` in
+   * mathematical alphanumerics gives yt-dlp nothing to match. Search and enqueue
+   * are both the existing paths — `downloader:search` and the discover shelf's
+   * enqueue — so a track caught on the radio lands in the queue the same way
+   * every other one does.
    *
    * Never automatic. This runs from a click and from nothing else.
    *
@@ -105,16 +109,20 @@ export function useRadioDiary({
     return entries.map(entry => {
       const heardAt = new Date(entry.heardAt);
       const status = statuses[entry.id] ?? 'idle';
+      // Folded on the way out of the store and nowhere earlier: the row keeps
+      // its raw `StreamTitle`, and every surface that shows one — this panel and
+      // the player's title line beside it — folds it the same way at render.
+      const titleLabel = fold(entry.raw);
       return {
         id: entry.id,
-        raw: entry.raw,
+        titleLabel,
         timeLabel: timeFormat.format(heardAt),
         timestampLabel: stampFormat.format(heardAt),
         status,
-        actionLabel: t('diaryGetTrack', { title: entry.raw }),
+        actionLabel: t('diaryGetTrack', { title: titleLabel }),
         onGetTrack: () => {
           if (status === 'searching' || status === 'queued') return;
-          void getTrack(entry.id, entry.raw);
+          void getTrack(entry.id, titleLabel);
         },
       };
     });

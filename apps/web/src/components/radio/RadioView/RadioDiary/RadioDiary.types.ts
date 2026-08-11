@@ -28,13 +28,20 @@ export interface IRadioDiaryEntryView {
   /** Row id, and the React key. */
   readonly id: number;
   /**
-   * The `StreamTitle` exactly as the station sent it.
+   * The `StreamTitle` the station sent, NFKC-folded for display.
    *
-   * Rendered as-is and never replaced by the derived artist/title: the split is
-   * a guess, and the user has to be able to see — and act on — what actually
-   * came over the air when the guess is wrong.
+   * Never the derived artist/title: the split is a guess, and the user has to
+   * be able to see — and act on — what actually came over the air when the
+   * guess is wrong.
+   *
+   * The fold is the same one the player's title line applies (`fold` in
+   * `useRadioNowPlaying`), and it is applied here rather than to the stored row
+   * because it is lossy — the raw string stays the source of truth for
+   * matching, logging and scrobbling. What it buys is that a station
+   * broadcasting `𝕹𝖔𝖜 𝕻𝖑𝖆𝖞𝖎𝖓𝖌` renders the same way in this panel as it does in
+   * the player sitting next to it, in a font that can actually draw it.
    */
-  readonly raw: string;
+  readonly titleLabel: string;
   /** Localized clock time the title was heard. */
   readonly timeLabel: string;
   /** Full localized instant, for the row's tooltip. */

@@ -37,10 +37,14 @@ const ENTRIES: RadioLogEntry[] = [
 /**
  * radio · RadioDiary. The quiet log beside the station list: every distinct
  * title the station on air has announced, newest first, with the time it was
- * heard. Each row shows the station's *raw* `StreamTitle` — the artist/title
+ * heard. Each row shows the station's whole `StreamTitle` — the artist/title
  * split is a best-effort guess and never replaces what actually came over the
  * air — and offers a hover-revealed action that looks the title up and hands it
  * to the download queue. Nothing downloads without that click.
+ *
+ * The stored row keeps the string exactly as it decoded; the panel NFKC-folds
+ * it at render, the same fold the player's title line applies, so the two
+ * surfaces never disagree about what the station is saying.
  */
 const meta: Meta<typeof RadioDiary> = {
   title: 'radio/RadioDiary',

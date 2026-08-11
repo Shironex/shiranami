@@ -34,9 +34,9 @@ export default function RadioDiary(props: IRadioDiaryProps) {
         >
           {entry.timeLabel}
         </time>
-        {/* The raw StreamTitle, never the derived split — see RadioDiary.types. */}
+        {/* The StreamTitle, never the derived split — see RadioDiary.types. */}
         <p className="min-w-0 flex-1 text-xs leading-5 text-foreground/85 break-words">
-          {entry.raw}
+          {entry.titleLabel}
         </p>
         <button
           onClick={entry.onGetTrack}
