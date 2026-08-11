@@ -73,7 +73,7 @@ fn musical_key_compiles_as_a_text_field() {
 /// the same scoping rather than each other's typos.
 const PLAYED_SINCE: &str = "EXISTS (SELECT 1 FROM play_history \
      WHERE play_history.track_id = tracks.id AND play_history.source = 'library' \
-     AND play_history.played_at >= datetime('now', ?))";
+     AND play_history.played_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?))";
 
 #[test]
 fn last_played_in_last_days_is_a_scoped_exists() {
@@ -110,6 +110,28 @@ fn last_played_counts_only_library_plays() {
             filter.sql()
         );
     }
+}
+
+/// `played_at` is stored in JavaScript's ISO spelling and compared as text, so
+/// the cutoff has to be rendered the same way. `datetime('now', ?)` yields
+/// `2026-07-12 10:15:00`, which sorts *below* `2026-07-12T05:00:00.000Z` at
+/// byte 10 and pulls the whole cutoff day inside the window.
+#[test]
+fn last_played_binds_a_cutoff_in_the_stored_timestamp_format() {
+    let filter = one(rule(Field::LastPlayed, Op::InLastDays, "30"));
+
+    assert!(
+        filter
+            .sql()
+            .contains("strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)"),
+        "`{}` must compare ISO text against ISO text",
+        filter.sql()
+    );
+    assert!(
+        !filter.sql().contains("datetime("),
+        "`{}` still renders a SQLite-spelled cutoff",
+        filter.sql()
+    );
 }
 
 #[test]

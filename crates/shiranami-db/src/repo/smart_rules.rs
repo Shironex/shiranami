@@ -56,6 +56,8 @@ use shiranami_core::models::{
 };
 use sqlx::{QueryBuilder, Sqlite};
 
+use crate::repo::clock::ISO_8601_SHIFTED;
+
 /// One value bound into a compiled filter.
 ///
 /// Typed rather than stringly so that the encoder, not the compiler, decides
@@ -262,6 +264,11 @@ fn favorite_condition(rule: &SmartPlaylistRule) -> Filter {
 /// count reaches SQL as data rather than as text spliced into the statement.
 /// `created_at` is `NOT NULL`, so the negation is a plain `<` with no
 /// three-valued-logic hole to cover.
+///
+/// `datetime` and not [`ISO_8601_SHIFTED`], unlike [`last_played_condition`]:
+/// `tracks.created_at` is written by its column `DEFAULT (datetime('now'))` and
+/// so holds `2026-08-01 12:34:56`. Both sides are the SQLite spelling and the
+/// text comparison is sound. Making this one ISO would break it symmetrically.
 fn date_condition(rule: &SmartPlaylistRule) -> Option<Filter> {
     let days = day_count(rule)?;
     let comparison = match rule.operator {
@@ -311,6 +318,14 @@ const LAST_LIBRARY_PLAY: &str = "(SELECT MAX(play_history.played_at) FROM play_h
 /// existence test is simply true. A `MAX(played_at) < cutoff` comparison would
 /// yield `NULL` for those tracks and silently exclude the very rows the rule
 /// exists to find.
+///
+/// The cutoff is rendered with [`ISO_8601_SHIFTED`], not `datetime('now', ?)`,
+/// because `played_at` holds `2026-07-12T05:00:00.000Z` and is compared as
+/// text. Against a `2026-07-12 10:15:00` cutoff the comparison decides at byte
+/// 10 — `'T'` (0x54) against `' '` (0x20) — and reads *every* play on the
+/// cutoff day as inside the window. That silently stretched each day-count rule
+/// to the start of the cutoff day: a track played 30 days and five hours ago
+/// was excluded from "not played in the last 30 days".
 fn last_played_condition(rule: &SmartPlaylistRule) -> Option<Filter> {
     let days = day_count(rule)?;
     let negation = match rule.operator {
@@ -322,7 +337,7 @@ fn last_played_condition(rule: &SmartPlaylistRule) -> Option<Filter> {
     Some(Filter {
         sql: format!(
             "{negation}EXISTS (SELECT 1 FROM play_history WHERE play_history.track_id = tracks.id \
-             AND {LIBRARY_PLAY} AND play_history.played_at >= datetime('now', ?))"
+             AND {LIBRARY_PLAY} AND play_history.played_at >= {ISO_8601_SHIFTED})"
         ),
         binds: vec![Bind::Text(format!("-{days} days"))],
     })

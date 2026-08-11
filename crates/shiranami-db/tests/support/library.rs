@@ -28,7 +28,7 @@ use shiranami_core::models::{
 };
 use shiranami_db::repo::{playlist_tracks, playlists, smart_playlists, tracks};
 use sqlx::pool::PoolConnection;
-use sqlx::{Sqlite, SqliteConnection, SqlitePool};
+use sqlx::{QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
 use tempfile::TempDir;
 
 /// An open library, alive for as long as the binding is.
@@ -231,21 +231,55 @@ pub(crate) async fn played(
     days_ago: u32,
     source: &str,
 ) {
-    sqlx::query(
+    played_ago(conn, track_id, &[&format!("-{days_ago} days")], source).await;
+}
+
+/// Record one play at an arbitrary offset back from now.
+///
+/// `modifiers` are SQLite date modifiers, each bound separately because SQLite
+/// takes one per argument — `"-30 days -5 hours"` in a single string is not a
+/// modifier at all and yields `NULL`.
+///
+/// `played_at` is written in **JavaScript's ISO format**, because that is the
+/// only shape production rows have: `shiranami_db::repo::history` documents why,
+/// and the column is compared as text. A fixture writing SQLite's
+/// `2026-07-12 05:00:00` instead exercises a data shape no user has, and it hid
+/// a real bug — a cutoff in the wrong spelling diverges from a stored timestamp
+/// at byte 10 (`' '` against `'T'`), which ran every `last_played` window back
+/// to the start of the cutoff day.
+pub(crate) async fn played_ago(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    modifiers: &[&str],
+    source: &str,
+) {
+    let mut builder = QueryBuilder::<Sqlite>::new(
         "INSERT INTO play_history \
            (id, track_id, played_at, played_seconds, completion_ratio, completed, source) \
-         VALUES (?1, ?2, datetime('now', ?3), 120, 1.0, 1, ?4)",
-    )
+         VALUES (",
+    );
+
     // A deterministic key rather than a UUID: `uuid` is a normal dependency of
     // this crate, so an integration test cannot reach it, and one play per
-    // (track, age, source) is all any test here needs.
-    .bind(format!("{track_id}:{days_ago}:{source}"))
-    .bind(track_id)
-    .bind(format!("-{days_ago} days"))
-    .bind(source)
-    .execute(conn)
-    .await
-    .expect("the play must record");
+    // (track, offset, source) is all any test here needs.
+    builder
+        .push_bind(format!("{track_id}:{}:{source}", modifiers.join(" ")))
+        .push(", ")
+        .push_bind(track_id.to_owned())
+        .push(", strftime('%Y-%m-%dT%H:%M:%fZ', 'now'");
+    for modifier in modifiers {
+        builder.push(", ").push_bind((*modifier).to_owned());
+    }
+    builder
+        .push("), 120, 1.0, 1, ")
+        .push_bind(source.to_owned())
+        .push(")");
+
+    builder
+        .build()
+        .execute(conn)
+        .await
+        .expect("the play must record");
 }
 
 /// Add a track carrying a genre and a year, returning its id.

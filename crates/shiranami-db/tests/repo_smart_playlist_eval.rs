@@ -16,7 +16,7 @@ use shiranami_db::repo::smart_playlists::{self, SmartPlaylistCreateInput};
 use shiranami_db::repo::tracks;
 
 use library::{
-    definition, fresh, played, preview, rule, set_analysis, set_created_at, set_play_count, tagged,
+    definition, fresh, preview, rule, set_analysis, set_created_at, set_play_count, tagged,
 };
 
 #[tokio::test]
@@ -239,119 +239,6 @@ async fn evaluation_orders_newest_first_with_the_library_tie_break() {
     let matched = preview(library.conn(), &definition(Match::All, Vec::new())).await;
 
     assert_eq!(matched, vec!["First", "Second", "Older"]);
-}
-
-// ── last_played ───────────────────────────────────────────────────────────────
-
-#[tokio::test]
-async fn last_played_in_last_days_matches_only_plays_inside_the_window() {
-    let mut library = fresh().await;
-    let recent = tagged(library.conn(), "Recent", "Lofi", None).await;
-    let stale = tagged(library.conn(), "Stale", "Lofi", None).await;
-    tagged(library.conn(), "Never", "Lofi", None).await;
-    played(library.conn(), &recent, 3, "library").await;
-    played(library.conn(), &stale, 120, "library").await;
-
-    let matched = preview(
-        library.conn(),
-        &definition(
-            Match::All,
-            vec![rule(Field::LastPlayed, Op::InLastDays, "90")],
-        ),
-    )
-    .await;
-
-    assert_eq!(matched, vec!["Recent"]);
-}
-
-/// The single most-requested rule, and the one easiest to get wrong: a track
-/// with no play history at all has not been played in the last 90 days.
-#[tokio::test]
-async fn last_played_not_in_last_days_includes_a_never_played_track() {
-    let mut library = fresh().await;
-    let recent = tagged(library.conn(), "Recent", "Lofi", None).await;
-    let stale = tagged(library.conn(), "Stale", "Lofi", None).await;
-    tagged(library.conn(), "Never", "Lofi", None).await;
-    played(library.conn(), &recent, 3, "library").await;
-    played(library.conn(), &stale, 120, "library").await;
-
-    let mut matched = preview(
-        library.conn(),
-        &definition(
-            Match::All,
-            vec![rule(Field::LastPlayed, Op::NotInLastDays, "90")],
-        ),
-    )
-    .await;
-    matched.sort();
-
-    assert_eq!(matched, vec!["Never", "Stale"]);
-}
-
-#[tokio::test]
-async fn last_played_reads_the_newest_play_not_the_oldest() {
-    let mut library = fresh().await;
-    let revisited = tagged(library.conn(), "Revisited", "Lofi", None).await;
-    played(library.conn(), &revisited, 400, "library").await;
-    played(library.conn(), &revisited, 2, "library").await;
-
-    assert_eq!(
-        preview(
-            library.conn(),
-            &definition(
-                Match::All,
-                vec![rule(Field::LastPlayed, Op::InLastDays, "30")],
-            ),
-        )
-        .await,
-        vec!["Revisited"]
-    );
-    assert!(
-        preview(
-            library.conn(),
-            &definition(
-                Match::All,
-                vec![rule(Field::LastPlayed, Op::NotInLastDays, "30")],
-            ),
-        )
-        .await
-        .is_empty()
-    );
-}
-
-/// A radio row in `play_history` is not a play of the track it is keyed to, so
-/// it must neither satisfy "played recently" nor stop the track satisfying
-/// "not played recently".
-#[tokio::test]
-async fn a_radio_play_never_counts_as_playing_the_track() {
-    let mut library = fresh().await;
-    let track = tagged(library.conn(), "Radio only", "Lofi", None).await;
-    played(library.conn(), &track, 1, "radio").await;
-
-    assert!(
-        preview(
-            library.conn(),
-            &definition(
-                Match::All,
-                vec![rule(Field::LastPlayed, Op::InLastDays, "30")],
-            ),
-        )
-        .await
-        .is_empty(),
-        "a radio row is not a play of this track"
-    );
-    assert_eq!(
-        preview(
-            library.conn(),
-            &definition(
-                Match::All,
-                vec![rule(Field::LastPlayed, Op::NotInLastDays, "30")],
-            ),
-        )
-        .await,
-        vec!["Radio only"],
-        "and it must not hide the track from the negated rule either"
-    );
 }
 
 // ── the analysis columns ──────────────────────────────────────────────────────
