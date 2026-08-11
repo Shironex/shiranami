@@ -14,7 +14,8 @@
 
 mod common;
 
-use common::{FakeUpstream, Harness, Reply, TestResolver};
+use bytes::Bytes;
+use common::{FakeUpstream, Harness, Reply, ReplyBody, TestResolver};
 use reqwest::StatusCode;
 use reqwest::header::{ACCEPT_RANGES, CACHE_CONTROL, CONTENT_TYPE};
 
@@ -374,4 +375,152 @@ async fn a_live_stream_is_forwarded_without_waiting_for_it_to_end() {
 
     assert!(received > 0);
     drop(response);
+}
+
+// ── ICY metadata ──────────────────────────────────────────────────────────
+//
+// v1 declined stream metadata (`icy-metadata: 0`) and therefore never had to
+// de-frame anything. v2 asks for it, which changes the body from audio into
+// audio interleaved with metadata blocks — so the assertion that matters here
+// is not "the title arrived", it is **"the audio is byte-identical"**. A
+// mistake in the framing does not fail loudly; it plays clicks.
+//
+// The framing state machine has its own unit tests over chunk-boundary
+// permutations (`src/icy/deframe.rs`). These prove the wiring: that the route
+// only de-frames when the station granted a period, and that a title reaches
+// the sink with the URL the renderer asked for rather than the one the redirect
+// chain landed on.
+
+/// A station reply carrying ICY frames on a period of `metaint`.
+fn icy_reply(metaint: usize, chunks: Vec<Bytes>) -> Reply {
+    Reply {
+        status: 200,
+        headers: vec![
+            ("content-type", "audio/mpeg".to_owned()),
+            ("icy-metaint", metaint.to_string()),
+        ],
+        body: ReplyBody::Chunks(chunks),
+    }
+}
+
+/// One metadata block, length-prefixed and NUL-padded as a station sends it.
+fn icy_block(body: &str) -> Vec<u8> {
+    let mut bytes = body.as_bytes().to_vec();
+    while !bytes.len().is_multiple_of(16) {
+        bytes.push(0);
+    }
+    let mut framed = vec![u8::try_from(bytes.len() / 16).expect("a short block")];
+    framed.extend_from_slice(&bytes);
+    framed
+}
+
+/// `n` bytes of recognisable pseudo-audio.
+fn pcm(n: usize, seed: u8) -> Vec<u8> {
+    (0..n)
+        .map(|i| u8::try_from(i % 251).expect("under 251").wrapping_add(seed))
+        .collect()
+}
+
+#[tokio::test]
+async fn an_icy_stream_reaches_the_decoder_with_no_metadata_in_it() {
+    const METAINT: usize = 32;
+
+    let mut framed = pcm(METAINT, 0);
+    framed.extend_from_slice(&icy_block("StreamTitle='Cornelius - Drop';"));
+    framed.extend_from_slice(&pcm(METAINT, 7));
+    framed.push(0); // a period with nothing new to say
+    framed.extend_from_slice(&pcm(METAINT, 13));
+
+    let mut audio = pcm(METAINT, 0);
+    audio.extend_from_slice(&pcm(METAINT, 7));
+    audio.extend_from_slice(&pcm(METAINT, 13));
+
+    // Split at a point that cuts the first block in half, because a station's
+    // chunking has nothing to do with its metaint and this is the boundary that
+    // corrupts audio when it is handled wrongly.
+    let cut = METAINT + 8;
+    let harness = Harness::start_with(
+        FakeUpstream::new().answering(
+            STATION,
+            icy_reply(
+                METAINT,
+                vec![
+                    Bytes::copy_from_slice(&framed[..cut]),
+                    Bytes::copy_from_slice(&framed[cut..]),
+                ],
+            ),
+        ),
+        resolver(),
+    )
+    .await;
+
+    let response = harness.radio(STATION).await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = response.bytes().await.expect("a body");
+    assert_eq!(
+        body.as_ref(),
+        audio.as_slice(),
+        "a metadata byte reaching the decoder is a click the user hears"
+    );
+
+    let titles = harness.titles.lock().expect("not poisoned");
+    assert_eq!(titles.len(), 1);
+    assert_eq!(titles[0].raw, "Cornelius - Drop");
+    assert_eq!(titles[0].artist.as_deref(), Some("Cornelius"));
+    assert_eq!(titles[0].title.as_deref(), Some("Drop"));
+}
+
+/// A station that ignores `Icy-MetaData: 1` sends plain audio, and every byte
+/// of it is audio — including bytes that would look like a length prefix.
+#[tokio::test]
+async fn a_station_that_grants_no_metaint_is_forwarded_untouched() {
+    let audio = pcm(512, 3);
+    let harness = Harness::start_with(
+        FakeUpstream::new().answering(
+            STATION,
+            Reply {
+                status: 200,
+                headers: vec![("content-type", "audio/mpeg".to_owned())],
+                body: ReplyBody::Chunks(vec![Bytes::copy_from_slice(&audio)]),
+            },
+        ),
+        resolver(),
+    )
+    .await;
+
+    let body = harness.radio(STATION).await.bytes().await.expect("a body");
+
+    assert_eq!(body.as_ref(), audio.as_slice());
+    assert!(harness.titles.lock().expect("not poisoned").is_empty());
+}
+
+/// The now-playing event is addressed by the URL the **renderer** asked for.
+/// After a redirect the proxy is talking to a CDN edge the renderer has never
+/// heard of, and a payload naming that URL would match nothing it is playing.
+#[tokio::test]
+async fn a_title_is_reported_against_the_url_the_renderer_asked_for() {
+    const METAINT: usize = 16;
+    const EDGE: &str = "http://cdn.example.net/live";
+
+    let mut framed = pcm(METAINT, 0);
+    framed.extend_from_slice(&icy_block("StreamTitle='Redirected - Still Playing';"));
+
+    let harness = Harness::start_with(
+        FakeUpstream::new()
+            .answering(STATION, Reply::redirect(302, EDGE))
+            .answering(
+                EDGE,
+                icy_reply(METAINT, vec![Bytes::copy_from_slice(&framed)]),
+            ),
+        resolver(),
+    )
+    .await;
+
+    assert_eq!(harness.radio(STATION).await.status(), StatusCode::OK);
+
+    let titles = harness.titles.lock().expect("not poisoned");
+    assert_eq!(titles.len(), 1);
+    assert_eq!(titles[0].stream_url, STATION);
+    assert_eq!(titles[0].raw, "Redirected - Still Playing");
 }

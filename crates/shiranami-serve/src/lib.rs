@@ -45,6 +45,7 @@
 pub mod art_cache;
 pub mod cors;
 pub mod error;
+pub mod icy;
 pub mod media_types;
 pub mod range;
 pub mod routes;
@@ -54,6 +55,7 @@ pub mod token;
 pub mod upstream;
 
 pub use error::ServeError;
+pub use icy::NowPlayingSink;
 pub use server::{ServeHandle, start};
 pub use state::{ServeConfig, ServeState};
 pub use token::SessionToken;

@@ -25,13 +25,16 @@ use axum::body::Body;
 use axum::extract::{Path as UrlPath, State};
 use axum::http::{StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
+use futures_util::StreamExt;
+use shiranami_core::models::RadioNowPlaying;
 use url::Url;
 
 use crate::error::ServeError;
+use crate::icy::{Deframer, NowPlayingSink};
 use crate::media_types::DEFAULT_AUDIO_MIME;
 use crate::routes::query;
 use crate::state::{MAX_REDIRECTS, ServeState};
-use crate::upstream::UpstreamHead;
+use crate::upstream::{ChunkStream, UpstreamHead};
 
 /// The statuses that mean "ask elsewhere". v1's `REDIRECT_STATUSES`.
 const REDIRECT_STATUSES: [u16; 5] = [301, 302, 303, 307, 308];
@@ -50,7 +53,11 @@ pub async fn handle(
         return Err(ServeError::BadRequest("missing url parameter"));
     };
 
-    let mut current = requested;
+    // Kept for the whole hop loop: the now-playing event is addressed by the
+    // URL the *renderer* asked for, which is the only one it can match against
+    // its own `filePath`. After a redirect `current` is some CDN edge the
+    // renderer has never heard of.
+    let mut current = requested.clone();
 
     for hop in 0..=MAX_REDIRECTS {
         // Every hop, including the first. The reason is logged and never sent:
@@ -71,14 +78,14 @@ pub async fn handle(
             })?;
 
         if !REDIRECT_STATUSES.contains(&head.status) {
-            return respond(head);
+            return respond(head, &requested, state.now_playing());
         }
 
         // A 3xx with no usable `Location` is not a redirect we can follow, so
         // it is forwarded as the response it is — which fails the success check
         // in `respond` and reaches the renderer as the station's own status.
         let Some(location) = head.location() else {
-            return respond(head);
+            return respond(head, &requested, state.now_playing());
         };
 
         if hop == MAX_REDIRECTS {
@@ -107,13 +114,26 @@ fn resolve_location(base: &Url, location: &str) -> Option<String> {
 /// The status is flattened to 200 on success, as v1 did. A station answering 206
 /// to a request we never sent a Range on would otherwise reach the media element
 /// as a partial response with no `Content-Range` to place it.
-fn respond(head: UpstreamHead) -> Result<Response, ServeError> {
+fn respond(
+    head: UpstreamHead,
+    requested: &str,
+    sink: &NowPlayingSink,
+) -> Result<Response, ServeError> {
     let status = StatusCode::from_u16(head.status).unwrap_or(StatusCode::BAD_GATEWAY);
     if !status.is_success() {
         return Err(ServeError::Upstream { status });
     }
 
     let content_type = head.content_type().unwrap_or(DEFAULT_AUDIO_MIME).to_owned();
+
+    // Only when the station actually granted a period. A body forwarded through
+    // a de-framer that guessed at one would be corrupted rather than merely
+    // title-less, so the absence of the header is a hard "pass through".
+    let metaint = head.metaint();
+    let body = match metaint {
+        Some(metaint) => deframed(head.body, metaint, requested.to_owned(), sink.clone()),
+        None => head.body,
+    };
 
     Ok((
         StatusCode::OK,
@@ -125,9 +145,35 @@ fn respond(head: UpstreamHead) -> Result<Response, ServeError> {
             (header::ACCEPT_RANGES, "none".to_owned()),
             (header::CACHE_CONTROL, "no-cache, no-store".to_owned()),
         ],
-        Body::from_stream(head.body),
+        Body::from_stream(body),
     )
         .into_response())
+}
+
+/// Wrap a station's body in a de-framer, reporting titles as they complete.
+///
+/// The `Content-Length` question does not arise: a live stream never carries
+/// one, and `respond` sets no length header of its own — so removing bytes from
+/// the body cannot disagree with anything already promised to the client.
+fn deframed(
+    body: ChunkStream,
+    metaint: usize,
+    stream_url: String,
+    sink: NowPlayingSink,
+) -> ChunkStream {
+    let mut deframer = Deframer::new(metaint);
+
+    body.map(move |chunk| {
+        chunk.map(|chunk| {
+            let frame = deframer.push(chunk);
+            for title in frame.titles {
+                tracing::debug!(%title, "a station reported what it is playing");
+                sink.send(RadioNowPlaying::new(stream_url.clone(), title));
+            }
+            frame.audio
+        })
+    })
+    .boxed()
 }
 
 #[cfg(test)]

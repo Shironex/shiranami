@@ -77,6 +77,18 @@ export function loudnessLinearGain(
 }
 
 /**
+ * Which `play_history.source` a session belongs to.
+ *
+ * Only ever returns `'library'` today, because `resetPlaybackSession` refuses
+ * to open a session for anything else. Written as a derivation rather than a
+ * literal so that lifting that restriction is a one-line change here instead
+ * of a hunt for a hardcoded string.
+ */
+function sourceFor(track: Track): string {
+  return isRadioTrack(track.filePath) ? 'radio' : 'library';
+}
+
+/**
  * Audio engine hook - creates and manages two HTML5 Audio elements (deck A/B),
  * keeping them in sync with the player store and handling crossfade transitions.
  *
@@ -252,6 +264,29 @@ export function useAudioEngine() {
 
   // ── Playback session (listening history) ──────────────────────
 
+  /**
+   * Radio is deliberately excluded from `play_history`, and this is the only
+   * place that decision is made.
+   *
+   * It is a schema constraint, not a policy: `play_history.track_id` is
+   * `NOT NULL REFERENCES tracks(id) ON DELETE CASCADE`
+   * (`crates/shiranami-db/migrations/0001_baseline.sql`), and both engines
+   * enforce it — `pool.rs`'s `.foreign_keys(true)` and `client.ts`'s
+   * `pragma foreign_keys = ON`. A radio track's id is `radio:<station-uuid>`,
+   * minted by `stationToTrack` for the queue and never written to `tracks`, so
+   * an insert for one cannot succeed. Recording radio here would not be a
+   * feature that works differently; it would be a `FOREIGN KEY constraint
+   * failed` on every station, swallowed by the catch in `flushPlaybackSession`
+   * and visible as nothing at all.
+   *
+   * Radio listening belongs in a table that does not reference `tracks`. Until
+   * that lands, a radio session simply is not a session — hence `track: null`,
+   * which makes `flushPlaybackSession` return before it can build a row.
+   *
+   * The seam for enabling it is `recordPlay`'s `source` argument, which
+   * `flushPlaybackSession` now passes explicitly: `'library'` here, `'radio'`
+   * for the radio path when there is somewhere for it to go.
+   */
   const resetPlaybackSession = useCallback((track: Track | null) => {
     playbackSessionRef.current = {
       track: track && !isRadioTrack(track.filePath) ? track : null,
@@ -285,7 +320,11 @@ export function useAudioEngine() {
         trackId: track.id,
         playedSeconds,
         duration,
-        source: 'library',
+        // Explicit rather than relying on the handler's default, so the
+        // 'library' / 'radio' contract in `packages/contracts/src/ipc/history.ts`
+        // has a real caller. Every session that reaches here is a library one
+        // by construction — see `resetPlaybackSession` for why radio cannot be.
+        source: sourceFor(track),
       });
       incrementTrackPlayCount(track.id);
       queryClient.invalidateQueries({ queryKey: historyKeys.all });

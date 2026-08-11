@@ -107,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             art_dir: fixture_dir.clone(),
             guard: UrlGuard::system(),
             upstream: Arc::new(NoRadio),
+            now_playing: shiranami_serve::NowPlayingSink::discarding(),
         },
         SessionToken::generate(),
     );

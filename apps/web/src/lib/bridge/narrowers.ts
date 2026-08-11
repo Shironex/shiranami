@@ -119,6 +119,16 @@ export const companionXp = predicate(
   })
 );
 
+/**
+ * `radio:now-playing`.
+ *
+ * `raw` is the only field the UI reads, so it is the only one asserted as
+ * present; `artist`/`title` are a best-effort split the Rust side nulls out
+ * whenever the convention does not hold, and requiring them would turn "this
+ * station does not format its titles" into "this station gets no titles".
+ */
+export const radioNowPlaying = predicate(z.object({ streamUrl: z.string(), raw: z.string() }));
+
 // ── the rest ──────────────────────────────────────────────────────────────
 
 /** `system:notice`. */

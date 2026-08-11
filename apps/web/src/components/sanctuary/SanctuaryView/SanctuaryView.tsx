@@ -22,6 +22,7 @@ export default function SanctuaryView() {
   const {
     hasTrack,
     currentTrack,
+    titleText,
     variant,
     chromeVisible,
     lyrics,
@@ -148,7 +149,7 @@ export default function SanctuaryView() {
 
             <div className="text-center max-w-[70vw]">
               <h1 className="font-serif italic text-3xl @5xl:text-4xl text-foreground truncate">
-                {currentTrack.title}
+                {titleText}
               </h1>
               <p className="text-sm text-muted-foreground mt-1.5 truncate">{trackLine}</p>
             </div>
@@ -165,7 +166,7 @@ export default function SanctuaryView() {
               {weatherLabel && <span className="text-muted-foreground/70"> · {weatherLabel}</span>}
             </div>
             <p className="text-sm text-muted-foreground/60 max-w-[70vw] truncate">
-              {currentTrack.title} — {trackLine}
+              {titleText} — {trackLine}
             </p>
           </>
         )}

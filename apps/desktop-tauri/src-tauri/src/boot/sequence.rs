@@ -278,13 +278,23 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
     // server hands out back into the files under it, so the two reading a
     // different directory would silently cost every now-playing thumbnail.
     let art_dir = shiranami_metadata::art::art_dir(&data_dir);
-    let serve = shiranami_serve::start(shiranami_serve::ServeConfig::new(
-        Arc::clone(&cache),
-        art_dir.clone(),
-        (*http).clone(),
-    ))
-    .await
-    .map_err(|error| BootError::Serve(error.to_string()))?;
+    let mut serve_config =
+        shiranami_serve::ServeConfig::new(Arc::clone(&cache), art_dir.clone(), (*http).clone());
+    // The radio proxy de-frames ICY metadata but has no `AppHandle` to announce
+    // it with (§2.1: the crates never reach for the composition root), so the
+    // crossing is a callback the composition root supplies. It runs on the task
+    // polling the station's body, which is why it only emits — anything slower
+    // here is latency in front of the audio the user is hearing.
+    let now_playing_app = app.clone();
+    serve_config.now_playing = shiranami_serve::NowPlayingSink::from_fn(move |playing| {
+        use tauri_specta::Event as _;
+        // A failed emit means the window is gone, which is not worth a log line
+        // once per song for the rest of the session.
+        let _ = crate::events::RadioNowPlayingChanged(playing).emit(&now_playing_app);
+    });
+    let serve = shiranami_serve::start(serve_config)
+        .await
+        .map_err(|error| BootError::Serve(error.to_string()))?;
     tracing::info!(
         port = serve.port(),
         "the loopback media server is listening"
