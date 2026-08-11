@@ -2502,7 +2502,13 @@ export type LyricsResult = {
 	source: LyricsSource | null,
 };
 
-/**  Progress through a lyrics write-back batch (v2, no v1 counterpart). */
+/**
+ *  Progress through a lyrics write-back batch (v2, no v1 counterpart).
+ * 
+ *  v1 fetched lyrics one track at a time and kept them in memory, so there
+ *  was no library-wide pass to report on. See
+ *  `crate::commands::lyrics`.
+ */
 export type LyricsSaveProgress = Json;
 
 /**
