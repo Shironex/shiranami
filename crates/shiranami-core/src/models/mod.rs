@@ -70,7 +70,7 @@ pub use patch::{Patch, double_option};
 pub use playlist::{
     Playlist, PlaylistCreateInput, PlaylistCreateWithTracksInput, PlaylistUpdateInput,
 };
-pub use radio::{RadioFavorite, RadioNowPlaying, RadioStationInput};
+pub use radio::{RadioFavorite, RadioLogEntry, RadioNowPlaying, RadioStationInput};
 pub use recommendation::{
     DiscoverRecommendation, DiscoverShelf, LibraryRecommendation, LibraryShelf,
     RECOMMENDATION_TTL_MS, RecommendationKind, RecommendationShelves, SIMILAR_TRACKS_MAX,
@@ -79,7 +79,7 @@ pub use recommendation::{
 pub use scrobble::{LastfmAuthStart, ScrobbleConnectError, ScrobbleConnectResult, ScrobbleStatus};
 pub use smart_playlist::{
     SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType,
-    SmartPlaylistOperator, SmartPlaylistRule,
+    SmartPlaylistOperator, SmartPlaylistOrderBy, SmartPlaylistRule, SmartPlaylistSortDirection,
 };
 pub use track::{DisplayTrack, NewTrack, Track, TrackCreateInput, TrackUpdateInput};
 pub use weather::{GeocodeResult, WeatherCondition, WeatherCurrent};

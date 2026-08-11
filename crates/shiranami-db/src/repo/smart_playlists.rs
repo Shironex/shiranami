@@ -20,7 +20,8 @@
 //! `match_type` degrades the same way, to `all`.
 
 use shiranami_core::models::{
-    SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistMatchType, SmartPlaylistRule, Track,
+    SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistMatchType, SmartPlaylistOrderBy,
+    SmartPlaylistRule, SmartPlaylistSortDirection, Track,
 };
 use sqlx::{QueryBuilder, Row, Sqlite, SqliteConnection, sqlite::SqliteRow};
 use uuid::Uuid;
@@ -53,6 +54,10 @@ pub struct SmartPlaylistCreateInput {
     pub match_type: SmartPlaylistMatchType,
     /// The rules themselves.
     pub rules: Vec<SmartPlaylistRule>,
+    /// Maximum tracks to return. `None` means unbounded.
+    pub limit: Option<u32>,
+    /// Explicit sort, replacing the default library order.
+    pub order_by: Option<SmartPlaylistOrderBy>,
 }
 
 /// A patch for an existing smart playlist. Absent fields are left alone.
@@ -69,7 +74,16 @@ pub struct SmartPlaylistUpdateInput {
     /// How the rules combine.
     pub match_type: Option<SmartPlaylistMatchType>,
     /// The rules themselves, replacing the stored set wholesale.
+    ///
+    /// `rules`, `limit` and `order_by` share one column and are written as a
+    /// unit: a patch carrying `rules` rewrites all three, which is how the
+    /// editor clears a limit — an optional field has no other way to say
+    /// "none". A patch carrying only `limit`/`order_by` keeps the stored rules.
     pub rules: Option<Vec<SmartPlaylistRule>>,
+    /// Maximum tracks to return.
+    pub limit: Option<u32>,
+    /// Explicit sort, replacing the default library order.
+    pub order_by: Option<SmartPlaylistOrderBy>,
 }
 
 /// Every smart playlist, newest first.
@@ -106,7 +120,7 @@ pub async fn create(
     values.push_bind(input.name.clone());
     values.push_bind(input.description.clone());
     values.push_bind(match_type_text(input.match_type).to_owned());
-    values.push_bind(encode_rules(&input.rules));
+    values.push_bind(encode_rules(&input.rules, input.limit, input.order_by));
     builder.push(")");
     builder.push(RETURNING_SMART);
 
@@ -129,6 +143,10 @@ pub async fn update(
     id: &str,
     patch: &SmartPlaylistUpdateInput,
 ) -> Result<Option<SmartPlaylist>> {
+    // Resolved before the builder exists because the read-modify-write branch
+    // needs the connection, which the builder would otherwise be holding.
+    let rules_column = rules_column_for(&mut *conn, id, patch).await?;
+
     let mut builder = QueryBuilder::<Sqlite>::new("UPDATE smart_playlists SET ");
     let mut set = builder.separated(", ");
 
@@ -144,9 +162,9 @@ pub async fn update(
         set.push("match_type = ");
         set.push_bind_unseparated(match_type_text(match_type).to_owned());
     }
-    if let Some(rules) = &patch.rules {
+    if let Some(rules) = rules_column {
         set.push("rules = ");
-        set.push_bind_unseparated(encode_rules(rules));
+        set.push_bind_unseparated(rules);
     }
 
     // Always written, and last, so the separator fires only when a patched
@@ -165,6 +183,36 @@ pub async fn update(
         .map_err(failed("update the smart playlist"))?;
 
     row.as_ref().map(smart_playlist).transpose()
+}
+
+/// The new value for the `rules` column, or `None` to leave it alone.
+///
+/// `rules`, `limit` and `order_by` share the column, so a patch touching any of
+/// them rewrites all three — see [`SmartPlaylistUpdateInput::rules`]. Only the
+/// limit-or-sort-without-rules case has to read first, and only that case pays
+/// for the extra statement.
+async fn rules_column_for(
+    conn: &mut SqliteConnection,
+    id: &str,
+    patch: &SmartPlaylistUpdateInput,
+) -> Result<Option<String>> {
+    if let Some(rules) = &patch.rules {
+        return Ok(Some(encode_rules(rules, patch.limit, patch.order_by)));
+    }
+    if patch.limit.is_none() && patch.order_by.is_none() {
+        return Ok(None);
+    }
+
+    let Some(row) = fetch(&mut *conn, id).await? else {
+        return Ok(None);
+    };
+    let stored = smart_playlist(&row)?;
+
+    Ok(Some(encode_rules(
+        &stored.rules,
+        patch.limit.or(stored.limit),
+        patch.order_by.or(stored.order_by),
+    )))
 }
 
 /// Delete a smart playlist. Nothing cascades — it owns no rows.
@@ -196,6 +244,8 @@ pub async fn get_tracks(conn: &mut SqliteConnection, id: &str) -> Result<Vec<Tra
         &SmartPlaylistDefinition {
             match_type: saved.match_type,
             rules: saved.rules,
+            limit: saved.limit,
+            order_by: saved.order_by,
         },
     )
     .await
@@ -220,7 +270,34 @@ async fn evaluate(
 ) -> Result<Vec<Track>> {
     let mut builder = QueryBuilder::<Sqlite>::new(TRACK_SELECT);
     smart_rules::compile(definition).push_to(&mut builder);
-    builder.push(LIBRARY_ORDER);
+
+    match definition.order_by {
+        // An explicit sort replaces the leading key but keeps `rowid` as the
+        // final one, for the reason `LIBRARY_ORDER` gives: `play_count DESC`
+        // alone leaves every tie to the planner, so "top 25" would not be a
+        // stable 25. Both halves are `&'static str` — the field selects an
+        // expression, it never supplies one.
+        Some(order) => {
+            builder.push(" ORDER BY ");
+            builder.push(smart_rules::order_expression_of(order.field));
+            builder.push(match order.direction {
+                SmartPlaylistSortDirection::Asc => " ASC",
+                SmartPlaylistSortDirection::Desc => " DESC",
+            });
+            builder.push(", tracks.rowid ASC");
+        }
+        None => {
+            builder.push(LIBRARY_ORDER);
+        }
+    }
+
+    // Bound rather than interpolated even though it is an integer, so the
+    // statement text stays independent of the definition and SQLite can reuse
+    // the prepared plan across playlists.
+    if let Some(limit) = definition.limit.filter(|limit| *limit > 0) {
+        builder.push(" LIMIT ");
+        builder.push_bind(i64::from(limit));
+    }
 
     let rows = builder
         .build()
@@ -244,13 +321,94 @@ async fn fetch(conn: &mut SqliteConnection, id: &str) -> Result<Option<SqliteRow
         .map_err(failed("read the smart playlist"))
 }
 
+/// What a decoded `rules` column yields.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct DecodedRules {
+    rules: Vec<SmartPlaylistRule>,
+    limit: Option<u32>,
+    order_by: Option<SmartPlaylistOrderBy>,
+}
+
+/// Read the `rules` column, whichever of its two shapes it holds.
+///
+/// A bare array is what every build before `limit`/`order_by` wrote, and what
+/// this one still writes when neither is set; the envelope
+/// `{"rules": [...], "limit": 25, "orderBy": {...}}` carries them when they
+/// are. See [`SmartPlaylistDefinition`] for why this is a column convention
+/// rather than a migration.
+///
+/// Written against [`serde_json::Value`] rather than a derived enum because
+/// this crate takes `serde`'s derive only as a dev-dependency; the leaf types
+/// carry their own [`serde::Deserialize`] impls from `shiranami-core`, which is
+/// all [`serde_json::from_value`] needs.
+///
+/// Partial failure degrades the same way total failure does — to no rules —
+/// for the reason the module header gives: a playlist that reads as unfiltered
+/// is recoverable, one that fails to read looks like data loss.
+fn decode_rules(stored: &str) -> Result<DecodedRules, serde_json::Error> {
+    let value: serde_json::Value = serde_json::from_str(stored)?;
+
+    if value.is_array() {
+        return Ok(DecodedRules {
+            rules: serde_json::from_value(value)?,
+            limit: None,
+            order_by: None,
+        });
+    }
+
+    let rules = match value.get("rules") {
+        Some(rules) => serde_json::from_value(rules.clone())?,
+        None => Vec::new(),
+    };
+    let limit = value
+        .get("limit")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|limit| u32::try_from(limit).ok());
+    let order_by = match value.get("orderBy") {
+        Some(order_by) => serde_json::from_value(order_by.clone())?,
+        None => None,
+    };
+
+    Ok(DecodedRules {
+        rules,
+        limit,
+        order_by,
+    })
+}
+
 /// Serialize rules for the `rules` column.
+///
+/// Emits the bare array whenever there is no limit and no sort, so a definition
+/// using neither is written byte-for-byte as an older build would have written
+/// it and stays readable by one. Only a definition that needs the envelope gets
+/// one.
 ///
 /// Falls back to an empty array, which cannot happen for a well-formed
 /// [`SmartPlaylistRule`] but keeps the signature infallible rather than
 /// inventing an error the channel has no way to report.
-fn encode_rules(rules: &[SmartPlaylistRule]) -> String {
-    serde_json::to_string(rules).unwrap_or_else(|_| "[]".to_owned())
+fn encode_rules(
+    rules: &[SmartPlaylistRule],
+    limit: Option<u32>,
+    order_by: Option<SmartPlaylistOrderBy>,
+) -> String {
+    let encoded = serde_json::to_value(rules).and_then(|rules| {
+        if limit.is_none() && order_by.is_none() {
+            return serde_json::to_string(&rules);
+        }
+
+        let mut envelope = serde_json::Map::new();
+        envelope.insert("rules".to_owned(), rules);
+        if let Some(limit) = limit {
+            envelope.insert("limit".to_owned(), limit.into());
+        }
+        if let Some(order_by) = order_by {
+            envelope.insert("orderBy".to_owned(), serde_json::to_value(order_by)?);
+        }
+
+        serde_json::to_string(&serde_json::Value::Object(envelope))
+    });
+
+    encoded.unwrap_or_else(|_| "[]".to_owned())
 }
 
 /// The stored spelling of a match type, as the column's `'all'` default implies.
@@ -270,33 +428,33 @@ fn smart_playlist(row: &SqliteRow) -> Result<SmartPlaylist> {
         .try_get("match_type")
         .map_err(failed("read a match-type column"))?;
 
-    let rules = serde_json::from_str::<Vec<SmartPlaylistRule>>(&stored_rules).unwrap_or_else(
-        |error| {
-            tracing::warn!(%error, "a smart playlist's rules could not be read; treating it as unfiltered");
-            Vec::new()
-        },
-    );
+    let decoded = decode_rules(&stored_rules).unwrap_or_else(|error| {
+        tracing::warn!(%error, "a smart playlist's rules could not be read; treating it as unfiltered");
+        DecodedRules::default()
+    });
 
     let match_type = match stored_match.as_str() {
         "any" => SmartPlaylistMatchType::Any,
         _ => SmartPlaylistMatchType::All,
     };
 
-    read(row, match_type, rules).map_err(failed("read a smart-playlist row"))
+    read(row, match_type, decoded).map_err(failed("read a smart-playlist row"))
 }
 
 /// The remaining columns, once the two parsed ones are in hand.
 fn read(
     row: &SqliteRow,
     match_type: SmartPlaylistMatchType,
-    rules: Vec<SmartPlaylistRule>,
+    decoded: DecodedRules,
 ) -> sqlx::Result<SmartPlaylist> {
     Ok(SmartPlaylist {
         id: row.try_get("id")?,
         name: row.try_get("name")?,
         description: row.try_get("description")?,
         match_type,
-        rules,
+        rules: decoded.rules,
+        limit: decoded.limit,
+        order_by: decoded.order_by,
         created_at: row.try_get("created_at")?,
         updated_at: row.try_get("updated_at")?,
     })

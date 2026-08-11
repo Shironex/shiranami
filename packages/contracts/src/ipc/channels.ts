@@ -200,6 +200,13 @@ export const IPC_CHANNELS = {
     // it and emits one payload per *change* — stations re-send the same title
     // every few seconds and the de-framer debounces that.
     nowPlaying: 'radio:now-playing',
+    // The diary of what a station played (v2-only, same reason). `record` is
+    // called once per title *change* — there is no timer behind it — and `get`
+    // reads one station's entries back, newest first.
+    log: {
+      record: 'radio:log:record',
+      get: 'radio:log:get',
+    },
   },
   playlist: {
     extract: 'playlist:extract',
@@ -360,4 +367,6 @@ export const V2_ONLY_CHANNELS = [
   'lyrics:save-cancel',
   'lyrics:save-progress',
   'radio:now-playing',
+  'radio:log:record',
+  'radio:log:get',
 ] as const;

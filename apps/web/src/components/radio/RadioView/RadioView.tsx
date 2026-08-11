@@ -1,4 +1,15 @@
-import { Radio, Search, Heart, Globe, Languages, Tag, Loader2, X, MapPin } from 'lucide-react';
+import {
+  Radio,
+  Search,
+  Heart,
+  Globe,
+  Languages,
+  Tag,
+  Loader2,
+  X,
+  MapPin,
+  BookText,
+} from 'lucide-react';
 import { List } from 'react-window';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -8,6 +19,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { FilterPopover } from '../FilterPopover';
 import { StationRow } from '../StationRow';
 import { StationRowSkeleton } from '../StationRowSkeleton';
+import { RadioDiary } from './RadioDiary';
 import { useRadioView } from './RadioView.hooks';
 
 export default function RadioView() {
@@ -39,6 +51,11 @@ export default function RadioView() {
     currentTrackId,
     isPlaying,
     skeletonRows,
+    isDiaryOpen,
+    diaryStationUuid,
+    diaryStationName,
+    onToggleDiary,
+    onCloseDiary,
     onSearchInputChange,
     onToggleLocal,
     onSelectCountry,
@@ -217,6 +234,14 @@ export default function RadioView() {
     );
   }
 
+  const diaryPanel = isDiaryOpen ? (
+    <RadioDiary
+      stationUuid={diaryStationUuid}
+      stationName={diaryStationName}
+      onClose={onCloseDiary}
+    />
+  ) : null;
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <PageHeader title={t('pageTitle')} />
@@ -300,6 +325,22 @@ export default function RadioView() {
             icon={<Tag className="w-3.5 h-3.5 shrink-0 opacity-70" />}
             disabled={catalog.tags.length === 0}
           />
+
+          <button
+            onClick={onToggleDiary}
+            aria-pressed={isDiaryOpen}
+            title={t('diaryTooltip')}
+            className={cn(
+              'hidden lg:inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+              isDiaryOpen
+                ? 'bg-primary/15 text-primary'
+                : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <BookText className="w-3.5 h-3.5 shrink-0 opacity-70" />
+            {t('diaryTitle')}
+          </button>
         </div>
 
         {/* Genre pills */}
@@ -335,8 +376,14 @@ export default function RadioView() {
         )}
       </div>
 
-      {/* Result region */}
-      {resultRegion}
+      {/* Result region, with the diary alongside it when open. Beside the list
+          rather than above it so the station list keeps its full height, and
+          only from `lg` up — below that the list is the whole point of the
+          view and there is no room to spare. */}
+      <div className="flex-1 min-h-0 flex">
+        {resultRegion}
+        {diaryPanel}
+      </div>
     </div>
   );
 }

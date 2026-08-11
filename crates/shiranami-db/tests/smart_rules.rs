@@ -14,56 +14,14 @@
 
 use shiranami_core::models::{
     SmartPlaylistDefinition, SmartPlaylistField as Field, SmartPlaylistMatchType as Match,
-    SmartPlaylistOperator as Op, SmartPlaylistRule,
+    SmartPlaylistOperator as Op,
 };
-use shiranami_db::repo::smart_rules::{Bind, Filter, compile};
+use shiranami_db::repo::smart_rules::{Bind, compile};
 
-/// A rule with no upper bound.
-fn rule(field: Field, operator: Op, value: &str) -> SmartPlaylistRule {
-    SmartPlaylistRule {
-        field,
-        operator,
-        value: value.to_owned(),
-        value_to: None,
-    }
-}
+#[path = "support/rules.rs"]
+mod rules;
 
-/// A rule with an upper bound, for `between`.
-fn ranged(field: Field, operator: Op, value: &str, value_to: &str) -> SmartPlaylistRule {
-    SmartPlaylistRule {
-        field,
-        operator,
-        value: value.to_owned(),
-        value_to: Some(value_to.to_owned()),
-    }
-}
-
-/// Compile a single rule under `all`.
-fn one(rule: SmartPlaylistRule) -> Filter {
-    compile(&SmartPlaylistDefinition {
-        match_type: Match::All,
-        rules: vec![rule],
-    })
-}
-
-/// Assert a rule compiles to exactly this SQL and these operands.
-fn assert_compiles(rule: SmartPlaylistRule, sql: &str, binds: &[Bind]) {
-    let filter = one(rule);
-
-    assert_eq!(filter.sql(), sql);
-    assert_eq!(filter.binds(), binds);
-}
-
-/// Assert a rule is dropped — no condition, so it does not narrow anything.
-fn assert_dropped(rule: SmartPlaylistRule) {
-    let filter = one(rule);
-
-    assert!(
-        filter.is_empty(),
-        "expected the rule to be dropped, got `{}`",
-        filter.sql()
-    );
-}
+use rules::{assert_compiles, assert_dropped, one, ranged, rule};
 
 // ── text fields ───────────────────────────────────────────────────────────────
 
@@ -311,6 +269,17 @@ fn date_added_drops_a_non_positive_or_unparseable_day_count() {
     }
 }
 
+#[test]
+fn date_added_negates_with_a_plain_comparison() {
+    // `created_at` is NOT NULL, so there is no three-valued-logic hole to
+    // cover and the negation is the mirror comparison.
+    assert_compiles(
+        rule(Field::DateAdded, Op::NotInLastDays, "30"),
+        "tracks.created_at < datetime('now', ?)",
+        &[Bind::Text("-30 days".to_owned())],
+    );
+}
+
 // ── combining ─────────────────────────────────────────────────────────────────
 
 #[test]
@@ -323,12 +292,16 @@ fn all_joins_with_and_and_any_joins_with_or() {
     let all = compile(&SmartPlaylistDefinition {
         match_type: Match::All,
         rules: rules.clone(),
+        limit: None,
+        order_by: None,
     });
     assert_eq!(all.sql(), "tracks.genre = ? AND tracks.year > ?");
 
     let any = compile(&SmartPlaylistDefinition {
         match_type: Match::Any,
         rules,
+        limit: None,
+        order_by: None,
     });
     assert_eq!(any.sql(), "tracks.genre = ? OR tracks.year > ?");
 
@@ -347,6 +320,8 @@ fn a_between_stays_bracketed_inside_an_or() {
             ranged(Field::Year, Op::Between, "2000", "2008"),
             rule(Field::Genre, Op::Is, "Jazz"),
         ],
+        limit: None,
+        order_by: None,
     });
 
     assert_eq!(
@@ -360,6 +335,8 @@ fn an_empty_rule_set_matches_everything() {
     let filter = compile(&SmartPlaylistDefinition {
         match_type: Match::All,
         rules: Vec::new(),
+        limit: None,
+        order_by: None,
     });
 
     assert!(filter.is_empty());
@@ -377,6 +354,8 @@ fn a_dropped_rule_widens_an_all_set_rather_than_emptying_it() {
             rule(Field::Genre, Op::Is, "Lofi"),
             rule(Field::Year, Op::Contains, "20"),
         ],
+        limit: None,
+        order_by: None,
     });
 
     assert_eq!(filter.sql(), "tracks.genre = ?", "only the usable rule");
@@ -384,6 +363,8 @@ fn a_dropped_rule_widens_an_all_set_rather_than_emptying_it() {
     let all_unusable = compile(&SmartPlaylistDefinition {
         match_type: Match::All,
         rules: vec![rule(Field::Year, Op::Contains, "20")],
+        limit: None,
+        order_by: None,
     });
 
     assert!(
@@ -410,12 +391,21 @@ fn placeholders_match_binds_across_every_operator() {
         ranged(Field::PlayCount, Op::Between, "1", "9"),
         rule(Field::IsFavorite, Op::Is, "true"),
         rule(Field::DateAdded, Op::InLastDays, "30"),
+        rule(Field::DateAdded, Op::NotInLastDays, "30"),
+        rule(Field::LastPlayed, Op::InLastDays, "90"),
+        rule(Field::LastPlayed, Op::NotInLastDays, "90"),
+        rule(Field::Bpm, Op::GreaterThan, "100"),
+        ranged(Field::Duration, Op::Between, "60", "600"),
+        rule(Field::LoudnessLufs, Op::LessThan, "-10"),
+        rule(Field::MusicalKey, Op::Contains, "A"),
     ];
 
     for match_type in [Match::All, Match::Any] {
         let filter = compile(&SmartPlaylistDefinition {
             match_type,
             rules: every_rule.clone(),
+            limit: None,
+            order_by: None,
         });
 
         assert_eq!(

@@ -515,6 +515,44 @@ export interface RadioNowPlaying {
   title: string | null;
 }
 
+/**
+ * One line of the radio diary: a title a station sent, as it was stored.
+ *
+ * The kept form of a {@link RadioNowPlaying}, minus `streamUrl` — that field
+ * exists on the event so a title from a station the user already left can be
+ * discarded, and means nothing once the row is filed under a station.
+ *
+ * `raw` stays the source of truth: it is what the panel renders and what "get
+ * this track" searches on, so a row whose `artist`/`title` split came out wrong
+ * is still one the user can read and act on.
+ */
+export interface RadioLogEntry {
+  id: number;
+  stationUuid: string;
+  raw: string;
+  artist: string | null;
+  title: string | null;
+  /** ISO-8601 instant the title was recorded. */
+  heardAt: string;
+}
+
+/**
+ * The private, local log of what each station played. Nothing here is uploaded
+ * or shared.
+ */
+export interface RadioLogApi {
+  /**
+   * File one title against a station. Called when the now-playing event reports
+   * a *change* — never on a timer.
+   *
+   * Resolves to `null` when the title is a consecutive repeat of the station's
+   * most recent entry, which is what a mid-song reconnect produces.
+   */
+  record: (stationUuid: string, playing: RadioNowPlaying) => Promise<RadioLogEntry | null>;
+  /** One station's entries, newest first. */
+  get: (stationUuid: string, limit?: number) => Promise<RadioLogEntry[]>;
+}
+
 export interface RadioApi {
   favorites: RadioFavoritesApi;
   /**
@@ -523,6 +561,12 @@ export interface RadioApi {
    * the renderer feature-detects.
    */
   onNowPlaying?: (callback: (playing: RadioNowPlaying) => void) => () => void;
+  /**
+   * The diary of what stations played. v2-only for the same reason as
+   * `onNowPlaying`: v1 had no titles to keep, so the Electron preload leaves
+   * this undefined and the renderer feature-detects.
+   */
+  log?: RadioLogApi;
 }
 
 // ── shell ─────────────────────────────────────────────────────────────────

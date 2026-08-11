@@ -92,11 +92,23 @@ Object.defineProperty(window, 'matchMedia', {
 
 window.scrollTo = vi.fn() as typeof window.scrollTo;
 
+// jsdom implements none of the pointer-capture API and no scrolling. Radix's
+// Select calls all four while opening, so a test that clicks a select trigger
+// fails on the primitive rather than on the component. Guarded so a future
+// jsdom that grows real implementations keeps them.
 if (!Element.prototype.setPointerCapture) {
   Element.prototype.setPointerCapture = function () {};
 }
 if (!Element.prototype.releasePointerCapture) {
   Element.prototype.releasePointerCapture = function () {};
+}
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = function () {
+    return false;
+  };
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
 }
 
 function asyncFn<T>(value: T) {

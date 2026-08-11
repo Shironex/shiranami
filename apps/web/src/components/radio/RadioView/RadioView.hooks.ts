@@ -4,6 +4,7 @@ import type { ChangeEvent } from 'react';
 import { Heart, Star } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useRadioStore, type RadioMode } from '@/stores/useRadioStore';
+import { radioStationUuid } from '@/hooks/useRadioDiaryRecorder';
 import { GENRE_PILLS, isoCodeToFlag, stationToTrack, titleCase } from '../radioUtils';
 import { useRadioCatalog } from '../useRadioCatalog';
 import { useLocaleCountry } from '../useLocaleCountry';
@@ -52,6 +53,7 @@ export function useRadioView(): IRadioViewView {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hasLoadedRef = useRef(false);
   const [searchDraft, setSearchDraft] = useState(filters.name ?? '');
+  const [isDiaryOpen, setIsDiaryOpen] = useState(false);
 
   useEffect(() => {
     if (!hasLoadedRef.current) {
@@ -216,6 +218,15 @@ export function useRadioView(): IRadioViewView {
 
   const onLoadMore = useCallback(() => loadMore(), [loadMore]);
 
+  const onToggleDiary = useCallback(() => setIsDiaryOpen(open => !open), []);
+  const onCloseDiary = useCallback(() => setIsDiaryOpen(false), []);
+
+  // The diary belongs to whichever station is on air, which the playing track
+  // already names: `stationToTrack` spells its id `radio:<directory uuid>` and
+  // its title the station's name — the same key and label the log is written
+  // under, so the panel needs no lookup of its own.
+  const diaryStationUuid = currentTrack ? radioStationUuid(currentTrack.id) : null;
+
   return {
     t,
     stations,
@@ -243,6 +254,11 @@ export function useRadioView(): IRadioViewView {
     showLoadMore: isBrowse && hasMore,
     currentTrackId: currentTrack?.id ?? null,
     isPlaying,
+    isDiaryOpen,
+    diaryStationUuid,
+    diaryStationName: diaryStationUuid ? (currentTrack?.title ?? null) : null,
+    onToggleDiary,
+    onCloseDiary,
     skeletonRows: RADIO_SKELETON_ROWS,
     onSearchInputChange,
     onToggleLocal,

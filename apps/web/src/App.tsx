@@ -72,6 +72,7 @@ import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useSystemNotices } from '@/hooks/useSystemNotices';
 import { useRadioNowPlayingBridge } from '@/hooks/useRadioNowPlaying';
+import { useRadioDiaryRecorder } from '@/hooks/useRadioDiaryRecorder';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
 import { useTempoBreathingPublisher } from '@/hooks/useTempoBreathing';
@@ -150,6 +151,7 @@ function App() {
   useUpdateNotifications();
   useSystemNotices();
   useRadioNowPlayingBridge();
+  useRadioDiaryRecorder();
   useKeyboardShortcuts();
   useSanctuaryAutoEnter();
   useTempoBreathingPublisher();

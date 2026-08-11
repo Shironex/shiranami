@@ -1,0 +1,69 @@
+import { useEffect, useRef } from 'react';
+import { IS_ELECTRON } from '@/lib/platform';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useRadioDiaryStore } from '@/stores/useRadioDiaryStore';
+import { useRadioStore } from '@/stores/useRadioStore';
+import { radioStreamUrl } from '@/hooks/useRadioNowPlaying';
+
+/** How `stationToTrack` spells a radio track's id: the directory station uuid. */
+const RADIO_TRACK_PREFIX = 'radio:';
+
+/**
+ * The station a radio track belongs to, or null when the id is not one of ours.
+ *
+ * The directory uuid is the diary's station key — the same value the favourites
+ * table uses — and the track id is where the renderer already carries it.
+ */
+export function radioStationUuid(trackId: string): string | null {
+  if (!trackId.startsWith(RADIO_TRACK_PREFIX)) return null;
+  const uuid = trackId.slice(RADIO_TRACK_PREFIX.length);
+  return uuid === '' ? null : uuid;
+}
+
+/**
+ * Write each title change to the station's diary.
+ *
+ * Mount once at the app root, beside `useRadioNowPlayingBridge`, and for the
+ * same reason: the log has to be complete whether or not the radio view is
+ * open, and someone who leaves a station playing overnight is exactly the
+ * person who will want to read it in the morning.
+ *
+ * Nothing here polls. `nowPlaying` changes only when the stream proxy reports a
+ * *different* `StreamTitle`, so one change is one write attempt — and the ref
+ * below stops even that from repeating when the effect re-runs for a reason
+ * other than the title (a track object identity change, a remount). The backend
+ * collapses consecutive repeats too, because a reconnect produces one that this
+ * ref cannot see.
+ */
+export function useRadioDiaryRecorder(): void {
+  const nowPlaying = useRadioStore(s => s.nowPlaying);
+  const currentTrack = usePlaybackStore(s => s.currentTrack);
+  const lastRecorded = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    // A shell that predates the diary leaves this undefined, the way it leaves
+    // `onNowPlaying` undefined; there is nothing to feature-detect against.
+    if (!window.electronAPI.radio.log) return;
+    if (!nowPlaying || !currentTrack) return;
+
+    const stationUuid = radioStationUuid(currentTrack.id);
+    if (!stationUuid) return;
+    // The title may belong to the station the user just left — its proxy
+    // connection drains for a moment after a switch. Filing it under the new
+    // station would put a song in a diary that never played it.
+    if (radioStreamUrl(currentTrack.filePath) !== nowPlaying.streamUrl) return;
+
+    // Station and title joined by a separator neither half can contain, so one
+    // station's title can never key the same as another's. Written as an
+    // escape, never as the literal byte: a raw control character in the source
+    // makes git call this whole file binary, which costs it the diff on the PR,
+    // `git grep`, `git blame`, and the `text=auto` line-ending normalization
+    // every other `.ts` file here gets.
+    const key = `${stationUuid}\n${nowPlaying.raw}`;
+    if (lastRecorded.current === key) return;
+    lastRecorded.current = key;
+
+    void useRadioDiaryStore.getState().record(stationUuid, nowPlaying);
+  }, [nowPlaying, currentTrack]);
+}

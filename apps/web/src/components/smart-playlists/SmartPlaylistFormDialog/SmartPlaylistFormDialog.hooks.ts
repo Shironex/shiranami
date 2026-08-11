@@ -5,9 +5,15 @@ import type {
   SmartPlaylistField,
   SmartPlaylistMatchType,
   SmartPlaylistOperator,
+  SmartPlaylistOrderBy,
   SmartPlaylistRule,
+  SmartPlaylistSortDirection,
 } from '@shiranami/contracts';
-import { defaultOperatorFor } from '@/lib/smart-playlist-fields';
+import {
+  availableFields,
+  defaultOperatorFor,
+  supportsResultShaping,
+} from '@/lib/smart-playlist-fields';
 import {
   useCreateSmartPlaylistMutation,
   useSmartPlaylistPreviewQuery,
@@ -36,6 +42,17 @@ export function useSmartPlaylistFormDialog({
   const [name, setName] = useState('');
   const [matchType, setMatchType] = useState<SmartPlaylistMatchType>('all');
   const [rules, setRules] = useState<SmartPlaylistRule[]>([emptyRule()]);
+  // Kept as typed text rather than a number so the input can be emptied — ''
+  // is how the editor says "no limit", which `undefined` cannot round-trip
+  // through a controlled numeric input.
+  const [limit, setLimit] = useState('');
+  const [sortField, setSortField] = useState<SmartPlaylistField | ''>('');
+  const [sortDirection, setSortDirection] = useState<SmartPlaylistSortDirection>('desc');
+
+  // Both read the running backend, so they are resolved per render rather than
+  // frozen at module load — see `availableFields`.
+  const fields = availableFields();
+  const canShapeResults = supportsResultShaping();
 
   const createMutation = useCreateSmartPlaylistMutation();
   const updateMutation = useUpdateSmartPlaylistMutation();
@@ -48,9 +65,27 @@ export function useSmartPlaylistFormDialog({
     setName(playlist?.name ?? '');
     setMatchType(playlist?.matchType ?? 'all');
     setRules(playlist?.rules?.length ? playlist.rules.map(r => ({ ...r })) : [emptyRule()]);
+    setLimit(playlist?.limit != null ? String(playlist.limit) : '');
+    setSortField(playlist?.orderBy?.field ?? '');
+    setSortDirection(playlist?.orderBy?.direction ?? 'desc');
   }, [open, playlist]);
 
-  const definition = useMemo(() => ({ matchType, rules }), [matchType, rules]);
+  // Both are dropped from the definition when unset, so an untouched form
+  // produces exactly the payload it produced before either existed.
+  const parsedLimit = useMemo(() => {
+    const value = Number(limit);
+    return limit.trim() && Number.isFinite(value) && value > 0 ? Math.floor(value) : undefined;
+  }, [limit]);
+
+  const orderBy = useMemo<SmartPlaylistOrderBy | undefined>(
+    () => (sortField ? { field: sortField, direction: sortDirection } : undefined),
+    [sortField, sortDirection]
+  );
+
+  const definition = useMemo(
+    () => ({ matchType, rules, limit: parsedLimit, orderBy }),
+    [matchType, rules, parsedLimit, orderBy]
+  );
   const { data: previewTracks } = useSmartPlaylistPreviewQuery(open ? definition : null);
 
   const updateRule = (index: number, patch: Partial<SmartPlaylistRule>) => {
@@ -83,7 +118,13 @@ export function useSmartPlaylistFormDialog({
 
   const onSave = async () => {
     if (!canSave) return;
-    const payload: SmartPlaylistInput = { name: name.trim(), matchType, rules };
+    const payload: SmartPlaylistInput = {
+      name: name.trim(),
+      matchType,
+      rules,
+      limit: parsedLimit,
+      orderBy,
+    };
     try {
       if (isEdit && playlist) {
         await updateMutation.mutateAsync({ id: playlist.id, data: payload });
@@ -107,6 +148,14 @@ export function useSmartPlaylistFormDialog({
     matchType,
     setMatchType,
     rules,
+    fields,
+    canShapeResults,
+    limit,
+    setLimit,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
     isSaving,
     canSave,
     previewCount: previewTracks?.length ?? 0,
