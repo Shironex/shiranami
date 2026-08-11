@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RadioNowPlaying } from '@shiranami/contracts';
 import type { Track } from '@/stores/types';
-import { radioStreamUrl, radioTitleFor } from './useRadioNowPlaying';
+import { belongsToCurrent, radioStreamUrl, radioTitleFor } from './useRadioNowPlaying';
 
 const STREAM = 'http://stream.example.com/live?x=1&y=2';
 
@@ -42,6 +42,26 @@ describe('radioStreamUrl', () => {
     expect(radioStreamUrl('/music/test.mp3')).toBeNull();
     expect(radioStreamUrl('shiranami-radio://lofi')).toBeNull();
     expect(radioStreamUrl('shiranami-radio://stream?url=%E0%A4%A')).toBeNull();
+  });
+});
+
+describe('belongsToCurrent', () => {
+  it('accepts an event for the station that is playing', () => {
+    expect(belongsToCurrent(radioTrack().filePath, playing('Cornelius - Drop'))).toBe(true);
+  });
+
+  // The station the user just left keeps emitting until its proxy connection
+  // drains. Letting one of those into the store is worse than dropping it: the
+  // de-framer only emits on a *change*, so the new station would not re-send
+  // its own title until its song ends.
+  it('rejects an event from the station the user has just left', () => {
+    const stale = playing('Old Song', 'http://other.example.com/live');
+    expect(belongsToCurrent(radioTrack().filePath, stale)).toBe(false);
+  });
+
+  it('rejects an event while a library track or nothing is playing', () => {
+    expect(belongsToCurrent(libraryTrack().filePath, playing('Cornelius - Drop'))).toBe(false);
+    expect(belongsToCurrent(null, playing('Cornelius - Drop'))).toBe(false);
   });
 });
 

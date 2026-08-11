@@ -84,6 +84,25 @@ export function useTrackTitle(track: Track | null): string {
 }
 
 /**
+ * Whether a `radio:now-playing` event describes the station currently playing.
+ *
+ * The station the user just left keeps emitting for the few milliseconds its
+ * proxy connection takes to drain, so an event can arrive *after* the switch
+ * and describe the old stream. `radioTitleFor` already refuses to render one,
+ * but the store must refuse to hold one too: the de-framer only emits on a
+ * *change*, so once a stale title has overwritten the new station's, that
+ * station will not re-send its own until its song ends — and the bar sits on
+ * the station-name fallback for the rest of the track.
+ */
+export function belongsToCurrent(
+  currentFilePath: string | null,
+  playing: RadioNowPlaying
+): boolean {
+  if (currentFilePath === null) return false;
+  return radioStreamUrl(currentFilePath) === playing.streamUrl;
+}
+
+/**
  * Pipe `radio:now-playing` into the radio store.
  *
  * Mount once at the app root. No-op where there is no shell to listen to, and
@@ -101,6 +120,9 @@ export function useRadioNowPlayingBridge(): void {
     if (!subscribe) return;
 
     return subscribe(playing => {
+      const path = usePlaybackStore.getState().currentTrack?.filePath ?? null;
+      if (!belongsToCurrent(path, playing)) return;
+
       useRadioStore.getState().setNowPlaying(playing);
     });
   }, []);
