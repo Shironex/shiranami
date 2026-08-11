@@ -307,12 +307,21 @@ impl LyricsPolicy for CachePolicy {
     }
 
     fn is_lyrics_write_allowed(&self, path: &std::path::Path) -> bool {
-        // Deliberately **not** `is_path_allowed`, which the read side calls.
-        // That guard also grants the app data directory and any row in the
-        // `tracks` table — right for a read, too wide for a write: a standalone
-        // file imported through a file dialog years ago would be a writable
-        // destination anywhere on the disk. Writing is confined to the roots the
-        // user actually pointed the library at.
+        // `is_within_library_folder`, not `is_path_allowed` and not a bare
+        // containment check against `allowed_roots()`. Both of the differences
+        // are the reason this method exists at all:
+        //
+        // - **The root set is narrower.** The read gate grants the app's own
+        //   data directory, the downloads location, and any row in the `tracks`
+        //   table — the last of which would make a standalone file imported
+        //   through a file dialog years ago a writable destination anywhere on
+        //   the disk. A write is confined to the folders the user actually
+        //   pointed the library at.
+        // - **Symlinks are resolved.** `is_path_within_any` is purely textual
+        //   by design (see `paths::safety`), so a junction inside a watched
+        //   folder pointing outside it reads as contained and the write lands
+        //   outside the library. Resolving first is what makes this gate
+        //   genuinely stricter than the read gate rather than merely different.
         //
         // The *directory* is the subject rather than the file, because that is
         // what is written into, and a containment check on the file itself would
@@ -322,7 +331,7 @@ impl LyricsPolicy for CachePolicy {
             return false;
         };
 
-        shiranami_core::paths::is_path_within_any(directory, &self.folders.allowed_roots())
+        self.folders.is_within_library_folder(directory)
     }
 }
 

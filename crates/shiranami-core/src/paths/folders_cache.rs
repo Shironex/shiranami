@@ -23,10 +23,25 @@ use crate::sync::lock_or_recover;
 /// How many positive authorizations to remember. Ported verbatim.
 const ALLOWED_PATHS_LIMIT: usize = 1024;
 
+/// The two normalized root sets, built together from one read of the tables.
+///
+/// Two sets rather than one because reading and writing are different
+/// questions. A read may reach anything the shell handlers may reach; a write
+/// must land inside a folder the user actually pointed the library at, and
+/// nowhere else. Built in one pass so the narrower set costs no extra database
+/// round-trip.
+#[derive(Clone)]
+struct Roots {
+    /// Data directory, downloads location and every watched folder.
+    allowed: Vec<PathBuf>,
+    /// The watched folders alone.
+    library: Vec<PathBuf>,
+}
+
 #[derive(Default)]
 struct CacheState {
-    /// Normalized allowed roots; `None` until the first build.
-    roots: Option<Vec<PathBuf>>,
+    /// Normalized roots; `None` until the first build.
+    roots: Option<Roots>,
     /// Paths already authorized, mapped to the tick at which they last hit.
     granted: HashMap<PathBuf, u64>,
     /// Monotonic counter providing the recency ordering for eviction.
@@ -46,6 +61,9 @@ struct CacheState {
 /// a file dialog legitimately live outside every registered root. That
 /// deliberately means removing a folder does **not** immediately revoke access
 /// to tracks beneath it — they stay in the database until the user removes them.
+///
+/// [`FoldersCache::is_within_library_folder`] answers the narrower question a
+/// *write* has to ask, against the watched folders alone.
 pub struct FoldersCache {
     data_dir: PathBuf,
     authority: Arc<dyn PathAuthority>,
@@ -88,6 +106,39 @@ impl FoldersCache {
     /// [`Self::invalidate`] refuses to install its stale result, so a removed
     /// folder can never be resurrected by an in-flight rebuild.
     pub fn allowed_roots(&self) -> Vec<PathBuf> {
+        self.roots().allowed
+    }
+
+    /// Whether `directory` is inside a folder the user pointed the library at.
+    ///
+    /// The **write** containment gate, and narrower than [`Self::is_path_allowed`]
+    /// in both of the ways a write needs it to be:
+    ///
+    /// - Only the `folders` rows count. The read gate also grants the app's own
+    ///   data directory, the downloads location, and any row in the `tracks`
+    ///   table — the last of which would make the folder of a standalone file
+    ///   imported through a file dialog years ago a writable destination
+    ///   anywhere on the disk.
+    /// - Symlinks are resolved first, for [`Self::is_path_allowed`]'s reason:
+    ///   [`crate::paths::safety`] is purely textual, so a link inside a watched
+    ///   folder pointing outside it reads as contained, and the downstream
+    ///   `open` would happily follow it out of the library.
+    ///
+    /// Not cached. A grant table exists on the read path because the audio route
+    /// re-checks on every Range request of a seek; a write happens once per
+    /// file, so the `realpath` is not worth a second cache to keep coherent.
+    ///
+    /// Fails closed: an empty path and an empty root set both deny.
+    pub fn is_within_library_folder(&self, directory: &Path) -> bool {
+        if directory.as_os_str().is_empty() {
+            return false;
+        }
+
+        is_path_within_any(&resolve_symlinks(directory), &self.roots().library)
+    }
+
+    /// Both root sets, building them on first call. See [`Self::allowed_roots`].
+    fn roots(&self) -> Roots {
         let generation = {
             let state = lock_or_recover(&self.state);
             if let Some(roots) = &state.roots {
@@ -165,10 +216,10 @@ impl FoldersCache {
         }
     }
 
-    /// Assemble the roots: data dir, downloads location, then the watched
+    /// Assemble both sets: data dir, downloads location, then the watched
     /// folders. Each is symlink-resolved once here — cheap, because the count is
     /// O(10) — then normalized and de-duplicated, preserving first-seen order.
-    fn build_roots(&self) -> Vec<PathBuf> {
+    fn build_roots(&self) -> Roots {
         let folder_roots = self.authority.folder_roots().unwrap_or_else(|error| {
             // Ported behaviour: a folders-table read failure degrades to "no
             // folder roots" rather than taking path handling down with it. The
@@ -180,21 +231,14 @@ impl FoldersCache {
             Vec::new()
         });
 
-        let candidates = [self.data_dir.clone(), self.authority.download_location()]
-            .into_iter()
-            .chain(folder_roots);
+        let library = normalize_all(folder_roots.iter().cloned());
+        let allowed = normalize_all(
+            [self.data_dir.clone(), self.authority.download_location()]
+                .into_iter()
+                .chain(folder_roots),
+        );
 
-        let mut roots: Vec<PathBuf> = Vec::new();
-        for candidate in candidates {
-            if candidate.as_os_str().is_empty() {
-                continue;
-            }
-            let normalized = normalize_for_compare(&resolve_symlinks(&candidate));
-            if !roots.contains(&normalized) {
-                roots.push(normalized);
-            }
-        }
-        roots
+        Roots { allowed, library }
     }
 
     fn is_granted(&self, path: &Path) -> bool {
@@ -230,6 +274,23 @@ impl FoldersCache {
             state.granted.remove(&oldest);
         }
     }
+}
+
+/// Resolve, normalize and de-duplicate a run of roots, preserving first-seen
+/// order. Empty entries are dropped: they would normalize to the process's
+/// working directory and authorize half the disk.
+fn normalize_all(candidates: impl IntoIterator<Item = PathBuf>) -> Vec<PathBuf> {
+    let mut roots: Vec<PathBuf> = Vec::new();
+    for candidate in candidates {
+        if candidate.as_os_str().is_empty() {
+            continue;
+        }
+        let normalized = normalize_for_compare(&resolve_symlinks(&candidate));
+        if !roots.contains(&normalized) {
+            roots.push(normalized);
+        }
+    }
+    roots
 }
 
 /// Resolve symlinks, falling back to the input when the path does not exist yet.

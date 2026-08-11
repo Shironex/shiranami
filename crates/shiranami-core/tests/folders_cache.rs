@@ -246,6 +246,80 @@ fn rejects_a_symlink_inside_an_allowed_root_pointing_outside() {
     assert!(!cache.is_path_allowed(&link));
 }
 
+/* ------------------------ is_within_library_folder ------------------------ */
+
+#[test]
+fn a_directory_inside_a_watched_folder_may_be_written_to() {
+    let (cache, _) = cache_with(FakeAuthority {
+        folder_roots: vec![PathBuf::from("/mock/library/music")],
+        ..default_authority()
+    });
+    assert!(cache.is_within_library_folder(Path::new("/mock/library/music/Artist/Album")));
+}
+
+/// The write gate is narrower than the read gate on purpose: the app's own data
+/// directory and the downloads location authorize *reads* and are not folders
+/// the user asked to have lyric files written into.
+#[test]
+fn the_data_dir_and_downloads_location_are_not_write_targets() {
+    let (cache, _) = cache_with(FakeAuthority {
+        folder_roots: vec![PathBuf::from("/mock/library/music")],
+        ..default_authority()
+    });
+
+    assert!(cache.is_path_allowed(Path::new(MOCK_DATA_DIR)));
+    assert!(!cache.is_within_library_folder(Path::new(MOCK_DATA_DIR)));
+    assert!(!cache.is_within_library_folder(Path::new(MOCK_DEFAULT_DOWNLOADS)));
+}
+
+/// The `tracks` fallback is a read-side courtesy for standalone imports. Left in
+/// place for writes it would make the folder of a file imported years ago a
+/// destination anywhere on the disk.
+#[test]
+fn a_known_track_outside_every_folder_is_still_not_a_write_target() {
+    let standalone = PathBuf::from("/somewhere/else/standalone.mp3");
+    let (cache, _) = cache_with(FakeAuthority {
+        track_paths: Mutex::new(vec![standalone.clone()]),
+        ..default_authority()
+    });
+
+    assert!(cache.is_path_allowed(&standalone));
+    assert!(!cache.is_within_library_folder(standalone.parent().expect("a parent")));
+}
+
+#[test]
+fn nothing_is_a_write_target_when_no_folder_is_registered() {
+    let (cache, _) = cache_with(default_authority());
+    assert!(!cache.is_within_library_folder(Path::new("/mock/library/music")));
+    assert!(!cache.is_within_library_folder(Path::new("")));
+}
+
+/// A textual containment check would pass here and the write would land outside
+/// the library, which is the whole reason the gate resolves first.
+#[test]
+fn rejects_a_symlinked_directory_inside_a_watched_folder_pointing_outside() {
+    let allowed = tempfile::tempdir().expect("create the watched folder");
+    let outside = tempfile::tempdir().expect("create the outside dir");
+
+    let link = allowed.path().join("Album");
+    #[cfg(unix)]
+    let created = std::os::unix::fs::symlink(outside.path(), &link).is_ok();
+    #[cfg(windows)]
+    let created = std::os::windows::fs::symlink_dir(outside.path(), &link).is_ok();
+    if !created {
+        // Windows without developer mode cannot create symlinks.
+        return;
+    }
+
+    let (cache, _) = cache_with(FakeAuthority {
+        folder_roots: vec![allowed.path().to_path_buf()],
+        ..default_authority()
+    });
+
+    assert!(cache.is_within_library_folder(allowed.path()));
+    assert!(!cache.is_within_library_folder(&link));
+}
+
 #[test]
 fn caches_a_positive_authorization_so_a_repeat_check_skips_the_lookup() {
     let standalone = PathBuf::from("/cached/standalone.mp3");
