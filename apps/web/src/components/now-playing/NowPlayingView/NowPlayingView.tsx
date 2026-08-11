@@ -20,6 +20,7 @@ export default function NowPlayingView() {
     t,
     hasTrack,
     currentTrack,
+    titleText,
     durationLabel,
     tempoKeyLine,
     showWaveformSeekbar,
@@ -222,7 +223,7 @@ export default function NowPlayingView() {
               className="text-center w-full max-w-[360px] @5xl:max-w-[420px] px-2"
             >
               <h1 className="font-serif italic text-2xl @5xl:text-3xl @7xl:text-4xl text-foreground truncate">
-                {currentTrack.title}
+                {titleText}
               </h1>
               <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
                 {currentTrack.artist} · {currentTrack.album}

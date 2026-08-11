@@ -9,6 +9,7 @@ import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useLyricsView } from '@/hooks/useLyricsView';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import type { ISanctuaryViewView } from './SanctuaryView.types';
 
 /**
@@ -98,9 +99,15 @@ export function useSanctuaryView(): ISanctuaryViewView {
       ? `${Math.round(weather.data.tempC)}° · ${weather.data.label}`
       : null;
 
+  // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+  // station name otherwise. `currentTrack.title` for everything else, so this
+  // view agrees with the player bar instead of showing a second answer.
+  const titleText = useTrackTitle(currentTrack);
+
   return {
     hasTrack: Boolean(currentTrack),
     currentTrack,
+    titleText,
     variant,
     // Reduced motion: the chrome still hides (a screensaver that never clears
     // its controls is not a screensaver) but without the fade transition.

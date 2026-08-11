@@ -68,7 +68,7 @@ use shiranami_core::SystemNotice;
 use shiranami_core::companion::CompanionXpGain;
 use shiranami_core::models::{
     DependencyInstallProgress, DownloadProgress, DownloadQueueSnapshot, InstallProgress,
-    PlaylistExtractProgress,
+    PlaylistExtractProgress, RadioNowPlaying,
 };
 
 /// Declare an event: a `#[serde(transparent)]` newtype bound to a v1 channel
@@ -191,6 +191,17 @@ events! {
     /// pet can celebrate in real time without a follow-up read.
     CompanionXp = "companion:xp" => CompanionXpGain;
 
+    /// A station said what it is playing (v2, no v1 counterpart).
+    ///
+    /// v1 declined ICY metadata outright, so there was nothing to report. The
+    /// loopback proxy now de-frames it (`shiranami_serve::icy`) and this is how
+    /// the title crosses to the renderer — the crate has no `AppHandle`, so it
+    /// is handed a `NowPlayingSink` that ends here.
+    ///
+    /// Emitted only when the title *changes*: stations re-send the block every
+    /// period, and the de-framer debounces it.
+    RadioNowPlayingChanged = "radio:now-playing" => RadioNowPlaying;
+
     /// A `shiranami://` deep link arrived.
     ///
     /// The payload is the raw URL. v1 matched its scheme case-sensitively and
@@ -235,12 +246,14 @@ mod tests {
     /// so the parity pin below stays a pin: these must NOT appear in v1's
     /// manifest, and everything else must. Today: the one-pass analysis
     /// engine's progress, the Library Doctor's progress (F8), and the
-    /// companion's XP accrual.
+    /// companion's XP accrual, the lyrics write-back batch, and radio
+    /// now-playing.
     const V2_EVENT_CHANNELS: &[&str] = &[
         "analysis:progress",
         "doctor:progress",
         "companion:xp",
         "lyrics:save-progress",
+        "radio:now-playing",
     ];
 
     #[test]

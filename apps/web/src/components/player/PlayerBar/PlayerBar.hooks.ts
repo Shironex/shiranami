@@ -10,6 +10,7 @@ import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { isRadioTrack } from '@/lib/utils';
 import { IS_MAC } from '@/lib/platform';
 import type { IPlayerBarView } from './PlayerBar.types';
@@ -34,6 +35,7 @@ export function usePlayerBar(): IPlayerBarView {
   const setCompactMode = useCompactStore(s => s.setCompactMode);
   const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
+  const titleText = useTrackTitle(currentTrack);
 
   // Element visibility (Settings · Interface · Player bar). Core playback
   // controls and the seek bar are not toggleable.
@@ -78,6 +80,10 @@ export function usePlayerBar(): IPlayerBarView {
   return {
     t,
     currentTrack,
+    // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+    // station name otherwise. Identical to `currentTrack.title` for everything
+    // else, so the bar renders one value rather than branching.
+    titleText,
     isRadio,
     isFavorite,
     showSeekRow,

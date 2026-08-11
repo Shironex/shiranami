@@ -10,9 +10,11 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
+use shiranami_core::models::RadioNowPlaying;
 use shiranami_core::paths::FoldersCache;
 use shiranami_core::paths::authority::{PathAuthority, PathAuthorityResult};
 use shiranami_net::url_safety::UrlGuard;
+use shiranami_serve::icy::NowPlayingSink;
 use shiranami_serve::server::ServeHandle;
 use shiranami_serve::state::ServeConfig;
 use shiranami_serve::upstream::RadioUpstream;
@@ -31,6 +33,8 @@ pub struct Harness {
     /// A directory that is *not* an allowed root.
     pub outside: TempDir,
     pub upstream: Arc<FakeUpstream>,
+    /// Every now-playing title the radio proxy reported, in arrival order.
+    pub titles: Arc<Mutex<Vec<RadioNowPlaying>>>,
     /// Kept alive so the app-data root outlives the server.
     _data: TempDir,
 }
@@ -59,11 +63,16 @@ impl Harness {
         ));
 
         let upstream = Arc::new(upstream);
+        let titles: Arc<Mutex<Vec<RadioNowPlaying>>> = Arc::new(Mutex::new(Vec::new()));
+        let recorder = Arc::clone(&titles);
         let config = ServeConfig {
             folders,
             art_dir: art.path().to_owned(),
             guard: UrlGuard::with_resolver(Arc::new(resolver)),
             upstream: Arc::clone(&upstream) as Arc<dyn RadioUpstream>,
+            now_playing: NowPlayingSink::from_fn(move |playing| {
+                recorder.lock().expect("not poisoned").push(playing);
+            }),
         };
 
         let handle = shiranami_serve::start(config)
@@ -82,6 +91,7 @@ impl Harness {
             art,
             outside,
             upstream,
+            titles,
             _data: data,
         }
     }
@@ -211,6 +221,7 @@ pub async fn start_stripped() -> StrippedServer {
             art_dir: data.path().to_owned(),
             guard: UrlGuard::with_resolver(Arc::new(TestResolver::new())),
             upstream: Arc::new(FakeUpstream::new()) as Arc<dyn RadioUpstream>,
+            now_playing: NowPlayingSink::discarding(),
         },
         token.clone(),
     );

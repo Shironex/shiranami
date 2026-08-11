@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { logger } from '@/lib/logger';
+import type { RadioNowPlaying } from '@shiranami/contracts';
 import { type Station } from 'radio-browser-api';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
@@ -28,6 +29,17 @@ export type RadioMode = 'browse' | 'favorites';
 const EMPTY_FILTERS: RadioFilters = {};
 
 interface RadioState {
+  /**
+   * What the playing station last said it is playing, de-framed from its ICY
+   * metadata by the stream proxy.
+   *
+   * `null` whenever nothing has arrived — a station that sends no metadata, the
+   * first seconds before the first block, or a station the user just left. The
+   * UI must fall back to the station name in every one of those cases rather
+   * than render an empty line: a title that blinks in and out is worse than one
+   * that never appears.
+   */
+  nowPlaying: RadioNowPlaying | null;
   stations: Station[];
   favorites: string[]; // station ids
   isLoading: boolean;
@@ -40,6 +52,15 @@ interface RadioState {
 }
 
 interface RadioActions {
+  /** Record a title the proxy reported. */
+  setNowPlaying: (playing: RadioNowPlaying) => void;
+  /**
+   * Forget the current title.
+   *
+   * Called when playback leaves radio, so the next station does not inherit the
+   * previous one's song for the second before its first block arrives.
+   */
+  clearNowPlaying: () => void;
   /** Runs a fresh search (page 0) from the current filter set. */
   runSearch: () => Promise<void>;
   /** Fetches and appends the next page of the current filter set. */
@@ -60,6 +81,7 @@ interface RadioActions {
 export type RadioStore = RadioState & RadioActions;
 
 export const useRadioStore = create<RadioStore>((set, get) => ({
+  nowPlaying: null,
   stations: [],
   favorites: [],
   isLoading: false,
@@ -69,6 +91,9 @@ export const useRadioStore = create<RadioStore>((set, get) => ({
   mode: 'browse',
   page: 0,
   hasMore: false,
+
+  setNowPlaying: playing => set({ nowPlaying: playing }),
+  clearNowPlaying: () => set({ nowPlaying: null }),
 
   runSearch: async () => {
     const requestId = beginRadioRequest();

@@ -1328,6 +1328,7 @@ export const events = {
 	mediaCommand: makeEvent<MediaCommand>("media:command"),
 	metadataEnrichProgress: makeEvent<MetadataEnrichProgress>("metadata:enrich:progress"),
 	playlistExtractProgress: makeEvent<PlaylistExtracting>("playlist:extract-progress"),
+	radioNowPlaying: makeEvent<RadioNowPlayingChanged>("radio:now-playing"),
 	shareDeepLink: makeEvent<ShareDeepLink>("share:deep-link"),
 	systemNotice: makeEvent<SystemNoticeEmitted>("system:notice"),
 	updaterCheckingForUpdate: makeEvent<UpdaterCheckingForUpdate>("updater:checking-for-update"),
@@ -2939,6 +2940,48 @@ export type RadioFavorite = {
 	/**  ISO-8601 creation timestamp. */
 	createdAt: string,
 };
+
+/**
+ *  What a station said it is playing, as one ICY `StreamTitle` arrived.
+ * 
+ *  The raw string is the value; the split is a guess. `Artist - Title` is a
+ *  convention stations mostly follow and nothing enforces — a station
+ *  broadcasting `Now on Air: the breakfast show`, a sponsor read or a bare
+ *  track name is not malformed. So `raw` is what arrived, byte for byte after
+ *  decoding, and it is what the UI renders; `artist` and `title` are a
+ *  best-effort derivation for consumers that want the pieces, and are absent
+ *  whenever the string does not carry the separator.
+ * 
+ *  `streamUrl` rides along because the renderer can have more than one station
+ *  in flight: the previous one's proxy connection drains for a moment after the
+ *  user switches, and without it that station's last title would overwrite the
+ *  new one's first. It is the URL **as the renderer asked for it**, not the
+ *  post-redirect one, because the renderer only knows the former — it is what
+ *  its `filePath` encodes.
+ */
+export type RadioNowPlaying = {
+	/**  The station URL the renderer requested, before any redirect hop. */
+	streamUrl: string,
+	/**  The `StreamTitle` value exactly as it decoded. The source of truth. */
+	raw: string,
+	/**  The part before the first ` - `, when there is one. */
+	artist: string | null,
+	/**  The part after the first ` - `, when there is one. */
+	title: string | null,
+};
+
+/**
+ *  A station said what it is playing (v2, no v1 counterpart).
+ * 
+ *  v1 declined ICY metadata outright, so there was nothing to report. The
+ *  loopback proxy now de-frames it (`shiranami_serve::icy`) and this is how
+ *  the title crosses to the renderer — the crate has no `AppHandle`, so it
+ *  is handed a `NowPlayingSink` that ends here.
+ * 
+ *  Emitted only when the title *changes*: stations re-send the block every
+ *  period, and the de-framer debounces it.
+ */
+export type RadioNowPlayingChanged = RadioNowPlaying;
 
 /**
  *  The station fields the renderer sends when saving a favourite.

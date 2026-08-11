@@ -71,6 +71,7 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useSystemNotices } from '@/hooks/useSystemNotices';
+import { useRadioNowPlayingBridge } from '@/hooks/useRadioNowPlaying';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
 import { useTempoBreathingPublisher } from '@/hooks/useTempoBreathing';
@@ -148,6 +149,7 @@ function App() {
   }, [libraryError, refetchLibrary, t]);
   useUpdateNotifications();
   useSystemNotices();
+  useRadioNowPlayingBridge();
   useKeyboardShortcuts();
   useSanctuaryAutoEnter();
   useTempoBreathingPublisher();
