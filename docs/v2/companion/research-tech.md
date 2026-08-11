@@ -184,7 +184,7 @@ Design decisions, each load-bearing:
   both invites drift; `stage` _is_ stored because evolutions are one-way events the user witnessed
   (and may carry a user choice), not recomputable facts.
 - **`xp` is an accumulator, not derived from `play_history` on read.** The tempting "no state at
-  all — level = f(SUM(played_seconds))" design has a data-loss trap:
+  all — level = f(`SUM(played_seconds)`)" design has a data-loss trap:
   `play_history.track_id` is `ON DELETE CASCADE` (`0001_baseline.sql:103`), so removing tracks
   silently deletes history rows and would _demote the pet_. Instead: **seed** `xp` once from
   `SUM(played_seconds)` at hatch time (existing users' pets hatch at a level that honors their
