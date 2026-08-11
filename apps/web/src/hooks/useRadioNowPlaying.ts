@@ -39,11 +39,17 @@ export function radioStreamUrl(filePath: string): string | null {
  * and ligatures, which is the same win.
  *
  * Compatibility folding is lossy by design, which is why it happens **here, at
- * the point of render**, and never to `nowPlaying.raw` in the store. The raw
- * string stays the source of truth for anything that has to match, log or
- * eventually scrobble it.
+ * the point of render**, and never to `nowPlaying.raw` in the store or in the
+ * diary table. The raw string stays the source of truth for anything that has
+ * to match, log or eventually scrobble it.
+ *
+ * Exported because every surface that *renders* a station's title has to agree.
+ * The diary panel sits beside the player's title line showing the same station's
+ * strings, so a fold applied to one and not the other puts `Now Playing:` and
+ * `𝕹𝖔𝖜 𝕻𝖑𝖆𝖞𝖎𝖓𝖌:` side by side. It belongs on the way out of a search query too:
+ * yt-dlp is not going to match mathematical-alphanumeric codepoints.
  */
-function fold(title: string): string {
+export function fold(title: string): string {
   try {
     return title.normalize('NFKC');
   } catch {

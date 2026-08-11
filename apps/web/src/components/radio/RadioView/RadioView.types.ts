@@ -105,6 +105,19 @@ export interface IRadioViewView {
   readonly isPlaying: boolean;
   /** Number of skeleton rows to render while loading. */
   readonly skeletonRows: number;
+  /** Whether the diary panel is showing. */
+  readonly isDiaryOpen: boolean;
+  /**
+   * The station the diary shows — the one on air — or null when nothing radio
+   * is playing.
+   */
+  readonly diaryStationUuid: string | null;
+  /** That station's display name, for the diary header. */
+  readonly diaryStationName: string | null;
+  /** Show or hide the diary panel. */
+  readonly onToggleDiary: () => void;
+  /** Hide the diary panel. */
+  readonly onCloseDiary: () => void;
   /** Update the search input + debounce a filter run. */
   readonly onSearchInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
   /** Toggle the "near you" locale-country filter. */

@@ -8,6 +8,21 @@ import type { DiscoverRecommendation, DownloadQueueStatus } from '@shiranami/con
 
 type DownloadStatus = 'idle' | 'downloading' | 'done' | 'error';
 
+/**
+ * What one [`useDiscoverDownload`] `download` call actually did.
+ *
+ * The call has three outcomes and used to report none of them — it returned
+ * `void`, swallowed its own rejection in a `.catch`, and early-returned on the
+ * guards. A caller that wanted to show the user whether the track reached the
+ * queue had nothing to go on and could only assume it had.
+ *
+ * `pending` is deliberately not a failure: the guards fire when *this*
+ * `youtubeId` is already on its way to the queue, so a caller showing "queued"
+ * for it is telling the truth. Only `failed` means nothing is coming, and only
+ * `failed` should leave the action retryable.
+ */
+export type DownloadOutcome = 'enqueued' | 'pending' | 'failed';
+
 /** Map the main-queue lifecycle status onto the discover shelf's UI status. */
 function mapQueueStatus(status: DownloadQueueStatus): DownloadStatus {
   switch (status) {
@@ -44,23 +59,34 @@ export function useDiscoverDownload() {
     return out;
   }, [byYoutubeId]);
 
+  /**
+   * Hand one item to the download queue, and say what happened.
+   *
+   * Everything up to the `await` still runs in the click's own tick, which is
+   * what the in-flight guard depends on: two fast clicks must not both get past
+   * `has` before either has run `add`.
+   */
   const download = useCallback(
-    (item: DiscoverRecommendation) => {
-      if (!IS_ELECTRON || statuses[item.youtubeId] === 'downloading') return;
-      if (inFlightRef.current.has(item.youtubeId)) return;
+    async (item: DiscoverRecommendation): Promise<DownloadOutcome> => {
+      if (!IS_ELECTRON) return 'failed';
+      if (statuses[item.youtubeId] === 'downloading') return 'pending';
+      if (inFlightRef.current.has(item.youtubeId)) return 'pending';
       inFlightRef.current.add(item.youtubeId);
-      window.electronAPI.downloader
-        .enqueueDownload({
+      try {
+        await window.electronAPI.downloader.enqueueDownload({
           url: item.url,
           youtubeId: item.youtubeId,
           title: item.title,
           thumbnail: item.thumbnail,
-        })
-        .catch((err: unknown) => {
-          logger.error('[discover] failed to enqueue download', err);
-          toast.error(i18n.t('failedQueueDownload', { ns: 'toast' }));
-        })
-        .finally(() => inFlightRef.current.delete(item.youtubeId));
+        });
+        return 'enqueued';
+      } catch (err: unknown) {
+        logger.error('[discover] failed to enqueue download', err);
+        toast.error(i18n.t('failedQueueDownload', { ns: 'toast' }));
+        return 'failed';
+      } finally {
+        inFlightRef.current.delete(item.youtubeId);
+      }
     },
     [statuses]
   );
