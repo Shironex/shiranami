@@ -9,7 +9,11 @@ import type {
   SmartPlaylistRule,
   SmartPlaylistSortDirection,
 } from '@shiranami/contracts';
-import { defaultOperatorFor } from '@/lib/smart-playlist-fields';
+import {
+  availableFields,
+  defaultOperatorFor,
+  supportsResultShaping,
+} from '@/lib/smart-playlist-fields';
 import {
   useCreateSmartPlaylistMutation,
   useSmartPlaylistPreviewQuery,
@@ -44,6 +48,11 @@ export function useSmartPlaylistFormDialog({
   const [limit, setLimit] = useState('');
   const [sortField, setSortField] = useState<SmartPlaylistField | ''>('');
   const [sortDirection, setSortDirection] = useState<SmartPlaylistSortDirection>('desc');
+
+  // Both read the running backend, so they are resolved per render rather than
+  // frozen at module load — see `availableFields`.
+  const fields = availableFields();
+  const canShapeResults = supportsResultShaping();
 
   const createMutation = useCreateSmartPlaylistMutation();
   const updateMutation = useUpdateSmartPlaylistMutation();
@@ -139,6 +148,8 @@ export function useSmartPlaylistFormDialog({
     matchType,
     setMatchType,
     rules,
+    fields,
+    canShapeResults,
     limit,
     setLimit,
     sortField,
