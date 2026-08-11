@@ -41,8 +41,18 @@ sqlx = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# The lyrics write-back batch is the only wire surface this crate declares:
+# `lyrics:save-batch`'s input, its progress tick and its summary. Same reason
+# `shiranami-metadata` takes the pair — `specta_typescript::Number` pins the
+# `usize` counters and the duration hint to `number` rather than to specta's
+# default `number | null`.
+specta = { workspace = true }
+specta-typescript = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
+# `CancellationToken`, for the write-back batch's cancel. The batch mirrors
+# `shiranami_metadata::enrich::batch`, which takes it for the same reason.
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 url = { workspace = true }
 

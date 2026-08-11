@@ -183,6 +183,9 @@ function createElectronAPIMock(): ElectronAPI {
     },
     lyrics: {
       fetch: asyncFn({ synced: null, plain: null, source: null }),
+      saveBatch: asyncFn({ saved: 0, skipped: 0, notFound: 0, failed: 0, cancelled: false }),
+      saveCancel: asyncFn(undefined),
+      onSaveProgress: vi.fn(() => noopUnsub()),
     },
     weather: {
       geocode: asyncFn(null),

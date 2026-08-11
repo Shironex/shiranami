@@ -949,6 +949,25 @@ export const commands = {
 	 */
 	lyricsFetch: (title: string, artist: string, album: string | null, duration: number | null, filePath: string | null) => __TAURI_INVOKE<LyricsResult>("lyrics_fetch", { title, artist, album, duration, filePath }),
 	/**
+	 *  `lyrics:save-batch` — fetch and save lyrics for a set of tracks.
+	 * 
+	 *  Refuses when `settings.saveFetchedLyrics` is off (see the module docs) and when
+	 *  a run already holds the slot. Otherwise it always resolves with a summary,
+	 *  including a cancelled or entirely-failed one: a run over a read-only library
+	 *  answers `failed == total` rather than throwing, because the counts are what
+	 *  the user needs told.
+	 */
+	lyricsSaveBatch: (tracks: LyricsBatchTrack[]) => __TAURI_INVOKE<LyricsBatchSummary>("lyrics_save_batch", { tracks }),
+	/**
+	 *  `lyrics:save-cancel` — stop the active write-back run.
+	 * 
+	 *  Best-effort and a no-op when idle: a queued track notices at its turn and the
+	 *  run resolves with its partial counts. Cancelling while nothing runs must not
+	 *  leave a flag behind that pre-cancels the next run — the regression
+	 *  `enrich::slot` records from v1.
+	 */
+	lyricsSaveCancel: () => __TAURI_INVOKE<null>("lyrics_save_cancel"),
+	/**
 	 *  `media:playback-state` — show this track on every OS surface.
 	 * 
 	 *  The parameter is named `playback` rather than v1's `state` only because
@@ -1361,6 +1380,7 @@ export const events = {
 	downloaderQueueState: makeEvent<DownloaderQueueState>("downloader:queue-state"),
 	libraryScanProgress: makeEvent<LibraryScanProgress>("library:scan-progress"),
 	loudnessProgress: makeEvent<LoudnessProgress>("loudness:progress"),
+	lyricsSaveProgress: makeEvent<LyricsSaveProgress>("lyrics:save-progress"),
 	mediaCommand: makeEvent<MediaCommand>("media:command"),
 	metadataEnrichProgress: makeEvent<MetadataEnrichProgress>("metadata:enrich:progress"),
 	playlistExtractProgress: makeEvent<PlaylistExtracting>("playlist:extract-progress"),
@@ -2492,6 +2512,43 @@ export type LyricLine = {
 	text: string,
 };
 
+/**  What a finished — or cancelled — run counted. */
+export type LyricsBatchSummary = {
+	/**  Tracks that gained a `.lrc`. */
+	saved: number,
+	/**  Tracks that already had one, or that the run may not write beside. */
+	skipped: number,
+	/**  Tracks the directory does not have. */
+	notFound: number,
+	/**  Tracks whose lookup or write failed. Worth another run. */
+	failed: number,
+	/**  Whether the run was cut short. */
+	cancelled: boolean,
+};
+
+/**
+ *  One track offered up for write-back.
+ * 
+ *  The same five facts `lyrics:fetch` takes, plus the row id so a caller can
+ *  match a tick to a track. `file_path` is required rather than optional: a
+ *  track with nowhere to write a file beside is not a candidate for this run,
+ *  and the caller filters those out before submitting.
+ */
+export type LyricsBatchTrack = {
+	/**  Database id, echoed on every progress tick. */
+	id: string,
+	/**  The audio file the sidecar is written beside. */
+	filePath: string,
+	/**  Track title — the search term. */
+	title: string,
+	/**  Track artist. */
+	artist: string,
+	/**  Album, when known. */
+	album?: string | null,
+	/**  Track length in seconds, as a matching hint. */
+	durationSeconds?: number | null,
+};
+
 /**  The `lyrics:fetch` result. */
 export type LyricsResult = {
 	/**  Timestamped lyrics, or `None` when only plain text (or nothing) exists. */
@@ -2501,6 +2558,15 @@ export type LyricsResult = {
 	/**  Which source won; `None` when nothing was found. */
 	source: LyricsSource | null,
 };
+
+/**
+ *  Progress through a lyrics write-back batch (v2, no v1 counterpart).
+ * 
+ *  v1 fetched lyrics one track at a time and kept them in memory, so there
+ *  was no library-wide pass to report on. See
+ *  `crate::commands::lyrics`.
+ */
+export type LyricsSaveProgress = Json;
 
 /**
  *  Where resolved lyrics came from.

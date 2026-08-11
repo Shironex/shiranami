@@ -328,7 +328,17 @@
       "title": "Sources",
       "subtitle": "Where lyrics are looked up for your tracks",
       "preferSyncedTitle": "Prefer synced lyrics from LRCLIB",
-      "preferSyncedDesc": "When a track only has a plain-text lyrics file, fetch synced lyrics from LRCLIB instead. Local and embedded synced lyrics always win."
+      "preferSyncedDesc": "When a track only has a plain-text lyrics file, fetch synced lyrics from LRCLIB instead. Local and embedded synced lyrics always win.",
+      "saveFetchedTitle": "Save fetched lyrics beside your music",
+      "saveFetchedDesc": "When lyrics are found online, keep a timed .lrc file next to the track so they still work offline. A lyrics file you already have is never replaced.",
+      "saveRunTitle": "Fetch and save lyrics for your library",
+      "saveRunDesc": "Look up every track once and save what is found. Tracks that already have a lyrics file are skipped without a lookup.",
+      "saveRun": "Save lyrics for library",
+      "saveCancel": "Cancel",
+      "saveProgress": "Saving {{current}} / {{total}}…",
+      "saveSummary": "Saved {{saved}} · skipped {{skipped}} · not found {{notFound}} · failed {{failed}}",
+      "saveSummaryCancelled": "Cancelled — saved {{saved}} · skipped {{skipped}} · not found {{notFound}} · failed {{failed}}",
+      "saveDisabledHint": "Turn on saving above to run this."
     },
     "plain": {
       "title": "Plain text",

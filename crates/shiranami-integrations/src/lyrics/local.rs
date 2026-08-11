@@ -106,6 +106,61 @@ fn candidate_paths(audio_file: &Path) -> Vec<PathBuf> {
     candidates
 }
 
+/// Which of the reader's candidates count as "the user already has this".
+///
+/// The distinction is the `lyrics.preferSyncedFromLrclib` setting and nothing
+/// else. With it **off** — the default — anything found locally beats the
+/// network outright, so a `Song.txt` the user typed out themselves is as good a
+/// reason not to write as a `Song.lrc` would be. With it **on** the user has
+/// asked for the opposite: LRCLIB's timings are to outrank plain text they
+/// happen to own, and a `.txt` must not block the file that delivers them.
+///
+/// Shadowing is why the untimed case matters at all. [`candidate_paths`] orders
+/// `.lrc` *everywhere* ahead of `.txt` *anywhere*, so a freshly written sibling
+/// `Song.lrc` retires `Song.txt` from the ladder permanently — losing the user's
+/// file as surely as overwriting it would.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SidecarGuard {
+    /// Only an existing `.lrc` stops the write.
+    TimedOnly,
+    /// Any lyric file the reader would find stops it, `.txt` included.
+    AnyLyricFile,
+}
+
+impl SidecarGuard {
+    /// Whether a file existing at `candidate` would stop the write.
+    fn blocks(self, candidate: &Path) -> bool {
+        match self {
+            Self::AnyLyricFile => true,
+            Self::TimedOnly => candidate
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("lrc")),
+        }
+    }
+}
+
+/// The first existing candidate `guard` treats as the user's own, if any.
+///
+/// The question write-back asks before it writes anything: *is one of the
+/// user's own files already answering for this track?* It is answered from
+/// [`candidate_paths`] rather than from a path this module builds a second time,
+/// because the whole safety of "never overwrite" rests on asking about the same
+/// six locations the reader consults. A `Lyrics/Song.lrc` the user hand-timed
+/// outranks nothing if a fresh sibling `Song.lrc` appears above it in the ladder
+/// — so *any* blocking candidate stops the write, not just one at the target
+/// path.
+///
+/// Synchronous: it is called from inside `spawn_blocking` beside the write.
+pub fn existing_lyric_sidecar(audio_file: &Path, guard: SidecarGuard) -> Option<PathBuf> {
+    candidate_paths(audio_file)
+        .into_iter()
+        .filter(|candidate| guard.blocks(candidate))
+        // `try_exists` rather than `exists`: a permission error on a NAS share
+        // is not "there is no file there", and treating it as one is how a
+        // write-back lands on top of something it could not see.
+        .find(|candidate| candidate.try_exists().unwrap_or(true))
+}
+
 /// Load lyrics from a sidecar file, or `None` when no candidate exists.
 ///
 /// Never fails: an unreadable candidate is logged and skipped, because the
@@ -440,6 +495,59 @@ mod tests {
                 "Lyrics/Song.txt",
                 "lyrics/Song.txt",
             ]
+        );
+    }
+
+    /// The default position. A `.txt` the user wrote is shadowed for good by a
+    /// sibling `.lrc`, because `.lrc` outranks `.txt` everywhere in the ladder —
+    /// so with the preference off it has to stop the write.
+    #[test]
+    fn a_txt_blocks_the_write_unless_the_user_asked_for_lrclib_timings() {
+        let dir = temp_dir();
+        let audio = dir.path().join("Song.mp3");
+        write(&dir.path().join("Song.txt"), "Mine, typed by hand");
+
+        assert_eq!(
+            existing_lyric_sidecar(&audio, SidecarGuard::AnyLyricFile),
+            Some(dir.path().join("Song.txt"))
+        );
+        assert_eq!(
+            existing_lyric_sidecar(&audio, SidecarGuard::TimedOnly),
+            None,
+            "`preferSyncedFromLrclib` is the user asking for timings over their own plain text"
+        );
+    }
+
+    /// …including one filed under `Lyrics/`, which the reader probes too.
+    #[test]
+    fn a_txt_in_a_subfolder_blocks_the_write_as_well() {
+        let dir = temp_dir();
+        let audio = dir.path().join("Song.mp3");
+        write(&dir.path().join("lyrics").join("Song.txt"), "Mine");
+
+        assert!(existing_lyric_sidecar(&audio, SidecarGuard::AnyLyricFile).is_some());
+    }
+
+    /// An existing `.lrc` stops the write under either guard: that one is not a
+    /// preference, it is the never-overwrite rule.
+    #[test]
+    fn an_lrc_blocks_the_write_under_both_guards() {
+        let dir = temp_dir();
+        let audio = dir.path().join("Song.mp3");
+        write(&dir.path().join("Lyrics").join("Song.lrc"), "[00:01.00]Hi");
+
+        assert!(existing_lyric_sidecar(&audio, SidecarGuard::AnyLyricFile).is_some());
+        assert!(existing_lyric_sidecar(&audio, SidecarGuard::TimedOnly).is_some());
+    }
+
+    #[test]
+    fn nothing_on_disk_blocks_nothing() {
+        let dir = temp_dir();
+        let audio = dir.path().join("Song.mp3");
+
+        assert_eq!(
+            existing_lyric_sidecar(&audio, SidecarGuard::AnyLyricFile),
+            None
         );
     }
 

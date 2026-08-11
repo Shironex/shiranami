@@ -250,6 +250,10 @@ mod tests {
             "discordRpcUpdatePresence",
             "discordRpcClearPresence",
             "lyricsFetch",
+            // Port no v1 channels: v1 kept fetched lyrics in memory only, so
+            // there was no library-wide write-back pass. See NON_V1_COMMANDS.
+            "lyricsSaveBatch",
+            "lyricsSaveCancel",
             "windowMinimize",
             "windowMaximize",
             "windowClose",

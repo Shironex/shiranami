@@ -45,6 +45,11 @@ export function useLyricsQuery(
 
 const PREFER_SYNCED_STORE_KEY = 'lyrics.preferSyncedFromLrclib';
 
+/**
+ * The lyric-preference query keys. Only `preferSyncedFromLrclib` has one: the
+ * write-back opt-in lives as a field inside the renderer settings blob and so
+ * caches under `useSettingsQuery`'s `['settings']` key, not here.
+ */
 export const lyricsPrefKeys = {
   preferSynced: ['lyrics-prefs', 'prefer-synced-from-lrclib'] as const,
 };

@@ -78,6 +78,13 @@ export const IPC_CHANNELS = {
   },
   lyrics: {
     fetch: 'lyrics:fetch',
+    // Write-back (v2-only): fetch synced lyrics for a set of tracks and save
+    // each as a `.lrc` beside its audio file, so they survive going offline.
+    // Gated on the `settings.saveFetchedLyrics` opt-in; never overwrites a lyric
+    // file the user already has.
+    saveBatch: 'lyrics:save-batch',
+    saveCancel: 'lyrics:save-cancel',
+    saveProgress: 'lyrics:save-progress',
   },
   weather: {
     geocode: 'weather:geocode',
@@ -356,6 +363,9 @@ export const V2_ONLY_CHANNELS = [
   'companion:set-name',
   'companion:set-species',
   'companion:xp',
+  'lyrics:save-batch',
+  'lyrics:save-cancel',
+  'lyrics:save-progress',
   'radio:now-playing',
   'radio:log:record',
   'radio:log:get',

@@ -41,9 +41,28 @@ pub const LRCLIB_API_BASE: &str = "https://lrclib.net/api";
 pub enum LrclibOutcome {
     /// The directory answered with a record. May still hold no lyric text —
     /// v1 took the first search hit unconditionally, and so does this.
-    Found(LyricsResult),
+    Found(LrclibLyrics),
     /// The directory was reached and genuinely has nothing. Cacheable.
     Missing,
+}
+
+/// One LRCLIB hit: the parsed result the renderer wants, plus the **raw** LRC
+/// document the record carried.
+///
+/// The raw text is kept because [`crate::lyrics::writeback`] writes it to a
+/// sidecar byte for byte. Reconstructing it from [`LyricsResult::synced`] would
+/// not round-trip: a refrain is spelled by stacking several timestamps on one
+/// line and the parser expands it into one entry per timestamp, and a two-digit
+/// fraction (centiseconds) and a three-digit one (milliseconds) both land in the
+/// same `f64`. A re-rendered file would be a different file that happens to play
+/// the same — and the point of write-back is that the user keeps what the
+/// directory actually published.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LrclibLyrics {
+    /// The result the ladder ranks and the renderer displays.
+    pub result: LyricsResult,
+    /// The record's `syncedLyrics` field, unparsed, when it carried one.
+    pub synced_lrc: Option<String>,
 }
 
 /// One track to look up.
@@ -148,7 +167,7 @@ impl LrclibClient {
     async fn fetch_record(
         &self,
         query: &LrclibQuery,
-    ) -> Result<Option<LyricsResult>, LookupFailure> {
+    ) -> Result<Option<LrclibLyrics>, LookupFailure> {
         let mut params: Vec<(&str, String)> = vec![
             ("track_name", query.title.clone()),
             ("artist_name", query.artist.clone()),
@@ -185,7 +204,7 @@ impl LrclibClient {
     }
 
     /// `GET /search` — the fuzzy endpoint, one variant at a time.
-    async fn search(&self, variant: &str) -> Result<Option<LyricsResult>, LookupFailure> {
+    async fn search(&self, variant: &str) -> Result<Option<LrclibLyrics>, LookupFailure> {
         let url = format!(
             "{}/search{}",
             self.base,
@@ -202,10 +221,13 @@ impl LrclibClient {
         // *with* lyrics. A first hit carrying neither is still a hit, and still
         // ends the chain.
         Ok(records.into_iter().next().map(|record| {
-            into_result(record).unwrap_or(LyricsResult {
-                synced: None,
-                plain: None,
-                source: Some(LyricsSource::Lrclib),
+            into_result(record).unwrap_or(LrclibLyrics {
+                result: LyricsResult {
+                    synced: None,
+                    plain: None,
+                    source: Some(LyricsSource::Lrclib),
+                },
+                synced_lrc: None,
             })
         }))
     }
@@ -213,7 +235,7 @@ impl LrclibClient {
 
 /// Project an LRCLIB record onto the shared result, or `None` when it holds no
 /// lyric text in either form.
-fn into_result(record: LrclibRecord) -> Option<LyricsResult> {
+fn into_result(record: LrclibRecord) -> Option<LrclibLyrics> {
     let synced = record.synced_lyrics.filter(|text| !text.is_empty());
     let plain = record.plain_lyrics.filter(|text| !text.is_empty());
 
@@ -221,10 +243,13 @@ fn into_result(record: LrclibRecord) -> Option<LyricsResult> {
         return None;
     }
 
-    Some(LyricsResult {
-        synced: synced.as_deref().map(parse_lrc),
-        plain,
-        source: Some(LyricsSource::Lrclib),
+    Some(LrclibLyrics {
+        result: LyricsResult {
+            synced: synced.as_deref().map(parse_lrc),
+            plain,
+            source: Some(LyricsSource::Lrclib),
+        },
+        synced_lrc: synced,
     })
 }
 
@@ -287,15 +312,52 @@ mod tests {
 
     #[test]
     fn synced_text_is_parsed_and_plain_text_is_passed_through() {
-        let result = into_result(LrclibRecord {
+        let found = into_result(LrclibRecord {
             synced_lyrics: Some("[00:01.00]Hi".to_owned()),
             plain_lyrics: Some("Hi".to_owned()),
         })
         .expect("a result");
 
-        assert_eq!(result.source, Some(LyricsSource::Lrclib));
-        assert_eq!(result.synced.as_ref().map(Vec::len), Some(1));
-        assert_eq!(result.plain.as_deref(), Some("Hi"));
+        assert_eq!(found.result.source, Some(LyricsSource::Lrclib));
+        assert_eq!(found.result.synced.as_ref().map(Vec::len), Some(1));
+        assert_eq!(found.result.plain.as_deref(), Some("Hi"));
+    }
+
+    /// The raw document is kept beside the parsed one, unaltered. Write-back
+    /// copies these bytes to the sidecar, so anything this pass normalised
+    /// would be normalised into the user's file too.
+    #[test]
+    fn the_raw_synced_document_is_carried_alongside_the_parsed_one() {
+        let found = into_result(LrclibRecord {
+            // Two timestamps on one line and a three-digit fraction: both are
+            // shapes a re-render from the parsed lines could not reproduce.
+            synced_lyrics: Some("[00:02.03][00:01.000]Refrain\r\n".to_owned()),
+            plain_lyrics: None,
+        })
+        .expect("a result");
+
+        assert_eq!(
+            found.synced_lrc.as_deref(),
+            Some("[00:02.03][00:01.000]Refrain\r\n")
+        );
+        assert_eq!(
+            found.result.synced.as_ref().map(Vec::len),
+            Some(2),
+            "the parsed view still expands the refrain"
+        );
+    }
+
+    /// A record with only plain text carries no document to write back — the
+    /// sidecar lane is synced-only, so `None` here is what stops it.
+    #[test]
+    fn a_plain_only_record_carries_no_raw_document() {
+        let found = into_result(LrclibRecord {
+            synced_lyrics: None,
+            plain_lyrics: Some("Just words".to_owned()),
+        })
+        .expect("a result");
+
+        assert_eq!(found.synced_lrc, None);
     }
 
     #[test]

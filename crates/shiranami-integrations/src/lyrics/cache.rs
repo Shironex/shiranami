@@ -227,10 +227,13 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     fn found(text: &str) -> LrclibOutcome {
-        LrclibOutcome::Found(shiranami_core::models::lyrics::LyricsResult {
-            synced: None,
-            plain: Some(text.to_owned()),
-            source: Some(shiranami_core::models::lyrics::LyricsSource::Lrclib),
+        LrclibOutcome::Found(crate::lyrics::lrclib::LrclibLyrics {
+            result: shiranami_core::models::lyrics::LyricsResult {
+                synced: None,
+                plain: Some(text.to_owned()),
+                source: Some(shiranami_core::models::lyrics::LyricsSource::Lrclib),
+            },
+            synced_lrc: None,
         })
     }
 

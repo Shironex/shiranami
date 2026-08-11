@@ -350,7 +350,17 @@
       "title": "Źródła",
       "subtitle": "Skąd pobierany jest tekst dla Twoich utworów",
       "preferSyncedTitle": "Preferuj zsynchronizowany tekst z LRCLIB",
-      "preferSyncedDesc": "Gdy utwór ma tylko zwykły plik tekstowy, pobierz zsynchronizowany tekst z LRCLIB. Lokalny i osadzony zsynchronizowany tekst zawsze ma pierwszeństwo."
+      "preferSyncedDesc": "Gdy utwór ma tylko zwykły plik tekstowy, pobierz zsynchronizowany tekst z LRCLIB. Lokalny i osadzony zsynchronizowany tekst zawsze ma pierwszeństwo.",
+      "saveFetchedTitle": "Zapisuj pobrane teksty obok muzyki",
+      "saveFetchedDesc": "Gdy teksty zostaną znalezione w sieci, zachowaj plik .lrc z synchronizacją obok utworu, aby działały też offline. Plik tekstu, który już masz, nigdy nie zostanie zastąpiony.",
+      "saveRunTitle": "Pobierz i zapisz teksty dla biblioteki",
+      "saveRunDesc": "Wyszukaj każdy utwór raz i zapisz to, co zostanie znalezione. Utwory, które mają już plik tekstu, są pomijane bez wyszukiwania.",
+      "saveRun": "Zapisz teksty dla biblioteki",
+      "saveCancel": "Anuluj",
+      "saveProgress": "Zapisywanie {{current}} / {{total}}…",
+      "saveSummary": "Zapisano {{saved}} · pominięto {{skipped}} · nie znaleziono {{notFound}} · błędy {{failed}}",
+      "saveSummaryCancelled": "Anulowano — zapisano {{saved}} · pominięto {{skipped}} · nie znaleziono {{notFound}} · błędy {{failed}}",
+      "saveDisabledHint": "Włącz zapisywanie powyżej, aby to uruchomić."
     },
     "plain": {
       "title": "Tekst zwykły",
