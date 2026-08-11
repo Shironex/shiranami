@@ -18,9 +18,13 @@
 //!   never accepted from a caller, and the track's directory is then put to
 //!   [`crate::lyrics::LyricsPolicy::is_lyrics_write_allowed`], which also
 //!   defaults closed.
-//! - **Never overwrite.** Any existing `.lrc` in any of the reader's locations
-//!   is the user's own file and wins outright — see
-//!   [`crate::lyrics::local::existing_lrc_sidecar`].
+//! - **Never overwrite, and never shadow.** Any lyric file already sitting in
+//!   one of the reader's six locations is the user's own and wins outright —
+//!   see [`crate::lyrics::local::existing_lyric_sidecar`]. A `.txt` counts too
+//!   unless the user has set `lyrics.preferSyncedFromLrclib`, because a fresh
+//!   `.lrc` outranks a `.txt` everywhere in the ladder and retires it as
+//!   thoroughly as an overwrite would; [`crate::lyrics::local::SidecarGuard`]
+//!   carries that decision in from the caller that knows the setting.
 //! - **Read-only is normal, not exceptional.** NAS shares and deliberately
 //!   read-only folders are ordinary places to keep music. A failed write is a
 //!   `debug` line and [`SidecarOutcome::Failed`]; the lyrics still reach the
@@ -51,7 +55,7 @@
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
-use crate::lyrics::local::existing_lrc_sidecar;
+use crate::lyrics::local::{SidecarGuard, existing_lyric_sidecar};
 
 /// What one write-back attempt did.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -79,7 +83,7 @@ pub enum SidecarSkip {
     NoDestination,
     /// The track's folder is not one the app may write into.
     NotAllowed,
-    /// A `.lrc` is already there. It is the user's, and it wins.
+    /// A lyric file is already there. It is the user's, and it wins.
     AlreadyExists,
     /// The directory answered, but with no timed lyrics to save.
     NotSynced,
@@ -110,13 +114,21 @@ pub fn sidecar_path(audio_file: &Path) -> Option<PathBuf> {
 
 /// Write `lrc` beside `audio_file`, unless one of the guards says not to.
 ///
+/// `guard` decides which files the user is deemed to already have; the caller
+/// owns that decision because it is the one holding the
+/// `lyrics.preferSyncedFromLrclib` answer. See [`SidecarGuard`].
+///
 /// `lrc` is written **verbatim**: the bytes LRCLIB published, timing lines and
 /// all. Never returns an error — see the module docs on why a read-only library
 /// is an ordinary configuration rather than a failure to report.
 ///
 /// The filesystem work runs on the blocking pool (architecture §2.3), so this
 /// does not stall the async worker the fetch is running on.
-pub async fn save_synced_sidecar(audio_file: &Path, lrc: &str) -> SidecarOutcome {
+pub async fn save_synced_sidecar(
+    audio_file: &Path,
+    lrc: &str,
+    guard: SidecarGuard,
+) -> SidecarOutcome {
     let Some(destination) = sidecar_path(audio_file) else {
         return SidecarOutcome::Skipped(SidecarSkip::NoDestination);
     };
@@ -124,8 +136,10 @@ pub async fn save_synced_sidecar(audio_file: &Path, lrc: &str) -> SidecarOutcome
     let audio_file = audio_file.to_path_buf();
     let contents = lrc.to_owned();
 
-    match tokio::task::spawn_blocking(move || write_sidecar(&audio_file, &destination, &contents))
-        .await
+    match tokio::task::spawn_blocking(move || {
+        write_sidecar(&audio_file, &destination, &contents, guard)
+    })
+    .await
     {
         Ok(outcome) => outcome,
         Err(error) => {
@@ -136,8 +150,13 @@ pub async fn save_synced_sidecar(audio_file: &Path, lrc: &str) -> SidecarOutcome
 }
 
 /// The blocking half: the existence check, the temp file, the rename.
-fn write_sidecar(audio_file: &Path, destination: &Path, lrc: &str) -> SidecarOutcome {
-    if let Some(existing) = existing_lrc_sidecar(audio_file) {
+fn write_sidecar(
+    audio_file: &Path,
+    destination: &Path,
+    lrc: &str,
+    guard: SidecarGuard,
+) -> SidecarOutcome {
+    if let Some(existing) = existing_lyric_sidecar(audio_file, guard) {
         tracing::debug!(
             existing = %existing.display(),
             "a lyric file is already there; leaving it alone"
@@ -252,7 +271,7 @@ mod tests {
         let dir = temp_dir();
         let audio = dir.path().join("Song.mp3");
 
-        let outcome = save_synced_sidecar(&audio, LRC).await;
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await;
 
         let written = dir.path().join("Song.lrc");
         assert_eq!(outcome, SidecarOutcome::Written(written.clone()));
@@ -267,7 +286,7 @@ mod tests {
         let audio = dir.path().join("Song.mp3");
         let original = "[00:02.030][00:01.00]Refrain\r\n[03:04.5]not a line\r\n";
 
-        save_synced_sidecar(&audio, original).await;
+        save_synced_sidecar(&audio, original, SidecarGuard::AnyLyricFile).await;
 
         assert_eq!(
             fs::read_to_string(dir.path().join("Song.lrc")).expect("read it back"),
@@ -283,7 +302,7 @@ mod tests {
         let sidecar = dir.path().join("Song.lrc");
         fs::write(&sidecar, "[00:09.00]Mine, hand-timed").expect("seed the user's file");
 
-        let outcome = save_synced_sidecar(&audio, LRC).await;
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await;
 
         assert_eq!(outcome, SidecarOutcome::Skipped(SidecarSkip::AlreadyExists));
         assert_eq!(
@@ -303,7 +322,7 @@ mod tests {
         fs::create_dir_all(&subfolder).expect("create the subfolder");
         fs::write(subfolder.join("Song.lrc"), "[00:09.00]Mine").expect("seed the user's file");
 
-        let outcome = save_synced_sidecar(&audio, LRC).await;
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await;
 
         assert_eq!(outcome, SidecarOutcome::Skipped(SidecarSkip::AlreadyExists));
         assert!(
@@ -312,17 +331,41 @@ mod tests {
         );
     }
 
-    /// A `.txt` does not block: the only route that reaches the directory while
-    /// one exists is the user having asked for synced lyrics over plain ones.
+    /// A `.txt` blocks by default. A fresh `Song.lrc` outranks `Song.txt`
+    /// everywhere in the reader's ladder, so writing one retires the file the
+    /// user typed out — and the shipped copy promises it will not.
     #[tokio::test]
-    async fn a_plain_text_sidecar_does_not_block_the_write() {
+    async fn a_plain_text_sidecar_blocks_the_write_by_default() {
         let dir = temp_dir();
         let audio = dir.path().join("Song.mp3");
         fs::write(dir.path().join("Song.txt"), "Just words").expect("seed a txt");
 
-        let outcome = save_synced_sidecar(&audio, LRC).await;
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await;
+
+        assert_eq!(outcome, SidecarOutcome::Skipped(SidecarSkip::AlreadyExists));
+        assert!(
+            !dir.path().join("Song.lrc").exists(),
+            "the user's plain text must not be shadowed by a fetched file"
+        );
+    }
+
+    /// …and stops blocking exactly when the user asks for it to. That is what
+    /// `lyrics.preferSyncedFromLrclib` means: timings from the directory are
+    /// wanted over plain text already on disk.
+    #[tokio::test]
+    async fn a_plain_text_sidecar_yields_when_the_user_prefers_lrclib_timings() {
+        let dir = temp_dir();
+        let audio = dir.path().join("Song.mp3");
+        fs::write(dir.path().join("Song.txt"), "Just words").expect("seed a txt");
+
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::TimedOnly).await;
 
         assert!(matches!(outcome, SidecarOutcome::Written(_)));
+        assert_eq!(
+            fs::read_to_string(dir.path().join("Song.txt")).expect("read it back"),
+            "Just words",
+            "and the `.txt` itself is still never touched"
+        );
     }
 
     /// The read-only-library contract: a refused write is an outcome, never an
@@ -336,7 +379,7 @@ mod tests {
 
         // The existence check sees the directory first, so this is a skip rather
         // than a failure — either way nothing is written and nothing is thrown.
-        let outcome = save_synced_sidecar(&audio, LRC).await;
+        let outcome = save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await;
         assert!(matches!(outcome, SidecarOutcome::Skipped(_)));
     }
 
@@ -348,7 +391,7 @@ mod tests {
         let audio = dir.path().join("nowhere").join("Song.mp3");
 
         assert_eq!(
-            save_synced_sidecar(&audio, LRC).await,
+            save_synced_sidecar(&audio, LRC, SidecarGuard::AnyLyricFile).await,
             SidecarOutcome::Failed
         );
     }

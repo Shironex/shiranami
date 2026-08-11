@@ -33,7 +33,7 @@ use shiranami_core::models::lyrics::LyricsResult;
 use crate::lyrics::cache::{InflightLookups, LyricsCache, cache_key};
 use crate::lyrics::embedded::read_embedded_lyrics;
 use crate::lyrics::error::{LyricsError, Result};
-use crate::lyrics::local::{existing_lrc_sidecar, load_local_lyrics};
+use crate::lyrics::local::{SidecarGuard, existing_lyric_sidecar, load_local_lyrics};
 use crate::lyrics::lrclib::{LrclibClient, LrclibOutcome, LrclibQuery};
 use crate::lyrics::parse::{has_plain_lyrics, has_synced_lyrics};
 use crate::lyrics::writeback::{SidecarOutcome, SidecarSkip, save_synced_sidecar};
@@ -208,6 +208,12 @@ impl LyricsService {
     /// so local and embedded sources are consulted only through the
     /// never-overwrite check inside the write itself — which is also what keeps
     /// a track that already has a `.lrc` from spending an LRCLIB request.
+    ///
+    /// That check is the *only* thing standing between this and a library-wide
+    /// overwrite, which is why it consults [`Self::sidecar_guard`] rather than
+    /// assuming the ladder already ruled a local file out: with
+    /// `lyrics.preferSyncedFromLrclib` off, this is the one path that reaches
+    /// the directory while the user holds a plain-text lyric of their own.
     pub async fn save_lyrics(&self, request: &LyricsRequest) -> SaveOutcome {
         let Some(path) = request.file_path.as_deref() else {
             return SaveOutcome::Skipped(SidecarSkip::NoDestination);
@@ -217,9 +223,11 @@ impl LyricsService {
             return SaveOutcome::Skipped(refusal);
         }
 
+        let guard = self.sidecar_guard();
+
         // Asked before the request, not after: a track the user has already
-        // timed themselves must not cost the directory a lookup.
-        if let Some(refusal) = already_answered(path).await {
+        // answered for themselves must not cost the directory a lookup.
+        if let Some(refusal) = already_answered(path, guard).await {
             return SaveOutcome::Skipped(refusal);
         }
 
@@ -238,7 +246,7 @@ impl LyricsService {
             return SaveOutcome::Skipped(SidecarSkip::NotSynced);
         };
 
-        match save_synced_sidecar(path, lrc).await {
+        match save_synced_sidecar(path, lrc, guard).await {
             SidecarOutcome::Written(path) => SaveOutcome::Saved(path),
             SidecarOutcome::Skipped(reason) => SaveOutcome::Skipped(reason),
             SidecarOutcome::Failed => SaveOutcome::WriteFailed,
@@ -260,7 +268,22 @@ impl LyricsService {
             return;
         }
 
-        save_synced_sidecar(path, lrc).await;
+        save_synced_sidecar(path, lrc, self.sidecar_guard()).await;
+    }
+
+    /// Which lyric files already on disk stop a write-back.
+    ///
+    /// Read per call rather than captured, for [`Self::write_refusal`]'s reason.
+    /// `lyrics.preferSyncedFromLrclib` is the whole input: with it off — the
+    /// default — anything local beats the network, so a `.txt` the user wrote is
+    /// a file to leave alone; with it on they have asked for LRCLIB's timings
+    /// over their own plain text, and a `.txt` must not stand in the way.
+    fn sidecar_guard(&self) -> SidecarGuard {
+        if self.policy.prefer_synced_from_lrclib() {
+            SidecarGuard::TimedOnly
+        } else {
+            SidecarGuard::AnyLyricFile
+        }
     }
 
     /// Which gate refuses a write beside `path`, if either does.
@@ -370,9 +393,9 @@ pub enum SaveOutcome {
 }
 
 /// Whether a lyric file already answers for `path`, off the async worker.
-async fn already_answered(path: &Path) -> Option<SidecarSkip> {
+async fn already_answered(path: &Path, guard: SidecarGuard) -> Option<SidecarSkip> {
     let owned = path.to_path_buf();
-    match tokio::task::spawn_blocking(move || existing_lrc_sidecar(&owned)).await {
+    match tokio::task::spawn_blocking(move || existing_lyric_sidecar(&owned, guard)).await {
         Ok(Some(existing)) => {
             tracing::debug!(
                 existing = %existing.display(),
