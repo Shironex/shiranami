@@ -34,7 +34,7 @@ use crate::lyrics::cache::{InflightLookups, LyricsCache, cache_key};
 use crate::lyrics::embedded::read_embedded_lyrics;
 use crate::lyrics::error::{LyricsError, Result};
 use crate::lyrics::local::{SidecarGuard, existing_lyric_sidecar, load_local_lyrics};
-use crate::lyrics::lrclib::{LrclibClient, LrclibOutcome, LrclibQuery};
+use crate::lyrics::lrclib::{LrclibClient, LrclibLyrics, LrclibOutcome, LrclibQuery};
 use crate::lyrics::parse::{has_plain_lyrics, has_synced_lyrics};
 use crate::lyrics::writeback::{SidecarOutcome, SidecarSkip, save_synced_sidecar};
 
@@ -158,7 +158,10 @@ impl LyricsService {
         // the reason to keep the file is that the network was reachable *now*
         // and may not be later, which has nothing to do with what the ladder
         // decides to display this time round.
-        if let Some(lrc) = found.as_ref().and_then(|found| found.synced_lrc.as_deref()) {
+        //
+        // Gated on the *parsed* view, not on the raw document being non-empty:
+        // see [`synced_document_of`].
+        if let Some(lrc) = found.as_ref().and_then(synced_document_of) {
             self.save_sidecar(request, lrc).await;
         }
 
@@ -240,8 +243,8 @@ impl LyricsService {
             }
         };
 
-        let Some(lrc) = found.synced_lrc.as_deref() else {
-            // The directory has the track but only as plain text. Nothing to
+        let Some(lrc) = synced_document_of(&found) else {
+            // The directory has the track but nothing timed to save. Nothing to
             // write: a `.lrc` with no timings would shadow a future timed one.
             return SaveOutcome::Skipped(SidecarSkip::NotSynced);
         };
@@ -390,6 +393,26 @@ pub enum SaveOutcome {
     LookupFailed,
     /// Lyrics were found and the filesystem refused the write.
     WriteFailed,
+}
+
+/// The raw LRC document behind `found`, but only when it actually carries timed
+/// lines.
+///
+/// The gate the write-back is phrased in, and it is deliberately the *parsed*
+/// view rather than "the server sent a non-empty `syncedLyrics`". LRCLIB's
+/// records are user-submitted, and a payload of nothing but ID tags
+/// (`[ar:…]`, `[ti:…]`, `[by:…]`) — or of whitespace — is non-empty and parses
+/// to zero lines. Written out, such a file is worse than no file at all: the
+/// reader finds it, `parse_lrc` yields nothing, the timestampless fallback
+/// serves the tag junk as plain text, and with the default precedence that
+/// non-empty plain text stops the ladder before the network is ever consulted
+/// again. The never-overwrite guard then blocks every future attempt to
+/// replace it.
+fn synced_document_of(found: &LrclibLyrics) -> Option<&str> {
+    found
+        .synced_lrc
+        .as_deref()
+        .filter(|_| has_synced_lyrics(Some(&found.result)))
 }
 
 /// Whether a lyric file already answers for `path`, off the async worker.
