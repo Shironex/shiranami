@@ -49,11 +49,12 @@
 //! rename would be overwritten. Nothing in this app writes lyric files
 //! concurrently, but "the user dropped a file in while a library batch ran" is a
 //! real sequence, so the rename is preceded by one last [`Path::try_exists`] and
-//! the temp file itself is opened `create_new`, which makes the nonce collision
-//! a failure rather than a silent truncation of somebody else's temp file.
+//! the temp file itself is opened `create_new`, which makes a temp-name
+//! collision a failure rather than a silent truncation of somebody else's file.
 
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::lyrics::local::{SidecarGuard, existing_lyric_sidecar};
 
@@ -187,19 +188,7 @@ fn write_sidecar(
 ///
 /// See the module docs for why this is not `store::atomic::write_atomic`.
 fn write_atomic_beside(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let directory = path.parent().unwrap_or_else(|| Path::new("."));
-    let file_name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("lyrics");
-
-    // pid + nanos, matching the store's construction: two writers targeting
-    // different files in one directory cannot collide on the temp name.
-    let nonce = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|elapsed| elapsed.as_nanos())
-        .unwrap_or(0);
-    let temp = directory.join(format!(".{file_name}.{}.{nonce}.tmp", std::process::id()));
+    let temp = temp_path(path);
 
     let write_then_rename = || -> std::io::Result<()> {
         let mut file = std::fs::OpenOptions::new()
@@ -228,6 +217,39 @@ fn write_atomic_beside(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
         let _ = std::fs::remove_file(&temp);
     }
     result
+}
+
+/// Where `destination` is staged before the rename.
+///
+/// **The name is kept short on purpose.** Windows refuses a path over 260
+/// characters unless long paths are enabled, and a routine
+/// `Artist/Album/Disc 2/NN - Long Title.flac` layout puts the `.lrc`
+/// destination within a couple of dozen characters of that ceiling. The store's
+/// `pid` + 19-digit nanosecond stamp would add ~31 characters *over the
+/// destination*, so a library that can hold the file cannot hold the temp file
+/// it is written through — `create_new` fails with `ERROR_FILENAME_EXCED_RANGE`
+/// and the user sees an unexplained `failed` count. Hex pid plus a run-local
+/// counter costs about a dozen.
+///
+/// It is no less unique for the shortening. Two live processes never share a
+/// pid, and within one process the counter never repeats, so the only collision
+/// left is a temp file orphaned by a crash of an earlier process whose pid has
+/// since been recycled — which `create_new` turns into a refused write rather
+/// than a truncation of somebody else's file.
+fn temp_path(destination: &Path) -> PathBuf {
+    static SEQUENCE: AtomicU32 = AtomicU32::new(0);
+
+    let directory = destination.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = destination
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("lyrics");
+
+    let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    directory.join(format!(
+        ".{file_name}.{:x}-{sequence:x}.tmp",
+        std::process::id()
+    ))
 }
 
 #[cfg(test)]
@@ -396,7 +418,7 @@ mod tests {
         );
     }
 
-    /// A failed write must leave no `.Song.lrc.<pid>.<nonce>.tmp` litter in the
+    /// A failed write must leave no `.Song.lrc.<pid>-<n>.tmp` litter in the
     /// user's music folder.
     #[tokio::test]
     async fn a_failed_write_leaves_no_temp_file_behind() {
@@ -418,5 +440,33 @@ mod tests {
             leftovers.is_empty(),
             "temp litter left behind: {leftovers:?}"
         );
+    }
+
+    /// The MAX_PATH guard. A destination the filesystem can hold must not be
+    /// staged through a name it cannot: on Windows a deep
+    /// `Artist/Album/Disc 2/NN - Title.lrc` sits close enough to 260 characters
+    /// that a long temp suffix is the difference between a saved lyric and an
+    /// unexplained `failed` count.
+    #[test]
+    fn the_temp_name_stays_close_to_the_destination_it_stages() {
+        let destination = Path::new("/music/Artist/Album/Disc 2/07 - A Long Title.lrc");
+        let temp = temp_path(destination);
+
+        let length = |path: &Path| path.as_os_str().len();
+        let overhead = length(&temp) - length(destination);
+        assert!(
+            overhead <= 20,
+            "the temp path is {overhead} characters longer than the destination: {}",
+            temp.display()
+        );
+        assert_eq!(temp.parent(), destination.parent());
+    }
+
+    /// …and it is still distinct per attempt, or `create_new` would start
+    /// refusing writes that have nothing wrong with them.
+    #[test]
+    fn two_temp_names_for_one_destination_differ() {
+        let destination = Path::new("/music/Song.lrc");
+        assert_ne!(temp_path(destination), temp_path(destination));
     }
 }
