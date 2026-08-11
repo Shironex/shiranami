@@ -28,6 +28,19 @@
 /// UTC clock the column defaults already read.
 pub(crate) const ISO_8601_NOW: &str = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
 
+/// [`ISO_8601_NOW`] shifted by a bound modifier — `'-30 days'` and the like.
+///
+/// The spelling is what matters, not the offset: an ISO-8601 column is compared
+/// as **text**, so a cutoff computed with `datetime('now', ?)` compares a
+/// `' '` (0x20) against the stored `'T'` (0x54) at byte 10 and reads every
+/// instant on the cutoff day as *later* than the cutoff. `play_history.played_at`
+/// is the column that gets this wrong — see [`crate::repo::history`] on why it
+/// holds the ISO form in every shipped database.
+///
+/// The `?` is a placeholder for the modifier, so the offset reaches SQLite as
+/// data; nothing derived from a rule value is ever written into the text.
+pub(crate) const ISO_8601_SHIFTED: &str = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now', ?)";
+
 /// What a `DEFAULT (datetime('now'))` column writes: `2026-08-01 12:34:56`.
 ///
 /// Second resolution, no `T`, no zone suffix. Used where a v1 handler set a

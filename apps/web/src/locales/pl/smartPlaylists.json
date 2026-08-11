@@ -21,6 +21,15 @@
   "daysPlaceholder": "Dni",
   "addRule": "Dodaj regułę",
   "removeRule": "Usuń regułę",
+  "sortPrefix": "Sortuj wg",
+  "sortDefault": "Data dodania (domyślnie)",
+  "sortFieldLabel": "Pole sortowania",
+  "sortDirectionLabel": "Kierunek sortowania",
+  "sortAsc": "rosnąco",
+  "sortDesc": "malejąco",
+  "limitPrefix": "i zachowaj maksymalnie",
+  "limitLabel": "Limit utworów",
+  "limitPlaceholder": "Wszystkie",
   "matchCount_one": "{{count}} pasujący utwór",
   "matchCount_few": "{{count}} pasujące utwory",
   "matchCount_many": "{{count}} pasujących utworów",
@@ -46,7 +55,12 @@
     "year": "Rok",
     "playCount": "Liczba odtworzeń",
     "isFavorite": "Ulubione",
-    "dateAdded": "Data dodania"
+    "dateAdded": "Data dodania",
+    "lastPlayed": "Ostatnio odtwarzane",
+    "bpm": "BPM",
+    "duration": "Czas trwania (s)",
+    "loudnessLufs": "Głośność (LUFS)",
+    "musicalKey": "Tonacja"
   },
   "operators": {
     "is": "jest",
@@ -55,6 +69,7 @@
     "greaterThan": "większe niż",
     "lessThan": "mniejsze niż",
     "between": "pomiędzy",
-    "inLastDays": "w ciągu ostatnich (dni)"
+    "inLastDays": "w ciągu ostatnich (dni)",
+    "notInLastDays": "nie w ciągu ostatnich (dni)"
   }
 }

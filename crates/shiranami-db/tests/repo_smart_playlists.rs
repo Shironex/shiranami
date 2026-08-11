@@ -1,9 +1,10 @@
 //! `db:smart-playlists:*` — storage, against a real database.
 //!
-//! Round-tripping a rule set through the JSON `rules` column, and what happens
-//! when that column holds something this build cannot read. Evaluation lives in
-//! `repo_smart_playlist_eval.rs`; the compiler's operator matrix is in
-//! `smart_rules.rs`.
+//! Create, read, update, delete, and what happens when a stored column holds
+//! something this build cannot read. The `rules` column's own encoding — its
+//! two shapes and their compatibility — is `repo_smart_playlist_rules_column.rs`;
+//! evaluation is `repo_smart_playlist_eval.rs`; the compiler's operator matrix
+//! is `smart_rules.rs`.
 
 #[path = "support/library.rs"]
 mod library;
@@ -31,6 +32,8 @@ async fn create_round_trips_the_rules_through_the_rules_column() {
                 rule(Field::Genre, Op::Is, "Lofi"),
                 rule(Field::Year, Op::GreaterThan, "2010"),
             ],
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -62,6 +65,8 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
             description: None,
             match_type: Match::All,
             rules: Vec::new(),
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -75,6 +80,8 @@ async fn get_all_returns_the_newest_first_and_get_handles_an_unknown_id() {
             description: None,
             match_type: Match::All,
             rules: Vec::new(),
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -115,6 +122,8 @@ async fn update_replaces_only_the_fields_it_names() {
             description: Some("kept".to_owned()),
             match_type: Match::All,
             rules: vec![rule(Field::Genre, Op::Is, "Lofi")],
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -153,6 +162,8 @@ async fn update_replaces_the_whole_rule_set() {
                 rule(Field::Genre, Op::Is, "Lofi"),
                 rule(Field::Year, Op::GreaterThan, "2010"),
             ],
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -187,6 +198,8 @@ async fn update_stamps_updated_at_in_the_sqlite_format() {
             description: None,
             match_type: Match::All,
             rules: Vec::new(),
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -229,6 +242,8 @@ async fn delete_removes_the_smart_playlist() {
             description: None,
             match_type: Match::All,
             rules: Vec::new(),
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -265,6 +280,8 @@ async fn a_malformed_rules_document_degrades_to_no_rules() {
             description: None,
             match_type: Match::All,
             rules: vec![rule(Field::Genre, Op::Is, "Jazz")],
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -302,6 +319,8 @@ async fn an_unrecognised_match_type_degrades_to_all() {
             description: None,
             match_type: Match::Any,
             rules: Vec::new(),
+            limit: None,
+            order_by: None,
         },
     )
     .await

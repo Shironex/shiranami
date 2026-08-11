@@ -21,6 +21,15 @@
   "daysPlaceholder": "Days",
   "addRule": "Add rule",
   "removeRule": "Remove rule",
+  "sortPrefix": "Sort by",
+  "sortDefault": "Date added (default)",
+  "sortFieldLabel": "Sort field",
+  "sortDirectionLabel": "Sort direction",
+  "sortAsc": "ascending",
+  "sortDesc": "descending",
+  "limitPrefix": "and keep at most",
+  "limitLabel": "Track limit",
+  "limitPlaceholder": "All",
   "matchCount_one": "{{count}} matching track",
   "matchCount_other": "{{count}} matching tracks",
   "edit": "Edit",
@@ -42,7 +51,12 @@
     "year": "Year",
     "playCount": "Play count",
     "isFavorite": "Favorite",
-    "dateAdded": "Date added"
+    "dateAdded": "Date added",
+    "lastPlayed": "Last played",
+    "bpm": "BPM",
+    "duration": "Duration (s)",
+    "loudnessLufs": "Loudness (LUFS)",
+    "musicalKey": "Musical key"
   },
   "operators": {
     "is": "is",
@@ -51,6 +65,7 @@
     "greaterThan": "greater than",
     "lessThan": "less than",
     "between": "between",
-    "inLastDays": "in the last (days)"
+    "inLastDays": "in the last (days)",
+    "notInLastDays": "not in the last (days)"
   }
 }

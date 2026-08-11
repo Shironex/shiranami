@@ -28,7 +28,7 @@ use shiranami_core::models::{
 };
 use shiranami_db::repo::{playlist_tracks, playlists, smart_playlists, tracks};
 use sqlx::pool::PoolConnection;
-use sqlx::{Sqlite, SqliteConnection, SqlitePool};
+use sqlx::{QueryBuilder, Sqlite, SqliteConnection, SqlitePool};
 use tempfile::TempDir;
 
 /// An open library, alive for as long as the binding is.
@@ -196,7 +196,90 @@ pub(crate) fn definition(
     match_type: SmartPlaylistMatchType,
     rules: Vec<SmartPlaylistRule>,
 ) -> SmartPlaylistDefinition {
-    SmartPlaylistDefinition { match_type, rules }
+    SmartPlaylistDefinition {
+        match_type,
+        rules,
+        limit: None,
+        order_by: None,
+    }
+}
+
+/// Set the analysis columns no create payload can reach.
+pub(crate) async fn set_analysis(
+    conn: &mut SqliteConnection,
+    id: &str,
+    bpm: Option<f64>,
+    loudness_lufs: Option<f64>,
+) {
+    sqlx::query("UPDATE tracks SET bpm = ?1, loudness_lufs = ?2 WHERE id = ?3")
+        .bind(bpm)
+        .bind(loudness_lufs)
+        .bind(id)
+        .execute(conn)
+        .await
+        .expect("the analysis columns must update");
+}
+
+/// Record one play `days_ago` days back, under the given source.
+///
+/// Written straight into `play_history` rather than through
+/// [`shiranami_db::repo::history`], which stamps the caller's "now" — every
+/// `last_played` rule turns on a play being *older* than a cutoff.
+pub(crate) async fn played(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    days_ago: u32,
+    source: &str,
+) {
+    played_ago(conn, track_id, &[&format!("-{days_ago} days")], source).await;
+}
+
+/// Record one play at an arbitrary offset back from now.
+///
+/// `modifiers` are SQLite date modifiers, each bound separately because SQLite
+/// takes one per argument — `"-30 days -5 hours"` in a single string is not a
+/// modifier at all and yields `NULL`.
+///
+/// `played_at` is written in **JavaScript's ISO format**, because that is the
+/// only shape production rows have: `shiranami_db::repo::history` documents why,
+/// and the column is compared as text. A fixture writing SQLite's
+/// `2026-07-12 05:00:00` instead exercises a data shape no user has, and it hid
+/// a real bug — a cutoff in the wrong spelling diverges from a stored timestamp
+/// at byte 10 (`' '` against `'T'`), which ran every `last_played` window back
+/// to the start of the cutoff day.
+pub(crate) async fn played_ago(
+    conn: &mut SqliteConnection,
+    track_id: &str,
+    modifiers: &[&str],
+    source: &str,
+) {
+    let mut builder = QueryBuilder::<Sqlite>::new(
+        "INSERT INTO play_history \
+           (id, track_id, played_at, played_seconds, completion_ratio, completed, source) \
+         VALUES (",
+    );
+
+    // A deterministic key rather than a UUID: `uuid` is a normal dependency of
+    // this crate, so an integration test cannot reach it, and one play per
+    // (track, offset, source) is all any test here needs.
+    builder
+        .push_bind(format!("{track_id}:{}:{source}", modifiers.join(" ")))
+        .push(", ")
+        .push_bind(track_id.to_owned())
+        .push(", strftime('%Y-%m-%dT%H:%M:%fZ', 'now'");
+    for modifier in modifiers {
+        builder.push(", ").push_bind((*modifier).to_owned());
+    }
+    builder
+        .push("), 120, 1.0, 1, ")
+        .push_bind(source.to_owned())
+        .push(")");
+
+    builder
+        .build()
+        .execute(conn)
+        .await
+        .expect("the play must record");
 }
 
 /// Add a track carrying a genre and a year, returning its id.

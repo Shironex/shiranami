@@ -29,16 +29,34 @@
 //!   library — how desktop music players behave for a rule-less smart playlist.
 //! - `is_favorite` accepts any operator; only `isNot` inverts, and every other
 //!   operator behaves as `is`.
-//! - `date_added` supports only `inLastDays`.
+//! - `date_added` supports only the two day-count operators.
 //! - Numeric operands parse with JavaScript's `Number()` semantics
 //!   ([`js_number`]), not Rust's, because that is what decided which rules were
 //!   usable in v1.
+//!
+//! # NULL
+//!
+//! `bpm`, `duration`, `loudness_lufs`, `year` and `musical_key` are nullable —
+//! for the analysis columns, `NULL` means "not analysed yet" (the schema
+//! collapses that with "analysed, nothing detectable"). SQL three-valued logic
+//! decides what that means and nothing here overrides it: a `NULL` operand
+//! satisfies **no** comparison, `isNot` included, so an unanalysed track is
+//! excluded by "bpm is not 120" exactly as it is by "bpm is 120". That is what
+//! `year` has always done, kept rather than special-cased — the alternative,
+//! reading "unknown" as "does not equal", quietly fills an `all` definition
+//! with unanalysed tracks.
+//!
+//! `last_played` is the deliberate exception: its `NULL` means *never played*,
+//! which is information rather than absence, and [`last_played_condition`]
+//! spells out how it is honoured.
 
 use shiranami_core::models::{
     SmartPlaylistDefinition, SmartPlaylistField, SmartPlaylistMatchType, SmartPlaylistOperator,
     SmartPlaylistRule,
 };
 use sqlx::{QueryBuilder, Sqlite};
+
+use crate::repo::clock::ISO_8601_SHIFTED;
 
 /// One value bound into a compiled filter.
 ///
@@ -157,10 +175,16 @@ fn condition(rule: &SmartPlaylistRule) -> Option<Filter> {
         SmartPlaylistField::Genre
         | SmartPlaylistField::Artist
         | SmartPlaylistField::Album
-        | SmartPlaylistField::Title => text_condition(rule),
-        SmartPlaylistField::Year | SmartPlaylistField::PlayCount => numeric_condition(rule),
+        | SmartPlaylistField::Title
+        | SmartPlaylistField::MusicalKey => text_condition(rule),
+        SmartPlaylistField::Year
+        | SmartPlaylistField::PlayCount
+        | SmartPlaylistField::Bpm
+        | SmartPlaylistField::Duration
+        | SmartPlaylistField::LoudnessLufs => numeric_condition(rule),
         SmartPlaylistField::IsFavorite => Some(favorite_condition(rule)),
         SmartPlaylistField::DateAdded => date_condition(rule),
+        SmartPlaylistField::LastPlayed => last_played_condition(rule),
     }
 }
 
@@ -234,24 +258,100 @@ fn favorite_condition(rule: &SmartPlaylistRule) -> Filter {
     compare(column_of(rule.field), operator, Bind::Flag(wanted))
 }
 
-/// `created_at`, which supports only `inLastDays`.
+/// `created_at`, which supports only the two day-count operators.
 ///
 /// The operand is bound as a SQLite date modifier — `-30 days` — so the day
 /// count reaches SQL as data rather than as text spliced into the statement.
+/// `created_at` is `NOT NULL`, so the negation is a plain `<` with no
+/// three-valued-logic hole to cover.
+///
+/// `datetime` and not [`ISO_8601_SHIFTED`], unlike [`last_played_condition`]:
+/// `tracks.created_at` is written by its column `DEFAULT (datetime('now'))` and
+/// so holds `2026-08-01 12:34:56`. Both sides are the SQLite spelling and the
+/// text comparison is sound. Making this one ISO would break it symmetrically.
 fn date_condition(rule: &SmartPlaylistRule) -> Option<Filter> {
-    if rule.operator != SmartPlaylistOperator::InLastDays {
-        return None;
-    }
-
-    let days = js_number(&rule.value)?;
-    if days <= 0.0 {
-        return None;
-    }
+    let days = day_count(rule)?;
+    let comparison = match rule.operator {
+        SmartPlaylistOperator::InLastDays => ">=",
+        SmartPlaylistOperator::NotInLastDays => "<",
+        _ => return None,
+    };
 
     Some(Filter {
-        sql: format!("{} >= datetime('now', ?)", column_of(rule.field)),
+        sql: format!("{} {comparison} datetime('now', ?)", column_of(rule.field)),
         binds: vec![Bind::Text(format!("-{days} days"))],
     })
+}
+
+/// The day count a day-count rule carries, if it is usable at all.
+fn day_count(rule: &SmartPlaylistRule) -> Option<f64> {
+    let days = js_number(&rule.value)?;
+    (days > 0.0).then_some(days)
+}
+
+/// Plays that count as listening to a library track.
+///
+/// `play_history` is not exclusively a library log — rows are written for other
+/// playback origins (internet radio among them), and those are not plays of the
+/// track they may happen to be keyed to. An allowlist rather than a denylist on
+/// purpose: a source added later is excluded until someone decides it counts,
+/// which is the direction that fails safe. The same `source = 'library'` test
+/// already gates scrobbling.
+const LIBRARY_PLAY: &str = "play_history.source = 'library'";
+
+/// The most recent library play of the current `tracks` row, or `NULL`.
+///
+/// One definition shared by the sort and by [`column_of`] so the two can never
+/// disagree about which plays count.
+const LAST_LIBRARY_PLAY: &str = "(SELECT MAX(play_history.played_at) FROM play_history \
+     WHERE play_history.track_id = tracks.id AND play_history.source = 'library')";
+
+/// `last_played`, which supports only the two day-count operators.
+///
+/// A correlated `EXISTS` rather than a `MAX(played_at)` join: the query this
+/// lands in selects whole `tracks` rows, so a join would multiply them and
+/// force a `GROUP BY` over every column, and `EXISTS` stops at the first
+/// matching history row instead of aggregating all of them.
+///
+/// `NOT EXISTS` is what makes "not played in the last N days" include tracks
+/// never played at all — there is no history row to compare, so the negated
+/// existence test is simply true. A `MAX(played_at) < cutoff` comparison would
+/// yield `NULL` for those tracks and silently exclude the very rows the rule
+/// exists to find.
+///
+/// The cutoff is rendered with [`ISO_8601_SHIFTED`], not `datetime('now', ?)`,
+/// because `played_at` holds `2026-07-12T05:00:00.000Z` and is compared as
+/// text. Against a `2026-07-12 10:15:00` cutoff the comparison decides at byte
+/// 10 — `'T'` (0x54) against `' '` (0x20) — and reads *every* play on the
+/// cutoff day as inside the window. That silently stretched each day-count rule
+/// to the start of the cutoff day: a track played 30 days and five hours ago
+/// was excluded from "not played in the last 30 days".
+fn last_played_condition(rule: &SmartPlaylistRule) -> Option<Filter> {
+    let days = day_count(rule)?;
+    let negation = match rule.operator {
+        SmartPlaylistOperator::InLastDays => "",
+        SmartPlaylistOperator::NotInLastDays => "NOT ",
+        _ => return None,
+    };
+
+    Some(Filter {
+        sql: format!(
+            "{negation}EXISTS (SELECT 1 FROM play_history WHERE play_history.track_id = tracks.id \
+             AND {LIBRARY_PLAY} AND play_history.played_at >= {ISO_8601_SHIFTED})"
+        ),
+        binds: vec![Bind::Text(format!("-{days} days"))],
+    })
+}
+
+/// The `ORDER BY` expression a field sorts on.
+///
+/// `last_played` has no column, so it sorts on the same scoped `MAX(played_at)`
+/// the rule filters on. Its `NULL` — never played — sorts lowest in SQLite and
+/// therefore first ascending, which is the right end for "least recently
+/// played". `&'static str` for the reason [`column_of`] is: no rule value can
+/// reach an `ORDER BY` any more than it can reach a `WHERE`.
+pub(crate) fn order_expression_of(field: SmartPlaylistField) -> &'static str {
+    column_of(field)
 }
 
 /// `<column> <operator> ?`, the shape most rules take.
@@ -276,6 +376,15 @@ fn column_of(field: SmartPlaylistField) -> &'static str {
         SmartPlaylistField::PlayCount => "tracks.play_count",
         SmartPlaylistField::IsFavorite => "tracks.is_favorite",
         SmartPlaylistField::DateAdded => "tracks.created_at",
+        SmartPlaylistField::Bpm => "tracks.bpm",
+        SmartPlaylistField::Duration => "tracks.duration",
+        SmartPlaylistField::LoudnessLufs => "tracks.loudness_lufs",
+        SmartPlaylistField::MusicalKey => "tracks.musical_key",
+        // No column of its own. Filtering does not route through here —
+        // `last_played_condition` builds an `EXISTS` instead, because that is
+        // the only shape that gets never-played right — but sorting does, and
+        // the correlated maximum is what it needs.
+        SmartPlaylistField::LastPlayed => LAST_LIBRARY_PLAY,
     }
 }
 

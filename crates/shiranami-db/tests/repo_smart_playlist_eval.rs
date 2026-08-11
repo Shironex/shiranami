@@ -15,7 +15,9 @@ use shiranami_core::models::{
 use shiranami_db::repo::smart_playlists::{self, SmartPlaylistCreateInput};
 use shiranami_db::repo::tracks;
 
-use library::{definition, fresh, preview, rule, set_created_at, set_play_count, tagged};
+use library::{
+    definition, fresh, preview, rule, set_analysis, set_created_at, set_play_count, tagged,
+};
 
 #[tokio::test]
 async fn get_tracks_evaluates_a_saved_playlist_and_tolerates_an_unknown_id() {
@@ -30,6 +32,8 @@ async fn get_tracks_evaluates_a_saved_playlist_and_tolerates_an_unknown_id() {
             description: None,
             match_type: Match::All,
             rules: vec![rule(Field::Genre, Op::Is, "Lofi")],
+            limit: None,
+            order_by: None,
         },
     )
     .await
@@ -235,4 +239,102 @@ async fn evaluation_orders_newest_first_with_the_library_tie_break() {
     let matched = preview(library.conn(), &definition(Match::All, Vec::new())).await;
 
     assert_eq!(matched, vec!["First", "Second", "Older"]);
+}
+
+// ── the analysis columns ──────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn preview_filters_by_bpm_between() {
+    let mut library = fresh().await;
+    let slow = tagged(library.conn(), "Slow", "Lofi", None).await;
+    let mid = tagged(library.conn(), "Mid", "Lofi", None).await;
+    let fast = tagged(library.conn(), "Fast", "Lofi", None).await;
+    tagged(library.conn(), "Unanalysed", "Lofi", None).await;
+    set_analysis(library.conn(), &slow, Some(80.0), None).await;
+    set_analysis(library.conn(), &mid, Some(118.0), None).await;
+    set_analysis(library.conn(), &fast, Some(174.0), None).await;
+
+    let matched = preview(
+        library.conn(),
+        &definition(
+            Match::All,
+            vec![SmartPlaylistRule {
+                field: Field::Bpm,
+                operator: Op::Between,
+                value: "100".to_owned(),
+                value_to: Some("130".to_owned()),
+            }],
+        ),
+    )
+    .await;
+
+    assert_eq!(matched, vec!["Mid"], "an unanalysed track is not in range");
+}
+
+/// `NULL` means "not analysed". SQL excludes it from every comparison, `isNot`
+/// included — asserted because the other reading ("unknown is not 120, so it
+/// matches") would quietly fill this playlist with unanalysed tracks.
+#[tokio::test]
+async fn an_unanalysed_track_satisfies_no_numeric_operator() {
+    let mut library = fresh().await;
+    let analysed = tagged(library.conn(), "Analysed", "Lofi", None).await;
+    tagged(library.conn(), "Unanalysed", "Lofi", None).await;
+    set_analysis(library.conn(), &analysed, Some(120.0), Some(-14.0)).await;
+
+    for operator in [Op::Is, Op::IsNot, Op::GreaterThan, Op::LessThan] {
+        let matched = preview(
+            library.conn(),
+            &definition(Match::All, vec![rule(Field::Bpm, operator, "120")]),
+        )
+        .await;
+        assert!(
+            !matched.iter().any(|title| title == "Unanalysed"),
+            "`{operator:?}` must not admit an unanalysed track: {matched:?}"
+        );
+    }
+
+    let quiet = preview(
+        library.conn(),
+        &definition(
+            Match::All,
+            vec![rule(Field::LoudnessLufs, Op::LessThan, "-10")],
+        ),
+    )
+    .await;
+    assert_eq!(quiet, vec!["Analysed"]);
+}
+
+#[tokio::test]
+async fn preview_filters_by_duration_and_musical_key() {
+    let mut library = fresh().await;
+    // `tagged` gives every track a 200-second duration.
+    let keyed = tagged(library.conn(), "Keyed", "Lofi", None).await;
+    tagged(library.conn(), "Unkeyed", "Lofi", None).await;
+    // A key *name*, the shape the analyser persists — not a Camelot code.
+    sqlx::query("UPDATE tracks SET musical_key = 'A minor' WHERE id = ?1")
+        .bind(&keyed)
+        .execute(library.conn())
+        .await
+        .expect("the key must set");
+
+    assert_eq!(
+        preview(
+            library.conn(),
+            &definition(Match::All, vec![rule(Field::MusicalKey, Op::Is, "A minor")]),
+        )
+        .await,
+        vec!["Keyed"]
+    );
+    assert_eq!(
+        preview(
+            library.conn(),
+            &definition(
+                Match::All,
+                vec![rule(Field::Duration, Op::GreaterThan, "100")],
+            ),
+        )
+        .await
+        .len(),
+        2
+    );
 }

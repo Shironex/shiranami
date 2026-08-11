@@ -5,6 +5,7 @@ import type {
   SmartPlaylist,
   SmartPlaylistDefinition,
   SmartPlaylistMatchType,
+  SmartPlaylistOrderBy,
   SmartPlaylistRule,
 } from '@shiranami/contracts';
 
@@ -21,6 +22,10 @@ export interface SmartPlaylistInput {
   description?: string;
   matchType: SmartPlaylistMatchType;
   rules: SmartPlaylistRule[];
+  /** Maximum tracks to return. Omitted means unbounded. */
+  limit?: number;
+  /** Explicit sort, replacing the default library order. */
+  orderBy?: SmartPlaylistOrderBy;
 }
 
 // ── Queries ──

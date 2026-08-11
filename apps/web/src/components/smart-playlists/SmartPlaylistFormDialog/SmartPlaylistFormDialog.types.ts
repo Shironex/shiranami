@@ -4,6 +4,7 @@ import type {
   SmartPlaylistMatchType,
   SmartPlaylistOperator,
   SmartPlaylistRule,
+  SmartPlaylistSortDirection,
 } from '@shiranami/contracts';
 import type { useTranslation } from 'react-i18next';
 
@@ -35,6 +36,25 @@ export interface ISmartPlaylistFormDialogView {
   readonly setMatchType: (value: SmartPlaylistMatchType) => void;
   /** Current rule rows in form order. */
   readonly rules: readonly SmartPlaylistRule[];
+  /** Fields this build can evaluate, in picker order. */
+  readonly fields: readonly SmartPlaylistField[];
+  /**
+   * Whether this build honours `limit` / `orderBy`. False hides the sort and
+   * limit row, which the Electron evaluator would silently discard.
+   */
+  readonly canShapeResults: boolean;
+  /** Current limit as typed. Empty string means "no limit". */
+  readonly limit: string;
+  /** Updates the limit input. */
+  readonly setLimit: (value: string) => void;
+  /** Field the results sort on, or '' for the default library order. */
+  readonly sortField: SmartPlaylistField | '';
+  /** Sets the sort field ('' restores the default order). */
+  readonly setSortField: (value: SmartPlaylistField | '') => void;
+  /** Direction of the explicit sort. Ignored while `sortField` is ''. */
+  readonly sortDirection: SmartPlaylistSortDirection;
+  /** Sets the sort direction. */
+  readonly setSortDirection: (value: SmartPlaylistSortDirection) => void;
   /** True while a create/update mutation is in flight. */
   readonly isSaving: boolean;
   /** Whether the form can be saved (non-empty name and not already saving). */

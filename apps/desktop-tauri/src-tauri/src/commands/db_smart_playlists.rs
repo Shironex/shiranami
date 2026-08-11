@@ -50,7 +50,8 @@
 //! behaviour and the repository's.
 
 use shiranami_core::models::{
-    SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistMatchType, SmartPlaylistRule, Track,
+    SmartPlaylist, SmartPlaylistDefinition, SmartPlaylistMatchType, SmartPlaylistOrderBy,
+    SmartPlaylistRule, Track,
 };
 use shiranami_db::repo::smart_playlists;
 use tauri::State;
@@ -93,6 +94,12 @@ pub struct SmartPlaylistCreateInput {
     pub match_type: SmartPlaylistMatchType,
     /// The rules themselves.
     pub rules: Vec<SmartPlaylistRule>,
+    /// Maximum tracks to return. Absent means unbounded.
+    #[specta(optional)]
+    pub limit: Option<u32>,
+    /// Explicit sort, replacing the default library order.
+    #[specta(optional)]
+    pub order_by: Option<SmartPlaylistOrderBy>,
 }
 
 /// The patch `db:smart-playlists:update` takes. Absent fields are left alone.
@@ -110,9 +117,16 @@ pub struct SmartPlaylistUpdateInput {
     /// How the rules combine.
     #[specta(optional)]
     pub match_type: Option<SmartPlaylistMatchType>,
-    /// The rules, replacing the stored set wholesale.
+    /// The rules, replacing the stored set wholesale. Written as a unit with
+    /// `limit` and `order_by`, which share its stored column.
     #[specta(optional)]
     pub rules: Option<Vec<SmartPlaylistRule>>,
+    /// Maximum tracks to return.
+    #[specta(optional)]
+    pub limit: Option<u32>,
+    /// Explicit sort, replacing the default library order.
+    #[specta(optional)]
+    pub order_by: Option<SmartPlaylistOrderBy>,
 }
 
 /// `db:smart-playlists:get-all` — every smart playlist, newest first.
@@ -150,6 +164,8 @@ pub async fn db_smart_playlists_create(
         description: data.description,
         match_type: data.match_type,
         rules: data.rules,
+        limit: data.limit,
+        order_by: data.order_by,
     };
 
     let mut conn = state.conn().await?;
@@ -173,6 +189,8 @@ pub async fn db_smart_playlists_update(
         description: data.description,
         match_type: data.match_type,
         rules: data.rules,
+        limit: data.limit,
+        order_by: data.order_by,
     };
 
     let mut conn = state.conn().await?;
@@ -259,6 +277,8 @@ mod tests {
             description: None,
             match_type: SmartPlaylistMatchType::All,
             rules,
+            limit: None,
+            order_by: None,
         }
     }
 
@@ -423,6 +443,8 @@ mod tests {
             &SmartPlaylistDefinition {
                 match_type: SmartPlaylistMatchType::All,
                 rules: Vec::new(),
+                limit: None,
+                order_by: None,
             },
         )
         .await
