@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { IS_ELECTRON } from '@/lib/platform';
 import type { IMediaSessionSyncView } from './MediaSessionSync.types';
 
@@ -18,6 +19,11 @@ export function useMediaSessionSync(): IMediaSessionSyncView {
   const isPlaying = usePlaybackStore(s => s.isPlaying);
   const currentTime = usePlaybackStore(s => s.currentTime);
   const duration = usePlaybackStore(s => s.duration);
+
+  // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+  // station name otherwise. The OS overlay is a title surface like any other,
+  // so it reads the same value the player bar does.
+  const titleText = useTrackTitle(currentTrack);
 
   // Throttle state updates to the main process (every 1 second).
   const lastUpdateRef = useRef(0);
@@ -51,14 +57,14 @@ export function useMediaSessionSync(): IMediaSessionSyncView {
 
     window.electronAPI.media.sendPlaybackState({
       isPlaying,
-      title: currentTrack.title,
+      title: titleText,
       artist: currentTrack.artist,
       album: currentTrack.album,
       duration,
       currentTime,
       albumArt: currentTrack.albumArt ?? null,
     });
-  }, [currentTrack, isPlaying, currentTime, duration]);
+  }, [currentTrack, titleText, isPlaying, currentTime, duration]);
 
   return {};
 }

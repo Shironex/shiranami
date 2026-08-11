@@ -11,6 +11,7 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsView } from '@/hooks/useLyricsView';
 import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { cn } from '@/lib/utils';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import type {
@@ -76,6 +77,11 @@ export function useNowPlayingView(): INowPlayingViewView {
 
   const lyrics = useLyricsView();
 
+  // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+  // station name otherwise. `currentTrack.title` for everything else, so this
+  // view agrees with the player bar instead of showing a second answer.
+  const titleText = useTrackTitle(currentTrack);
+
   // The resident relocates to the album art's lower-right corner here (the
   // player bar — its usual perch — is hidden in this view).
   const companion = useCompanionPresence();
@@ -131,6 +137,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     t,
     hasTrack: Boolean(currentTrack),
     currentTrack,
+    titleText,
     durationLabel,
     tempoKeyLine,
     showWaveformSeekbar,

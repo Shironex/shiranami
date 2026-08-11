@@ -48,6 +48,12 @@ export interface INowPlayingViewView {
   readonly hasTrack: boolean;
   /** The currently-playing track (null only transiently, before the shell bails). */
   readonly currentTrack: Track | null;
+  /**
+   * The title line. For a radio stream this is the station's ICY `StreamTitle`
+   * once one has arrived and the station's own name until then; for everything
+   * else it is `currentTrack.title`. Empty string when nothing is playing.
+   */
+  readonly titleText: string;
   /** Formatted total-duration label for the track. */
   readonly durationLabel: string;
   /** "≈ 82 BPM · A minor" estimate line, or null when the track has neither. */
