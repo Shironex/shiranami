@@ -64,6 +64,9 @@ CREATE TABLE IF NOT EXISTS `radio_log` (
 );
 
 -- The diary panel reads one station's rows newest-first, which is this index
--- exactly. The trim reads the whole table in `heard_at` order and is happy to
--- use it too.
+-- exactly. The trim does not use it and does not want to: it orders by `id`,
+-- so it walks the table's own rowid order and needs no ordering structure at
+-- all. This index is leading-column `station_uuid`, so a *global* ordering
+-- could not have used it for ordering anyway — `EXPLAIN QUERY PLAN` on a
+-- `heard_at`-ordered trim shows a covering scan plus a temp b-tree.
 CREATE INDEX IF NOT EXISTS `idx_radio_log_station_heard` ON `radio_log`(`station_uuid`, `heard_at` DESC);

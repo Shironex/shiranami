@@ -151,11 +151,16 @@ pub async fn for_station(
 }
 
 /// The most recent `raw_title` filed against `station_uuid`, if any.
+///
+/// Ordered by `id` alone, not by `heard_at` — see [`evict_overflow`] for why the
+/// wall clock cannot be trusted to say which row is newest. Here the cost of
+/// getting it wrong is a dedup check against a row that is not actually the last
+/// one written, which silently changes what the diary will and will not record.
 async fn latest_raw(conn: &mut SqliteConnection, station_uuid: &str) -> Result<Option<String>> {
     sqlx::query_scalar(
         "SELECT raw_title FROM radio_log \
           WHERE station_uuid = ?1 \
-          ORDER BY heard_at DESC, id DESC \
+          ORDER BY id DESC \
           LIMIT 1",
     )
     .bind(station_uuid)
@@ -172,12 +177,28 @@ async fn latest_raw(conn: &mut SqliteConnection, station_uuid: &str) -> Result<O
 /// `LIMIT -1 OFFSET ?1` is SQLite's "everything past the first n", the same
 /// shape [`super::scrobble_queue`] evicts with. Ordered newest-first so the
 /// offset skips the rows that are kept.
+///
+/// # "Newest" is the rowid, never the clock
+///
+/// `heard_at` is wall-clock time and a user's wall clock can move backwards —
+/// a dead CMOS battery, a restored VM snapshot, a dual-boot RTC offset, and
+/// then NTP correcting any of them. Order by `heard_at` and one such correction
+/// bricks the diary permanently: the table fills with rows stamped in the
+/// future, every subsequent insert sorts *last*, and the trim in the same call
+/// deletes the row that call just wrote. [`record`] still returns it, so the
+/// panel prepends a row that no longer exists and no error is surfaced
+/// anywhere.
+///
+/// The migration already argues the rowid is "monotonic by construction"
+/// (`0008_radio_log.sql`); ordering by `id` is that argument in force. It also
+/// costs nothing — the primary key *is* the rowid, so the ordering is the
+/// table's own physical order and needs no temp b-tree.
 async fn evict_overflow(conn: &mut SqliteConnection) -> Result<()> {
     sqlx::query(
         "DELETE FROM radio_log \
           WHERE id IN ( \
                 SELECT id FROM radio_log \
-                 ORDER BY heard_at DESC, id DESC \
+                 ORDER BY id DESC \
                  LIMIT -1 OFFSET ?1 \
           )",
     )

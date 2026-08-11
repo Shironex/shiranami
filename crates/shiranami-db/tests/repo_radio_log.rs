@@ -242,3 +242,66 @@ async fn the_table_is_trimmed_to_its_row_cap_on_insert() {
         "eviction takes the oldest rows, never the one just written"
     );
 }
+
+/// A clock that ran ahead and was then corrected must not brick the diary.
+///
+/// The user's machine stamps a full table's worth of rows in the future — a
+/// dead CMOS battery, a restored snapshot, a dual-boot RTC offset — and NTP
+/// then puts the clock back. Order the trim by `heard_at` and the next insert
+/// sorts *last* of all 5 001 rows, so the trim in that same call deletes the
+/// row it just wrote, `latest_raw` stays pinned to a stale future-dated title,
+/// and every insert from then on self-deletes with no error anywhere. Ordering
+/// by the rowid removes the clock from the question entirely.
+#[tokio::test]
+async fn a_clock_that_ran_ahead_does_not_make_the_trim_eat_new_rows() {
+    let mut fixture = fresh().await;
+
+    // A full table, every row stamped a year ahead of the one `record` will
+    // write from SQLite's (now corrected) clock.
+    let cap = radio_log::MAX_ROWS;
+    exec(
+        fixture.conn(),
+        &format!(
+            "WITH RECURSIVE `series`(`n`) AS ( \
+                 SELECT 1 UNION ALL SELECT `n` + 1 FROM `series` WHERE `n` < {cap} \
+             ) \
+             INSERT INTO radio_log (station_uuid, raw_title, artist, title, heard_at) \
+             SELECT '{STATION}', 'Old ' || `n`, NULL, NULL, \
+                    strftime('%Y-%m-%dT%H:%M:%fZ', '2099-01-01', '+' || `n` || ' seconds') \
+               FROM `series`"
+        ),
+    )
+    .await;
+    assert_eq!(count_rows(fixture.conn(), "radio_log").await, cap);
+
+    let entry = radio_log::record(fixture.conn(), STATION, &playing("Cornelius - Drop"))
+        .await
+        .expect("record")
+        .expect("a title nothing in the table carries");
+
+    assert_eq!(
+        count_rows(fixture.conn(), "radio_log").await,
+        cap,
+        "the table stays at its cap"
+    );
+
+    let survived: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM radio_log WHERE id = ?1")
+        .bind(entry.id)
+        .fetch_one(fixture.conn())
+        .await
+        .expect("look the just-written row back up");
+    assert_eq!(
+        survived, 1,
+        "`record` handed back a row the trim in the same call had deleted"
+    );
+
+    // And the dedup check must see it, or the next title change compares
+    // against a future-dated row that is not the last one written.
+    let again = radio_log::record(fixture.conn(), STATION, &playing("Cornelius - Drop"))
+        .await
+        .expect("the repeat must not fail");
+    assert!(
+        again.is_none(),
+        "the newest row is the one just written, so repeating it is a repeat"
+    );
+}
