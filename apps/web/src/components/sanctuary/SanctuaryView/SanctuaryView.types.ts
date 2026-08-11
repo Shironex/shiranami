@@ -10,6 +10,12 @@ export interface ISanctuaryViewView {
   readonly hasTrack: boolean;
   /** The currently-playing track. */
   readonly currentTrack: Track | null;
+  /**
+   * The title line. For a radio stream this is the station's ICY `StreamTitle`
+   * once one has arrived and the station's own name until then; for everything
+   * else it is `currentTrack.title`. Empty string when nothing is playing.
+   */
+  readonly titleText: string;
   /** What sits center-stage: the cover, or the clock. */
   readonly variant: SanctuaryVariant;
   /** Whether the swim-in chrome (controls, buttons) is currently visible. */
