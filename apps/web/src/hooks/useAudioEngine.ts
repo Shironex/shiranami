@@ -77,12 +77,6 @@ export function loudnessLinearGain(
 }
 
 /**
- * Audio engine hook - creates and manages two HTML5 Audio elements (deck A/B),
- * keeping them in sync with the player store and handling crossfade transitions.
- *
- * Must be mounted exactly once at the app root level.
- */
-/**
  * Which `play_history.source` a session belongs to.
  *
  * Only ever returns `'library'` today, because `resetPlaybackSession` refuses
@@ -94,6 +88,12 @@ function sourceFor(track: Track): string {
   return isRadioTrack(track.filePath) ? 'radio' : 'library';
 }
 
+/**
+ * Audio engine hook - creates and manages two HTML5 Audio elements (deck A/B),
+ * keeping them in sync with the player store and handling crossfade transitions.
+ *
+ * Must be mounted exactly once at the app root level.
+ */
 export function useAudioEngine() {
   const deckARef = useRef<HTMLAudioElement | null>(null);
   const deckBRef = useRef<HTMLAudioElement | null>(null);
