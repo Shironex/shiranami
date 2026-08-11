@@ -310,7 +310,8 @@ async fn preview_filters_by_duration_and_musical_key() {
     // `tagged` gives every track a 200-second duration.
     let keyed = tagged(library.conn(), "Keyed", "Lofi", None).await;
     tagged(library.conn(), "Unkeyed", "Lofi", None).await;
-    sqlx::query("UPDATE tracks SET musical_key = '8A' WHERE id = ?1")
+    // A key *name*, the shape the analyser persists — not a Camelot code.
+    sqlx::query("UPDATE tracks SET musical_key = 'A minor' WHERE id = ?1")
         .bind(&keyed)
         .execute(library.conn())
         .await
@@ -319,7 +320,7 @@ async fn preview_filters_by_duration_and_musical_key() {
     assert_eq!(
         preview(
             library.conn(),
-            &definition(Match::All, vec![rule(Field::MusicalKey, Op::Is, "8A")]),
+            &definition(Match::All, vec![rule(Field::MusicalKey, Op::Is, "A minor")]),
         )
         .await,
         vec!["Keyed"]

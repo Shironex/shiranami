@@ -53,17 +53,19 @@ fn a_numeric_rule_emits_no_null_guard() {
     }
 }
 
+/// The operands are key *names* — `"C major"`, `"A minor"` — because that is
+/// what the analyser writes into the column. Not Camelot codes.
 #[test]
 fn musical_key_compiles_as_a_text_field() {
     assert_compiles(
-        rule(Field::MusicalKey, Op::Is, "8A"),
+        rule(Field::MusicalKey, Op::Is, "A minor"),
         "tracks.musical_key = ?",
-        &[Bind::Text("8A".to_owned())],
+        &[Bind::Text("A minor".to_owned())],
     );
     assert_compiles(
-        rule(Field::MusicalKey, Op::Contains, "A"),
+        rule(Field::MusicalKey, Op::Contains, "minor"),
         "tracks.musical_key LIKE ? ESCAPE '\\'",
-        &[Bind::Text("%A%".to_owned())],
+        &[Bind::Text("%minor%".to_owned())],
     );
 }
 

@@ -3341,7 +3341,14 @@ export type SmartPlaylistField =
 "duration" | 
 /**  `tracks.loudness_lufs`. `NULL` until the analysis engine has run. */
 "loudnessLufs" | 
-/**  `tracks.musical_key`, the stored Camelot/name string. */
+/**
+ *  `tracks.musical_key` — a key name such as `"C major"` or `"A minor"`,
+ *  sharps only. Not Camelot: `shiranami-audio`'s `KeyEstimate` joins a note
+ *  name to a mode, migration `0003_track_bpm_key.sql` stores that string
+ *  verbatim, and the rows the C++ addon branch wrote hold the same shape.
+ *  `NULL` until the analysis engine has run, or when it found no tonal
+ *  centre.
+ */
 "musicalKey";
 
 /**  How multiple rules combine. */
