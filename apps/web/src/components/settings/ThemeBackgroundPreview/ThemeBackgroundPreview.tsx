@@ -23,6 +23,7 @@ export default function ThemeBackgroundPreview() {
     bgOpacity,
     blurFilter,
     bgDim,
+    bgFit,
     previewTrack,
     previewArtist,
   } = useThemeBackgroundPreview();
@@ -37,6 +38,7 @@ export default function ThemeBackgroundPreview() {
         className="theme-bg-image absolute inset-0"
         style={{
           backgroundImage,
+          backgroundSize: bgFit,
           opacity: bgOpacity,
           filter: blurFilter,
         }}

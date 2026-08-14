@@ -510,7 +510,8 @@
         "snow": "Snow",
         "summer": "Summer",
         "sunset": "Sunset",
-        "wisteria": "Wisteria"
+        "wisteria": "Wisteria",
+        "custom": "Your image"
       }
     },
     "accent": {
@@ -619,10 +620,31 @@
       "blurDesc": "Soften the background image edges",
       "dim": "Dim overlay",
       "dimDesc": "Dark layer over the image to keep text readable",
+      "fit": "Fit",
+      "fitDesc": "How your image fills the window. Contain shows all of it; cover crops to fill.",
+      "fitOptions": {
+        "cover": "Cover",
+        "contain": "Contain"
+      },
       "reset": "Reset",
       "previewTitle": "Preview",
       "previewTrack": "Sample Track",
       "previewArtist": "Now playing over your background"
+    },
+    "background": {
+      "choose": "Choose an image…",
+      "replace": "Replace image…",
+      "remove": "Remove",
+      "hint": "PNG, JPEG, WebP or GIF · up to 20 MB",
+      "retry": "Try again",
+      "errors": {
+        "tooLarge": "That image is too large. Pick one under 20 MB.",
+        "unsupportedFormat": "That file type is not supported. Use a PNG, JPEG, WebP or GIF.",
+        "notAnImage": "That file is not the image its name claims to be.",
+        "dimensionsTooLarge": "That image is too big to display. Its longest edge must be under 8192 pixels.",
+        "generic": "The background could not be changed.",
+        "readFailed": "Could not read the current background."
+      }
     }
   },
   "dl": {

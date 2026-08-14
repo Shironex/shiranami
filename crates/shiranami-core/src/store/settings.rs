@@ -54,6 +54,7 @@ pub struct SettingsStore {
     path: PathBuf,
     document: Mutex<Map<String, Value>>,
     bus: ChangeBus,
+    quarantined: bool,
 }
 
 impl SettingsStore {
@@ -99,8 +100,23 @@ impl SettingsStore {
             path,
             document: Mutex::new(document),
             bus: ChangeBus::new(),
+            quarantined: quarantined.is_some(),
         };
         (store, quarantined)
+    }
+
+    /// Whether this session started from defaults because the file was corrupt.
+    ///
+    /// The distinction matters to anything that treats an absent key as a
+    /// decision rather than as a gap. After a quarantine *every* key reads
+    /// absent, so a consumer that deletes files nothing refers to — the
+    /// background sweep — would read "nothing is referenced" and delete the
+    /// user's wallpaper, while the quarantined backup beside it still names the
+    /// file. This is the same failure the album-art prune documents, arriving
+    /// one layer lower: there the reference *lookup* failed, here the whole
+    /// document did.
+    pub fn started_from_quarantine(&self) -> bool {
+        self.quarantined
     }
 
     /// The file this store reads and writes.

@@ -4,6 +4,8 @@ import { useThemeStore } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import { useAccentStore } from '@/stores/useAccentStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
 
 import AppearanceSection from './AppearanceSection';
 
@@ -25,11 +27,19 @@ const meta: Meta<typeof AppearanceSection> = {
   // component-file change out of this story's scope. The labelled siblings
   // (LyricsSection) are ratcheted to 'error' instead.
   decorators: [
-    Story => (
-      <div className="max-w-[680px] p-4">
-        <Story />
-      </div>
-    ),
+    // The Theme card reads the imported-background record, so every story needs
+    // a client. Seeded empty; the Custom story overrides it.
+    Story => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      client.setQueryData(customBackgroundKeys.current, null);
+      return (
+        <QueryClientProvider client={client}>
+          <div className="max-w-[680px] p-4">
+            <Story />
+          </div>
+        </QueryClientProvider>
+      );
+    },
   ],
 };
 
@@ -79,5 +89,26 @@ export const ThemedWithAccent: Story = {
     // its labels, and three sliders are exposed (opacity / blur / dim).
     await expect(canvas.getByText('Background adjustments')).toBeInTheDocument();
     await expect(canvas.getAllByRole('slider')).toHaveLength(4);
+  },
+};
+
+/**
+ * The custom theme with nothing imported yet: the picker is offered and the
+ * adjust panel stays hidden, because sliders over an empty background adjust
+ * nothing and read as broken.
+ */
+export const CustomThemeEmpty: Story = {
+  decorators: [
+    Story => {
+      useUIStore.setState({ uiScale: 100 });
+      useThemeStore.setState({ theme: 'custom' });
+      useAccentStore.setState({ accentColor: null });
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: /Choose an image/ })).toBeInTheDocument();
+    await expect(canvas.queryByText('Background adjustments')).not.toBeInTheDocument();
   },
 };

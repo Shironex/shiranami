@@ -46,6 +46,7 @@
 #![warn(missing_docs)]
 
 pub mod art;
+pub mod background;
 pub mod enrich;
 pub mod error;
 pub mod lookup;

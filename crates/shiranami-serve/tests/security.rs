@@ -270,6 +270,100 @@ async fn the_art_route_cannot_reach_the_music_directory() {
     );
 }
 
+/// The background route carries the same guard as the art route, so it is held
+/// to the same shapes. It is the *newer* of the two and the one whose directory
+/// holds a file the user chose, so a traversal that works here is worth more to
+/// an attacker than one that works against the cover cache.
+#[tokio::test]
+async fn background_traversal_is_refused() {
+    let harness = Harness::start().await;
+    harness.write_background("bg-abc.png", 128);
+    let outside = harness.write_outside("secret.png", 128);
+
+    for name in [
+        "..%2F..%2Fetc%2Fpasswd.png",
+        "..%2Fsecret.png",
+        "..%5C..%5Cwindows%5Csystem32%5Cconfig.png",
+        "%2Fetc%2Fpasswd.png",
+        "..",
+        "%2e%2e%2f%2e%2e%2fsecret.png",
+    ] {
+        let response = harness.background(name).await;
+        assert!(
+            response.status().is_client_error(),
+            "background name `{name}` was answered with {}",
+            response.status()
+        );
+        let body = response.bytes().await.expect("a body");
+        assert_ne!(
+            &body[..],
+            &std::fs::read(&outside).expect("the fixture reads")[..],
+            "background name `{name}` served a file outside the background directory"
+        );
+    }
+}
+
+/// A wallpaper directory that could also hand out the settings document would be
+/// a worse leak than the art one: it sits under the same app-data root.
+#[tokio::test]
+async fn a_non_image_in_the_background_directory_is_refused() {
+    let harness = Harness::start().await;
+    harness.write_background("config.json", 128);
+    harness.write_background("notes.txt", 128);
+
+    for name in ["config.json", "notes.txt"] {
+        assert_eq!(
+            harness.background(name).await.status(),
+            StatusCode::FORBIDDEN,
+            "{name} was served by the background route"
+        );
+    }
+}
+
+/// The two image routes read different directories, and neither is a way into
+/// the other. Sharing one name guard is what makes this worth asserting: the
+/// guard says "this is a bare file name", and only the per-route directory says
+/// *which* file that names.
+#[tokio::test]
+async fn the_background_route_cannot_reach_the_art_or_music_directories() {
+    let harness = Harness::start().await;
+    harness.write_art("cover.jpg", 128);
+    harness.write_audio("track.png", 128);
+
+    assert_eq!(
+        harness.background("cover.jpg").await.status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        harness.background("track.png").await.status(),
+        StatusCode::NOT_FOUND
+    );
+}
+
+/// And the reverse: a wallpaper is not reachable through the art route.
+#[tokio::test]
+async fn the_art_route_cannot_reach_the_background_directory() {
+    let harness = Harness::start().await;
+    harness.write_background("bg-abc.png", 128);
+
+    assert_eq!(
+        harness.art("bg-abc.png").await.status(),
+        StatusCode::NOT_FOUND
+    );
+}
+
+/// A wrong token is a 404 on this route too — the background is behind the same
+/// per-session credential as everything else, not merely obscure.
+#[tokio::test]
+async fn a_background_needs_the_session_token() {
+    let harness = Harness::start().await;
+    harness.write_background("bg-abc.png", 128);
+
+    let url = format!("{}/background/bg-abc.png", harness.base_with_wrong_token());
+
+    assert_eq!(harness.get(&url, &[]).await.status(), StatusCode::NOT_FOUND);
+}
+
 /// Two servers, two tokens. A token learned from one session is worthless
 /// against the next, which is what makes the credential per-session.
 #[tokio::test]

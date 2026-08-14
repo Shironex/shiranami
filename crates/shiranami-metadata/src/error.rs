@@ -101,6 +101,38 @@ pub enum MetadataError {
     /// The arguments were structurally valid but semantically wrong.
     #[error("{0}")]
     BadRequest(String),
+
+    /// A background import was refused: the file is past the byte cap.
+    #[error("the image is {size} bytes, past the {max}-byte limit")]
+    BackgroundTooLarge {
+        /// The file's size.
+        size: u64,
+        /// The cap it exceeded.
+        max: u64,
+    },
+
+    /// A background import was refused: the extension is not an accepted one.
+    #[error("`{extension}` is not an accepted image format")]
+    BackgroundUnsupportedFormat {
+        /// The extension the file carried, lowercased.
+        extension: String,
+    },
+
+    /// A background import was refused: the bytes are not the image the
+    /// extension claimed.
+    #[error("the file is not the image its extension claims")]
+    BackgroundNotAnImage,
+
+    /// A background import was refused: the image is past the pixel cap.
+    #[error("the image is {width}×{height}, past the {max}px limit on its longest edge")]
+    BackgroundDimensionsTooLarge {
+        /// Width as the header declared it.
+        width: u32,
+        /// Height as the header declared it.
+        height: u32,
+        /// The longest-edge cap it exceeded.
+        max: u32,
+    },
 }
 
 impl MetadataError {
@@ -143,6 +175,19 @@ impl WireError for MetadataError {
         match self {
             Self::EnrichBusy => Cow::Borrowed(ENRICH_BUSY_CODE),
             Self::BadRequest(_) => Cow::Borrowed(codes::validation::BAD_REQUEST),
+            // The four background refusals are the exception to the paragraph
+            // below: each one is something the *user* can fix by picking a
+            // different file, so each gets its own code and its own sentence in
+            // the Appearance card. Collapsing them into INTERNAL would answer
+            // "that didn't work" to a question with four different answers.
+            Self::BackgroundTooLarge { .. } => Cow::Borrowed(codes::background::TOO_LARGE),
+            Self::BackgroundUnsupportedFormat { .. } => {
+                Cow::Borrowed(codes::background::UNSUPPORTED_FORMAT)
+            }
+            Self::BackgroundNotAnImage => Cow::Borrowed(codes::background::NOT_AN_IMAGE),
+            Self::BackgroundDimensionsTooLarge { .. } => {
+                Cow::Borrowed(codes::background::DIMENSIONS_TOO_LARGE)
+            }
             // Everything else is a file or a network we could not work with.
             // v1 surfaced all of these as a logged warning and a best-effort
             // result, never as a code the renderer matched on, so nothing is

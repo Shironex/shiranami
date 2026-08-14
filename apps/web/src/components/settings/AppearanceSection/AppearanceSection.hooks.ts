@@ -7,7 +7,7 @@ import {
   UI_SCALE_DEFAULT,
   UI_SCALE_PRESETS,
 } from '@/stores/useUIStore';
-import { useThemeStore } from '@/stores/useThemeStore';
+import { useThemeStore, CUSTOM_THEME } from '@/stores/useThemeStore';
 import {
   useThemeBgStore,
   THEME_BG_OPACITY_MIN,
@@ -22,8 +22,16 @@ import {
   THEME_BG_DIM_MAX,
   THEME_BG_DIM_STEP,
   THEME_BG_DIM_DEFAULT,
+  THEME_BG_FITS,
+  THEME_BG_FIT_DEFAULT,
 } from '@/stores/useThemeBgStore';
 import { useAccentStore } from '@/stores/useAccentStore';
+import {
+  backgroundUrls,
+  useCustomBackgroundQuery,
+  usePickCustomBackground,
+  useClearCustomBackground,
+} from '@/hooks/queries/useCustomBackground';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 import type { IAppearanceSectionView } from './AppearanceSection.types';
 
@@ -41,7 +49,16 @@ export function useAppearanceSection(): IAppearanceSectionView {
   const setBgBlur = useThemeBgStore(s => s.setBgBlur);
   const bgDim = useThemeBgStore(s => s.bgDim);
   const setBgDim = useThemeBgStore(s => s.setBgDim);
+  const bgFit = useThemeBgStore(s => s.bgFit);
+  const setBgFit = useThemeBgStore(s => s.setBgFit);
   const resetBg = useThemeBgStore(s => s.resetBg);
+  const {
+    data: customBackground,
+    isError: customBackgroundFailed,
+    refetch: refetchCustomBackground,
+  } = useCustomBackgroundQuery();
+  const pickBackground = usePickCustomBackground();
+  const clearBackground = useClearCustomBackground();
   const accentColor = useAccentStore(s => s.accentColor);
   const resetAccent = useAccentStore(s => s.resetAccent);
   const followArtAccent = useAccentStore(s => s.followArtAccent);
@@ -61,7 +78,10 @@ export function useAppearanceSection(): IAppearanceSectionView {
   const isBgModified =
     bgOpacity !== THEME_BG_OPACITY_DEFAULT ||
     bgBlur !== THEME_BG_BLUR_DEFAULT ||
-    bgDim !== THEME_BG_DIM_DEFAULT;
+    bgDim !== THEME_BG_DIM_DEFAULT ||
+    bgFit !== THEME_BG_FIT_DEFAULT;
+
+  const isCustomTheme = theme === CUSTOM_THEME;
 
   function onSelectLanguage(lang: SupportedLanguage): void {
     void i18n.changeLanguage(lang);
@@ -85,8 +105,24 @@ export function useAppearanceSection(): IAppearanceSectionView {
     onResetUiScale: resetUiScale,
 
     theme,
-    hasThemeBackground: theme !== 'none',
+    // `custom` unlocks the same adjust panel every other image theme gets, but
+    // only once an image actually resolves: sliders over an empty background
+    // adjust nothing and read as broken.
+    // `!= null`, not `!== null`: `data` is `undefined` while the query is in
+    // flight and after it fails, and the strict form reads that as "yes there is
+    // one" — opening the adjust panel over a preview that correctly renders
+    // nothing, which is the broken-looking state this gate exists to prevent.
+    hasThemeBackground: isCustomTheme ? customBackground != null : theme !== 'none',
     onSelectTheme: setTheme,
+
+    isCustomTheme,
+    customThumb: backgroundUrls(customBackground).url,
+    hasCustomBackground: customBackground != null,
+    isPickingBackground: pickBackground.isPending,
+    customBackgroundFailed,
+    onRetryCustomBackground: () => void refetchCustomBackground(),
+    onPickBackground: () => pickBackground.mutate(),
+    onClearBackground: () => clearBackground.mutate(),
 
     isBgModified,
     bgOpacity,
@@ -106,6 +142,9 @@ export function useAppearanceSection(): IAppearanceSectionView {
     onSetBgOpacity: setBgOpacity,
     onSetBgBlur: setBgBlur,
     onSetBgDim: setBgDim,
+    bgFit,
+    bgFitOptions: THEME_BG_FITS,
+    onSetBgFit: setBgFit,
     onResetBg: resetBg,
 
     hasAccentOverride: accentColor !== null || followArtAccent,

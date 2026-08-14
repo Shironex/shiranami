@@ -196,6 +196,9 @@ mod tests {
             "downloads.toolStatusCache",
             "migrations.albumArtV1",
             "v2.crossoverPinged",
+            // Main-only because it *names a file the serve route will open*.
+            // Renderer-writable would mean the renderer chooses that name.
+            "appearance.customBackground",
         ] {
             let parsed: Result<RendererStoreKey, _> =
                 serde_json::from_value(Value::String(main_only.to_owned()));

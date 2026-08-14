@@ -868,6 +868,32 @@
     radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
 }
 
+/* Fit is offered for an imported image only, so it is applied for one only.
+   `--theme-bg-fit` is written to :root like the other three, but reading it on
+   the shared rule would let a `contain` chosen for a wallpaper follow the user
+   into lofi-night — letterboxing a photo that was composed for `cover`, with
+   the control that set it hidden because it is not the custom theme. The five
+   bundled images are cropped for `cover` and stay that way.
+
+   The background-color above is what makes `contain` safe here: the bars it
+   leaves are painted --background rather than showing through. */
+[data-theme='custom'] .theme-bg-image {
+  background-size: var(--theme-bg-fit, cover);
+}
+
+/* An imported image takes summer's heavier scrim, not the shared default.
+   The five bundled photos were each checked against the contrast floor and
+   exactly one of them — the daytime lake — needed more than the default; a
+   user's own image is unvetted, so assuming it is one of the four safe ones
+   ships a WCAG regression that only appears when someone imports a bright
+   photo. Erring heavy costs some punch on dark wallpapers, which the opacity
+   slider can give back; erring light costs legibility, which nothing does. */
+[data-theme='custom'] .theme-bg-scrim {
+  background:
+    linear-gradient(180deg, oklch(0.05 0.018 280 / 0.5) 0%, oklch(0.04 0.012 280 / 0.62) 100%),
+    radial-gradient(50% 50% at 20% 100%, oklch(0.1 0.04 280 / 0.4), transparent 70%);
+}
+
 /* NowPlayingHero (library hero card) paints only a faint ambient-color wash for
    its background — fine over the solid default --background, but its text sits
    on a bare photo under an image theme (the card is ~90% transparent), washing

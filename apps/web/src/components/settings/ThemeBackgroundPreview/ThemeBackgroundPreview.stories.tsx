@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within, expect } from 'storybook/test';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
+import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
 
 import ThemeBackgroundPreview from './ThemeBackgroundPreview';
 
@@ -23,11 +25,19 @@ const meta: Meta<typeof ThemeBackgroundPreview> = {
   title: 'settings/ThemeBackgroundPreview',
   component: ThemeBackgroundPreview,
   decorators: [
-    Story => (
-      <div className="max-w-[420px] p-4">
-        <Story />
-      </div>
-    ),
+    // The preview reads the imported-background record now, so every story
+    // needs a client. Seeded empty: these stories all show bundled themes.
+    Story => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      client.setQueryData(customBackgroundKeys.current, null);
+      return (
+        <QueryClientProvider client={client}>
+          <div className="max-w-[420px] p-4">
+            <Story />
+          </div>
+        </QueryClientProvider>
+      );
+    },
   ],
 };
 

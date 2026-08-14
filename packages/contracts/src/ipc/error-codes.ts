@@ -49,7 +49,25 @@ export const VALIDATION_ERROR_CODES = {
   FORBIDDEN: 'FORBIDDEN',
 } as const;
 
+/**
+ * Custom-background import refusals.
+ *
+ * v2-born, so unlike the registries above there is no v1 literal to stay
+ * faithful to. Each is a refusal the user can act on, which is why they are four
+ * codes and not one: the Appearance card shows a different sentence for each.
+ * Failures the user cannot act on (a full disk, a permission error) arrive as
+ * `INTERNAL` and get the generic message.
+ */
+export const BACKGROUND_ERROR_CODES = {
+  TOO_LARGE: 'background.too_large',
+  UNSUPPORTED_FORMAT: 'background.unsupported_format',
+  NOT_AN_IMAGE: 'background.not_an_image',
+  DIMENSIONS_TOO_LARGE: 'background.dimensions_too_large',
+} as const;
+
 export type ShareErrorCode = (typeof SHARE_ERROR_CODES)[keyof typeof SHARE_ERROR_CODES];
 export type PlaylistErrorCode = (typeof PLAYLIST_ERROR_CODES)[keyof typeof PLAYLIST_ERROR_CODES];
 export type ValidationErrorCode =
   (typeof VALIDATION_ERROR_CODES)[keyof typeof VALIDATION_ERROR_CODES];
+export type BackgroundErrorCode =
+  (typeof BACKGROUND_ERROR_CODES)[keyof typeof BACKGROUND_ERROR_CODES];

@@ -278,8 +278,12 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
     // server hands out back into the files under it, so the two reading a
     // different directory would silently cost every now-playing thumbnail.
     let art_dir = shiranami_metadata::art::art_dir(&data_dir);
-    let mut serve_config =
-        shiranami_serve::ServeConfig::new(Arc::clone(&cache), art_dir.clone(), (*http).clone());
+    let mut serve_config = shiranami_serve::ServeConfig::new(
+        Arc::clone(&cache),
+        art_dir.clone(),
+        shiranami_metadata::background::background_dir(&data_dir),
+        (*http).clone(),
+    );
     // The radio proxy de-frames ICY metadata but has no `AppHandle` to announce
     // it with (§2.1: the crates never reach for the composition root), so the
     // crossing is a callback the composition root supplies. It runs on the task

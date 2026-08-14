@@ -55,6 +55,26 @@ pub mod validation {
     pub const FORBIDDEN: &str = "FORBIDDEN";
 }
 
+/// Custom-background ingest refusals — `packages/contracts/src/ipc/error-codes.ts`.
+///
+/// A v2-born registry, so it has no v1 counterpart to stay faithful to. Each
+/// code is a *refusal the user can act on* — pick a smaller file, pick a real
+/// image — which is why they are distinct codes rather than one
+/// `background.import_failed`: the renderer shows a different sentence for each,
+/// and a single code would collapse "your 40 MB file is too big" into the same
+/// unhelpful toast as "that .png is not a .png". Failures the user cannot act on
+/// (a full disk, a permission error) stay [`INTERNAL`].
+pub mod background {
+    /// The file is larger than the import cap.
+    pub const TOO_LARGE: &str = "background.too_large";
+    /// The extension is not one of the accepted image formats.
+    pub const UNSUPPORTED_FORMAT: &str = "background.unsupported_format";
+    /// The bytes did not decode as the image the extension claimed.
+    pub const NOT_AN_IMAGE: &str = "background.not_an_image";
+    /// The image decoded, but its longest edge is past the cap.
+    pub const DIMENSIONS_TOO_LARGE: &str = "background.dimensions_too_large";
+}
+
 /// Classified yt-dlp failures — `apps/desktop/src/main/utils/ytdlp-spawn.ts`.
 ///
 /// Produced by the failure classifier that lands in `shiranami-downloader` in
@@ -145,6 +165,22 @@ mod tests {
                 (super::playlist::NO_TRACKS, "NO_TRACKS"),
                 (super::validation::BAD_REQUEST, "BAD_REQUEST"),
                 (super::validation::FORBIDDEN, "FORBIDDEN"),
+            ],
+        );
+    }
+
+    #[test]
+    fn background_codes_mirror_the_typescript_registry() {
+        assert_mirrors(
+            "packages/contracts/src/ipc/error-codes.ts",
+            &[
+                (super::background::TOO_LARGE, "TOO_LARGE"),
+                (super::background::UNSUPPORTED_FORMAT, "UNSUPPORTED_FORMAT"),
+                (super::background::NOT_AN_IMAGE, "NOT_AN_IMAGE"),
+                (
+                    super::background::DIMENSIONS_TOO_LARGE,
+                    "DIMENSIONS_TOO_LARGE",
+                ),
             ],
         );
     }

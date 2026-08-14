@@ -76,6 +76,7 @@ import { useRadioDiaryRecorder } from '@/hooks/useRadioDiaryRecorder';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
 import { useTempoBreathingPublisher } from '@/hooks/useTempoBreathing';
+import { useReconcileCustomTheme } from '@/hooks/queries/useCustomBackground';
 import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
@@ -155,6 +156,7 @@ function App() {
   useKeyboardShortcuts();
   useSanctuaryAutoEnter();
   useTempoBreathingPublisher();
+  useReconcileCustomTheme();
   const debugOpen = useDebugPanel();
 
   useEffect(() => {
