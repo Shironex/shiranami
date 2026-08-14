@@ -127,6 +127,32 @@ describe('PlaylistSubmenu', () => {
     expect(screen.queryByText('Late night')).toBeNull();
   });
 
+  it('opens the fly-out from the keyboard and hands focus to the picker', async () => {
+    renderSubmenu();
+    const rowButton = screen.getByRole('menuitem', { name: 'Add to Playlist' });
+    expect(rowButton).toHaveAttribute('aria-haspopup', 'menu');
+    expect(rowButton).toHaveAttribute('aria-expanded', 'false');
+
+    rowButton.focus();
+    fireEvent.keyDown(rowButton, { key: 'Enter' });
+
+    expect(await screen.findByText('Late night')).toBeInTheDocument();
+    expect(rowButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Late night' })).toHaveFocus();
+  });
+
+  it('closes the fly-out again on ArrowLeft from the row', async () => {
+    renderSubmenu();
+    const rowButton = screen.getByRole('menuitem', { name: 'Add to Playlist' });
+
+    rowButton.focus();
+    fireEvent.keyDown(rowButton, { key: 'ArrowRight' });
+    expect(await screen.findByText('Late night')).toBeInTheDocument();
+
+    fireEvent.keyDown(rowButton, { key: 'ArrowLeft' });
+    expect(screen.queryByText('Late night')).toBeNull();
+  });
+
   it('cancels the pending close when the pointer comes back', () => {
     vi.useFakeTimers();
     renderSubmenu();

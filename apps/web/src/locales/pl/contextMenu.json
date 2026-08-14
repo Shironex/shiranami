@@ -18,6 +18,8 @@
   "shufflePlaylist": "Losuj playlistę",
   "removeFromPlaylist": "Usuń z playlisty",
   "addToPlaylistAria": "Dodaj do playlisty",
+  "trackMenuAria": "Akcje utworu",
+  "playlistMenuAria": "Akcje playlisty",
   "selectedCount": "{{count}} zaznaczonych",
   "selectedCount_one": "{{count}} zaznaczony",
   "selectedCount_few": "{{count}} zaznaczone",
