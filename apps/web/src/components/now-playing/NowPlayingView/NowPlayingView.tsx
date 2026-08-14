@@ -13,6 +13,7 @@ import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
+import { VinylRecord } from '@/components/shared/VinylRecord';
 import { useNowPlayingView } from './NowPlayingView.hooks';
 
 export default function NowPlayingView() {
@@ -31,6 +32,7 @@ export default function NowPlayingView() {
     panelButtons,
     panelGroupLabel,
     lowPerformanceMode,
+    vinylDisplayEnabled,
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
@@ -151,42 +153,50 @@ export default function NowPlayingView() {
                 : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
             )}
           >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentTrack.id}
-                initial={
-                  albumArtTiltEnabled
-                    ? { scale: 0.9, opacity: 0, rotate: -3 }
-                    : { scale: 0.9, opacity: 0 }
-                }
-                animate={
-                  albumArtTiltEnabled
-                    ? { scale: 1, opacity: 1, rotate: 0 }
-                    : { scale: 1, opacity: 1 }
-                }
-                exit={
-                  albumArtTiltEnabled
-                    ? { scale: 0.9, opacity: 0, rotate: 3 }
-                    : { scale: 0.9, opacity: 0 }
-                }
-                transition={{ type: 'spring', damping: 22, stiffness: 250 }}
-                className={cn(
-                  'w-full h-full rounded-2xl @5xl:rounded-3xl overflow-hidden',
-                  'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center'
-                )}
-              >
-                {currentTrack.albumArt ? (
-                  <img
-                    src={currentTrack.albumArt}
-                    alt={currentTrack.album}
-                    className="w-full h-full object-cover"
-                    decoding="async"
-                  />
-                ) : (
-                  <Music className="w-16 h-16 text-muted-foreground/30" />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            {vinylDisplayEnabled ? (
+              <VinylRecord
+                albumArt={currentTrack.albumArt}
+                albumAlt={currentTrack.album}
+                className="absolute inset-0"
+              />
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTrack.id}
+                  initial={
+                    albumArtTiltEnabled
+                      ? { scale: 0.9, opacity: 0, rotate: -3 }
+                      : { scale: 0.9, opacity: 0 }
+                  }
+                  animate={
+                    albumArtTiltEnabled
+                      ? { scale: 1, opacity: 1, rotate: 0 }
+                      : { scale: 1, opacity: 1 }
+                  }
+                  exit={
+                    albumArtTiltEnabled
+                      ? { scale: 0.9, opacity: 0, rotate: 3 }
+                      : { scale: 0.9, opacity: 0 }
+                  }
+                  transition={{ type: 'spring', damping: 22, stiffness: 250 }}
+                  className={cn(
+                    'w-full h-full rounded-2xl @5xl:rounded-3xl overflow-hidden',
+                    'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center'
+                  )}
+                >
+                  {currentTrack.albumArt ? (
+                    <img
+                      src={currentTrack.albumArt}
+                      alt={currentTrack.album}
+                      className="w-full h-full object-cover"
+                      decoding="async"
+                    />
+                  ) : (
+                    <Music className="w-16 h-16 text-muted-foreground/30" />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
 
             {/* The resident, half overlapping the frame edge (display-only:
                 interactions stay on the player-bar perch). */}

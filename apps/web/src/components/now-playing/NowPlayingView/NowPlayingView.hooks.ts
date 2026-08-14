@@ -67,6 +67,7 @@ export function useNowPlayingView(): INowPlayingViewView {
   const panel = useUIStore(s => s.nowPlayingPanel);
   const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const vinylDisplayEnabled = useUIStore(s => s.vinylDisplayEnabled);
   const albumArtTiltEnabled = useDecorativeMotion();
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
@@ -148,6 +149,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     panelButtons,
     panelGroupLabel: t('panelGroup'),
     lowPerformanceMode,
+    vinylDisplayEnabled,
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
