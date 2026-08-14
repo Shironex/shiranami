@@ -107,6 +107,15 @@ export interface IVisualEffectsSectionView {
   /** Toggle the visual cover crossfade. */
   readonly onCoverCrossfadeChange: (next: boolean) => void;
 
+  /** Localized "Room light" toggle label. */
+  readonly roomLightLabel: string;
+  /** Localized "Room light" toggle description. */
+  readonly roomLightDescription: string;
+  /** Whether the time-of-day lighting grade is enabled. */
+  readonly roomLightEnabled: boolean;
+  /** Toggle the time-of-day lighting grade. */
+  readonly onRoomLightChange: (next: boolean) => void;
+
   /** Localized "Tempo breathing" toggle label. */
   readonly tempoBreathingLabel: string;
   /** Localized "Tempo breathing" toggle description. */

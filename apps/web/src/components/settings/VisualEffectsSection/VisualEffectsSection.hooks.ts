@@ -31,6 +31,8 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setVinylLabelSource = useUIStore(s => s.setVinylLabelSource);
   const vinylRingStyle = useUIStore(s => s.vinylRingStyle);
   const setVinylRingStyle = useUIStore(s => s.setVinylRingStyle);
+  const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
+  const setRoomLightEnabled = useUIStore(s => s.setRoomLightEnabled);
   const library = useLibraryStore(s => s.library);
 
   const vinylLabelOptions = VINYL_LABEL_SOURCES.map(value => ({
@@ -104,6 +106,11 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     coverCrossfadeDescription: t('app.coverCrossfadeDesc'),
     coverCrossfadeEnabled,
     onCoverCrossfadeChange: setCoverCrossfadeEnabled,
+
+    roomLightLabel: t('app.roomLight'),
+    roomLightDescription: t('app.roomLightDesc'),
+    roomLightEnabled,
+    onRoomLightChange: setRoomLightEnabled,
 
     tempoBreathingLabel: t('app.tempoBreathing'),
     tempoBreathingDescription: t('app.tempoBreathingDesc'),

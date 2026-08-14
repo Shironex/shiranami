@@ -57,6 +57,10 @@ export default function VisualEffectsSection() {
     coverCrossfadeDescription,
     coverCrossfadeEnabled,
     onCoverCrossfadeChange,
+    roomLightLabel,
+    roomLightDescription,
+    roomLightEnabled,
+    onRoomLightChange,
     tempoBreathingLabel,
     tempoBreathingDescription,
     tempoBreathingEnabled,
@@ -167,6 +171,14 @@ export default function VisualEffectsSection() {
           description={coverCrossfadeDescription}
           checked={coverCrossfadeEnabled}
           onCheckedChange={onCoverCrossfadeChange}
+          divider
+        />
+
+        <SettingsToggleRow
+          label={roomLightLabel}
+          description={roomLightDescription}
+          checked={roomLightEnabled}
+          onCheckedChange={onRoomLightChange}
           divider
         />
 

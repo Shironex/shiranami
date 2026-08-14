@@ -178,6 +178,7 @@ interface PersistedUIState {
   vinylDisplayEnabled: boolean;
   vinylLabelSource: VinylLabelSource;
   vinylRingStyle: VinylRingStyle;
+  roomLightEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -253,6 +254,8 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
       VINYL_RING_STYLES,
       VINYL_RING_STYLE_DEFAULT
     );
+  if (typeof persisted.roomLightEnabled === 'boolean')
+    out.roomLightEnabled = persisted.roomLightEnabled;
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -288,6 +291,7 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'vinylDisplayEnabled',
   'vinylLabelSource',
   'vinylRingStyle',
+  'roomLightEnabled',
   'landingView',
 ]);
 
@@ -419,9 +423,10 @@ interface UIState {
    *   its track-change pulse), `coverCrossfadeEnabled` (the visual dissolve
    *   between records — distinct from the audio crossfade, which lives in
    *   usePlaybackStore), `tempoBreathingEnabled` (BPM-locked breathing),
-   *   `noiseOverlayEnabled` (film-grain overlay), and `lowPerformanceMode`
-   *   (master kill for all ambient rendering, including palette extraction
-   *   in useAmbientColor).
+   *   `noiseOverlayEnabled` (film-grain overlay), `roomLightEnabled` (the
+   *   time-of-day lighting grade over the ambient scene), and
+   *   `lowPerformanceMode` (master kill for all ambient rendering, including
+   *   palette extraction in useAmbientColor).
    * - useAccentStore: `followArtAccent` — accent follows the cover's palette.
    * - useSanctuaryStore: Sanctuary Mode (fullscreen immersive player).
    * - useLyricsAppearanceStore: `lyricsPresentation` — list vs. focus stage.
@@ -439,6 +444,7 @@ interface UIState {
   vinylDisplayEnabled: boolean;
   vinylLabelSource: VinylLabelSource;
   vinylRingStyle: VinylRingStyle;
+  roomLightEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -456,6 +462,7 @@ interface UIActions {
   setVinylDisplayEnabled: (enabled: boolean) => void;
   setVinylLabelSource: (source: VinylLabelSource) => void;
   setVinylRingStyle: (style: VinylRingStyle) => void;
+  setRoomLightEnabled: (enabled: boolean) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -505,6 +512,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     vinylDisplayEnabled: false,
     vinylLabelSource: VINYL_LABEL_SOURCE_DEFAULT,
     vinylRingStyle: VINYL_RING_STYLE_DEFAULT,
+    roomLightEnabled: true,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -549,6 +557,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setVinylRingStyle: style => {
       set({ vinylRingStyle: coerceEnum(style, VINYL_RING_STYLES, VINYL_RING_STYLE_DEFAULT) });
+    },
+    setRoomLightEnabled: enabled => {
+      set({ roomLightEnabled: enabled });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -648,6 +659,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         vinylDisplayEnabled: s.vinylDisplayEnabled,
         vinylLabelSource: s.vinylLabelSource,
         vinylRingStyle: s.vinylRingStyle,
+        roomLightEnabled: s.roomLightEnabled,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

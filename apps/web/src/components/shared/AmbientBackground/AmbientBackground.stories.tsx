@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { Track } from '@/stores/types';
+import { roomLightForHour, roomLightLayerStyle } from '@/hooks/useRoomLight';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import AmbientBackground from './AmbientBackground';
@@ -29,16 +30,22 @@ const track: Track = {
 /**
  * shared · AmbientBackground. The artwork bloom — four blurred, saturated,
  * slowly counter-rotating copies of the current cover — painted behind the
- * shell, with a color-glow fallback for artless tracks and the film-grain
- * noise overlay. Seeded with a playing track (and low-performance mode off)
- * so the layers render.
+ * shell, with a color-glow fallback for artless tracks, the film-grain noise
+ * overlay, and the room-light time-of-day grade. Seeded with a playing track
+ * (and low-performance mode off) so the layers render. The component's own
+ * room-light layer follows the wall clock, so the base stories disable it and
+ * the per-stop stories pin an hour instead — every story stays deterministic.
  */
 const meta: Meta<typeof AmbientBackground> = {
   title: 'shared/AmbientBackground',
   component: AmbientBackground,
   decorators: [
     Story => {
-      useUIStore.setState({ lowPerformanceMode: false, noiseOverlayEnabled: true });
+      useUIStore.setState({
+        lowPerformanceMode: false,
+        noiseOverlayEnabled: true,
+        roomLightEnabled: false,
+      });
       return (
         <div className="relative w-full h-64">
           <Story />
@@ -83,3 +90,45 @@ export const GlowFallback: Story = {
     },
   ],
 };
+
+/**
+ * A room-light stop pinned to a fixed hour: the component's clock-driven layer
+ * stays off (meta decorator) and the story paints the exact same layer markup
+ * with the stop's custom properties, over the seeded artwork bloom.
+ */
+function roomLightStopStory(hour: number): Story {
+  return {
+    decorators: [
+      Story => {
+        usePlaybackStore.setState({ currentTrack: { ...track, albumArt: STORY_COVER } });
+        const style = roomLightLayerStyle(roomLightForHour(hour));
+        return (
+          <>
+            <Story />
+            <div
+              className="room-light fixed inset-0 pointer-events-none z-0"
+              data-slot="room-light"
+              aria-hidden="true"
+              style={style}
+            />
+          </>
+        );
+      },
+    ],
+  };
+}
+
+/** 06:00 — cool blue-grey early-morning light. */
+export const RoomLightDawn: Story = roomLightStopStory(6);
+
+/** 12:00 — neutral daylight, the grade nearly invisible. */
+export const RoomLightDay: Story = roomLightStopStory(12);
+
+/** 18:00 — golden-hour amber wash around sunset. */
+export const RoomLightGoldenHour: Story = roomLightStopStory(18);
+
+/** 21:00 — dusk: the wash cools down while the desk lamp starts to glow. */
+export const RoomLightDusk: Story = roomLightStopStory(21);
+
+/** 23:00 — night: a slightly dimmer scene lit by the warm desk-lamp corner. */
+export const RoomLightNight: Story = roomLightStopStory(23);

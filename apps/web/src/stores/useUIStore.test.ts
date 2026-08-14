@@ -301,6 +301,43 @@ describe('vinyl display settings (vinylDisplayEnabled / vinylLabelSource / vinyl
   });
 });
 
+describe('roomLightEnabled (time-of-day lighting grade gate)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to enabled on a fresh profile (opt-out setting)', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(true);
+  });
+
+  it('persists setRoomLightEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setRoomLightEnabled(false);
+    expect(store.getState().roomLightEnabled).toBe(false);
+    expect(readPersisted().roomLightEnabled).toBe(false);
+  });
+
+  it('restores a persisted opt-out through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { roomLightEnabled: false }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(false);
+  });
+
+  it('ignores non-boolean garbage and keeps the enabled default', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { roomLightEnabled: 'nope' }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(true);
+  });
+});
+
 describe('coerceVisualizerStyle (persist merge path)', () => {
   const ALL_STYLES = [
     'bars',
