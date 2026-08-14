@@ -35,6 +35,7 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-surface: var(--surface);
+  --color-qr-plate: var(--qr-plate);
   --color-favorite: var(--favorite);
   --color-favorite-hover: var(--favorite-hover);
 
@@ -689,6 +690,12 @@
   --sidebar-foreground: oklch(0.93 0.01 280);
 
   --surface: oklch(0.1 0.015 280);
+
+  /* Plate behind share QR codes. Deliberately fixed white in every theme:
+     scanners need a light quiet zone matching the generated code's own
+     background (ShareDialog.hooks bgcolor=ffffff), so this token never
+     follows the surface palette. */
+  --qr-plate: oklch(1 0 0);
 
   --favorite: oklch(0.7 0.18 15);
   --favorite-hover: oklch(0.75 0.16 15);

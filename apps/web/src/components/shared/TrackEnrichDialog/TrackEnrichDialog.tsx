@@ -7,7 +7,15 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
@@ -97,6 +105,7 @@ export default function TrackEnrichDialog(props: ITrackEnrichDialogProps) {
             <Disc3 className="h-5 w-5" />
             {t('title')}
           </DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
 
         {state.kind === 'searching' && (
@@ -213,6 +222,10 @@ export default function TrackEnrichDialog(props: ITrackEnrichDialogProps) {
             </>
           )}
         </div>
+
+        <DialogHintBar>
+          <DialogHint keyLabel="Esc" label={t('close')} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );
