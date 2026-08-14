@@ -38,6 +38,11 @@ function renderWith(record: CustomBackground | null): HTMLElement {
 afterEach(() => {
   useThemeStore.setState({ theme: 'none' });
   useUIStore.setState({ lowPerformanceMode: false });
+  // Here rather than at the end of the one test that stubs `matchMedia`: a
+  // restore on the happy path only is no restore at all, and a leaked
+  // reduced-motion stub would quietly freeze every test that ran afterwards —
+  // failing whichever one happened to be next rather than the one at fault.
+  vi.restoreAllMocks();
 });
 
 describe('ThemeBackground', () => {
@@ -124,7 +129,6 @@ describe('ThemeBackground', () => {
     expect(container.querySelector('.theme-bg-image')).toHaveStyle({
       backgroundImage: 'url(http://127.0.0.1:1234/tok/background/bg-abc.still.jpg)',
     });
-    vi.restoreAllMocks();
   });
 
   it('keeps a static import animating-irrelevant under low-performance mode', () => {
