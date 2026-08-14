@@ -1,6 +1,8 @@
 import { Plus, FolderOpen, File, RefreshCw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WindowControls } from '@/components/shared/WindowControls';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Menu, MenuDivider, MenuItem } from '@/components/ui/menu';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n';
 import { useTopBar } from './TopBar.hooks';
 import type { ITopBarProps } from './TopBar.types';
@@ -12,8 +14,10 @@ export default function TopBar(props: ITopBarProps) {
     isNowPlaying,
     isLibraryView,
     dropdownOpen,
-    toggleDropdown,
-    dropdownRef,
+    onDropdownOpenChange,
+    closeDropdown,
+    addMenuRef,
+    onDropdownAutoFocus,
     scanBlocked,
     isRescanning,
     rescanDisabled,
@@ -21,19 +25,30 @@ export default function TopBar(props: ITopBarProps) {
     showLanguageSwitcher,
     currentLanguage,
     onLanguageChange,
+    onLanguageKeyDown,
     onAddFolder,
     onAddFile,
   } = useTopBar(props);
+
+  // Guard against an i18n language outside the supported set — the group must
+  // always keep exactly one tab stop.
+  const checkedLanguage = SUPPORTED_LANGUAGES.some(lang => lang.code === currentLanguage)
+    ? currentLanguage
+    : SUPPORTED_LANGUAGES[0].code;
 
   const languageButtons = SUPPORTED_LANGUAGES.map(lang => (
     <button
       key={lang.code}
       type="button"
+      role="radio"
+      aria-checked={checkedLanguage === lang.code}
+      tabIndex={checkedLanguage === lang.code ? 0 : -1}
+      aria-label={lang.label}
       onClick={() => onLanguageChange(lang.code)}
-      aria-label={t(`language.${lang.code}`)}
+      onKeyDown={onLanguageKeyDown}
       className={cn(
         'focus-ring px-2 py-1 rounded-md text-xs font-medium transition-colors',
-        currentLanguage === lang.code
+        checkedLanguage === lang.code
           ? 'bg-primary/15 text-primary'
           : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent'
       )}
@@ -59,59 +74,67 @@ export default function TopBar(props: ITopBarProps) {
 
       {/* Add dropdown - only show on library view */}
       {isLibraryView && (
-        <div ref={dropdownRef} className="no-drag relative mr-2">
-          <button
-            onClick={toggleDropdown}
-            disabled={scanBlocked}
-            className={cn(
-              'focus-ring flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              dropdownOpen
-                ? 'bg-accent text-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            )}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{scanBlocked ? t('scanning') : t('add')}</span>
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50">
+        <div className="no-drag mr-2">
+          <Popover open={dropdownOpen} onOpenChange={onDropdownOpenChange}>
+            <PopoverTrigger asChild>
               <button
-                onClick={onAddFolder}
-                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <FolderOpen className="w-4 h-4 text-muted-foreground" />
-                {t('addFolder')}
-              </button>
-              <button
-                onClick={onAddFile}
-                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
-              >
-                <File className="w-4 h-4 text-muted-foreground" />
-                {t('addFile')}
-              </button>
-              <div className="my-1 mx-2 h-px bg-border/40" />
-              <button
-                onClick={onRescan}
-                disabled={rescanDisabled}
-                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isRescanning ? (
-                  <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                type="button"
+                disabled={scanBlocked}
+                aria-haspopup="menu"
+                className={cn(
+                  'focus-ring flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+                  dropdownOpen
+                    ? 'bg-accent text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                 )}
-                {isRescanning ? t('rescanning') : t('rescan')}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{scanBlocked ? t('scanning') : t('add')}</span>
               </button>
-            </div>
-          )}
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              sideOffset={4}
+              onOpenAutoFocus={onDropdownAutoFocus}
+              className="w-44 p-0 bg-card border-border/50 duration-[120ms]"
+            >
+              <Menu ref={addMenuRef} aria-label={t('add')} onRequestClose={closeDropdown}>
+                <MenuItem icon={<FolderOpen className="w-4 h-4" />} onClick={onAddFolder}>
+                  {t('addFolder')}
+                </MenuItem>
+                <MenuItem icon={<File className="w-4 h-4" />} onClick={onAddFile}>
+                  {t('addFile')}
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem
+                  icon={
+                    isRescanning ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )
+                  }
+                  disabled={rescanDisabled}
+                  onClick={onRescan}
+                >
+                  {isRescanning ? t('rescanning') : t('rescan')}
+                </MenuItem>
+              </Menu>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
       {/* Language segmented control — hideable via Settings · Interface
           (the picker also lives in Settings · Appearance, so nothing is lost) */}
       {showLanguageSwitcher && (
-        <div className="no-drag flex items-center gap-0.5 mr-2">{languageButtons}</div>
+        <div
+          role="radiogroup"
+          aria-label={t('language.label')}
+          className="no-drag flex items-center gap-0.5 mr-2"
+        >
+          {languageButtons}
+        </div>
       )}
 
       {/* Window controls (Windows only) */}
