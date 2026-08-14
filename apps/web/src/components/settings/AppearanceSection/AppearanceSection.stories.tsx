@@ -93,9 +93,9 @@ export const ThemedWithAccent: Story = {
 };
 
 /**
- * The custom theme with nothing imported yet: the picker is offered and the
- * adjust panel stays hidden, because sliders over an empty background adjust
- * nothing and read as broken.
+ * The custom theme with nothing saved yet: the background library offers its
+ * add tile and the adjust panel stays hidden, because sliders over an empty
+ * background adjust nothing and read as broken.
  */
 export const CustomThemeEmpty: Story = {
   decorators: [
@@ -108,7 +108,8 @@ export const CustomThemeEmpty: Story = {
   ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('button', { name: /Choose an image/ })).toBeInTheDocument();
+    await expect(canvas.getByText('Saved backgrounds')).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: /Add image/ })).toBeInTheDocument();
     await expect(canvas.queryByText('Background adjustments')).not.toBeInTheDocument();
   },
 };
