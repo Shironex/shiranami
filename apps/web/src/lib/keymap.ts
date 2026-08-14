@@ -235,6 +235,14 @@ export function formatBinding(binding: KeyBinding): string[] {
 }
 
 /**
+ * Single-string chord label (`'⌘+Shift+M'`) for tooltip interpolations,
+ * matching the format the player tooltips established.
+ */
+export function formatBindingLabel(binding: KeyBinding): string {
+  return formatBinding(binding).join('+');
+}
+
+/**
  * Validate an untrusted persisted value into a well-formed binding, enforcing
  * the Shift-only-with-mod invariant. Returns `null` for malformed input.
  */
