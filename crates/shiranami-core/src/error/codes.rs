@@ -73,6 +73,9 @@ pub mod background {
     pub const NOT_AN_IMAGE: &str = "background.not_an_image";
     /// The image decoded, but its longest edge is past the cap.
     pub const DIMENSIONS_TOO_LARGE: &str = "background.dimensions_too_large";
+    /// The saved-background library is at its entry cap. Actionable like the
+    /// rest: delete a saved background and try again.
+    pub const LIBRARY_FULL: &str = "background.library_full";
 }
 
 /// Classified yt-dlp failures — `apps/desktop/src/main/utils/ytdlp-spawn.ts`.
@@ -181,6 +184,7 @@ mod tests {
                     super::background::DIMENSIONS_TOO_LARGE,
                     "DIMENSIONS_TOO_LARGE",
                 ),
+                (super::background::LIBRARY_FULL, "LIBRARY_FULL"),
             ],
         );
     }

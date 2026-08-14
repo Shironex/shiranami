@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 155;
+pub const COMMAND_COUNT: usize = 157;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -110,12 +110,13 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// - `radio_log_record` and `radio_log_get` — the radio diary. v1's stream
 ///   proxy declined ICY metadata, so no station title ever reached the app and
 ///   there was nothing to keep a record of. See [`crate::commands::radio`].
-/// - `background_pick`, `background_get` and `background_clear` — the custom
-///   app background. v1's themes were five bundled bitmaps and nothing else, so
-///   there was no import to have a channel for. `background_pick` opens its own
-///   dialog rather than taking a path, which is why it is not simply a caller of
-///   `dialog_open_file`. See [`crate::commands::background`].
-pub const NON_V1_COMMANDS: usize = 20;
+/// - `background_library_get`, `background_add`, `background_remove`,
+///   `background_set_active` and `background_rename` — the saved-background
+///   library. v1's themes were five bundled bitmaps and nothing else, so there
+///   was no import to have a channel for. `background_add` opens its own
+///   dialog rather than taking a path, which is why it is not simply a caller
+///   of `dialog_open_file`. See [`crate::commands::background`].
+pub const NON_V1_COMMANDS: usize = 22;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

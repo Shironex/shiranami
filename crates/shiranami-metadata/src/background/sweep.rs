@@ -11,24 +11,27 @@
 //! [`crate::art::prune_orphans`] learned the hard way that "the reference lookup
 //! failed" and "nothing is referenced" are indistinguishable at the deletion
 //! site, and that one of them means destroying the user's data. That module
-//! defends itself by classifying every value. Here the reference set is a single
-//! settings entry, so the defence is cheaper and stronger: [`BackgroundReference`]
-//! has no variant that a failed read can be squeezed into. A caller that cannot
-//! read the record has nothing to pass but [`BackgroundReference::Unreadable`],
-//! and that variant deletes nothing.
+//! defends itself by classifying every value. Here the reference set is a pair
+//! of settings entries (the library and its legacy mirror), so the defence is
+//! cheaper and stronger: [`BackgroundReference`] has no variant that a failed
+//! read can be squeezed into. A caller that cannot read either record has
+//! nothing to pass but [`BackgroundReference::Unreadable`], and that variant
+//! deletes nothing.
 
 use std::fs;
 use std::path::Path;
 
 use crate::background::record::{ALLOWED_EXTENSIONS, CustomBackground, background_dir};
 
-/// What the caller was able to learn about the current background.
+/// What the caller was able to learn about the referenced backgrounds.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackgroundReference {
-    /// The settings entry was read. `None` means no background is set, which is
-    /// a real answer: every file in the directory is then an orphan.
-    Known(Option<CustomBackground>),
-    /// The settings entry could not be read or did not parse. Not evidence that
+    /// Every settings entry was read. The list is the union of the library's
+    /// entries and the legacy single-record mirror; empty means no background
+    /// is referenced anywhere, which is a real answer — every file in the
+    /// directory is then an orphan.
+    Known(Vec<CustomBackground>),
+    /// A settings entry could not be read or did not parse. Not evidence that
     /// nothing is referenced, and never treated as such.
     Unreadable,
 }
@@ -40,11 +43,11 @@ pub struct SweepReport {
     pub scanned: usize,
     /// Files deleted.
     pub deleted: usize,
-    /// File names the current record refers to.
+    /// File names the referenced records own.
     pub referenced: usize,
 }
 
-/// Delete every background file the record does not own.
+/// Delete every background file no record owns.
 ///
 /// Never returns an error: a sweep is unattended boot-time housekeeping, and a
 /// failure to tidy is not a failure worth failing a launch over.
@@ -55,9 +58,9 @@ pub fn sweep_orphans(data_dir: &Path, reference: &BackgroundReference) -> SweepR
     };
 
     let referenced: Vec<&str> = current
-        .as_ref()
-        .map(CustomBackground::owned_file_names)
-        .unwrap_or_default();
+        .iter()
+        .flat_map(CustomBackground::owned_file_names)
+        .collect();
 
     let directory = background_dir(data_dir);
     let entries = match fs::read_dir(&directory) {
@@ -146,7 +149,7 @@ mod tests {
 
         let report = sweep_orphans(
             directory.path(),
-            &BackgroundReference::Known(Some(record("bg-new.png", None))),
+            &BackgroundReference::Known(vec![record("bg-new.png", None)]),
         );
 
         assert_eq!(report.deleted, 1);
@@ -161,10 +164,31 @@ mod tests {
 
         sweep_orphans(
             directory.path(),
-            &BackgroundReference::Known(Some(record("bg-a.gif", Some("bg-a.still.jpg")))),
+            &BackgroundReference::Known(vec![record("bg-a.gif", Some("bg-a.still.jpg"))]),
         );
 
         assert_eq!(entries(&directory), vec!["bg-a.gif", "bg-a.still.jpg"]);
+    }
+
+    /// The library case: the reference set is a union, so every entry's files
+    /// survive while true orphans are still collected.
+    #[test]
+    fn every_library_entrys_files_survive_a_multi_record_sweep() {
+        let directory = seed(&["bg-a.png", "bg-b.gif", "bg-b.still.jpg", "bg-old.png"]);
+
+        let report = sweep_orphans(
+            directory.path(),
+            &BackgroundReference::Known(vec![
+                record("bg-a.png", None),
+                record("bg-b.gif", Some("bg-b.still.jpg")),
+            ]),
+        );
+
+        assert_eq!(report.deleted, 1);
+        assert_eq!(
+            entries(&directory),
+            vec!["bg-a.png", "bg-b.gif", "bg-b.still.jpg"]
+        );
     }
 
     /// The most important behaviour in the module: an unreadable record is not
@@ -185,7 +209,7 @@ mod tests {
         // a removed background get collected.
         let directory = seed(&["bg-a.png", "bg-a.still.jpg"]);
 
-        let report = sweep_orphans(directory.path(), &BackgroundReference::Known(None));
+        let report = sweep_orphans(directory.path(), &BackgroundReference::Known(vec![]));
 
         assert_eq!(report.deleted, 2);
         assert!(entries(&directory).is_empty());
@@ -195,7 +219,7 @@ mod tests {
     fn a_file_the_sweep_does_not_recognise_survives() {
         let directory = seed(&["bg-a.png", "notes.txt", ".bg-a.png.1234.tmp"]);
 
-        let report = sweep_orphans(directory.path(), &BackgroundReference::Known(None));
+        let report = sweep_orphans(directory.path(), &BackgroundReference::Known(vec![]));
 
         assert_eq!(report.scanned, 3);
         assert_eq!(report.deleted, 1);
@@ -207,7 +231,7 @@ mod tests {
         let directory = tempfile::tempdir().expect("a temp dir");
 
         assert_eq!(
-            sweep_orphans(directory.path(), &BackgroundReference::Known(None)),
+            sweep_orphans(directory.path(), &BackgroundReference::Known(vec![])),
             SweepReport::default()
         );
     }

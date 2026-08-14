@@ -47,47 +47,56 @@ export const commands = {
 	 */
 	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
 	/**
-	 *  `background:pick` — choose an image and adopt it, or `null` if cancelled.
+	 *  `background:library-get` — the saved backgrounds, healed against the disk.
+	 * 
+	 *  Self-healing like the single-record `background:get` before it: an entry
+	 *  whose main file has vanished (an external delete, a restored profile, a
+	 *  half-copied app-data move) is dropped rather than returned, so the renderer
+	 *  never renders a URL that 404s. An entry whose *still* alone is missing
+	 *  keeps the animation — a preference not honoured rather than a broken
+	 *  screen. The filesystem is the source of truth for existence; the settings
+	 *  entries only name things.
+	 */
+	backgroundLibraryGet: () => __TAURI_INVOKE<BackgroundLibrary>("background_library_get"),
+	/**
+	 *  `background:add` — choose an image and save it, or `null` if cancelled.
 	 * 
 	 *  Cancelling is not an error, matching every other picker in the app: the
 	 *  renderer's "the user changed their mind" branch is an `if`, not a `catch`.
 	 *  A *refusal* is an error, and a specific one — see
-	 *  `shiranami_core::error::codes::background`.
-	 */
-	backgroundPick: () => __TAURI_INVOKE<{
-	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
-	fileName: string,
-	/**  The frozen frame-0 sibling, present only for an animated source. */
-	stillFileName?: string | null,
-	/**  Width in pixels, as imported. */
-	width: number,
-	/**  Height in pixels, as imported. */
-	height: number,
-	/**  Whether the source carries more than one frame. */
-	animated?: boolean,
-} | null>("background_pick"),
-	/**
-	 *  `background:get` — the current background, if one is set and still on disk.
+	 *  `shiranami_core::error::codes::background`. The new entry becomes the
+	 *  active pick, because saving an image *is* choosing to look at it.
 	 * 
-	 *  Self-healing: a record naming a file that has vanished (an external delete, a
-	 *  restored profile, a half-copied app-data move) is removed rather than
-	 *  returned, so the renderer never has to render a URL that 404s. The filesystem
-	 *  is the source of truth for existence; the settings entry only names things.
+	 *  `label` is display text supplied by the renderer (it holds the localized
+	 *  default); it never names a file and is trimmed and capped before storage.
 	 */
-	backgroundGet: () => __TAURI_INVOKE<{
-	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
-	fileName: string,
-	/**  The frozen frame-0 sibling, present only for an animated source. */
-	stillFileName?: string | null,
-	/**  Width in pixels, as imported. */
-	width: number,
-	/**  Height in pixels, as imported. */
-	height: number,
-	/**  Whether the source carries more than one frame. */
-	animated?: boolean,
-} | null>("background_get"),
-	/**  `background:clear` — forget the background and delete its files. */
-	backgroundClear: () => __TAURI_INVOKE<null>("background_clear"),
+	backgroundAdd: (label: string) => __TAURI_INVOKE<{
+	/**  The saved backgrounds, in insertion order. */
+	entries?: BackgroundLibraryEntry[],
+	/**
+	 *  The entry the user picked as their wallpaper, if any. Always names an
+	 *  existing entry while the library is non-empty — the commands normalise
+	 *  a stale id to the first entry rather than leaving it dangling.
+	 */
+	activeId?: string | null,
+	/**
+	 *  The next id to assign. Monotonic and never reused; `0` (the serde
+	 *  default) is treated as "start at 1" by the assignment site.
+	 */
+	nextId?: number,
+} | null>("background_add", { label }),
+	/**
+	 *  `background:remove` — forget one saved background and delete its files.
+	 * 
+	 *  The files go through the sweep rather than a targeted delete, so a file
+	 *  shared with another entry (re-importing the same image converges on one
+	 *  content-addressed copy) survives as long as anything references it.
+	 */
+	backgroundRemove: (id: string) => __TAURI_INVOKE<BackgroundLibrary>("background_remove", { id }),
+	/**  `background:set-active` — pick which saved background is the wallpaper. */
+	backgroundSetActive: (id: string) => __TAURI_INVOKE<BackgroundLibrary>("background_set_active", { id }),
+	/**  `background:rename` — relabel one saved background. */
+	backgroundRename: (id: string, label: string) => __TAURI_INVOKE<BackgroundLibrary>("background_rename", { id, label }),
 	/**
 	 *  `companion:get-state` — the singleton, hatched from history on first read.
 	 * 
@@ -1472,6 +1481,51 @@ export type AnalysisInput = {
  *  `crate::commands::analysis`.
  */
 export type AnalysisProgress = Json;
+
+/**
+ *  The saved-background library, persisted under
+ *  `MainStoreKey::AppearanceBackgroundLibrary` and returned to the renderer
+ *  verbatim.
+ * 
+ *  Persisted *and* wire per architecture §2.3, so every field carries
+ *  `#[serde(default)]` and the struct may only ever grow. The legacy
+ *  single-record key (`appearance.customBackground`) stays behind as a mirror
+ *  of the active entry: an older build reads it and keeps the user's wallpaper
+ *  on a downgrade, at the cost that its sweep collects the entries it cannot
+ *  see.
+ */
+export type BackgroundLibrary = {
+	/**  The saved backgrounds, in insertion order. */
+	entries?: BackgroundLibraryEntry[],
+	/**
+	 *  The entry the user picked as their wallpaper, if any. Always names an
+	 *  existing entry while the library is non-empty — the commands normalise
+	 *  a stale id to the first entry rather than leaving it dangling.
+	 */
+	activeId?: string | null,
+	/**
+	 *  The next id to assign. Monotonic and never reused; `0` (the serde
+	 *  default) is treated as "start at 1" by the assignment site.
+	 */
+	nextId?: number,
+};
+
+/**  One saved background: a stable id, the user's label, and the file record. */
+export type BackgroundLibraryEntry = {
+	/**
+	 *  Stable identity within the library. Assigned from the library's counter
+	 *  and never reused, so a renderer reference (a schedule slot, the active
+	 *  pick) cannot silently rebind to a different image after a delete.
+	 */
+	id: string,
+	/**
+	 *  User-facing label. May be empty; the renderer shows a fallback name.
+	 *  Display text only — it never names a file or reaches a URL.
+	 */
+	label: string,
+	/**  The imported file this entry shows. */
+	background: CustomBackground,
+};
 
 /**
  *  Cached snapshot of both tools' status, reused across renderer reloads.

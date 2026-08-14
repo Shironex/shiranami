@@ -174,7 +174,7 @@ fn sweep_backgrounds(app: &AppHandle) {
         // orphan and be deleted out from under the record naming it.
         let settings = std::sync::Arc::clone(state.settings());
         let report = crate::wire::off_thread("sweep orphaned backgrounds", move || {
-            let reference = crate::commands::background::read_record(&settings);
+            let reference = crate::commands::background::read_references(&settings);
             Ok(background::sweep_orphans(&data_dir, &reference))
         })
         .await;

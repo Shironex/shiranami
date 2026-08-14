@@ -63,6 +63,7 @@ export const BACKGROUND_ERROR_CODES = {
   UNSUPPORTED_FORMAT: 'background.unsupported_format',
   NOT_AN_IMAGE: 'background.not_an_image',
   DIMENSIONS_TOO_LARGE: 'background.dimensions_too_large',
+  LIBRARY_FULL: 'background.library_full',
 } as const;
 
 export type ShareErrorCode = (typeof SHARE_ERROR_CODES)[keyof typeof SHARE_ERROR_CODES];

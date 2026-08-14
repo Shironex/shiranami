@@ -117,6 +117,80 @@ impl CustomBackground {
     }
 }
 
+/// The most saved backgrounds a library may hold.
+///
+/// Each entry may be a file of up to [`MAX_FILE_BYTES`], so this cap is what
+/// bounds the directory now that imports accumulate instead of replacing.
+/// Twelve is generous for what the library feeds — one slot per time-of-day
+/// stop plus a rotation pool — while keeping the worst case around a quarter
+/// gigabyte.
+pub const MAX_LIBRARY_ENTRIES: usize = 12;
+
+/// The longest label a saved background may carry, in characters.
+pub const MAX_LABEL_CHARS: usize = 60;
+
+/// One saved background: a stable id, the user's label, and the file record.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BackgroundLibraryEntry {
+    /// Stable identity within the library. Assigned from the library's counter
+    /// and never reused, so a renderer reference (a schedule slot, the active
+    /// pick) cannot silently rebind to a different image after a delete.
+    pub id: String,
+    /// User-facing label. May be empty; the renderer shows a fallback name.
+    /// Display text only — it never names a file or reaches a URL.
+    pub label: String,
+    /// The imported file this entry shows.
+    pub background: CustomBackground,
+}
+
+/// The saved-background library, persisted under
+/// `MainStoreKey::AppearanceBackgroundLibrary` and returned to the renderer
+/// verbatim.
+///
+/// Persisted *and* wire per architecture §2.3, so every field carries
+/// `#[serde(default)]` and the struct may only ever grow. The legacy
+/// single-record key (`appearance.customBackground`) stays behind as a mirror
+/// of the active entry: an older build reads it and keeps the user's wallpaper
+/// on a downgrade, at the cost that its sweep collects the entries it cannot
+/// see.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BackgroundLibrary {
+    /// The saved backgrounds, in insertion order.
+    #[serde(default)]
+    pub entries: Vec<BackgroundLibraryEntry>,
+    /// The entry the user picked as their wallpaper, if any. Always names an
+    /// existing entry while the library is non-empty — the commands normalise
+    /// a stale id to the first entry rather than leaving it dangling.
+    #[serde(default)]
+    pub active_id: Option<String>,
+    /// The next id to assign. Monotonic and never reused; `0` (the serde
+    /// default) is treated as "start at 1" by the assignment site.
+    #[serde(default)]
+    pub next_id: u32,
+}
+
+impl BackgroundLibrary {
+    /// Every file name any entry owns on disk — the union the sweep keeps.
+    ///
+    /// Not deduplicated: re-importing the same image converges on one
+    /// content-addressed file, so two entries may legitimately own one name,
+    /// and the sweep only asks "is this name referenced at all".
+    pub fn owned_file_names(&self) -> Vec<&str> {
+        self.entries
+            .iter()
+            .flat_map(|entry| entry.background.owned_file_names())
+            .collect()
+    }
+
+    /// The active entry, if `active_id` still names one.
+    pub fn active_entry(&self) -> Option<&BackgroundLibraryEntry> {
+        let id = self.active_id.as_deref()?;
+        self.entries.iter().find(|entry| entry.id == id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,6 +247,73 @@ mod tests {
         };
 
         assert_eq!(record.owned_file_names(), vec!["bg-abc.png"]);
+    }
+
+    /// The §2.3 rule again, for the library: a bare `{}` — and therefore any
+    /// older or partial write — parses to the empty library rather than
+    /// failing, which is what makes every field's `#[serde(default)]`
+    /// load-bearing instead of decorative.
+    #[test]
+    fn an_empty_document_parses_to_the_empty_library() {
+        let library: BackgroundLibrary =
+            serde_json::from_str("{}").expect("an empty library document parses");
+
+        assert_eq!(library, BackgroundLibrary::default());
+        assert_eq!(library.active_entry(), None);
+    }
+
+    #[test]
+    fn the_library_owns_every_entrys_files_and_finds_its_active_entry() {
+        let library = BackgroundLibrary {
+            entries: vec![
+                BackgroundLibraryEntry {
+                    id: "1".to_owned(),
+                    label: "Rainy desk".to_owned(),
+                    background: record("bg-a.gif", Some("bg-a.still.jpg")),
+                },
+                BackgroundLibraryEntry {
+                    id: "2".to_owned(),
+                    label: String::new(),
+                    background: record("bg-b.png", None),
+                },
+            ],
+            active_id: Some("2".to_owned()),
+            next_id: 3,
+        };
+
+        assert_eq!(
+            library.owned_file_names(),
+            vec!["bg-a.gif", "bg-a.still.jpg", "bg-b.png"]
+        );
+        assert_eq!(
+            library.active_entry().map(|entry| entry.id.as_str()),
+            Some("2")
+        );
+    }
+
+    #[test]
+    fn a_stale_active_id_resolves_to_no_entry() {
+        let library = BackgroundLibrary {
+            entries: vec![BackgroundLibraryEntry {
+                id: "1".to_owned(),
+                label: String::new(),
+                background: record("bg-a.png", None),
+            }],
+            active_id: Some("9".to_owned()),
+            next_id: 2,
+        };
+
+        assert_eq!(library.active_entry(), None);
+    }
+
+    fn record(file_name: &str, still: Option<&str>) -> CustomBackground {
+        CustomBackground {
+            file_name: file_name.to_owned(),
+            still_file_name: still.map(str::to_owned),
+            width: 100,
+            height: 100,
+            animated: still.is_some(),
+        }
     }
 
     #[test]
