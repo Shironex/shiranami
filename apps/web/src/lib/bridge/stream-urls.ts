@@ -207,6 +207,28 @@ export function toArtUrl(value: string): string {
 }
 
 /**
+ * The loopback URL for one imported-background file name.
+ *
+ * Unlike {@link toArtUrl} this is a builder, not a rewriter: a background is
+ * never stored as a URL anywhere, so there is no v1 form to translate and
+ * nothing for the deep-walk chokepoint to find. The command returns a bare file
+ * name and the caller asks for its address, which also means a background URL
+ * cannot be accidentally round-tripped back into the settings document the way
+ * `tracks.album_art` was — {@link toStoredArtUrl} exists because that happened.
+ *
+ * `null` when there is no base yet (outside the webview, or before the shell
+ * has answered), so a caller renders nothing rather than a relative URL that
+ * resolves against the app's own origin.
+ */
+export function toBackgroundUrl(fileName: string): string | null {
+  if (base === null) return null;
+  // The name is passed through verbatim for the same reason `toArtUrl` does it:
+  // the server refuses a name with a separator in it, and reshaping one here
+  // would turn a 403 into a path that resolves.
+  return `${base}/background/${fileName}`;
+}
+
+/**
  * Rewrite one string back to the form the database holds, or return it
  * unchanged.
  *

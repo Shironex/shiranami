@@ -198,7 +198,11 @@ fn downscale(source: &DynamicImage, width: u32, height: u32) -> Result<DynamicIm
 }
 
 /// Encode as baseline JPEG at [`JPEG_QUALITY`].
-fn encode_jpeg(source: &DynamicImage) -> Result<Vec<u8>> {
+///
+/// Reachable from [`crate::background`], which needs the encoder without the
+/// 512 px downscale in front of it: a wallpaper's poster still has to keep the
+/// wallpaper's dimensions.
+pub(crate) fn encode_jpeg(source: &DynamicImage) -> Result<Vec<u8>> {
     let rgb = source.to_rgb8();
     let mut bytes = Vec::new();
 

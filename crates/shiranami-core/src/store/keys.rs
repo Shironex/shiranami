@@ -111,6 +111,14 @@ pub enum MainStoreKey {
     /// Whether the one-time v2 crossover ping has fired.
     #[serde(rename = "v2.crossoverPinged")]
     V2CrossoverPinged,
+    /// The imported custom background: file name, poster still, dimensions.
+    ///
+    /// Main-only for two reasons. The renderer allowlist is pinned to v1's
+    /// tuple, so a renderer key would fail the mirror test — but the stronger
+    /// reason is that this value *names a file the serve route will open*.
+    /// Renderer-writable would mean the renderer chooses that name.
+    #[serde(rename = "appearance.customBackground")]
+    AppearanceCustomBackground,
 }
 
 impl RendererStoreKey {
@@ -165,7 +173,7 @@ impl RendererStoreKey {
 
 impl MainStoreKey {
     /// Every main-only key.
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::DiscordRpcSettings,
         Self::CompactWindowBounds,
         Self::DownloadsLocation,
@@ -174,6 +182,7 @@ impl MainStoreKey {
         Self::MigrationsAlbumArtV1,
         Self::ScrobbleSettings,
         Self::V2CrossoverPinged,
+        Self::AppearanceCustomBackground,
     ];
 
     /// The electron-store dot path this key lives at in the document.
@@ -190,6 +199,7 @@ impl MainStoreKey {
             Self::MigrationsAlbumArtV1 => "migrations.albumArtV1",
             Self::ScrobbleSettings => "scrobble.settings",
             Self::V2CrossoverPinged => "v2.crossoverPinged",
+            Self::AppearanceCustomBackground => "appearance.customBackground",
         }
     }
 }

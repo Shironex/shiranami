@@ -1,4 +1,4 @@
-import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
+import { ImagePlus, Languages, Paintbrush, Palette, RotateCcw, Trash2 } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,14 @@ export default function AppearanceSection() {
     theme,
     hasThemeBackground,
     onSelectTheme,
+    isCustomTheme,
+    customThumb,
+    hasCustomBackground,
+    isPickingBackground,
+    customBackgroundFailed,
+    onRetryCustomBackground,
+    onPickBackground,
+    onClearBackground,
     isBgModified,
     bgOpacity,
     bgOpacityPercent,
@@ -45,6 +53,9 @@ export default function AppearanceSection() {
     onSetBgOpacity,
     onSetBgBlur,
     onSetBgDim,
+    bgFit,
+    bgFitOptions,
+    onSetBgFit,
     onResetBg,
     hasAccentOverride,
     onResetAccent,
@@ -79,6 +90,40 @@ export default function AppearanceSection() {
       )}
     >
       {preset.value}%
+    </button>
+  ));
+
+  const showBackgroundReadError = isCustomTheme && customBackgroundFailed;
+
+  // Roving tabindex: exactly one radio in a group is tabbable and the arrows
+  // move between them. Two native buttons both carrying `role="radio"` would
+  // otherwise put two stops in the tab order and answer nothing to an arrow
+  // key — a dead end in forms mode, even though it looks correct.
+  const onFitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
+    e.preventDefault();
+    const current = Math.max(0, bgFitOptions.indexOf(bgFit));
+    const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    onSetBgFit(bgFitOptions[(current + delta + bgFitOptions.length) % bgFitOptions.length]);
+  };
+
+  const fitButtons = bgFitOptions.map(option => (
+    <button
+      key={option}
+      type="button"
+      role="radio"
+      aria-checked={bgFit === option}
+      tabIndex={bgFit === option ? 0 : -1}
+      onClick={() => onSetBgFit(option)}
+      className={cn(
+        'rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        bgFit === option
+          ? 'border-primary/60 bg-primary/10 text-foreground'
+          : 'border-border/50 text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {t(`app.bgAdjust.fitOptions.${option}`)}
     </button>
   ));
 
@@ -132,7 +177,53 @@ export default function AppearanceSection() {
 
       {/* Card 2 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
-        <ThemeTileGrid value={theme} onSelect={onSelectTheme} />
+        <ThemeTileGrid value={theme} onSelect={onSelectTheme} customThumb={customThumb} />
+
+        {isCustomTheme && (
+          <div className="mt-3 flex items-center gap-2 px-3">
+            {/* aria-disabled rather than disabled: a `disabled` button under the
+                user's focus leaves the a11y tree and blurs to <body>, and this
+                import runs for seconds on a large GIF — they would be tabbing
+                from the top of the document by the time it finished. */}
+            <button
+              type="button"
+              onClick={onPickBackground}
+              aria-disabled={isPickingBackground}
+              aria-busy={isPickingBackground}
+              aria-describedby="bg-format-hint"
+              className="flex items-center gap-1.5 rounded-lg border border-border/50 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-disabled:pointer-events-none aria-disabled:opacity-60"
+            >
+              <ImagePlus className="size-3.5" />
+              {hasCustomBackground ? t('app.background.replace') : t('app.background.choose')}
+            </button>
+            {hasCustomBackground && (
+              <button
+                type="button"
+                onClick={onClearBackground}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Trash2 className="size-3.5" />
+                {t('app.background.remove')}
+              </button>
+            )}
+            <p id="bg-format-hint" className="ml-auto text-[11px] text-muted-foreground">
+              {t('app.background.hint')}
+            </p>
+          </div>
+        )}
+
+        {showBackgroundReadError && (
+          <div className="mt-2 flex items-center gap-2 px-3" role="alert">
+            <p className="text-[11px] text-destructive">{t('app.background.errors.readFailed')}</p>
+            <button
+              type="button"
+              onClick={onRetryCustomBackground}
+              className="rounded-lg px-2 py-1 text-[11px] font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t('app.background.retry')}
+            </button>
+          </div>
+        )}
 
         {hasThemeBackground && (
           <div className="px-3 pt-4 border-t border-border/40 space-y-5">
@@ -199,6 +290,24 @@ export default function AppearanceSection() {
                 onValueChange={([v]) => onSetBgDim(v)}
               />
             </div>
+
+            {/* Fit — only meaningful for an imported image. The five bundled
+                photos are cropped for `cover`, so offering `contain` on them
+                would letterbox a picture that was composed not to be. */}
+            {isCustomTheme && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">{t('app.bgAdjust.fit')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.fitDesc')}</p>
+                <div
+                  role="radiogroup"
+                  aria-label={t('app.bgAdjust.fit')}
+                  onKeyDown={onFitKeyDown}
+                  className="flex gap-2"
+                >
+                  {fitButtons}
+                </div>
+              </div>
+            )}
 
             {/* Contained preview — the settings glass panel covers most of the
                 live canvas, so a scaled sample is the only honest way to judge

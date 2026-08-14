@@ -30,6 +30,13 @@ pub struct Harness {
     pub music: TempDir,
     /// The album-art directory.
     pub art: TempDir,
+    /// The imported-background directory.
+    ///
+    /// A separate temp dir from [`Harness::art`] rather than the same one, so a
+    /// containment test can actually fail: if the two routes shared a directory,
+    /// "the background route cannot reach the covers" would hold for the wrong
+    /// reason and keep holding after the guard was removed.
+    pub backgrounds: TempDir,
     /// A directory that is *not* an allowed root.
     pub outside: TempDir,
     pub upstream: Arc<FakeUpstream>,
@@ -50,6 +57,7 @@ impl Harness {
         let data = TempDir::new().expect("a data dir");
         let music = TempDir::new().expect("a music dir");
         let art = TempDir::new().expect("an art dir");
+        let backgrounds = TempDir::new().expect("a background dir");
         let outside = TempDir::new().expect("a dir outside every root");
 
         let authority = TestAuthority {
@@ -68,6 +76,7 @@ impl Harness {
         let config = ServeConfig {
             folders,
             art_dir: art.path().to_owned(),
+            background_dir: backgrounds.path().to_owned(),
             guard: UrlGuard::with_resolver(Arc::new(resolver)),
             upstream: Arc::clone(&upstream) as Arc<dyn RadioUpstream>,
             now_playing: NowPlayingSink::from_fn(move |playing| {
@@ -89,6 +98,7 @@ impl Harness {
                 .expect("the test client builds"),
             music,
             art,
+            backgrounds,
             outside,
             upstream,
             titles,
@@ -141,9 +151,26 @@ impl Harness {
         self.get(&url, headers).await
     }
 
+    /// Write a fixture into the imported-background directory.
+    pub fn write_background(&self, name: &str, size: usize) -> PathBuf {
+        let path = self.backgrounds.path().join(name);
+        std::fs::write(&path, pattern(size)).expect("the fixture writes");
+        path
+    }
+
     /// `GET {base}/art/<name>`.
     pub async fn art(&self, name: &str) -> reqwest::Response {
         let url = format!("{}/art/{name}", self.base());
+        self.get(&url, &[]).await
+    }
+
+    /// `GET {base}/background/<name>`.
+    ///
+    /// `name` is interpolated raw so a test can send an encoded traversal:
+    /// axum decodes the path parameter before the handler sees it, so the
+    /// shapes that matter cannot be built by a helper that escapes them first.
+    pub async fn background(&self, name: &str) -> reqwest::Response {
+        let url = format!("{}/background/{name}", self.base());
         self.get(&url, &[]).await
     }
 
@@ -219,6 +246,7 @@ pub async fn start_stripped() -> StrippedServer {
         ServeConfig {
             folders,
             art_dir: data.path().to_owned(),
+            background_dir: data.path().to_owned(),
             guard: UrlGuard::with_resolver(Arc::new(TestResolver::new())),
             upstream: Arc::new(FakeUpstream::new()) as Arc<dyn RadioUpstream>,
             now_playing: NowPlayingSink::discarding(),

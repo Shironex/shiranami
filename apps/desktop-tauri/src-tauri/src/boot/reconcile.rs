@@ -16,6 +16,7 @@
 //! | queue hydrate and resume | immediately             | IPC registration              |
 //! | tool status              | immediately             | `fetchAndCacheToolStatus()`   |
 //! | art orphan prune         | immediately             | `pruneOrphanedAlbumArt()`     |
+//! | background sweep         | immediately             | v2-born; see `sweep_backgrounds` |
 //! | updater first check      | 5 s, then hourly        | `app/updater.ts`              |
 //! | recommendation refresh   | 30 s, stale-gated       | `REFRESH_STARTUP_DELAY_MS`    |
 //! | scrobbler flush          | every 60 s              | `FLUSH_INTERVAL_MS`           |
@@ -24,7 +25,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use shiranami_metadata::art;
+use shiranami_metadata::{art, background};
 use tauri::{AppHandle, Manager as _};
 
 use crate::boot::services::{DiscordService, Handles};
@@ -39,6 +40,7 @@ pub fn spawn(app: &AppHandle, e2e: bool, handles: &Handles) {
     hydrate_download_queue(app);
     warm_tool_status(app);
     prune_album_art(app);
+    sweep_backgrounds(app);
 
     if e2e {
         // v1 gated the scrobbler and the recommendation refresh in the same
@@ -141,6 +143,50 @@ fn prune_album_art(app: &AppHandle) {
                 "album-art prune complete"
             ),
             Err(error) => tracing::warn!(?error, "the album-art prune did not complete"),
+        }
+    });
+}
+
+/// Collect background files the current record does not name.
+///
+/// The same shape as [`prune_album_art`] and for the same reason, but with a far
+/// smaller reference set: one settings entry rather than two table scans. What
+/// carries over exactly is the fail-safe — the sweep is handed a
+/// [`BackgroundReference`], which has no variant a failed read can be squeezed
+/// into, so "the record did not parse" cannot arrive at the deletion site
+/// wearing the face of "nothing is referenced".
+///
+/// What this collects: the predecessor of every replacement, and any file
+/// orphaned by a crash between the copy and the record that names it.
+fn sweep_backgrounds(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let Some(state) = app.try_state::<AppState>() else {
+            return;
+        };
+        let Ok(data_dir) = app.path().app_data_dir() else {
+            return;
+        };
+
+        // Read inside the closure, not before it: `off_thread` schedules, so a
+        // reference resolved out here would be a snapshot taken before the scan
+        // it guards. An import completing in that window would look like an
+        // orphan and be deleted out from under the record naming it.
+        let settings = std::sync::Arc::clone(state.settings());
+        let report = crate::wire::off_thread("sweep orphaned backgrounds", move || {
+            let reference = crate::commands::background::read_record(&settings);
+            Ok(background::sweep_orphans(&data_dir, &reference))
+        })
+        .await;
+
+        match report {
+            Ok(report) => tracing::info!(
+                scanned = report.scanned,
+                deleted = report.deleted,
+                referenced = report.referenced,
+                "background sweep complete"
+            ),
+            Err(error) => tracing::warn!(?error, "the background sweep did not complete"),
         }
     });
 }

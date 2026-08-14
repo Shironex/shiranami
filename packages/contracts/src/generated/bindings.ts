@@ -47,6 +47,26 @@ export const commands = {
 	 */
 	appGetLocaleCountry: () => __TAURI_INVOKE<string>("app_get_locale_country"),
 	/**
+	 *  `background:pick` — choose an image and adopt it, or `null` if cancelled.
+	 * 
+	 *  Cancelling is not an error, matching every other picker in the app: the
+	 *  renderer's "the user changed their mind" branch is an `if`, not a `catch`.
+	 *  A *refusal* is an error, and a specific one — see
+	 *  `shiranami_core::error::codes::background`.
+	 */
+	backgroundPick: () => __TAURI_INVOKE<CustomBackground | null>("background_pick"),
+	/**
+	 *  `background:get` — the current background, if one is set and still on disk.
+	 * 
+	 *  Self-healing: a record naming a file that has vanished (an external delete, a
+	 *  restored profile, a half-copied app-data move) is removed rather than
+	 *  returned, so the renderer never has to render a URL that 404s. The filesystem
+	 *  is the source of truth for existence; the settings entry only names things.
+	 */
+	backgroundGet: () => __TAURI_INVOKE<CustomBackground | null>("background_get"),
+	/**  `background:clear` — forget the background and delete its files. */
+	backgroundClear: () => __TAURI_INVOKE<null>("background_clear"),
+	/**
 	 *  `companion:get-state` — the singleton, hatched from history on first read.
 	 * 
 	 *  The first call ever seeds `xp` from `SUM(played_seconds)` over the whole
@@ -1522,6 +1542,29 @@ export type Coordinates = {
 	lat: number | null,
 	/**  Degrees east, −180 to 180. */
 	lon: number | null,
+};
+
+/**
+ *  The settings record describing the currently imported background.
+ * 
+ *  Persisted under `MainStoreKey::AppearanceCustomBackground` and returned to
+ *  the renderer verbatim. Per architecture §2.3 this is a persisted *and* wire
+ *  struct, so it may only ever grow, and every added field must be `Option` or
+ *  `#[serde(default)]` — a record written by an older build has to keep
+ *  parsing. `still_file_name` and `animated` already carry that treatment, and
+ *  a test pins that a record missing both still loads.
+ */
+export type CustomBackground = {
+	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
+	fileName: string,
+	/**  The frozen frame-0 sibling, present only for an animated source. */
+	stillFileName: string | null,
+	/**  Width in pixels, as imported. */
+	width: number,
+	/**  Height in pixels, as imported. */
+	height: number,
+	/**  Whether the source carries more than one frame. */
+	animated: boolean,
 };
 
 /**  What `db:backup:export` resolves to — v1's `DbExportResult`. */

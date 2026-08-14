@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
 use crate::error::ServeError;
-use crate::routes::{art, audio, radio};
+use crate::routes::{art, audio, background, radio};
 use crate::state::{ServeConfig, ServeState};
 use crate::token::SessionToken;
 
@@ -141,6 +141,7 @@ pub fn router(state: ServeState) -> Router {
     Router::new()
         .route("/{token}/audio", get(audio::handle))
         .route("/{token}/art/{name}", get(art::handle))
+        .route("/{token}/background/{name}", get(background::handle))
         .route("/{token}/radio", get(radio::handle))
         .fallback(unknown)
         .layer(axum::middleware::from_fn(crate::cors::apply))

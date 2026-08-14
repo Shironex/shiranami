@@ -36,6 +36,12 @@ pub struct ServeConfig {
     pub folders: Arc<FoldersCache>,
     /// Where album art lives on disk — `<userData>/album-art` in v1's layout.
     pub art_dir: PathBuf,
+    /// Where imported app backgrounds live — `<userData>/backgrounds`.
+    ///
+    /// A second directory rather than a subdirectory of the art cache, because
+    /// the art prune deletes by reference and would treat every wallpaper as an
+    /// orphan on the first boot after an import.
+    pub background_dir: PathBuf,
     /// The SSRF guard, shared with the HTTP client so both judge by one clock.
     pub guard: UrlGuard,
     /// How the radio proxy reaches a station.
@@ -55,11 +61,13 @@ impl ServeConfig {
     pub fn new(
         folders: Arc<FoldersCache>,
         art_dir: PathBuf,
+        background_dir: PathBuf,
         client: shiranami_net::HttpClient,
     ) -> Self {
         Self {
             folders,
             art_dir,
+            background_dir,
             guard: client.guard().clone(),
             upstream: Arc::new(crate::upstream::NetUpstream::new(client)),
             now_playing: NowPlayingSink::discarding(),
@@ -80,6 +88,7 @@ struct Inner {
     token: SessionToken,
     folders: Arc<FoldersCache>,
     art_dir: PathBuf,
+    background_dir: PathBuf,
     art_cache: ArtCache,
     guard: UrlGuard,
     upstream: Arc<dyn RadioUpstream>,
@@ -95,6 +104,7 @@ impl ServeState {
                 token,
                 folders: config.folders,
                 art_dir: config.art_dir,
+                background_dir: config.background_dir,
                 art_cache: ArtCache::default(),
                 guard: config.guard,
                 upstream: config.upstream,
@@ -124,6 +134,11 @@ impl ServeState {
     /// The album-art directory.
     pub fn art_dir(&self) -> &std::path::Path {
         &self.inner.art_dir
+    }
+
+    /// The imported-background directory.
+    pub fn background_dir(&self) -> &std::path::Path {
+        &self.inner.background_dir
     }
 
     /// The album-art LRU.

@@ -532,7 +532,8 @@
         "snow": "Śnieg",
         "summer": "Lato",
         "sunset": "Zachód słońca",
-        "wisteria": "Glicynia"
+        "wisteria": "Glicynia",
+        "custom": "Twój obraz"
       }
     },
     "accent": {
@@ -643,10 +644,31 @@
       "blurDesc": "Zmiękczenie krawędzi obrazu tła",
       "dim": "Przyciemnienie",
       "dimDesc": "Ciemna warstwa nad obrazem poprawiająca czytelność tekstu",
+      "fit": "Dopasowanie",
+      "fitDesc": "Jak obraz wypełnia okno. „Zmieść\" pokazuje całość, „Wypełnij\" przycina do krawędzi.",
+      "fitOptions": {
+        "cover": "Wypełnij",
+        "contain": "Zmieść"
+      },
       "reset": "Przywróć domyślne",
       "previewTitle": "Podgląd",
       "previewTrack": "Przykładowy utwór",
       "previewArtist": "Odtwarzanie na Twoim tle"
+    },
+    "background": {
+      "choose": "Wybierz obraz…",
+      "replace": "Zmień obraz…",
+      "remove": "Usuń",
+      "hint": "PNG, JPEG, WebP lub GIF · do 20 MB",
+      "retry": "Spróbuj ponownie",
+      "errors": {
+        "tooLarge": "Ten obraz jest za duży. Wybierz plik poniżej 20 MB.",
+        "unsupportedFormat": "Ten typ pliku nie jest obsługiwany. Użyj PNG, JPEG, WebP lub GIF.",
+        "notAnImage": "Ten plik nie jest obrazem, na jaki wskazuje jego nazwa.",
+        "dimensionsTooLarge": "Ten obraz jest zbyt duży, aby go wyświetlić. Dłuższy bok musi mieć mniej niż 8192 piksele.",
+        "generic": "Nie udało się zmienić tła.",
+        "readFailed": "Nie udało się odczytać bieżącego tła."
+      }
     }
   },
   "dl": {
