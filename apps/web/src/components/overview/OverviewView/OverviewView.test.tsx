@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import type { useOverviewData } from '@/hooks/useOverviewData';
 import type { WeeklyRecapState } from '@/hooks/useWeeklyRecap';
+import type { OnThisNightState } from '@/hooks/useOnThisNight';
 import OverviewView from './OverviewView';
 
 // ── Mocks ──
@@ -12,6 +13,7 @@ const navigateTo = vi.fn();
 type OverviewData = ReturnType<typeof useOverviewData>;
 let overviewData: OverviewData;
 let weeklyRecap: WeeklyRecapState;
+let onThisNight: OnThisNightState;
 
 function makeData(overrides: Partial<OverviewData> = {}): OverviewData {
   return {
@@ -46,10 +48,15 @@ vi.mock('@/hooks/useOverviewData', () => ({
   useOverviewData: () => overviewData,
 }));
 
-// The recap's eligibility (query + reveal window) is exercised by its own
-// units; stub the hook so this render test stays provider-free.
+// The recap's and the memory's eligibility (query + reveal window) are
+// exercised by their own units; stub the hooks so this render test stays
+// provider-free.
 vi.mock('@/hooks/useWeeklyRecap', () => ({
   useWeeklyRecap: () => weeklyRecap,
+}));
+
+vi.mock('@/hooks/useOnThisNight', () => ({
+  useOnThisNight: () => onThisNight,
 }));
 
 vi.mock('@/hooks/useLibraryActions', () => ({
@@ -72,6 +79,9 @@ vi.mock('@/components/overview/GreetingHero', () => ({
 }));
 vi.mock('@/components/shared/WeeklyRecapCard', () => ({
   WeeklyRecapCard: () => <div data-testid="recap" />,
+}));
+vi.mock('@/components/overview/OnThisNightCard', () => ({
+  OnThisNightCard: () => <div data-testid="memories" />,
 }));
 vi.mock('@/components/overview/StatStrip', () => ({
   StatStrip: () => <div data-testid="stats" />,
@@ -100,6 +110,7 @@ describe('OverviewView', () => {
     vi.clearAllMocks();
     overviewData = makeData();
     weeklyRecap = { recap: null, visible: false };
+    onThisNight = { memory: null, visible: false };
   });
 
   it('shows the first-run empty state when there is no library', () => {
@@ -168,5 +179,37 @@ describe('OverviewView', () => {
     };
     render(<OverviewView />);
     expect(screen.getByTestId('recap')).toBeInTheDocument();
+  });
+
+  it('keeps the memories card away while both lookback windows are silent', () => {
+    overviewData = makeData({ hasLibrary: true, hasHistory: true });
+    render(<OverviewView />);
+    expect(screen.queryByTestId('memories')).not.toBeInTheDocument();
+  });
+
+  it('reveals the memories card even without recent history', () => {
+    overviewData = makeData({ hasLibrary: true, hasHistory: false });
+    onThisNight = {
+      visible: true,
+      memory: {
+        distance: 'year',
+        anchorIso: '2025-08-14T12:00:00.000Z',
+        track: {
+          trackId: 'trk-1',
+          title: 'Kiro',
+          artist: 'Shironami',
+          album: 'Night Drift',
+          albumArt: null,
+          playCount: 4,
+          listenedSeconds: 900,
+          lastPlayedAt: '2025-08-14T23:00:00.000Z',
+        },
+        totalPlays: 6,
+      },
+    };
+    render(<OverviewView />);
+    expect(screen.getByTestId('memories')).toBeInTheDocument();
+    // The quiet section-empty still covers the history-gated sections.
+    expect(screen.getByText('emptySectionTitle')).toBeInTheDocument();
   });
 });

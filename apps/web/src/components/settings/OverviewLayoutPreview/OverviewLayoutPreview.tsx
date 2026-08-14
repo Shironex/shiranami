@@ -35,6 +35,7 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     title,
     sectionOrder,
     recap,
+    memories,
     stats,
     topWeek,
     clock,
@@ -52,6 +53,7 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     recTiles,
     recentRows,
     recapRows,
+    memoryRows,
   } = useOverviewLayoutPreview(props);
 
   const statsTileEls = statsTiles.map(i => (
@@ -102,6 +104,14 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     />
   ));
 
+  const memoryRowEls = memoryRows.map(row => (
+    <div
+      key={row.key}
+      className="h-1.5 rounded-full bg-muted-foreground/25"
+      style={{ width: `${row.widthPx}px` }}
+    />
+  ));
+
   const sectionBlocks: Record<OverviewSectionId, ReactNode> = {
     recap: (
       <OverviewBlock
@@ -112,6 +122,21 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
         className="border border-border/25 bg-muted/15"
       >
         <div className="space-y-1.5 p-2">{recapRowEls}</div>
+      </OverviewBlock>
+    ),
+
+    memories: (
+      <OverviewBlock
+        key="memories"
+        visible={memories.visible}
+        highlighted={memories.highlighted}
+        expandedClass="max-h-14"
+        className="border border-border/25 bg-muted/15"
+      >
+        <div className="flex items-center gap-1.5 p-2">
+          <div className="size-6 shrink-0 rounded-md bg-primary/20" />
+          <div className="space-y-1.5">{memoryRowEls}</div>
+        </div>
       </OverviewBlock>
     ),
 

@@ -5,6 +5,7 @@ import type { OverviewSectionId } from '@/lib/overview-sections';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { GreetingHero } from '@/components/overview/GreetingHero';
 import { WeeklyRecapCard } from '@/components/shared/WeeklyRecapCard';
+import { OnThisNightCard } from '@/components/overview/OnThisNightCard';
 import { StatStrip } from '@/components/overview/StatStrip';
 import { TopThisWeek } from '@/components/overview/TopThisWeek';
 import { ListeningClock } from '@/components/overview/ListeningClock';
@@ -44,6 +45,8 @@ export default function OverviewView() {
     isError,
     recap,
     showRecap,
+    memory,
+    showMemories,
     sectionOrder,
     showStats,
     showTopWeek,
@@ -103,6 +106,12 @@ export default function OverviewView() {
       showRecap && recap ? (
         <WeeklyRecapCard recap={recap} onOpenArchive={onNavigateHistory} />
       ) : null,
+
+    // An anniversary memory needs no recent history — a year-old night still
+    // deserves its card — so it sits outside the hasHistory gate and simply
+    // stays away when both lookback windows are silent.
+    memories:
+      showMemories && memory ? <OnThisNightCard memory={memory} onPlay={handlePlayTrack} /> : null,
 
     stats:
       hasHistory && showStats ? (

@@ -597,6 +597,8 @@
         "topBarLanguageSwitcherDesc": "Quick language toggle in the top bar. The language picker stays available in Appearance settings.",
         "overviewRecap": "Weekly recap",
         "overviewRecapDesc": "A few quiet lines about each finished week; past weeks stay in History",
+        "overviewMemories": "On this night",
+        "overviewMemoriesDesc": "A track you played a year ago tonight — or six months, when the year is quiet",
         "overviewStats": "Stats strip",
         "overviewStatsDesc": "Listening time, sessions, and trend for the week",
         "overviewInsights": "Weekly insights",

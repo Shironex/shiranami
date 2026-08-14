@@ -21,6 +21,7 @@ interface PersistedInterfaceToggles {
   /** The resident companion (Shio/Hotaru) across all its perches. */
   companion: boolean;
   overviewRecap: boolean;
+  overviewMemories: boolean;
   overviewStats: boolean;
   overviewTopWeek: boolean;
   overviewClock: boolean;
@@ -50,6 +51,7 @@ const TOGGLE_DEFAULTS: PersistedInterfaceToggles = {
   topBarLanguageSwitcher: true,
   companion: true,
   overviewRecap: true,
+  overviewMemories: true,
   overviewStats: true,
   overviewTopWeek: true,
   overviewClock: true,

@@ -2,6 +2,7 @@ import type { HeatmapModel } from '../overviewUtils';
 import type { ListeningAlbumStat, ListeningStatsSummary } from '@/types/electron';
 import type { Track } from '@/stores/types';
 import type { WeeklyRecap } from '@/hooks/queries/useRecap';
+import type { OnThisNightMemory } from '@/hooks/queries/useMemories';
 import type { OverviewSectionId } from '@/lib/overview-sections';
 
 /** Localized copy for the error / first-run / empty surfaces. */
@@ -46,6 +47,11 @@ export interface IOverviewView {
   readonly recap: WeeklyRecap | null;
   /** Whether the recap card is in its reveal window (and enabled). */
   readonly showRecap: boolean;
+
+  /** The "on this night" anniversary memory, when a lookback window has plays. */
+  readonly memory: OnThisNightMemory | null;
+  /** Whether the memories card should render (enabled AND non-empty). */
+  readonly showMemories: boolean;
 
   // Section order + visibility (interface-store driven).
   /** User-chosen Overview section order, already reconciled by the store. */

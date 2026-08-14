@@ -3,6 +3,7 @@ import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useViewStore } from '@/stores/useViewStore';
 import { useOverviewData } from '@/hooks/useOverviewData';
 import { useWeeklyRecap } from '@/hooks/useWeeklyRecap';
+import { useOnThisNight } from '@/hooks/useOnThisNight';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import type { IOverviewView } from './OverviewView.types';
 
@@ -28,6 +29,7 @@ export function useOverviewView(): IOverviewView {
   const { handleOpenFolder } = useLibraryActions();
   const navigateTo = useViewStore(s => s.navigateTo);
   const { recap, visible: showRecap } = useWeeklyRecap();
+  const { memory, visible: showMemories } = useOnThisNight();
   const sectionOrder = useInterfaceStore(s => s.overviewOrder);
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
@@ -58,6 +60,8 @@ export function useOverviewView(): IOverviewView {
     isError,
     recap,
     showRecap,
+    memory,
+    showMemories,
     sectionOrder,
     showStats,
     showTopWeek,

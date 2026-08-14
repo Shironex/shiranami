@@ -45,6 +45,8 @@ export interface IOverviewLayoutPreviewView {
   readonly sectionOrder: readonly OverviewSectionId[];
   /** Weekly-recap card block state. */
   readonly recap: IOverviewBlockState;
+  /** On-this-night memories card block state. */
+  readonly memories: IOverviewBlockState;
   /** Stats strip block state. */
   readonly stats: IOverviewBlockState;
   /** Top-tracks-this-week block state. */
@@ -79,4 +81,6 @@ export interface IOverviewLayoutPreviewView {
   readonly recentRows: readonly IOverviewBarRow[];
   /** Weekly-recap skeleton prose rows. */
   readonly recapRows: readonly IOverviewBarRow[];
+  /** On-this-night memories skeleton prose rows. */
+  readonly memoryRows: readonly IOverviewBarRow[];
 }

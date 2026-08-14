@@ -12,6 +12,7 @@ export type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`
  */
 export type OverviewSectionId =
   | 'recap'
+  | 'memories'
   | 'stats'
   | 'insights'
   | 'mixes'
@@ -33,6 +34,7 @@ export interface OverviewSection {
  */
 export const OVERVIEW_SECTIONS: OverviewSection[] = [
   { id: 'recap', labelKey: 'overviewRecap', toggles: ['overviewRecap'] },
+  { id: 'memories', labelKey: 'overviewMemories', toggles: ['overviewMemories'] },
   { id: 'stats', labelKey: 'overviewStats', toggles: ['overviewStats'] },
   {
     id: 'insights',
