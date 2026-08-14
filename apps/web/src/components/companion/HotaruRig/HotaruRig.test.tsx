@@ -45,4 +45,28 @@ describe('HotaruRig', () => {
     const { container } = renderRig(<HotaruRig stage={2} mode="listening" motion={false} />);
     expect(container.querySelectorAll('.companion-ink').length).toBeGreaterThan(0);
   });
+
+  it('mounts only the worn accessory layer, and none when bare', () => {
+    const { container: bare } = renderRig(<HotaruRig stage={2} mode="idle" motion={false} />);
+    expect(bare.querySelector('.companion-outfit')).toBeNull();
+
+    const { container: dressed } = renderRig(
+      <HotaruRig stage={2} mode="idle" motion={false} outfit="sakura" />
+    );
+    expect(dressed.querySelectorAll('.companion-outfit')).toHaveLength(1);
+    expect(dressed.querySelector('.companion-o-sakura')).not.toBeNull();
+    expect(dressed.querySelector('.companion-o-maple')).toBeNull();
+  });
+
+  it('pulses the lantern glow only when motion is allowed', () => {
+    const { container: moving } = renderRig(
+      <HotaruRig stage={2} mode="idle" motion outfit="lantern" />
+    );
+    expect(moving.querySelector('.companion-o-lantern')).toHaveClass('companion-lantern-glow');
+
+    const { container: still } = renderRig(
+      <HotaruRig stage={2} mode="idle" motion={false} outfit="lantern" />
+    );
+    expect(still.querySelector('.companion-o-lantern')).not.toHaveClass('companion-lantern-glow');
+  });
 });

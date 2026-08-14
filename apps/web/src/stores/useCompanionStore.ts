@@ -29,12 +29,14 @@ interface PersistedCompanionState {
   species: CompanionSpecies;
   perchFraction: number;
   sanctuaryKeepsWatch: boolean;
+  dressForWeather: boolean;
 }
 
 const COMPANION_DEFAULTS: PersistedCompanionState = {
   species: 'shio',
   perchFraction: COMPANION_DEFAULT_PERCH_FRACTION,
   sanctuaryKeepsWatch: false,
+  dressForWeather: true,
 };
 
 function clampFraction(v: unknown): number {
@@ -53,6 +55,8 @@ function sanitize(
     out.perchFraction = clampFraction(persisted.perchFraction);
   if (typeof persisted.sanctuaryKeepsWatch === 'boolean')
     out.sanctuaryKeepsWatch = persisted.sanctuaryKeepsWatch;
+  if (typeof persisted.dressForWeather === 'boolean')
+    out.dressForWeather = persisted.dressForWeather;
   return out;
 }
 
@@ -60,6 +64,7 @@ interface CompanionActions {
   setSpecies: (species: CompanionSpecies) => void;
   setPerchFraction: (fraction: number) => void;
   setSanctuaryKeepsWatch: (keepsWatch: boolean) => void;
+  setDressForWeather: (dress: boolean) => void;
 }
 
 export const useCompanionStore = createPersistedStore<PersistedCompanionState & CompanionActions>(
@@ -74,6 +79,9 @@ export const useCompanionStore = createPersistedStore<PersistedCompanionState & 
     setSanctuaryKeepsWatch: keepsWatch => {
       set({ sanctuaryKeepsWatch: keepsWatch });
     },
+    setDressForWeather: dress => {
+      set({ dressForWeather: dress });
+    },
   }),
   {
     name: STORE_KEY,
@@ -82,6 +90,7 @@ export const useCompanionStore = createPersistedStore<PersistedCompanionState & 
       species: s.species,
       perchFraction: s.perchFraction,
       sanctuaryKeepsWatch: s.sanctuaryKeepsWatch,
+      dressForWeather: s.dressForWeather,
     }),
     sanitize: (persisted, current) => ({
       ...current,

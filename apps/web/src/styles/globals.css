@@ -491,6 +491,7 @@
   .companion-idle-float,
   .companion-idle-blink,
   .companion-bub-drift,
+  .companion-lantern-glow,
   .vinyl-spin {
     animation: none !important;
   }
@@ -529,6 +530,11 @@
 }
 /* Freeze the vinyl disc under low-perf (mirrors the reduced-motion kill). */
 [data-perf-mode='low'] .vinyl-spin {
+  animation: none !important;
+}
+/* Companion loops are already gated app-side (useDecorativeMotion); the
+   lantern pulse also degrades here as a CSS-level belt. */
+[data-perf-mode='low'] .companion-lantern-glow {
   animation: none !important;
 }
 /* AmbientBackground already unmounts the room-light layer under low-perf, but
@@ -852,6 +858,20 @@
 /* Foam bubbles drift while listening. */
 @utility companion-bub-drift {
   animation: companion-drift 3.4s ease-in-out infinite alternate;
+}
+
+/* Lantern-glow outfit: a slow warm pulse at a fixed calm period — ambient
+   light, never the beat. */
+@keyframes companion-lantern-pulse {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@utility companion-lantern-glow {
+  animation: companion-lantern-pulse 4s ease-in-out infinite alternate;
 }
 
 @utility eq-bar-1 {
@@ -1280,4 +1300,57 @@
 }
 .companion-svg:is([data-state='sleeping'], [data-state='drowsy']) .companion-pool {
   scale: 0.85;
+}
+
+/* ── Weather fits ────────────────────────────────────────────────────────
+   Outfit accessory layers (one <g> per outfit per rig), revealed by the
+   root's data-outfit exactly like stages ride data-stage. Fills route
+   through the same --companion-* / --primary-rgb / --art-* plumbing as the
+   rig, so accessories recolor with the theme and the playing record. */
+.companion-svg .companion-outfit {
+  display: none;
+}
+.companion-svg[data-outfit='umbrella'] .companion-o-umbrella,
+.companion-svg[data-outfit='scarf'] .companion-o-scarf,
+.companion-svg[data-outfit='sun'] .companion-o-sun,
+.companion-svg[data-outfit='lantern'] .companion-o-lantern,
+.companion-svg[data-outfit='sakura'] .companion-o-sakura,
+.companion-svg[data-outfit='maple'] .companion-o-maple,
+.companion-svg[data-outfit='snow'] .companion-o-snow {
+  display: inline;
+}
+
+/* Outfit paints. Canopy = the leaf umbrella's blade; accent = scarf/maple
+   (strong primary, like the headphones); petal = sakura's soft primary;
+   drop = the sweat droplet on the bubble tint; snowflake = the body foam
+   constant; glow/halo = the lantern's accent-warmed light. */
+.companion-svg .companion-o-canopy {
+  fill: color-mix(in srgb, var(--art-2, rgb(var(--primary-rgb))) 55%, var(--companion-foam));
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-o-accent {
+  fill: rgb(var(--primary-rgb) / 0.7);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-o-petal {
+  fill: rgb(var(--primary-rgb) / 0.45);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-o-drop {
+  fill: color-mix(in srgb, var(--art-3, oklch(0.55 0.08 285)) 75%, transparent);
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-o-snowflake {
+  fill: var(--companion-foam);
+  stroke: oklch(0.3 0.04 285 / 0.16);
+  stroke-width: 0.6;
+}
+.companion-svg .companion-o-glowcore {
+  fill: color-mix(in srgb, rgb(var(--primary-rgb)) 65%, var(--companion-foam));
+  transition: fill 1.2s ease;
+}
+.companion-svg .companion-o-halo {
+  fill: color-mix(in srgb, rgb(var(--primary-rgb)) 50%, transparent);
+  opacity: 0.35;
+  transition: fill 1.2s ease;
 }

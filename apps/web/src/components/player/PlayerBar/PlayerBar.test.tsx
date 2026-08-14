@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Track } from '@/stores/types';
@@ -36,10 +37,14 @@ function makeTrack(overrides: Partial<Track> = {}): Track {
 }
 
 function renderBar() {
+  // The perch's presence read now includes the cached weather query.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <TooltipProvider>
-      <PlayerBar />
-    </TooltipProvider>
+    <QueryClientProvider client={client}>
+      <TooltipProvider>
+        <PlayerBar />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

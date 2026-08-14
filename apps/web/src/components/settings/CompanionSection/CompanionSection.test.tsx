@@ -10,7 +10,11 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 
 function reset(): void {
   useInterfaceStore.setState({ companion: true });
-  useCompanionStore.setState({ species: 'shio', sanctuaryKeepsWatch: false });
+  useCompanionStore.setState({
+    species: 'shio',
+    sanctuaryKeepsWatch: false,
+    dressForWeather: true,
+  });
   useCompanionRuntimeStore.setState({
     ledger: { name: null, xpHours: null, hasBackend: false },
   });
@@ -47,6 +51,14 @@ describe('CompanionSection', () => {
     const switches = screen.getAllByRole('switch');
     await user.click(switches[0]);
     expect(useInterfaceStore.getState().companion).toBe(false);
+  });
+
+  it('toggles the weather-fits preference from its own row', async () => {
+    const user = userEvent.setup();
+    render(<CompanionSection />);
+
+    await user.click(screen.getByRole('switch', { name: /Dresses for the weather/ }));
+    expect(useCompanionStore.getState().dressForWeather).toBe(false);
   });
 
   it('keeps numbers out of sight until the ledger answers, then prose only', () => {

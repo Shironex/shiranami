@@ -17,6 +17,8 @@ export function useCompanionSection(): ICompanionSectionView {
   const setVisible = useInterfaceStore(s => s.setVisible);
   const keepsWatch = useCompanionStore(s => s.sanctuaryKeepsWatch);
   const setKeepsWatch = useCompanionStore(s => s.setSanctuaryKeepsWatch);
+  const dressForWeather = useCompanionStore(s => s.dressForWeather);
+  const setDressForWeather = useCompanionStore(s => s.setDressForWeather);
   const ledger = useCompanionLedger();
   const motion = useDecorativeMotion();
 
@@ -45,6 +47,8 @@ export function useCompanionSection(): ICompanionSectionView {
     onSelectSpecies: ledger.setSpecies,
     keepsWatch,
     onToggleKeepsWatch: setKeepsWatch,
+    dressForWeather,
+    onToggleDressForWeather: setDressForWeather,
     stage: ledger.stage,
     motion,
     stageLine,
