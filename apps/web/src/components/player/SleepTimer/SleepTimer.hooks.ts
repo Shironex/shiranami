@@ -6,8 +6,14 @@ import {
   SLEEP_TIMER_PRESETS,
   SLEEP_TIMER_MIN_MINUTES,
   SLEEP_TIMER_MAX_MINUTES,
+  type SleepStopMode,
 } from '@/stores/useSleepTimerStore';
-import type { ISleepTimerPreset, ISleepTimerView } from './SleepTimer.types';
+import {
+  useWindDownStore,
+  WIND_DOWN_LENGTH_CHOICES,
+  type WindDownLength,
+} from '@/stores/useWindDownStore';
+import type { ISleepTimerPreset, ISleepTimerView, IWindDownLengthChoice } from './SleepTimer.types';
 
 // NOTE: intentionally NOT formatDuration from @shiranami/shared. The sleep
 // timer caps at 600 minutes, so `remaining` exceeds an hour; formatDuration
@@ -51,12 +57,16 @@ export function useSleepTimer(): ISleepTimerView {
   const endTime = useSleepTimerStore(s => s.endTime);
   const remaining = useSleepTimerStore(s => s.remaining);
   const windDown = useSleepTimerStore(s => s.windDown);
+  const stopMode = useSleepTimerStore(s => s.stopMode);
   const start = useSleepTimerStore(s => s.start);
   const startWindDown = useSleepTimerStore(s => s.startWindDown);
+  const startStopAfter = useSleepTimerStore(s => s.startStopAfter);
   const cancel = useSleepTimerStore(s => s.cancel);
+  const windDownLength = useWindDownStore(s => s.lengthMinutes);
+  const setWindDownLength = useWindDownStore(s => s.setLength);
 
-  const isActive = endTime !== null;
-  const isWindDown = isActive && windDown;
+  const isActive = endTime !== null || stopMode !== null;
+  const isWindDown = endTime !== null && windDown;
 
   const onOpenChange = useCallback((next: boolean) => {
     if (next) {
@@ -79,6 +89,14 @@ export function useSleepTimer(): ISleepTimerView {
     startWindDown();
     setOpen(false);
   }, [startWindDown]);
+
+  const onSelectStopAfter = useCallback(
+    (mode: SleepStopMode) => {
+      startStopAfter(mode);
+      setOpen(false);
+    },
+    [startStopAfter]
+  );
 
   const onCancel = useCallback(() => {
     cancel();
@@ -131,13 +149,44 @@ export function useSleepTimer(): ISleepTimerView {
     [t]
   );
 
+  const onSelectWindDownLength = useCallback(
+    (minutes: WindDownLength) => setWindDownLength(minutes),
+    [setWindDownLength]
+  );
+
+  const windDownEnabled = windDownLength > 0;
+
+  const windDownLengthChoices = useMemo<IWindDownLengthChoice[]>(
+    () =>
+      WIND_DOWN_LENGTH_CHOICES.map(minutes => ({
+        minutes,
+        label: minutes === 0 ? t('off') : String(minutes),
+        // "Off" carries its own name; the bare numbers get a fuller one,
+        // distinct from the identically-numbered timer presets above.
+        ariaLabel: minutes === 0 ? t('off') : t('windDownLengthChoice', { count: minutes }),
+        selected: minutes === windDownLength,
+      })),
+    [t, windDownLength]
+  );
+
+  const windDownHint = windDownEnabled
+    ? t('windDownHint', { count: windDownLength })
+    : t('windDownOff');
+
   const remainingLabel = formatRemaining(remaining);
 
-  const tooltipText = isActive
-    ? isWindDown
-      ? t('windDownIn', { time: remainingLabel })
-      : t('sleepIn', { time: remainingLabel })
-    : t('label');
+  // A boundary stop has no countdown — its label doubles as the tooltip.
+  const stopModeLabel = stopMode
+    ? t(stopMode === 'track' ? 'stopAtTrackEnd' : 'stopAtAlbumEnd')
+    : null;
+
+  const tooltipText = stopModeLabel
+    ? stopModeLabel
+    : isActive
+      ? isWindDown
+        ? t('windDownIn', { time: remainingLabel })
+        : t('sleepIn', { time: remainingLabel })
+      : t('label');
 
   return {
     t,
@@ -148,15 +197,21 @@ export function useSleepTimer(): ISleepTimerView {
     customInputRef,
     isActive,
     isWindDown,
+    stopModeLabel,
     remainingLabel,
     tooltipText,
     triggerLabel: t('label'),
     presets,
+    windDownEnabled,
+    windDownHint,
+    windDownLengthChoices,
     minMinutes: SLEEP_TIMER_MIN_MINUTES,
     maxMinutes: SLEEP_TIMER_MAX_MINUTES,
     onOpenChange,
     onSelectPreset,
     onSelectWindDown,
+    onSelectStopAfter,
+    onSelectWindDownLength,
     onCancel,
     onShowCustom,
     onShowPresets,

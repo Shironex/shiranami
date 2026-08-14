@@ -46,12 +46,7 @@ export default function PlaylistImportView() {
               <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
             )}
             {view.showExtractButton && (
-              <Button
-                size="sm"
-                onClick={view.handleExtract}
-                disabled={view.extractDisabled}
-                className="rounded-lg"
-              >
+              <Button size="sm" onClick={view.handleExtract} disabled={view.extractDisabled}>
                 {view.t('extract')}
               </Button>
             )}
@@ -95,7 +90,7 @@ export default function PlaylistImportView() {
         {view.hasResults && (
           <div className="mt-3 max-w-2xl flex items-center gap-3">
             {view.showDownloadButton && (
-              <Button onClick={view.onDownloadClick} className="rounded-xl">
+              <Button onClick={view.onDownloadClick}>
                 <Download />
                 {view.hasSelection
                   ? view.t('downloadSelected', { count: view.selectedPendingCount })
@@ -105,7 +100,7 @@ export default function PlaylistImportView() {
             {view.showCancelButton && (
               <Button
                 onClick={view.handleCancel}
-                className="rounded-xl bg-destructive/10 text-destructive shadow-none hover:bg-destructive/20 hover:text-destructive"
+                className="bg-destructive/10 text-destructive shadow-none hover:bg-destructive/20 hover:text-destructive"
               >
                 <X />
                 {view.t('cancel')}
@@ -126,7 +121,7 @@ export default function PlaylistImportView() {
               variant="ghost"
               size="sm"
               onClick={view.handleReset}
-              className="rounded-xl text-muted-foreground"
+              className="text-muted-foreground"
               title={view.t('startOver')}
             >
               {view.t('newImport')}

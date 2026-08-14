@@ -49,7 +49,7 @@ export default function QueuePanel(props: IQueuePanelProps) {
           {hasQueue && (
             <button
               onClick={onClear}
-              className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
+              className="focus-ring rounded-sm flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
             >
               <Trash2 className="w-3 h-3" />
               {t('clear')}

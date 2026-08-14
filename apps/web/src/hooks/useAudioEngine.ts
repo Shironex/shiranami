@@ -6,6 +6,7 @@ import {
   type LoudnessLevelingMode,
 } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
 import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
 import {
@@ -428,6 +429,10 @@ export function useAudioEngine() {
   const startCrossfade = useCallback(() => {
     // Guard: don't start a new crossfade while one is already in progress
     if (crossfadeRef.current.active) return;
+
+    // An armed sleep-timer boundary stop means this track must end naturally —
+    // no early crossfade into a track that won't play.
+    if (useSleepTimerStore.getState().stopsAtBoundary()) return;
 
     const state = usePlaybackStore.getState();
     const { queue, queueIndex, repeatMode: rm, crossfadeDuration } = state;
@@ -1056,6 +1061,14 @@ export function useAudioEngine() {
       if (audio !== getActiveDeck()) return;
       const endedTrack = usePlaybackStore.getState().currentTrack;
       void flushPlaybackSession();
+      // An armed sleep-timer boundary stop (end of track / end of album)
+      // fires here: pause instead of advancing, leaving the queue where the
+      // listener drifted off — the same resting state as a queue running out.
+      const sleepTimer = useSleepTimerStore.getState();
+      if (sleepTimer.stopsAtBoundary()) {
+        sleepTimer.completeBoundaryStop();
+        return;
+      }
       if (usePlaybackStore.getState().repeatMode === 'one' && endedTrack) {
         resetPlaybackSession(endedTrack);
       }
@@ -1116,6 +1129,13 @@ export function useAudioEngine() {
 
     const onEnded = () => {
       if (repeatMode === 'one') {
+        // A sleep-timer boundary stop wins over the repeat loop. Checked on
+        // live store state so the outcome is the same whichever 'ended'
+        // listener runs first: before the stop fires `stopsAtBoundary` is
+        // true; after it fires the store is already paused.
+        const sleepTimer = useSleepTimerStore.getState();
+        if (sleepTimer.stopsAtBoundary()) return;
+        if (!usePlaybackStore.getState().isPlaying) return;
         audio.currentTime = 0;
         audio.play().catch(err => {
           if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);

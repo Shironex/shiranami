@@ -23,9 +23,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-switch-track: var(--switch-track);
   --color-brand-600: var(--brand-600);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -381,8 +386,10 @@
   animation: splash-sweep 1.4s ease-in-out infinite;
 }
 
-/* Vinyl record display — the disc revolves once per 1.8s (33⅓ RPM) on a
-   composited transform layer. The 1px transform-origin offset gives the
+/* Vinyl record display — the disc revolves on a composited transform layer at
+   the configured turntable speed: the component maps the RPM setting to a real
+   revolution duration through --vinyl-rev (60s / RPM), and the 1.8s fallback
+   is the 33⅓ long-play speed. The 1px transform-origin offset gives the
    pressing a subtle wobble for free. Pausing eases the animation's playback
    rate to zero instead of removing it, so the groove angle never resets.
    Decorative — killed under reduced-motion / low-perf below. */
@@ -393,7 +400,7 @@
 }
 .vinyl-spin {
   transform-origin: calc(50% + 1px) calc(50% - 1px);
-  animation: vinyl-spin 1.8s linear infinite;
+  animation: vinyl-spin var(--vinyl-rev, 1.8s) linear infinite;
   will-change: transform;
 }
 
@@ -440,6 +447,92 @@
 /* Reduced-motion / low-perf stand-in for the reactive ring: a calm fixed halo. */
 .vinyl-static-ring {
   box-shadow: 0 0 28px 6px oklch(from var(--primary) l c h / 0.28);
+}
+
+/* Alternate pressings — data-finish on the rotating disc element, so the
+   marble swirl and picture-disc art revolve with the grooves for free. 'black'
+   and 'picture' keep the base .vinyl-disc face; the picture finish just lays
+   the artwork and a groove film over it. Each finish only swaps static
+   gradients: no extra cost under low-perf beyond the frozen base disc. */
+.vinyl-disc[data-finish='clear'] {
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.12), transparent 46%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      oklch(0.85 0.01 285 / 0.14) 0px,
+      oklch(0.4 0.01 285 / 0.05) 2px,
+      oklch(0.8 0.01 285 / 0.12) 4px
+    ),
+    radial-gradient(circle, oklch(0.55 0.01 290 / 0.08) 28%, oklch(0.72 0.01 290 / 0.16) 100%);
+  box-shadow:
+    inset 0 0 24px oklch(1 0 0 / 0.08),
+    inset 0 0 6px oklch(1 0 0 / 0.14),
+    0 10px 30px oklch(0 0 0 / 0.3);
+}
+.vinyl-disc[data-finish='marble'] {
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.06), transparent 46%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      oklch(0 0 0 / 0.24) 0px,
+      oklch(1 0 0 / 0.02) 2px,
+      oklch(0 0 0 / 0.22) 4px
+    ),
+    conic-gradient(
+      from 40deg,
+      oklch(from var(--primary) calc(l - 0.25) calc(c * 0.55) h),
+      oklch(from var(--primary) calc(l + 0.1) calc(c * 0.45) h) 70deg,
+      oklch(0.24 0.01 285) 140deg,
+      oklch(from var(--primary) calc(l - 0.08) calc(c * 0.6) h) 205deg,
+      oklch(0.88 0.015 285) 262deg,
+      oklch(0.3 0.01 285) 300deg,
+      oklch(from var(--primary) calc(l - 0.25) calc(c * 0.55) h)
+    );
+}
+
+/* The groove film pressed over picture-disc artwork, plus an edge vignette so
+   the art reads as a pressing rather than a sticker. */
+.vinyl-picture-grooves {
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.05), transparent 46%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      oklch(0 0 0 / 0.16) 0px,
+      oklch(1 0 0 / 0.04) 2px,
+      oklch(0 0 0 / 0.14) 4px
+    ),
+    radial-gradient(circle, transparent 58%, oklch(0.09 0.02 290 / 0.55) 100%);
+}
+
+/* Tonearm overlay — a fixed pivot base in the wrapper's top-right corner and
+   an arm that swings around it: down onto the groove while playing, lifted a
+   few degrees off it when paused (the headshell's shadow sells the height).
+   The angle conveys play state, so it is functional — not gated behind
+   reduced-motion / low-perf; only its one-shot easing is decoration. */
+.vinyl-tonearm-base {
+  background: radial-gradient(circle at 35% 30%, oklch(0.6 0.015 285), oklch(0.3 0.015 285) 75%);
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.4);
+}
+.vinyl-tonearm-arm {
+  transform: rotate(4deg);
+  transition: transform 1.1s cubic-bezier(0.33, 0.8, 0.35, 1);
+}
+[data-slot='vinyl-tonearm'][data-resting='true'] .vinyl-tonearm-arm {
+  transform: rotate(16deg);
+}
+.vinyl-tonearm-shaft {
+  background: linear-gradient(90deg, oklch(0.72 0.01 285), oklch(0.44 0.01 285));
+}
+.vinyl-tonearm-weight {
+  background: linear-gradient(90deg, oklch(0.35 0.015 285), oklch(0.2 0.015 285));
+}
+.vinyl-tonearm-head {
+  background: linear-gradient(180deg, oklch(0.42 0.02 285), oklch(0.22 0.02 285));
+  box-shadow: 0 5px 7px oklch(0 0 0 / 0.4);
+  transition: box-shadow 1.1s ease;
+}
+[data-slot='vinyl-tonearm'][data-resting='true'] .vinyl-tonearm-head {
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.35);
 }
 
 /* Splash degradation — collapse every animated scene layer to a static still
@@ -575,8 +668,20 @@
   --border-strong: oklch(1 0 0 / 0.18);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
+
+  /* Semantic status accents — success / warning / info. Deliberately fixed
+     across every theme (theme blocks restyle only the primary accent), so a
+     status color always reads the same no matter which theme is active. */
+  --success: oklch(0.765 0.177 163);
+  --warning: oklch(0.828 0.189 84);
+  --warning-foreground: oklch(0.1 0.02 280);
+  --info: oklch(0.746 0.16 233);
   --input: oklch(0.12 0.02 280);
   --ring: oklch(0.72 0.12 280);
+
+  /* Unchecked switch track — lighter than --muted so the control still reads
+     as interactive against card surfaces. */
+  --switch-track: oklch(0.32 0.02 280);
 
   --radius: 0.75rem;
 
@@ -591,9 +696,10 @@
   /* RGB triplet of --primary for canvas/inline usage */
   --primary-rgb: 155, 125, 235;
 
-  /* RGB triplets for semantic status accents (badge shadows, callouts) */
-  --status-warning-rgb: 252, 211, 77;
-  --status-success-rgb: 110, 231, 183;
+  /* RGB triplets mirroring --warning / --success for rgba() shadow usage
+     (inset badge highlights). Keep in sync with the status tokens above. */
+  --status-warning-rgb: 251, 191, 36;
+  --status-success-rgb: 52, 211, 153;
 }
 
 /* ── Theme image + per-theme accent ──────────────────────────────────────
@@ -638,14 +744,33 @@
   --ring: var(--primary);
 }
 
-/* Sonner toast – override default dark-theme colors with app tokens */
-[data-sonner-toaster][data-sonner-theme='dark'] {
+/* Sonner toast — the surface, radius and close-button chrome all read the app
+   tokens whatever sonner theme is active (the attribute selector matches any
+   value at the same specificity sonner's own :where()-wrapped rules avoid),
+   so toasts follow the active app theme instead of a sonner built-in palette.
+   The --gray* vars are what sonner's close button reads. */
+[data-sonner-toaster][data-sonner-theme] {
   --normal-bg: var(--card);
   --normal-border: var(--border);
   --normal-text: var(--foreground);
+  --border-radius: var(--radius);
+  --gray1: var(--card);
+  --gray2: var(--muted);
+  --gray4: var(--border-strong);
+  --gray5: var(--border-strong);
+  --gray12: var(--foreground);
 }
 
 /* Utility classes */
+
+/* Unified keyboard-focus treatment — THE focus-visible recipe for every
+   interactive element. Button/IconButton bake it into their variants; raw
+   <button>/<a> sites add the class directly. outline-hidden (not outline-none)
+   keeps the outline in forced-colors mode where box-shadow rings vanish. */
+@utility focus-ring {
+  @apply focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring;
+}
+
 @utility drag {
   -webkit-app-region: drag;
 }

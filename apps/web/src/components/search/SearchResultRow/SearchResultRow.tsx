@@ -39,13 +39,13 @@ export default function SearchResultRow(props: ISearchResultRowProps) {
         isDownloading
           ? 'bg-primary/[0.04]'
           : isDone
-            ? 'border border-emerald-400/15'
+            ? 'border border-success/15'
             : 'hover:bg-accent/50'
       )}
     >
       <button
         onClick={onPreviewClick}
-        className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
+        className="focus-ring w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
         title={previewLabel}
         aria-label={previewLabel}
       >
@@ -82,7 +82,7 @@ export default function SearchResultRow(props: ISearchResultRowProps) {
         {isDownloading ? (
           <p className="text-xs text-primary/70 truncate mt-0.5">{downloadingLabel}</p>
         ) : isDone ? (
-          <p className="text-xs text-emerald-400/80 truncate mt-0.5">{addedLabel}</p>
+          <p className="text-xs text-success/80 truncate mt-0.5">{addedLabel}</p>
         ) : isError ? (
           <p className="text-xs text-destructive/80 truncate mt-0.5">{errorLabel}</p>
         ) : (

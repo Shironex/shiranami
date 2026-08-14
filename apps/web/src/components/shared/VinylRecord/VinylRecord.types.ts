@@ -1,6 +1,6 @@
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import type { FrequencySource } from '@/components/player/visualizer-source';
-import type { VinylLabelSource, VinylRingStyle } from '@/stores/useUIStore';
+import type { VinylFinish, VinylLabelSource, VinylRingStyle } from '@/stores/useUIStore';
 
 export interface IVinylRecordProps {
   /** Album artwork URL for the 'artwork' label; the brand mark fills in when absent. */
@@ -29,6 +29,19 @@ export interface IVinylRecordView {
   readonly labelSource: VinylLabelSource;
   /** Ring style, resolved from settings (drives the draw callback). */
   readonly ringStyle: VinylRingStyle;
+  /** The pressing's finish, resolved from settings (styles the disc face). */
+  readonly finish: VinylFinish;
+  /** Inline `--vinyl-rev` custom property: the RPM choice as a real revolution duration. */
+  readonly spinStyle: CSSProperties;
+  /**
+   * Artwork URL spread across the whole disc face for the picture finish;
+   * `null` keeps the center label (other finishes, or no art to spread).
+   */
+  readonly pictureArt: string | null;
+  /** Render the tonearm overlay. */
+  readonly tonearmVisible: boolean;
+  /** Arm down on the groove (playing) vs lifted off it (paused). */
+  readonly tonearmResting: boolean;
   /** Album artwork URL for the artwork label (prop passthrough). */
   readonly albumArt: string | null | undefined;
   /** `alt` for the artwork label image (prop passthrough). */

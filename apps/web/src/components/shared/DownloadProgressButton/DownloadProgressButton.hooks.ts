@@ -50,8 +50,8 @@ export function useDownloadProgressButton({
     return {
       Icon: Check,
       spin: false,
-      colorClass: 'text-emerald-400/90',
-      borderClass: 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200',
+      colorClass: 'text-success/90',
+      borderClass: 'border-success/15 motion-safe:transition-colors motion-safe:duration-200',
       isDisabled,
       isBusy,
     };

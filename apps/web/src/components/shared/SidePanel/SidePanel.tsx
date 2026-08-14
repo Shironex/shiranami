@@ -38,7 +38,7 @@ export default function SidePanel(props: ISidePanelProps) {
         <button
           onClick={onFlip}
           aria-label={flipLabel}
-          className="text-muted-foreground/40 hover:text-foreground transition-colors"
+          className="focus-ring rounded-sm text-muted-foreground/40 hover:text-foreground transition-colors"
         >
           <FlipIcon className="w-3.5 h-3.5" />
         </button>

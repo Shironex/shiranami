@@ -153,7 +153,7 @@ export default function LyricsSection() {
           <div className="px-3">
             <button
               onClick={onReset}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="focus-ring rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               {resetLabel}
             </button>
@@ -323,7 +323,7 @@ function FontSizeControl({ title, description, value, onChange }: IFontSizeContr
       aria-checked={value === size}
       onClick={() => onChange(size)}
       className={cn(
-        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        'focus-ring px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
         value === size
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
@@ -361,7 +361,7 @@ function PresentationControl({ title, description, value, onChange }: IPresentat
       aria-checked={value === presentation}
       onClick={() => onChange(presentation)}
       className={cn(
-        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        'focus-ring px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
         value === presentation
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Track } from '@/stores/types';
@@ -36,6 +36,11 @@ function reset(): void {
     vinylDisplayEnabled: false,
     vinylLabelSource: 'artwork',
     vinylRingStyle: 'glow',
+    vinylSpeed: '33',
+    vinylFinish: 'black',
+    vinylTonearmEnabled: false,
+    vinylNowPlayingSize: 'large',
+    vinylSanctuarySize: 'medium',
     roomLightEnabled: true,
   });
   useLibraryStore.setState({ library: [], libraryLoaded: true });
@@ -87,6 +92,48 @@ describe('VisualEffectsSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'Brand mark' }));
     expect(useUIStore.getState().vinylLabelSource).toBe('logo');
+  });
+
+  it('selects the turntable speed and disc finish through their chip pickers', async () => {
+    const user = userEvent.setup();
+    useUIStore.setState({ vinylDisplayEnabled: true });
+    render(<VisualEffectsSection />);
+
+    expect(screen.getByText('Rotation speed')).toBeInTheDocument();
+    expect(screen.getByText('Disc finish')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '45 RPM' }));
+    expect(useUIStore.getState().vinylSpeed).toBe('45');
+
+    await user.click(screen.getByRole('button', { name: 'Marble' }));
+    expect(useUIStore.getState().vinylFinish).toBe('marble');
+  });
+
+  it('selects the per-stage disc sizes through their own chip rows', async () => {
+    const user = userEvent.setup();
+    useUIStore.setState({ vinylDisplayEnabled: true });
+    render(<VisualEffectsSection />);
+
+    const nowPlayingRow = screen.getByRole('group', { name: 'Now Playing' });
+    await user.click(within(nowPlayingRow).getByRole('button', { name: 'Small' }));
+    expect(useUIStore.getState().vinylNowPlayingSize).toBe('small');
+    // The other stage keeps its own preference — the rows are independent.
+    expect(useUIStore.getState().vinylSanctuarySize).toBe('medium');
+
+    const sanctuaryRow = screen.getByRole('group', { name: 'Sanctuary' });
+    await user.click(within(sanctuaryRow).getByRole('button', { name: 'Large' }));
+    expect(useUIStore.getState().vinylSanctuarySize).toBe('large');
+  });
+
+  it('toggles the tonearm overlay through the store setter', async () => {
+    const user = userEvent.setup();
+    const setVinylTonearmEnabled = vi.fn();
+    useUIStore.setState({ vinylDisplayEnabled: true, setVinylTonearmEnabled });
+    render(<VisualEffectsSection />);
+
+    await user.click(screen.getByRole('switch', { name: 'Tonearm' }));
+
+    expect(setVinylTonearmEnabled).toHaveBeenCalledWith(true);
   });
 
   it('toggles the artwork bloom through the store setter', async () => {

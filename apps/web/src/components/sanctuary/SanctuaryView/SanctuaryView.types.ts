@@ -19,6 +19,8 @@ export interface ISanctuaryViewView {
   readonly titleText: string;
   /** What sits center-stage: the cover, or the clock. */
   readonly variant: SanctuaryVariant;
+  /** Vinyl variant: pre-resolved width class for the user's disc-size choice. */
+  readonly vinylStageWidthClass: string;
   /** Whether the swim-in chrome (controls, buttons) is currently visible. */
   readonly chromeVisible: boolean;
   /** Lyrics data layer (synced lines, active line, click-to-seek). */

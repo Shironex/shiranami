@@ -36,7 +36,7 @@ export default function SanctuarySection() {
       onClick={() => onSelectVariant(option.value)}
       aria-pressed={option.isActive}
       className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'focus-ring rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         option.isActive
           ? 'border border-primary/40 bg-primary/15 text-primary'
           : 'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground'

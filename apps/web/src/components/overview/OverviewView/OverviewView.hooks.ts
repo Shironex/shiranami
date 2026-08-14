@@ -4,6 +4,7 @@ import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useViewStore } from '@/stores/useViewStore';
 import { useOverviewData } from '@/hooks/useOverviewData';
 import { useWeeklyRecap } from '@/hooks/useWeeklyRecap';
+import { useOnThisNight } from '@/hooks/useOnThisNight';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useRecapStore } from '@/stores/useRecapStore';
 import type { IOverviewView } from './OverviewView.types';
@@ -30,6 +31,8 @@ export function useOverviewView(): IOverviewView {
   const { handleOpenFolder } = useLibraryActions();
   const navigateTo = useViewStore(s => s.navigateTo);
   const { recap, visible: showRecap } = useWeeklyRecap();
+  const { memory, visible: showMemories } = useOnThisNight();
+  const sectionOrder = useInterfaceStore(s => s.overviewOrder);
 
   // Mirror the card's presence into the recap store so the companion driver
   // can play its cameo when the recap appears — cleared when Overview unmounts.
@@ -39,7 +42,6 @@ export function useOverviewView(): IOverviewView {
     setRecapCardVisible(recapCardShowing);
     return () => setRecapCardVisible(false);
   }, [recapCardShowing, setRecapCardVisible]);
-
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
   const showClock = useInterfaceStore(s => s.overviewClock);
@@ -69,6 +71,9 @@ export function useOverviewView(): IOverviewView {
     isError,
     recap,
     showRecap,
+    memory,
+    showMemories,
+    sectionOrder,
     showStats,
     showTopWeek,
     showClock,
