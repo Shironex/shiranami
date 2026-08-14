@@ -249,6 +249,34 @@
   }
 }
 
+/* ── Room Light — the time-of-day lighting grade over the ambient scene
+   (AmbientBackground). The layer div publishes two custom properties per stop:
+   `--room-light-tint` (the wash color, pre-mixed to its warmth) and
+   `--room-light-lamp` (the desk-lamp corner vignette's opacity). Both land on
+   natively animatable properties (background-color / opacity), so a stop
+   change cross-fades over minutes with zero per-frame script. The properties
+   are read only inside `.room-light` and default to invisible, so they cannot
+   leak into themes while the feature is off. ── */
+.room-light {
+  background-color: var(--room-light-tint, transparent);
+  transition: background-color 240s linear;
+}
+/* The warm desk-lamp pool anchored in the bottom-right corner — always
+   painted, but only faded in via the lamp property after dark. */
+.room-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 120% at 86% 96%,
+    oklch(0.8 0.13 70 / 0.38) 0%,
+    oklch(0.72 0.14 60 / 0.14) 32%,
+    transparent 62%
+  );
+  opacity: var(--room-light-lamp, 0);
+  transition: opacity 240s linear;
+}
+
 /* EQ bar animations - must be outside @theme inline for Tailwind v4 */
 @keyframes eq-bar-1 {
   0%,
@@ -409,6 +437,12 @@
     animation: none !important;
     transform: none !important;
   }
+  /* Room light keeps its grade but jumps between stops instead of tweening —
+     the minutes-long cross-fade is decorative motion, the grade itself is not. */
+  .room-light,
+  .room-light::after {
+    transition: none !important;
+  }
 }
 
 [data-perf-mode='low'] .splash-steam,
@@ -436,6 +470,16 @@
    lantern pulse also degrades here as a CSS-level belt. */
 [data-perf-mode='low'] .companion-lantern-glow {
   animation: none !important;
+}
+/* AmbientBackground already unmounts the room-light layer under low-perf, but
+   drop it here too (same self-documenting belt as .noise) so any future
+   always-on mount stays covered. */
+[data-perf-mode='low'] .room-light {
+  display: none;
+}
+[data-perf-mode='low'] .room-light,
+[data-perf-mode='low'] .room-light::after {
+  transition: none !important;
 }
 
 /* Midnight Lofi Cafe Theme */

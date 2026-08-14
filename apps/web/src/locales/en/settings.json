@@ -465,6 +465,8 @@
     "artworkBloomDesc": "Blurred copies of the record's cover drift slowly behind the app. When off, a calm color glow takes its place.",
     "coverCrossfade": "Cover crossfade",
     "coverCrossfadeDesc": "The artwork backdrop dissolves from one record into the next. This is the visual dissolve only — the audio crossfade lives in Playback.",
+    "roomLight": "Room light",
+    "roomLightDesc": "The app follows your local day — cool morning light, a golden-hour wash toward sunset, and a slightly dimmer room with a warm desk lamp after dark. Changes drift in over minutes.",
     "tempoBreathing": "Tempo breathing",
     "tempoBreathingDesc": "The artwork bloom, the floating mascot, and the compact player's pulse breathe at the tempo of the playing track. Tracks without tempo data keep their fixed rhythm.",
     "tempoBreathingHint": "Most of your library has no tempo data yet, so the breathing rarely engages. Run the analysis once from the Library settings.",

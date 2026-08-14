@@ -157,6 +157,7 @@ interface PersistedUIState {
   tempoBreathingEnabled: boolean;
   artworkBloomEnabled: boolean;
   coverCrossfadeEnabled: boolean;
+  roomLightEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -218,6 +219,8 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.artworkBloomEnabled = persisted.artworkBloomEnabled;
   if (typeof persisted.coverCrossfadeEnabled === 'boolean')
     out.coverCrossfadeEnabled = persisted.coverCrossfadeEnabled;
+  if (typeof persisted.roomLightEnabled === 'boolean')
+    out.roomLightEnabled = persisted.roomLightEnabled;
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -250,6 +253,7 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'tempoBreathingEnabled',
   'artworkBloomEnabled',
   'coverCrossfadeEnabled',
+  'roomLightEnabled',
   'landingView',
 ]);
 
@@ -381,9 +385,10 @@ interface UIState {
    *   its track-change pulse), `coverCrossfadeEnabled` (the visual dissolve
    *   between records — distinct from the audio crossfade, which lives in
    *   usePlaybackStore), `tempoBreathingEnabled` (BPM-locked breathing),
-   *   `noiseOverlayEnabled` (film-grain overlay), and `lowPerformanceMode`
-   *   (master kill for all ambient rendering, including palette extraction
-   *   in useAmbientColor).
+   *   `noiseOverlayEnabled` (film-grain overlay), `roomLightEnabled` (the
+   *   time-of-day lighting grade over the ambient scene), and
+   *   `lowPerformanceMode` (master kill for all ambient rendering, including
+   *   palette extraction in useAmbientColor).
    * - useAccentStore: `followArtAccent` — accent follows the cover's palette.
    * - useSanctuaryStore: Sanctuary Mode (fullscreen immersive player).
    * - useLyricsAppearanceStore: `lyricsPresentation` — list vs. focus stage.
@@ -393,6 +398,7 @@ interface UIState {
   tempoBreathingEnabled: boolean;
   artworkBloomEnabled: boolean;
   coverCrossfadeEnabled: boolean;
+  roomLightEnabled: boolean;
   landingView: LandingView;
 }
 
@@ -407,6 +413,7 @@ interface UIActions {
   setTempoBreathingEnabled: (enabled: boolean) => void;
   setArtworkBloomEnabled: (enabled: boolean) => void;
   setCoverCrossfadeEnabled: (enabled: boolean) => void;
+  setRoomLightEnabled: (enabled: boolean) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -453,6 +460,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     tempoBreathingEnabled: true,
     artworkBloomEnabled: true,
     coverCrossfadeEnabled: true,
+    roomLightEnabled: true,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -486,6 +494,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setCoverCrossfadeEnabled: enabled => {
       set({ coverCrossfadeEnabled: enabled });
+    },
+    setRoomLightEnabled: enabled => {
+      set({ roomLightEnabled: enabled });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -582,6 +593,7 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         tempoBreathingEnabled: s.tempoBreathingEnabled,
         artworkBloomEnabled: s.artworkBloomEnabled,
         coverCrossfadeEnabled: s.coverCrossfadeEnabled,
+        roomLightEnabled: s.roomLightEnabled,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

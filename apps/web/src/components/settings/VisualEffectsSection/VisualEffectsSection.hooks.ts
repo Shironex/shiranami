@@ -25,6 +25,8 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setArtworkBloomEnabled = useUIStore(s => s.setArtworkBloomEnabled);
   const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
   const setCoverCrossfadeEnabled = useUIStore(s => s.setCoverCrossfadeEnabled);
+  const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
+  const setRoomLightEnabled = useUIStore(s => s.setRoomLightEnabled);
   const library = useLibraryStore(s => s.library);
 
   // The silent-failure guard: a library without tempo data never breathes, and
@@ -71,6 +73,11 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     coverCrossfadeDescription: t('app.coverCrossfadeDesc'),
     coverCrossfadeEnabled,
     onCoverCrossfadeChange: setCoverCrossfadeEnabled,
+
+    roomLightLabel: t('app.roomLight'),
+    roomLightDescription: t('app.roomLightDesc'),
+    roomLightEnabled,
+    onRoomLightChange: setRoomLightEnabled,
 
     tempoBreathingLabel: t('app.tempoBreathing'),
     tempoBreathingDescription: t('app.tempoBreathingDesc'),
