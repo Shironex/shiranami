@@ -1,4 +1,6 @@
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import type { OverviewSectionId } from '@/lib/overview-sections';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useOverviewLayoutPreview } from './OverviewLayoutPreview.hooks';
 import type {
@@ -31,7 +33,9 @@ function OverviewBlock({
 export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps) {
   const {
     title,
+    sectionOrder,
     recap,
+    memories,
     stats,
     topWeek,
     clock,
@@ -49,6 +53,7 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     recTiles,
     recentRows,
     recapRows,
+    memoryRows,
   } = useOverviewLayoutPreview(props);
 
   const statsTileEls = statsTiles.map(i => (
@@ -99,6 +104,125 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
     />
   ));
 
+  const memoryRowEls = memoryRows.map(row => (
+    <div
+      key={row.key}
+      className="h-1.5 rounded-full bg-muted-foreground/25"
+      style={{ width: `${row.widthPx}px` }}
+    />
+  ));
+
+  const sectionBlocks: Record<OverviewSectionId, ReactNode> = {
+    recap: (
+      <OverviewBlock
+        key="recap"
+        visible={recap.visible}
+        highlighted={recap.highlighted}
+        expandedClass="max-h-14"
+        className="border border-border/25 bg-muted/15"
+      >
+        <div className="space-y-1.5 p-2">{recapRowEls}</div>
+      </OverviewBlock>
+    ),
+
+    memories: (
+      <OverviewBlock
+        key="memories"
+        visible={memories.visible}
+        highlighted={memories.highlighted}
+        expandedClass="max-h-14"
+        className="border border-border/25 bg-muted/15"
+      >
+        <div className="flex items-center gap-1.5 p-2">
+          <div className="size-6 shrink-0 rounded-md bg-primary/20" />
+          <div className="space-y-1.5">{memoryRowEls}</div>
+        </div>
+      </OverviewBlock>
+    ),
+
+    stats: (
+      <OverviewBlock
+        key="stats"
+        visible={stats.visible}
+        highlighted={stats.highlighted}
+        expandedClass="max-h-8"
+      >
+        <div className="grid grid-cols-4 gap-1.5 p-0.5">{statsTileEls}</div>
+      </OverviewBlock>
+    ),
+
+    // Week grid: top tracks + clock/albums column
+    insights: showWeekGrid ? (
+      <div key="insights" className="flex gap-1.5">
+        <OverviewBlock
+          visible={topWeek.visible}
+          highlighted={topWeek.highlighted}
+          expandedClass="max-h-24"
+          className="flex-[1.3] border border-border/25 bg-muted/15"
+        >
+          <div className="space-y-1.5 p-2">{topWeekRowEls}</div>
+        </OverviewBlock>
+        {showRightColumn && (
+          <div className="flex flex-1 flex-col gap-1.5">
+            <OverviewBlock
+              visible={clock.visible}
+              highlighted={clock.highlighted}
+              expandedClass="max-h-11"
+              className="border border-border/25 bg-muted/15"
+            >
+              <div className="flex h-10 items-end justify-between gap-0.5 px-2 pb-1.5 pt-2">
+                {clockBarEls}
+              </div>
+            </OverviewBlock>
+            <OverviewBlock
+              visible={topAlbums.visible}
+              highlighted={topAlbums.highlighted}
+              expandedClass="max-h-11"
+              className="border border-border/25 bg-muted/15"
+            >
+              <div className="flex gap-1.5 p-2">{albumTileEls}</div>
+            </OverviewBlock>
+          </div>
+        )}
+      </div>
+    ) : null,
+
+    mixes: (
+      <OverviewBlock
+        key="mixes"
+        visible={mixes.visible}
+        highlighted={mixes.highlighted}
+        expandedClass="max-h-10"
+      >
+        <div className="flex gap-1.5 p-0.5">{mixTileEls}</div>
+      </OverviewBlock>
+    ),
+
+    recommendations: (
+      <OverviewBlock
+        key="recommendations"
+        visible={recommendations.visible}
+        highlighted={recommendations.highlighted}
+        expandedClass="max-h-9"
+      >
+        <div className="flex gap-1.5 p-0.5">{recTileEls}</div>
+      </OverviewBlock>
+    ),
+
+    recentlyAdded: (
+      <OverviewBlock
+        key="recentlyAdded"
+        visible={recentlyAdded.visible}
+        highlighted={recentlyAdded.highlighted}
+        expandedClass="max-h-12"
+      >
+        <div className="space-y-1.5 p-0.5">{recentRowEls}</div>
+      </OverviewBlock>
+    ),
+  };
+
+  const orderedBlocks = sectionOrder.map(id => sectionBlocks[id]);
+
   return (
     <SettingsPreview title={title}>
       <div
@@ -116,87 +240,7 @@ export default function OverviewLayoutPreview(props: IOverviewLayoutPreviewProps
             </div>
           </div>
 
-          {/* Weekly recap card */}
-          <OverviewBlock
-            visible={recap.visible}
-            highlighted={recap.highlighted}
-            expandedClass="max-h-14"
-            className="border border-border/25 bg-muted/15"
-          >
-            <div className="space-y-1.5 p-2">{recapRowEls}</div>
-          </OverviewBlock>
-
-          {/* Stats strip */}
-          <OverviewBlock
-            visible={stats.visible}
-            highlighted={stats.highlighted}
-            expandedClass="max-h-8"
-          >
-            <div className="grid grid-cols-4 gap-1.5 p-0.5">{statsTileEls}</div>
-          </OverviewBlock>
-
-          {/* Week grid: top tracks + clock/albums column */}
-          {showWeekGrid && (
-            <div className="flex gap-1.5">
-              <OverviewBlock
-                visible={topWeek.visible}
-                highlighted={topWeek.highlighted}
-                expandedClass="max-h-24"
-                className="flex-[1.3] border border-border/25 bg-muted/15"
-              >
-                <div className="space-y-1.5 p-2">{topWeekRowEls}</div>
-              </OverviewBlock>
-              {showRightColumn && (
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <OverviewBlock
-                    visible={clock.visible}
-                    highlighted={clock.highlighted}
-                    expandedClass="max-h-11"
-                    className="border border-border/25 bg-muted/15"
-                  >
-                    <div className="flex h-10 items-end justify-between gap-0.5 px-2 pb-1.5 pt-2">
-                      {clockBarEls}
-                    </div>
-                  </OverviewBlock>
-                  <OverviewBlock
-                    visible={topAlbums.visible}
-                    highlighted={topAlbums.highlighted}
-                    expandedClass="max-h-11"
-                    className="border border-border/25 bg-muted/15"
-                  >
-                    <div className="flex gap-1.5 p-2">{albumTileEls}</div>
-                  </OverviewBlock>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Smart mixes shelf */}
-          <OverviewBlock
-            visible={mixes.visible}
-            highlighted={mixes.highlighted}
-            expandedClass="max-h-10"
-          >
-            <div className="flex gap-1.5 p-0.5">{mixTileEls}</div>
-          </OverviewBlock>
-
-          {/* Recommendations shelf */}
-          <OverviewBlock
-            visible={recommendations.visible}
-            highlighted={recommendations.highlighted}
-            expandedClass="max-h-9"
-          >
-            <div className="flex gap-1.5 p-0.5">{recTileEls}</div>
-          </OverviewBlock>
-
-          {/* Recently added rows */}
-          <OverviewBlock
-            visible={recentlyAdded.visible}
-            highlighted={recentlyAdded.highlighted}
-            expandedClass="max-h-12"
-          >
-            <div className="space-y-1.5 p-0.5">{recentRowEls}</div>
-          </OverviewBlock>
+          {orderedBlocks}
         </div>
       </div>
     </SettingsPreview>

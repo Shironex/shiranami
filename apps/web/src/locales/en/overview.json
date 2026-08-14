@@ -32,6 +32,15 @@
     "loudest": "Loudest at {{hour}}.",
     "archiveAction": "Past weeks"
   },
+  "memories": {
+    "titleYear": "A year ago,",
+    "titleYearEm": "tonight.",
+    "titleHalfYear": "Six months ago,",
+    "titleHalfYearEm": "tonight.",
+    "line_one": "This one drifted through that evening.",
+    "line_other": "This one kept the night company — {{count}} plays.",
+    "playAria": "Play {{title}} by {{artist}}"
+  },
   "clock": {
     "week": "WK {{week}}",
     "ariaLabel": "Current time, {{time}}"

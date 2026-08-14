@@ -40,6 +40,17 @@
     "loudest": "Najgłośniej o {{hour}}.",
     "archiveAction": "Minione tygodnie"
   },
+  "memories": {
+    "titleYear": "Rok temu,",
+    "titleYearEm": "tej nocy.",
+    "titleHalfYear": "Pół roku temu,",
+    "titleHalfYearEm": "tej nocy.",
+    "line_one": "Ten utwór przepłynął przez tamten wieczór.",
+    "line_few": "Ten utwór dotrzymywał towarzystwa tamtej nocy — {{count}} odtworzenia.",
+    "line_many": "Ten utwór dotrzymywał towarzystwa tamtej nocy — {{count}} odtworzeń.",
+    "line_other": "Ten utwór dotrzymywał towarzystwa tamtej nocy — {{count}} odtworzenia.",
+    "playAria": "Odtwórz {{title}} — {{artist}}"
+  },
   "clock": {
     "week": "TYDZ. {{week}}",
     "ariaLabel": "Aktualna godzina, {{time}}"
