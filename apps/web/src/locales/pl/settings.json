@@ -492,6 +492,32 @@
       "glow": "Poświata",
       "spectrum": "Widmo"
     },
+    "vinylSpeedTitle": "Prędkość obrotowa",
+    "vinylSpeedDesc": "Jak szybko kręci się talerz — każdy wybór wiruje w swoim prawdziwym tempie: spokojny longplay, żwawy singiel albo stara szelakowa 78.",
+    "vinylSpeed": {
+      "33": "33⅓ obr./min",
+      "45": "45 obr./min",
+      "78": "78 obr./min"
+    },
+    "vinylFinishTitle": "Wykończenie płyty",
+    "vinylFinishDesc": "Sam krążek: klasyczna czerń, przezroczysty winyl, marmurowy wir w kolorze akcentu albo picture disc z okładką na całej powierzchni.",
+    "vinylFinish": {
+      "black": "Czarna",
+      "clear": "Przezroczysta",
+      "marble": "Marmur",
+      "picture": "Picture disc"
+    },
+    "vinylSizeTitle": "Rozmiar płyty",
+    "vinylSizeDesc": "Jak dużą część sceny wypełnia płyta — osobno dla widoku Teraz odtwarzane i Trybu sanktuarium.",
+    "vinylSizeNowPlaying": "Teraz odtwarzane",
+    "vinylSizeSanctuary": "Sanktuarium",
+    "vinylSize": {
+      "small": "Mała",
+      "medium": "Średnia",
+      "large": "Duża"
+    },
+    "vinylTonearm": "Ramię gramofonu",
+    "vinylTonearmDesc": "Ramię spoczywa na płycie podczas odtwarzania i unosi się po pauzie.",
     "libraryHeroCard": "Baner odtwarzanego utworu",
     "libraryHeroCardDesc": "Pokazuj dużą kartę nad Biblioteką i Ulubionymi. Wyłącz, aby zyskać więcej miejsca na albumy. Pasek odtwarzacza i tak pokazuje informacje o utworze.",
     "lowPerfMode": "Tryb niskiej wydajności",
