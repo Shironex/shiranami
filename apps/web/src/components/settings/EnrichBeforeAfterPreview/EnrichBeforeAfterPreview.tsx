@@ -1,5 +1,6 @@
 import { ImageOff, Music, ArrowRight } from 'lucide-react';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { cn } from '@/lib/utils';
 import { useEnrichBeforeAfterPreview } from './EnrichBeforeAfterPreview.hooks';
 import type { EnrichTagCardVariant } from './EnrichBeforeAfterPreview.types';
@@ -47,35 +48,37 @@ export default function EnrichBeforeAfterPreview() {
   const { t, sampleConfidence } = useEnrichBeforeAfterPreview();
 
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-      <div className="space-y-1.5">
-        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
-          {t('enr.beforeLabel')}
-        </p>
-        <TrackTagCard
-          variant="before"
-          title={t('enr.sampleTitle')}
-          artist={t('enr.sampleUnknownArtist')}
-          album={t('enr.sampleUnknownAlbum')}
-        />
-      </div>
-
-      <ArrowRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
-
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5">
+    <PreviewFrame size="none">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <div className="space-y-1.5">
           <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
-            {t('enr.afterLabel')}
+            {t('enr.beforeLabel')}
           </p>
-          <EnrichConfidenceBadge confidence={sampleConfidence} />
+          <TrackTagCard
+            variant="before"
+            title={t('enr.sampleTitle')}
+            artist={t('enr.sampleUnknownArtist')}
+            album={t('enr.sampleUnknownAlbum')}
+          />
         </div>
-        <TrackTagCard
-          variant="after"
-          title={t('enr.sampleTitle')}
-          artist={t('enr.sampleArtist')}
-          album={t('enr.sampleAlbum')}
-        />
+
+        <ArrowRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden="true" />
+
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
+              {t('enr.afterLabel')}
+            </p>
+            <EnrichConfidenceBadge confidence={sampleConfidence} />
+          </div>
+          <TrackTagCard
+            variant="after"
+            title={t('enr.sampleTitle')}
+            artist={t('enr.sampleArtist')}
+            album={t('enr.sampleAlbum')}
+          />
+        </div>
       </div>
-    </div>
+    </PreviewFrame>
   );
 }
