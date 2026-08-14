@@ -19,6 +19,9 @@ beforeEach(() => {
   localStorage.clear();
   useSanctuaryStore.setState({
     sanctuaryVariant: 'cover',
+    sanctuaryClockFace: 'minimal',
+    sanctuaryClockFormat: 'system',
+    sanctuaryClockSeconds: false,
     sanctuaryAutoEnter: false,
     sanctuaryAutoEnterMinutes: SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
     sanctuaryActive: false,
@@ -89,5 +92,25 @@ describe('useSanctuaryStore', () => {
   it('coerces a malformed variant back to the default', () => {
     useSanctuaryStore.getState().setSanctuaryVariant('spiral' as never);
     expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+  });
+
+  it('persists the clock face, hour format and seconds preferences', () => {
+    const s = useSanctuaryStore.getState();
+    s.setSanctuaryClockFace('serif');
+    s.setSanctuaryClockFormat('24h');
+    s.setSanctuaryClockSeconds(true);
+
+    const persisted = readPersisted();
+    expect(persisted.sanctuaryClockFace).toBe('serif');
+    expect(persisted.sanctuaryClockFormat).toBe('24h');
+    expect(persisted.sanctuaryClockSeconds).toBe(true);
+  });
+
+  it('coerces malformed clock preferences back to their defaults', () => {
+    const s = useSanctuaryStore.getState();
+    s.setSanctuaryClockFace('gothic' as never);
+    s.setSanctuaryClockFormat('26h' as never);
+    expect(useSanctuaryStore.getState().sanctuaryClockFace).toBe('minimal');
+    expect(useSanctuaryStore.getState().sanctuaryClockFormat).toBe('system');
   });
 });

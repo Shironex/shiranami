@@ -6,10 +6,18 @@ import { logger } from '@/lib/logger';
 /** What the sanctuary shows center-stage. */
 export type SanctuaryVariant = 'cover' | 'clock' | 'vinyl';
 
+/** How the clock variant draws its numerals. */
+export type SanctuaryClockFace = 'minimal' | 'serif' | 'oversized';
+
+/** Hour convention for the clock: follow the app language, or force 12/24h. */
+export type SanctuaryClockFormat = 'system' | '12h' | '24h';
+
 export const SANCTUARY_AUTO_ENTER_MIN_MINUTES = 1;
 export const SANCTUARY_AUTO_ENTER_MAX_MINUTES = 60;
 export const SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES = 5;
 export const SANCTUARY_VARIANT_DEFAULT: SanctuaryVariant = 'cover';
+export const SANCTUARY_CLOCK_FACE_DEFAULT: SanctuaryClockFace = 'minimal';
+export const SANCTUARY_CLOCK_FORMAT_DEFAULT: SanctuaryClockFormat = 'system';
 
 /** How long the chrome stays up after the last pointer/keyboard activity. */
 export const SANCTUARY_CHROME_TIMEOUT_MS = 4000;
@@ -18,6 +26,14 @@ const STORE_KEY = 'shiranami.sanctuary-store';
 
 function coerceVariant(v: unknown): SanctuaryVariant {
   return v === 'cover' || v === 'clock' || v === 'vinyl' ? v : SANCTUARY_VARIANT_DEFAULT;
+}
+
+function coerceClockFace(v: unknown): SanctuaryClockFace {
+  return v === 'minimal' || v === 'serif' || v === 'oversized' ? v : SANCTUARY_CLOCK_FACE_DEFAULT;
+}
+
+function coerceClockFormat(v: unknown): SanctuaryClockFormat {
+  return v === 'system' || v === '12h' || v === '24h' ? v : SANCTUARY_CLOCK_FORMAT_DEFAULT;
 }
 
 function coerceAutoEnterMinutes(v: unknown): number {
@@ -30,6 +46,9 @@ function coerceAutoEnterMinutes(v: unknown): number {
 
 interface PersistedSanctuaryState {
   sanctuaryVariant: SanctuaryVariant;
+  sanctuaryClockFace: SanctuaryClockFace;
+  sanctuaryClockFormat: SanctuaryClockFormat;
+  sanctuaryClockSeconds: boolean;
   sanctuaryAutoEnter: boolean;
   sanctuaryAutoEnterMinutes: number;
 }
@@ -49,6 +68,9 @@ interface SanctuaryActions {
   exitSanctuary: () => void;
   toggleSanctuary: () => void;
   setSanctuaryVariant: (variant: SanctuaryVariant) => void;
+  setSanctuaryClockFace: (face: SanctuaryClockFace) => void;
+  setSanctuaryClockFormat: (format: SanctuaryClockFormat) => void;
+  setSanctuaryClockSeconds: (enabled: boolean) => void;
   setSanctuaryAutoEnter: (enabled: boolean) => void;
   setSanctuaryAutoEnterMinutes: (minutes: number) => void;
 }
@@ -72,6 +94,9 @@ function pushWindowState(active: boolean): void {
 export const useSanctuaryStore = createPersistedStore<SanctuaryState & SanctuaryActions>(
   (set, get) => ({
     sanctuaryVariant: SANCTUARY_VARIANT_DEFAULT,
+    sanctuaryClockFace: SANCTUARY_CLOCK_FACE_DEFAULT,
+    sanctuaryClockFormat: SANCTUARY_CLOCK_FORMAT_DEFAULT,
+    sanctuaryClockSeconds: false,
     sanctuaryAutoEnter: false,
     sanctuaryAutoEnterMinutes: SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
     sanctuaryActive: false,
@@ -97,6 +122,15 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
     setSanctuaryVariant: variant => {
       set({ sanctuaryVariant: coerceVariant(variant) });
     },
+    setSanctuaryClockFace: face => {
+      set({ sanctuaryClockFace: coerceClockFace(face) });
+    },
+    setSanctuaryClockFormat: format => {
+      set({ sanctuaryClockFormat: coerceClockFormat(format) });
+    },
+    setSanctuaryClockSeconds: enabled => {
+      set({ sanctuaryClockSeconds: enabled });
+    },
     setSanctuaryAutoEnter: enabled => {
       set({ sanctuaryAutoEnter: enabled });
     },
@@ -109,6 +143,9 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
     version: 1,
     partialize: (s): PersistedSanctuaryState => ({
       sanctuaryVariant: s.sanctuaryVariant,
+      sanctuaryClockFace: s.sanctuaryClockFace,
+      sanctuaryClockFormat: s.sanctuaryClockFormat,
+      sanctuaryClockSeconds: s.sanctuaryClockSeconds,
       sanctuaryAutoEnter: s.sanctuaryAutoEnter,
       sanctuaryAutoEnterMinutes: s.sanctuaryAutoEnterMinutes,
     }),
@@ -117,6 +154,10 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
       return {
         ...current,
         sanctuaryVariant: coerceVariant(p?.sanctuaryVariant),
+        sanctuaryClockFace: coerceClockFace(p?.sanctuaryClockFace),
+        sanctuaryClockFormat: coerceClockFormat(p?.sanctuaryClockFormat),
+        sanctuaryClockSeconds:
+          typeof p?.sanctuaryClockSeconds === 'boolean' ? p.sanctuaryClockSeconds : false,
         sanctuaryAutoEnter:
           typeof p?.sanctuaryAutoEnter === 'boolean' ? p.sanctuaryAutoEnter : false,
         sanctuaryAutoEnterMinutes: coerceAutoEnterMinutes(p?.sanctuaryAutoEnterMinutes),
