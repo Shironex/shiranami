@@ -44,9 +44,9 @@ export const Default: Story = {
     await expect(canvasElement.querySelector('[aria-busy="true"]')).not.toBeNull();
     await expect(canvasElement.querySelectorAll('.rounded-full')).toHaveLength(3);
     await expect(canvasElement.querySelector('.md\\:grid-cols-4')?.children).toHaveLength(4);
-    await expect(canvasElement.querySelectorAll('.rounded-\\[24px\\]')).toHaveLength(4);
+    await expect(canvasElement.querySelectorAll('.rounded-panel')).toHaveLength(4);
     await expect(canvasElement.querySelectorAll('.border-border\\/20')).toHaveLength(14);
-    await expect(canvasElement.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(65);
+    await expect(canvasElement.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(67);
     await expect(canvasElement.textContent).toBe('');
   },
 };

@@ -41,6 +41,9 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  /* Section-card panels (the 24px `rounded-panel` chrome), tied to the app
+     radius so the whole family scales together. */
+  --radius-panel: calc(var(--radius) * 2);
 
   --font-sans: 'DM Sans', system-ui, sans-serif;
   --font-display: 'Sora', 'DM Sans', system-ui, sans-serif;

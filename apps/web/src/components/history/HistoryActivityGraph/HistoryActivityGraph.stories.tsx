@@ -38,7 +38,7 @@ const meta: Meta<typeof HistoryActivityGraph> = {
   // a single summarizing `role="img"` label, asserted in `play`).
   decorators: [
     Story => (
-      <div className="w-[40rem] rounded-[24px] border border-border/25 p-4">
+      <div className="w-[40rem] rounded-panel border border-border/25 p-4">
         <Story />
       </div>
     ),

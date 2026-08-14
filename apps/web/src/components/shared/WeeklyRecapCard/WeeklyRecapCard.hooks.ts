@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { pad2 } from '@shiranami/shared';
 import { formatListeningDuration } from '@/lib/listeningDuration';
@@ -15,6 +15,7 @@ export function useWeeklyRecapCard({
   weekLabel,
 }: IWeeklyRecapCardProps): IWeeklyRecapCardView {
   const { t } = useTranslation('overview');
+  const headingId = useId();
 
   const lines = useMemo<string[]>(() => {
     const built: string[] = [];
@@ -41,6 +42,7 @@ export function useWeeklyRecapCard({
   }, [recap, t]);
 
   return {
+    headingId,
     title: t('recap.title'),
     titleEm: t('recap.titleEm'),
     weekLabel,
