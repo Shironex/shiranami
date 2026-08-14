@@ -5,6 +5,7 @@ import type {
   CompanionSpecies,
   CompanionStage,
 } from '@/lib/companionMachine';
+import type { CompanionOutfit } from '@/lib/companionOutfit';
 
 /** Face variant shown by the sprite (drives the `data-face` attribute). */
 export type CompanionFace = 'open' | 'half' | 'closed';
@@ -19,6 +20,11 @@ export interface ICompanionProps {
   readonly overlaySeq?: number;
   /** Decorative motion allowed; false = static first frame of every state. */
   readonly motion: boolean;
+  /**
+   * Weather/seasonal accessory (drives the `data-outfit` attribute, mirror of
+   * `data-stage`). Null/omitted = bare — byte-identical to the outfit-less rig.
+   */
+  readonly outfit?: CompanionOutfit | null;
   /** Rendered width in px (56 = player perch, 64 = Now Playing). */
   readonly size?: number;
   readonly className?: string;

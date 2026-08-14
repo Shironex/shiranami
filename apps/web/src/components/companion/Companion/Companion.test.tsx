@@ -79,6 +79,41 @@ describe('Companion', () => {
     expect(container.querySelectorAll('.companion-lvbub')).toHaveLength(5);
   });
 
+  it('stamps data-outfit and mounts exactly one accessory layer when dressed', () => {
+    const { container } = render(
+      <Companion species="shio" stage={2} mode="listening" motion={false} outfit="scarf" />
+    );
+    expect(container.querySelector('svg')).toHaveAttribute('data-outfit', 'scarf');
+    expect(container.querySelectorAll('.companion-outfit')).toHaveLength(1);
+    expect(container.querySelector('.companion-o-scarf')).not.toBeNull();
+  });
+
+  it('renders bare (no data-outfit, no accessory nodes) when outfit is null or omitted', () => {
+    const { container: omitted } = render(
+      <Companion species="shio" stage={2} mode="listening" motion={false} />
+    );
+    expect(omitted.querySelector('svg')).not.toHaveAttribute('data-outfit');
+    expect(omitted.querySelector('.companion-outfit')).toBeNull();
+
+    const { container: explicit } = render(
+      <Companion species="hotaru" stage={2} mode="listening" motion={false} outfit={null} />
+    );
+    expect(explicit.querySelector('svg')).not.toHaveAttribute('data-outfit');
+    expect(explicit.querySelector('.companion-outfit')).toBeNull();
+  });
+
+  it('renders outfit=null byte-identical to the outfit-less sprite', () => {
+    // The only per-render variance is the useId mask id — normalize it away.
+    const normalize = (html: string) => html.replace(/_r_[a-z0-9]+_/g, '_id_');
+    const { container: bare } = render(
+      <Companion species="shio" stage={3} mode="idle" motion={false} />
+    );
+    const { container: nullOutfit } = render(
+      <Companion species="shio" stage={3} mode="idle" motion={false} outfit={null} />
+    );
+    expect(normalize(nullOutfit.innerHTML)).toBe(normalize(bare.innerHTML));
+  });
+
   it('exposes peek as custom properties on the sprite root', () => {
     const { container } = render(
       <Companion species="shio" stage={1} mode="listening" motion peekOffset={{ x: 2, y: -1 }} />

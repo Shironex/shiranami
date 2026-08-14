@@ -10,8 +10,12 @@ import type { IShioRigProps } from './ShioRig.types';
  * layers carry `companion-s*` classes and are revealed by the root's
  * `data-stage` (see globals.css "Companion sprite").
  */
-export default function ShioRig({ stage, mode, motion }: IShioRigProps) {
-  const { maskId, beatClass, bubClass, blinkClass, eyeRy } = useShioRig({ stage, mode, motion });
+export default function ShioRig({ stage, mode, motion, outfit }: IShioRigProps) {
+  const { maskId, beatClass, bubClass, blinkClass, eyeRy, lanternClass } = useShioRig({
+    stage,
+    mode,
+    motion,
+  });
 
   return (
     <g data-slot="shio-rig">
@@ -113,6 +117,74 @@ export default function ShioRig({ stage, mode, motion }: IShioRigProps) {
         <circle className="companion-bub" cx="72" cy="90.5" r="2" />
         <circle className="companion-bub companion-s2" cx="41" cy="91" r="1.7" />
       </g>
+
+      {/* Weather fit — at most one accessory mounts, so a bare Shio (outfit
+          null) renders byte-identical to the outfit-less rig. */}
+      {outfit === 'umbrella' && (
+        <g className="companion-outfit companion-o-umbrella">
+          <path
+            className="companion-ink-s"
+            d="M 72 44 Q 78 64 74 82"
+            style={{ strokeWidth: 1.6, opacity: 0.7 }}
+          />
+          <path
+            className="companion-o-canopy"
+            d="M 34 36 Q 58 14 86 34 Q 72 29 58 30 Q 44 31 34 36 Z"
+          />
+          <path
+            className="companion-ink-s"
+            d="M 40 33 Q 58 21 81 32"
+            style={{ strokeWidth: 1, opacity: 0.45 }}
+          />
+        </g>
+      )}
+      {outfit === 'scarf' && (
+        <g className="companion-outfit companion-o-scarf">
+          <path
+            className="companion-o-accent"
+            d="M 42 62 Q 58 71 74 62 Q 75 66 74 68 Q 58 77 42 68 Q 41 66 42 62 Z"
+          />
+          <path className="companion-o-accent" d="M 66 67 L 71 81 Q 66 84 61 80 Z" />
+        </g>
+      )}
+      {outfit === 'sun' && (
+        <g className="companion-outfit companion-o-sun">
+          <path className="companion-o-drop" d="M 80 34 Q 86 43 80 47 Q 74 43 80 34 Z" />
+          <path className="companion-o-drop" d="M 88 44 Q 91 48 88 50 Q 85 48 88 44 Z" />
+        </g>
+      )}
+      {outfit === 'lantern' && (
+        <g className={cn('companion-outfit companion-o-lantern', lanternClass)}>
+          <circle className="companion-o-halo" cx="29" cy="40" r="7.5" />
+          <circle className="companion-o-glowcore" cx="29" cy="40" r="3" />
+        </g>
+      )}
+      {outfit === 'sakura' && (
+        <g className="companion-outfit companion-o-sakura">
+          <path className="companion-o-petal" d="M 56 27 Q 60 22 64 27 Q 60 33 56 27 Z" />
+          <path
+            className="companion-o-petal"
+            d="M 88 52 Q 91 49 93 52 Q 91 56 88 52 Z"
+            opacity={0.7}
+          />
+        </g>
+      )}
+      {outfit === 'maple' && (
+        <g className="companion-outfit companion-o-maple" transform="rotate(14 61 29)">
+          <path
+            className="companion-o-accent"
+            d="M 61 21 L 64 27 L 70 25 L 66 30 L 70 34 L 63 33 L 61 39 L 59 33 L 52 34 L 56 30 L 52 25 L 58 27 Z"
+          />
+        </g>
+      )}
+      {outfit === 'snow' && (
+        <g className="companion-outfit companion-o-snow">
+          <circle className="companion-o-snowflake" cx="48" cy="31" r="1.7" />
+          <circle className="companion-o-snowflake" cx="59" cy="27" r="2" />
+          <circle className="companion-o-snowflake" cx="69" cy="32" r="1.5" />
+          <circle className="companion-o-snowflake" cx="84" cy="63" r="1.3" />
+        </g>
+      )}
     </g>
   );
 }

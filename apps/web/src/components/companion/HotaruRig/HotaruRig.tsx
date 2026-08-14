@@ -10,8 +10,12 @@ import type { IHotaruRigProps } from './HotaruRig.types';
  * Renders as a fragment inside the Companion sprite's rig group; stage layers
  * carry `companion-s*` classes revealed by the root's `data-stage`.
  */
-export default function HotaruRig({ stage, mode, motion }: IHotaruRigProps) {
-  const { maskId, beatClass, bubClass, blinkClass, eyeRy } = useHotaruRig({ stage, mode, motion });
+export default function HotaruRig({ stage, mode, motion, outfit }: IHotaruRigProps) {
+  const { maskId, beatClass, bubClass, blinkClass, eyeRy, lanternClass } = useHotaruRig({
+    stage,
+    mode,
+    motion,
+  });
 
   return (
     <g data-slot="hotaru-rig" transform="translate(0,-3)">
@@ -91,6 +95,74 @@ export default function HotaruRig({ stage, mode, motion }: IHotaruRigProps) {
         <circle className="companion-bub companion-s4" cx="28" cy="40" r="1.5" opacity={0.7} />
         <circle className="companion-bub companion-s4" cx="93" cy="34" r="1.6" opacity={0.7} />
       </g>
+
+      {/* Weather fit — at most one accessory mounts, so a bare Hotaru (outfit
+          null) renders byte-identical to the outfit-less rig. */}
+      {outfit === 'umbrella' && (
+        <g className="companion-outfit companion-o-umbrella">
+          <path
+            className="companion-ink-s"
+            d="M 80 30 Q 87 46 80 60"
+            style={{ strokeWidth: 1.6, opacity: 0.7 }}
+          />
+          <path
+            className="companion-o-canopy"
+            d="M 32 30 Q 60 8 88 28 Q 73 22 60 23 Q 46 25 32 30 Z"
+          />
+          <path
+            className="companion-ink-s"
+            d="M 38 27 Q 60 14 83 26"
+            style={{ strokeWidth: 1, opacity: 0.45 }}
+          />
+        </g>
+      )}
+      {outfit === 'scarf' && (
+        <g className="companion-outfit companion-o-scarf">
+          <path
+            className="companion-o-accent"
+            d="M 40 55 Q 60 65 80 55 Q 81 59 80 61 Q 60 71 40 61 Q 39 59 40 55 Z"
+          />
+          <path className="companion-o-accent" d="M 71 60 L 76 74 Q 71 77 66 73 Z" />
+        </g>
+      )}
+      {outfit === 'sun' && (
+        <g className="companion-outfit companion-o-sun">
+          <path className="companion-o-drop" d="M 85 32 Q 91 41 85 45 Q 79 41 85 32 Z" />
+          <path className="companion-o-drop" d="M 92 42 Q 95 46 92 48 Q 89 46 92 42 Z" />
+        </g>
+      )}
+      {outfit === 'lantern' && (
+        <g className={cn('companion-outfit companion-o-lantern', lanternClass)}>
+          <circle className="companion-o-halo" cx="28" cy="52" r="7.5" />
+          <circle className="companion-o-glowcore" cx="28" cy="52" r="3" />
+        </g>
+      )}
+      {outfit === 'sakura' && (
+        <g className="companion-outfit companion-o-sakura">
+          <path className="companion-o-petal" d="M 56 21 Q 60 16 64 21 Q 60 27 56 21 Z" />
+          <path
+            className="companion-o-petal"
+            d="M 90 48 Q 93 45 95 48 Q 93 52 90 48 Z"
+            opacity={0.7}
+          />
+        </g>
+      )}
+      {outfit === 'maple' && (
+        <g className="companion-outfit companion-o-maple" transform="rotate(14 61 23)">
+          <path
+            className="companion-o-accent"
+            d="M 61 15 L 64 21 L 70 19 L 66 24 L 70 28 L 63 27 L 61 33 L 59 27 L 52 28 L 56 24 L 52 19 L 58 21 Z"
+          />
+        </g>
+      )}
+      {outfit === 'snow' && (
+        <g className="companion-outfit companion-o-snow">
+          <circle className="companion-o-snowflake" cx="48" cy="26" r="1.7" />
+          <circle className="companion-o-snowflake" cx="60" cy="21" r="2" />
+          <circle className="companion-o-snowflake" cx="72" cy="27" r="1.5" />
+          <circle className="companion-o-snowflake" cx="88" cy="52" r="1.3" />
+        </g>
+      )}
     </g>
   );
 }

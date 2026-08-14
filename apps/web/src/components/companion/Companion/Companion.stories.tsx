@@ -28,6 +28,10 @@ const meta: Meta<typeof Companion> = {
       control: 'select',
       options: ['idle', 'listening', 'grooving', 'drowsy', 'sleeping', 'waking', 'hiding'],
     },
+    outfit: {
+      control: 'select',
+      options: [null, 'umbrella', 'scarf', 'sun', 'lantern', 'sakura', 'maple', 'snow'],
+    },
   },
   parameters: {
     // Pure aria-hidden decoration — axe must find nothing to flag.
@@ -119,3 +123,63 @@ export const StaticFirstFrame: Story = {
     await expect(rig).not.toHaveClass('companion-sway');
   },
 };
+
+/* ── Weather fits ─────────────────────────────────────────────────────────
+   One story per outfit per species (`data-outfit` reveal on the sprite
+   root). Rain and storms bring the leaf umbrella; below ~5 °C the scarf;
+   above ~28 °C the sweat droplet; night and fog light the lantern; the
+   sakura / maple / snow trio is the calendar fallback when weather is off. */
+
+/** Shio under the leaf umbrella — raining outside. */
+export const ShioUmbrella: Story = {
+  args: { outfit: 'umbrella' },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('svg')).toHaveAttribute('data-outfit', 'umbrella');
+    await expect(canvasElement.querySelectorAll('.companion-outfit')).toHaveLength(1);
+  },
+};
+
+/** Shio wrapped in the scarf — below ~5 °C. */
+export const ShioScarf: Story = { args: { outfit: 'scarf' } };
+
+/** Shio with the sweat droplet — above ~28 °C. */
+export const ShioSun: Story = { args: { outfit: 'sun' } };
+
+/** Shio by the soft lantern glow — night or fog. */
+export const ShioLantern: Story = { args: { outfit: 'lantern' } };
+
+/** Shio with a sakura petal — the spring fallback. */
+export const ShioSakura: Story = { args: { outfit: 'sakura' } };
+
+/** Shio under a maple leaf — the autumn fallback. */
+export const ShioMaple: Story = { args: { outfit: 'maple' } };
+
+/** Shio dusted with snow — snowfall, or the winter fallback. */
+export const ShioSnow: Story = { args: { outfit: 'snow' } };
+
+/** Hotaru under the leaf umbrella — raining outside. */
+export const HotaruUmbrella: Story = {
+  args: { species: 'hotaru', outfit: 'umbrella' },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('svg')).toHaveAttribute('data-outfit', 'umbrella');
+    await expect(canvasElement.querySelectorAll('.companion-outfit')).toHaveLength(1);
+  },
+};
+
+/** Hotaru wrapped in the scarf — below ~5 °C. */
+export const HotaruScarf: Story = { args: { species: 'hotaru', outfit: 'scarf' } };
+
+/** Hotaru with the sweat droplet — above ~28 °C. */
+export const HotaruSun: Story = { args: { species: 'hotaru', outfit: 'sun' } };
+
+/** Hotaru by the soft lantern glow — night or fog. */
+export const HotaruLantern: Story = { args: { species: 'hotaru', outfit: 'lantern' } };
+
+/** Hotaru with a sakura petal — the spring fallback. */
+export const HotaruSakura: Story = { args: { species: 'hotaru', outfit: 'sakura' } };
+
+/** Hotaru under a maple leaf — the autumn fallback. */
+export const HotaruMaple: Story = { args: { species: 'hotaru', outfit: 'maple' } };
+
+/** Hotaru dusted with snow — snowfall, or the winter fallback. */
+export const HotaruSnow: Story = { args: { species: 'hotaru', outfit: 'snow' } };

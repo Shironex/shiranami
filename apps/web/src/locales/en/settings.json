@@ -560,6 +560,8 @@
         "hotaruEpithet": "the star jelly",
         "keepsWatch": "Keeps watch in Sanctuary",
         "keepsWatchDesc": "Stays asleep in a corner, lights low, while the sanctuary plays",
+        "dressForWeather": "Dresses for the weather",
+        "dressForWeatherDesc": "A tiny accessory for the sky outside — a leaf umbrella in the rain, a scarf on cold days. Follows the seasons when weather is off.",
         "stageLineNew": "{{name}} · just hatched — it grows as you listen",
         "stageLine_one": "{{name}} · grown from {{count}} hour of listening",
         "stageLine_other": "{{name}} · grown from {{count}} hours of listening"

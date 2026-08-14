@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import CompanionPerch from './CompanionPerch';
@@ -22,6 +23,16 @@ const track: Track = {
   loudnessLufs: -15,
 };
 
+/* Presence now reads the cached weather query, so the perch needs a client. */
+function renderPerch() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <CompanionPerch />
+    </QueryClientProvider>
+  );
+}
+
 describe('CompanionPerch', () => {
   beforeEach(() => {
     useCompanionRuntimeStore.setState({ machine: createCompanionState(), suspended: false });
@@ -38,7 +49,7 @@ describe('CompanionPerch', () => {
   });
 
   it('renders the sprite, hidden from assistive tech, pointer-inert outside the hitbox', () => {
-    const { container } = render(<CompanionPerch />);
+    const { container } = renderPerch();
     const wrap = container.querySelector('[data-slot="companion-perch"]');
     expect(wrap).not.toBeNull();
     expect(wrap).toHaveAttribute('aria-hidden', 'true');
@@ -52,21 +63,21 @@ describe('CompanionPerch', () => {
 
   it('unmounts entirely when the master toggle turns the companion off', () => {
     useInterfaceStore.setState({ companion: false });
-    const { container } = render(<CompanionPerch />);
+    const { container } = renderPerch();
     expect(container.querySelector('[data-slot="companion-perch"]')).toBeNull();
   });
 
   it('slides behind the bar edge during lyric focus instead of unmounting', () => {
     useLyricsAppearanceStore.setState({ lyricsPresentation: 'focus' });
     useViewStore.setState({ rightPanel: 'lyrics' });
-    const { container } = render(<CompanionPerch />);
+    const { container } = renderPerch();
     const wrap = container.querySelector('[data-slot="companion-perch"]');
     expect(wrap).not.toBeNull();
     expect(wrap).toHaveClass('opacity-0');
   });
 
   it('overlaps the bar top edge so the resident sits on the border', () => {
-    const { container } = render(<CompanionPerch />);
+    const { container } = renderPerch();
     const wrap = container.querySelector('[data-slot="companion-perch"]') as HTMLElement;
     // The horizontal seat uses clamp() (dropped by jsdom's CSS parser), so
     // only the numeric parts are assertable here.
