@@ -580,6 +580,8 @@
         "hotaruEpithet": "meduza-gwiazda",
         "keepsWatch": "Czuwa w Sanktuarium",
         "keepsWatchDesc": "Śpi w rogu przy przygaszonym świetle, gdy sanktuarium gra",
+        "dressForWeather": "Ubiera się na pogodę",
+        "dressForWeatherDesc": "Drobny dodatek pod niebo za oknem — liściasty parasol w deszczu, szalik w chłodne dni. Gdy pogoda jest wyłączona, podąża za porami roku.",
         "stageLineNew": "{{name}} · jeszcze maleństwo — rośnie, gdy słuchasz",
         "stageLine_one": "{{name}} · {{count}} godzina wspólnego słuchania",
         "stageLine_few": "{{name}} · {{count}} godziny wspólnego słuchania",

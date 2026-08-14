@@ -1,15 +1,19 @@
 import { useCallback, useEffect } from 'react';
 import { ensureCompanionDriver } from '@/lib/companionDriver';
 import { getCompanionApi } from '@/lib/companionBackend';
+import { outfitFor } from '@/lib/companionOutfit';
 import { useCompanionRuntimeStore } from '@/stores/useCompanionRuntimeStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
+import { useWeatherStore } from '@/stores/useWeatherStore';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
+import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import type {
   CompanionMode,
   CompanionOverlay,
   CompanionSpecies,
   CompanionStage,
 } from '@/lib/companionMachine';
+import type { CompanionOutfit } from '@/lib/companionOutfit';
 
 /** What a surface needs to render the resident. */
 export interface ICompanionPresence {
@@ -22,6 +26,25 @@ export interface ICompanionPresence {
   readonly motion: boolean;
   /** False only when the master toggle is off — surfaces unmount entirely. */
   readonly enabled: boolean;
+  /** Weather/seasonal accessory the resident wears; null = bare. */
+  readonly outfit: CompanionOutfit | null;
+}
+
+/**
+ * Weather-fit derivation shared by every presence read: the resident dresses
+ * from the same cached weather query the Overview clock card uses (same key,
+ * same 15-min staleness — deduped, never a parallel request), falling back to
+ * the calendar season when weather is off or unavailable. The master
+ * `dressForWeather` toggle gates both the query and the derivation.
+ */
+function useCompanionOutfit(): CompanionOutfit | null {
+  const dressForWeather = useCompanionStore(s => s.dressForWeather);
+  const weatherEnabled = useWeatherStore(s => s.enabled);
+  const weatherCoords = useWeatherStore(s => s.coords);
+  const { data: weather } = useWeatherQuery(weatherEnabled && dressForWeather, weatherCoords);
+
+  if (!dressForWeather) return null;
+  return outfitFor(weather ?? null, new Date());
 }
 
 /**
@@ -38,6 +61,7 @@ export function useCompanionPresence(): ICompanionPresence {
   const suspended = useCompanionRuntimeStore(s => s.suspended);
   const species = useCompanionStore(s => s.species);
   const decorativeMotion = useDecorativeMotion();
+  const outfit = useCompanionOutfit();
 
   return {
     species,
@@ -47,6 +71,7 @@ export function useCompanionPresence(): ICompanionPresence {
     overlaySeq: machine.overlaySeq,
     motion: decorativeMotion && !suspended,
     enabled: machine.mode !== 'hidden',
+    outfit,
   };
 }
 

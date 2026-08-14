@@ -49,4 +49,28 @@ describe('ShioRig', () => {
     const eye = container.querySelector('.companion-f-open .companion-ink');
     expect(eye?.getAttribute('ry')).toBe('3.8');
   });
+
+  it('mounts only the worn accessory layer, and none when bare', () => {
+    const { container: bare } = renderRig(<ShioRig stage={2} mode="idle" motion={false} />);
+    expect(bare.querySelector('.companion-outfit')).toBeNull();
+
+    const { container: dressed } = renderRig(
+      <ShioRig stage={2} mode="idle" motion={false} outfit="umbrella" />
+    );
+    expect(dressed.querySelectorAll('.companion-outfit')).toHaveLength(1);
+    expect(dressed.querySelector('.companion-o-umbrella')).not.toBeNull();
+    expect(dressed.querySelector('.companion-o-scarf')).toBeNull();
+  });
+
+  it('pulses the lantern glow only when motion is allowed', () => {
+    const { container: moving } = renderRig(
+      <ShioRig stage={2} mode="idle" motion outfit="lantern" />
+    );
+    expect(moving.querySelector('.companion-o-lantern')).toHaveClass('companion-lantern-glow');
+
+    const { container: still } = renderRig(
+      <ShioRig stage={2} mode="idle" motion={false} outfit="lantern" />
+    );
+    expect(still.querySelector('.companion-o-lantern')).not.toHaveClass('companion-lantern-glow');
+  });
 });

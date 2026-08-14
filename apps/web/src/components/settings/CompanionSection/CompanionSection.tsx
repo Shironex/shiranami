@@ -20,6 +20,8 @@ export default function CompanionSection() {
     onSelectSpecies,
     keepsWatch,
     onToggleKeepsWatch,
+    dressForWeather,
+    onToggleDressForWeather,
     stage,
     motion,
     stageLine,
@@ -82,6 +84,15 @@ export default function CompanionSection() {
         description={t('app.interface.companion.keepsWatchDesc')}
         checked={keepsWatch}
         onCheckedChange={onToggleKeepsWatch}
+        disabled={!enabled}
+        divider
+      />
+
+      <SettingsToggleRow
+        label={t('app.interface.companion.dressForWeather')}
+        description={t('app.interface.companion.dressForWeatherDesc')}
+        checked={dressForWeather}
+        onCheckedChange={onToggleDressForWeather}
         disabled={!enabled}
         divider
       />

@@ -26,6 +26,9 @@ export interface ICompanionSectionView {
   /** "Keeps watch in Sanctuary" sub-toggle. */
   readonly keepsWatch: boolean;
   readonly onToggleKeepsWatch: (keepsWatch: boolean) => void;
+  /** "Dresses for the weather" sub-toggle (weather fits + seasonal accents). */
+  readonly dressForWeather: boolean;
+  readonly onToggleDressForWeather: (dress: boolean) => void;
   /** Current stage — the previews render the pet as it actually is today. */
   readonly stage: CompanionStage;
   /** Decorative motion allowed — previews sway only when the app itself may. */

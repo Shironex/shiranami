@@ -1,4 +1,5 @@
 import type { CompanionMode, CompanionStage } from '@/lib/companionMachine';
+import type { CompanionOutfit } from '@/lib/companionOutfit';
 
 export interface IShioRigProps {
   /** Evolution stage index (0–4); reveals the additive layer groups. */
@@ -7,6 +8,11 @@ export interface IShioRigProps {
   readonly mode: CompanionMode;
   /** Decorative motion allowed; false renders the static first frame. */
   readonly motion: boolean;
+  /**
+   * Weather/seasonal accessory layer. Null/omitted mounts nothing — the bare
+   * rig stays byte-identical to the outfit-less render.
+   */
+  readonly outfit?: CompanionOutfit | null;
 }
 
 export interface IShioRigView {
@@ -20,4 +26,6 @@ export interface IShioRigView {
   readonly blinkClass: string | undefined;
   /** Hatchling eyes are bigger — the endearingly unfinished look. */
   readonly eyeRy: number;
+  /** Soft pulse for the lantern-glow outfit (undefined = static glow). */
+  readonly lanternClass: string | undefined;
 }

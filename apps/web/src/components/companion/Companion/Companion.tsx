@@ -7,7 +7,7 @@ import type { ICompanionProps } from './Companion.types';
 /**
  * The resident sprite — one shell, two species. Renders the shared stage
  * (ripple pool, ripple ring, level-up foam bubbles) around the chosen rig,
- * stamps the state/stage/face data attributes the companion CSS keys off,
+ * stamps the state/stage/face/outfit data attributes the companion CSS keys off,
  * and runs the WAAPI one-shots. Purely presentational: the machine lives in
  * `useCompanionPresence`, interactions live on the surfaces (perch).
  *
@@ -15,7 +15,7 @@ import type { ICompanionProps } from './Companion.types';
  * never reaches the a11y tree; hit-testing is the surface's concern.
  */
 export default function Companion(props: ICompanionProps) {
-  const { species, stage, mode, size = 56, className } = props;
+  const { species, stage, mode, outfit, size = 56, className } = props;
   const { svgRef, face, rigClass, hopClass, height, rootStyle } = useCompanion(props);
 
   return (
@@ -30,6 +30,7 @@ export default function Companion(props: ICompanionProps) {
       data-stage={stage}
       data-state={mode}
       data-face={face}
+      data-outfit={outfit ?? undefined}
       style={rootStyle}
       aria-hidden="true"
       focusable="false"
@@ -41,9 +42,9 @@ export default function Companion(props: ICompanionProps) {
       <g className={hopClass}>
         <g className={cn('companion-rig', rigClass)}>
           {species === 'shio' ? (
-            <ShioRig stage={stage} mode={mode} motion={props.motion} />
+            <ShioRig stage={stage} mode={mode} motion={props.motion} outfit={outfit} />
           ) : (
-            <HotaruRig stage={stage} mode={mode} motion={props.motion} />
+            <HotaruRig stage={stage} mode={mode} motion={props.motion} outfit={outfit} />
           )}
         </g>
       </g>

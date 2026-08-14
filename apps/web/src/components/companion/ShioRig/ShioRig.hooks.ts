@@ -22,5 +22,6 @@ export function useShioRig({ stage, mode, motion }: IShioRigProps): IShioRigView
     bubClass: motion && (listening || grooving) ? 'companion-bub-drift' : undefined,
     blinkClass: motion && mode === 'idle' ? 'companion-idle-blink' : undefined,
     eyeRy: stage === 0 ? 3.8 : 3,
+    lanternClass: motion ? 'companion-lantern-glow' : undefined,
   };
 }

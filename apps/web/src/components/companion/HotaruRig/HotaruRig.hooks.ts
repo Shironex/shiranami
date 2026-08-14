@@ -22,5 +22,6 @@ export function useHotaruRig({ stage, mode, motion }: IHotaruRigProps): IHotaruR
     bubClass: motion && (listening || grooving) ? 'companion-bub-drift' : undefined,
     blinkClass: motion && mode === 'idle' ? 'companion-idle-blink' : undefined,
     eyeRy: stage === 0 ? 4.2 : 3.4,
+    lanternClass: motion ? 'companion-lantern-glow' : undefined,
   };
 }
