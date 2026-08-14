@@ -98,7 +98,11 @@ export function backgroundUrls(record: CustomBackground | null | undefined): {
   if (!record) return { url: null, stillUrl: null };
   return {
     url: toBackgroundUrl(record.fileName),
-    stillUrl: record.stillFileName === null ? null : toBackgroundUrl(record.stillFileName),
+    // `== null`, covering undefined as well: `still_file_name` carries
+    // `#[serde(default)]` so the generated type is optional, and a record
+    // written before stills existed omits the key entirely rather than
+    // sending null.
+    stillUrl: record.stillFileName == null ? null : toBackgroundUrl(record.stillFileName),
   };
 }
 

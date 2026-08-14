@@ -186,7 +186,13 @@ fn is_animated(format: ImageFormat, bytes: &[u8]) -> Result<bool> {
             decoder
                 .set_limits(Limits::default())
                 .map_err(|_| MetadataError::BackgroundNotAnImage)?;
-            Ok(decoder.into_frames().take(2).count() > 1)
+            // `take(2)` before the filter, not after: it bounds the work to two
+            // frame decodes whatever the file claims. The filter is what makes
+            // the count mean "frames that decoded" — `Frames` yields
+            // `Result`s, and counting those raw treats a corrupt second frame
+            // as evidence of animation, which is the opposite of what a failure
+            // to decode it says.
+            Ok(decoder.into_frames().take(2).filter(Result::is_ok).count() > 1)
         }
         ImageFormat::WebP => {
             let decoder = image::codecs::webp::WebPDecoder::new(Cursor::new(bytes))
@@ -423,6 +429,30 @@ mod tests {
             &still_bytes[..3],
             &[0xFF, 0xD8, 0xFF],
             "the frozen frame is a JPEG"
+        );
+    }
+
+    /// A frame that does not decode is not evidence of animation.
+    ///
+    /// `Frames` yields `Result`s, so counting them raw makes a truncated GIF —
+    /// one good frame, then garbage — report two frames and import as animated.
+    /// The still would be right and the flag wrong, which is the quiet kind of
+    /// wrong: nothing looks broken and the record says something untrue.
+    #[test]
+    fn a_frame_that_fails_to_decode_does_not_count_as_animation() {
+        let full = animated_gif();
+        // Cut inside the second frame's data: frame 0 still decodes, frame 1
+        // cannot. Sized off the one-frame GIF so the truncation lands after the
+        // first frame however the encoder laid the file out.
+        let cut = still_gif().len() + 8;
+        assert!(cut < full.len(), "the fixture must actually be truncated");
+
+        let format = sniff(&full[..cut]).expect("a truncated GIF still sniffs as a GIF");
+        assert_eq!(format, ImageFormat::Gif);
+
+        assert!(
+            !is_animated(format, &full[..cut]).expect("a truncated GIF is not an error here"),
+            "a frame that failed to decode was counted as animation"
         );
     }
 

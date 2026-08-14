@@ -54,7 +54,18 @@ export const commands = {
 	 *  A *refusal* is an error, and a specific one — see
 	 *  `shiranami_core::error::codes::background`.
 	 */
-	backgroundPick: () => __TAURI_INVOKE<CustomBackground | null>("background_pick"),
+	backgroundPick: () => __TAURI_INVOKE<{
+	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
+	fileName: string,
+	/**  The frozen frame-0 sibling, present only for an animated source. */
+	stillFileName?: string | null,
+	/**  Width in pixels, as imported. */
+	width: number,
+	/**  Height in pixels, as imported. */
+	height: number,
+	/**  Whether the source carries more than one frame. */
+	animated?: boolean,
+} | null>("background_pick"),
 	/**
 	 *  `background:get` — the current background, if one is set and still on disk.
 	 * 
@@ -63,7 +74,18 @@ export const commands = {
 	 *  returned, so the renderer never has to render a URL that 404s. The filesystem
 	 *  is the source of truth for existence; the settings entry only names things.
 	 */
-	backgroundGet: () => __TAURI_INVOKE<CustomBackground | null>("background_get"),
+	backgroundGet: () => __TAURI_INVOKE<{
+	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
+	fileName: string,
+	/**  The frozen frame-0 sibling, present only for an animated source. */
+	stillFileName?: string | null,
+	/**  Width in pixels, as imported. */
+	width: number,
+	/**  Height in pixels, as imported. */
+	height: number,
+	/**  Whether the source carries more than one frame. */
+	animated?: boolean,
+} | null>("background_get"),
 	/**  `background:clear` — forget the background and delete its files. */
 	backgroundClear: () => __TAURI_INVOKE<null>("background_clear"),
 	/**
@@ -1558,13 +1580,13 @@ export type CustomBackground = {
 	/**  The stored file name, `bg-<hash>.<ext>`. Never user-supplied. */
 	fileName: string,
 	/**  The frozen frame-0 sibling, present only for an animated source. */
-	stillFileName: string | null,
+	stillFileName?: string | null,
 	/**  Width in pixels, as imported. */
 	width: number,
 	/**  Height in pixels, as imported. */
 	height: number,
 	/**  Whether the source carries more than one frame. */
-	animated: boolean,
+	animated?: boolean,
 };
 
 /**  What `db:backup:export` resolves to — v1's `DbExportResult`. */
