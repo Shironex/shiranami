@@ -87,7 +87,18 @@ pub fn file(from: &Path, to: &Path, on_existing: OnExisting) -> Result<u64> {
         // between the two leaves a file that exists at full length and reads
         // back as zeroes — which `quick_check` would call corruption on a
         // database and nothing would notice on a JPEG.
-        std::fs::File::open(&in_flight)?.sync_data()?;
+        //
+        // Opened for **writing**, and that is not a detail. `sync_data` is
+        // `fdatasync` on Unix, which a read-only descriptor satisfies, but
+        // `FlushFileBuffers` on Windows, which documents that the handle must
+        // carry `GENERIC_WRITE` and answers `ERROR_ACCESS_DENIED` when it does
+        // not. Opening read-only here made every migrate copy fail on Windows —
+        // the platform the app primarily ships to — while Linux CI stayed green,
+        // because the test suite only ever ran on Linux.
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&in_flight)?
+            .sync_data()?;
         std::fs::rename(&in_flight, to)?;
         Ok(bytes)
     };

@@ -248,117 +248,10 @@ fn emit(
 mod tests {
     use super::*;
     use std::path::PathBuf;
-    use std::sync::Mutex;
 
-    /// A sink that remembers every line, so a test can assert on what the
-    /// progress parser would have seen.
-    #[derive(Default)]
-    struct Recorder {
-        lines: Mutex<Vec<String>>,
-    }
-
-    impl Recorder {
-        fn lines(&self) -> Vec<String> {
-            self.lines
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .clone()
-        }
-    }
-
-    impl LineSink for Recorder {
-        fn line(&self, line: &str) {
-            self.lines
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .push(line.to_owned());
-        }
-    }
-
-    /// `/bin/sh` is not the shell we refuse to spawn *through* — it is just a
-    /// convenient program that exists on both CI runners and writes what it is
-    /// told. The point of the refusal is that a URL never becomes part of a
-    /// command string, and these tests never make one.
-    fn shell(script: &str) -> ProcessSpec {
-        ProcessSpec::capturing(
-            PathBuf::from("/bin/sh"),
-            vec!["-c".to_owned(), script.to_owned()],
-        )
-    }
-
-    #[tokio::test]
-    async fn captures_both_streams_and_the_exit_code() {
-        let output = TokioRunner::new()
-            .run(
-                shell("echo out; echo err 1>&2; exit 3"),
-                None,
-                &CancellationToken::new(),
-            )
-            .await
-            .expect("the child runs");
-
-        assert_eq!(output.stdout, "out\n");
-        assert_eq!(output.stderr, "err\n");
-        assert_eq!(output.code, 3);
-        assert!(!output.truncated);
-    }
-
-    #[tokio::test]
-    async fn streams_stdout_lines_to_the_sink_as_they_arrive() {
-        let recorder = Recorder::default();
-
-        let output = TokioRunner::new()
-            .run(
-                shell("printf '[download]  12.3%%\\n[download] 100.0%%\\n'"),
-                Some(&recorder),
-                &CancellationToken::new(),
-            )
-            .await
-            .expect("the child runs");
-
-        assert_eq!(
-            recorder.lines(),
-            vec!["[download]  12.3%", "[download] 100.0%"],
-            "the download runner parses progress from lines while the child is \
-             still running, so the sink must see them split and terminator-free"
-        );
-        assert_eq!(output.code, 0);
-    }
-
-    #[tokio::test]
-    async fn a_child_that_outlives_its_timeout_is_killed() {
-        let error = TokioRunner::new()
-            .run(
-                shell("sleep 30").with_timeout(Duration::from_millis(50)),
-                None,
-                &CancellationToken::new(),
-            )
-            .await
-            .expect_err("the deadline fires");
-
-        assert!(matches!(error, ProcessError::Timeout { .. }));
-        assert!(
-            !error.is_cancelled(),
-            "a timeout must not be mistaken for the user's own cancel"
-        );
-    }
-
-    #[tokio::test]
-    async fn cancelling_mid_run_kills_the_child_and_reports_cancellation() {
-        let cancel = CancellationToken::new();
-        let token = cancel.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_millis(50)).await;
-            token.cancel();
-        });
-
-        let error = TokioRunner::new()
-            .run(shell("sleep 30"), None, &cancel)
-            .await
-            .expect_err("cancellation wins");
-
-        assert!(error.is_cancelled());
-    }
+    // What is left here needs no child process. Everything that did — and the
+    // line-recording sink it used — moved to `tests/spawn_runner.rs`, where a
+    // helper binary can stand in for `/bin/sh` and the tests run on Windows too.
 
     #[tokio::test]
     async fn a_token_cancelled_up_front_never_spawns_anything() {
@@ -391,43 +284,5 @@ mod tests {
             .expect_err("nothing to run");
 
         assert!(matches!(error, ProcessError::Spawn { .. }));
-    }
-
-    #[tokio::test]
-    async fn a_discarding_spec_keeps_nothing_but_still_drains_the_pipe() {
-        let output = TokioRunner::new()
-            .run(
-                ProcessSpec::silent(
-                    PathBuf::from("/bin/sh"),
-                    vec!["-c".to_owned(), "echo noisy; exit 0".to_owned()],
-                ),
-                None,
-                &CancellationToken::new(),
-            )
-            .await
-            .expect("the child runs");
-
-        assert!(output.stdout.is_empty());
-        assert_eq!(output.code, 0, "the child still exited cleanly");
-    }
-
-    #[tokio::test]
-    async fn arguments_reach_the_child_as_argv_entries_not_as_a_command_string() {
-        // A single argument containing shell metacharacters. If anything on the
-        // way built a command string, `;` would start a second command and the
-        // output would not be this one literal line.
-        let output = TokioRunner::new()
-            .run(
-                ProcessSpec::capturing(
-                    PathBuf::from("/bin/echo"),
-                    vec!["a; rm -rf /; echo b".to_owned()],
-                ),
-                None,
-                &CancellationToken::new(),
-            )
-            .await
-            .expect("the child runs");
-
-        assert_eq!(output.stdout, "a; rm -rf /; echo b\n");
     }
 }

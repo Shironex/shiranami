@@ -13,6 +13,21 @@ publish.workspace = true
 # library module.
 autobins = false
 
+# The child process `tests/spawn_runner.rs` drives. Declared rather than
+# discovered for the reason above, and kept under `tests/helpers/` rather than
+# directly in `tests/` so Cargo does not also auto-discover it as a test target
+# — it is a program, not a harness. `test = false` keeps it out of the suite for
+# the same reason.
+#
+# It exists because the spawn tests used to reach for `/bin/sh`, which made them
+# quietly Unix-only. See the helper's own docs for why a purpose-built child
+# beats swapping in `cmd /C`.
+[[bin]]
+name = "spawn_helper"
+path = "tests/helpers/spawn_helper.rs"
+test = false
+doc = false
+
 [dependencies]
 shiranami-core.workspace = true
 shiranami-net.workspace = true
