@@ -2,7 +2,7 @@ import { usePageHeader } from './PageHeader.hooks';
 import type { IPageHeaderProps } from './PageHeader.types';
 
 export default function PageHeader(props: IPageHeaderProps) {
-  const { title, icon: Icon, subtitle, variant } = usePageHeader(props);
+  const { title, icon: Icon, subtitle, variant, actions } = usePageHeader(props);
 
   if (variant === 'section') {
     return (
@@ -12,7 +12,7 @@ export default function PageHeader(props: IPageHeaderProps) {
             <Icon className="w-4 h-4 text-primary" aria-hidden="true" focusable="false" />
           </div>
         )}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="font-serif italic text-xl leading-tight text-foreground truncate">
             {title}
           </h2>
@@ -22,13 +22,17 @@ export default function PageHeader(props: IPageHeaderProps) {
             </p>
           )}
         </div>
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
     );
   }
 
   return (
-    <div className="px-6 pt-5 pb-1 shrink-0">
-      <h1 className="font-serif italic text-3xl leading-tight text-foreground truncate">{title}</h1>
+    <div className="flex items-center gap-3 px-6 pt-5 pb-1 shrink-0">
+      <h1 className="font-serif italic text-3xl leading-tight text-foreground truncate min-w-0 flex-1">
+        {title}
+      </h1>
+      {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
     </div>
   );
 }
