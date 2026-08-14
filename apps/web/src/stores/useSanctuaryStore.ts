@@ -100,6 +100,7 @@ interface PersistedSanctuaryState {
   sanctuaryRotation: SanctuaryRotation;
   sanctuaryRotationMinutes: number;
   sanctuaryTrackInfo: Record<SanctuaryVariant, boolean>;
+  sanctuaryTimeOfDay: boolean;
   sanctuaryAutoEnter: boolean;
   sanctuaryAutoEnterMinutes: number;
 }
@@ -125,6 +126,7 @@ interface SanctuaryActions {
   setSanctuaryRotation: (rotation: SanctuaryRotation) => void;
   setSanctuaryRotationMinutes: (minutes: number) => void;
   setSanctuaryTrackInfo: (variant: SanctuaryVariant, shown: boolean) => void;
+  setSanctuaryTimeOfDay: (enabled: boolean) => void;
   setSanctuaryAutoEnter: (enabled: boolean) => void;
   setSanctuaryAutoEnterMinutes: (minutes: number) => void;
 }
@@ -154,21 +156,24 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
     sanctuaryRotation: SANCTUARY_ROTATION_DEFAULT,
     sanctuaryRotationMinutes: SANCTUARY_ROTATE_DEFAULT_MINUTES,
     sanctuaryTrackInfo: coerceTrackInfo(undefined),
+    sanctuaryTimeOfDay: false,
     sanctuaryAutoEnter: false,
     sanctuaryAutoEnterMinutes: SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
     sanctuaryActive: false,
     sanctuaryAutoEntered: false,
 
     enterSanctuary: options => {
-      const { sanctuaryActive, sanctuaryRotation, sanctuaryVariant } = get();
+      const { sanctuaryActive, sanctuaryRotation, sanctuaryTimeOfDay, sanctuaryVariant } = get();
       if (sanctuaryActive) return;
       set({
         sanctuaryActive: true,
         sanctuaryAutoEntered: options?.auto === true,
-        // "Each entry" rotation: every visit opens on the next center stage.
-        ...(sanctuaryRotation === 'entry' && {
-          sanctuaryVariant: nextSanctuaryVariant(sanctuaryVariant),
-        }),
+        // "Each entry" rotation: every visit opens on the next center stage —
+        // unless follow-the-day is on, where the hour owns the stage instead.
+        ...(sanctuaryRotation === 'entry' &&
+          !sanctuaryTimeOfDay && {
+            sanctuaryVariant: nextSanctuaryVariant(sanctuaryVariant),
+          }),
       });
       pushWindowState(true);
     },
@@ -207,6 +212,9 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
         sanctuaryTrackInfo: { ...get().sanctuaryTrackInfo, [coerceVariant(variant)]: shown },
       });
     },
+    setSanctuaryTimeOfDay: enabled => {
+      set({ sanctuaryTimeOfDay: enabled });
+    },
     setSanctuaryAutoEnter: enabled => {
       set({ sanctuaryAutoEnter: enabled });
     },
@@ -225,6 +233,7 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
       sanctuaryRotation: s.sanctuaryRotation,
       sanctuaryRotationMinutes: s.sanctuaryRotationMinutes,
       sanctuaryTrackInfo: s.sanctuaryTrackInfo,
+      sanctuaryTimeOfDay: s.sanctuaryTimeOfDay,
       sanctuaryAutoEnter: s.sanctuaryAutoEnter,
       sanctuaryAutoEnterMinutes: s.sanctuaryAutoEnterMinutes,
     }),
@@ -240,6 +249,8 @@ export const useSanctuaryStore = createPersistedStore<SanctuaryState & Sanctuary
         sanctuaryRotation: coerceRotation(p?.sanctuaryRotation),
         sanctuaryRotationMinutes: coerceRotationMinutes(p?.sanctuaryRotationMinutes),
         sanctuaryTrackInfo: coerceTrackInfo(p?.sanctuaryTrackInfo),
+        sanctuaryTimeOfDay:
+          typeof p?.sanctuaryTimeOfDay === 'boolean' ? p.sanctuaryTimeOfDay : false,
         sanctuaryAutoEnter:
           typeof p?.sanctuaryAutoEnter === 'boolean' ? p.sanctuaryAutoEnter : false,
         sanctuaryAutoEnterMinutes: coerceAutoEnterMinutes(p?.sanctuaryAutoEnterMinutes),

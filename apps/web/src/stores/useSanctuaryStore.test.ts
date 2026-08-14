@@ -29,6 +29,7 @@ beforeEach(() => {
     sanctuaryRotation: 'off',
     sanctuaryRotationMinutes: SANCTUARY_ROTATE_DEFAULT_MINUTES,
     sanctuaryTrackInfo: { cover: true, clock: true, vinyl: true },
+    sanctuaryTimeOfDay: false,
     sanctuaryAutoEnter: false,
     sanctuaryAutoEnterMinutes: SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
     sanctuaryActive: false,
@@ -148,6 +149,14 @@ describe('useSanctuaryStore', () => {
   it('rotation off leaves the stage where it was on entry', () => {
     useSanctuaryStore.getState().enterSanctuary();
     expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+  });
+
+  it('follow-the-day suppresses each-entry rotation', () => {
+    useSanctuaryStore.getState().setSanctuaryRotation('entry');
+    useSanctuaryStore.getState().setSanctuaryTimeOfDay(true);
+    useSanctuaryStore.getState().enterSanctuary();
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+    expect(readPersisted().sanctuaryTimeOfDay).toBe(true);
   });
 
   it('clamps the rotation minutes and coerces a malformed rotation mode', () => {
