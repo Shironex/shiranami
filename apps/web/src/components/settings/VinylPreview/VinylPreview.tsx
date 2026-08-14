@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { VinylRecord } from '@/components/shared/VinylRecord';
 import { useVinylPreview } from './VinylPreview.hooks';
@@ -28,15 +29,13 @@ export default function VinylPreview(props: IVinylPreviewProps) {
 
   return (
     <SettingsPreview title={title}>
-      <div
-        className="rounded-xl border border-border/30 bg-background/40 p-3"
-        role="img"
-        aria-label={title}
+      <PreviewFrame
+        label={title}
+        size="scene"
+        canvasClassName="flex items-end justify-center gap-10 p-3 pb-4"
       >
-        <div className="relative mx-auto flex h-[150px] max-w-[340px] items-end justify-center gap-10 overflow-hidden rounded-xl border border-border/25 bg-surface/60 p-3 pb-4">
-          {stageMiniatures}
-        </div>
-      </div>
+        {stageMiniatures}
+      </PreviewFrame>
     </SettingsPreview>
   );
 }
