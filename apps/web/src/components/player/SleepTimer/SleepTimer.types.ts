@@ -1,8 +1,21 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
 import type { useTranslation } from 'react-i18next';
 import type { SleepStopMode } from '@/stores/useSleepTimerStore';
+import type { WindDownLength } from '@/stores/useWindDownStore';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
+
+/** One render-ready wind-down length chip (0 = off). */
+export interface IWindDownLengthChoice {
+  /** Length in minutes; 0 turns the wind-down off. */
+  readonly minutes: WindDownLength;
+  /** Visible chip text ("Off", "5", "10", …). */
+  readonly label: string;
+  /** Accessible name ("Off", "5 minutes", …). */
+  readonly ariaLabel: string;
+  /** Whether this is the stored setting. */
+  readonly selected: boolean;
+}
 
 /** One render-ready preset entry in the sleep-timer popover. */
 export interface ISleepTimerPreset {
@@ -44,6 +57,12 @@ export interface ISleepTimerView {
   readonly triggerLabel: string;
   /** Render-ready preset entries. */
   readonly presets: readonly ISleepTimerPreset[];
+  /** Whether the wind-down setting is on (length > 0). */
+  readonly windDownEnabled: boolean;
+  /** Localized wind-down hint line (length when on, off-wording when off). */
+  readonly windDownHint: string;
+  /** Render-ready wind-down length chips (Off / 5 / 10 / 15 / 20). */
+  readonly windDownLengthChoices: readonly IWindDownLengthChoice[];
   /** Lower bound for the custom input. */
   readonly minMinutes: number;
   /** Upper bound for the custom input. */
@@ -56,6 +75,8 @@ export interface ISleepTimerView {
   readonly onSelectWindDown: () => void;
   /** Arm an end-of-track/end-of-album stop and close. */
   readonly onSelectStopAfter: (mode: SleepStopMode) => void;
+  /** Store a wind-down length (0 = off). The popover stays open. */
+  readonly onSelectWindDownLength: (minutes: WindDownLength) => void;
   /** Cancel a running timer and close. */
   readonly onCancel: () => void;
   /** Switch the popover to the custom-minutes face. */

@@ -23,11 +23,23 @@ const mockState = vi.hoisted(() => ({
   cancel: vi.fn(),
 }));
 
+const mockWindDownState = vi.hoisted(() => ({
+  lengthMinutes: 15 as number,
+  setLength: vi.fn(),
+}));
+
 vi.mock('@/stores/useSleepTimerStore', () => ({
   useSleepTimerStore: <T,>(selector: (s: typeof mockState) => T) => selector(mockState),
   SLEEP_TIMER_PRESETS: [15, 30, 45, 60, 90],
   SLEEP_TIMER_MIN_MINUTES: 1,
   SLEEP_TIMER_MAX_MINUTES: 600,
+}));
+
+vi.mock('@/stores/useWindDownStore', () => ({
+  useWindDownStore: <T,>(selector: (s: typeof mockWindDownState) => T) =>
+    selector(mockWindDownState),
+  WIND_DOWN_LENGTH_CHOICES: [0, 5, 10, 15, 20],
+  DEFAULT_WIND_DOWN_MINUTES: 15,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -51,6 +63,8 @@ describe('SleepTimer', () => {
     mockState.startWindDown.mockReset();
     mockState.startStopAfter.mockReset();
     mockState.cancel.mockReset();
+    mockWindDownState.lengthMinutes = 15;
+    mockWindDownState.setLength.mockReset();
   });
 
   it('renders the timer button', () => {
@@ -261,7 +275,48 @@ describe('SleepTimer', () => {
 
     await user.click(screen.getByRole('button', { name: 'label' }));
     expect(screen.getByText('windDown')).toBeInTheDocument();
-    expect(screen.getByText('windDownHint')).toBeInTheDocument();
+    expect(screen.getByText('windDownHint:15')).toBeInTheDocument();
+  });
+
+  it('renders the wind-down length chips with the stored length pressed', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+
+    const group = screen.getByRole('group', { name: 'windDownLength' });
+    expect(group).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'off', pressed: false })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'windDownLengthChoice:15', pressed: true })
+    ).toBeInTheDocument();
+  });
+
+  it('clicking a length chip stores it without starting anything or closing', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByRole('button', { name: 'windDownLengthChoice:5' }));
+
+    expect(mockWindDownState.setLength).toHaveBeenCalledWith(5);
+    expect(mockState.start).not.toHaveBeenCalled();
+    expect(mockState.startWindDown).not.toHaveBeenCalled();
+    // The popover stays open for further adjustment.
+    expect(screen.getByText('windDown')).toBeInTheDocument();
+  });
+
+  it('disables the wind-down option and swaps the hint when the setting is off', async () => {
+    mockWindDownState.lengthMinutes = 0;
+
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+
+    expect(screen.getByText('windDown').closest('button')).toBeDisabled();
+    expect(screen.getByText('windDownOff')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'off', pressed: true })).toBeInTheDocument();
   });
 
   it('starts the wind-down ending when its option is clicked', async () => {

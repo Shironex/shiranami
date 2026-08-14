@@ -62,8 +62,11 @@ export const Idle: Story = {
     // The track-boundary stops sit between the presets and the wind-down.
     await expect(screen.getByRole('button', { name: 'End of track' })).toBeInTheDocument();
     await expect(screen.getByRole('button', { name: 'End of album' })).toBeInTheDocument();
-    // The wind-down ending sits under the presets with its one-line hint.
-    await expect(screen.getByRole('button', { name: /Wind down/ })).toBeInTheDocument();
+    // The wind-down ending sits under the presets with its one-line hint. Its
+    // accessible name includes the hint, which keeps it distinct from the
+    // "Wind down for N minutes" length chips beneath it.
+    await expect(screen.getByRole('button', { name: /the room dims/ })).toBeInTheDocument();
+    await expect(screen.getByRole('group', { name: 'Wind-down length' })).toBeInTheDocument();
   },
 };
 

@@ -10,9 +10,6 @@ export const SLEEP_TIMER_PRESETS = [15, 30, 45, 60, 90] as const;
 export const SLEEP_TIMER_MIN_MINUTES = 1;
 export const SLEEP_TIMER_MAX_MINUTES = 600;
 
-/** Length of the authored wind-down ending. */
-export const WIND_DOWN_MINUTES = 15;
-
 /**
  * The UI dim ramps over this window at the end of a wind-down. Shorter timers
  * (never the built-in wind-down, but a defensive clamp regardless) ramp over
@@ -133,6 +130,11 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
   },
 
   startWindDown: () => {
+    // The length is the listener's setting; 0 means wind-down is off and the
+    // UI offers no way here, but any future caller obeys the same contract.
+    const minutes = useWindDownStore.getState().lengthMinutes;
+    if (minutes <= 0) return;
+
     const playback = usePlaybackStore.getState();
     const calmed = orderQueueCalmestFirst(playback.queue, playback.queueIndex);
     // setState (not an action) mirrors how usePlaybackResume restores the
@@ -140,11 +142,11 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
     // track, index and play state all stay exactly where they are.
     usePlaybackStore.setState({ queue: calmed });
 
-    const endTime = Date.now() + WIND_DOWN_MINUTES * 60 * 1000;
+    const endTime = Date.now() + minutes * 60 * 1000;
     set({
       endTime,
-      duration: WIND_DOWN_MINUTES,
-      remaining: WIND_DOWN_MINUTES * 60,
+      duration: minutes,
+      remaining: minutes * 60,
       windDown: true,
       stopMode: null,
     });

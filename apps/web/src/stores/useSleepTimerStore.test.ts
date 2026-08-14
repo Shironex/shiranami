@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSleepTimerStore, WIND_DOWN_MINUTES } from './useSleepTimerStore';
+import { useSleepTimerStore } from './useSleepTimerStore';
 import { usePlaybackStore } from './usePlaybackStore';
-import { useWindDownStore } from './useWindDownStore';
+import { useWindDownStore, DEFAULT_WIND_DOWN_MINUTES } from './useWindDownStore';
 import type { Track } from './types';
+
+const WIND_DOWN_MINUTES = DEFAULT_WIND_DOWN_MINUTES;
 
 vi.mock('@/lib/platform', () => ({
   IS_ELECTRON: true,
@@ -43,6 +45,7 @@ function resetStore() {
     lastCompletion: null,
     noteAcknowledged: false,
     closingLineUntil: null,
+    lengthMinutes: DEFAULT_WIND_DOWN_MINUTES,
   });
 }
 
@@ -288,7 +291,7 @@ describe('useSleepTimerStore', () => {
   });
 
   describe('wind down', () => {
-    it('starts a wind-down timer with the authored length', () => {
+    it('starts a wind-down timer with the default length', () => {
       useSleepTimerStore.getState().startWindDown();
 
       const s = useSleepTimerStore.getState();
@@ -296,6 +299,30 @@ describe('useSleepTimerStore', () => {
       expect(s.duration).toBe(WIND_DOWN_MINUTES);
       expect(s.remaining).toBe(WIND_DOWN_MINUTES * 60);
       expect(s.endTime).not.toBeNull();
+    });
+
+    it('honours the stored wind-down length setting', () => {
+      useWindDownStore.getState().setLength(5);
+      useSleepTimerStore.getState().startWindDown();
+
+      const s = useSleepTimerStore.getState();
+      expect(s.windDown).toBe(true);
+      expect(s.duration).toBe(5);
+      expect(s.remaining).toBe(5 * 60);
+    });
+
+    it('does nothing when the wind-down setting is off', () => {
+      const queue = [makeTrack('current', -10), makeTrack('loud', -7), makeTrack('calm', -21)];
+      usePlaybackStore.setState({ queue, queueIndex: 0, currentTrack: queue[0], isPlaying: true });
+      useWindDownStore.getState().setLength(0);
+
+      useSleepTimerStore.getState().startWindDown();
+
+      const s = useSleepTimerStore.getState();
+      expect(s.windDown).toBe(false);
+      expect(s.endTime).toBeNull();
+      // The queue is untouched — no calmest-first reorder for an off setting.
+      expect(usePlaybackStore.getState().queue.map(t => t.id)).toEqual(['current', 'loud', 'calm']);
     });
 
     it('reorders the upcoming queue calmest-first without touching the current track', () => {
