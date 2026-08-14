@@ -165,11 +165,14 @@ export type ReservedChordKind = 'navigation' | 'system';
 
 /**
  * Chords the keymap must never claim: Escape (the universal back/close key),
- * the plain digit row (fixed view navigation), Mod+K (command palette) and
- * Mod+A (select-all guard).
+ * Tab and Enter (focus navigation and control activation — claiming them
+ * would preventDefault them app-wide), the plain digit row (fixed view
+ * navigation), Mod+K (command palette) and Mod+A (select-all guard).
  */
 export function findReservedChord(binding: KeyBinding): ReservedChordKind | null {
-  if (binding.key === 'Escape') return 'system';
+  if (binding.key === 'Escape' || binding.key === 'Tab' || binding.key === 'Enter') {
+    return 'system';
+  }
   if (!binding.mod && /^[1-9]$/.test(binding.key)) return 'navigation';
   if (binding.mod && !binding.shift && (binding.key === 'k' || binding.key === 'a')) {
     return 'system';
@@ -177,13 +180,9 @@ export function findReservedChord(binding: KeyBinding): ReservedChordKind | null
   return null;
 }
 
-export interface BindingConflict {
-  readonly type: 'action' | 'reserved';
-  /** The colliding action when `type === 'action'`. */
-  readonly actionId?: ShortcutActionId;
-  /** What the chord is reserved for when `type === 'reserved'`. */
-  readonly reservedKind?: ReservedChordKind;
-}
+export type BindingConflict =
+  | { readonly type: 'action'; readonly actionId: ShortcutActionId }
+  | { readonly type: 'reserved'; readonly reservedKind: ReservedChordKind };
 
 /**
  * Check a candidate binding for `actionId` against the reserved chords and

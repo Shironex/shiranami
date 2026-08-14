@@ -20,6 +20,7 @@ export type ISettingsSection =
   | 'sidebar'
   | 'weather'
   | 'system'
+  | 'shortcuts'
   | 'scrobble'
   | 'discord'
   | 'updates'

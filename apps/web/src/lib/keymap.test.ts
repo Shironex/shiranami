@@ -118,8 +118,10 @@ describe('bindingsCollide', () => {
 });
 
 describe('findReservedChord', () => {
-  it('reserves Escape, the digit row, Mod+K and Mod+A', () => {
+  it('reserves Escape, Tab, Enter, the digit row, Mod+K and Mod+A', () => {
     expect(findReservedChord({ key: 'Escape', mod: false, shift: false })).toBe('system');
+    expect(findReservedChord({ key: 'Tab', mod: false, shift: false })).toBe('system');
+    expect(findReservedChord({ key: 'Enter', mod: true, shift: false })).toBe('system');
     expect(findReservedChord({ key: '1', mod: false, shift: false })).toBe('navigation');
     expect(findReservedChord({ key: '9', mod: false, shift: false })).toBe('navigation');
     expect(findReservedChord({ key: 'k', mod: true, shift: false })).toBe('system');

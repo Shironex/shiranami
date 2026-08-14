@@ -11,6 +11,8 @@
   "seekForward5s": "Seek forward 5s",
   "seekBack10s": "Seek back 10s",
   "seekForward10s": "Seek forward 10s",
+  "seekBack": "Seek back",
+  "seekForward": "Seek forward",
   "volumeUp": "Volume up",
   "volumeDown": "Volume down",
   "muteUnmute": "Mute / Unmute",
@@ -36,5 +38,19 @@
   "toggleVisualizer": "Toggle visualizer",
   "toggleSanctuary": "Toggle Sanctuary Mode",
   "showHelp": "Show this help",
-  "closePanel": "Back / clear selection / close panel"
+  "closePanel": "Back / clear selection / close panel",
+  "rebind": {
+    "cardSubtitle": "Click a shortcut to change its keys",
+    "hint": "Click a shortcut, then press the new key combination. Press Esc to cancel capturing.",
+    "pressKeys": "Press keys…",
+    "bindingAria": "Change shortcut for {{action}} (currently {{keys}})",
+    "captureAria": "Recording a new shortcut for {{action}} — press the new key combination, Esc to cancel",
+    "conflictAction": "Already used by “{{action}}”. Press a different key.",
+    "reservedNavigation": "Reserved for view navigation (1–9). Press a different key.",
+    "reservedSystem": "Reserved by Shiranami. Press a different key.",
+    "resetBindingAria": "Reset the {{action}} shortcut to its default ({{keys}})",
+    "resetAllTitle": "Reset all shortcuts",
+    "resetAllDesc": "Restore every shortcut to its default keys",
+    "resetAll": "Reset all"
+  }
 }
