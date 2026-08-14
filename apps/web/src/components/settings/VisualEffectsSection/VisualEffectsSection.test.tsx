@@ -33,6 +33,9 @@ function reset(): void {
     tempoBreathingEnabled: true,
     artworkBloomEnabled: true,
     coverCrossfadeEnabled: true,
+    vinylDisplayEnabled: false,
+    vinylLabelSource: 'artwork',
+    vinylRingStyle: 'glow',
   });
   useLibraryStore.setState({ library: [], libraryLoaded: true });
   vi.clearAllMocks();
@@ -46,11 +49,42 @@ describe('VisualEffectsSection', () => {
     render(<VisualEffectsSection />);
 
     expect(screen.getByText('Now Playing view')).toBeInTheDocument();
+    expect(screen.getByText('Vinyl record display')).toBeInTheDocument();
     expect(screen.getByText('Low performance mode')).toBeInTheDocument();
     expect(screen.getByText('Noise texture')).toBeInTheDocument();
     expect(screen.getByText('Artwork bloom')).toBeInTheDocument();
     expect(screen.getByText('Cover crossfade')).toBeInTheDocument();
     expect(screen.getByText('Tempo breathing')).toBeInTheDocument();
+  });
+
+  it('toggles the vinyl display through the store setter', async () => {
+    const user = userEvent.setup();
+    const setVinylDisplayEnabled = vi.fn();
+    useUIStore.setState({ setVinylDisplayEnabled });
+    render(<VisualEffectsSection />);
+
+    await user.click(screen.getByRole('switch', { name: 'Vinyl record display' }));
+
+    expect(setVinylDisplayEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it('shows the label and ring pickers only while the vinyl display is on', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<VisualEffectsSection />);
+
+    expect(screen.queryByText('Record label')).not.toBeInTheDocument();
+
+    useUIStore.setState({ vinylDisplayEnabled: true });
+    rerender(<VisualEffectsSection />);
+
+    expect(screen.getByText('Record label')).toBeInTheDocument();
+    expect(screen.getByText('Reactive ring')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Spectrum' }));
+    expect(useUIStore.getState().vinylRingStyle).toBe('spectrum');
+
+    await user.click(screen.getByRole('button', { name: 'Brand mark' }));
+    expect(useUIStore.getState().vinylLabelSource).toBe('logo');
   });
 
   it('toggles the artwork bloom through the store setter', async () => {
