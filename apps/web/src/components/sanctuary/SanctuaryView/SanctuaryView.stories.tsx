@@ -87,7 +87,7 @@ export const Clock: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('button', { name: 'Show the cover' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Show the record' })).toBeInTheDocument();
     await expect(canvas.getByText(/Midnight Tapes/)).toBeInTheDocument();
   },
 };
