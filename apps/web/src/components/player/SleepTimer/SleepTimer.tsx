@@ -16,15 +16,21 @@ export default function SleepTimer() {
     customInputRef,
     isActive,
     isWindDown,
+    stopModeLabel,
     remainingLabel,
     tooltipText,
     triggerLabel,
     presets,
     minMinutes,
     maxMinutes,
+    windDownEnabled,
+    windDownHint,
+    windDownLengthChoices,
     onOpenChange,
     onSelectPreset,
     onSelectWindDown,
+    onSelectStopAfter,
+    onSelectWindDownLength,
     onCancel,
     onShowCustom,
     onShowPresets,
@@ -32,6 +38,23 @@ export default function SleepTimer() {
     onCustomKeyDown,
     onCustomSubmit,
   } = useSleepTimer();
+
+  const lengthChips = windDownLengthChoices.map(choice => (
+    <button
+      key={choice.minutes}
+      onClick={() => onSelectWindDownLength(choice.minutes)}
+      aria-pressed={choice.selected}
+      aria-label={choice.ariaLabel}
+      className={cn(
+        'flex-1 px-1 py-0.5 rounded-md text-[10px] tabular-nums transition-colors',
+        choice.selected
+          ? 'bg-primary/15 text-primary'
+          : 'text-muted-foreground/70 hover:bg-accent/50 hover:text-foreground'
+      )}
+    >
+      {choice.label}
+    </button>
+  ));
 
   const presetButtons = presets.map(({ minutes, label }) => (
     <button
@@ -77,8 +100,16 @@ export default function SleepTimer() {
 
           {isActive && (
             <div className="px-1 pb-1">
-              <p className="text-lg font-semibold text-primary tabular-nums">{remainingLabel}</p>
-              <p className="text-[10px] text-muted-foreground">{t('remaining')}</p>
+              {stopModeLabel ? (
+                <p className="text-sm font-semibold text-primary">{stopModeLabel}</p>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold text-primary tabular-nums">
+                    {remainingLabel}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{t('remaining')}</p>
+                </>
+              )}
             </div>
           )}
 
@@ -99,11 +130,36 @@ export default function SleepTimer() {
               <div className="my-1 border-t border-border/40" aria-hidden="true" />
 
               <button
+                onClick={() => onSelectStopAfter('track')}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+                  'hover:bg-accent/50 hover:text-foreground',
+                  'text-muted-foreground'
+                )}
+              >
+                {t('endOfTrack')}
+              </button>
+              <button
+                onClick={() => onSelectStopAfter('album')}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+                  'hover:bg-accent/50 hover:text-foreground',
+                  'text-muted-foreground'
+                )}
+              >
+                {t('endOfAlbum')}
+              </button>
+
+              <div className="my-1 border-t border-border/40" aria-hidden="true" />
+
+              <button
                 onClick={onSelectWindDown}
+                disabled={!windDownEnabled}
                 className={cn(
                   'focus-ring w-full text-left px-2.5 py-1.5 rounded-lg transition-colors',
                   'hover:bg-accent/50',
-                  'text-muted-foreground hover:text-foreground'
+                  'text-muted-foreground hover:text-foreground',
+                  'disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-muted-foreground'
                 )}
               >
                 <span className="flex items-center gap-1.5 text-sm">
@@ -111,9 +167,17 @@ export default function SleepTimer() {
                   {t('windDown')}
                 </span>
                 <span className="mt-0.5 block text-[10px] leading-snug text-muted-foreground/60">
-                  {t('windDownHint')}
+                  {windDownHint}
                 </span>
               </button>
+
+              <div
+                className="flex items-center gap-1 px-2.5 pb-1 pt-0.5"
+                role="group"
+                aria-label={t('windDownLength')}
+              >
+                {lengthChips}
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
