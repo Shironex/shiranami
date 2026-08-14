@@ -1,4 +1,6 @@
 {
+  "dialogTitle": "Paleta poleceń",
+  "dialogDescription": "Przeszukuj bibliotekę i przechodź w dowolne miejsce aplikacji.",
   "placeholder": "Zagraj coś albo przejdź gdziekolwiek…",
   "noResults": "Nic nie pasuje — spróbuj innego wyszukiwania.",
   "recentlyPlayed": "Ostatnio odtwarzane",

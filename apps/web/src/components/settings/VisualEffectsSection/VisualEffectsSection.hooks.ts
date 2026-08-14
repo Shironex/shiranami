@@ -9,16 +9,28 @@ import {
   ROOM_LIGHT_INTENSITY_MIN,
   ROOM_LIGHT_INTENSITY_STEP,
   ROOM_LIGHT_STOP_SETTINGS,
+  VINYL_FINISHES,
   VINYL_LABEL_SOURCES,
   VINYL_RING_STYLES,
+  VINYL_SIZES,
+  VINYL_SPEEDS,
 } from '@/stores/useUIStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { pendingAnalysisInput } from '@/hooks/useAnalysis';
 import { isRadioTrack } from '@/lib/utils';
-import type { IVisualEffectsSectionView } from './VisualEffectsSection.types';
+import type { IChipOption, IVisualEffectsSectionView } from './VisualEffectsSection.types';
 
 /** Below this tempo-data coverage the breathing toggle grows a gentle hint. */
 const BREATHING_HINT_COVERAGE = 0.5;
+
+/** Build render-ready chips for one vinyl option picker. */
+function chipOptions<T extends string>(
+  values: readonly T[],
+  active: T,
+  label: (value: T) => string
+): IChipOption<T>[] {
+  return values.map(value => ({ value, label: label(value), isActive: active === value }));
+}
 
 export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const { t } = useTranslation('settings');
@@ -42,6 +54,16 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setVinylLabelSource = useUIStore(s => s.setVinylLabelSource);
   const vinylRingStyle = useUIStore(s => s.vinylRingStyle);
   const setVinylRingStyle = useUIStore(s => s.setVinylRingStyle);
+  const vinylSpeed = useUIStore(s => s.vinylSpeed);
+  const setVinylSpeed = useUIStore(s => s.setVinylSpeed);
+  const vinylFinish = useUIStore(s => s.vinylFinish);
+  const setVinylFinish = useUIStore(s => s.setVinylFinish);
+  const vinylTonearmEnabled = useUIStore(s => s.vinylTonearmEnabled);
+  const setVinylTonearmEnabled = useUIStore(s => s.setVinylTonearmEnabled);
+  const vinylNowPlayingSize = useUIStore(s => s.vinylNowPlayingSize);
+  const setVinylNowPlayingSize = useUIStore(s => s.setVinylNowPlayingSize);
+  const vinylSanctuarySize = useUIStore(s => s.vinylSanctuarySize);
+  const setVinylSanctuarySize = useUIStore(s => s.setVinylSanctuarySize);
   const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
   const setRoomLightEnabled = useUIStore(s => s.setRoomLightEnabled);
   const roomLightStop = useUIStore(s => s.roomLightStop);
@@ -52,17 +74,24 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setRoomLightHueShift = useUIStore(s => s.setRoomLightHueShift);
   const library = useLibraryStore(s => s.library);
 
-  const vinylLabelOptions = VINYL_LABEL_SOURCES.map(value => ({
-    value,
-    label: t(`app.vinylDisplayLabel.${value}`),
-    isActive: vinylLabelSource === value,
-  }));
-
-  const vinylRingOptions = VINYL_RING_STYLES.map(value => ({
-    value,
-    label: t(`app.vinylRing.${value}`),
-    isActive: vinylRingStyle === value,
-  }));
+  const vinylLabelOptions = chipOptions(VINYL_LABEL_SOURCES, vinylLabelSource, value =>
+    t(`app.vinylDisplayLabel.${value}`)
+  );
+  const vinylRingOptions = chipOptions(VINYL_RING_STYLES, vinylRingStyle, value =>
+    t(`app.vinylRing.${value}`)
+  );
+  const vinylSpeedOptions = chipOptions(VINYL_SPEEDS, vinylSpeed, value =>
+    t(`app.vinylSpeed.${value}`)
+  );
+  const vinylFinishOptions = chipOptions(VINYL_FINISHES, vinylFinish, value =>
+    t(`app.vinylFinish.${value}`)
+  );
+  const vinylSizeNowPlayingOptions = chipOptions(VINYL_SIZES, vinylNowPlayingSize, value =>
+    t(`app.vinylSize.${value}`)
+  );
+  const vinylSizeSanctuaryOptions = chipOptions(VINYL_SIZES, vinylSanctuarySize, value =>
+    t(`app.vinylSize.${value}`)
+  );
 
   const roomLightStopOptions = ROOM_LIGHT_STOP_SETTINGS.map(value => ({
     value,
@@ -104,6 +133,30 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     vinylRingDescription: t('app.vinylRingDesc'),
     vinylRingOptions,
     onSelectVinylRingStyle: setVinylRingStyle,
+
+    vinylSpeedTitle: t('app.vinylSpeedTitle'),
+    vinylSpeedDescription: t('app.vinylSpeedDesc'),
+    vinylSpeedOptions,
+    onSelectVinylSpeed: setVinylSpeed,
+
+    vinylFinishTitle: t('app.vinylFinishTitle'),
+    vinylFinishDescription: t('app.vinylFinishDesc'),
+    vinylFinishOptions,
+    onSelectVinylFinish: setVinylFinish,
+
+    vinylSizeTitle: t('app.vinylSizeTitle'),
+    vinylSizeDescription: t('app.vinylSizeDesc'),
+    vinylSizeNowPlayingLabel: t('app.vinylSizeNowPlaying'),
+    vinylSizeNowPlayingOptions,
+    onSelectVinylNowPlayingSize: setVinylNowPlayingSize,
+    vinylSizeSanctuaryLabel: t('app.vinylSizeSanctuary'),
+    vinylSizeSanctuaryOptions,
+    onSelectVinylSanctuarySize: setVinylSanctuarySize,
+
+    vinylTonearmLabel: t('app.vinylTonearm'),
+    vinylTonearmDescription: t('app.vinylTonearmDesc'),
+    vinylTonearmEnabled,
+    onVinylTonearmChange: setVinylTonearmEnabled,
 
     libraryHeroLabel: t('app.libraryHeroCard'),
     libraryHeroDescription: t('app.libraryHeroCardDesc'),

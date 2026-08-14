@@ -14,10 +14,36 @@ import { RoomLightPreview } from '@/components/settings/RoomLightPreview';
 import { SanctuarySection } from '@/components/settings/SanctuarySection';
 import { VinylPreview } from '@/components/settings/VinylPreview';
 import { useVisualEffectsSection } from './VisualEffectsSection.hooks';
+import type { IChipOption } from './VisualEffectsSection.types';
 
 const CHIP_ACTIVE = 'border border-primary/40 bg-primary/15 text-primary';
 const CHIP_IDLE =
   'border border-transparent text-muted-foreground hover:bg-accent/50 hover:text-foreground';
+
+/** One row of vinyl option chips — the shared render for every picker. */
+function OptionChips<T extends string>({
+  options,
+  onSelect,
+}: {
+  readonly options: readonly IChipOption<T>[];
+  readonly onSelect: (value: T) => void;
+}) {
+  const chips = options.map(option => (
+    <button
+      key={option.value}
+      onClick={() => onSelect(option.value)}
+      aria-pressed={option.isActive}
+      className={cn(
+        'focus-ring rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        option.isActive ? CHIP_ACTIVE : CHIP_IDLE
+      )}
+    >
+      {option.label}
+    </button>
+  ));
+
+  return <div className="flex flex-wrap items-center gap-1.5">{chips}</div>;
+}
 
 export default function VisualEffectsSection() {
   const {
@@ -39,6 +65,26 @@ export default function VisualEffectsSection() {
     vinylRingDescription,
     vinylRingOptions,
     onSelectVinylRingStyle,
+    vinylSpeedTitle,
+    vinylSpeedDescription,
+    vinylSpeedOptions,
+    onSelectVinylSpeed,
+    vinylFinishTitle,
+    vinylFinishDescription,
+    vinylFinishOptions,
+    onSelectVinylFinish,
+    vinylSizeTitle,
+    vinylSizeDescription,
+    vinylSizeNowPlayingLabel,
+    vinylSizeNowPlayingOptions,
+    onSelectVinylNowPlayingSize,
+    vinylSizeSanctuaryLabel,
+    vinylSizeSanctuaryOptions,
+    onSelectVinylSanctuarySize,
+    vinylTonearmLabel,
+    vinylTonearmDescription,
+    vinylTonearmEnabled,
+    onVinylTonearmChange,
     libraryHeroLabel,
     libraryHeroDescription,
     libraryHeroCardEnabled,
@@ -91,48 +137,6 @@ export default function VisualEffectsSection() {
     tempoBreathingHint,
   } = useVisualEffectsSection();
 
-  const vinylLabelChips = vinylLabelOptions.map(option => (
-    <button
-      key={option.value}
-      onClick={() => onSelectVinylLabelSource(option.value)}
-      aria-pressed={option.isActive}
-      className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-        option.isActive ? CHIP_ACTIVE : CHIP_IDLE
-      )}
-    >
-      {option.label}
-    </button>
-  ));
-
-  const roomLightStopChips = roomLightStopOptions.map(option => (
-    <button
-      key={option.value}
-      onClick={() => onSelectRoomLightStop(option.value)}
-      aria-pressed={option.isActive}
-      className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-        option.isActive ? CHIP_ACTIVE : CHIP_IDLE
-      )}
-    >
-      {option.label}
-    </button>
-  ));
-
-  const vinylRingChips = vinylRingOptions.map(option => (
-    <button
-      key={option.value}
-      onClick={() => onSelectVinylRingStyle(option.value)}
-      aria-pressed={option.isActive}
-      className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-        option.isActive ? CHIP_ACTIVE : CHIP_IDLE
-      )}
-    >
-      {option.label}
-    </button>
-  ));
-
   return (
     <div className="space-y-4">
       <SettingsCard icon={Sparkles} title={title} subtitle={subtitle}>
@@ -158,13 +162,62 @@ export default function VisualEffectsSection() {
             <div>
               <p className="mb-1 text-sm font-medium text-foreground">{vinylLabelTitle}</p>
               <p className="mb-3 text-xs text-muted-foreground">{vinylLabelDescription}</p>
-              <div className="flex items-center gap-1.5">{vinylLabelChips}</div>
+              <OptionChips options={vinylLabelOptions} onSelect={onSelectVinylLabelSource} />
             </div>
             <div>
               <p className="mb-1 text-sm font-medium text-foreground">{vinylRingTitle}</p>
               <p className="mb-3 text-xs text-muted-foreground">{vinylRingDescription}</p>
-              <div className="flex items-center gap-1.5">{vinylRingChips}</div>
+              <OptionChips options={vinylRingOptions} onSelect={onSelectVinylRingStyle} />
             </div>
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">{vinylSpeedTitle}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{vinylSpeedDescription}</p>
+              <OptionChips options={vinylSpeedOptions} onSelect={onSelectVinylSpeed} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">{vinylFinishTitle}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{vinylFinishDescription}</p>
+              <OptionChips options={vinylFinishOptions} onSelect={onSelectVinylFinish} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">{vinylSizeTitle}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{vinylSizeDescription}</p>
+              <div className="space-y-2">
+                <div
+                  role="group"
+                  aria-label={vinylSizeNowPlayingLabel}
+                  className="flex items-center gap-3"
+                >
+                  <span className="w-28 shrink-0 text-xs text-muted-foreground">
+                    {vinylSizeNowPlayingLabel}
+                  </span>
+                  <OptionChips
+                    options={vinylSizeNowPlayingOptions}
+                    onSelect={onSelectVinylNowPlayingSize}
+                  />
+                </div>
+                <div
+                  role="group"
+                  aria-label={vinylSizeSanctuaryLabel}
+                  className="flex items-center gap-3"
+                >
+                  <span className="w-28 shrink-0 text-xs text-muted-foreground">
+                    {vinylSizeSanctuaryLabel}
+                  </span>
+                  <OptionChips
+                    options={vinylSizeSanctuaryOptions}
+                    onSelect={onSelectVinylSanctuarySize}
+                  />
+                </div>
+              </div>
+            </div>
+            <SettingsToggleRow
+              label={vinylTonearmLabel}
+              description={vinylTonearmDescription}
+              checked={vinylTonearmEnabled}
+              onCheckedChange={onVinylTonearmChange}
+              className="py-0"
+            />
           </div>
         )}
 
@@ -225,7 +278,7 @@ export default function VisualEffectsSection() {
             <div>
               <p className="mb-1 text-sm font-medium text-foreground">{roomLightStopTitle}</p>
               <p className="mb-3 text-xs text-muted-foreground">{roomLightStopDescription}</p>
-              <div className="flex flex-wrap items-center gap-1.5">{roomLightStopChips}</div>
+              <OptionChips options={roomLightStopOptions} onSelect={onSelectRoomLightStop} />
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between">

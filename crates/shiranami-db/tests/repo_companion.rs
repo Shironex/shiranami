@@ -248,6 +248,37 @@ async fn switching_species_keeps_the_growth() {
     assert_eq!(back.stage, 1);
 }
 
+/// The accessory set round-trips through its JSON column, and replacing it
+/// touches nothing else — the same "delight, not ledger truth" contract the
+/// tolerant read direction already pins.
+#[tokio::test]
+async fn dressing_the_companion_replaces_the_set_and_touches_nothing_else() {
+    let mut fixture = fresh().await;
+    companion::accrue(fixture.conn(), 500.0, NOW)
+        .await
+        .expect("accrue");
+
+    let dressed = companion::set_accessories(
+        fixture.conn(),
+        &["beret".to_owned(), "glasses".to_owned()],
+        LATER,
+    )
+    .await
+    .expect("dress");
+    assert_eq!(dressed.accessories, vec!["beret", "glasses"]);
+    assert!((dressed.xp - 500.0).abs() < f64::EPSILON, "xp untouched");
+    assert_eq!(
+        dressed.hatched_at.as_deref(),
+        Some(NOW),
+        "dressing must not re-hatch"
+    );
+
+    let undressed = companion::set_accessories(fixture.conn(), &[], LATER)
+        .await
+        .expect("undress");
+    assert_eq!(undressed.accessories, Vec::<String>::new());
+}
+
 /// `get_or_hatch` returns the *previous* sighting; the touch stamps the new
 /// one afterwards. That order is what makes return-after-absence moods
 /// computable from one read.

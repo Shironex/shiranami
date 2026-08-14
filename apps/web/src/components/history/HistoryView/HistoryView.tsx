@@ -10,6 +10,7 @@ import { HistoryRecentRow } from '@/components/history/HistoryRecentRow';
 import { RecapShelf } from '@/components/history/RecapShelf';
 import { HistoryStatCard } from './HistoryStatCard';
 import { HistoryViewSkeleton } from './HistoryViewSkeleton';
+import { StatsSection } from './StatsSection';
 import { useHistoryView } from './HistoryView.hooks';
 
 export default function HistoryView() {
@@ -66,33 +67,27 @@ export default function HistoryView() {
       <div className="flex w-full flex-col gap-6 px-6 pb-10 pt-6">
         <HistoryHeroSection selectedRange={view.selectedRange} onRangeChange={view.onRangeChange} />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{statCards}</section>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{statCards}</div>
 
-        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              {view.activityTitle}
-            </h2>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground/65">{view.activityCaption}</p>
+        {/* The activity graph is the page's focal panel — the hero treatment
+            keeps the list panels below reading as supporting detail. */}
+        <StatsSection
+          variant="hero"
+          title={view.activityTitle}
+          caption={view.activityCaption}
+          icon={BarChart3}
+        >
           <div className="mt-5">
             <HistoryActivityGraph points={view.activitySeries} range={view.selectedRange} />
           </div>
-        </section>
+        </StatsSection>
 
         {/* Past weeks' recaps, derived on demand — where Overview's card folds
             away to, and reachable without waiting for one. */}
         <RecapShelf />
 
-        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
-            <div className="flex items-center gap-2">
-              <Disc3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">
-                {view.topTracksTitle}
-              </h2>
-            </div>
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <StatsSection title={view.topTracksTitle} icon={Disc3}>
             <div className="mt-4 space-y-3">
               {hasTopTracks ? (
                 topTrackRows
@@ -100,15 +95,9 @@ export default function HistoryView() {
                 <HistoryEmptyState title={view.noTopTracksTitle} copy={view.noTopTracksCopy} />
               )}
             </div>
-          </div>
+          </StatsSection>
 
-          <div className="rounded-[24px] border border-border/25 glass-panel p-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="size-4 text-primary/80" />
-              <h2 className="font-display text-lg font-semibold text-foreground">
-                {view.topArtistsTitle}
-              </h2>
-            </div>
+          <StatsSection title={view.topArtistsTitle} icon={BarChart3}>
             <div className="mt-4 space-y-3">
               {hasTopArtists ? (
                 topArtistRows
@@ -119,16 +108,10 @@ export default function HistoryView() {
                 />
               )}
             </div>
-          </div>
-        </section>
+          </StatsSection>
+        </div>
 
-        <section className="rounded-[24px] border border-border/25 glass-panel p-4">
-          <div className="flex items-center gap-2">
-            <Clock3 className="size-4 text-primary/80" />
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              {view.recentTitle}
-            </h2>
-          </div>
+        <StatsSection title={view.recentTitle} icon={Clock3}>
           <div className="mt-4">
             {!hasRecent ? (
               <HistoryEmptyState title={view.noRecentPlaysTitle} copy={view.noRecentPlaysCopy} />
@@ -136,7 +119,7 @@ export default function HistoryView() {
               <StaggerList className="space-y-3">{recentRows}</StaggerList>
             )}
           </div>
-        </section>
+        </StatsSection>
       </div>
     </div>
   );

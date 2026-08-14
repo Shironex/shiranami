@@ -15,7 +15,7 @@ import type { ICompanionProps } from './Companion.types';
  * never reaches the a11y tree; hit-testing is the surface's concern.
  */
 export default function Companion(props: ICompanionProps) {
-  const { species, stage, mode, outfit, size = 56, className } = props;
+  const { species, stage, mode, outfit, accessories, size = 56, className } = props;
   const { svgRef, face, rigClass, hopClass, height, rootStyle } = useCompanion(props);
 
   return (
@@ -31,6 +31,7 @@ export default function Companion(props: ICompanionProps) {
       data-state={mode}
       data-face={face}
       data-outfit={outfit ?? undefined}
+      data-accessories={accessories && accessories.length > 0 ? accessories.join(' ') : undefined}
       style={rootStyle}
       aria-hidden="true"
       focusable="false"
@@ -42,9 +43,21 @@ export default function Companion(props: ICompanionProps) {
       <g className={hopClass}>
         <g className={cn('companion-rig', rigClass)}>
           {species === 'shio' ? (
-            <ShioRig stage={stage} mode={mode} motion={props.motion} outfit={outfit} />
+            <ShioRig
+              stage={stage}
+              mode={mode}
+              motion={props.motion}
+              outfit={outfit}
+              accessories={accessories}
+            />
           ) : (
-            <HotaruRig stage={stage} mode={mode} motion={props.motion} outfit={outfit} />
+            <HotaruRig
+              stage={stage}
+              mode={mode}
+              motion={props.motion}
+              outfit={outfit}
+              accessories={accessories}
+            />
           )}
         </g>
       </g>

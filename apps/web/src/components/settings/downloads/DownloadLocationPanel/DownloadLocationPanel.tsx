@@ -37,7 +37,7 @@ export default function DownloadLocationPanel(props: IDownloadLocationPanelProps
           size="sm"
           onClick={onChange}
           disabled={updating}
-          className="gap-2 rounded-lg text-sm [&_svg]:size-3.5"
+          className="gap-2 text-sm [&_svg]:size-3.5"
         >
           {updating ? <Loader2 className="animate-spin" /> : <FolderOpen />}
           {changeLabel}
@@ -50,7 +50,7 @@ export default function DownloadLocationPanel(props: IDownloadLocationPanelProps
             size="sm"
             onClick={onReset}
             disabled={updating}
-            className="rounded-lg text-sm text-muted-foreground"
+            className="text-sm text-muted-foreground"
           >
             {resetLabel}
           </Button>

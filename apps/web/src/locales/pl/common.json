@@ -27,6 +27,7 @@
   "selectedTracks_other": "{{count}} zaznaczonych",
   "selectAll": "Zaznacz wszystko",
   "clearSelection": "Wyczyść zaznaczenie",
+  "hintClose": "Zamknij",
   "more": "Więcej",
   "bulkActionsLabel": "Akcje zbiorcze",
   "resizeRightPanel": "Zmień szerokość panelu bocznego",

@@ -19,6 +19,7 @@ import settingsEn from '@/locales/en/settings.json';
 import queueEn from '@/locales/en/queue.json';
 import lyricsEn from '@/locales/en/lyrics.json';
 import compactEn from '@/locales/en/compact.json';
+import companionEn from '@/locales/en/companion.json';
 import commandPaletteEn from '@/locales/en/commandPalette.json';
 import shortcutsEn from '@/locales/en/shortcuts.json';
 import sleepTimerEn from '@/locales/en/sleepTimer.json';
@@ -86,6 +87,7 @@ const namespaces = [
   'queue',
   'lyrics',
   'compact',
+  'companion',
   'commandPalette',
   'shortcuts',
   'sleepTimer',
@@ -107,7 +109,7 @@ const namespaces = [
   'sanctuary',
 ] as const;
 
-// English is the fallback locale, so its 34 namespaces stay statically bundled
+// English is the fallback locale, so its 35 namespaces stay statically bundled
 // into the entry chunk — every key must resolve synchronously even when another
 // locale is active and missing a key. Every other locale is loaded on demand by
 // the backend below so its namespaces never weigh down first paint.
@@ -127,6 +129,7 @@ const englishResources: ResourceLanguage = {
   queue: queueEn,
   lyrics: lyricsEn,
   compact: compactEn,
+  companion: companionEn,
   commandPalette: commandPaletteEn,
   shortcuts: shortcutsEn,
   sleepTimer: sleepTimerEn,

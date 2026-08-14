@@ -23,16 +23,20 @@ function barRows(units: readonly number[]): readonly IOverviewBarRow[] {
 const OVERVIEW_TOP_WEEK_ROWS = barRows([24, 20, 16]);
 const OVERVIEW_RECENT_ROWS = barRows([28, 20]);
 const OVERVIEW_RECAP_ROWS = barRows([30, 22, 14]);
+const OVERVIEW_MEMORY_ROWS = barRows([26, 18]);
 
 /**
  * Reads the real interface store so the Overview mock folds widgets away live
- * as the toggles flip, and resolves the hover spotlight into a per-block flag.
+ * as the toggles flip and reorders blocks as sections are dragged, and
+ * resolves the hover spotlight into a per-block flag.
  */
 export function useOverviewLayoutPreview({
   highlightedKey = null,
 }: IOverviewLayoutPreviewProps): IOverviewLayoutPreviewView {
   const { t } = useTranslation('settings');
+  const sectionOrder = useInterfaceStore(s => s.overviewOrder);
   const showRecap = useInterfaceStore(s => s.overviewRecap);
+  const showMemories = useInterfaceStore(s => s.overviewMemories);
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
   const showClock = useInterfaceStore(s => s.overviewClock);
@@ -46,7 +50,9 @@ export function useOverviewLayoutPreview({
 
   return {
     title: t('app.interface.overviewPreview'),
+    sectionOrder,
     recap: { visible: showRecap, highlighted: spotlight('overviewRecap') },
+    memories: { visible: showMemories, highlighted: spotlight('overviewMemories') },
     stats: { visible: showStats, highlighted: spotlight('overviewStats') },
     topWeek: { visible: showTopWeek, highlighted: spotlight('overviewTopWeek') },
     clock: { visible: showClock, highlighted: spotlight('overviewClock') },
@@ -67,5 +73,6 @@ export function useOverviewLayoutPreview({
     recTiles: OVERVIEW_REC_TILES,
     recentRows: OVERVIEW_RECENT_ROWS,
     recapRows: OVERVIEW_RECAP_ROWS,
+    memoryRows: OVERVIEW_MEMORY_ROWS,
   };
 }

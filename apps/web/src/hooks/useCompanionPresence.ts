@@ -1,7 +1,8 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { ensureCompanionDriver } from '@/lib/companionDriver';
 import { getCompanionApi } from '@/lib/companionBackend';
 import { outfitFor } from '@/lib/companionOutfit';
+import { sanitizeWornAccessories, type CompanionAccessory } from '@/lib/companionAccessories';
 import { useCompanionRuntimeStore } from '@/stores/useCompanionRuntimeStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
@@ -28,6 +29,8 @@ export interface ICompanionPresence {
   readonly enabled: boolean;
   /** Weather/seasonal accessory the resident wears; null = bare. */
   readonly outfit: CompanionOutfit | null;
+  /** Worn keepsakes, sanitized against the catalog and the reached stage. */
+  readonly accessories: readonly CompanionAccessory[];
 }
 
 /**
@@ -59,9 +62,15 @@ export function useCompanionPresence(): ICompanionPresence {
 
   const machine = useCompanionRuntimeStore(s => s.machine);
   const suspended = useCompanionRuntimeStore(s => s.suspended);
+  const wornAccessories = useCompanionRuntimeStore(s => s.ledger.accessories);
   const species = useCompanionStore(s => s.species);
   const decorativeMotion = useDecorativeMotion();
   const outfit = useCompanionOutfit();
+
+  const accessories = useMemo(
+    () => sanitizeWornAccessories(wornAccessories, machine.stage),
+    [wornAccessories, machine.stage]
+  );
 
   return {
     species,
@@ -72,8 +81,12 @@ export function useCompanionPresence(): ICompanionPresence {
     motion: decorativeMotion && !suspended,
     enabled: machine.mode !== 'hidden',
     outfit,
+    accessories,
   };
 }
+
+/** Longest name the ledger accepts from the UI — a pet name, not a paragraph. */
+export const COMPANION_NAME_MAX_LENGTH = 24;
 
 /** The Settings-facing read of the durable self (ledger or local fallback). */
 export interface ICompanionLedgerView {
@@ -85,8 +98,14 @@ export interface ICompanionLedgerView {
   readonly hasBackend: boolean;
   readonly stage: CompanionStage;
   readonly species: CompanionSpecies;
+  /** Worn keepsakes, sanitized against the catalog and the reached stage. */
+  readonly accessories: readonly CompanionAccessory[];
   /** Persists locally always; mirrored to the ledger when it exists. */
   readonly setSpecies: (species: CompanionSpecies) => void;
+  /** The naming ceremony (and every later rename) — ledger-backed. */
+  readonly setName: (name: string) => void;
+  /** Replace the worn keepsake set — ledger-backed. */
+  readonly setAccessories: (accessories: readonly CompanionAccessory[]) => void;
 }
 
 export function useCompanionLedger(): ICompanionLedgerView {
@@ -111,12 +130,39 @@ export function useCompanionLedger(): ICompanionLedgerView {
     [setLocalSpecies]
   );
 
+  const setName = useCallback((next: string) => {
+    const trimmed = next.trim().slice(0, COMPANION_NAME_MAX_LENGTH);
+    if (trimmed.length === 0) return;
+    // Optimistic: the runtime ledger paints immediately, the ledger write is
+    // fire-and-forget under the same trust the species mirror lives under.
+    useCompanionRuntimeStore.getState().setLedger({ name: trimmed });
+    void getCompanionApi()
+      ?.setName(trimmed)
+      .catch(() => {});
+  }, []);
+
+  const setAccessories = useCallback((next: readonly CompanionAccessory[]) => {
+    const worn = [...next];
+    useCompanionRuntimeStore.getState().setLedger({ accessories: worn });
+    void getCompanionApi()
+      ?.setAccessories(worn)
+      .catch(() => {});
+  }, []);
+
+  const accessories = useMemo(
+    () => sanitizeWornAccessories(ledger.accessories, stage),
+    [ledger.accessories, stage]
+  );
+
   return {
     name: ledger.name,
     xpHours: ledger.xpHours,
     hasBackend: ledger.hasBackend,
     stage,
     species,
+    accessories,
     setSpecies,
+    setName,
+    setAccessories,
   };
 }

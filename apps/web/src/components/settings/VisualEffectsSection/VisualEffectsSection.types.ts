@@ -1,32 +1,19 @@
-import type { RoomLightStopSetting, VinylLabelSource, VinylRingStyle } from '@/stores/useUIStore';
+import type {
+  RoomLightStopSetting,
+  VinylFinish,
+  VinylLabelSource,
+  VinylRingStyle,
+  VinylSize,
+  VinylSpeed,
+} from '@/stores/useUIStore';
 
-/** One render-ready chip in the vinyl label-source picker. */
-export interface IVinylLabelOption {
-  /** The label source this chip selects. */
-  readonly value: VinylLabelSource;
+/** One render-ready chip in a vinyl option picker (label, ring, speed, …). */
+export interface IChipOption<T extends string> {
+  /** The value this chip selects. */
+  readonly value: T;
   /** Localized chip label. */
   readonly label: string;
-  /** Whether this source is the active one. */
-  readonly isActive: boolean;
-}
-
-/** One render-ready chip in the room-light stop picker. */
-export interface IRoomLightStopOption {
-  /** The stop setting this chip selects (`auto` follows the clock). */
-  readonly value: RoomLightStopSetting;
-  /** Localized chip label. */
-  readonly label: string;
-  /** Whether this stop setting is the active one. */
-  readonly isActive: boolean;
-}
-
-/** One render-ready chip in the vinyl ring-style picker. */
-export interface IVinylRingOption {
-  /** The ring style this chip selects. */
-  readonly value: VinylRingStyle;
-  /** Localized chip label. */
-  readonly label: string;
-  /** Whether this style is the active one. */
+  /** Whether this value is the active one. */
   readonly isActive: boolean;
 }
 
@@ -59,7 +46,7 @@ export interface IVisualEffectsSectionView {
   /** Localized description for the record-label picker. */
   readonly vinylLabelDescription: string;
   /** Render-ready chips for the record-label picker. */
-  readonly vinylLabelOptions: readonly IVinylLabelOption[];
+  readonly vinylLabelOptions: readonly IChipOption<VinylLabelSource>[];
   /** Select the record-label source. */
   readonly onSelectVinylLabelSource: (source: VinylLabelSource) => void;
 
@@ -68,9 +55,53 @@ export interface IVisualEffectsSectionView {
   /** Localized description for the reactive-ring picker. */
   readonly vinylRingDescription: string;
   /** Render-ready chips for the reactive-ring picker. */
-  readonly vinylRingOptions: readonly IVinylRingOption[];
+  readonly vinylRingOptions: readonly IChipOption<VinylRingStyle>[];
   /** Select the reactive-ring style. */
   readonly onSelectVinylRingStyle: (style: VinylRingStyle) => void;
+
+  /** Localized title for the rotation-speed picker. */
+  readonly vinylSpeedTitle: string;
+  /** Localized description for the rotation-speed picker. */
+  readonly vinylSpeedDescription: string;
+  /** Render-ready chips for the rotation-speed picker. */
+  readonly vinylSpeedOptions: readonly IChipOption<VinylSpeed>[];
+  /** Select the turntable speed. */
+  readonly onSelectVinylSpeed: (speed: VinylSpeed) => void;
+
+  /** Localized title for the disc-finish picker. */
+  readonly vinylFinishTitle: string;
+  /** Localized description for the disc-finish picker. */
+  readonly vinylFinishDescription: string;
+  /** Render-ready chips for the disc-finish picker. */
+  readonly vinylFinishOptions: readonly IChipOption<VinylFinish>[];
+  /** Select the pressing's finish. */
+  readonly onSelectVinylFinish: (finish: VinylFinish) => void;
+
+  /** Localized title for the per-stage disc-size picker. */
+  readonly vinylSizeTitle: string;
+  /** Localized description for the per-stage disc-size picker. */
+  readonly vinylSizeDescription: string;
+  /** Localized row label for the Now Playing stage. */
+  readonly vinylSizeNowPlayingLabel: string;
+  /** Render-ready chips for the Now Playing disc size. */
+  readonly vinylSizeNowPlayingOptions: readonly IChipOption<VinylSize>[];
+  /** Select the Now Playing disc size. */
+  readonly onSelectVinylNowPlayingSize: (size: VinylSize) => void;
+  /** Localized row label for the Sanctuary stage. */
+  readonly vinylSizeSanctuaryLabel: string;
+  /** Render-ready chips for the Sanctuary disc size. */
+  readonly vinylSizeSanctuaryOptions: readonly IChipOption<VinylSize>[];
+  /** Select the Sanctuary disc size. */
+  readonly onSelectVinylSanctuarySize: (size: VinylSize) => void;
+
+  /** Localized "Tonearm" toggle label. */
+  readonly vinylTonearmLabel: string;
+  /** Localized "Tonearm" toggle description. */
+  readonly vinylTonearmDescription: string;
+  /** Whether the tonearm overlay is enabled. */
+  readonly vinylTonearmEnabled: boolean;
+  /** Toggle the tonearm overlay. */
+  readonly onVinylTonearmChange: (next: boolean) => void;
 
   /** Localized "Now playing banner" toggle label. */
   readonly libraryHeroLabel: string;
@@ -130,8 +161,8 @@ export interface IVisualEffectsSectionView {
   readonly roomLightStopTitle: string;
   /** Localized description for the room-light stop picker. */
   readonly roomLightStopDescription: string;
-  /** Render-ready chips for the room-light stop picker. */
-  readonly roomLightStopOptions: readonly IRoomLightStopOption[];
+  /** Render-ready chips for the room-light stop picker (`auto` follows the clock). */
+  readonly roomLightStopOptions: readonly IChipOption<RoomLightStopSetting>[];
   /** Select the stop the grade holds at, or `auto` to follow the clock. */
   readonly onSelectRoomLightStop: (stop: RoomLightStopSetting) => void;
 

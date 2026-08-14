@@ -7,7 +7,7 @@ import { useLibraryDoctorCard } from './LibraryDoctorCard.hooks';
 
 const SEVERITY_DOT: Record<DoctorSeverity, string> = {
   error: 'bg-destructive',
-  warning: 'bg-amber-400',
+  warning: 'bg-warning',
   info: 'bg-muted-foreground/60',
 };
 
@@ -80,7 +80,7 @@ export default function LibraryDoctorCard() {
           <div
             className={cn(
               'flex items-center gap-2 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20',
-              allHealthy && 'text-emerald-300'
+              allHealthy && 'text-success'
             )}
           >
             {allHealthy && <CheckCircle2 className="w-4 h-4 shrink-0" />}

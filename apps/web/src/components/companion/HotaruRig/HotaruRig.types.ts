@@ -1,5 +1,6 @@
 import type { CompanionMode, CompanionStage } from '@/lib/companionMachine';
 import type { CompanionOutfit } from '@/lib/companionOutfit';
+import type { CompanionAccessory } from '@/lib/companionAccessories';
 
 export interface IHotaruRigProps {
   /** Evolution stage index (0–4); reveals the additive layer groups. */
@@ -13,6 +14,8 @@ export interface IHotaruRigProps {
    * rig stays byte-identical to the outfit-less render.
    */
   readonly outfit?: CompanionOutfit | null;
+  /** Worn keepsake layers; empty/omitted mounts nothing, like the outfit. */
+  readonly accessories?: readonly CompanionAccessory[];
 }
 
 export interface IHotaruRigView {

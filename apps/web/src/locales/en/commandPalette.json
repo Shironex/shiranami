@@ -1,4 +1,6 @@
 {
+  "dialogTitle": "Command palette",
+  "dialogDescription": "Search your library and jump anywhere in the app.",
   "placeholder": "Play something, or jump anywhere…",
   "noResults": "Nothing matches — try another search.",
   "recentlyPlayed": "Recently played",

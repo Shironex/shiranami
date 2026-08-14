@@ -12,6 +12,23 @@ import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore
 
 const STORE_KEY = 'shiranami.wind-down';
 
+/**
+ * Selectable wind-down lengths (minutes). 0 = off: the sleep timer's
+ * wind-down option is disabled until the listener picks a length again.
+ */
+export const WIND_DOWN_LENGTH_CHOICES = [0, 5, 10, 15, 20] as const;
+
+export type WindDownLength = (typeof WIND_DOWN_LENGTH_CHOICES)[number];
+
+/** The authored default — the length the ending was originally written for. */
+export const DEFAULT_WIND_DOWN_MINUTES: WindDownLength = 15;
+
+function coerceLength(value: unknown): WindDownLength {
+  return (WIND_DOWN_LENGTH_CHOICES as readonly unknown[]).includes(value)
+    ? (value as WindDownLength)
+    : DEFAULT_WIND_DOWN_MINUTES;
+}
+
 /** How long the closing line lingers after the fade completes. */
 export const CLOSING_LINE_MS = 8_000;
 
@@ -70,6 +87,8 @@ interface PersistedWindDownState {
   lastCompletion: WindDownCompletion | null;
   /** Whether the next-launch note for `lastCompletion` has already been shown. */
   noteAcknowledged: boolean;
+  /** Wind-down length in minutes (0 = off). The sleep timer reads this. */
+  lengthMinutes: WindDownLength;
 }
 
 interface WindDownState extends PersistedWindDownState {
@@ -87,6 +106,8 @@ interface WindDownActions {
   acknowledgeDriftNote: () => void;
   /** Clear the closing line once its linger elapses. */
   clearClosingLine: () => void;
+  /** Pick a wind-down length (0 = off). Non-members are ignored. */
+  setLength: (minutes: WindDownLength) => void;
 }
 
 export const useWindDownStore = createPersistedStore<WindDownState & WindDownActions>(
@@ -94,6 +115,7 @@ export const useWindDownStore = createPersistedStore<WindDownState & WindDownAct
     lastCompletion: null,
     noteAcknowledged: false,
     closingLineUntil: null,
+    lengthMinutes: DEFAULT_WIND_DOWN_MINUTES,
 
     recordCompletion: trackTitle => {
       set({
@@ -106,6 +128,8 @@ export const useWindDownStore = createPersistedStore<WindDownState & WindDownAct
     acknowledgeDriftNote: () => set({ noteAcknowledged: true }),
 
     clearClosingLine: () => set({ closingLineUntil: null }),
+
+    setLength: minutes => set({ lengthMinutes: coerceLength(minutes) }),
   }),
   {
     name: STORE_KEY,
@@ -113,6 +137,7 @@ export const useWindDownStore = createPersistedStore<WindDownState & WindDownAct
     partialize: s => ({
       lastCompletion: s.lastCompletion,
       noteAcknowledged: s.noteAcknowledged,
+      lengthMinutes: s.lengthMinutes,
     }),
     sanitize: (persisted, current) => {
       const raw = persisted as Partial<PersistedWindDownState> | undefined;
@@ -120,6 +145,7 @@ export const useWindDownStore = createPersistedStore<WindDownState & WindDownAct
         ...current,
         lastCompletion: coerceCompletion(raw?.lastCompletion),
         noteAcknowledged: raw?.noteAcknowledged === true,
+        lengthMinutes: coerceLength(raw?.lengthMinutes),
       };
     },
   }

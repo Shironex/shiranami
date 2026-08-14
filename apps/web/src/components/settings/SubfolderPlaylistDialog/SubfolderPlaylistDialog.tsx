@@ -78,7 +78,7 @@ export default function SubfolderPlaylistDialog(props: ISubfolderPlaylistDialogP
           {showSelectAll && (
             <button
               onClick={onToggleAll}
-              className="text-xs text-primary hover:text-primary/80 transition-colors px-1 mb-2"
+              className="focus-ring rounded-sm text-xs text-primary hover:text-primary/80 transition-colors px-1 mb-2"
             >
               {allSelected ? t('folders.deselectAll') : t('folders.selectAll')}
             </button>

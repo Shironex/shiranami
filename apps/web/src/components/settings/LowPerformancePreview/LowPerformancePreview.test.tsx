@@ -37,6 +37,6 @@ describe('LowPerformancePreview', () => {
   it('recolors the badge to amber while the mode is on', () => {
     render(<LowPerformancePreview enabled />);
 
-    expect(screen.getByText('Reduced')).toHaveClass('bg-amber-500/15', 'text-amber-200');
+    expect(screen.getByText('Reduced')).toHaveClass('bg-warning/15', 'text-warning');
   });
 });

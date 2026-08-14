@@ -197,11 +197,18 @@ export function useRadioView(): IRadioViewView {
     [filters.tagList, toggleGenrePill]
   );
 
-  const showEmptyState = !isLoading && stations.length === 0 && !error;
+  // Effects run after the first paint, so the very first render lands before
+  // the mount effect has flipped isLoading — a bare empty state would flash
+  // for that frame. Treat the not-yet-kicked-off initial load as loading so
+  // the StationRowSkeleton rows own the directory's first paint.
+  const awaitingFirstLoad = !hasLoadedRef.current && stations.length === 0 && !error;
+  const showSkeletons = isLoading || awaitingFirstLoad;
+
+  const showEmptyState = !showSkeletons && stations.length === 0 && !error;
   const hasFacetFilters = activeChips.length > 0 || Boolean(filters.name);
   const isLowResults =
     isBrowse &&
-    !isLoading &&
+    !showSkeletons &&
     hasFacetFilters &&
     stations.length > 0 &&
     stations.length <= LOW_RESULT_THRESHOLD;
@@ -231,7 +238,7 @@ export function useRadioView(): IRadioViewView {
     t,
     stations,
     favorites,
-    isLoading,
+    isLoading: showSkeletons,
     isLoadingMore,
     error,
     catalog,

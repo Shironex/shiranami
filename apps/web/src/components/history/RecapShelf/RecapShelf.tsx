@@ -14,8 +14,17 @@ import { useRecapShelf } from './RecapShelf.hooks';
  * brings its own panel, exactly as it appears on Overview.
  */
 export default function RecapShelf() {
-  const { title, caption, weeks, onSelectWeek, recap, selectedLabel, isLoading, quietWeekCopy } =
-    useRecapShelf();
+  const {
+    headingId,
+    title,
+    caption,
+    weeks,
+    onSelectWeek,
+    recap,
+    selectedLabel,
+    isLoading,
+    quietWeekCopy,
+  } = useRecapShelf();
 
   const weekChips = weeks.map(week => (
     <button
@@ -24,8 +33,7 @@ export default function RecapShelf() {
       aria-pressed={week.selected}
       onClick={() => onSelectWeek(week.key)}
       className={cn(
-        'shrink-0 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'focus-ring shrink-0 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors',
         week.selected
           ? 'border-primary/40 bg-primary/10 text-primary'
           : 'border-border/25 text-muted-foreground hover:border-border/45 hover:text-foreground'
@@ -36,10 +44,12 @@ export default function RecapShelf() {
   ));
 
   return (
-    <section>
+    <section aria-labelledby={headingId}>
       <div className="flex items-center gap-2">
         <Feather className="size-4 text-primary/80" aria-hidden="true" />
-        <h2 className="font-display text-lg font-semibold text-foreground">{title}</h2>
+        <h2 id={headingId} className="font-display text-lg font-semibold text-foreground">
+          {title}
+        </h2>
       </div>
       <p className="mt-1 text-xs text-muted-foreground/65">{caption}</p>
 
@@ -47,11 +57,11 @@ export default function RecapShelf() {
 
       <div className="mt-3">
         {isLoading ? (
-          <div className="h-24 animate-pulse rounded-[24px] border border-border/20 bg-background/20" />
+          <div className="h-24 animate-pulse rounded-panel border border-border/20 bg-background/20" />
         ) : recap ? (
           <WeeklyRecapCard recap={recap} weekLabel={selectedLabel} />
         ) : (
-          <p className="rounded-[24px] border border-border/20 bg-background/20 px-4 py-8 text-center text-sm text-muted-foreground/60">
+          <p className="rounded-panel border border-border/20 bg-background/20 px-4 py-8 text-center text-sm text-muted-foreground/60">
             {quietWeekCopy}
           </p>
         )}

@@ -301,6 +301,93 @@ describe('vinyl display settings (vinylDisplayEnabled / vinylLabelSource / vinyl
   });
 });
 
+describe('vinyl customization (speed / finish / tonearm / per-stage sizes)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to a 33⅓ black pressing without a tonearm, sized like before', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylTonearmEnabled).toBe(false);
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+
+  it('persists all five setters to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylSpeed('45');
+    store.getState().setVinylFinish('marble');
+    store.getState().setVinylTonearmEnabled(true);
+    store.getState().setVinylNowPlayingSize('small');
+    store.getState().setVinylSanctuarySize('large');
+
+    expect(readPersisted().vinylSpeed).toBe('45');
+    expect(readPersisted().vinylFinish).toBe('marble');
+    expect(readPersisted().vinylTonearmEnabled).toBe(true);
+    expect(readPersisted().vinylNowPlayingSize).toBe('small');
+    expect(readPersisted().vinylSanctuarySize).toBe('large');
+  });
+
+  it('round-trips persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          vinylSpeed: '78',
+          vinylFinish: 'picture',
+          vinylTonearmEnabled: true,
+          vinylNowPlayingSize: 'medium',
+          vinylSanctuarySize: 'small',
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('78');
+    expect(store.getState().vinylFinish).toBe('picture');
+    expect(store.getState().vinylTonearmEnabled).toBe(true);
+    expect(store.getState().vinylNowPlayingSize).toBe('medium');
+    expect(store.getState().vinylSanctuarySize).toBe('small');
+  });
+
+  it('coerces garbage back to the defaults on load', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          vinylSpeed: 99,
+          vinylFinish: 'gold',
+          vinylTonearmEnabled: 'yes',
+          vinylNowPlayingSize: 'huge',
+          vinylSanctuarySize: 12,
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylTonearmEnabled).toBe(false);
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+
+  it('setters reject unknown enum values', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylSpeed('16' as never);
+    store.getState().setVinylFinish('gold' as never);
+    store.getState().setVinylNowPlayingSize('huge' as never);
+    store.getState().setVinylSanctuarySize('tiny' as never);
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+});
+
 describe('roomLightEnabled (time-of-day lighting grade gate)', () => {
   beforeEach(() => {
     localStorage.clear();

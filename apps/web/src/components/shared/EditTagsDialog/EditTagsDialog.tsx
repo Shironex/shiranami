@@ -1,5 +1,14 @@
 import { Loader2, Pencil, Check } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+  DIALOG_ENTER_KEY,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useEditTagsDialog } from './EditTagsDialog.hooks';
@@ -40,6 +49,7 @@ export default function EditTagsDialog(props: IEditTagsDialogProps) {
             <Pencil className="h-5 w-5" />
             {t('title')}
           </DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -56,20 +66,14 @@ export default function EditTagsDialog(props: IEditTagsDialogProps) {
           <p className="text-xs text-muted-foreground">{t('writeWarning')}</p>
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={saving}
-              className="rounded-lg"
-            >
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
               {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={saving}
               aria-busy={saving}
-              className="rounded-lg gap-2 [&_svg]:size-3.5"
+              className="gap-2 [&_svg]:size-3.5"
             >
               {saving ? (
                 <Loader2 className="animate-spin" aria-hidden="true" />
@@ -80,6 +84,11 @@ export default function EditTagsDialog(props: IEditTagsDialogProps) {
             </Button>
           </div>
         </form>
+
+        <DialogHintBar>
+          <DialogHint keyLabel={DIALOG_ENTER_KEY} label={t('save')} />
+          <DialogHint keyLabel="Esc" label={t('cancel')} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );

@@ -209,7 +209,7 @@ export default function EqualizerPanel(props: IEqualizerPanelProps) {
         <button
           type="button"
           onClick={onReset}
-          className="text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+          className="focus-ring text-xs px-3 py-1.5 rounded-lg text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
         >
           {t('reset')}
         </button>

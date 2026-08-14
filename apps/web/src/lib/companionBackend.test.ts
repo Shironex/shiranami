@@ -15,9 +15,17 @@ function setCompanionSurface(surface: unknown): void {
 }
 
 const fullSurface = () => ({
-  getState: vi.fn().mockResolvedValue({ name: 'Shio', stage: 2, xp: 7200, species: 'shio' }),
+  getState: vi.fn().mockResolvedValue({
+    name: 'Shio',
+    stage: 2,
+    xp: 7200,
+    species: 'shio',
+    accessories: ['beret'],
+    lastSeenAt: '2026-08-01T12:00:00.000Z',
+  }),
   setName: vi.fn().mockResolvedValue(undefined),
   setSpecies: vi.fn().mockResolvedValue(undefined),
+  setAccessories: vi.fn().mockResolvedValue(undefined),
   onXp: vi.fn().mockReturnValue(() => {}),
 });
 
@@ -44,7 +52,14 @@ describe('getCompanionApi', () => {
     expect(api).not.toBeNull();
 
     const state = await api!.getState();
-    expect(state).toEqual({ name: 'Shio', stage: 2, xp: 7200, species: 'shio' });
+    expect(state).toEqual({
+      name: 'Shio',
+      stage: 2,
+      xp: 7200,
+      species: 'shio',
+      accessories: ['beret'],
+      lastSeenAt: '2026-08-01T12:00:00.000Z',
+    });
 
     const received: unknown[] = [];
     api!.onXp(e => received.push(e));
@@ -61,13 +76,24 @@ describe('normalizers', () => {
       stage: 0,
       xp: 0,
       species: null,
+      accessories: [],
+      lastSeenAt: null,
     });
     expect(normalizeCompanionState({ name: '', stage: 'x' })).toEqual({
       name: null,
       stage: 0,
       xp: 0,
       species: null,
+      accessories: [],
+      lastSeenAt: null,
     });
+  });
+
+  it('keeps only string ids from a foreign accessories value', () => {
+    expect(
+      normalizeCompanionState({ accessories: ['beret', 7, null, 'satchel'] }).accessories
+    ).toEqual(['beret', 'satchel']);
+    expect(normalizeCompanionState({ accessories: 'beret' }).accessories).toEqual([]);
   });
 
   it('accepts both the stage and level spellings on xp events', () => {

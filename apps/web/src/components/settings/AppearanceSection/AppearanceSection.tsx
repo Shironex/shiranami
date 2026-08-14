@@ -65,7 +65,7 @@ export default function AppearanceSection() {
       key={lang.code}
       onClick={() => onSelectLanguage(lang.code)}
       className={cn(
-        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        'focus-ring px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
         lang.isActive
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
@@ -80,7 +80,7 @@ export default function AppearanceSection() {
       key={preset.value}
       onClick={() => onSetUiScale(preset.value)}
       className={cn(
-        'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+        'focus-ring px-2 py-1 rounded-md text-xs font-medium transition-colors',
         preset.isActive
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
@@ -113,8 +113,7 @@ export default function AppearanceSection() {
       tabIndex={bgFit === option ? 0 : -1}
       onClick={() => onSetBgFit(option)}
       className={cn(
-        'rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-ring rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
         bgFit === option
           ? 'border-primary/60 bg-primary/10 text-foreground'
           : 'border-border/50 text-muted-foreground hover:text-foreground'
@@ -158,7 +157,7 @@ export default function AppearanceSection() {
               {isScaleModified && (
                 <button
                   onClick={onResetUiScale}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="focus-ring rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {resetLabel}
                 </button>
@@ -194,7 +193,7 @@ export default function AppearanceSection() {
             <button
               type="button"
               onClick={onRetryCustomBackground}
-              className="rounded-lg px-2 py-1 text-[11px] font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="focus-ring rounded-lg px-2 py-1 text-[11px] font-medium text-foreground underline-offset-2 hover:underline"
             >
               {t('app.background.retry')}
             </button>
@@ -208,7 +207,7 @@ export default function AppearanceSection() {
               {isBgModified && (
                 <button
                   onClick={onResetBg}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="focus-ring rounded-sm flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t('app.bgAdjust.reset')}
                 >
                   <RotateCcw className="size-3" />
@@ -306,7 +305,7 @@ export default function AppearanceSection() {
           hasAccentOverride ? (
             <button
               onClick={onResetAccent}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="focus-ring rounded-sm flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t('app.accent.reset')}
             >
               <RotateCcw className="size-3" />
