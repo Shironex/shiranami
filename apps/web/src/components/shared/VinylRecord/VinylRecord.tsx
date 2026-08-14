@@ -50,9 +50,12 @@ export default function VinylRecord(props: IVinylRecordProps) {
   return (
     <div data-slot="vinyl-record" className={cn('relative aspect-square', className)}>
       {ringVisible && (
+        /* Explicit size: a canvas is a replaced element, so inset-only
+           positioning would leave it at its intrinsic 300×150 instead of
+           stretching it over the disc. */
         <canvas
           ref={ringCanvasRef}
-          className="pointer-events-none absolute -inset-[15%]"
+          className="pointer-events-none absolute -left-[15%] -top-[15%] h-[130%] w-[130%]"
           aria-hidden="true"
         />
       )}
