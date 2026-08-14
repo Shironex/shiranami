@@ -145,11 +145,28 @@ mod tests {
         );
     }
 
+    /// The platform's absolute form of a rooted test path.
+    ///
+    /// Not `PathBuf::from(path)`: on Windows `/custom/downloads` has a root but
+    /// no drive prefix, so it is *not absolute*, and [`absolute`] resolves it
+    /// against the current drive — which is the whole job of that function. The
+    /// behaviour is right; only spelling the expectation POSIX-style was wrong.
+    fn rooted(path: &str) -> PathBuf {
+        let resolved = absolute(Path::new(path));
+        assert!(
+            resolved.is_absolute(),
+            "the fixture must be absolute, or the assertions using it prove nothing"
+        );
+        resolved
+    }
+
     #[test]
     fn a_configured_path_is_trimmed_and_made_absolute() {
+        // The surrounding whitespace is the part under test; `rooted` carries
+        // the platform's spelling so the trim is what the comparison turns on.
         assert_eq!(
             normalize_configured(Some("  /custom/downloads  ")),
-            Some(PathBuf::from("/custom/downloads"))
+            Some(rooted("/custom/downloads"))
         );
     }
 
@@ -158,7 +175,7 @@ mod tests {
         assert_eq!(active_dir(&music(), None), default_dir(&music()));
         assert_eq!(
             active_dir(&music(), Some("/custom/downloads")),
-            PathBuf::from("/custom/downloads")
+            rooted("/custom/downloads")
         );
     }
 
