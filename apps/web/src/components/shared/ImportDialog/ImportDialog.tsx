@@ -1,5 +1,13 @@
 import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useImportDialog } from './ImportDialog.hooks';
@@ -21,7 +29,7 @@ export default function ImportDialog(props: IImportDialogProps) {
     startImport,
   } = useImportDialog(props);
 
-  const trackCountLabel = `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'}`;
+  const trackCountLabel = t('trackCount', { count: tracks.length });
 
   const isLoadingOrIdle = state === 'loading' || state === 'idle';
   const isResultState = state === 'ready' || state === 'downloading' || state === 'done';
@@ -92,6 +100,7 @@ export default function ImportDialog(props: IImportDialogProps) {
             <Download className="h-5 w-5" />
             {t('importTitle')}
           </DialogTitle>
+          <DialogDescription>{t('importDescription')}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto overflow-x-hidden scrollbar-thin max-h-[calc(80vh-5rem)]">
@@ -176,6 +185,10 @@ export default function ImportDialog(props: IImportDialogProps) {
             </div>
           )}
         </div>
+
+        <DialogHintBar>
+          <DialogHint keyLabel="Esc" label={t('hintClose', { ns: 'common' })} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );

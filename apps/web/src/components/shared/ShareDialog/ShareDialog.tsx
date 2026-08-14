@@ -1,6 +1,14 @@
 import { Share2, Copy, Check, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useShareDialog } from './ShareDialog.hooks';
 import type { IShareDialogProps } from './ShareDialog.types';
 
@@ -19,6 +27,7 @@ export default function ShareDialog(props: IShareDialogProps) {
             <Share2 className="h-5 w-5" />
             {type === 'track' ? t('shareTrack') : t('sharePlaylist')}
           </DialogTitle>
+          <DialogDescription>{t('shareDescription')}</DialogDescription>
         </DialogHeader>
 
         {isLoadingOrIdle && (
@@ -46,21 +55,27 @@ export default function ShareDialog(props: IShareDialogProps) {
               <div className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-muted border border-border/50 text-sm text-foreground truncate font-mono">
                 {shareUrl}
               </div>
-              <button
+              <Button
+                size="icon"
                 onClick={handleCopy}
-                className="focus-ring shrink-0 w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                className="shrink-0 h-10 w-10 rounded-xl"
                 aria-label={t('copyLink')}
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </button>
+                {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              </Button>
+              {/* Announces the copied state to screen readers; the icon swap
+                  alone is invisible to them. */}
+              <span role="status" aria-live="polite" className="sr-only">
+                {copied ? t('copied') : ''}
+              </span>
             </div>
 
             {/* QR Code */}
             <div className="flex justify-center">
-              <div className="p-4 bg-white rounded-2xl">
+              <div className="p-4 bg-qr-plate rounded-2xl">
                 <img
                   src={qrSrc}
-                  alt="QR code for sharing"
+                  alt={t('qrAlt')}
                   width={180}
                   height={180}
                   loading="lazy"
@@ -76,6 +91,10 @@ export default function ShareDialog(props: IShareDialogProps) {
             </p>
           </div>
         )}
+
+        <DialogHintBar>
+          <DialogHint keyLabel="Esc" label={t('hintClose', { ns: 'common' })} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );

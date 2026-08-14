@@ -70,17 +70,22 @@ export default function RadioView() {
 
   // Lift list/computation out of JSX render position into consts above the
   // return so the JSX below stays declarative.
+  //
+  // Two control tiers share this header: mode tabs (which list is shown) and
+  // filter pills/buttons (how it is narrowed). The active mode tab is solid
+  // primary while active filters stay on the primary/15 tint, so the tiers
+  // never read as one flat row of identical toggles.
   const modeTabElements = modeTabs.map(tab => {
     const Icon = tab.icon;
     return (
       <button
         key={tab.id}
         onClick={tab.onClick}
+        aria-pressed={tab.isActive}
         className={cn(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-          'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary/40',
+          'focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
           tab.isActive
-            ? 'bg-primary/15 text-primary'
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         )}
       >
@@ -96,8 +101,7 @@ export default function RadioView() {
       onClick={pill.onClick}
       aria-pressed={pill.isActive}
       className={cn(
-        'shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+        'focus-ring shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
         pill.isActive
           ? 'bg-primary/15 text-primary'
           : 'glass-subtle border border-border/30 text-muted-foreground hover:text-foreground'
@@ -111,14 +115,14 @@ export default function RadioView() {
     ? activeChips.map(chip => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
+          className="group inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary transition-colors hover:bg-primary/20"
         >
           {chip.prefix && <span>{chip.prefix}</span>}
           {chip.label}
           <button
             onClick={chip.onRemove}
             aria-label={chip.removeLabel}
-            className="rounded-full p-0.5 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+            className="focus-ring rounded-full p-0.5 transition-colors group-hover:bg-primary/25 hover:bg-primary/35"
           >
             <X className="w-3 h-3" />
           </button>
@@ -274,8 +278,7 @@ export default function RadioView() {
               aria-pressed={isLocalActive}
               title={t('filterLocalTooltip')}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                'focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
                 isLocalActive
                   ? 'bg-primary/15 text-primary'
                   : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
@@ -325,8 +328,7 @@ export default function RadioView() {
             aria-pressed={isDiaryOpen}
             title={t('diaryTooltip')}
             className={cn(
-              'hidden lg:inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+              'focus-ring hidden lg:inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
               isDiaryOpen
                 ? 'bg-primary/15 text-primary'
                 : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
