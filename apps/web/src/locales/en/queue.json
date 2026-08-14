@@ -1,7 +1,8 @@
 {
   "title": "Queue",
   "clear": "Clear",
-  "empty": "Queue is empty",
+  "emptyTitle": "Queue is empty",
+  "emptySubtitle": "Tracks you queue up will appear here.",
   "nowPlaying": "Now Playing",
   "upNext": "Up Next ({{count}})",
   "remove": "Remove from queue",

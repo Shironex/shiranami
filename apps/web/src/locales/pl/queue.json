@@ -1,7 +1,8 @@
 {
   "title": "Kolejka",
   "clear": "Wyczyść",
-  "empty": "Kolejka jest pusta",
+  "emptyTitle": "Kolejka jest pusta",
+  "emptySubtitle": "Utwory dodane do kolejki pojawią się tutaj.",
   "nowPlaying": "Teraz odtwarzane",
   "upNext": "Następne ({{count}})",
   "remove": "Usuń z kolejki",

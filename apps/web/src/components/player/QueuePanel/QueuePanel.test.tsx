@@ -59,7 +59,8 @@ describe('QueuePanel', () => {
     setQueueState([], -1);
     render(<QueuePanel />);
 
-    expect(screen.getByText('empty')).toBeInTheDocument();
+    expect(screen.getByText('emptyTitle')).toBeInTheDocument();
+    expect(screen.getByText('emptySubtitle')).toBeInTheDocument();
     expect(screen.queryByText('clear')).not.toBeInTheDocument();
   });
 

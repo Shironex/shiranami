@@ -1,6 +1,7 @@
 import { Trash2, Music } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { SortableQueueRow, DragOverlayContent, QueueItem } from '../QueueRow';
 import { useQueuePanel } from './QueuePanel.hooks';
 import type { IQueuePanelProps } from './QueuePanel.types';
@@ -42,7 +43,7 @@ export default function QueuePanel(props: IQueuePanelProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">
           {t('title')}
         </h2>
         <div className="flex items-center gap-3">
@@ -61,16 +62,18 @@ export default function QueuePanel(props: IQueuePanelProps) {
 
       {/* Content */}
       {!hasQueue ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <Music className="w-7 h-7 text-muted-foreground/20" />
-          <p className="text-xs text-muted-foreground/30 font-medium">{t('empty')}</p>
-        </div>
+        <ViewEmptyState
+          compact
+          title={t('emptyTitle')}
+          subtitle={t('emptySubtitle')}
+          icon={Music}
+        />
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
           {/* Now Playing */}
           {nowPlayingTrack && (
             <div className="shrink-0 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium px-2 mb-1.5">
                 {t('nowPlaying')}
               </p>
               <QueueItem
@@ -88,7 +91,7 @@ export default function QueuePanel(props: IQueuePanelProps) {
           {upNextRows.length > 0 && (
             <>
               <div className="shrink-0 px-3 pt-2">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium px-2 mb-1.5">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium px-2 mb-1.5">
                   {t('upNext', { count: upNextRows.length })}
                 </p>
               </div>
