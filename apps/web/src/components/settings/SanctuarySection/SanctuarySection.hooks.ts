@@ -7,7 +7,7 @@ import {
 } from '@/stores/useSanctuaryStore';
 import type { ISanctuarySectionView } from './SanctuarySection.types';
 
-const VARIANT_ORDER: SanctuaryVariant[] = ['cover', 'clock'];
+const VARIANT_ORDER: SanctuaryVariant[] = ['cover', 'clock', 'vinyl'];
 
 export function useSanctuarySection(): ISanctuarySectionView {
   const { t } = useTranslation('settings');

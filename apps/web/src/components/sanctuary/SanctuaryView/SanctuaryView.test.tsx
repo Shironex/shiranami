@@ -85,16 +85,31 @@ describe('SanctuaryView', () => {
     expect(screen.getByRole('button', { name: 'Leave Sanctuary' })).toBeInTheDocument();
   });
 
-  it('flips to the clock variant through the toggle', () => {
+  it('cycles cover → clock → vinyl → cover through the toggle', () => {
     usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
     useSanctuaryStore.setState({ sanctuaryActive: true });
 
     renderView(<SanctuaryView />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Show the clock' }));
-
     expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('clock');
-    expect(screen.getByRole('button', { name: 'Show the cover' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show the record' }));
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('vinyl');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show the cover' }));
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+  });
+
+  it('renders the vinyl center stage with the track info', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({ sanctuaryActive: true, sanctuaryVariant: 'vinyl' });
+
+    renderView(<SanctuaryView />);
+
+    expect(document.querySelector('[data-slot="vinyl-record"]')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Midnight Tapes' })).toBeInTheDocument();
+    expect(screen.getByText('the active line')).toBeInTheDocument();
   });
 
   it('exits through the leave button', () => {

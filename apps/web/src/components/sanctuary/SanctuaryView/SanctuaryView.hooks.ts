@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Clock3, Disc3, Image, type LucideIcon } from 'lucide-react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
-import { useSanctuaryStore, SANCTUARY_CHROME_TIMEOUT_MS } from '@/stores/useSanctuaryStore';
+import {
+  useSanctuaryStore,
+  SANCTUARY_CHROME_TIMEOUT_MS,
+  type SanctuaryVariant,
+} from '@/stores/useSanctuaryStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import { useCompanionPresence } from '@/hooks/useCompanionPresence';
@@ -18,6 +23,16 @@ import type { ISanctuaryViewView } from './SanctuaryView.types';
  * `F` would exit here *and* toggle there — re-entering the mode it just left.
  */
 const GLOBAL_SANCTUARY_KEYS = new Set(['f', 'F', 'Escape']);
+
+/** The in-view toggle walks the three center stages in this order. */
+const VARIANT_CYCLE: SanctuaryVariant[] = ['cover', 'clock', 'vinyl'];
+
+/** Toggle chrome per upcoming variant: its localized label key and icon. */
+const NEXT_VARIANT_META: Record<SanctuaryVariant, { labelKey: string; icon: LucideIcon }> = {
+  cover: { labelKey: 'showCover', icon: Image },
+  clock: { labelKey: 'showClock', icon: Clock3 },
+  vinyl: { labelKey: 'showVinyl', icon: Disc3 },
+};
 
 export function useSanctuaryView(): ISanctuaryViewView {
   const { t, i18n } = useTranslation('sanctuary');
@@ -104,6 +119,9 @@ export function useSanctuaryView(): ISanctuaryViewView {
   // view agrees with the player bar instead of showing a second answer.
   const titleText = useTrackTitle(currentTrack);
 
+  const nextVariant = VARIANT_CYCLE[(VARIANT_CYCLE.indexOf(variant) + 1) % VARIANT_CYCLE.length];
+  const nextMeta = NEXT_VARIANT_META[nextVariant];
+
   return {
     hasTrack: Boolean(currentTrack),
     currentTrack,
@@ -126,8 +144,9 @@ export function useSanctuaryView(): ISanctuaryViewView {
     companion,
     companionKeepsWatch,
     exitLabel: t('exit'),
-    variantToggleLabel: variant === 'cover' ? t('showClock') : t('showCover'),
+    variantToggleLabel: t(nextMeta.labelKey),
+    variantToggleIcon: nextMeta.icon,
     onExit: exitSanctuary,
-    onToggleVariant: () => setVariant(variant === 'cover' ? 'clock' : 'cover'),
+    onToggleVariant: () => setVariant(nextVariant),
   };
 }

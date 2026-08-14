@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import type { Track } from '@/stores/types';
 import type { SanctuaryVariant } from '@/stores/useSanctuaryStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
@@ -41,8 +42,10 @@ export interface ISanctuaryViewView {
   /** Localized labels for the two chrome buttons. */
   readonly exitLabel: string;
   readonly variantToggleLabel: string;
+  /** Icon for the variant toggle — always previews the NEXT center stage. */
+  readonly variantToggleIcon: LucideIcon;
   /** Leave the sanctuary (Esc, the exit button, or auto-exit). */
   readonly onExit: () => void;
-  /** Flip between the cover and clock center stages. */
+  /** Advance the center stage: cover → clock → vinyl → cover. */
   readonly onToggleVariant: () => void;
 }

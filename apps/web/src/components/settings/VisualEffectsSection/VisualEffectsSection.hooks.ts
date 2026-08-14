@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useUIStore } from '@/stores/useUIStore';
+import { useUIStore, VINYL_LABEL_SOURCES, VINYL_RING_STYLES } from '@/stores/useUIStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { pendingAnalysisInput } from '@/hooks/useAnalysis';
 import { isRadioTrack } from '@/lib/utils';
@@ -25,9 +25,27 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setArtworkBloomEnabled = useUIStore(s => s.setArtworkBloomEnabled);
   const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
   const setCoverCrossfadeEnabled = useUIStore(s => s.setCoverCrossfadeEnabled);
+  const vinylDisplayEnabled = useUIStore(s => s.vinylDisplayEnabled);
+  const setVinylDisplayEnabled = useUIStore(s => s.setVinylDisplayEnabled);
+  const vinylLabelSource = useUIStore(s => s.vinylLabelSource);
+  const setVinylLabelSource = useUIStore(s => s.setVinylLabelSource);
+  const vinylRingStyle = useUIStore(s => s.vinylRingStyle);
+  const setVinylRingStyle = useUIStore(s => s.setVinylRingStyle);
   const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
   const setRoomLightEnabled = useUIStore(s => s.setRoomLightEnabled);
   const library = useLibraryStore(s => s.library);
+
+  const vinylLabelOptions = VINYL_LABEL_SOURCES.map(value => ({
+    value,
+    label: t(`app.vinylDisplayLabel.${value}`),
+    isActive: vinylLabelSource === value,
+  }));
+
+  const vinylRingOptions = VINYL_RING_STYLES.map(value => ({
+    value,
+    label: t(`app.vinylRing.${value}`),
+    isActive: vinylRingStyle === value,
+  }));
 
   // The silent-failure guard: a library without tempo data never breathes, and
   // nothing on this card would say why. Below half coverage, point at the one
@@ -48,6 +66,21 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     nowPlayingDescription: t('app.nowPlayingViewDesc'),
     nowPlayingViewEnabled,
     onNowPlayingChange: setNowPlayingViewEnabled,
+
+    vinylDisplayLabel: t('app.vinylDisplay'),
+    vinylDisplayDescription: t('app.vinylDisplayDesc'),
+    vinylDisplayEnabled,
+    onVinylDisplayChange: setVinylDisplayEnabled,
+
+    vinylLabelTitle: t('app.vinylDisplayLabelTitle'),
+    vinylLabelDescription: t('app.vinylDisplayLabelDesc'),
+    vinylLabelOptions,
+    onSelectVinylLabelSource: setVinylLabelSource,
+
+    vinylRingTitle: t('app.vinylRingTitle'),
+    vinylRingDescription: t('app.vinylRingDesc'),
+    vinylRingOptions,
+    onSelectVinylRingStyle: setVinylRingStyle,
 
     libraryHeroLabel: t('app.libraryHeroCard'),
     libraryHeroDescription: t('app.libraryHeroCardDesc'),

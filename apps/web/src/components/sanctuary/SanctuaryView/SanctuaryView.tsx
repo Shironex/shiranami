@@ -1,6 +1,7 @@
-import { Music, Clock3, Disc3, Minimize2 } from 'lucide-react';
+import { Music, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Companion } from '@/components/companion/Companion';
+import { VinylRecord } from '@/components/shared/VinylRecord';
 import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { SeekBar } from '@/components/player/SeekBar';
@@ -36,13 +37,12 @@ export default function SanctuaryView() {
     companionKeepsWatch,
     exitLabel,
     variantToggleLabel,
+    variantToggleIcon: VariantIcon,
     onExit,
     onToggleVariant,
   } = useSanctuaryView();
 
   if (!hasTrack || !currentTrack) return null;
-
-  const VariantIcon = variant === 'cover' ? Clock3 : Disc3;
 
   const chromeClass = cn(
     'transition-opacity duration-500',
@@ -72,6 +72,16 @@ export default function SanctuaryView() {
       />
     </div>
   ) : null;
+
+  // Shared by the cover and vinyl stages — the title + artist/album lines.
+  const trackInfo = (
+    <div className="text-center max-w-[70vw]">
+      <h1 className="font-serif italic text-3xl @5xl:text-4xl text-foreground truncate">
+        {titleText}
+      </h1>
+      <p className="text-sm text-muted-foreground mt-1.5 truncate">{trackLine}</p>
+    </div>
+  );
 
   // Built above JSX render position (declarative-JSX rule): the ±1 focus
   // stage, or nothing for tracks without synced lyrics.
@@ -127,7 +137,7 @@ export default function SanctuaryView() {
 
       {/* Center stage */}
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-6 px-8">
-        {variant === 'cover' ? (
+        {variant === 'cover' && (
           <>
             <div
               className={cn(
@@ -148,16 +158,25 @@ export default function SanctuaryView() {
               )}
             </div>
 
-            <div className="text-center max-w-[70vw]">
-              <h1 className="font-serif italic text-3xl @5xl:text-4xl text-foreground truncate">
-                {titleText}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1.5 truncate">{trackLine}</p>
-            </div>
+            {trackInfo}
 
             {lyricStage}
           </>
-        ) : (
+        )}
+
+        {variant === 'vinyl' && (
+          <>
+            <div className="shrink-0 w-[min(48vh,44vw,34rem)]">
+              <VinylRecord albumArt={currentTrack.albumArt} albumAlt={currentTrack.album} />
+            </div>
+
+            {trackInfo}
+
+            {lyricStage}
+          </>
+        )}
+
+        {variant === 'clock' && (
           <>
             <div className="font-display text-[clamp(4rem,16vw,11rem)] leading-none tabular-nums tracking-tight text-foreground">
               {timeLabel}

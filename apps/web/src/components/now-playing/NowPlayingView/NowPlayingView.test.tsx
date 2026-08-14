@@ -66,7 +66,7 @@ function renderView(ui: ReactElement): RenderResult {
 
 function reset(): void {
   usePlaybackStore.setState({ currentTrack: null, duration: 0, isPlaying: false });
-  useUIStore.setState({ nowPlayingPanel: 'lyrics' });
+  useUIStore.setState({ nowPlayingPanel: 'lyrics', vinylDisplayEnabled: false });
   useViewStore.setState({ activeView: 'now-playing', previousView: 'library' });
 }
 
@@ -108,6 +108,28 @@ describe('NowPlayingView', () => {
     renderView(<NowPlayingView />);
 
     expect(screen.queryByText(/BPM/)).not.toBeInTheDocument();
+  });
+
+  it('swaps the album-art card for the vinyl record when the display is enabled', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useUIStore.setState({ vinylDisplayEnabled: true });
+
+    renderView(<NowPlayingView />);
+
+    expect(document.querySelector('[data-slot="vinyl-record"]')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Late Nights' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the album-art card when the vinyl display is off', () => {
+    usePlaybackStore.setState({
+      currentTrack: makeTrack({ albumArt: 'art://cover.jpg' }),
+      duration: 215,
+    });
+
+    renderView(<NowPlayingView />);
+
+    expect(document.querySelector('[data-slot="vinyl-record"]')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Late Nights' })).toBeInTheDocument();
   });
 
   it('switches the active panel when a toggle is pressed', () => {

@@ -74,6 +74,8 @@ export interface INowPlayingViewView {
   readonly panelGroupLabel: string;
   /** Whether low-performance mode is on — softens panel-switch animation. */
   readonly lowPerformanceMode: boolean;
+  /** Render the spinning vinyl record in place of the album-art card. */
+  readonly vinylDisplayEnabled: boolean;
   /** Whether the album art plays the ±3° track-change tilt (off under reduced
    *  motion / low-performance mode). */
   readonly albumArtTiltEnabled: boolean;

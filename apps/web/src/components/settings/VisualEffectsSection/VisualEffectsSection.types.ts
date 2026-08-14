@@ -1,3 +1,25 @@
+import type { VinylLabelSource, VinylRingStyle } from '@/stores/useUIStore';
+
+/** One render-ready chip in the vinyl label-source picker. */
+export interface IVinylLabelOption {
+  /** The label source this chip selects. */
+  readonly value: VinylLabelSource;
+  /** Localized chip label. */
+  readonly label: string;
+  /** Whether this source is the active one. */
+  readonly isActive: boolean;
+}
+
+/** One render-ready chip in the vinyl ring-style picker. */
+export interface IVinylRingOption {
+  /** The ring style this chip selects. */
+  readonly value: VinylRingStyle;
+  /** Localized chip label. */
+  readonly label: string;
+  /** Whether this style is the active one. */
+  readonly isActive: boolean;
+}
+
 export interface IVisualEffectsSectionView {
   /** Localized card title. */
   readonly title: string;
@@ -12,6 +34,33 @@ export interface IVisualEffectsSectionView {
   readonly nowPlayingViewEnabled: boolean;
   /** Toggle the Now Playing view. */
   readonly onNowPlayingChange: (next: boolean) => void;
+
+  /** Localized "Vinyl record display" toggle label. */
+  readonly vinylDisplayLabel: string;
+  /** Localized "Vinyl record display" toggle description. */
+  readonly vinylDisplayDescription: string;
+  /** Whether the vinyl record display is enabled. */
+  readonly vinylDisplayEnabled: boolean;
+  /** Toggle the vinyl record display. */
+  readonly onVinylDisplayChange: (next: boolean) => void;
+
+  /** Localized title for the record-label picker. */
+  readonly vinylLabelTitle: string;
+  /** Localized description for the record-label picker. */
+  readonly vinylLabelDescription: string;
+  /** Render-ready chips for the record-label picker. */
+  readonly vinylLabelOptions: readonly IVinylLabelOption[];
+  /** Select the record-label source. */
+  readonly onSelectVinylLabelSource: (source: VinylLabelSource) => void;
+
+  /** Localized title for the reactive-ring picker. */
+  readonly vinylRingTitle: string;
+  /** Localized description for the reactive-ring picker. */
+  readonly vinylRingDescription: string;
+  /** Render-ready chips for the reactive-ring picker. */
+  readonly vinylRingOptions: readonly IVinylRingOption[];
+  /** Select the reactive-ring style. */
+  readonly onSelectVinylRingStyle: (style: VinylRingStyle) => void;
 
   /** Localized "Now playing banner" toggle label. */
   readonly libraryHeroLabel: string;

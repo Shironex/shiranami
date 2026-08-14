@@ -4,7 +4,7 @@ import { commands } from '@/lib/bridge/commands';
 import { logger } from '@/lib/logger';
 
 /** What the sanctuary shows center-stage. */
-export type SanctuaryVariant = 'cover' | 'clock';
+export type SanctuaryVariant = 'cover' | 'clock' | 'vinyl';
 
 export const SANCTUARY_AUTO_ENTER_MIN_MINUTES = 1;
 export const SANCTUARY_AUTO_ENTER_MAX_MINUTES = 60;
@@ -17,7 +17,7 @@ export const SANCTUARY_CHROME_TIMEOUT_MS = 4000;
 const STORE_KEY = 'shiranami.sanctuary-store';
 
 function coerceVariant(v: unknown): SanctuaryVariant {
-  return v === 'cover' || v === 'clock' ? v : SANCTUARY_VARIANT_DEFAULT;
+  return v === 'cover' || v === 'clock' || v === 'vinyl' ? v : SANCTUARY_VARIANT_DEFAULT;
 }
 
 function coerceAutoEnterMinutes(v: unknown): number {
