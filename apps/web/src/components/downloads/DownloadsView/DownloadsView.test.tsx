@@ -27,8 +27,8 @@ function seedQueue(items: DownloadQueueItem[], paused = false): void {
   useDownloadQueueStore.getState().applySnapshot(snapshot);
 }
 
-beforeEach(() => {
-  // Reset to the store's initial (pre-hydration) shape before each test.
+function resetQueueStore(): void {
+  // Reset to the store's initial (pre-hydration) shape.
   useDownloadQueueStore.setState({
     items: [],
     byUrl: new Map(),
@@ -37,27 +37,38 @@ beforeEach(() => {
     activeCount: 0,
     paused: false,
     hydrated: false,
+    hydrationFailed: false,
   });
-});
+}
 
-afterEach(() => {
-  useDownloadQueueStore.setState({
-    items: [],
-    byUrl: new Map(),
-    byYoutubeId: new Map(),
-    maxConcurrency: 0,
-    activeCount: 0,
-    paused: false,
-    hydrated: false,
-  });
-});
+beforeEach(resetQueueStore);
+afterEach(resetQueueStore);
 
 describe('DownloadsView', () => {
-  it('holds a blank loading frame before the queue hydrates', () => {
+  it('holds a skeleton frame before the queue hydrates', () => {
     render(<DownloadsView />);
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading downloads');
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
     expect(screen.queryByText('No downloads yet')).toBeNull();
+  });
+
+  it('shows the error state with a retry action when hydration fails', () => {
+    useDownloadQueueStore.getState().markHydrationFailed();
+    render(<DownloadsView />);
+
+    expect(screen.getByText("Couldn't load the download queue")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText('No downloads yet')).toBeNull();
+  });
+
+  it('recovers from a failed hydration once a snapshot lands', () => {
+    useDownloadQueueStore.getState().markHydrationFailed();
+    seedQueue([]);
+    render(<DownloadsView />);
+
+    expect(screen.queryByText("Couldn't load the download queue")).toBeNull();
+    expect(screen.getByText('No downloads yet')).toBeInTheDocument();
   });
 
   it('shows the empty state once hydrated with no items', () => {
@@ -65,6 +76,9 @@ describe('DownloadsView', () => {
     render(<DownloadsView />);
 
     expect(screen.getByText('No downloads yet')).toBeInTheDocument();
+    // The page header stays put across states — only the toolbar goes away.
+    expect(screen.getByRole('heading', { level: 1, name: 'Downloads' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pause the download queue' })).toBeNull();
   });
 
   it('renders grouped sections and their items', () => {

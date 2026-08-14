@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { useShioRig } from './ShioRig.hooks';
+import type { CompanionAccessory } from '@/lib/companionAccessories';
 import type { IShioRigProps } from './ShioRig.types';
 
 /**
@@ -10,7 +11,8 @@ import type { IShioRigProps } from './ShioRig.types';
  * layers carry `companion-s*` classes and are revealed by the root's
  * `data-stage` (see globals.css "Companion sprite").
  */
-export default function ShioRig({ stage, mode, motion, outfit }: IShioRigProps) {
+export default function ShioRig({ stage, mode, motion, outfit, accessories }: IShioRigProps) {
+  const worn = (id: CompanionAccessory) => accessories?.includes(id) === true;
   const { maskId, beatClass, bubClass, blinkClass, eyeRy, lanternClass } = useShioRig({
     stage,
     mode,
@@ -183,6 +185,65 @@ export default function ShioRig({ stage, mode, motion, outfit }: IShioRigProps) 
           <circle className="companion-o-snowflake" cx="59" cy="27" r="2" />
           <circle className="companion-o-snowflake" cx="69" cy="32" r="1.5" />
           <circle className="companion-o-snowflake" cx="84" cy="63" r="1.3" />
+        </g>
+      )}
+
+      {/* Keepsakes — chosen layers, several may stack (distinct anatomy slots),
+          so a bare Shio (none worn) renders byte-identical to the plain rig. */}
+      {worn('beret') && (
+        <g className="companion-acc companion-a-beret" transform="rotate(-10 58 33)">
+          <ellipse className="companion-o-accent" cx="58" cy="32.5" rx="9.5" ry="4" />
+          <path
+            className="companion-o-accent"
+            d="M 57.2 28.6 Q 58.2 26.8 60 27.8 Q 59.5 29.4 58.6 29.6 Z"
+          />
+        </g>
+      )}
+      {worn('glasses') && (
+        <g className="companion-acc companion-a-glasses">
+          <circle className="companion-a-lens" cx="50" cy="52.5" r="5.6" />
+          <circle className="companion-a-lens" cx="66" cy="52.5" r="5.6" />
+          <path
+            className="companion-ink-s"
+            d="M 55.6 51.8 Q 58 50.4 60.4 51.8"
+            style={{ strokeWidth: 1.2, opacity: 0.6 }}
+          />
+        </g>
+      )}
+      {worn('satchel') && (
+        <g className="companion-acc companion-a-satchel">
+          <path
+            className="companion-ink-s"
+            d="M 45 67 Q 57 78 66 84"
+            style={{ strokeWidth: 1.6, opacity: 0.5 }}
+          />
+          <g transform="rotate(-6 70 86)">
+            <rect className="companion-o-accent" x="64.5" y="82" width="11" height="8.5" rx="2.5" />
+            <path
+              className="companion-ink-s"
+              d="M 64.5 85.4 L 75.5 85.4"
+              style={{ strokeWidth: 1, opacity: 0.35 }}
+            />
+            <circle className="companion-gear" cx="70" cy="87.4" r="1" />
+          </g>
+        </g>
+      )}
+      {worn('pendant') && (
+        <g className="companion-acc companion-a-pendant">
+          <path
+            className="companion-ink-s"
+            d="M 48 63 Q 58 69.5 68 63"
+            style={{ strokeWidth: 1, opacity: 0.5 }}
+          />
+          <path
+            className="companion-a-shell"
+            d="M 55.6 67.5 Q 58 65.9 60.4 67.5 Q 60 71 58 71.7 Q 56 71 55.6 67.5 Z"
+          />
+          <path
+            className="companion-ink-s"
+            d="M 57.2 67.6 L 57.5 70.6 M 58.8 67.6 L 58.5 70.6"
+            style={{ strokeWidth: 0.5, opacity: 0.35 }}
+          />
         </g>
       )}
     </g>

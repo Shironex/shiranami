@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RECAP_ARCHIVE_WEEKS, formatWeekRange, listCompletedWeeks } from '@/lib/recap';
 import { useWeeklyRecapQuery } from '@/hooks/queries/useRecap';
@@ -13,6 +13,7 @@ import type { IRecapShelfView } from './RecapShelf.types';
  */
 export function useRecapShelf(): IRecapShelfView {
   const { t, i18n } = useTranslation('history');
+  const headingId = useId();
 
   // The week list is stable for the whole mounted life of the view — computing
   // it once per mount keeps the chips from shifting under a click at midnight.
@@ -35,6 +36,7 @@ export function useRecapShelf(): IRecapShelfView {
   );
 
   return {
+    headingId,
     title: t('recaps.title'),
     caption: t('recaps.caption'),
     weeks,

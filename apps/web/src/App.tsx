@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { VIEW_TRANSITION } from '@/lib/motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { logger } from '@/lib/logger';
 import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -63,6 +62,7 @@ const EditTagsDialogManager = lazy(
 const OnboardingWizard = lazy(
   () => import('@/components/onboarding/OnboardingWizard/OnboardingWizard')
 );
+const NamingCeremony = lazy(() => import('@/components/companion/NamingCeremony/NamingCeremony'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -87,10 +87,7 @@ import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
-import {
-  useDownloadQueueImporter,
-  reconstructBatchesFromSnapshot,
-} from '@/hooks/useDownloadQueueImporter';
+import { useDownloadQueueImporter, hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -227,22 +224,10 @@ function App() {
   // (mounted below) is the single owner of library import for queued downloads.
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    const applySnapshot = useDownloadQueueStore.getState().applySnapshot;
-    window.electronAPI.downloader
-      .getDownloadQueue()
-      .then(snapshot => {
-        // Reconstruct any in-flight playlist-import batches from the restored
-        // queue BEFORE applying the snapshot, so the App-level importer sees each
-        // batch the instant it sees its items (zustand setState is synchronous).
-        reconstructBatchesFromSnapshot(snapshot.items);
-        applySnapshot(snapshot);
-      })
-      .catch((err: unknown) => {
-        // The persisted queue failed to load at boot. The next queue-state
-        // broadcast will recover the snapshot, but log so it's diagnosable.
-        logger.error('[downloads] initial queue hydration failed', err);
-      });
-    const cleanup = window.electronAPI.downloader.onQueueState(applySnapshot);
+    hydrateDownloadQueue();
+    const cleanup = window.electronAPI.downloader.onQueueState(
+      useDownloadQueueStore.getState().applySnapshot
+    );
     return cleanup;
   }, []);
 
@@ -366,6 +351,13 @@ function App() {
                 <EditTagsDialogManager />
               </Suspense>
             </ErrorBoundary>
+            {/* The companion's one-time naming moment — self-gating (stage,
+                name, ceremony flag), so mounting it is unconditional. */}
+            <ErrorBoundary viewName="NamingCeremony">
+              <Suspense fallback={null}>
+                <NamingCeremony />
+              </Suspense>
+            </ErrorBoundary>
 
             {compactMode && (
               <ErrorBoundary viewName="CompactPlayer" compact>
@@ -428,7 +420,9 @@ function App() {
                           : undefined,
                     }}
                   >
-                    {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    </AnimatePresence>
 
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -540,7 +534,9 @@ function App() {
                       </AnimatePresence>
                     </div>
 
-                    {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    </AnimatePresence>
 
                     {showVisualizerStrip && <VisualizerStrip />}
                   </main>

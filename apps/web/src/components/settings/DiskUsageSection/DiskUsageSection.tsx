@@ -71,12 +71,7 @@ export default function DiskUsageSection() {
             <AlertTriangle className="w-4 h-4 text-destructive shrink-0" aria-hidden="true" />
             <span>{t('diskUsage.error')}</span>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onRefresh}
-            className="rounded-lg [&_svg]:size-3.5"
-          >
+          <Button variant="secondary" size="sm" onClick={onRefresh} className="[&_svg]:size-3.5">
             <RefreshCw />
             {t('diskUsage.retry')}
           </Button>

@@ -11,7 +11,7 @@ import { useSanctuarySection } from './SanctuarySection.hooks';
 /** Shared chip styling for the section's three pressed-state pickers. */
 function chipClass(isActive: boolean): string {
   return cn(
-    'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+    'focus-ring rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
     'disabled:opacity-40 disabled:pointer-events-none',
     isActive
       ? 'border border-primary/40 bg-primary/15 text-primary'

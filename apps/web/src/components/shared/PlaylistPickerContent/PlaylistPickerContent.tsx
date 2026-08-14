@@ -39,7 +39,7 @@ export default function PlaylistPickerContent(props: IPlaylistPickerContentProps
           onToggle(pl);
         }}
         disabled={isMutating}
-        className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left disabled:pointer-events-none ${
+        className={`focus-ring w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors text-left disabled:pointer-events-none ${
           isInPlaylist
             ? 'text-primary/80 hover:text-primary hover:bg-accent'
             : 'text-foreground/80 hover:text-foreground hover:bg-accent'
@@ -98,7 +98,7 @@ export default function PlaylistPickerContent(props: IPlaylistPickerContentProps
               e.stopPropagation();
               onShowNewForm();
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
+            className="focus-ring w-full flex items-center gap-2 px-3 py-1.5 text-xs text-primary/80 hover:text-primary hover:bg-accent transition-colors"
           >
             <Plus className="w-3 h-3" />
             {tCommon('newPlaylist')}

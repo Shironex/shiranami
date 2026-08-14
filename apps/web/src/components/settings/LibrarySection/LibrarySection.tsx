@@ -61,7 +61,7 @@ export default function LibrarySection() {
               variant="secondary"
               onClick={onRescan}
               disabled={isRescanDisabled}
-              className="rounded-xl [&_svg]:size-3.5"
+              className="[&_svg]:size-3.5"
             >
               {isScanning ? <Loader2 className="animate-spin" /> : <RefreshCw />}
               {isScanning ? t('lib.scanning') : t('lib.rescan')}
@@ -89,7 +89,7 @@ export default function LibrarySection() {
               variant="secondary"
               onClick={onExport}
               disabled={isBackupBusy}
-              className="rounded-xl [&_svg]:size-3.5"
+              className="[&_svg]:size-3.5"
             >
               {isBackupBusy ? <Loader2 className="animate-spin" /> : <Download />}
               {t('lib.backupExport')}
@@ -98,7 +98,7 @@ export default function LibrarySection() {
               variant="secondary"
               onClick={onImport}
               disabled={isBackupBusy}
-              className="rounded-xl [&_svg]:size-3.5"
+              className="[&_svg]:size-3.5"
             >
               {isBackupBusy ? <Loader2 className="animate-spin" /> : <Upload />}
               {t('lib.backupImport')}
@@ -118,7 +118,7 @@ export default function LibrarySection() {
             <Button
               variant="destructiveGhost"
               onClick={() => onSetConfirmClear(true)}
-              className="rounded-xl [&_svg]:size-3.5"
+              className="[&_svg]:size-3.5"
             >
               <Trash2 />
               {t('lib.clearLibrary')}
@@ -132,7 +132,7 @@ export default function LibrarySection() {
                   size="sm"
                   onClick={onClearLibrary}
                   disabled={isClearing}
-                  className="gap-2 rounded-lg text-sm [&_svg]:size-3.5"
+                  className="gap-2 text-sm [&_svg]:size-3.5"
                 >
                   {isClearing ? <Loader2 className="animate-spin" /> : <Trash2 />}
                   {isClearing ? t('lib.clearing') : t('lib.yesClear')}
@@ -141,7 +141,7 @@ export default function LibrarySection() {
                   variant="ghost"
                   size="sm"
                   onClick={() => onSetConfirmClear(false)}
-                  className="rounded-lg text-sm text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                 >
                   {tc('cancel')}
                 </Button>

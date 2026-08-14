@@ -182,6 +182,12 @@ export interface CompanionApi {
    * the switch — a preference, not a collection.
    */
   setSpecies: (species: CompanionSpecies) => Promise<CompanionState>;
+  /**
+   * Replace the worn accessory set (the whole set every time, never a
+   * delta). Which ids exist and which stages unlock them is renderer
+   * vocabulary; the ledger stores the choice.
+   */
+  setAccessories: (accessories: string[]) => Promise<CompanionState>;
   /** XP accrued from a recorded play, streamed by `db:history:record-play`. */
   onXp: (callback: (gain: CompanionXpGain) => void) => () => void;
 }

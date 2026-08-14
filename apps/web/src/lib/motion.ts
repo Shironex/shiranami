@@ -58,6 +58,18 @@ export const STAGGER_ITEM = {
 };
 
 /**
+ * Enter/exit pop for menus and other click-anchored popups — a quick fade +
+ * scale from 95% over ~0.12s, the same recipe the popover primitive expresses
+ * as `fade-in-0 zoom-in-95`. Spread onto a motion.div inside AnimatePresence.
+ */
+export const MENU_POP = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+  exit: { opacity: 0, scale: 0.95 },
+  transition: { duration: 0.12 },
+} as const;
+
+/**
  * View-to-view transition for the main content region. Deliberately quick
  * (~0.16s) so a tool people leave open never feels sluggish. Use with
  * AnimatePresence mode="wait" keyed on the active view. Skip under reduced
@@ -70,3 +82,13 @@ export const VIEW_TRANSITION = {
   exit: { opacity: 0, y: -6 },
   transition: { duration: 0.16, ease: EASE_OUT_SOFT },
 };
+
+/**
+ * Docked side-panel enter/exit — a gentle fade + short slide from the panel's
+ * docked edge. Use with AnimatePresence around the mount site and negate the
+ * offset when docked left; width stays static (the resize handle owns it) so
+ * only the panel itself glides. Skip under reduced motion (render without the
+ * motion props).
+ */
+export const PANEL_SLIDE_OFFSET = 24;
+export const PANEL_TRANSITION = { duration: 0.18, ease: EASE_OUT_SOFT };

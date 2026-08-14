@@ -56,6 +56,7 @@ export default function CompanionPerch() {
           overlaySeq={presence.overlaySeq}
           motion={presence.motion}
           outfit={presence.outfit}
+          accessories={presence.accessories}
           size={56}
           peekOffset={peekOffset}
           faceOverride={faceOverride}

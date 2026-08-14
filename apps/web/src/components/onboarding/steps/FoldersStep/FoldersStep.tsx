@@ -78,7 +78,7 @@ export default function FoldersStep() {
             onClick={onAddFolder}
             disabled={addDisabled}
             aria-label={t('folders.addFolder')}
-            className="h-auto w-full rounded-xl border-dashed border-border/40 bg-transparent py-2.5 text-primary shadow-none hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+            className="h-auto w-full border-dashed border-border/40 bg-transparent py-2.5 text-primary shadow-none hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
           >
             {isScanning ? <Loader2 className="animate-spin" /> : <Plus />}
             {isScanning ? t('folders.scanning') : t('folders.addFolder')}

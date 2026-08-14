@@ -47,6 +47,12 @@ export const VISUALIZER_STYLE_VALUES = [
 export type VinylLabelSource = 'artwork' | 'logo';
 /** The audio-reactive ring drawn around the vinyl disc. */
 export type VinylRingStyle = 'off' | 'glow' | 'spectrum';
+/** Turntable speed, in RPM ('33' is the 33⅓ long-play speed). */
+export type VinylSpeed = '33' | '45' | '78';
+/** The pressing's finish — what the disc face looks like. */
+export type VinylFinish = 'black' | 'clear' | 'marble' | 'picture';
+/** The disc's footprint on a stage (Now Playing / Sanctuary). */
+export type VinylSize = 'small' | 'medium' | 'large';
 
 export const VINYL_LABEL_SOURCES = [
   'artwork',
@@ -57,9 +63,27 @@ export const VINYL_RING_STYLES = [
   'glow',
   'spectrum',
 ] as const satisfies readonly VinylRingStyle[];
+export const VINYL_SPEEDS = ['33', '45', '78'] as const satisfies readonly VinylSpeed[];
+export const VINYL_FINISHES = [
+  'black',
+  'clear',
+  'marble',
+  'picture',
+] as const satisfies readonly VinylFinish[];
+export const VINYL_SIZES = ['small', 'medium', 'large'] as const satisfies readonly VinylSize[];
 
 export const VINYL_LABEL_SOURCE_DEFAULT: VinylLabelSource = 'artwork';
 export const VINYL_RING_STYLE_DEFAULT: VinylRingStyle = 'glow';
+export const VINYL_SPEED_DEFAULT: VinylSpeed = '33';
+export const VINYL_FINISH_DEFAULT: VinylFinish = 'black';
+/**
+ * 'large' fills the Now Playing artwork slot exactly as the display did before
+ * the size preference existed; the Sanctuary default likewise keeps its
+ * original footprint. Different defaults, same rationale: no visual change on
+ * upgrade.
+ */
+export const VINYL_NOW_PLAYING_SIZE_DEFAULT: VinylSize = 'large';
+export const VINYL_SANCTUARY_SIZE_DEFAULT: VinylSize = 'medium';
 
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
@@ -178,6 +202,11 @@ interface PersistedUIState {
   vinylDisplayEnabled: boolean;
   vinylLabelSource: VinylLabelSource;
   vinylRingStyle: VinylRingStyle;
+  vinylSpeed: VinylSpeed;
+  vinylFinish: VinylFinish;
+  vinylTonearmEnabled: boolean;
+  vinylNowPlayingSize: VinylSize;
+  vinylSanctuarySize: VinylSize;
   roomLightEnabled: boolean;
   landingView: LandingView;
 }
@@ -254,6 +283,24 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
       VINYL_RING_STYLES,
       VINYL_RING_STYLE_DEFAULT
     );
+  if (persisted.vinylSpeed !== undefined)
+    out.vinylSpeed = coerceEnum(persisted.vinylSpeed, VINYL_SPEEDS, VINYL_SPEED_DEFAULT);
+  if (persisted.vinylFinish !== undefined)
+    out.vinylFinish = coerceEnum(persisted.vinylFinish, VINYL_FINISHES, VINYL_FINISH_DEFAULT);
+  if (typeof persisted.vinylTonearmEnabled === 'boolean')
+    out.vinylTonearmEnabled = persisted.vinylTonearmEnabled;
+  if (persisted.vinylNowPlayingSize !== undefined)
+    out.vinylNowPlayingSize = coerceEnum(
+      persisted.vinylNowPlayingSize,
+      VINYL_SIZES,
+      VINYL_NOW_PLAYING_SIZE_DEFAULT
+    );
+  if (persisted.vinylSanctuarySize !== undefined)
+    out.vinylSanctuarySize = coerceEnum(
+      persisted.vinylSanctuarySize,
+      VINYL_SIZES,
+      VINYL_SANCTUARY_SIZE_DEFAULT
+    );
   if (typeof persisted.roomLightEnabled === 'boolean')
     out.roomLightEnabled = persisted.roomLightEnabled;
   if (persisted.landingView !== undefined)
@@ -291,6 +338,11 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'vinylDisplayEnabled',
   'vinylLabelSource',
   'vinylRingStyle',
+  'vinylSpeed',
+  'vinylFinish',
+  'vinylTonearmEnabled',
+  'vinylNowPlayingSize',
+  'vinylSanctuarySize',
   'roomLightEnabled',
   'landingView',
 ]);
@@ -438,12 +490,18 @@ interface UIState {
   coverCrossfadeEnabled: boolean;
   /**
    * Vinyl record display: swap the Now Playing artwork card for a spinning
-   * vinyl disc. The label source and reactive ring below only matter while
-   * this master gate is on (the Sanctuary vinyl variant also honors them).
+   * vinyl disc. The customization fields below (label source, reactive ring,
+   * speed, finish, tonearm, per-stage sizes) only matter while this master
+   * gate is on (the Sanctuary vinyl variant also honors them).
    */
   vinylDisplayEnabled: boolean;
   vinylLabelSource: VinylLabelSource;
   vinylRingStyle: VinylRingStyle;
+  vinylSpeed: VinylSpeed;
+  vinylFinish: VinylFinish;
+  vinylTonearmEnabled: boolean;
+  vinylNowPlayingSize: VinylSize;
+  vinylSanctuarySize: VinylSize;
   roomLightEnabled: boolean;
   landingView: LandingView;
 }
@@ -462,6 +520,11 @@ interface UIActions {
   setVinylDisplayEnabled: (enabled: boolean) => void;
   setVinylLabelSource: (source: VinylLabelSource) => void;
   setVinylRingStyle: (style: VinylRingStyle) => void;
+  setVinylSpeed: (speed: VinylSpeed) => void;
+  setVinylFinish: (finish: VinylFinish) => void;
+  setVinylTonearmEnabled: (enabled: boolean) => void;
+  setVinylNowPlayingSize: (size: VinylSize) => void;
+  setVinylSanctuarySize: (size: VinylSize) => void;
   setRoomLightEnabled: (enabled: boolean) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
@@ -512,6 +575,11 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     vinylDisplayEnabled: false,
     vinylLabelSource: VINYL_LABEL_SOURCE_DEFAULT,
     vinylRingStyle: VINYL_RING_STYLE_DEFAULT,
+    vinylSpeed: VINYL_SPEED_DEFAULT,
+    vinylFinish: VINYL_FINISH_DEFAULT,
+    vinylTonearmEnabled: false,
+    vinylNowPlayingSize: VINYL_NOW_PLAYING_SIZE_DEFAULT,
+    vinylSanctuarySize: VINYL_SANCTUARY_SIZE_DEFAULT,
     roomLightEnabled: true,
     landingView: LANDING_VIEW_DEFAULT,
 
@@ -557,6 +625,25 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setVinylRingStyle: style => {
       set({ vinylRingStyle: coerceEnum(style, VINYL_RING_STYLES, VINYL_RING_STYLE_DEFAULT) });
+    },
+    setVinylSpeed: speed => {
+      set({ vinylSpeed: coerceEnum(speed, VINYL_SPEEDS, VINYL_SPEED_DEFAULT) });
+    },
+    setVinylFinish: finish => {
+      set({ vinylFinish: coerceEnum(finish, VINYL_FINISHES, VINYL_FINISH_DEFAULT) });
+    },
+    setVinylTonearmEnabled: enabled => {
+      set({ vinylTonearmEnabled: enabled });
+    },
+    setVinylNowPlayingSize: size => {
+      set({
+        vinylNowPlayingSize: coerceEnum(size, VINYL_SIZES, VINYL_NOW_PLAYING_SIZE_DEFAULT),
+      });
+    },
+    setVinylSanctuarySize: size => {
+      set({
+        vinylSanctuarySize: coerceEnum(size, VINYL_SIZES, VINYL_SANCTUARY_SIZE_DEFAULT),
+      });
     },
     setRoomLightEnabled: enabled => {
       set({ roomLightEnabled: enabled });
@@ -659,6 +746,11 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         vinylDisplayEnabled: s.vinylDisplayEnabled,
         vinylLabelSource: s.vinylLabelSource,
         vinylRingStyle: s.vinylRingStyle,
+        vinylSpeed: s.vinylSpeed,
+        vinylFinish: s.vinylFinish,
+        vinylTonearmEnabled: s.vinylTonearmEnabled,
+        vinylNowPlayingSize: s.vinylNowPlayingSize,
+        vinylSanctuarySize: s.vinylSanctuarySize,
         roomLightEnabled: s.roomLightEnabled,
         landingView: s.landingView,
       }) as PersistedUIState,

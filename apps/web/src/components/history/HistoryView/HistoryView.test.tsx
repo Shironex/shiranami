@@ -104,6 +104,19 @@ describe('HistoryView', () => {
     expect(screen.getByText('Recent Plays')).toBeInTheDocument();
   });
 
+  it('exposes every panel as a region named by its heading', () => {
+    renderView({
+      ...EMPTY_DATA,
+      summary: { ...EMPTY_DATA.summary, topTracks: [makeTrack()], topArtists: [makeArtist()] },
+      recent: [makeEntry()],
+    });
+
+    expect(screen.getByRole('region', { name: 'Activity' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Top Tracks' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Top Artists' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Recent Plays' })).toBeInTheDocument();
+  });
+
   it('renders the row data inside their sections', () => {
     renderView({
       ...EMPTY_DATA,

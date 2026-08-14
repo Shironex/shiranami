@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 155;
+pub const COMMAND_COUNT: usize = 156;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Twenty of them:
+/// Twenty-one of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -103,6 +103,8 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 ///   reason.
 /// - `companion_set_species` — the Shio/Hotaru switch
 ///   (`docs/v2/companion/decision.md`); born in v2 for the same reason.
+/// - `companion_set_accessories` — the companion's keepsake accessories
+///   (v2 companion, Phase 3); born in v2 for the same reason.
 /// - `lyrics_save_batch` and `lyrics_save_cancel` — the write-back batch. v1
 ///   kept fetched lyrics in an in-memory MRU and nowhere else, so there was no
 ///   library-wide pass for it to have a channel for. See
@@ -115,7 +117,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 ///   there was no import to have a channel for. `background_pick` opens its own
 ///   dialog rather than taking a path, which is why it is not simply a caller of
 ///   `dialog_open_file`. See [`crate::commands::background`].
-pub const NON_V1_COMMANDS: usize = 20;
+pub const NON_V1_COMMANDS: usize = 21;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

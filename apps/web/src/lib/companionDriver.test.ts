@@ -5,10 +5,12 @@ import {
   stopCompanionDriver,
   type ICompanionInputsSnapshot,
 } from './companionDriver';
-import { COMPANION_SETTLE_MS, createCompanionState } from './companionMachine';
+import { COMPANION_CAMEO_MS, COMPANION_SETTLE_MS, createCompanionState } from './companionMachine';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompanionRuntimeStore } from '@/stores/useCompanionRuntimeStore';
+import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
+import { useRecapStore } from '@/stores/useRecapStore';
 import type { Track } from '@/stores/types';
 
 function snapshot(overrides: Partial<ICompanionInputsSnapshot> = {}): ICompanionInputsSnapshot {
@@ -22,6 +24,8 @@ function snapshot(overrides: Partial<ICompanionInputsSnapshot> = {}): ICompanion
     rightPanel: null,
     activeView: 'library',
     nowPlayingPanel: null,
+    windDown: false,
+    recapVisible: false,
     ...overrides,
   };
 }
@@ -78,6 +82,8 @@ describe('ensureCompanionDriver', () => {
     vi.useRealTimers();
     usePlaybackStore.setState({ currentTrack: null, isPlaying: false });
     useInterfaceStore.setState({ companion: true });
+    useSleepTimerStore.setState({ windDown: false });
+    useRecapStore.setState({ cardVisible: false });
   });
 
   it('follows playback into listening, drowsy, and (after the settle) sleep', () => {
@@ -108,6 +114,26 @@ describe('ensureCompanionDriver', () => {
     usePlaybackStore.setState({ currentTrack: track('a'), isPlaying: true });
     useInterfaceStore.setState({ companion: false });
     expect(useCompanionRuntimeStore.getState().machine.mode).toBe('hidden');
+  });
+
+  it('yawns while the sleep-timer wind-down plays', () => {
+    ensureCompanionDriver();
+    usePlaybackStore.setState({ currentTrack: track('a'), isPlaying: true });
+    useSleepTimerStore.setState({ windDown: true });
+    expect(useCompanionRuntimeStore.getState().machine.mode).toBe('wind-down-yawn');
+
+    useSleepTimerStore.setState({ windDown: false });
+    expect(useCompanionRuntimeStore.getState().machine.mode).toBe('listening');
+  });
+
+  it('plays the recap cameo when the card appears, then returns to the loop', () => {
+    ensureCompanionDriver();
+    usePlaybackStore.setState({ currentTrack: track('a'), isPlaying: true });
+    useRecapStore.getState().setCardVisible(true);
+    expect(useCompanionRuntimeStore.getState().machine.mode).toBe('recap-cameo');
+
+    vi.advanceTimersByTime(COMPANION_CAMEO_MS);
+    expect(useCompanionRuntimeStore.getState().machine.mode).toBe('listening');
   });
 
   it('runs without a companion backend surface (local fallback: stage 0)', () => {

@@ -1,14 +1,24 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useUIStore } from '@/stores/useUIStore';
+import { useUIStore, type VinylSpeed } from '@/stores/useUIStore';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
 import { useVisualizerFrame, type VisualizerFrame } from '@/hooks/useVisualizerFrame';
 import type { IVinylRecordProps, IVinylRecordView } from './VinylRecord.types';
 
-/** Spin-up to full speed — a motor reaching 33⅓ RPM. */
+/** Spin-up to full speed — a motor reaching its set RPM. */
 const SPIN_UP_MS = 700;
 /** Coast-down to rest — the platter keeps its momentum a little longer. */
 const COAST_DOWN_MS = 1200;
+
+/**
+ * Real revolution durations per turntable speed — 60s / RPM. 33⅓ matches the
+ * stylesheet fallback (1.8s); the others override it through `--vinyl-rev`.
+ */
+const REV_DURATION: Record<VinylSpeed, string> = {
+  '33': '1.8s',
+  '45': '1.333s',
+  '78': '0.769s',
+};
 
 /** Bar count for the 'spectrum' ring. */
 const SPECTRUM_BARS = 56;
@@ -58,6 +68,9 @@ export function useVinylRecord({
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const labelSource = useUIStore(s => s.vinylLabelSource);
   const ringStyle = useUIStore(s => s.vinylRingStyle);
+  const speed = useUIStore(s => s.vinylSpeed);
+  const finish = useUIStore(s => s.vinylFinish);
+  const tonearmEnabled = useUIStore(s => s.vinylTonearmEnabled);
   const decorativeMotion = useDecorativeMotion();
 
   const discRef = useRef<HTMLDivElement>(null);
@@ -176,6 +189,11 @@ export function useVinylRecord({
     staticRingVisible: ringStyle !== 'off' && !decorativeMotion,
     labelSource,
     ringStyle,
+    finish,
+    spinStyle: { '--vinyl-rev': REV_DURATION[speed] } as CSSProperties,
+    pictureArt: finish === 'picture' ? (albumArt ?? null) : null,
+    tonearmVisible: tonearmEnabled,
+    tonearmResting: isPlaying,
     albumArt,
     albumAlt,
     className,

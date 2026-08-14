@@ -30,6 +30,13 @@ interface PersistedCompanionState {
   perchFraction: number;
   sanctuaryKeepsWatch: boolean;
   dressForWeather: boolean;
+  /**
+   * The one-time naming moment has been offered (named or waved away). The
+   * pet's *name* lives in the ledger; this only remembers that the ceremony
+   * happened, so declining it once is declining it forever — the rename
+   * affordance in Settings remains.
+   */
+  namingCeremonyDone: boolean;
 }
 
 const COMPANION_DEFAULTS: PersistedCompanionState = {
@@ -37,6 +44,7 @@ const COMPANION_DEFAULTS: PersistedCompanionState = {
   perchFraction: COMPANION_DEFAULT_PERCH_FRACTION,
   sanctuaryKeepsWatch: false,
   dressForWeather: true,
+  namingCeremonyDone: false,
 };
 
 function clampFraction(v: unknown): number {
@@ -57,6 +65,8 @@ function sanitize(
     out.sanctuaryKeepsWatch = persisted.sanctuaryKeepsWatch;
   if (typeof persisted.dressForWeather === 'boolean')
     out.dressForWeather = persisted.dressForWeather;
+  if (typeof persisted.namingCeremonyDone === 'boolean')
+    out.namingCeremonyDone = persisted.namingCeremonyDone;
   return out;
 }
 
@@ -65,6 +75,7 @@ interface CompanionActions {
   setPerchFraction: (fraction: number) => void;
   setSanctuaryKeepsWatch: (keepsWatch: boolean) => void;
   setDressForWeather: (dress: boolean) => void;
+  setNamingCeremonyDone: () => void;
 }
 
 export const useCompanionStore = createPersistedStore<PersistedCompanionState & CompanionActions>(
@@ -82,6 +93,9 @@ export const useCompanionStore = createPersistedStore<PersistedCompanionState & 
     setDressForWeather: dress => {
       set({ dressForWeather: dress });
     },
+    setNamingCeremonyDone: () => {
+      set({ namingCeremonyDone: true });
+    },
   }),
   {
     name: STORE_KEY,
@@ -91,6 +105,7 @@ export const useCompanionStore = createPersistedStore<PersistedCompanionState & 
       perchFraction: s.perchFraction,
       sanctuaryKeepsWatch: s.sanctuaryKeepsWatch,
       dressForWeather: s.dressForWeather,
+      namingCeremonyDone: s.namingCeremonyDone,
     }),
     sanitize: (persisted, current) => ({
       ...current,

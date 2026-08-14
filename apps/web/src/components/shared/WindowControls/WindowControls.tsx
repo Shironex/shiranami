@@ -20,7 +20,7 @@ export default function WindowControls({ className }: IWindowControlsProps) {
       <button
         type="button"
         onClick={minimize}
-        className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
+        className="focus-ring flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
         aria-label={t('minimize')}
       >
         <Minus className="h-3.5 w-3.5" />
@@ -28,7 +28,7 @@ export default function WindowControls({ className }: IWindowControlsProps) {
       <button
         type="button"
         onClick={maximize}
-        className="flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
+        className="focus-ring flex h-8 w-10 items-center justify-center rounded-md text-muted-foreground/55 transition-colors hover:bg-accent hover:text-foreground"
         aria-label={isMaximized ? t('restore') : t('maximize')}
       >
         {isMaximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
@@ -37,9 +37,9 @@ export default function WindowControls({ className }: IWindowControlsProps) {
         type="button"
         onClick={close}
         className={cn(
-          'flex h-8 w-10 items-center justify-center rounded-md',
+          'focus-ring flex h-8 w-10 items-center justify-center rounded-md',
           'text-muted-foreground/55 transition-colors',
-          'hover:bg-red-500/85 hover:text-white'
+          'hover:bg-destructive/85 hover:text-destructive-foreground'
         )}
         aria-label={t('close')}
       >

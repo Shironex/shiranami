@@ -33,7 +33,7 @@ export function useDownloadQueueRow({ item }: IDownloadQueueRowProps): IDownload
   const statusLabel = t(`status.${item.status}`);
 
   const statusClass = cn(
-    item.status === 'done' && 'text-emerald-400/80',
+    item.status === 'done' && 'text-success/80',
     item.status === 'error' && 'text-destructive/80',
     item.status === 'canceled' && 'text-muted-foreground/60',
     isActive && 'text-primary/70',

@@ -1,6 +1,6 @@
 //! `companion:*` — the desk pet's ledger (v2 companion, Phase 1).
 //!
-//! Three channels, all born in v2 with no v1 counterpart of any kind: v1 had
+//! Four channels, all born in v2 with no v1 counterpart of any kind: v1 had
 //! no companion. State lives in the `companion_state` singleton (migration
 //! `0006`), growth math in [`shiranami_core::companion`], row access in
 //! [`shiranami_db::repo::companion`]. The XP accrual itself is **not** here —
@@ -34,6 +34,7 @@ macro_rules! commands {
                 crate::commands::companion::companion_get_state,
                 crate::commands::companion::companion_set_name,
                 crate::commands::companion::companion_set_species,
+                crate::commands::companion::companion_set_accessories,
             ]
         }
     };
@@ -89,6 +90,25 @@ pub async fn companion_set_species(
         .wire()
 }
 
+/// `companion:set-accessories` — replace the worn accessory set.
+///
+/// The renderer sends the whole set every time (never a delta), so the column
+/// is always exactly what the listener last chose. Which ids exist and which
+/// stages unlock them is renderer vocabulary; the ledger stores the choice.
+#[tauri::command]
+#[specta::specta]
+pub async fn companion_set_accessories(
+    state: State<'_, AppState>,
+    accessories: Vec<String>,
+) -> CommandResult<CompanionState> {
+    let now = iso8601::now();
+
+    let mut conn = state.conn().await?;
+    companion::set_accessories(&mut conn, &accessories, &now)
+        .await
+        .wire()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -96,7 +116,7 @@ mod tests {
     use shiranami_core::companion::Species;
     use std::time::Duration;
 
-    /// The three commands back to back over one `AppState`. A command that
+    /// The four commands back to back over one `AppState`. A command that
     /// leaked the pool's single connection would not fail — it would hang —
     /// so the body runs under a timeout, as the db_history suite does.
     #[tokio::test]
@@ -128,6 +148,17 @@ mod tests {
                 shiranami_db::repo::companion::set_species(&mut conn, Species::Hotaru, &now)
                     .await
                     .expect("switch");
+            }
+            {
+                let now = iso8601::now();
+                let mut conn = state.conn().await.expect("acquire");
+                shiranami_db::repo::companion::set_accessories(
+                    &mut conn,
+                    &["beret".to_owned()],
+                    &now,
+                )
+                .await
+                .expect("dress");
             }
         };
 

@@ -20,6 +20,11 @@ export interface ICompanionLedgerInfo {
   name: string | null;
   /** Whole listening hours behind the current stage; null = unknown/no backend. */
   xpHours: number | null;
+  /**
+   * Worn keepsake ids as the ledger stored them — raw; surfaces sanitize
+   * against the catalog and the reached stage at render time.
+   */
+  accessories: string[];
   /** True when `window.electronAPI.companion` answered — the ledger is live. */
   hasBackend: boolean;
 }
@@ -37,7 +42,7 @@ interface CompanionRuntimeState {
 export const useCompanionRuntimeStore = create<CompanionRuntimeState>()((set, get) => ({
   machine: createCompanionState(),
   suspended: false,
-  ledger: { name: null, xpHours: null, hasBackend: false },
+  ledger: { name: null, xpHours: null, accessories: [], hasBackend: false },
 
   dispatch: event => {
     const machine = companionReduce(get().machine, event);

@@ -11,6 +11,7 @@ import {
   SANCTUARY_CHROME_TIMEOUT_MS,
   type SanctuaryVariant,
 } from '@/stores/useSanctuaryStore';
+import { useUIStore, type VinylSize } from '@/stores/useUIStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import { useCompanionPresence } from '@/hooks/useCompanionPresence';
@@ -26,6 +27,16 @@ import type { ISanctuaryViewView } from './SanctuaryView.types';
  */
 const GLOBAL_SANCTUARY_KEYS = new Set(['f', 'F', 'Escape']);
 
+/**
+ * Vinyl stage footprint per size preference — 'medium' is the width the stage
+ * shipped with; the others scale the same vh/vw/rem budget down or up.
+ */
+const VINYL_STAGE_WIDTH: Record<VinylSize, string> = {
+  small: 'w-[min(38vh,35vw,27rem)]',
+  medium: 'w-[min(48vh,44vw,34rem)]',
+  large: 'w-[min(58vh,52vw,40rem)]',
+};
+
 /** Toggle chrome per upcoming variant: its localized label key and icon. */
 const NEXT_VARIANT_META: Record<SanctuaryVariant, { labelKey: string; icon: LucideIcon }> = {
   cover: { labelKey: 'showCover', icon: Image },
@@ -39,6 +50,7 @@ export function useSanctuaryView(): ISanctuaryViewView {
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const variant = useSanctuaryStore(s => s.sanctuaryVariant);
   const setVariant = useSanctuaryStore(s => s.setSanctuaryVariant);
+  const vinylSanctuarySize = useUIStore(s => s.vinylSanctuarySize);
   const exitSanctuary = useSanctuaryStore(s => s.exitSanctuary);
   const clockFacePref = useSanctuaryStore(s => s.sanctuaryClockFace);
   const clockFormat = useSanctuaryStore(s => s.sanctuaryClockFormat);
@@ -156,6 +168,7 @@ export function useSanctuaryView(): ISanctuaryViewView {
     // Under follow-the-day the manual toggle would fight the hour — the
     // chrome drops the button rather than surface a dead control.
     showVariantToggle: !timeOfDay,
+    vinylStageWidthClass: VINYL_STAGE_WIDTH[vinylSanctuarySize],
     // Reduced motion: the chrome still hides (a screensaver that never clears
     // its controls is not a screensaver) but without the fade transition.
     chromeVisible,

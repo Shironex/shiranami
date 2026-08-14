@@ -4,7 +4,9 @@ import {
   shouldShowDriftNote,
   DRIFT_NOTE_MAX_AGE_MS,
   DRIFT_NOTE_MIN_AGE_MS,
+  DEFAULT_WIND_DOWN_MINUTES,
   type WindDownCompletion,
+  type WindDownLength,
 } from './useWindDownStore';
 
 function completionAt(at: string): WindDownCompletion {
@@ -57,6 +59,7 @@ describe('useWindDownStore', () => {
       lastCompletion: null,
       noteAcknowledged: false,
       closingLineUntil: null,
+      lengthMinutes: DEFAULT_WIND_DOWN_MINUTES,
     });
   });
 
@@ -91,5 +94,17 @@ describe('useWindDownStore', () => {
     const s = useWindDownStore.getState();
     expect(s.closingLineUntil).toBeNull();
     expect(s.lastCompletion).not.toBeNull();
+  });
+
+  it('setLength stores every offered choice, including off', () => {
+    for (const minutes of [0, 5, 10, 15, 20] as const) {
+      useWindDownStore.getState().setLength(minutes);
+      expect(useWindDownStore.getState().lengthMinutes).toBe(minutes);
+    }
+  });
+
+  it('setLength falls back to the default for a value outside the choices', () => {
+    useWindDownStore.getState().setLength(7 as WindDownLength);
+    expect(useWindDownStore.getState().lengthMinutes).toBe(DEFAULT_WIND_DOWN_MINUTES);
   });
 });

@@ -19,11 +19,22 @@ const meta: Meta<typeof VinylRecord> = {
   // <img alt> — axe clean at the error level.
   parameters: { a11y: { test: 'error' } },
   decorators: [
-    Story => (
-      <div className="size-[20rem] bg-background p-6">
-        <Story />
-      </div>
-    ),
+    Story => {
+      // Every story overrides only what it demonstrates; everything else must
+      // come back to the defaults so story order can't bleed state.
+      useUIStore.setState({
+        vinylLabelSource: 'artwork',
+        vinylRingStyle: 'glow',
+        vinylSpeed: '33',
+        vinylFinish: 'black',
+        vinylTonearmEnabled: false,
+      });
+      return (
+        <div className="size-[20rem] bg-background p-6">
+          <Story />
+        </div>
+      );
+    },
   ],
 };
 
@@ -70,5 +81,92 @@ export const RingOff: Story = {
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('canvas')).not.toBeInTheDocument();
     await expect(canvasElement.querySelector('.vinyl-disc')).toBeInTheDocument();
+  },
+};
+
+/** Self-contained cover for the picture-disc story — no network fetch. */
+const STORY_COVER =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">` +
+      `<rect width="240" height="240" fill="%23342a56"/>` +
+      `<circle cx="70" cy="80" r="60" fill="%239b7deb"/>` +
+      `<circle cx="180" cy="170" r="80" fill="%23f09e60"/>` +
+      `</svg>`
+  );
+
+/**
+ * 45 RPM single — the RPM setting reaches the disc as a real revolution
+ * duration through the `--vinyl-rev` custom property (60s / 45 ≈ 1.333s).
+ */
+export const Single45Rpm: Story = {
+  render: () => {
+    useUIStore.setState({ vinylLabelSource: 'logo', vinylRingStyle: 'off', vinylSpeed: '45' });
+    return <VinylRecord albumArt={null} albumAlt="Late Nights" />;
+  },
+  play: async ({ canvasElement }) => {
+    const disc = canvasElement.querySelector<HTMLElement>('.vinyl-disc');
+    await expect(disc!.style.getPropertyValue('--vinyl-rev')).toBe('1.333s');
+  },
+};
+
+/** Clear pressing — translucent face and lighter shadows; the label stays. */
+export const ClearFinish: Story = {
+  render: () => {
+    useUIStore.setState({ vinylLabelSource: 'logo', vinylRingStyle: 'off', vinylFinish: 'clear' });
+    return <VinylRecord albumArt={null} albumAlt="Late Nights" />;
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.vinyl-disc')).toHaveAttribute(
+      'data-finish',
+      'clear'
+    );
+  },
+};
+
+/** Marble pressing — an accent-tinted conic swirl that revolves with the grooves. */
+export const MarbleFinish: Story = {
+  render: () => {
+    useUIStore.setState({ vinylLabelSource: 'logo', vinylRingStyle: 'off', vinylFinish: 'marble' });
+    return <VinylRecord albumArt={null} albumAlt="Late Nights" />;
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.vinyl-disc')).toHaveAttribute(
+      'data-finish',
+      'marble'
+    );
+  },
+};
+
+/**
+ * Picture disc — the album art is spread across the whole face under a groove
+ * film; the paper label disappears (the art IS the face).
+ */
+export const PictureDisc: Story = {
+  render: () => {
+    useUIStore.setState({ vinylRingStyle: 'off', vinylFinish: 'picture' });
+    return <VinylRecord albumArt={STORY_COVER} albumAlt="Late Nights" />;
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('.vinyl-picture-grooves')).toBeInTheDocument();
+    await expect(canvasElement.querySelector('.vinyl-label')).not.toBeInTheDocument();
+  },
+};
+
+/** Tonearm overlay — parked in the lifted pose here since story playback is paused. */
+export const Tonearm: Story = {
+  render: () => {
+    useUIStore.setState({
+      vinylLabelSource: 'logo',
+      vinylRingStyle: 'off',
+      vinylTonearmEnabled: true,
+    });
+    return <VinylRecord albumArt={null} albumAlt="Late Nights" />;
+  },
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.querySelector('[data-slot="vinyl-tonearm"]')).toHaveAttribute(
+      'data-resting',
+      'false'
+    );
   },
 };

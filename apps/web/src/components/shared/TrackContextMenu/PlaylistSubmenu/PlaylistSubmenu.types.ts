@@ -14,8 +14,10 @@ export interface IPlaylistSubmenuView {
   readonly trackIds: string[];
   /** Close handler forwarded to the nested picker. */
   readonly onClose: () => void;
-  /** Ref for the hoverable row — measured to pick the fly-out side. */
+  /** Ref for the hoverable row wrapper — measured to pick the fly-out side. */
   readonly parentRef: RefObject<HTMLDivElement | null>;
+  /** Ref for the row button — the roving menuitem the track menu focuses. */
+  readonly rowRef: RefObject<HTMLButtonElement | null>;
   /** Ref for the fly-out panel. */
   readonly submenuRef: RefObject<HTMLDivElement | null>;
   /** Whether the fly-out panel is mounted. */
@@ -26,4 +28,6 @@ export interface IPlaylistSubmenuView {
   readonly onMouseEnter: () => void;
   /** Starts the grace period before the fly-out closes. */
   readonly onMouseLeave: () => void;
+  /** Row keyboard handling: Enter/Space/ArrowRight open, ArrowLeft closes. */
+  readonly onRowKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }

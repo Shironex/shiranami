@@ -1,6 +1,5 @@
 {
   "title": "Pobierania",
-  "subtitle": "Śledź aktywne i zakończone pobierania oraz zarządzaj nimi.",
   "section": {
     "active": "Aktywne",
     "queued": "W kolejce",
@@ -35,6 +34,10 @@
     "cancelAllFailed": "Nie udało się anulować kolejki. Spróbuj ponownie."
   },
   "loading": "Ładowanie pobierań…",
+  "loadError": {
+    "title": "Nie udało się załadować kolejki pobierań",
+    "subtitle": "Coś poszło nie tak. Spróbuj ponownie."
+  },
   "empty": {
     "title": "Brak pobierań",
     "description": "Utwory pobrane z wyszukiwarki, rekomendacji lub importu playlisty pojawią się tutaj."

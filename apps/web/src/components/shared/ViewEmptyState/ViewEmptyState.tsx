@@ -19,7 +19,7 @@ export default function ViewEmptyState(props: IViewEmptyStateProps) {
             </p>
           </div>
           {action && (
-            <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
+            <Button size="sm" onClick={action.onClick} className="px-4 py-2">
               {action.label}
             </Button>
           )}
@@ -84,7 +84,7 @@ export default function ViewEmptyState(props: IViewEmptyStateProps) {
         {hasHints && <div className="flex items-center gap-3">{hintChips}</div>}
 
         {action && (
-          <Button size="sm" onClick={action.onClick} className="rounded-xl px-4 py-2">
+          <Button size="sm" onClick={action.onClick} className="px-4 py-2">
             {action.label}
           </Button>
         )}

@@ -13,6 +13,8 @@ export interface IWeeklyRecapCardProps {
 }
 
 export interface IWeeklyRecapCardView {
+  /** Unique id wiring the card section's `aria-labelledby` to its heading. */
+  readonly headingId: string;
   /** Card heading ("The week, in short."). */
   readonly title: string;
   /** Emphasized tail of the heading. */

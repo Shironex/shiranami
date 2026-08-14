@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { useHotaruRig } from './HotaruRig.hooks';
+import type { CompanionAccessory } from '@/lib/companionAccessories';
 import type { IHotaruRigProps } from './HotaruRig.types';
 
 /**
@@ -10,7 +11,8 @@ import type { IHotaruRigProps } from './HotaruRig.types';
  * Renders as a fragment inside the Companion sprite's rig group; stage layers
  * carry `companion-s*` classes revealed by the root's `data-stage`.
  */
-export default function HotaruRig({ stage, mode, motion, outfit }: IHotaruRigProps) {
+export default function HotaruRig({ stage, mode, motion, outfit, accessories }: IHotaruRigProps) {
+  const worn = (id: CompanionAccessory) => accessories?.includes(id) === true;
   const { maskId, beatClass, bubClass, blinkClass, eyeRy, lanternClass } = useHotaruRig({
     stage,
     mode,
@@ -161,6 +163,65 @@ export default function HotaruRig({ stage, mode, motion, outfit }: IHotaruRigPro
           <circle className="companion-o-snowflake" cx="60" cy="21" r="2" />
           <circle className="companion-o-snowflake" cx="72" cy="27" r="1.5" />
           <circle className="companion-o-snowflake" cx="88" cy="52" r="1.3" />
+        </g>
+      )}
+
+      {/* Keepsakes — chosen layers, several may stack (distinct anatomy slots),
+          so a bare Hotaru (none worn) renders byte-identical to the plain rig. */}
+      {worn('beret') && (
+        <g className="companion-acc companion-a-beret" transform="rotate(-12 54 28)">
+          <ellipse className="companion-o-accent" cx="54" cy="27.5" rx="9.5" ry="4" />
+          <path
+            className="companion-o-accent"
+            d="M 53.2 23.6 Q 54.2 21.8 56 22.8 Q 55.5 24.4 54.6 24.6 Z"
+          />
+        </g>
+      )}
+      {worn('glasses') && (
+        <g className="companion-acc companion-a-glasses">
+          <circle className="companion-a-lens" cx="51" cy="50.5" r="5.6" />
+          <circle className="companion-a-lens" cx="69" cy="50.5" r="5.6" />
+          <path
+            className="companion-ink-s"
+            d="M 56.6 49.8 Q 60 48.4 63.4 49.8"
+            style={{ strokeWidth: 1.2, opacity: 0.6 }}
+          />
+        </g>
+      )}
+      {worn('satchel') && (
+        <g className="companion-acc companion-a-satchel">
+          <path
+            className="companion-ink-s"
+            d="M 39 43 Q 58 57 68 57"
+            style={{ strokeWidth: 1.6, opacity: 0.5 }}
+          />
+          <g transform="rotate(8 72 59)">
+            <rect className="companion-o-accent" x="66.5" y="55" width="11" height="8.5" rx="2.5" />
+            <path
+              className="companion-ink-s"
+              d="M 66.5 58.4 L 77.5 58.4"
+              style={{ strokeWidth: 1, opacity: 0.35 }}
+            />
+            <circle className="companion-gear" cx="72" cy="60.4" r="1" />
+          </g>
+        </g>
+      )}
+      {worn('pendant') && (
+        <g className="companion-acc companion-a-pendant">
+          <path
+            className="companion-ink-s"
+            d="M 52 63 Q 60 68.5 68 63"
+            style={{ strokeWidth: 1, opacity: 0.5 }}
+          />
+          <path
+            className="companion-a-shell"
+            d="M 57.6 66.5 Q 60 64.9 62.4 66.5 Q 62 70 60 70.7 Q 58 70 57.6 66.5 Z"
+          />
+          <path
+            className="companion-ink-s"
+            d="M 59.2 66.6 L 59.5 69.6 M 60.8 66.6 L 60.5 69.6"
+            style={{ strokeWidth: 0.5, opacity: 0.35 }}
+          />
         </g>
       )}
     </g>

@@ -4,7 +4,7 @@ import { Mic2, ListMusic, SlidersVertical, type LucideIcon } from 'lucide-react'
 import { formatDuration } from '@shiranami/shared';
 import { formatTempoKeyLine } from '@/lib/tempoKeyFormat';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useUIStore } from '@/stores/useUIStore';
+import { useUIStore, type VinylSize } from '@/stores/useUIStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
@@ -52,6 +52,16 @@ const NP_PLAIN_TEXT_SHARED =
 
 const PANEL_ORDER: ActivePanel[] = ['lyrics', 'queue', 'eq'];
 
+/**
+ * Disc width inside the artwork slot per size preference — 'large' fills the
+ * slot, exactly what the display did before the preference existed.
+ */
+const NP_VINYL_SIZE_CLASS: Record<VinylSize, string> = {
+  small: 'w-[70%]',
+  medium: 'w-[85%]',
+  large: 'w-full',
+};
+
 const PANEL_META: Record<ActivePanel, { icon: LucideIcon; showKey: string; hideKey: string }> = {
   lyrics: { icon: Mic2, showKey: 'showLyrics', hideKey: 'hideLyrics' },
   queue: { icon: ListMusic, showKey: 'showQueue', hideKey: 'hideQueue' },
@@ -68,6 +78,7 @@ export function useNowPlayingView(): INowPlayingViewView {
   const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   const vinylDisplayEnabled = useUIStore(s => s.vinylDisplayEnabled);
+  const vinylNowPlayingSize = useUIStore(s => s.vinylNowPlayingSize);
   const albumArtTiltEnabled = useDecorativeMotion();
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
@@ -150,6 +161,7 @@ export function useNowPlayingView(): INowPlayingViewView {
     panelGroupLabel: t('panelGroup'),
     lowPerformanceMode,
     vinylDisplayEnabled,
+    vinylSizeClass: NP_VINYL_SIZE_CLASS[vinylNowPlayingSize],
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,

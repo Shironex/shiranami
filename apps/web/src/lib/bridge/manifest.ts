@@ -213,6 +213,7 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'companion:get-state': ['companion', 'getState'],
   'companion:set-name': ['companion', 'setName'],
   'companion:set-species': ['companion', 'setSpecies'],
+  'companion:set-accessories': ['companion', 'setAccessories'],
   'companion:xp': ['companion', 'onXp'],
 
   // ── loudness / waveform ─────────────────────────────────────────────────

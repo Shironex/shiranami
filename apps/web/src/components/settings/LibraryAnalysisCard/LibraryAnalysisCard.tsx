@@ -32,7 +32,7 @@ export default function LibraryAnalysisCard() {
           <div
             className={cn(
               'flex items-center gap-2',
-              allAnalyzed ? 'text-emerald-300' : 'text-muted-foreground'
+              allAnalyzed ? 'text-success' : 'text-muted-foreground'
             )}
           >
             {allAnalyzed && <CheckCircle2 className="w-4 h-4 shrink-0" />}

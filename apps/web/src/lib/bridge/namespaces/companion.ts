@@ -10,6 +10,7 @@ export const companionApi: CompanionApi = {
   getState: () => commands.companionGetState(),
   setName: name => commands.companionSetName(name),
   setSpecies: species => commands.companionSetSpecies(species),
+  setAccessories: accessories => commands.companionSetAccessories(accessories),
   onXp: callback =>
     subscribeChannel<CompanionXpGain>(C.xp, events.companionXp, companionXp, callback),
 };

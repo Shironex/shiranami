@@ -28,6 +28,8 @@ export interface ISanctuaryViewView {
   readonly showTrackInfo: boolean;
   /** The manual stage toggle hides while follow-the-day owns the stage. */
   readonly showVariantToggle: boolean;
+  /** Vinyl variant: pre-resolved width class for the user's disc-size choice. */
+  readonly vinylStageWidthClass: string;
   /** Whether the swim-in chrome (controls, buttons) is currently visible. */
   readonly chromeVisible: boolean;
   /** Lyrics data layer (synced lines, active line, click-to-seek). */

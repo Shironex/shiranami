@@ -1,5 +1,6 @@
 {
   "title": "Edytuj tagi",
+  "description": "Zmień tytuł, wykonawcę, album i inne tagi utworu.",
   "field": {
     "title": "Tytuł",
     "artist": "Wykonawca",

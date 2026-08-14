@@ -1,5 +1,6 @@
 {
   "title": "Edit Tags",
+  "description": "Update the track's title, artist, album and other tags.",
   "field": {
     "title": "Title",
     "artist": "Artist",
