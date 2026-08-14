@@ -164,7 +164,7 @@ export default function Sidebar() {
         <button
           onClick={onOpenHome}
           className={cn(
-            'no-drag flex items-center rounded-xl text-left transition-colors',
+            'focus-ring no-drag flex items-center rounded-xl text-left transition-colors',
             sidebarCollapsed ? 'justify-center w-9 h-9' : 'gap-2.5 min-w-0 flex-1'
           )}
           title={sidebarCollapsed ? t('shiranami', { ns: 'common' }) : undefined}
@@ -214,7 +214,7 @@ export default function Sidebar() {
                   </p>
                   <button
                     onClick={() => navigateTo('playlists')}
-                    className="text-[10px] text-primary/70 hover:text-primary transition-colors uppercase tracking-wider"
+                    className="focus-ring rounded-sm text-[10px] text-primary/70 hover:text-primary transition-colors uppercase tracking-wider"
                   >
                     {t('all')}
                   </button>

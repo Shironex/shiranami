@@ -74,7 +74,7 @@ export default function VisualEffectsSection() {
       onClick={() => onSelectVinylLabelSource(option.value)}
       aria-pressed={option.isActive}
       className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'focus-ring rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         option.isActive ? CHIP_ACTIVE : CHIP_IDLE
       )}
     >
@@ -88,7 +88,7 @@ export default function VisualEffectsSection() {
       onClick={() => onSelectVinylRingStyle(option.value)}
       aria-pressed={option.isActive}
       className={cn(
-        'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+        'focus-ring rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
         option.isActive ? CHIP_ACTIVE : CHIP_IDLE
       )}
     >

@@ -115,7 +115,7 @@ export default function SearchView() {
               <button
                 type="button"
                 onClick={onClearQuery}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
+                className="focus-ring absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

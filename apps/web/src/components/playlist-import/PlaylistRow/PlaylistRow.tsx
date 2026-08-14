@@ -140,7 +140,7 @@ export default function PlaylistRow(props: RowComponentProps<IPlaylistRowProps>)
               event.stopPropagation();
               onRemove();
             }}
-            className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+            className="focus-ring shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             title={removeLabel}
             aria-label={removeLabel}
           >

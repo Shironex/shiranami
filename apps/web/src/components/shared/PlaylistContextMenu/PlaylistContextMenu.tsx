@@ -16,7 +16,7 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+      className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
     >
       <span className="shrink-0 w-4 h-4 flex items-center justify-center text-muted-foreground/60">
         {icon}

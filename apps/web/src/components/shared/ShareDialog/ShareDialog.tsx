@@ -48,7 +48,7 @@ export default function ShareDialog(props: IShareDialogProps) {
               </div>
               <button
                 onClick={handleCopy}
-                className="shrink-0 w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                className="focus-ring shrink-0 w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                 aria-label={t('copyLink')}
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

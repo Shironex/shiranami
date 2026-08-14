@@ -120,7 +120,7 @@ export default function EnrichLastRunPanel() {
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-foreground hover:bg-accent/30 rounded-xl transition-colors"
+        className="focus-ring flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-foreground hover:bg-accent/30 rounded-xl transition-colors"
       >
         {open ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden="true" />

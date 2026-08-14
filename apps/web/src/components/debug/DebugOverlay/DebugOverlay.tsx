@@ -116,7 +116,7 @@ export default function DebugOverlay() {
         <button
           type="button"
           onClick={close}
-          className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          className="focus-ring rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
           aria-label="Close debug panel"
         >
           esc

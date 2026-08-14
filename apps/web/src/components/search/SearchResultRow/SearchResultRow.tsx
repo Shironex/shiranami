@@ -45,7 +45,7 @@ export default function SearchResultRow(props: ISearchResultRowProps) {
     >
       <button
         onClick={onPreviewClick}
-        className="w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
+        className="focus-ring w-11 h-11 rounded-lg overflow-hidden bg-muted shrink-0 relative z-10 group/thumb"
         title={previewLabel}
         aria-label={previewLabel}
       >

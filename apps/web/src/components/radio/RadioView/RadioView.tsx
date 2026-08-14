@@ -359,7 +359,7 @@ export default function RadioView() {
             {showClearAll && (
               <button
                 onClick={onClearAll}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                className="focus-ring rounded-sm text-xs font-medium text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
               >
                 {t('clearFilters')}
               </button>

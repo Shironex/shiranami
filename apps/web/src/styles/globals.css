@@ -657,6 +657,15 @@
 }
 
 /* Utility classes */
+
+/* Unified keyboard-focus treatment — THE focus-visible recipe for every
+   interactive element. Button/IconButton bake it into their variants; raw
+   <button>/<a> sites add the class directly. outline-hidden (not outline-none)
+   keeps the outline in forced-colors mode where box-shadow rings vanish. */
+@utility focus-ring {
+  @apply focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring;
+}
+
 @utility drag {
   -webkit-app-region: drag;
 }

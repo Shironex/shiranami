@@ -87,7 +87,7 @@ export default function InterfaceSection() {
           isModified ? (
             <button
               onClick={onResetInterface}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="focus-ring rounded-sm flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t('app.interface.reset')}
             >
               <RotateCcw className="size-3" />
