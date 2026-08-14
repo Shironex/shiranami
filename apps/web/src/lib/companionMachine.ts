@@ -12,9 +12,9 @@
  *   loop itself, so it lives at the perch surface as local hover state.
  * - Sanctuary chrome visibility only affects how the sanctuary cameo fades,
  *   so the sanctuary surface reads `chromeVisible` directly.
- * - Humming, the wind-down yawn, and the recap cameo are Phase 3: their
- *   modes are typed below so surfaces can already switch over them, but no
- *   transition produces them yet.
+ * - Humming, the wind-down yawn and the recap cameo (Phase 3) are loop/one-shot
+ *   modes produced here; the welcome-back greeting joins them as the launch
+ *   one-shot after a long absence (`isLongCompanionAbsence` + `welcome-back`).
  */
 
 export type CompanionSpecies = 'shio' | 'hotaru';
@@ -31,10 +31,13 @@ export type CompanionMode =
   | 'waking'
   | 'hiding'
   | 'hidden'
-  // Phase 3 stubs — typed for exhaustive switches, never produced this phase.
+  // Phase 3 depth: the calm-playback loop, the sleep-timer wind-down loop,
+  // and the recap one-shot.
   | 'humming'
   | 'wind-down-yawn'
-  | 'recap-cameo';
+  | 'recap-cameo'
+  // Welcome-back one-shot at launch, after a long absence.
+  | 'greeting';
 
 /** One-shot celebrations layered over the active loop. */
 export type CompanionOverlay = 'ripple' | 'levelup';
@@ -50,6 +53,10 @@ export interface ICompanionInputs {
   readonly loudnessLufs: number | null;
   /** Lyric focus presentation is showing — text is the event, the pet hides. */
   readonly lyricFocus: boolean;
+  /** Sleep-timer wind-down ending is active — the pet yawns along. */
+  readonly windDown: boolean;
+  /** Overview's weekly recap card is on screen — cameo on its rising edge. */
+  readonly recapVisible: boolean;
 }
 
 export interface ICompanionMachineState {
@@ -80,7 +87,13 @@ export type CompanionEvent =
   /** Ledger read at launch — adopt silently, no celebration. */
   | { type: 'stage-sync'; stage: number }
   /** Live `companion:xp` event from the ledger. */
-  | { type: 'xp'; stage: number; leveledUp: boolean };
+  | { type: 'xp'; stage: number; leveledUp: boolean }
+  /** Launch after a long absence (`isLongCompanionAbsence`) — a brief wave. */
+  | { type: 'welcome-back' }
+  /** The greeting one-shot finished. */
+  | { type: 'greeted' }
+  /** The recap cameo window elapsed. */
+  | { type: 'cameo-done' };
 
 /** Drowsy → sleeping settle window (ms). */
 export const COMPANION_SETTLE_MS = 1500;
@@ -90,6 +103,27 @@ export const COMPANION_WAKE_MS = 800;
 export const COMPANION_RIPPLE_MS = 1200;
 /** Level-up celebration window (ms). */
 export const COMPANION_LEVELUP_MS = 3000;
+/** Welcome-back greeting one-shot (ms). */
+export const COMPANION_GREETING_MS = 2600;
+/** Recap cameo window (ms). */
+export const COMPANION_CAMEO_MS = 6000;
+
+/** An absence at least this long earns the welcome-back greeting at launch. */
+export const COMPANION_WELCOME_BACK_HOURS = 24;
+
+/**
+ * Whether the gap since the previous sighting earns a greeting. Pure over the
+ * ledger's `lastSeenAt` (the *previous* sighting — `get-state` stamps the new
+ * one after reading): null (first ever read) and unparseable instants are not
+ * absences, and neither is a clock that ran backwards.
+ */
+export function isLongCompanionAbsence(lastSeenAt: string | null, nowMs: number): boolean {
+  if (lastSeenAt === null) return false;
+  const seenMs = Date.parse(lastSeenAt);
+  if (Number.isNaN(seenMs)) return false;
+  const away = nowMs - seenMs;
+  return away >= COMPANION_WELCOME_BACK_HOURS * 60 * 60 * 1000;
+}
 
 /** Grooving needs tempo: folded BPM at or above this. */
 export const GROOVING_MIN_BPM = 110;
@@ -131,6 +165,22 @@ export function qualifiesForGrooving(inputs: ICompanionInputs): boolean {
   return inputs.loudnessLufs !== null && inputs.loudnessLufs >= GROOVING_MIN_LUFS;
 }
 
+/** Humming needs calm: folded BPM at or below this. */
+export const HUMMING_MAX_BPM = 85;
+/**
+ * Humming needs hush: integrated loudness at or below this. Mirrors the
+ * grooving line from the quiet side, leaving a plain-listening band between —
+ * humming should stay an event for the genuinely soft records, not a uniform.
+ */
+export const HUMMING_MAX_LUFS = -18;
+
+/** Low tempo AND a genuinely quiet track — the humming qualification. */
+export function qualifiesForHumming(inputs: ICompanionInputs): boolean {
+  const folded = foldCompanionBpm(inputs.bpm);
+  if (folded === null || folded > HUMMING_MAX_BPM) return false;
+  return inputs.loudnessLufs !== null && inputs.loudnessLufs <= HUMMING_MAX_LUFS;
+}
+
 export const COMPANION_DEFAULT_INPUTS: ICompanionInputs = {
   enabled: true,
   playing: false,
@@ -138,6 +188,8 @@ export const COMPANION_DEFAULT_INPUTS: ICompanionInputs = {
   bpm: null,
   loudnessLufs: null,
   lyricFocus: false,
+  windDown: false,
+  recapVisible: false,
 };
 
 export function createCompanionState(
@@ -154,11 +206,29 @@ export function createCompanionState(
   };
 }
 
+/**
+ * The loop while music actually plays: the wind-down yawn outranks tempo —
+ * the room is being put to bed — then the track decides between grooving,
+ * humming and plain listening.
+ */
+function playingLoopMode(inputs: ICompanionInputs): CompanionMode {
+  if (inputs.windDown) return 'wind-down-yawn';
+  if (qualifiesForGrooving(inputs)) return 'grooving';
+  if (qualifiesForHumming(inputs)) return 'humming';
+  return 'listening';
+}
+
+/** The loop a finished one-shot (wake, greeting, cameo) hands back to. */
+function loopAfterOneShot(inputs: ICompanionInputs): CompanionMode {
+  if (inputs.playing) return playingLoopMode(inputs);
+  return inputs.trackId === null ? 'idle' : 'drowsy';
+}
+
 /** The mode a fresh machine (no temporal history) settles into. */
 function deriveRestingMode(inputs: ICompanionInputs): CompanionMode {
   if (!inputs.enabled) return 'hidden';
   if (inputs.lyricFocus) return 'hiding';
-  if (inputs.playing) return qualifiesForGrooving(inputs) ? 'grooving' : 'listening';
+  if (inputs.playing) return playingLoopMode(inputs);
   return inputs.trackId === null ? 'idle' : 'sleeping';
 }
 
@@ -199,13 +269,16 @@ function reduceInputs(
   let mode: CompanionMode;
   if (inputs.lyricFocus) {
     mode = 'hiding';
+  } else if (state.mode === 'greeting' || state.mode === 'recap-cameo') {
+    // One-shots hold against input churn; their timer event releases them.
+    mode = state.mode;
   } else if (inputs.playing) {
     if (state.mode === 'sleeping' || state.mode === 'drowsy') {
       mode = 'waking';
     } else if (state.mode === 'waking') {
       mode = 'waking';
     } else {
-      mode = qualifiesForGrooving(inputs) ? 'grooving' : 'listening';
+      mode = playingLoopMode(inputs);
     }
   } else if (inputs.trackId === null) {
     mode = 'idle';
@@ -213,6 +286,18 @@ function reduceInputs(
     mode = state.mode;
   } else {
     mode = 'drowsy';
+  }
+
+  // ── Recap cameo ──────────────────────────────────────────────────────────
+  // Rising edge only — the pet glances in when the recap card first appears,
+  // once per reveal, and only from an awake loop: a sleeping resident sleeps
+  // through its own report card.
+  if (
+    inputs.recapVisible &&
+    !state.inputs.recapVisible &&
+    (mode === 'idle' || mode === 'listening' || mode === 'grooving' || mode === 'humming')
+  ) {
+    mode = 'recap-cameo';
   }
 
   return {
@@ -241,12 +326,7 @@ export function companionReduce(
 
     case 'woke': {
       if (state.mode !== 'waking') return state;
-      const mode = state.inputs.playing
-        ? qualifiesForGrooving(state.inputs)
-          ? 'grooving'
-          : 'listening'
-        : 'drowsy';
-      return { ...state, mode };
+      return { ...state, mode: loopAfterOneShot(state.inputs) };
     }
 
     case 'overlay-done':
@@ -267,6 +347,20 @@ export function companionReduce(
       // Defer the reveal to the next track boundary — never mid-song.
       return { ...state, pendingStage: stage };
     }
+
+    case 'welcome-back':
+      // Only a visible resident greets — hidden and hiding have no one to
+      // wave at, and a second greeting mid-greeting just restarts nothing.
+      if (!isCompanionVisible(state.mode) || state.mode === 'greeting') return state;
+      return { ...state, mode: 'greeting' };
+
+    case 'greeted':
+      if (state.mode !== 'greeting') return state;
+      return { ...state, mode: loopAfterOneShot(state.inputs) };
+
+    case 'cameo-done':
+      if (state.mode !== 'recap-cameo') return state;
+      return { ...state, mode: loopAfterOneShot(state.inputs) };
   }
 }
 

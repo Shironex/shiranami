@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
-import { COMPANION_WAKE_MS } from '@/lib/companionMachine';
+import { COMPANION_GREETING_MS, COMPANION_WAKE_MS } from '@/lib/companionMachine';
 import type { ICompanionProps, ICompanionView, CompanionFace } from './Companion.types';
 
 const VIEWBOX_WIDTH = 120;
@@ -16,8 +16,14 @@ function rigClassFor(mode: ICompanionProps['mode'], motion: boolean): string | u
       return 'companion-sway';
     case 'grooving':
       return 'companion-sway-wide';
+    case 'humming':
+      return 'companion-sway-slow';
     case 'sleeping':
       return 'companion-sleep-breathe';
+    case 'wind-down-yawn':
+      return 'companion-yawn';
+    case 'recap-cameo':
+      return 'companion-idle-float';
     default:
       return undefined;
   }
@@ -27,6 +33,7 @@ function faceFor(mode: ICompanionProps['mode']): CompanionFace {
   switch (mode) {
     case 'drowsy':
     case 'sleeping':
+    case 'wind-down-yawn':
       return 'closed';
     case 'listening':
     case 'grooving':
@@ -151,12 +158,60 @@ function useCompanionWake(
   }, [svgRef, mode, motion]);
 }
 
+/** The welcome-back wave — a little lift and two soft tilts, then settle. */
+function useCompanionGreeting(
+  svgRef: ICompanionView['svgRef'],
+  mode: ICompanionProps['mode'],
+  motion: boolean
+): void {
+  useEffect(() => {
+    if (mode !== 'greeting' || !motion) return;
+    const rig = svgRef.current?.querySelector('.companion-rig');
+    if (!canAnimate(rig)) return;
+    const animation = rig.animate(
+      [
+        { transform: 'translateY(0) rotate(0deg)' },
+        { transform: 'translateY(-3px) rotate(-4deg)', offset: 0.22 },
+        { transform: 'translateY(-3px) rotate(4deg)', offset: 0.46 },
+        { transform: 'translateY(-3px) rotate(-3deg)', offset: 0.68 },
+        { transform: 'translateY(0) rotate(0deg)' },
+      ],
+      { duration: COMPANION_GREETING_MS, easing: 'ease-in-out' }
+    );
+    return () => animation.cancel();
+  }, [svgRef, mode, motion]);
+}
+
+/** The recap perk-up — one attentive rise, then the idle float carries on. */
+function useCompanionCameo(
+  svgRef: ICompanionView['svgRef'],
+  mode: ICompanionProps['mode'],
+  motion: boolean
+): void {
+  useEffect(() => {
+    if (mode !== 'recap-cameo' || !motion) return;
+    const rig = svgRef.current?.querySelector('.companion-rig');
+    if (!canAnimate(rig)) return;
+    const animation = rig.animate(
+      [
+        { transform: 'translateY(0)' },
+        { transform: 'translateY(-4px)', offset: 0.3 },
+        { transform: 'translateY(0)' },
+      ],
+      { duration: 900, easing: 'ease-out' }
+    );
+    return () => animation.cancel();
+  }, [svgRef, mode, motion]);
+}
+
 export function useCompanion(props: ICompanionProps): ICompanionView {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const { mode, motion, overlay = null, overlaySeq = 0, size = 56, peekOffset } = props;
 
   useCompanionOverlay(svgRef, overlay, overlaySeq, motion);
   useCompanionWake(svgRef, mode, motion);
+  useCompanionGreeting(svgRef, mode, motion);
+  useCompanionCameo(svgRef, mode, motion);
 
   const rootStyle: CSSProperties | undefined = peekOffset
     ? ({

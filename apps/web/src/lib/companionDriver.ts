@@ -1,8 +1,11 @@
 import {
+  COMPANION_CAMEO_MS,
+  COMPANION_GREETING_MS,
   COMPANION_LEVELUP_MS,
   COMPANION_RIPPLE_MS,
   COMPANION_SETTLE_MS,
   COMPANION_WAKE_MS,
+  isLongCompanionAbsence,
   type CompanionEvent,
   type ICompanionInputs,
   type ICompanionMachineState,
@@ -15,6 +18,8 @@ import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompanionStore, isCompanionSpecies } from '@/stores/useCompanionStore';
 import { useCompanionRuntimeStore } from '@/stores/useCompanionRuntimeStore';
+import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
+import { useRecapStore } from '@/stores/useRecapStore';
 
 /**
  * The companion's driver — the only writer into the runtime machine. It
@@ -38,6 +43,10 @@ export interface ICompanionInputsSnapshot {
   rightPanel: 'lyrics' | 'queue' | null;
   activeView: string;
   nowPlayingPanel: 'lyrics' | 'queue' | 'eq' | null;
+  /** Sleep-timer wind-down ending is active (`useSleepTimerStore.windDown`). */
+  windDown: boolean;
+  /** Overview's weekly recap card is on screen (`useRecapStore.cardVisible`). */
+  recapVisible: boolean;
 }
 
 /** Pure input derivation — lyric focus only counts while a lyric surface shows. */
@@ -52,6 +61,8 @@ export function computeCompanionInputs(snapshot: ICompanionInputsSnapshot): ICom
     bpm: snapshot.bpm,
     loudnessLufs: snapshot.loudnessLufs,
     lyricFocus: snapshot.lyricsPresentation === 'focus' && lyricSurfaceShowing,
+    windDown: snapshot.windDown,
+    recapVisible: snapshot.recapVisible,
   };
 }
 
@@ -69,6 +80,8 @@ function readCompanionInputs(): ICompanionInputs {
     rightPanel: view.rightPanel,
     activeView: view.activeView,
     nowPlayingPanel: useUIStore.getState().nowPlayingPanel,
+    windDown: useSleepTimerStore.getState().windDown,
+    recapVisible: useRecapStore.getState().cardVisible,
   });
 }
 
@@ -79,7 +92,9 @@ function inputsEqual(a: ICompanionInputs, b: ICompanionInputs): boolean {
     a.trackId === b.trackId &&
     a.bpm === b.bpm &&
     a.loudnessLufs === b.loudnessLufs &&
-    a.lyricFocus === b.lyricFocus
+    a.lyricFocus === b.lyricFocus &&
+    a.windDown === b.windDown &&
+    a.recapVisible === b.recapVisible
   );
 }
 
@@ -101,6 +116,10 @@ function syncTimers(prev: ICompanionMachineState, next: ICompanionMachineState):
       modeTimer = setTimeout(() => dispatch({ type: 'settled' }), COMPANION_SETTLE_MS);
     } else if (next.mode === 'waking') {
       modeTimer = setTimeout(() => dispatch({ type: 'woke' }), COMPANION_WAKE_MS);
+    } else if (next.mode === 'greeting') {
+      modeTimer = setTimeout(() => dispatch({ type: 'greeted' }), COMPANION_GREETING_MS);
+    } else if (next.mode === 'recap-cameo') {
+      modeTimer = setTimeout(() => dispatch({ type: 'cameo-done' }), COMPANION_CAMEO_MS);
     }
   }
 
@@ -144,6 +163,11 @@ function connectLedger(): void {
       if (isCompanionSpecies(state.species)) {
         useCompanionStore.getState().setSpecies(state.species);
       }
+      // `lastSeenAt` is the *previous* sighting (get-state stamps the new one
+      // after reading), so a long gap means the listener was genuinely away.
+      if (isLongCompanionAbsence(state.lastSeenAt, Date.now())) {
+        runtime.dispatch({ type: 'welcome-back' });
+      }
     })
     .catch(() => {
       useCompanionRuntimeStore.getState().setLedger({ hasBackend: false });
@@ -168,6 +192,8 @@ export function ensureCompanionDriver(): void {
     useUIStore.subscribe(pushInputs),
     useLyricsAppearanceStore.subscribe(pushInputs),
     useInterfaceStore.subscribe(pushInputs),
+    useSleepTimerStore.subscribe(pushInputs),
+    useRecapStore.subscribe(pushInputs),
     useCompanionRuntimeStore.subscribe((state, prevState) => {
       syncTimers(prevState.machine, state.machine);
     }),

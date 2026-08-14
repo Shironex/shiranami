@@ -484,10 +484,12 @@
   .pulse-beat,
   .companion-sway,
   .companion-sway-wide,
+  .companion-sway-slow,
   .companion-beat-bob,
   .companion-beat-bob-fast,
   .companion-hop,
   .companion-sleep-breathe,
+  .companion-yawn,
   .companion-idle-float,
   .companion-idle-blink,
   .companion-bub-drift,
@@ -797,6 +799,30 @@
     transform: translateY(9px) scale(1.025, 0.815);
   }
 }
+@keyframes companion-hum-sway {
+  from {
+    transform: rotate(-2deg);
+  }
+  to {
+    transform: rotate(2deg);
+  }
+}
+@keyframes companion-yawn {
+  0%,
+  48% {
+    transform: scale(1, 1);
+  }
+  58% {
+    transform: scale(1.04, 0.95);
+  }
+  70% {
+    transform: scale(0.96, 1.07);
+  }
+  82%,
+  100% {
+    transform: scale(1, 1);
+  }
+}
 @keyframes companion-drift {
   from {
     transform: translateY(0);
@@ -826,6 +852,12 @@
   animation: companion-sway-wide calc(var(--breath-float, 6s) / 2) ease-in-out infinite alternate;
 }
 
+/* Humming: half the listening amplitude at 1.5× the period — the genuinely
+   soft records get the softest sway the resident has. */
+@utility companion-sway-slow {
+  animation: companion-hum-sway calc(var(--breath-float, 6s) * 1.5) ease-in-out infinite alternate;
+}
+
 /* Crest / tendrils bob counter-phase to the pulse (the -50% delay). */
 @utility companion-beat-bob {
   animation: companion-bob var(--breath-pulse, 3s) ease-in-out calc(var(--breath-pulse, 3s) / -2)
@@ -843,6 +875,12 @@
 /* Sleeping: flattened mound at a fixed 8s — never the beat variable. */
 @utility companion-sleep-breathe {
   animation: companion-sleep-breathe 8s ease-in-out infinite alternate;
+}
+
+/* Wind-down yawn: mostly-still breathing with one deep squash-and-stretch
+   per cycle — the room is being put to bed, so a fixed calm period. */
+@utility companion-yawn {
+  animation: companion-yawn 7s ease-in-out infinite;
 }
 
 /* Idle drift + occasional blink (nothing playing — fixed calm periods). */
@@ -1293,13 +1331,18 @@
 }
 
 /* Sleep pose: the crest wilts and the pool draws in. Declarative (not a
-   keyframe) so reduced motion still lands on the correct static frame. */
+   keyframe) so reduced motion still lands on the correct static frame. The
+   wind-down yawn borrows the wilt at half strength — drooping, not down. */
 .companion-svg:is([data-state='sleeping'], [data-state='drowsy']) .companion-crest {
   rotate: 16deg;
   translate: 0 3px;
 }
 .companion-svg:is([data-state='sleeping'], [data-state='drowsy']) .companion-pool {
   scale: 0.85;
+}
+.companion-svg[data-state='wind-down-yawn'] .companion-crest {
+  rotate: 8deg;
+  translate: 0 1.5px;
 }
 
 /* ── Weather fits ────────────────────────────────────────────────────────

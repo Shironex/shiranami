@@ -22,15 +22,27 @@ interface PersistedRecapState {
   firstShownAt: number | null;
 }
 
+interface RecapState extends PersistedRecapState {
+  /**
+   * Overview's recap card is on screen right now. Transient — never persisted;
+   * mirrored by the Overview surface so the companion driver can cameo on the
+   * card's appearance without reaching into the DOM.
+   */
+  cardVisible: boolean;
+}
+
 interface RecapActions {
   /** Stamp a week's card as revealed now (no-op if it is already the shown one). */
   noteShown: (weekKey: string) => void;
+  /** Mirror whether the Overview card is currently rendered. */
+  setCardVisible: (visible: boolean) => void;
 }
 
-export const useRecapStore = createPersistedStore<PersistedRecapState & RecapActions>(
+export const useRecapStore = createPersistedStore<RecapState & RecapActions>(
   (set, get) => ({
     shownWeekKey: null,
     firstShownAt: null,
+    cardVisible: false,
 
     noteShown: weekKey => {
       const { shownWeekKey, firstShownAt } = get();
@@ -38,6 +50,10 @@ export const useRecapStore = createPersistedStore<PersistedRecapState & RecapAct
       // partially-sanitized blob) is re-stamped rather than wedged forever.
       if (shownWeekKey === weekKey && firstShownAt !== null) return;
       set({ shownWeekKey: weekKey, firstShownAt: Date.now() });
+    },
+
+    setCardVisible: visible => {
+      if (visible !== get().cardVisible) set({ cardVisible: visible });
     },
   }),
   {

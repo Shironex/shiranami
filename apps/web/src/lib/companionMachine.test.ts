@@ -3,12 +3,16 @@ import {
   COMPANION_DEFAULT_INPUTS,
   GROOVING_MIN_BPM,
   GROOVING_MIN_LUFS,
+  HUMMING_MAX_BPM,
+  HUMMING_MAX_LUFS,
   clampStage,
   companionReduce,
   createCompanionState,
   foldCompanionBpm,
   isCompanionVisible,
+  isLongCompanionAbsence,
   qualifiesForGrooving,
+  qualifiesForHumming,
   type CompanionEvent,
   type ICompanionInputs,
   type ICompanionMachineState,
@@ -314,6 +318,180 @@ describe('hiding and hidden', () => {
     expect(isCompanionVisible('sleeping')).toBe(true);
     expect(isCompanionVisible('hiding')).toBe(false);
     expect(isCompanionVisible('hidden')).toBe(false);
+  });
+});
+
+describe('humming', () => {
+  /** Playing inputs for a genuinely soft record: slow AND quiet. */
+  const soft = () =>
+    inputs({ playing: true, trackId: 'a', bpm: HUMMING_MAX_BPM, loudnessLufs: HUMMING_MAX_LUFS });
+
+  it('hums while playing a slow, quiet track', () => {
+    const state = feed(createCompanionState(), { type: 'inputs', inputs: soft() });
+    expect(state.mode).toBe('humming');
+  });
+
+  it('needs both calm tempo and hush — one alone is plain listening', () => {
+    expect(qualifiesForHumming(soft())).toBe(true);
+    expect(qualifiesForHumming({ ...soft(), bpm: HUMMING_MAX_BPM + 1 })).toBe(false);
+    expect(qualifiesForHumming({ ...soft(), loudnessLufs: HUMMING_MAX_LUFS + 0.1 })).toBe(false);
+    expect(qualifiesForHumming({ ...soft(), bpm: null })).toBe(false);
+    expect(qualifiesForHumming({ ...soft(), loudnessLufs: null })).toBe(false);
+  });
+
+  it('wakes into humming when the loaded track is soft', () => {
+    let state = feed(createCompanionState(inputs({ trackId: 'a' })), {
+      type: 'inputs',
+      inputs: soft(),
+    });
+    expect(state.mode).toBe('waking');
+    state = feed(state, { type: 'woke' });
+    expect(state.mode).toBe('humming');
+  });
+});
+
+describe('wind-down yawn', () => {
+  it('yawns while the wind-down plays, whatever the tempo says', () => {
+    const state = feed(createCompanionState(), {
+      type: 'inputs',
+      inputs: inputs({
+        playing: true,
+        trackId: 'a',
+        bpm: GROOVING_MIN_BPM,
+        loudnessLufs: GROOVING_MIN_LUFS,
+        windDown: true,
+      }),
+    });
+    expect(state.mode).toBe('wind-down-yawn');
+  });
+
+  it('returns to the tempo loop when the wind-down is cancelled', () => {
+    let state = feed(createCompanionState(), {
+      type: 'inputs',
+      inputs: inputs({ playing: true, trackId: 'a', windDown: true }),
+    });
+    expect(state.mode).toBe('wind-down-yawn');
+    state = feed(state, {
+      type: 'inputs',
+      inputs: inputs({ playing: true, trackId: 'a' }),
+    });
+    expect(state.mode).toBe('listening');
+  });
+
+  it('does not yawn while paused — silence settles toward sleep as always', () => {
+    let state = listeningState();
+    state = feed(state, {
+      type: 'inputs',
+      inputs: inputs({ trackId: 'a', bpm: 80, loudnessLufs: -16, windDown: true }),
+    });
+    expect(state.mode).toBe('drowsy');
+  });
+});
+
+describe('recap cameo', () => {
+  it('plays on the rising edge of the recap card, then hands back to the loop', () => {
+    let state = feed(listeningState(), {
+      type: 'inputs',
+      inputs: inputs({
+        playing: true,
+        trackId: 'a',
+        bpm: 80,
+        loudnessLufs: -16,
+        recapVisible: true,
+      }),
+    });
+    expect(state.mode).toBe('recap-cameo');
+
+    // The cameo holds against input churn while the card stays up…
+    state = feed(state, {
+      type: 'inputs',
+      inputs: inputs({ playing: true, trackId: 'a', recapVisible: true }),
+    });
+    expect(state.mode).toBe('recap-cameo');
+
+    // …and the timer hands the loop back.
+    state = feed(state, { type: 'cameo-done' });
+    expect(state.mode).toBe('listening');
+  });
+
+  it('cameos once per reveal — a still-visible card is not a new edge', () => {
+    let state = feed(
+      listeningState(),
+      {
+        type: 'inputs',
+        inputs: inputs({ playing: true, trackId: 'a', recapVisible: true }),
+      },
+      { type: 'cameo-done' }
+    );
+    expect(state.mode).toBe('listening');
+
+    state = feed(state, {
+      type: 'inputs',
+      inputs: inputs({ playing: true, trackId: 'a', recapVisible: true, bpm: 90 }),
+    });
+    expect(state.mode).toBe('listening');
+  });
+
+  it('lets a sleeping resident sleep through its own report card', () => {
+    let state = createCompanionState(inputs({ trackId: 'a' }));
+    expect(state.mode).toBe('sleeping');
+    state = feed(state, {
+      type: 'inputs',
+      inputs: inputs({ trackId: 'a', recapVisible: true }),
+    });
+    expect(state.mode).toBe('sleeping');
+  });
+
+  it('lyric focus outranks the cameo', () => {
+    const state = feed(listeningState(), {
+      type: 'inputs',
+      inputs: inputs({ playing: true, trackId: 'a', recapVisible: true, lyricFocus: true }),
+    });
+    expect(state.mode).toBe('hiding');
+  });
+});
+
+describe('welcome-back greeting', () => {
+  it('greets from any visible mode and settles back to the loop', () => {
+    let state = createCompanionState(inputs({ trackId: 'a' }));
+    expect(state.mode).toBe('sleeping');
+    state = feed(state, { type: 'welcome-back' });
+    expect(state.mode).toBe('greeting');
+
+    // Inputs keep flowing beneath the one-shot without breaking it.
+    state = feed(state, { type: 'inputs', inputs: inputs({ trackId: 'a' }) });
+    expect(state.mode).toBe('greeting');
+
+    state = feed(state, { type: 'greeted' });
+    expect(state.mode).toBe('drowsy');
+  });
+
+  it('never greets a hidden or hiding resident', () => {
+    const hidden = feed(createCompanionState(inputs({ enabled: false })), {
+      type: 'welcome-back',
+    });
+    expect(hidden.mode).toBe('hidden');
+
+    const hiding = feed(
+      createCompanionState(inputs({ playing: true, trackId: 'a', lyricFocus: true })),
+      { type: 'welcome-back' }
+    );
+    expect(hiding.mode).toBe('hiding');
+  });
+
+  it('a stray greeted outside the greeting is ignored', () => {
+    const state = feed(listeningState(), { type: 'greeted' });
+    expect(state.mode).toBe('listening');
+  });
+
+  it('measures the absence from the previous sighting only', () => {
+    const now = Date.parse('2026-08-14T12:00:00.000Z');
+    expect(isLongCompanionAbsence('2026-08-13T11:59:00.000Z', now)).toBe(true);
+    expect(isLongCompanionAbsence('2026-08-13T12:01:00.000Z', now)).toBe(false);
+    expect(isLongCompanionAbsence(null, now)).toBe(false);
+    expect(isLongCompanionAbsence('not-a-date', now)).toBe(false);
+    // A clock that ran backwards is not an absence.
+    expect(isLongCompanionAbsence('2026-08-20T12:00:00.000Z', now)).toBe(false);
   });
 });
 
