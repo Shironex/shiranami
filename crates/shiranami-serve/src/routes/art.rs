@@ -29,7 +29,7 @@ use tokio_util::io::ReaderStream;
 use crate::art_cache::DEFAULT_MAX_BYTES;
 use crate::error::ServeError;
 use crate::routes::audio::CHUNK_SIZE;
-use crate::routes::image_file::{image_response, safe_name};
+use crate::routes::image_file::{image_response, open_regular_file, safe_name};
 use crate::state::ServeState;
 
 /// Serve one cached album-art file.
@@ -61,14 +61,7 @@ pub async fn handle(
         ));
     }
 
-    let file = tokio::fs::File::open(&path)
-        .await
-        .map_err(|_| ServeError::NotFound)?;
-    let metadata = file.metadata().await.map_err(|_| ServeError::NotFound)?;
-    if !metadata.is_file() {
-        return Err(ServeError::NotAFile);
-    }
-    let size = metadata.len();
+    let (file, size) = open_regular_file("art", &path).await?;
 
     // Anything past the cache budget is streamed and never held: reading it to
     // populate a cache that would immediately refuse it is the worst of both.

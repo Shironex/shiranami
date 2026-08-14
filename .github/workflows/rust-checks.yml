@@ -158,6 +158,9 @@ jobs:
     # souvlaki, taskbar progress, WebView2 browser args and the macOS keychain
     # bindings are all cfg-gated, so a Linux-only lint never compiles them.
     # Required, not advisory (architecture D24).
+    #
+    # It lints AND tests: see the Test step below for what a lint-only
+    # cross-check missed.
     name: Rust cross-check (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -186,6 +189,21 @@ jobs:
       # dependencies — unlike RUSTFLAGS, which would fail on third-party noise.
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Compiling for a platform is not the same as behaving on it, and this job
+      # used to prove only the first. Sixteen tests failed on Windows for months
+      # without CI noticing, and one of them was not a test bug: `migrate::copy`
+      # flushed through a read-only handle, which is fine for `fdatasync` and
+      # `ERROR_ACCESS_DENIED` for `FlushFileBuffers`, so the v1 -> v2 profile
+      # migration could not copy a single file on the platform the app
+      # primarily ships to. A Linux-only suite cannot see that class of bug at
+      # all — the code compiles perfectly.
+      #
+      # No bindings diff here on purpose: `cargo test` re-exports them as a side
+      # effect, and the Linux job above is the one that owns that gate. Running
+      # it three times would just be three chances to disagree.
+      - name: Test
+        run: cargo test --workspace
 
   analyser-canary:
     # The permanent detector for risk R2's silent-failure mode: a media response

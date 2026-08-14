@@ -109,8 +109,24 @@ mod tests {
 
     /// Case-insensitive platforms lowercase, so expectations are built through
     /// the same rule rather than hard-coded per platform.
+    /// The platform's absolute form of a POSIX-looking test path.
+    ///
+    /// Not simply `PathBuf::from(path)`, because on Windows `/a/b` has a root
+    /// but no prefix and is therefore **not absolute**: `normalize_for_compare`
+    /// resolves it against the current directory, exactly as `path.resolve`
+    /// does in Node, and the answer carries that drive — `/` becomes `C:\`.
+    /// That behaviour is correct and fail-closed; it was only ever the
+    /// expectation that was POSIX-shaped.
+    ///
+    /// Gated on the property rather than on `cfg!(windows)` so it says what it
+    /// actually depends on: whether a rooted path is absolute here.
     fn expected(path: &str) -> PathBuf {
-        lowercase_if_case_insensitive(PathBuf::from(path))
+        let base = if Path::new("/").is_absolute() {
+            PathBuf::new()
+        } else {
+            std::env::current_dir().unwrap_or_default()
+        };
+        lowercase_if_case_insensitive(base.join(path))
     }
 
     fn norm(path: &str) -> PathBuf {

@@ -58,6 +58,47 @@ pub(crate) fn safe_name(route: &'static str, name: &str) -> Result<String, Serve
     Ok(name.to_owned())
 }
 
+/// Open a path for serving, refusing anything that is not a regular file.
+///
+/// The type check runs **before** the open, and that ordering is the whole
+/// point of the helper. Opening first and asking afterwards works on Unix,
+/// where opening a directory succeeds and the handle reports what it is — but
+/// Windows refuses the open outright, so the "not a file" refusal was never
+/// reached there and a directory answered 404 instead of 403. Same request,
+/// different answer per platform, which no test caught because the Rust suite
+/// only ran on Linux.
+///
+/// The post-open check is kept as well. The pre-check is what makes the refusal
+/// consistent; the handle's own metadata is what the response is actually built
+/// from, and it is the one that cannot be stale.
+///
+/// Not confined to images despite the module name — the audio route has the
+/// same question to ask, and had the same answer wrong.
+pub(crate) async fn open_regular_file(
+    route: &'static str,
+    path: &std::path::Path,
+) -> Result<(tokio::fs::File, u64), ServeError> {
+    let probe = tokio::fs::metadata(path).await.map_err(|error| {
+        tracing::debug!(route, %error, "could not stat the file");
+        ServeError::NotFound
+    })?;
+    if !probe.is_file() {
+        return Err(ServeError::NotAFile);
+    }
+
+    let file = tokio::fs::File::open(path).await.map_err(|error| {
+        tracing::debug!(route, %error, "could not open the file");
+        ServeError::NotFound
+    })?;
+    let metadata = file.metadata().await.map_err(|_| ServeError::NotFound)?;
+    if !metadata.is_file() {
+        return Err(ServeError::NotAFile);
+    }
+
+    let size = metadata.len();
+    Ok((file, size))
+}
+
 /// An image response with the immutable cache header.
 pub(crate) fn image_response(name: &str, length: u64, body: Body) -> Response {
     let content_type = extension_of(std::path::Path::new(name))

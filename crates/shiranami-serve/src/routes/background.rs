@@ -30,7 +30,7 @@ use tokio_util::io::ReaderStream;
 
 use crate::error::ServeError;
 use crate::routes::audio::CHUNK_SIZE;
-use crate::routes::image_file::{image_response, safe_name};
+use crate::routes::image_file::{image_response, open_regular_file, safe_name};
 use crate::state::ServeState;
 
 /// Serve the imported background, or its frozen still.
@@ -57,14 +57,7 @@ pub async fn handle(
         return Err(ServeError::Forbidden);
     }
 
-    let file = tokio::fs::File::open(&path)
-        .await
-        .map_err(|_| ServeError::NotFound)?;
-    let metadata = file.metadata().await.map_err(|_| ServeError::NotFound)?;
-    if !metadata.is_file() {
-        return Err(ServeError::NotAFile);
-    }
-    let size = metadata.len();
+    let (file, size) = open_regular_file("background", &path).await?;
 
     tracing::debug!(size, "background route serving");
 

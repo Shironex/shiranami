@@ -70,15 +70,7 @@ pub async fn handle(
         return Err(ServeError::Forbidden);
     }
 
-    let file = File::open(&path).await.map_err(|error| {
-        tracing::debug!(%error, "audio route could not open the file");
-        ServeError::NotFound
-    })?;
-    let metadata = file.metadata().await.map_err(|_| ServeError::NotFound)?;
-    if !metadata.is_file() {
-        return Err(ServeError::NotAFile);
-    }
-    let total = metadata.len();
+    let (file, total) = crate::routes::image_file::open_regular_file("audio", &path).await?;
 
     let content_type =
         extension_of(&path).map_or(UNKNOWN_AUDIO_MIME, |extension| audio_mime(&extension));
