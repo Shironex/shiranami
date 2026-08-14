@@ -26,12 +26,14 @@ const OVERVIEW_RECAP_ROWS = barRows([30, 22, 14]);
 
 /**
  * Reads the real interface store so the Overview mock folds widgets away live
- * as the toggles flip, and resolves the hover spotlight into a per-block flag.
+ * as the toggles flip and reorders blocks as sections are dragged, and
+ * resolves the hover spotlight into a per-block flag.
  */
 export function useOverviewLayoutPreview({
   highlightedKey = null,
 }: IOverviewLayoutPreviewProps): IOverviewLayoutPreviewView {
   const { t } = useTranslation('settings');
+  const sectionOrder = useInterfaceStore(s => s.overviewOrder);
   const showRecap = useInterfaceStore(s => s.overviewRecap);
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
@@ -46,6 +48,7 @@ export function useOverviewLayoutPreview({
 
   return {
     title: t('app.interface.overviewPreview'),
+    sectionOrder,
     recap: { visible: showRecap, highlighted: spotlight('overviewRecap') },
     stats: { visible: showStats, highlighted: spotlight('overviewStats') },
     topWeek: { visible: showTopWeek, highlighted: spotlight('overviewTopWeek') },

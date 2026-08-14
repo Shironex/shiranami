@@ -1,28 +1,32 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import {
   useInterfaceStore,
   INTERFACE_DEFAULTS,
-  type InterfaceElementKey,
+  INTERFACE_TOGGLE_KEYS,
 } from '@/stores/useInterfaceStore';
 import { useLayoutStore } from '@/stores/useLayoutStore';
+import {
+  DEFAULT_OVERVIEW_ORDER,
+  OVERVIEW_SECTION_BY_ID,
+  type OverviewSection,
+  type OverviewSectionId,
+} from '@/lib/overview-sections';
 import type {
   IInterfaceSectionView,
   IInterfaceToggle,
+  IOverviewSectionRow,
   OverviewWidgetKey,
   PlayerElementKey,
 } from './InterfaceSection.types';
-
-const OVERVIEW_TOGGLES: OverviewWidgetKey[] = [
-  'overviewRecap',
-  'overviewStats',
-  'overviewTopWeek',
-  'overviewClock',
-  'overviewTopAlbums',
-  'overviewMixes',
-  'overviewRecommendations',
-  'overviewRecentlyAdded',
-];
 
 const PLAYER_TOGGLES: PlayerElementKey[] = [
   'playerAlbumArt',
@@ -41,7 +45,7 @@ const PLAYER_TOGGLES: PlayerElementKey[] = [
 export function useInterfaceSection(): IInterfaceSectionView {
   const { t } = useTranslation('settings');
   const state = useInterfaceStore();
-  const { setVisible, resetInterface } = state;
+  const { setVisible, reorderOverviewSection, resetInterface } = state;
   // Hovered settings row → spotlighted block in the matching mock (mirrors
   // the SidebarSection ↔ SidebarPreview wiring).
   const [hoveredOverviewKey, setHoveredOverviewKey] = useState<OverviewWidgetKey | null>(null);
@@ -50,19 +54,38 @@ export function useInterfaceSection(): IInterfaceSectionView {
   const sidePanelSide = useLayoutStore(s => s.sidePanelSide);
   const setSidePanelSide = useLayoutStore(s => s.setSidePanelSide);
 
-  const isModified = (Object.keys(INTERFACE_DEFAULTS) as InterfaceElementKey[]).some(
-    key => state[key] !== INTERFACE_DEFAULTS[key]
+  const overviewSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const overviewToggles: IInterfaceToggle<OverviewWidgetKey>[] = OVERVIEW_TOGGLES.map(
-    (key, index) => ({
-      key,
-      label: t(`app.interface.elements.${key}`),
-      description: t(`app.interface.elements.${key}Desc`),
-      checked: state[key],
-      divider: index > 0,
-    })
-  );
+  const isModified =
+    INTERFACE_TOGGLE_KEYS.some(key => state[key] !== INTERFACE_DEFAULTS[key]) ||
+    state.overviewOrder.join() !== DEFAULT_OVERVIEW_ORDER.join();
+
+  // Render sections in the user-chosen order. The store reconciles the order
+  // on rehydrate, so every id resolves; the filter is a type guard.
+  const orderedSections = state.overviewOrder
+    .map(id => OVERVIEW_SECTION_BY_ID.get(id))
+    .filter((section): section is OverviewSection => section != null);
+
+  const overviewSections: IOverviewSectionRow[] = orderedSections.map(section => {
+    const label = t(`app.interface.elements.${section.labelKey}`);
+    return {
+      id: section.id,
+      label,
+      dragHandleLabel: t('app.interface.overviewDragHandle', { label }),
+      toggles: section.toggles.map(
+        (key, index): IInterfaceToggle<OverviewWidgetKey> => ({
+          key,
+          label: t(`app.interface.elements.${key}`),
+          description: t(`app.interface.elements.${key}Desc`),
+          checked: state[key],
+          divider: index > 0,
+        })
+      ),
+    };
+  });
 
   const playerToggles: IInterfaceToggle<PlayerElementKey>[] = PLAYER_TOGGLES.map((key, index) => ({
     key,
@@ -80,6 +103,13 @@ export function useInterfaceSection(): IInterfaceSectionView {
     setHoveredPlayerKey(current => (hovering ? key : current === key ? null : current));
   }
 
+  function onReorderOverview(event: DragEndEvent): void {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      reorderOverviewSection(active.id as OverviewSectionId, over.id as OverviewSectionId);
+    }
+  }
+
   return {
     t,
     isModified,
@@ -95,7 +125,11 @@ export function useInterfaceSection(): IInterfaceSectionView {
     topBarLanguageSwitcher: state.topBarLanguageSwitcher,
     onToggleTopBarLanguageSwitcher: visible => setVisible('topBarLanguageSwitcher', visible),
 
-    overviewToggles,
+    overviewSections,
+    overviewOrderIds: orderedSections.map(section => section.id),
+    overviewReorderHint: t('app.interface.overviewReorderHint'),
+    overviewSensors,
+    onReorderOverview,
     hoveredOverviewKey,
     onHoverOverview,
 

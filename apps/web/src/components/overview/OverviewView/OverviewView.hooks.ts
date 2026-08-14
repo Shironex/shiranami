@@ -28,6 +28,7 @@ export function useOverviewView(): IOverviewView {
   const { handleOpenFolder } = useLibraryActions();
   const navigateTo = useViewStore(s => s.navigateTo);
   const { recap, visible: showRecap } = useWeeklyRecap();
+  const sectionOrder = useInterfaceStore(s => s.overviewOrder);
   const showStats = useInterfaceStore(s => s.overviewStats);
   const showTopWeek = useInterfaceStore(s => s.overviewTopWeek);
   const showClock = useInterfaceStore(s => s.overviewClock);
@@ -57,6 +58,7 @@ export function useOverviewView(): IOverviewView {
     isError,
     recap,
     showRecap,
+    sectionOrder,
     showStats,
     showTopWeek,
     showClock,
