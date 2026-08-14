@@ -66,6 +66,7 @@ export default function AmbientBackground() {
     bloomKey,
     showBloom,
     breathing,
+    roomLightStyle,
   } = useAmbientBackground();
 
   if (!enabled) return null;
@@ -142,6 +143,20 @@ export default function AmbientBackground() {
           transition={{ duration: 1.1, ease: 'easeOut', times: [0, 0.3, 1] }}
           className="fixed inset-0 pointer-events-none z-0"
           style={{ background: glowBackground }}
+        />
+      )}
+
+      {/* Room light: the time-of-day grade over the whole ambient scene —
+          later in the DOM than the bloom/glow so it tints them, not the other
+          way round. The stops and their minutes-long cross-fade live in CSS
+          (globals.css `.room-light`); the div only publishes the custom
+          properties for the current stop. */}
+      {roomLightStyle && (
+        <div
+          className="room-light fixed inset-0 pointer-events-none z-0"
+          data-slot="room-light"
+          aria-hidden="true"
+          style={roomLightStyle}
         />
       )}
     </>

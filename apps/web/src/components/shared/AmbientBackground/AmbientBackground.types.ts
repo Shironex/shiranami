@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export interface IArtBloomLayer {
   /** Square edge length of the cover copy (viewport-relative unit string). */
   readonly size: string;
@@ -55,4 +57,9 @@ export interface IAmbientBackgroundView {
   readonly showBloom: boolean;
   /** Tempo-locked breathing engages (BPM known, toggle on, motion allowed). */
   readonly breathing: boolean;
+  /**
+   * The `--room-light-*` custom properties for the time-of-day lighting grade,
+   * or `null` when the room-light toggle is off (the shell skips the layer).
+   */
+  readonly roomLightStyle: CSSProperties | null;
 }

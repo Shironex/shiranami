@@ -26,6 +26,7 @@ afterEach(() => {
     tempoBreathingEnabled: true,
     artworkBloomEnabled: true,
     coverCrossfadeEnabled: true,
+    roomLightEnabled: true,
   });
 });
 
@@ -171,6 +172,23 @@ describe('AmbientBackground', () => {
     expect(container.querySelector('[data-slot="ambient-glow"]')).not.toBeNull();
   });
 
+  it('renders the room-light grade layer with the stop custom properties', () => {
+    const { container } = render(<AmbientBackground />);
+
+    const layer = container.querySelector<HTMLElement>('[data-slot="room-light"]');
+    expect(layer).not.toBeNull();
+    expect(layer!.style.getPropertyValue('--room-light-tint')).toContain('color-mix');
+    expect(layer!.style.getPropertyValue('--room-light-lamp')).not.toBe('');
+  });
+
+  it('omits the room-light layer when the toggle is off', () => {
+    useUIStore.setState({ roomLightEnabled: false });
+
+    const { container } = render(<AmbientBackground />);
+
+    expect(container.querySelector('[data-slot="room-light"]')).toBeNull();
+  });
+
   it('keeps every drift period in minutes, never seconds', () => {
     // The calm contract: rotation slower than once per five minutes for every
     // layer. A "faster" tuning pass would flip this from ambience to motion.
@@ -235,5 +253,13 @@ describe('useAmbientBackground gating', () => {
     expect(result.current.enabled).toBe(false);
     expect(result.current.showBloom).toBe(false);
     expect(result.current.bloomSlots.current).toBeNull();
+  });
+
+  it('keeps low-performance mode as the master kill over the room-light toggle', () => {
+    useUIStore.setState({ roomLightEnabled: true, lowPerformanceMode: true });
+
+    const { result } = renderHook(() => useAmbientBackground());
+
+    expect(result.current.roomLightStyle).toBeNull();
   });
 });
