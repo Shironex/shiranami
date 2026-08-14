@@ -10,6 +10,9 @@ function reset(): void {
   useUIStore.setState({
     vinylLabelSource: 'artwork',
     vinylRingStyle: 'glow',
+    vinylSpeed: '33',
+    vinylFinish: 'black',
+    vinylTonearmEnabled: false,
     lowPerformanceMode: false,
   });
 }
@@ -64,5 +67,71 @@ describe('VinylRecord', () => {
 
     expect(container.querySelector('canvas')).not.toBeInTheDocument();
     expect(container.querySelector('.vinyl-static-ring')).toBeInTheDocument();
+  });
+
+  it('maps the RPM setting to a real revolution duration on the disc', () => {
+    const { container, rerender } = render(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    const disc = container.querySelector<HTMLElement>('.vinyl-disc');
+    expect(disc!.style.getPropertyValue('--vinyl-rev')).toBe('1.8s');
+
+    useUIStore.setState({ vinylSpeed: '45' });
+    rerender(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+    expect(disc!.style.getPropertyValue('--vinyl-rev')).toBe('1.333s');
+
+    useUIStore.setState({ vinylSpeed: '78' });
+    rerender(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+    expect(disc!.style.getPropertyValue('--vinyl-rev')).toBe('0.769s');
+  });
+
+  it('stamps the chosen finish on the disc for the face styling', () => {
+    useUIStore.setState({ vinylFinish: 'marble' });
+
+    const { container } = render(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    expect(container.querySelector('.vinyl-disc')).toHaveAttribute('data-finish', 'marble');
+  });
+
+  it('spreads the artwork across the face for a picture disc and drops the label', () => {
+    useUIStore.setState({ vinylFinish: 'picture' });
+
+    const { container } = render(<VinylRecord albumArt="art://cover.jpg" albumAlt="Late Nights" />);
+
+    expect(screen.getByAltText('Late Nights')).toHaveAttribute('src', 'art://cover.jpg');
+    expect(container.querySelector('.vinyl-label')).not.toBeInTheDocument();
+    expect(container.querySelector('.vinyl-picture-grooves')).toBeInTheDocument();
+  });
+
+  it('keeps the center label on a picture disc when there is no artwork to spread', () => {
+    useUIStore.setState({ vinylFinish: 'picture' });
+
+    const { container } = render(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    expect(container.querySelector('.vinyl-picture-grooves')).not.toBeInTheDocument();
+    expect(container.querySelector('.vinyl-label')).toHaveTextContent('白波');
+  });
+
+  it('mounts the tonearm only when enabled, lifted while paused', () => {
+    const { container, rerender } = render(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    expect(container.querySelector('[data-slot="vinyl-tonearm"]')).not.toBeInTheDocument();
+
+    useUIStore.setState({ vinylTonearmEnabled: true });
+    rerender(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    const tonearm = container.querySelector('[data-slot="vinyl-tonearm"]');
+    expect(tonearm).toHaveAttribute('data-resting', 'false');
+  });
+
+  it('rests the tonearm on the groove while playing', () => {
+    usePlaybackStore.setState({ isPlaying: true });
+    useUIStore.setState({ vinylTonearmEnabled: true });
+
+    const { container } = render(<VinylRecord albumArt={null} albumAlt="Late Nights" />);
+
+    expect(container.querySelector('[data-slot="vinyl-tonearm"]')).toHaveAttribute(
+      'data-resting',
+      'true'
+    );
   });
 });

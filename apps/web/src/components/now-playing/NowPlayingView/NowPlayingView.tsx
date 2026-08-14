@@ -33,6 +33,7 @@ export default function NowPlayingView() {
     panelGroupLabel,
     lowPerformanceMode,
     vinylDisplayEnabled,
+    vinylSizeClass,
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
@@ -154,11 +155,15 @@ export default function NowPlayingView() {
             )}
           >
             {vinylDisplayEnabled ? (
-              <VinylRecord
-                albumArt={currentTrack.albumArt}
-                albumAlt={currentTrack.album}
-                className="absolute inset-0"
-              />
+              /* The slot keeps its clamp-based footprint; the size preference
+                 scales the disc inside it so the layout math stays intact. */
+              <div className="absolute inset-0 flex items-center justify-center">
+                <VinylRecord
+                  albumArt={currentTrack.albumArt}
+                  albumAlt={currentTrack.album}
+                  className={vinylSizeClass}
+                />
+              </div>
             ) : (
               <AnimatePresence mode="wait">
                 <motion.div
