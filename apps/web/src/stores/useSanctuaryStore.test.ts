@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   useSanctuaryStore,
+  nextSanctuaryVariant,
   SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
   SANCTUARY_AUTO_ENTER_MIN_MINUTES,
   SANCTUARY_AUTO_ENTER_MAX_MINUTES,
+  SANCTUARY_ROTATE_DEFAULT_MINUTES,
+  SANCTUARY_ROTATE_MIN_MINUTES,
+  SANCTUARY_ROTATE_MAX_MINUTES,
 } from './useSanctuaryStore';
 
 const STORE_KEY = 'shiranami.sanctuary-store';
@@ -19,6 +23,13 @@ beforeEach(() => {
   localStorage.clear();
   useSanctuaryStore.setState({
     sanctuaryVariant: 'cover',
+    sanctuaryClockFace: 'minimal',
+    sanctuaryClockFormat: 'system',
+    sanctuaryClockSeconds: false,
+    sanctuaryRotation: 'off',
+    sanctuaryRotationMinutes: SANCTUARY_ROTATE_DEFAULT_MINUTES,
+    sanctuaryTrackInfo: { cover: true, clock: true, vinyl: true },
+    sanctuaryTimeOfDay: false,
     sanctuaryAutoEnter: false,
     sanctuaryAutoEnterMinutes: SANCTUARY_AUTO_ENTER_DEFAULT_MINUTES,
     sanctuaryActive: false,
@@ -89,5 +100,97 @@ describe('useSanctuaryStore', () => {
   it('coerces a malformed variant back to the default', () => {
     useSanctuaryStore.getState().setSanctuaryVariant('spiral' as never);
     expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+  });
+
+  it('persists the clock face, hour format and seconds preferences', () => {
+    const s = useSanctuaryStore.getState();
+    s.setSanctuaryClockFace('serif');
+    s.setSanctuaryClockFormat('24h');
+    s.setSanctuaryClockSeconds(true);
+
+    const persisted = readPersisted();
+    expect(persisted.sanctuaryClockFace).toBe('serif');
+    expect(persisted.sanctuaryClockFormat).toBe('24h');
+    expect(persisted.sanctuaryClockSeconds).toBe(true);
+  });
+
+  it('coerces malformed clock preferences back to their defaults', () => {
+    const s = useSanctuaryStore.getState();
+    s.setSanctuaryClockFace('gothic' as never);
+    s.setSanctuaryClockFormat('26h' as never);
+    expect(useSanctuaryStore.getState().sanctuaryClockFace).toBe('minimal');
+    expect(useSanctuaryStore.getState().sanctuaryClockFormat).toBe('system');
+  });
+
+  it('walks the variant cycle cover → clock → vinyl → cover', () => {
+    expect(nextSanctuaryVariant('cover')).toBe('clock');
+    expect(nextSanctuaryVariant('clock')).toBe('vinyl');
+    expect(nextSanctuaryVariant('vinyl')).toBe('cover');
+  });
+
+  it('each-entry rotation opens every visit on the next stage', () => {
+    useSanctuaryStore.getState().setSanctuaryRotation('entry');
+
+    useSanctuaryStore.getState().enterSanctuary();
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('clock');
+    useSanctuaryStore.getState().exitSanctuary();
+
+    useSanctuaryStore.getState().enterSanctuary({ auto: true });
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('vinyl');
+  });
+
+  it('entry while already active never advances the stage', () => {
+    useSanctuaryStore.getState().setSanctuaryRotation('entry');
+    useSanctuaryStore.getState().enterSanctuary();
+    useSanctuaryStore.getState().enterSanctuary();
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('clock');
+  });
+
+  it('rotation off leaves the stage where it was on entry', () => {
+    useSanctuaryStore.getState().enterSanctuary();
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+  });
+
+  it('follow-the-day suppresses each-entry rotation', () => {
+    useSanctuaryStore.getState().setSanctuaryRotation('entry');
+    useSanctuaryStore.getState().setSanctuaryTimeOfDay(true);
+    useSanctuaryStore.getState().enterSanctuary();
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');
+    expect(readPersisted().sanctuaryTimeOfDay).toBe(true);
+  });
+
+  it('clamps the rotation minutes and coerces a malformed rotation mode', () => {
+    const s = useSanctuaryStore.getState();
+    s.setSanctuaryRotationMinutes(0);
+    expect(useSanctuaryStore.getState().sanctuaryRotationMinutes).toBe(
+      SANCTUARY_ROTATE_MIN_MINUTES
+    );
+    s.setSanctuaryRotationMinutes(999);
+    expect(useSanctuaryStore.getState().sanctuaryRotationMinutes).toBe(
+      SANCTUARY_ROTATE_MAX_MINUTES
+    );
+    s.setSanctuaryRotationMinutes(Number.NaN);
+    expect(useSanctuaryStore.getState().sanctuaryRotationMinutes).toBe(
+      SANCTUARY_ROTATE_DEFAULT_MINUTES
+    );
+    s.setSanctuaryRotation('shuffle' as never);
+    expect(useSanctuaryStore.getState().sanctuaryRotation).toBe('off');
+  });
+
+  it('persists per-variant track info and heals a malformed record', () => {
+    useSanctuaryStore.getState().setSanctuaryTrackInfo('clock', false);
+    expect(readPersisted().sanctuaryTrackInfo).toEqual({ cover: true, clock: false, vinyl: true });
+
+    useSanctuaryStore.persist.clearStorage();
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { sanctuaryTrackInfo: { cover: 'nope' } }, version: 1 })
+    );
+    useSanctuaryStore.persist.rehydrate();
+    expect(useSanctuaryStore.getState().sanctuaryTrackInfo).toEqual({
+      cover: true,
+      clock: true,
+      vinyl: true,
+    });
   });
 });

@@ -83,11 +83,61 @@ export const Cover: Story = {
 export const Clock: Story = {
   beforeEach: () => {
     usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215, isPlaying: true });
-    useSanctuaryStore.setState({ sanctuaryActive: true, sanctuaryVariant: 'clock' });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'clock',
+      sanctuaryClockFace: 'minimal',
+      sanctuaryClockFormat: 'system',
+      sanctuaryClockSeconds: false,
+      sanctuaryTrackInfo: { cover: true, clock: true, vinyl: true },
+      sanctuaryTimeOfDay: false,
+    });
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('button', { name: 'Show the record' })).toBeInTheDocument();
     await expect(canvas.getByText(/Midnight Tapes/)).toBeInTheDocument();
+  },
+};
+
+/** The serif quiet-library face, 12-hour, with the seconds ticking along. */
+export const ClockSerif: Story = {
+  beforeEach: () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215, isPlaying: true });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'clock',
+      sanctuaryClockFace: 'serif',
+      sanctuaryClockFormat: '12h',
+      sanctuaryClockSeconds: true,
+      sanctuaryTrackInfo: { cover: true, clock: true, vinyl: true },
+      sanctuaryTimeOfDay: false,
+    });
+  },
+  play: async ({ canvasElement }) => {
+    const face = canvasElement.querySelector('[data-slot="sanctuary-clock"]');
+    await expect(face).toHaveAttribute('data-face', 'serif');
+  },
+};
+
+/** Thin oversized numerals, 24-hour, the track line tucked away. */
+export const ClockOversized: Story = {
+  beforeEach: () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215, isPlaying: true });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'clock',
+      sanctuaryClockFace: 'oversized',
+      sanctuaryClockFormat: '24h',
+      sanctuaryClockSeconds: false,
+      sanctuaryTrackInfo: { cover: true, clock: false, vinyl: true },
+      sanctuaryTimeOfDay: false,
+    });
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const face = canvasElement.querySelector('[data-slot="sanctuary-clock"]');
+    await expect(face).toHaveAttribute('data-face', 'oversized');
+    await expect(canvas.queryByText(/Midnight Tapes/)).not.toBeInTheDocument();
   },
 };

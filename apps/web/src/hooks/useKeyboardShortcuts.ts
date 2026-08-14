@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import i18n from '@/lib/i18n';
 import { DIALOG_EVENTS } from '@/lib/dialogEvents';
+import { SHORTCUT_ACTION_IDS, bindingMatchesEvent, type ShortcutActionId } from '@/lib/keymap';
 import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
+import { useKeymapStore } from '@/stores/useKeymapStore';
 import { useViewStore, type AppView } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { useSanctuaryStore } from '@/stores/useSanctuaryStore';
@@ -40,6 +42,168 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return false;
 }
 
+/**
+ * One runner per remappable action, keyed by the keymap store's action ids.
+ * Which chord fires a runner is decided by the user's keymap; each runner's
+ * body is the behavior the legacy hardcoded switch gave that action.
+ */
+const ACTION_HANDLERS: Record<ShortcutActionId, (e: KeyboardEvent) => void> = {
+  playPause: () => {
+    usePlaybackStore.getState().togglePlay();
+  },
+  nextTrack: () => {
+    usePlaybackStore.getState().next();
+  },
+  previousTrack: () => {
+    usePlaybackStore.getState().previous();
+  },
+  seekForward: e => {
+    const step = e.shiftKey ? 10 : 5;
+    const currentTime = currentTimeRef.current;
+    const { duration, seek } = usePlaybackStore.getState();
+    seek(Math.min(currentTime + step, duration));
+  },
+  seekBack: e => {
+    const step = e.shiftKey ? 10 : 5;
+    const currentTime = currentTimeRef.current;
+    const { seek } = usePlaybackStore.getState();
+    seek(Math.max(currentTime - step, 0));
+  },
+  volumeUp: () => {
+    const { volume, setVolume } = usePlaybackStore.getState();
+    setVolume(Math.min(volume + 0.05, 1));
+  },
+  volumeDown: () => {
+    const { volume, setVolume } = usePlaybackStore.getState();
+    setVolume(Math.max(volume - 0.05, 0));
+  },
+  muteUnmute: () => {
+    usePlaybackStore.getState().toggleMute();
+  },
+  toggleShuffle: () => {
+    usePlaybackStore.getState().toggleShuffle();
+  },
+  cycleRepeat: () => {
+    usePlaybackStore.getState().cycleRepeatMode();
+  },
+  favoriteTrack: () => {
+    const currentTrack = usePlaybackStore.getState().currentTrack;
+    if (currentTrack) useLibraryStore.getState().toggleFavorite(currentTrack.id);
+  },
+  toggleSidebar: () => {
+    useUIStore.getState().toggleSidebarCollapsed();
+  },
+  toggleLyrics: () => {
+    useViewStore.getState().toggleRightPanel('lyrics');
+  },
+  toggleQueue: () => {
+    useViewStore.getState().toggleRightPanel('queue');
+  },
+  compactMode: () => {
+    useCompactStore.getState().toggleCompactMode();
+  },
+  toggleAlwaysOnTop: () => {
+    // Useful for users who pin the mini-player above other windows (or want
+    // to unpin it without leaving the keyboard). Active in both compact and
+    // normal modes — the underlying setter is a no-op outside compact, but
+    // we still update the persisted preference so the pin sticks the next
+    // time compact is entered.
+    void useCompactStore.getState().toggleCompactAlwaysOnTop();
+  },
+  toggleNowPlaying: () => {
+    // Setting-gated and requires a track — both silent-failure paths surface
+    // as toasts so the user always knows the shortcut was received and why
+    // it didn't open the view.
+    const { nowPlayingViewEnabled } = useUIStore.getState();
+    const { activeView, enterNowPlaying, exitNowPlaying } = useViewStore.getState();
+    if (!nowPlayingViewEnabled) {
+      toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
+        id: 'now-playing-disabled',
+        duration: 6000,
+        action: {
+          label: i18n.t('updateSettings', { ns: 'toast' }),
+          onClick: () => useViewStore.getState().navigateTo('settings'),
+        },
+      });
+      return;
+    }
+    if (activeView === 'now-playing') {
+      exitNowPlaying();
+      return;
+    }
+    if (!usePlaybackStore.getState().currentTrack) {
+      toast.info(i18n.t('nowPlayingNoTrack', { ns: 'toast' }), {
+        id: 'now-playing-no-track',
+        duration: 4000,
+      });
+      return;
+    }
+    enterNowPlaying();
+  },
+  toggleVisualizer: () => {
+    useUIStore.getState().toggleVisualizer();
+  },
+  toggleSanctuary: () => {
+    // Sanctuary Mode is the fullscreen immersive player. Needs a track — the
+    // silent-failure path surfaces as a toast, same as the Now Playing
+    // shortcut.
+    if (!usePlaybackStore.getState().currentTrack) {
+      toast.info(i18n.t('sanctuaryNoTrack', { ns: 'toast' }), {
+        id: 'sanctuary-no-track',
+        duration: 4000,
+      });
+      return;
+    }
+    useSanctuaryStore.getState().toggleSanctuary();
+  },
+  showHelp: () => {
+    window.dispatchEvent(new CustomEvent(DIALOG_EVENTS.openShortcutHelp));
+  },
+};
+
+/** Resolve the action the user's keymap binds to this keydown, if any. */
+function matchAction(e: KeyboardEvent): ShortcutActionId | null {
+  const { bindings } = useKeymapStore.getState();
+  for (const id of SHORTCUT_ACTION_IDS) {
+    if (bindingMatchesEvent(bindings[id], id, e)) return id;
+  }
+  return null;
+}
+
+/**
+ * Escape stays a fixed key (never remappable): it is the app-wide back/close
+ * cascade rather than a single action.
+ */
+function handleEscape(e: KeyboardEvent): void {
+  if (document.querySelector('[data-radix-portal]')) return;
+  // Sanctuary sits above everything, so Esc leaves it first.
+  const sanctuary = useSanctuaryStore.getState();
+  if (sanctuary.sanctuaryActive) {
+    e.preventDefault();
+    sanctuary.exitSanctuary();
+    return;
+  }
+  // Now Playing is a modal-like full-screen view; Esc should dismiss it
+  // before any background-state cleanup. Standard modal interaction.
+  const viewState = useViewStore.getState();
+  if (viewState.activeView === 'now-playing') {
+    e.preventDefault();
+    viewState.exitNowPlaying();
+    return;
+  }
+  // Clear track selection first
+  const { selectedTrackIds, clearSelection } = useSelectionStore.getState();
+  if (selectedTrackIds.size > 0) {
+    e.preventDefault();
+    clearSelection();
+    return;
+  }
+  if (viewState.rightPanel !== null) {
+    e.preventDefault();
+    viewState.setRightPanel(null);
+  }
+}
+
 export function useKeyboardShortcuts() {
   useEffect(() => {
     function handler(e: KeyboardEvent) {
@@ -58,248 +222,41 @@ export function useKeyboardShortcuts() {
           }
         }
 
-        switch (e.key) {
-          case 'b':
-          case 'B': {
-            e.preventDefault();
-            useUIStore.getState().toggleSidebarCollapsed();
-            return;
-          }
-          case 'l':
-          case 'L': {
-            if (!e.shiftKey) {
-              e.preventDefault();
-              useViewStore.getState().toggleRightPanel('lyrics');
-              return;
-            }
-            break;
-          }
-          case 'q':
-          case 'Q': {
-            if (!e.shiftKey) {
-              e.preventDefault();
-              useViewStore.getState().toggleRightPanel('queue');
-              return;
-            }
-            break;
-          }
-          case 'M':
-          case 'm': {
-            if (e.shiftKey) {
-              e.preventDefault();
-              useCompactStore.getState().toggleCompactMode();
-              return;
-            }
-            break;
-          }
-          case 'T':
-          case 't': {
-            // Ctrl/Cmd+Shift+T: toggle always-on-top. Useful for users who
-            // pin the mini-player above other windows (or want to unpin it
-            // without leaving the keyboard). Active in both compact and
-            // normal modes — the underlying setter is a no-op outside
-            // compact, but we still update the persisted preference so the
-            // pin sticks the next time compact is entered.
-            if (e.shiftKey) {
-              e.preventDefault();
-              void useCompactStore.getState().toggleCompactAlwaysOnTop();
-              return;
-            }
-            break;
-          }
-          case 'P':
-          case 'p': {
-            // Ctrl/Cmd+Shift+P: toggle Now Playing view.
-            // Setting-gated and requires a track — both silent-failure
-            // paths now surface as toasts so the user always knows the
-            // shortcut was received and why it didn't open the view.
-            if (e.shiftKey) {
-              e.preventDefault();
-              const { nowPlayingViewEnabled } = useUIStore.getState();
-              const { activeView, enterNowPlaying, exitNowPlaying } = useViewStore.getState();
-              if (!nowPlayingViewEnabled) {
-                toast.info(i18n.t('nowPlayingDisabled', { ns: 'toast' }), {
-                  id: 'now-playing-disabled',
-                  duration: 6000,
-                  action: {
-                    label: i18n.t('updateSettings', { ns: 'toast' }),
-                    onClick: () => useViewStore.getState().navigateTo('settings'),
-                  },
-                });
-                return;
-              }
-              if (activeView === 'now-playing') {
-                exitNowPlaying();
-                return;
-              }
-              if (!usePlaybackStore.getState().currentTrack) {
-                toast.info(i18n.t('nowPlayingNoTrack', { ns: 'toast' }), {
-                  id: 'now-playing-no-track',
-                  duration: 4000,
-                });
-                return;
-              }
-              enterNowPlaying();
-              return;
-            }
-            break;
-          }
+        const actionId = matchAction(e);
+        if (actionId) {
+          e.preventDefault();
+          ACTION_HANDLERS[actionId](e);
         }
         // Don't handle other modifier combos (e.g. Ctrl+K is CommandPalette)
         return;
       }
 
       // --- Single-key shortcuts (guarded against editable targets) ---
-      const guarded = isEditableTarget(e.target);
 
-      if (e.key === ' ') {
-        if (guarded || e.target instanceof HTMLButtonElement) return;
+      // Space activates a focused button; never hijack the physical key
+      // there, regardless of which action it is bound to.
+      if (e.key === ' ' && e.target instanceof HTMLButtonElement) return;
+
+      if (isEditableTarget(e.target)) return;
+
+      const actionId = matchAction(e);
+      if (actionId) {
         e.preventDefault();
-        usePlaybackStore.getState().togglePlay();
+        ACTION_HANDLERS[actionId](e);
         return;
       }
 
-      if (guarded) return;
+      // --- Fixed keys (not part of the remappable keymap) ---
+      if (e.key === 'Escape') {
+        handleEscape(e);
+        return;
+      }
 
-      switch (e.key) {
-        case 'ArrowRight': {
-          e.preventDefault();
-          const step = e.shiftKey ? 10 : 5;
-          const currentTime = currentTimeRef.current;
-          const { duration, seek } = usePlaybackStore.getState();
-          seek(Math.min(currentTime + step, duration));
-          return;
-        }
-        case 'ArrowLeft': {
-          e.preventDefault();
-          const step = e.shiftKey ? 10 : 5;
-          const currentTime = currentTimeRef.current;
-          const { seek } = usePlaybackStore.getState();
-          seek(Math.max(currentTime - step, 0));
-          return;
-        }
-        case 'ArrowUp': {
-          e.preventDefault();
-          const { volume, setVolume } = usePlaybackStore.getState();
-          setVolume(Math.min(volume + 0.05, 1));
-          return;
-        }
-        case 'ArrowDown': {
-          e.preventDefault();
-          const { volume, setVolume } = usePlaybackStore.getState();
-          setVolume(Math.max(volume - 0.05, 0));
-          return;
-        }
-        case 'M':
-        case 'm': {
-          e.preventDefault();
-          usePlaybackStore.getState().toggleMute();
-          return;
-        }
-        case 'N':
-        case 'n': {
-          e.preventDefault();
-          usePlaybackStore.getState().next();
-          return;
-        }
-        case 'P':
-        case 'p': {
-          e.preventDefault();
-          usePlaybackStore.getState().previous();
-          return;
-        }
-        case 'S':
-        case 's': {
-          e.preventDefault();
-          usePlaybackStore.getState().toggleShuffle();
-          return;
-        }
-        case 'R':
-        case 'r': {
-          e.preventDefault();
-          usePlaybackStore.getState().cycleRepeatMode();
-          return;
-        }
-        case 'L':
-        case 'l': {
-          e.preventDefault();
-          const currentTrack = usePlaybackStore.getState().currentTrack;
-          if (currentTrack) useLibraryStore.getState().toggleFavorite(currentTrack.id);
-          return;
-        }
-        case 'V':
-        case 'v': {
-          e.preventDefault();
-          useUIStore.getState().toggleVisualizer();
-          return;
-        }
-        case 'F':
-        case 'f': {
-          // F: toggle Sanctuary Mode (fullscreen immersive player). Needs a
-          // track — the silent-failure path surfaces as a toast, same as the
-          // Now Playing shortcut.
-          e.preventDefault();
-          if (!usePlaybackStore.getState().currentTrack) {
-            toast.info(i18n.t('sanctuaryNoTrack', { ns: 'toast' }), {
-              id: 'sanctuary-no-track',
-              duration: 4000,
-            });
-            return;
-          }
-          useSanctuaryStore.getState().toggleSanctuary();
-          return;
-        }
-        case '?': {
-          e.preventDefault();
-          window.dispatchEvent(new CustomEvent(DIALOG_EVENTS.openShortcutHelp));
-          return;
-        }
-        case 'Escape': {
-          if (document.querySelector('[data-radix-portal]')) return;
-          // Sanctuary sits above everything, so Esc leaves it first.
-          const sanctuary = useSanctuaryStore.getState();
-          if (sanctuary.sanctuaryActive) {
-            e.preventDefault();
-            sanctuary.exitSanctuary();
-            return;
-          }
-          // Now Playing is a modal-like full-screen view; Esc should
-          // dismiss it before any background-state cleanup. Standard
-          // modal interaction.
-          const viewState = useViewStore.getState();
-          if (viewState.activeView === 'now-playing') {
-            e.preventDefault();
-            viewState.exitNowPlaying();
-            return;
-          }
-          // Clear track selection first
-          const { selectedTrackIds, clearSelection } = useSelectionStore.getState();
-          if (selectedTrackIds.size > 0) {
-            e.preventDefault();
-            clearSelection();
-            return;
-          }
-          if (viewState.rightPanel !== null) {
-            e.preventDefault();
-            viewState.setRightPanel(null);
-          }
-          return;
-        }
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9': {
-          const entry = NAV_VIEWS[parseInt(e.key) - 1];
-          if (!entry) return;
-          e.preventDefault();
-          useViewStore.getState().navigateTo(entry.view);
-          return;
-        }
+      if (/^[1-9]$/.test(e.key)) {
+        const entry = NAV_VIEWS[parseInt(e.key) - 1];
+        if (!entry) return;
+        e.preventDefault();
+        useViewStore.getState().navigateTo(entry.view);
       }
     }
 

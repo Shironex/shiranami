@@ -12,13 +12,13 @@ import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
 import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { isRadioTrack } from '@/lib/utils';
-import { IS_MAC } from '@/lib/platform';
+import { formatBindingLabel } from '@/lib/keymap';
+import { useKeymapStore } from '@/stores/useKeymapStore';
 import type { IPlayerBarView } from './PlayerBar.types';
-
-const MOD = IS_MAC ? '⌘' : 'Ctrl';
 
 export function usePlayerBar(): IPlayerBarView {
   const { t } = useTranslation('player');
+  const bindings = useKeymapStore(s => s.bindings);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   // Heart state reads through the overlay so a toggle from any surface
   // reflects on the player bar without re-allocating `library`.
@@ -111,10 +111,10 @@ export function usePlayerBar(): IPlayerBarView {
     heartControls,
     favoriteBurst,
     showFavoriteBurst,
-    compactTooltip: t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` }),
+    compactTooltip: t('compactModeTooltip', { shortcut: formatBindingLabel(bindings.compactMode) }),
     visualizerTooltip: t('visualizerTooltip'),
-    lyricsTooltip: t('lyricsTooltip', { shortcut: `${MOD}+L` }),
-    queueTooltip: t('queueTooltip', { shortcut: `${MOD}+Q` }),
+    lyricsTooltip: t('lyricsTooltip', { shortcut: formatBindingLabel(bindings.toggleLyrics) }),
+    queueTooltip: t('queueTooltip', { shortcut: formatBindingLabel(bindings.toggleQueue) }),
     onToggleFavorite,
     onEnterCompact,
     onToggleVisualizer: toggleVisualizer,

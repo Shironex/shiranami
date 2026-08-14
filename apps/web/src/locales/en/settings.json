@@ -21,6 +21,7 @@
     "sidebar": "Main navigation visibility",
     "weather": "Weather on the Overview clock",
     "system": "Startup and tray behavior",
+    "shortcuts": "Rebind keyboard shortcuts",
     "scrobble": "Scrobble to Last.fm and ListenBrainz",
     "discord": "Discord integration settings",
     "updates": "Application update channel",
@@ -43,6 +44,7 @@
   "sidebar": "Sidebar",
   "weather": "Weather",
   "system": "System",
+  "shortcuts": "Shortcuts",
   "scrobble": "Scrobbling",
   "discord": "Discord",
   "updates": "Updates",
@@ -541,6 +543,35 @@
         "clock": "Clock",
         "vinyl": "Vinyl"
       },
+      "trackInfoTitle": "Track details",
+      "trackInfoDesc": "Which stages keep the title and artist on screen. Turn a stage off and its art stands alone.",
+      "timeOfDay": "Follow the day",
+      "timeOfDayDesc": "Dawn, day, dusk and night pick the stage on their own — a serif clock at first light, the cover by day, the record at dusk, thin numerals at night.",
+      "rotationTitle": "Rotate the stage",
+      "rotationDesc": "Quietly move to the next stage on its own.",
+      "rotation": {
+        "off": "Off",
+        "minutes": "Every few minutes",
+        "entry": "Each entry"
+      },
+      "rotationMinutesTitle": "Minutes between turns",
+      "rotationMinutesDesc": "How long each stage holds before the next takes over.",
+      "clockFaceTitle": "Clock face",
+      "clockFaceDesc": "How the numerals are drawn when the clock takes the stage.",
+      "clockFace": {
+        "minimal": "Minimal",
+        "serif": "Library",
+        "oversized": "Oversized"
+      },
+      "clockFormatTitle": "Hour format",
+      "clockFormatDesc": "Follow the app language, or force a 12- or 24-hour clock.",
+      "clockFormat": {
+        "system": "Language default",
+        "12h": "12-hour",
+        "24h": "24-hour"
+      },
+      "clockSeconds": "Show seconds",
+      "clockSecondsDesc": "Let the seconds tick along under the stillness.",
       "autoEnter": "Enter on its own",
       "autoEnterDesc": "After a stretch of stillness while music plays, your desk quietly becomes a lofi display. Any key or pointer move brings the app right back.",
       "minutesTitle": "Stillness before entering",
