@@ -217,6 +217,7 @@ export default function NowPlayingView() {
                   overlaySeq={companion.overlaySeq}
                   motion={companion.motion}
                   outfit={companion.outfit}
+                  accessories={companion.accessories}
                   size={64}
                 />
               </div>

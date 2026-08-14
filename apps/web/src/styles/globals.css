@@ -1397,3 +1397,29 @@
   opacity: 0.35;
   transition: fill 1.2s ease;
 }
+
+/* ── Keepsakes ───────────────────────────────────────────────────────────
+   Chosen accessory layers (one <g> per keepsake per rig), revealed by the
+   root's space-separated data-accessories — several may layer at once,
+   unlike the single-slot weather fit. Paints reuse the outfit palette
+   (companion-o-accent etc.) so keepsakes recolor with the theme too. */
+.companion-svg .companion-acc {
+  display: none;
+}
+.companion-svg[data-accessories~='beret'] .companion-a-beret,
+.companion-svg[data-accessories~='glasses'] .companion-a-glasses,
+.companion-svg[data-accessories~='satchel'] .companion-a-satchel,
+.companion-svg[data-accessories~='pendant'] .companion-a-pendant {
+  display: inline;
+}
+.companion-svg .companion-a-lens {
+  fill: rgb(var(--primary-rgb) / 0.07);
+  stroke: var(--companion-ink);
+  stroke-width: 1.3;
+  opacity: 0.75;
+}
+.companion-svg .companion-a-shell {
+  fill: color-mix(in srgb, rgb(var(--primary-rgb)) 45%, var(--companion-foam));
+  stroke: oklch(0.3 0.04 285 / 0.25);
+  stroke-width: 0.6;
+}

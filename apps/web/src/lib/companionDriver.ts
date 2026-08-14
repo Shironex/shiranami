@@ -158,7 +158,11 @@ function connectLedger(): void {
     .then(state => {
       const runtime = useCompanionRuntimeStore.getState();
       runtime.dispatch({ type: 'stage-sync', stage: state.stage });
-      runtime.setLedger({ name: state.name, xpHours: Math.floor(state.xp / 3600) });
+      runtime.setLedger({
+        name: state.name,
+        xpHours: Math.floor(state.xp / 3600),
+        accessories: state.accessories,
+      });
       // The ledger's species wins when present — the local store is the fallback.
       if (isCompanionSpecies(state.species)) {
         useCompanionStore.getState().setSpecies(state.species);

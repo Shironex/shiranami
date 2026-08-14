@@ -3,7 +3,16 @@ import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
 import { useCompanionLedger } from '@/hooks/useCompanionPresence';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
-import type { ICompanionSectionView, ICompanionSpeciesOption } from './CompanionSection.types';
+import {
+  COMPANION_ACCESSORIES,
+  isAccessoryUnlocked,
+  type CompanionAccessory,
+} from '@/lib/companionAccessories';
+import type {
+  ICompanionAccessoryOption,
+  ICompanionSectionView,
+  ICompanionSpeciesOption,
+} from './CompanionSection.types';
 
 /** Proper nouns and kanji — brand constants, never localized. */
 const SPECIES_META = [
@@ -28,6 +37,22 @@ export function useCompanionSection(): ICompanionSectionView {
     selected: ledger.species === meta.id,
   }));
 
+  // Keepsakes belong to the pet, not the species (they survive the switch),
+  // so the picker lives here and both previews wear the chosen set.
+  const accessoryOptions: ICompanionAccessoryOption[] = COMPANION_ACCESSORIES.map(meta => ({
+    id: meta.id,
+    label: t(`app.interface.companion.keepsake_${meta.id}`),
+    worn: ledger.accessories.includes(meta.id),
+    unlocked: isAccessoryUnlocked(meta.id, ledger.stage),
+  }));
+
+  const onToggleAccessory = (id: CompanionAccessory) => {
+    const next = ledger.accessories.includes(id)
+      ? ledger.accessories.filter(worn => worn !== id)
+      : [...ledger.accessories, id];
+    ledger.setAccessories(next);
+  };
+
   const activeName = ledger.name ?? (ledger.species === 'shio' ? 'Shio' : 'Hotaru');
 
   // Numbers live here and nowhere else — the pet itself is the progress bar.
@@ -49,6 +74,12 @@ export function useCompanionSection(): ICompanionSectionView {
     onToggleKeepsWatch: setKeepsWatch,
     dressForWeather,
     onToggleDressForWeather: setDressForWeather,
+    // The wardrobe needs the ledger — without it nothing would persist, so
+    // the row simply doesn't exist rather than pretending (browser dev).
+    showKeepsakes: ledger.hasBackend,
+    accessoryOptions,
+    onToggleAccessory,
+    accessories: ledger.accessories,
     stage: ledger.stage,
     motion,
     stageLine,

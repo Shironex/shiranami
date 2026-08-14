@@ -68,6 +68,7 @@ export default function SanctuaryView() {
         mode={chromeVisible ? companion.mode : 'sleeping'}
         motion={companion.motion}
         outfit={companion.outfit}
+        accessories={companion.accessories}
         size={72}
       />
     </div>
