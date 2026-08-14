@@ -28,10 +28,9 @@ import {
 import { useAccentStore } from '@/stores/useAccentStore';
 import {
   backgroundUrls,
-  useCustomBackgroundQuery,
-  usePickCustomBackground,
-  useClearCustomBackground,
-} from '@/hooks/queries/useCustomBackground';
+  useBackgroundLibraryQuery,
+  useEffectiveBackgroundEntry,
+} from '@/hooks/queries/useBackgroundLibrary';
 import { SUPPORTED_LANGUAGES, persistLanguage, type SupportedLanguage } from '@/lib/i18n';
 import type { IAppearanceSectionView } from './AppearanceSection.types';
 
@@ -52,13 +51,9 @@ export function useAppearanceSection(): IAppearanceSectionView {
   const bgFit = useThemeBgStore(s => s.bgFit);
   const setBgFit = useThemeBgStore(s => s.setBgFit);
   const resetBg = useThemeBgStore(s => s.resetBg);
-  const {
-    data: customBackground,
-    isError: customBackgroundFailed,
-    refetch: refetchCustomBackground,
-  } = useCustomBackgroundQuery();
-  const pickBackground = usePickCustomBackground();
-  const clearBackground = useClearCustomBackground();
+  const { isError: customBackgroundFailed, refetch: refetchCustomBackground } =
+    useBackgroundLibraryQuery();
+  const effectiveEntry = useEffectiveBackgroundEntry();
   const accentColor = useAccentStore(s => s.accentColor);
   const resetAccent = useAccentStore(s => s.resetAccent);
   const followArtAccent = useAccentStore(s => s.followArtAccent);
@@ -107,22 +102,16 @@ export function useAppearanceSection(): IAppearanceSectionView {
     theme,
     // `custom` unlocks the same adjust panel every other image theme gets, but
     // only once an image actually resolves: sliders over an empty background
-    // adjust nothing and read as broken.
-    // `!= null`, not `!== null`: `data` is `undefined` while the query is in
-    // flight and after it fails, and the strict form reads that as "yes there is
-    // one" — opening the adjust panel over a preview that correctly renders
-    // nothing, which is the broken-looking state this gate exists to prevent.
-    hasThemeBackground: isCustomTheme ? customBackground != null : theme !== 'none',
+    // adjust nothing and read as broken. The effective entry is `null` while
+    // the query is in flight, after it fails, and when the library is empty —
+    // all states where the panel would adjust nothing.
+    hasThemeBackground: isCustomTheme ? effectiveEntry !== null : theme !== 'none',
     onSelectTheme: setTheme,
 
     isCustomTheme,
-    customThumb: backgroundUrls(customBackground).url,
-    hasCustomBackground: customBackground != null,
-    isPickingBackground: pickBackground.isPending,
+    customThumb: backgroundUrls(effectiveEntry?.background).url,
     customBackgroundFailed,
     onRetryCustomBackground: () => void refetchCustomBackground(),
-    onPickBackground: () => pickBackground.mutate(),
-    onClearBackground: () => clearBackground.mutate(),
 
     isBgModified,
     bgOpacity,

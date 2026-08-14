@@ -3,7 +3,7 @@ import { within, expect } from 'storybook/test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
-import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
+import { backgroundLibraryKeys, libraryOfRecord } from '@/hooks/queries/useBackgroundLibrary';
 
 import ThemeBackgroundPreview from './ThemeBackgroundPreview';
 
@@ -29,7 +29,7 @@ const meta: Meta<typeof ThemeBackgroundPreview> = {
     // needs a client. Seeded empty: these stories all show bundled themes.
     Story => {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      client.setQueryData(customBackgroundKeys.current, null);
+      client.setQueryData(backgroundLibraryKeys.library, libraryOfRecord(null));
       return (
         <QueryClientProvider client={client}>
           <div className="max-w-[420px] p-4">

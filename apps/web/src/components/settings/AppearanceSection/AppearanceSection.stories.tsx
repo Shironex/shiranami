@@ -5,7 +5,7 @@ import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import { useAccentStore } from '@/stores/useAccentStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
+import { backgroundLibraryKeys, libraryOfRecord } from '@/hooks/queries/useBackgroundLibrary';
 
 import AppearanceSection from './AppearanceSection';
 
@@ -31,7 +31,7 @@ const meta: Meta<typeof AppearanceSection> = {
     // a client. Seeded empty; the Custom story overrides it.
     Story => {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      client.setQueryData(customBackgroundKeys.current, null);
+      client.setQueryData(backgroundLibraryKeys.library, libraryOfRecord(null));
       return (
         <QueryClientProvider client={client}>
           <div className="max-w-[680px] p-4">

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
+import { backgroundLibraryKeys, libraryOfRecord } from '@/hooks/queries/useBackgroundLibrary';
 import type { CustomBackground } from '@shiranami/contracts/bindings';
 
 import ThemeBackground from './ThemeBackground';
@@ -26,7 +26,7 @@ const ANIMATED: CustomBackground = {
 
 function renderWith(record: CustomBackground | null): HTMLElement {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(customBackgroundKeys.current, record);
+  client.setQueryData(backgroundLibraryKeys.library, libraryOfRecord(record));
   const ui: ReactElement = (
     <QueryClientProvider client={client}>
       <ThemeBackground />

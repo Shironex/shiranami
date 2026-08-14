@@ -1,9 +1,10 @@
-import { ImagePlus, Languages, Paintbrush, Palette, RotateCcw, Trash2 } from 'lucide-react';
+import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { BackgroundLibraryManager } from '@/components/settings/BackgroundLibraryManager';
 import { AccentPreview } from '@/components/settings/AccentPreview';
 import { UiScalePreview } from '@/components/settings/UiScalePreview';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
@@ -29,12 +30,8 @@ export default function AppearanceSection() {
     onSelectTheme,
     isCustomTheme,
     customThumb,
-    hasCustomBackground,
-    isPickingBackground,
     customBackgroundFailed,
     onRetryCustomBackground,
-    onPickBackground,
-    onClearBackground,
     isBgModified,
     bgOpacity,
     bgOpacityPercent,
@@ -180,35 +177,14 @@ export default function AppearanceSection() {
         <ThemeTileGrid value={theme} onSelect={onSelectTheme} customThumb={customThumb} />
 
         {isCustomTheme && (
-          <div className="mt-3 flex items-center gap-2 px-3">
-            {/* aria-disabled rather than disabled: a `disabled` button under the
-                user's focus leaves the a11y tree and blurs to <body>, and this
-                import runs for seconds on a large GIF — they would be tabbing
-                from the top of the document by the time it finished. */}
-            <button
-              type="button"
-              onClick={onPickBackground}
-              aria-disabled={isPickingBackground}
-              aria-busy={isPickingBackground}
-              aria-describedby="bg-format-hint"
-              className="flex items-center gap-1.5 rounded-lg border border-border/50 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-disabled:pointer-events-none aria-disabled:opacity-60"
-            >
-              <ImagePlus className="size-3.5" />
-              {hasCustomBackground ? t('app.background.replace') : t('app.background.choose')}
-            </button>
-            {hasCustomBackground && (
-              <button
-                type="button"
-                onClick={onClearBackground}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Trash2 className="size-3.5" />
-                {t('app.background.remove')}
-              </button>
-            )}
-            <p id="bg-format-hint" className="ml-auto text-[11px] text-muted-foreground">
-              {t('app.background.hint')}
-            </p>
+          <div className="mt-3 border-t border-border/40 pt-4">
+            <div className="mb-3 px-3">
+              <p className="text-sm font-medium text-foreground">
+                {t('app.background.library.title')}
+              </p>
+              <p className="text-xs text-muted-foreground">{t('app.background.library.desc')}</p>
+            </div>
+            <BackgroundLibraryManager />
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useThemeStore, CUSTOM_THEME } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
-import { backgroundUrls, useCustomBackgroundQuery } from '@/hooks/queries/useCustomBackground';
+import { backgroundUrls, useEffectiveBackgroundEntry } from '@/hooks/queries/useBackgroundLibrary';
 import type { IThemeBackgroundPreviewView } from './ThemeBackgroundPreview.types';
 
 /**
@@ -19,10 +19,10 @@ export function useThemeBackgroundPreview(): IThemeBackgroundPreviewView {
   const bgBlur = useThemeBgStore(s => s.bgBlur);
   const bgDim = useThemeBgStore(s => s.bgDim);
   const bgFit = useThemeBgStore(s => s.bgFit);
-  const { data: record } = useCustomBackgroundQuery();
+  const entry = useEffectiveBackgroundEntry();
 
   const isCustom = theme === CUSTOM_THEME;
-  const customUrl = isCustom ? backgroundUrls(record).url : null;
+  const customUrl = isCustom ? backgroundUrls(entry?.background).url : null;
   const hasBackground = isCustom ? customUrl !== null : theme !== 'none';
 
   return {

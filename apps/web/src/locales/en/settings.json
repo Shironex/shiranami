@@ -671,18 +671,44 @@
       "previewArtist": "Now playing over your background"
     },
     "background": {
-      "choose": "Choose an image…",
-      "replace": "Replace image…",
-      "remove": "Remove",
       "hint": "PNG, JPEG, WebP or GIF · up to 20 MB",
       "retry": "Try again",
+      "library": {
+        "title": "Saved backgrounds",
+        "desc": "Save a few scenes, then show your pick, rotate through them, or map them to the time of day.",
+        "add": "Add image…",
+        "defaultLabel": "Background {{n}}",
+        "unnamed": "Untitled",
+        "makeActive": "Show {{name}}",
+        "rename": "Rename {{name}}",
+        "remove": "Remove {{name}}",
+        "full": "The library is full — remove an image to add another.",
+        "modeTitle": "Which image shows",
+        "modeDesc": "Your pick, an automatic rotation, or a time-of-day schedule.",
+        "modes": {
+          "single": "My pick",
+          "rotation": "Rotation",
+          "timeOfDay": "Time of day"
+        },
+        "intervalTitle": "Rotate",
+        "intervalDesc": "How often the rotation moves to the next saved image.",
+        "intervals": {
+          "launch": "Every launch",
+          "hourly": "Every hour",
+          "daily": "Every day"
+        },
+        "scheduleTitle": "Time-of-day scenes",
+        "scheduleDesc": "Give each part of the day its own image — the same day cycle Room light follows. Times without one show your pick.",
+        "scheduleFallback": "My pick"
+      },
       "errors": {
         "tooLarge": "That image is too large. Pick one under 20 MB.",
         "unsupportedFormat": "That file type is not supported. Use a PNG, JPEG, WebP or GIF.",
         "notAnImage": "That file is not the image its name claims to be.",
         "dimensionsTooLarge": "That image is too big to display. Its longest edge must be under 8192 pixels.",
+        "libraryFull": "The background library holds up to 12 images. Remove one first.",
         "generic": "The background could not be changed.",
-        "readFailed": "Could not read the current background."
+        "readFailed": "Could not read your saved backgrounds."
       }
     }
   },

@@ -21,9 +21,9 @@ export const THEME_IDS: readonly ThemeId[] = [
  * apply to it. The cost is that a custom image and a bundled theme are
  * alternatives, not a stack.
  *
- * It is the one theme whose selection can be *invalid*: the record naming the
- * file lives in the settings document, and the file itself can be gone. See
- * `useCustomBackground`, which reconciles the two on first read.
+ * It is the one theme whose selection can be *invalid*: the records naming the
+ * files live in the settings document, and the files themselves can be gone.
+ * See `useBackgroundLibrary`, which reconciles the two on first read.
  */
 export const CUSTOM_THEME: ThemeId = 'custom';
 

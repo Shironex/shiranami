@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUIStore } from '@/stores/useUIStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useAccentStore } from '@/stores/useAccentStore';
-import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
+import { backgroundLibraryKeys, libraryOfRecord } from '@/hooks/queries/useBackgroundLibrary';
 import type { CustomBackground } from '@shiranami/contracts/bindings';
 
 import AppearanceSection from './AppearanceSection';
@@ -25,7 +25,7 @@ const IMPORTED: CustomBackground = {
 
 function renderSection(record: CustomBackground | null = null): void {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(customBackgroundKeys.current, record);
+  client.setQueryData(backgroundLibraryKeys.library, libraryOfRecord(record));
   const ui: ReactElement = (
     <QueryClientProvider client={client}>
       <AppearanceSection />
@@ -64,26 +64,28 @@ describe('AppearanceSection', () => {
     expect(setUiScale).toHaveBeenCalledWith(120);
   });
 
-  it('offers the picker only once the custom theme is selected', () => {
+  it('offers the saved-background library only once the custom theme is selected', () => {
     renderSection();
-    expect(screen.queryByRole('button', { name: /Choose an image/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Saved backgrounds')).not.toBeInTheDocument();
   });
 
-  it('offers the picker when the custom theme is selected', () => {
+  it('offers the saved-background library when the custom theme is selected', () => {
     useThemeStore.setState({ theme: 'custom' });
 
     renderSection();
 
-    expect(screen.getByRole('button', { name: /Choose an image/ })).toBeInTheDocument();
+    expect(screen.getByText('Saved backgrounds')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add image/ })).toBeInTheDocument();
   });
 
-  it('offers replace and remove once an image is imported', () => {
+  it('shows a saved entry as a tile once one exists', () => {
     useThemeStore.setState({ theme: 'custom' });
 
     renderSection(IMPORTED);
 
-    expect(screen.getByRole('button', { name: /Replace image/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Remove/ })).toBeInTheDocument();
+    // The migrated single image arrives unlabelled; the tile shows the
+    // localized fallback name and is the active pick.
+    expect(screen.getByRole('button', { name: 'Show Untitled' })).toBeInTheDocument();
   });
 
   it('offers the fit toggle only for an imported image', () => {
