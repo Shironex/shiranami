@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within, expect } from 'storybook/test';
 
 import NamingCeremony from './NamingCeremony';
+import { ensureCompanionDriver } from '@/lib/companionDriver';
 import { createCompanionState } from '@/lib/companionMachine';
 import { useCompanionRuntimeStore } from '@/stores/useCompanionRuntimeStore';
 import { useCompanionStore } from '@/stores/useCompanionStore';
@@ -18,6 +19,10 @@ const meta: Meta<typeof NamingCeremony> = {
   component: NamingCeremony,
   loaders: [
     async () => {
+      // Start the driver before seeding state: its ledger probe (absent in
+      // Storybook) writes hasBackend=false on first start, and this loader's
+      // seed must be what the mounted story actually reads.
+      ensureCompanionDriver();
       useInterfaceStore.setState({ companion: true });
       useCompanionStore.setState({ species: 'shio', namingCeremonyDone: false });
       useCompanionRuntimeStore.setState({
