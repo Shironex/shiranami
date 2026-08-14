@@ -304,9 +304,13 @@ export default function NowPlayingView() {
                         plain={lyrics.plain}
                         activeLine={lyrics.activeLine}
                         isLoading={lyrics.isLoading}
+                        isError={lyrics.isError}
                         onLineClick={lyrics.handleLineClick}
+                        onRetry={lyrics.retry}
                         loadingLabel={t('findingLyrics')}
                         emptyLabel={t('noLyrics')}
+                        errorLabel={t('lyricsError')}
+                        retryLabel={t('retry', { ns: 'common' })}
                         syncedDimOpacity={lyricsSyncedDimOpacity}
                         plainOpacity={lyricsPlainOpacity}
                         syncedWrapperClassName="contents"
@@ -319,7 +323,7 @@ export default function NowPlayingView() {
                         syncedIdleClassName={lyricsClasses.syncedIdle}
                         plainContainerClassName="pr-2 @3xl:pr-4"
                         plainTextClassName={lyricsClasses.plainText}
-                        emptyClassName="text-muted-foreground/25"
+                        emptyClassName="text-muted-foreground/60"
                       />
                     )}
                   </>

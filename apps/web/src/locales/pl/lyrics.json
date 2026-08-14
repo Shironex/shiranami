@@ -2,6 +2,7 @@
   "title": "Tekst piosenki",
   "finding": "Szukam tekstu...",
   "notFound": "Nie znaleziono tekstu",
+  "error": "Nie udało się wczytać tekstu",
   "sourceLocal": "Lokalny",
   "sourceEmbedded": "Osadzony",
   "sourceLrclib": "LRCLIB",

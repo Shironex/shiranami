@@ -29,6 +29,7 @@ vi.mock('@/hooks/useLyricsView', () => ({
     activeLine: 1,
     isLoading: false,
     isError: false,
+    retry: vi.fn(),
     handleLineClick: vi.fn(),
   }),
 }));

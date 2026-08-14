@@ -82,3 +82,13 @@ export const VIEW_TRANSITION = {
   exit: { opacity: 0, y: -6 },
   transition: { duration: 0.16, ease: EASE_OUT_SOFT },
 };
+
+/**
+ * Docked side-panel enter/exit — a gentle fade + short slide from the panel's
+ * docked edge. Use with AnimatePresence around the mount site and negate the
+ * offset when docked left; width stays static (the resize handle owns it) so
+ * only the panel itself glides. Skip under reduced motion (render without the
+ * motion props).
+ */
+export const PANEL_SLIDE_OFFSET = 24;
+export const PANEL_TRANSITION = { duration: 0.18, ease: EASE_OUT_SOFT };

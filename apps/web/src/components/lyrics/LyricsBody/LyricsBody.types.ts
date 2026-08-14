@@ -6,12 +6,20 @@ export interface ILyricsBodyProps {
   readonly plain: string | null;
   readonly activeLine: number;
   readonly isLoading: boolean;
+  /** The lyrics fetch failed — render the error branch (unless lyrics exist). */
+  readonly isError: boolean;
   readonly onLineClick: (time: number) => void;
+  /** Re-run the failed fetch from the error branch's Retry action. */
+  readonly onRetry: () => void;
 
   /** Label shown in the loading branch. */
   readonly loadingLabel: string;
   /** Label shown in the empty branch. */
   readonly emptyLabel: string;
+  /** Label shown in the error branch. */
+  readonly errorLabel: string;
+  /** Label for the error branch's Retry action. */
+  readonly retryLabel: string;
 
   /** Dynamic opacity for idle/past synced lines (drives the CSS vars). */
   readonly syncedDimOpacity: number;

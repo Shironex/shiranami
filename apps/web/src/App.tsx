@@ -420,7 +420,9 @@ function App() {
                           : undefined,
                     }}
                   >
-                    {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    </AnimatePresence>
 
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -532,7 +534,9 @@ function App() {
                       </AnimatePresence>
                     </div>
 
-                    {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    </AnimatePresence>
 
                     {showVisualizerStrip && <VisualizerStrip />}
                   </main>

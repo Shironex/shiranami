@@ -2,6 +2,7 @@
   "title": "Lyrics",
   "finding": "Finding lyrics...",
   "notFound": "No lyrics found",
+  "error": "Couldn't load lyrics",
   "sourceLocal": "Local",
   "sourceEmbedded": "Embedded",
   "sourceLrclib": "LRCLIB",
