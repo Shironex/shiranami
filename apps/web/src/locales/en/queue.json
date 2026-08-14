@@ -1,6 +1,9 @@
 {
   "title": "Queue",
-  "clear": "Clear",
+  "clear": "Clear queue",
+  "clearConfirm": "Clear the queue? Playback will stop and all tracks will be removed.",
+  "clearConfirmAction": "Clear queue",
+  "keep": "Keep",
   "emptyTitle": "Queue is empty",
   "emptySubtitle": "Tracks you queue up will appear here.",
   "nowPlaying": "Now Playing",

@@ -46,8 +46,14 @@ export interface IQueuePanelView {
   readonly activeTrack: Track | null;
   /** dnd-kit sensors (pointer + keyboard). */
   readonly sensors: SensorDescriptor<SensorOptions>[];
-  /** Clear the entire queue. */
-  readonly onClear: () => void;
+  /** Whether the clear-queue confirm popover is open. */
+  readonly showClearConfirm: boolean;
+  /** Open/close the clear-queue confirm popover. */
+  readonly onClearConfirmOpenChange: (open: boolean) => void;
+  /** Confirm the destructive clear (empties the queue, closes the popover). */
+  readonly onConfirmClear: () => void;
+  /** Dismiss the confirm popover without clearing. */
+  readonly onCancelClear: () => void;
   /** Play (or toggle) the track at the given queue index. */
   readonly onPlayIndex: (index: number) => void;
   /** Remove the track at the given queue index. */

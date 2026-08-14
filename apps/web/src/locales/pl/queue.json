@@ -1,6 +1,9 @@
 {
   "title": "Kolejka",
-  "clear": "Wyczyść",
+  "clear": "Wyczyść kolejkę",
+  "clearConfirm": "Wyczyścić kolejkę? Odtwarzanie zostanie zatrzymane, a wszystkie utwory usunięte.",
+  "clearConfirmAction": "Wyczyść kolejkę",
+  "keep": "Zachowaj",
   "emptyTitle": "Kolejka jest pusta",
   "emptySubtitle": "Utwory dodane do kolejki pojawią się tutaj.",
   "nowPlaying": "Teraz odtwarzane",

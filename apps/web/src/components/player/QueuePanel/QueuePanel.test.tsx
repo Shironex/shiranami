@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReactNode } from 'react';
 import type { Track } from '@/stores/types';
 
 import QueuePanel from './QueuePanel';
@@ -40,6 +41,13 @@ vi.mock('react-i18next', () => ({
     t: (key: string, opts?: Record<string, unknown>) =>
       opts && 'count' in opts ? `${key}:${opts.count}` : key,
   }),
+}));
+
+// Radix tooltips need a provider; pass the trigger child straight through.
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: () => null,
 }));
 
 function setQueueState(tracks: Track[], index: number): void {
@@ -84,12 +92,26 @@ describe('QueuePanel', () => {
     expect(screen.getByText('upNext:2')).toBeInTheDocument();
   });
 
-  it('clears the queue from the header action', async () => {
+  it('clears the queue only after confirming the destructive popover', async () => {
     setQueueState([makeTrack({ id: 'q0', title: 'Now' })], 0);
     render(<QueuePanel />);
 
-    await userEvent.click(screen.getByText('clear'));
+    await userEvent.click(screen.getByRole('button', { name: 'clear' }));
+    expect(playbackState.clearQueue).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'clearConfirmAction' }));
     expect(playbackState.clearQueue).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the queue when the confirm popover is dismissed', async () => {
+    setQueueState([makeTrack({ id: 'q0', title: 'Now' })], 0);
+    render(<QueuePanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'keep' }));
+
+    expect(playbackState.clearQueue).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'clearConfirmAction' })).not.toBeInTheDocument();
   });
 
   it('renders the header action passed via props', () => {

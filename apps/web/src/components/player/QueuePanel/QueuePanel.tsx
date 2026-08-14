@@ -1,6 +1,9 @@
 import { Trash2, Music } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { IconButton } from '@/components/ui/icon-button';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ViewEmptyState } from '@/components/shared/ViewEmptyState';
 import { SortableQueueRow, DragOverlayContent, QueueItem } from '../QueueRow';
 import { useQueuePanel } from './QueuePanel.hooks';
@@ -18,7 +21,10 @@ export default function QueuePanel(props: IQueuePanelProps) {
     sortableIds,
     activeTrack,
     sensors,
-    onClear,
+    showClearConfirm,
+    onClearConfirmOpenChange,
+    onConfirmClear,
+    onCancelClear,
     onPlayIndex,
     onRemove,
     onDragStart,
@@ -42,19 +48,44 @@ export default function QueuePanel(props: IQueuePanelProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
+      <div className="px-5 py-2 min-h-[49px] border-b border-border/20 shrink-0 flex items-center justify-between">
         <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">
           {t('title')}
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
           {hasQueue && (
-            <button
-              onClick={onClear}
-              className="focus-ring rounded-sm flex items-center gap-1 text-[10px] font-medium text-muted-foreground/40 hover:text-destructive transition-colors"
-            >
-              <Trash2 className="w-3 h-3" />
-              {t('clear')}
-            </button>
+            <Popover open={showClearConfirm} onOpenChange={onClearConfirmOpenChange}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <IconButton
+                      aria-label={t('clear')}
+                      className="hover:bg-destructive/15 hover:text-destructive"
+                    >
+                      <Trash2 />
+                    </IconButton>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t('clear')}</TooltipContent>
+              </Tooltip>
+              <PopoverContent align="end" className="w-64">
+                <p className="text-xs text-foreground/80 mb-2">{t('clearConfirm')}</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onConfirmClear}
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
+                  >
+                    {t('clearConfirmAction')}
+                  </button>
+                  <button
+                    onClick={onCancelClear}
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    {t('keep')}
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
           {headerAction}
         </div>

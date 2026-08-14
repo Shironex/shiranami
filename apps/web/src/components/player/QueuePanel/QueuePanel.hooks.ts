@@ -101,6 +101,19 @@ export function useQueuePanel(props: IQueuePanelProps = {}): IQueuePanelView {
     setActiveId(null);
   }, []);
 
+  // Clearing stops playback and drops every track — destructive enough to gate
+  // behind the same popover-confirm pattern DownloadsView uses for Cancel all.
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  const onConfirmClear = useCallback(() => {
+    clearQueue();
+    setShowClearConfirm(false);
+  }, [clearQueue]);
+
+  const onCancelClear = useCallback(() => {
+    setShowClearConfirm(false);
+  }, []);
+
   return {
     t,
     headerAction,
@@ -112,7 +125,10 @@ export function useQueuePanel(props: IQueuePanelProps = {}): IQueuePanelView {
     sortableIds,
     activeTrack,
     sensors,
-    onClear: clearQueue,
+    showClearConfirm,
+    onClearConfirmOpenChange: setShowClearConfirm,
+    onConfirmClear,
+    onCancelClear,
     onPlayIndex,
     onRemove,
     onDragStart,
