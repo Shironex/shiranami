@@ -29,7 +29,7 @@ export default function LyricsPanel({ headerAction }: ILyricsPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-3.5 border-b border-border/20 shrink-0 flex items-center justify-between">
+      <div className="px-5 py-2 min-h-[49px] border-b border-border/20 shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             {t('title')}
