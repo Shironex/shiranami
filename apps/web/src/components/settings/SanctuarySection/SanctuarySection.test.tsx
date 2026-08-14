@@ -25,6 +25,15 @@ describe('SanctuarySection', () => {
     expect(screen.getByText('Sanctuary Mode')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cover' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Clock' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Vinyl' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('selects the vinyl variant through its chip', () => {
+    render(<SanctuarySection />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vinyl' }));
+
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('vinyl');
   });
 
   it('selects the clock variant through its chip', () => {

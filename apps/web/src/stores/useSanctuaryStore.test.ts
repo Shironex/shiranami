@@ -80,6 +80,12 @@ describe('useSanctuaryStore', () => {
     );
   });
 
+  it('accepts and persists the vinyl variant', () => {
+    useSanctuaryStore.getState().setSanctuaryVariant('vinyl');
+    expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('vinyl');
+    expect(readPersisted().sanctuaryVariant).toBe('vinyl');
+  });
+
   it('coerces a malformed variant back to the default', () => {
     useSanctuaryStore.getState().setSanctuaryVariant('spiral' as never);
     expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('cover');

@@ -10,7 +10,7 @@ export interface ISanctuarySectionView {
   readonly title: string;
   readonly subtitle: string;
 
-  /** Center-stage picker (cover / clock). */
+  /** Center-stage picker (cover / clock / vinyl). */
   readonly variantTitle: string;
   readonly variantDescription: string;
   readonly variantOptions: readonly ISanctuaryVariantOption[];
