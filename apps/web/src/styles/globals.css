@@ -353,6 +353,67 @@
   animation: splash-sweep 1.4s ease-in-out infinite;
 }
 
+/* Vinyl record display — the disc revolves once per 1.8s (33⅓ RPM) on a
+   composited transform layer. The 1px transform-origin offset gives the
+   pressing a subtle wobble for free. Pausing eases the animation's playback
+   rate to zero instead of removing it, so the groove angle never resets.
+   Decorative — killed under reduced-motion / low-perf below. */
+@keyframes vinyl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.vinyl-spin {
+  transform-origin: calc(50% + 1px) calc(50% - 1px);
+  animation: vinyl-spin 1.8s linear infinite;
+  will-change: transform;
+}
+
+/* The pressing itself: a dark disc with grooves cut by a repeating radial
+   gradient over a soft edge-darkened base, plus an off-center pressing gleam. */
+.vinyl-disc {
+  background:
+    radial-gradient(circle at 32% 28%, oklch(1 0 0 / 0.05), transparent 46%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      oklch(0.17 0.02 285) 0px,
+      oklch(0.11 0.015 285) 2px,
+      oklch(0.16 0.02 285) 4px
+    ),
+    radial-gradient(circle, oklch(0.19 0.03 290) 28%, oklch(0.09 0.02 290) 100%);
+  box-shadow:
+    inset 0 0 18px oklch(0 0 0 / 0.55),
+    0 10px 36px oklch(0 0 0 / 0.45);
+}
+
+/* Static (non-rotating) light sheen over the disc — the room's reflection
+   stays put while the record turns underneath it. */
+.vinyl-sheen {
+  background: conic-gradient(
+    from 205deg,
+    transparent 0deg,
+    oklch(1 0 0 / 0.07) 24deg,
+    transparent 58deg,
+    transparent 172deg,
+    oklch(1 0 0 / 0.045) 205deg,
+    transparent 242deg
+  );
+}
+
+/* The center label backing — a pressed paper disc tinted by the accent. */
+.vinyl-label {
+  background: radial-gradient(
+    circle at 38% 32%,
+    oklch(from var(--primary) calc(l + 0.08) c h),
+    oklch(from var(--primary) calc(l - 0.18) c h)
+  );
+}
+
+/* Reduced-motion / low-perf stand-in for the reactive ring: a calm fixed halo. */
+.vinyl-static-ring {
+  box-shadow: 0 0 28px 6px oklch(from var(--primary) l c h / 0.28);
+}
+
 /* Splash degradation — collapse every animated scene layer to a static still
    under reduced-motion OR low-performance mode. Steam + streaks have no
    meaningful static state → hidden; lights / LED / sweep go static; the loader
@@ -401,7 +462,8 @@
   .companion-sleep-breathe,
   .companion-idle-float,
   .companion-idle-blink,
-  .companion-bub-drift {
+  .companion-bub-drift,
+  .vinyl-spin {
     animation: none !important;
   }
   .animate-marquee {
@@ -430,6 +492,10 @@
 /* Drop the cup drop-shadow filter under low-perf (compositor cost). */
 [data-perf-mode='low'] .splash-cup-shadow {
   filter: none !important;
+}
+/* Freeze the vinyl disc under low-perf (mirrors the reduced-motion kill). */
+[data-perf-mode='low'] .vinyl-spin {
+  animation: none !important;
 }
 
 /* Midnight Lofi Cafe Theme */

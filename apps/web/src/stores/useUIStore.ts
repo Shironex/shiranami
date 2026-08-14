@@ -1,6 +1,6 @@
 import { clamp } from '@shiranami/shared';
 import { arrayMove } from '@/lib/array';
-import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
+import { createPersistedStore, coerceEnum, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView, type PlayerSidePanel } from '@/stores/useViewStore';
 import {
   ALWAYS_VISIBLE_SIDEBAR_ITEMS,
@@ -42,6 +42,24 @@ export const VISUALIZER_STYLE_VALUES = [
   'vu',
   'kanji',
 ] as const satisfies readonly VisualizerStyle[];
+
+/** What the vinyl record's center label shows. */
+export type VinylLabelSource = 'artwork' | 'logo';
+/** The audio-reactive ring drawn around the vinyl disc. */
+export type VinylRingStyle = 'off' | 'glow' | 'spectrum';
+
+export const VINYL_LABEL_SOURCES = [
+  'artwork',
+  'logo',
+] as const satisfies readonly VinylLabelSource[];
+export const VINYL_RING_STYLES = [
+  'off',
+  'glow',
+  'spectrum',
+] as const satisfies readonly VinylRingStyle[];
+
+export const VINYL_LABEL_SOURCE_DEFAULT: VinylLabelSource = 'artwork';
+export const VINYL_RING_STYLE_DEFAULT: VinylRingStyle = 'glow';
 
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
@@ -157,6 +175,9 @@ interface PersistedUIState {
   tempoBreathingEnabled: boolean;
   artworkBloomEnabled: boolean;
   coverCrossfadeEnabled: boolean;
+  vinylDisplayEnabled: boolean;
+  vinylLabelSource: VinylLabelSource;
+  vinylRingStyle: VinylRingStyle;
   landingView: LandingView;
 }
 
@@ -218,6 +239,20 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.artworkBloomEnabled = persisted.artworkBloomEnabled;
   if (typeof persisted.coverCrossfadeEnabled === 'boolean')
     out.coverCrossfadeEnabled = persisted.coverCrossfadeEnabled;
+  if (typeof persisted.vinylDisplayEnabled === 'boolean')
+    out.vinylDisplayEnabled = persisted.vinylDisplayEnabled;
+  if (persisted.vinylLabelSource !== undefined)
+    out.vinylLabelSource = coerceEnum(
+      persisted.vinylLabelSource,
+      VINYL_LABEL_SOURCES,
+      VINYL_LABEL_SOURCE_DEFAULT
+    );
+  if (persisted.vinylRingStyle !== undefined)
+    out.vinylRingStyle = coerceEnum(
+      persisted.vinylRingStyle,
+      VINYL_RING_STYLES,
+      VINYL_RING_STYLE_DEFAULT
+    );
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -250,6 +285,9 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'tempoBreathingEnabled',
   'artworkBloomEnabled',
   'coverCrossfadeEnabled',
+  'vinylDisplayEnabled',
+  'vinylLabelSource',
+  'vinylRingStyle',
   'landingView',
 ]);
 
@@ -393,6 +431,14 @@ interface UIState {
   tempoBreathingEnabled: boolean;
   artworkBloomEnabled: boolean;
   coverCrossfadeEnabled: boolean;
+  /**
+   * Vinyl record display: swap the Now Playing artwork card for a spinning
+   * vinyl disc. The label source and reactive ring below only matter while
+   * this master gate is on (the Sanctuary vinyl variant also honors them).
+   */
+  vinylDisplayEnabled: boolean;
+  vinylLabelSource: VinylLabelSource;
+  vinylRingStyle: VinylRingStyle;
   landingView: LandingView;
 }
 
@@ -407,6 +453,9 @@ interface UIActions {
   setTempoBreathingEnabled: (enabled: boolean) => void;
   setArtworkBloomEnabled: (enabled: boolean) => void;
   setCoverCrossfadeEnabled: (enabled: boolean) => void;
+  setVinylDisplayEnabled: (enabled: boolean) => void;
+  setVinylLabelSource: (source: VinylLabelSource) => void;
+  setVinylRingStyle: (style: VinylRingStyle) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -453,6 +502,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     tempoBreathingEnabled: true,
     artworkBloomEnabled: true,
     coverCrossfadeEnabled: true,
+    vinylDisplayEnabled: false,
+    vinylLabelSource: VINYL_LABEL_SOURCE_DEFAULT,
+    vinylRingStyle: VINYL_RING_STYLE_DEFAULT,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -486,6 +538,17 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setCoverCrossfadeEnabled: enabled => {
       set({ coverCrossfadeEnabled: enabled });
+    },
+    setVinylDisplayEnabled: enabled => {
+      set({ vinylDisplayEnabled: enabled });
+    },
+    setVinylLabelSource: source => {
+      set({
+        vinylLabelSource: coerceEnum(source, VINYL_LABEL_SOURCES, VINYL_LABEL_SOURCE_DEFAULT),
+      });
+    },
+    setVinylRingStyle: style => {
+      set({ vinylRingStyle: coerceEnum(style, VINYL_RING_STYLES, VINYL_RING_STYLE_DEFAULT) });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -582,6 +645,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         tempoBreathingEnabled: s.tempoBreathingEnabled,
         artworkBloomEnabled: s.artworkBloomEnabled,
         coverCrossfadeEnabled: s.coverCrossfadeEnabled,
+        vinylDisplayEnabled: s.vinylDisplayEnabled,
+        vinylLabelSource: s.vinylLabelSource,
+        vinylRingStyle: s.vinylRingStyle,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

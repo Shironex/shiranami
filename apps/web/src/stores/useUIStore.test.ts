@@ -240,6 +240,67 @@ describe('visual-effect gates (artworkBloomEnabled / coverCrossfadeEnabled)', ()
   });
 });
 
+describe('vinyl display settings (vinylDisplayEnabled / vinylLabelSource / vinylRingStyle)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to a disabled display with artwork label and glow ring', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(false);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+
+  it('persists all three setters to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylDisplayEnabled(true);
+    store.getState().setVinylLabelSource('logo');
+    store.getState().setVinylRingStyle('spectrum');
+
+    expect(readPersisted().vinylDisplayEnabled).toBe(true);
+    expect(readPersisted().vinylLabelSource).toBe('logo');
+    expect(readPersisted().vinylRingStyle).toBe('spectrum');
+  });
+
+  it('round-trips persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { vinylDisplayEnabled: true, vinylLabelSource: 'logo', vinylRingStyle: 'off' },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(true);
+    expect(store.getState().vinylLabelSource).toBe('logo');
+    expect(store.getState().vinylRingStyle).toBe('off');
+  });
+
+  it('coerces garbage back to the defaults on load', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { vinylDisplayEnabled: 'yes', vinylLabelSource: 'hologram', vinylRingStyle: 42 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(false);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+
+  it('setters reject unknown enum values', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylLabelSource('hologram' as never);
+    store.getState().setVinylRingStyle('laser' as never);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+});
+
 describe('coerceVisualizerStyle (persist merge path)', () => {
   const ALL_STYLES = [
     'bars',

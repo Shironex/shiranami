@@ -477,6 +477,21 @@
     "sidebarResetDesc": "Przywróć domyślną kolejność i widoczność elementów",
     "nowPlayingView": "Widok Teraz odtwarzane",
     "nowPlayingViewDesc": "Kliknij dwukrotnie okładkę na pasku odtwarzacza lub karcie 'Teraz odtwarzane', albo naciśnij Ctrl+Shift+P, aby otworzyć widok pełnoekranowy",
+    "vinylDisplay": "Płyta winylowa",
+    "vinylDisplayDesc": "Zamienia okładkę w widoku Teraz odtwarzane na wolno wirującą płytę winylową. Tryb sanktuarium zyskuje też scenę z winylem.",
+    "vinylDisplayLabelTitle": "Etykieta płyty",
+    "vinylDisplayLabelDesc": "Co pokazuje środkowa etykieta płyty: okładkę albumu albo znak 白波.",
+    "vinylDisplayLabel": {
+      "artwork": "Okładka",
+      "logo": "Znak marki"
+    },
+    "vinylRingTitle": "Reaktywny pierścień",
+    "vinylRingDesc": "Świetlny pierścień wokół płyty podążający za muzyką: spokojna poświata, widmo słupków albo nic.",
+    "vinylRing": {
+      "off": "Wyłączony",
+      "glow": "Poświata",
+      "spectrum": "Widmo"
+    },
     "libraryHeroCard": "Baner odtwarzanego utworu",
     "libraryHeroCardDesc": "Pokazuj dużą kartę nad Biblioteką i Ulubionymi. Wyłącz, aby zyskać więcej miejsca na albumy. Pasek odtwarzacza i tak pokazuje informacje o utworze.",
     "lowPerfMode": "Tryb niskiej wydajności",
@@ -498,10 +513,11 @@
       "title": "Tryb sanktuarium",
       "desc": "Naciśnij F podczas odtwarzania: aplikacja rozpływa się w pełnoekranowy odtwarzacz — okładka, tekst i światło.",
       "variantTitle": "Na środku sceny",
-      "variantDesc": "Co wypełnia ekran: okładka płyty albo duży zegar z utworem poniżej.",
+      "variantDesc": "Co wypełnia ekran: okładka płyty, wirujący winyl albo duży zegar z utworem poniżej.",
       "variant": {
         "cover": "Okładka",
-        "clock": "Zegar"
+        "clock": "Zegar",
+        "vinyl": "Winyl"
       },
       "autoEnter": "Uruchamiaj samoczynnie",
       "autoEnterDesc": "Po chwili bezruchu podczas odtwarzania biurko cicho zamienia się w lofi ekran. Dowolny klawisz lub ruch myszy natychmiast przywraca aplikację.",
@@ -519,7 +535,8 @@
       "full": "Pełne",
       "noise": "Podgląd szumu",
       "noiseOn": "Tekstura włączona",
-      "noiseOff": "Tekstura wyłączona"
+      "noiseOff": "Tekstura wyłączona",
+      "vinyl": "Podgląd winylu"
     },
     "sectionsAriaLabel": "Sekcje ustawień",
     "theme": {
