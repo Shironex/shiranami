@@ -470,6 +470,32 @@
       "glow": "Glow",
       "spectrum": "Spectrum"
     },
+    "vinylSpeedTitle": "Rotation speed",
+    "vinylSpeedDesc": "How fast the platter turns — each choice spins at its real RPM: a slow long-play, a lively single, or an old shellac 78.",
+    "vinylSpeed": {
+      "33": "33⅓ RPM",
+      "45": "45 RPM",
+      "78": "78 RPM"
+    },
+    "vinylFinishTitle": "Disc finish",
+    "vinylFinishDesc": "The pressing itself: classic black, a translucent clear disc, an accent-tinted marble swirl, or a picture disc with the album art across the whole face.",
+    "vinylFinish": {
+      "black": "Black",
+      "clear": "Clear",
+      "marble": "Marble",
+      "picture": "Picture disc"
+    },
+    "vinylSizeTitle": "Disc size",
+    "vinylSizeDesc": "How much of each stage the record fills — chosen separately for the Now Playing view and Sanctuary Mode.",
+    "vinylSizeNowPlaying": "Now Playing",
+    "vinylSizeSanctuary": "Sanctuary",
+    "vinylSize": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "vinylTonearm": "Tonearm",
+    "vinylTonearmDesc": "A tonearm rests on the record while it plays and lifts away when paused.",
     "libraryHeroCard": "Now playing banner",
     "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room. The player bar still shows track info.",
     "lowPerfMode": "Low performance mode",
