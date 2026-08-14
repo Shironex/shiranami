@@ -132,7 +132,9 @@ export default function SleepTimer() {
                 aria-label={t('customLabel')}
                 className="h-8 rounded-lg bg-accent/40 border-border/50 px-2.5 placeholder:text-muted-foreground/50 focus-visible:ring-primary/40"
               />
-              {customError && <p className="text-[10px] text-red-400 px-1">{t('customError')}</p>}
+              {customError && (
+                <p className="text-[10px] text-destructive px-1">{t('customError')}</p>
+              )}
               <div className="flex gap-1.5">
                 <button
                   onClick={onCustomSubmit}
@@ -153,7 +155,7 @@ export default function SleepTimer() {
           {isActive && (
             <button
               onClick={onCancel}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               {t('cancelTimer')}
             </button>

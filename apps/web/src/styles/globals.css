@@ -23,6 +23,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -573,6 +577,14 @@
   --border-strong: oklch(1 0 0 / 0.18);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
+
+  /* Semantic status accents — success / warning / info. Deliberately fixed
+     across every theme (theme blocks restyle only the primary accent), so a
+     status color always reads the same no matter which theme is active. */
+  --success: oklch(0.765 0.177 163);
+  --warning: oklch(0.828 0.189 84);
+  --warning-foreground: oklch(0.1 0.02 280);
+  --info: oklch(0.746 0.16 233);
   --input: oklch(0.12 0.02 280);
   --ring: oklch(0.72 0.12 280);
 
@@ -589,9 +601,10 @@
   /* RGB triplet of --primary for canvas/inline usage */
   --primary-rgb: 155, 125, 235;
 
-  /* RGB triplets for semantic status accents (badge shadows, callouts) */
-  --status-warning-rgb: 252, 211, 77;
-  --status-success-rgb: 110, 231, 183;
+  /* RGB triplets mirroring --warning / --success for rgba() shadow usage
+     (inset badge highlights). Keep in sync with the status tokens above. */
+  --status-warning-rgb: 251, 191, 36;
+  --status-success-rgb: 52, 211, 153;
 }
 
 /* ── Theme image + per-theme accent ──────────────────────────────────────

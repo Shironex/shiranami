@@ -21,13 +21,13 @@ export default function LowPerformancePreview(props: ILowPerformancePreviewProps
         <div className="mx-auto max-w-[340px] rounded-xl border border-border/25 bg-surface/60 p-3">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-foreground">
-              <Zap className={cn('size-3.5', enabled ? 'text-amber-300' : 'text-primary')} />
+              <Zap className={cn('size-3.5', enabled ? 'text-warning' : 'text-primary')} />
               <span>{statusLabel}</span>
             </div>
             <div
               className={cn(
                 'rounded-full px-2 py-0.5 text-[10px]',
-                enabled ? 'bg-amber-500/15 text-amber-200' : 'bg-primary/15 text-primary'
+                enabled ? 'bg-warning/15 text-warning' : 'bg-primary/15 text-primary'
               )}
             >
               {badgeLabel}

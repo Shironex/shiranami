@@ -45,7 +45,7 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
   return (
     <div className="flex items-baseline justify-between gap-3">
       <span className="text-white/50">{label}</span>
-      <span className={cn('font-mono tabular-nums', warn ? 'text-amber-400' : 'text-white/90')}>
+      <span className={cn('font-mono tabular-nums', warn ? 'text-warning' : 'text-white/90')}>
         {value}
       </span>
     </div>
@@ -58,7 +58,7 @@ export default function DebugOverlay() {
   const procRows = main?.procs.map(p => (
     <tr
       key={p.pid}
-      className={cn(p.kind === 'main' && 'text-cyan-300', p.cpu >= 25 && 'text-amber-400')}
+      className={cn(p.kind === 'main' && 'text-cyan-300', p.cpu >= 25 && 'text-warning')}
     >
       <td className="text-left">{p.kind}</td>
       <td className="text-right">{p.pid}</td>
@@ -68,7 +68,7 @@ export default function DebugOverlay() {
   ));
 
   const commitRows = renderer.renderStats.map(s => (
-    <tr key={s.id} className={cn(s.commits >= 30 && 'text-amber-400')}>
+    <tr key={s.id} className={cn(s.commits >= 30 && 'text-warning')}>
       <td className="text-left">{s.id}</td>
       <td className="text-right">{s.commits}</td>
       <td className="text-right">{s.totalDuration.toFixed(1)}</td>
@@ -92,7 +92,7 @@ export default function DebugOverlay() {
       key={`${t.ts}-${i}`}
       className={cn(
         'flex justify-between gap-2',
-        t.duration >= 100 ? 'text-red-400' : 'text-amber-400'
+        t.duration >= 100 ? 'text-destructive' : 'text-warning'
       )}
     >
       <span className="truncate">

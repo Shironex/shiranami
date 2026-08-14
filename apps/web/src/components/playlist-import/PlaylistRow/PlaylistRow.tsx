@@ -104,7 +104,7 @@ export default function PlaylistRow(props: RowComponentProps<IPlaylistRowProps>)
             <p className="text-xs text-muted-foreground truncate">{result.uploader}</p>
             {isLowConfidence && (
               <span
-                className="flex items-center gap-1 text-[10px] font-medium text-amber-500 shrink-0"
+                className="flex items-center gap-1 text-[10px] font-medium text-warning shrink-0"
                 title={lowConfidenceHint}
               >
                 <AlertTriangle className="w-3 h-3" />

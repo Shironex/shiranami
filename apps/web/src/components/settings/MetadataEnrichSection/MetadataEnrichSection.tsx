@@ -115,11 +115,11 @@ export default function MetadataEnrichSection() {
               aria-labelledby="enrich-confirm-title"
               aria-describedby="enrich-confirm-body"
               onKeyDown={e => e.key === 'Escape' && onDismissConfirm()}
-              className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-3"
+              className="rounded-xl border border-warning/30 bg-warning/5 p-3 space-y-3"
             >
               <div className="flex items-start gap-2">
                 <AlertTriangle
-                  className="w-4 h-4 text-amber-500 mt-0.5 shrink-0"
+                  className="w-4 h-4 text-warning mt-0.5 shrink-0"
                   aria-hidden="true"
                 />
                 <div className="space-y-1">
@@ -136,7 +136,7 @@ export default function MetadataEnrichSection() {
                   ref={confirmYesRef}
                   size="sm"
                   onClick={onConfirmedEnrich}
-                  className="gap-2 rounded-lg bg-amber-500 text-sm text-black shadow-none hover:bg-amber-500/90 [&_svg]:size-3.5"
+                  className="gap-2 rounded-lg bg-warning text-sm text-warning-foreground shadow-none hover:bg-warning/90 [&_svg]:size-3.5"
                 >
                   <Search />
                   {t('lib.enrichYesWrite')}

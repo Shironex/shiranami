@@ -44,13 +44,13 @@ export default function ImportDialog(props: IImportDialogProps) {
           isActive
             ? 'bg-primary/10 border border-primary/20'
             : isCompleted
-              ? 'bg-green-500/5'
+              ? 'bg-success/5'
               : 'bg-accent/30'
         }`}
       >
         <span
           className={`text-xs w-5 text-center shrink-0 transition-colors duration-300 ${
-            isCompleted ? 'text-green-400' : isActive ? 'text-primary' : 'text-muted-foreground/50'
+            isCompleted ? 'text-success' : isActive ? 'text-primary' : 'text-muted-foreground/50'
           }`}
         >
           {isCompleted ? (
@@ -64,7 +64,7 @@ export default function ImportDialog(props: IImportDialogProps) {
         <Music
           className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
             isCompleted
-              ? 'text-green-400/50'
+              ? 'text-success/50'
               : isActive
                 ? 'text-primary/60'
                 : 'text-muted-foreground/40'
@@ -160,10 +160,10 @@ export default function ImportDialog(props: IImportDialogProps) {
 
               {state === 'done' && (
                 <div className="flex flex-col items-center gap-2 py-2">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Check className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-success" />
                   </div>
-                  <p className="text-sm text-green-400 font-medium">{t('downloadComplete')}</p>
+                  <p className="text-sm text-success font-medium">{t('downloadComplete')}</p>
                   {playlistData && (
                     <p className="text-xs text-muted-foreground">
                       {t('playlistCreated', {

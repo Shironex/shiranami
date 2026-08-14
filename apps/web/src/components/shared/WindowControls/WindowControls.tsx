@@ -39,7 +39,7 @@ export default function WindowControls({ className }: IWindowControlsProps) {
         className={cn(
           'flex h-8 w-10 items-center justify-center rounded-md',
           'text-muted-foreground/55 transition-colors',
-          'hover:bg-red-500/85 hover:text-white'
+          'hover:bg-destructive/85 hover:text-destructive-foreground'
         )}
         aria-label={t('close')}
       >

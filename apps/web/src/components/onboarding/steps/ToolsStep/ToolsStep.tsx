@@ -58,7 +58,7 @@ export default function ToolsStep() {
           <ToolsInstaller affordance={installAffordance} installLabel={t('tools.installAll')} />
         ) : (
           <div className="flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
-            <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
+            <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-success" />
             <p className="text-sm leading-snug text-foreground">{t('tools.allSet')}</p>
           </div>
         )}

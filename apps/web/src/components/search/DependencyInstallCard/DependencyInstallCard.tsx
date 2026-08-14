@@ -30,7 +30,7 @@ export default function DependencyInstallCard(props: IDependencyInstallCardProps
         )}
 
         {showSuccess && (
-          <div className="flex items-center justify-center gap-2 text-green-400">
+          <div className="flex items-center justify-center gap-2 text-success">
             <Check className="w-4 h-4" />
             <p className="text-sm font-medium">{installedLabel}</p>
           </div>
