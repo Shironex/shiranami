@@ -56,20 +56,14 @@ export default function EditTagsDialog(props: IEditTagsDialogProps) {
           <p className="text-xs text-muted-foreground">{t('writeWarning')}</p>
 
           <div className="flex justify-end gap-2 pt-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onClose}
-              disabled={saving}
-              className="rounded-lg"
-            >
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
               {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={saving}
               aria-busy={saving}
-              className="rounded-lg gap-2 [&_svg]:size-3.5"
+              className="gap-2 [&_svg]:size-3.5"
             >
               {saving ? (
                 <Loader2 className="animate-spin" aria-hidden="true" />

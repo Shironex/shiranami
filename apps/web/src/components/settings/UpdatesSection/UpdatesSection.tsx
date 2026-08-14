@@ -49,29 +49,21 @@ export default function UpdatesSection() {
               size="sm"
               onClick={onCheckForUpdates}
               disabled={isCheckDisabled}
-              className="gap-1.5 rounded-lg [&_svg]:size-3.5"
+              className="gap-1.5 [&_svg]:size-3.5"
             >
               {isCheckDisabled ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
               {t('upd.check')}
             </Button>
 
             {isUpdateAvailable && (
-              <Button
-                size="sm"
-                onClick={onDownloadUpdate}
-                className="gap-1.5 rounded-lg [&_svg]:size-3.5"
-              >
+              <Button size="sm" onClick={onDownloadUpdate} className="gap-1.5 [&_svg]:size-3.5">
                 <Download />
                 {t('upd.downloadVersion', { version })}
               </Button>
             )}
 
             {isUpdateReady && (
-              <Button
-                size="sm"
-                onClick={onInstallUpdate}
-                className="gap-1.5 rounded-lg [&_svg]:size-3.5"
-              >
+              <Button size="sm" onClick={onInstallUpdate} className="gap-1.5 [&_svg]:size-3.5">
                 <Check />
                 {t('upd.installRestart')}
               </Button>
@@ -90,7 +82,7 @@ export default function UpdatesSection() {
             )}
           </div>
 
-          <p className={cn('text-xs', isError ? 'text-red-400' : 'text-muted-foreground')}>
+          <p className={cn('text-xs', isError ? 'text-destructive' : 'text-muted-foreground')}>
             {statusMessage}
           </p>
 

@@ -63,7 +63,7 @@ export function usePlaylistRow(props: RowComponentProps<IPlaylistRowProps>): IPl
   const errorSuffix = status === 'error' && track?.error ? `: ${track.error}` : '';
 
   const statusBadgeClass = cn(
-    status === 'done' && 'text-green-400',
+    status === 'done' && 'text-success',
     status === 'error' && 'text-destructive',
     status === 'skipped' && 'text-muted-foreground/50',
     isActive && 'text-primary'

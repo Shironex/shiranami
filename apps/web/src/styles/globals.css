@@ -23,9 +23,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-switch-track: var(--switch-track);
   --color-brand-600: var(--brand-600);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -661,8 +666,20 @@
   --border-strong: oklch(1 0 0 / 0.18);
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
+
+  /* Semantic status accents — success / warning / info. Deliberately fixed
+     across every theme (theme blocks restyle only the primary accent), so a
+     status color always reads the same no matter which theme is active. */
+  --success: oklch(0.765 0.177 163);
+  --warning: oklch(0.828 0.189 84);
+  --warning-foreground: oklch(0.1 0.02 280);
+  --info: oklch(0.746 0.16 233);
   --input: oklch(0.12 0.02 280);
   --ring: oklch(0.72 0.12 280);
+
+  /* Unchecked switch track — lighter than --muted so the control still reads
+     as interactive against card surfaces. */
+  --switch-track: oklch(0.32 0.02 280);
 
   --radius: 0.75rem;
 
@@ -677,9 +694,10 @@
   /* RGB triplet of --primary for canvas/inline usage */
   --primary-rgb: 155, 125, 235;
 
-  /* RGB triplets for semantic status accents (badge shadows, callouts) */
-  --status-warning-rgb: 252, 211, 77;
-  --status-success-rgb: 110, 231, 183;
+  /* RGB triplets mirroring --warning / --success for rgba() shadow usage
+     (inset badge highlights). Keep in sync with the status tokens above. */
+  --status-warning-rgb: 251, 191, 36;
+  --status-success-rgb: 52, 211, 153;
 }
 
 /* ── Theme image + per-theme accent ──────────────────────────────────────
@@ -724,14 +742,33 @@
   --ring: var(--primary);
 }
 
-/* Sonner toast – override default dark-theme colors with app tokens */
-[data-sonner-toaster][data-sonner-theme='dark'] {
+/* Sonner toast — the surface, radius and close-button chrome all read the app
+   tokens whatever sonner theme is active (the attribute selector matches any
+   value at the same specificity sonner's own :where()-wrapped rules avoid),
+   so toasts follow the active app theme instead of a sonner built-in palette.
+   The --gray* vars are what sonner's close button reads. */
+[data-sonner-toaster][data-sonner-theme] {
   --normal-bg: var(--card);
   --normal-border: var(--border);
   --normal-text: var(--foreground);
+  --border-radius: var(--radius);
+  --gray1: var(--card);
+  --gray2: var(--muted);
+  --gray4: var(--border-strong);
+  --gray5: var(--border-strong);
+  --gray12: var(--foreground);
 }
 
 /* Utility classes */
+
+/* Unified keyboard-focus treatment — THE focus-visible recipe for every
+   interactive element. Button/IconButton bake it into their variants; raw
+   <button>/<a> sites add the class directly. outline-hidden (not outline-none)
+   keeps the outline in forced-colors mode where box-shadow rings vanish. */
+@utility focus-ring {
+  @apply focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring;
+}
+
 @utility drag {
   -webkit-app-region: drag;
 }

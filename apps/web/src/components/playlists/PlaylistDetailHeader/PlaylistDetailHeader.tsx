@@ -110,13 +110,13 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={onDelete}
-                    className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
                   >
                     {tCommon('delete')}
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     {tCommon('cancel')}
                   </button>
@@ -132,7 +132,7 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
         <div ref={coverMenuRef} className="relative shrink-0">
           <button
             onClick={() => setShowCoverMenu(open => !open)}
-            className="group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
+            className="focus-ring group/cover relative w-16 h-16 rounded-xl bg-surface border border-border/30 flex items-center justify-center overflow-hidden"
             disabled={isUpdatingCover}
             title={t('editCover')}
           >
@@ -176,7 +176,7 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
               >
                 <button
                   onClick={handlePickCustomCover}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                  className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
                 >
                   <ImagePlus className="w-4 h-4 text-muted-foreground/60" />
                   {t('uploadCustomImage')}
@@ -185,7 +185,7 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
                 {suggestedCoverArt && (
                   <button
                     onClick={handleUseSuggestedCover}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                    className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
                   >
                     <Sparkles className="w-4 h-4 text-muted-foreground/60" />
                     {t('useTrackArtwork')}
@@ -195,7 +195,7 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
                 {playlist.coverArt && (
                   <button
                     onClick={handleClearCover}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
+                    className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
                     {t('removeCover')}
@@ -219,7 +219,7 @@ export default function PlaylistDetailHeader(props: IPlaylistDetailHeaderProps) 
           ) : (
             <button
               onClick={onStartEdit}
-              className="font-display text-lg font-semibold text-foreground truncate block text-left hover:text-primary transition-colors"
+              className="focus-ring rounded-sm font-display text-lg font-semibold text-foreground truncate block text-left hover:text-primary transition-colors"
               title={t('clickToRename')}
             >
               {playlist.name}

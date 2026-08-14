@@ -38,7 +38,7 @@ export default function SleepTimer() {
       key={minutes}
       onClick={() => onSelectPreset(minutes)}
       className={cn(
-        'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+        'focus-ring w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
         'hover:bg-accent/50 hover:text-foreground',
         'text-muted-foreground'
       )}
@@ -88,7 +88,7 @@ export default function SleepTimer() {
               <button
                 onClick={onShowCustom}
                 className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+                  'focus-ring w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
                   'hover:bg-accent/50 hover:text-foreground',
                   'text-muted-foreground'
                 )}
@@ -101,7 +101,7 @@ export default function SleepTimer() {
               <button
                 onClick={onSelectWindDown}
                 className={cn(
-                  'w-full text-left px-2.5 py-1.5 rounded-lg transition-colors',
+                  'focus-ring w-full text-left px-2.5 py-1.5 rounded-lg transition-colors',
                   'hover:bg-accent/50',
                   'text-muted-foreground hover:text-foreground'
                 )}
@@ -132,17 +132,19 @@ export default function SleepTimer() {
                 aria-label={t('customLabel')}
                 className="h-8 rounded-lg bg-accent/40 border-border/50 px-2.5 placeholder:text-muted-foreground/50 focus-visible:ring-primary/40"
               />
-              {customError && <p className="text-[10px] text-red-400 px-1">{t('customError')}</p>}
+              {customError && (
+                <p className="text-[10px] text-destructive px-1">{t('customError')}</p>
+              )}
               <div className="flex gap-1.5">
                 <button
                   onClick={onCustomSubmit}
-                  className="flex-1 px-2.5 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  className="focus-ring flex-1 px-2.5 py-1.5 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                 >
                   {t('customStart')}
                 </button>
                 <button
                   onClick={onShowPresets}
-                  className="flex-1 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
+                  className="focus-ring flex-1 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors"
                 >
                   {t('customBack')}
                 </button>
@@ -153,7 +155,7 @@ export default function SleepTimer() {
           {isActive && (
             <button
               onClick={onCancel}
-              className="w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+              className="focus-ring w-full text-left px-2.5 py-1.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
             >
               {t('cancelTimer')}
             </button>

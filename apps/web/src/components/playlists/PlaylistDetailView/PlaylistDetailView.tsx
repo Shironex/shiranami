@@ -75,7 +75,10 @@ export default function PlaylistDetailView() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-sm text-muted-foreground">{t('notFound')}</p>
-        <button onClick={onBack} className="text-xs text-primary hover:underline">
+        <button
+          onClick={onBack}
+          className="focus-ring rounded-sm text-xs text-primary hover:underline"
+        >
           {t('goBack')}
         </button>
       </div>

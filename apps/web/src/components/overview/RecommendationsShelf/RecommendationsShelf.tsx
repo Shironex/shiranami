@@ -171,7 +171,7 @@ function DiscoverRow({
     subtitleClass = 'truncate text-xs text-primary/70';
   } else if (isDone) {
     subtitleText = t('addedToLibrary');
-    subtitleClass = 'truncate text-xs text-emerald-400/80';
+    subtitleClass = 'truncate text-xs text-success/80';
   } else if (isError) {
     subtitleText = t('downloadError');
     subtitleClass = 'truncate text-xs text-destructive/80';
@@ -183,7 +183,7 @@ function DiscoverRow({
   let cardExtra = '';
   if (isDownloading) cardExtra = 'bg-primary/[0.04]';
   if (isDone)
-    cardExtra = 'border-emerald-400/15 motion-safe:transition-colors motion-safe:duration-200';
+    cardExtra = 'border-success/15 motion-safe:transition-colors motion-safe:duration-200';
 
   const previewAriaLabel = isPreviewing
     ? t('pausePreviewAria', { title: item.title })

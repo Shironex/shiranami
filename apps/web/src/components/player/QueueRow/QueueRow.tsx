@@ -83,7 +83,7 @@ export default function SortableQueueRow(props: ISortableQueueRowProps) {
       onClick={onPlay}
     >
       <button
-        className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60 transition-all duration-150 cursor-grab active:cursor-grabbing touch-none"
+        className="focus-ring shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-muted-foreground/60 transition-all duration-150 cursor-grab active:cursor-grabbing touch-none"
         aria-label={labels.dragToReorder}
         {...attributes}
         {...listeners}

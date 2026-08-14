@@ -32,7 +32,7 @@ export default function TopBar(props: ITopBarProps) {
       onClick={() => onLanguageChange(lang.code)}
       aria-label={t(`language.${lang.code}`)}
       className={cn(
-        'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+        'focus-ring px-2 py-1 rounded-md text-xs font-medium transition-colors',
         currentLanguage === lang.code
           ? 'bg-primary/15 text-primary'
           : 'text-muted-foreground/60 hover:text-foreground hover:bg-accent'
@@ -64,7 +64,7 @@ export default function TopBar(props: ITopBarProps) {
             onClick={toggleDropdown}
             disabled={scanBlocked}
             className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+              'focus-ring flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
               dropdownOpen
                 ? 'bg-accent text-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -78,14 +78,14 @@ export default function TopBar(props: ITopBarProps) {
             <div className="absolute right-0 top-full mt-1 w-44 py-1 rounded-xl bg-card border border-border/50 shadow-xl shadow-black/20 z-50">
               <button
                 onClick={onAddFolder}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <FolderOpen className="w-4 h-4 text-muted-foreground" />
                 {t('addFolder')}
               </button>
               <button
                 onClick={onAddFile}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
               >
                 <File className="w-4 h-4 text-muted-foreground" />
                 {t('addFile')}
@@ -94,7 +94,7 @@ export default function TopBar(props: ITopBarProps) {
               <button
                 onClick={onRescan}
                 disabled={rescanDisabled}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                className="focus-ring w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:pointer-events-none"
               >
                 {isRescanning ? (
                   <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
