@@ -271,19 +271,28 @@
   transition: background-color 240s linear;
 }
 /* The warm desk-lamp pool anchored in the bottom-right corner — always
-   painted, but only faded in via the lamp property after dark. */
+   painted, but only faded in via the lamp property after dark. The gradient
+   hues ride `--room-light-lamp-hue` (a unitless degree nudge published by
+   roomLightLayerStyle) so the warmth control shifts the lamp with the tint. */
 .room-light::after {
   content: '';
   position: absolute;
   inset: 0;
   background: radial-gradient(
     120% 120% at 86% 96%,
-    oklch(0.8 0.13 70 / 0.38) 0%,
-    oklch(0.72 0.14 60 / 0.14) 32%,
+    oklch(0.8 0.13 calc(70 + var(--room-light-lamp-hue, 0)) / 0.38) 0%,
+    oklch(0.72 0.14 calc(60 + var(--room-light-lamp-hue, 0)) / 0.14) 32%,
     transparent 62%
   );
   opacity: var(--room-light-lamp, 0);
   transition: opacity 240s linear;
+}
+/* Settings-preview variant: the live layer cross-fades over minutes, which
+   reads as "broken" while dragging a slider — the preview answers in under a
+   second instead. */
+.room-light--preview,
+.room-light--preview::after {
+  transition-duration: 400ms;
 }
 
 /* EQ bar animations - must be outside @theme inline for Tailwind v4 */

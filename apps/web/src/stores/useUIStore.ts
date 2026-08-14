@@ -85,6 +85,36 @@ export const VINYL_FINISH_DEFAULT: VinylFinish = 'black';
 export const VINYL_NOW_PLAYING_SIZE_DEFAULT: VinylSize = 'large';
 export const VINYL_SANCTUARY_SIZE_DEFAULT: VinylSize = 'medium';
 
+/**
+ * Which room-light stop the grade holds at; `auto` follows the local clock.
+ * The stop keys mirror `ROOM_LIGHT_STOPS` in `useRoomLight` — pinned by a test
+ * there rather than imported, keeping this store free of hook dependencies.
+ */
+export type RoomLightStopSetting = 'auto' | 'dawn' | 'day' | 'goldenHour' | 'dusk' | 'night';
+
+export const ROOM_LIGHT_STOP_SETTINGS = [
+  'auto',
+  'dawn',
+  'day',
+  'goldenHour',
+  'dusk',
+  'night',
+] as const satisfies readonly RoomLightStopSetting[];
+
+export const ROOM_LIGHT_STOP_DEFAULT: RoomLightStopSetting = 'auto';
+
+/** Grade strength in percent; 100 is the authored look, 150 leans into it. */
+export const ROOM_LIGHT_INTENSITY_MIN = 0;
+export const ROOM_LIGHT_INTENSITY_MAX = 150;
+export const ROOM_LIGHT_INTENSITY_DEFAULT = 100;
+export const ROOM_LIGHT_INTENSITY_STEP = 5;
+
+/** Warmth hue nudge in degrees, applied to the tint wash and the lamp pool. */
+export const ROOM_LIGHT_HUE_SHIFT_MIN = -30;
+export const ROOM_LIGHT_HUE_SHIFT_MAX = 30;
+export const ROOM_LIGHT_HUE_SHIFT_DEFAULT = 0;
+export const ROOM_LIGHT_HUE_SHIFT_STEP = 5;
+
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
 export type AlbumSortMode = 'name' | 'artist' | 'year' | 'recentlyAdded';
@@ -175,6 +205,16 @@ function coerceUiScale(v: unknown): number {
 function coerceLandingView(v: unknown): LandingView {
   return v === 'overview' || v === 'library' ? v : LANDING_VIEW_DEFAULT;
 }
+function coerceRoomLightIntensity(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return ROOM_LIGHT_INTENSITY_DEFAULT;
+  return Math.round(clamp(parsed, ROOM_LIGHT_INTENSITY_MIN, ROOM_LIGHT_INTENSITY_MAX));
+}
+function coerceRoomLightHueShift(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return ROOM_LIGHT_HUE_SHIFT_DEFAULT;
+  return Math.round(clamp(parsed, ROOM_LIGHT_HUE_SHIFT_MIN, ROOM_LIGHT_HUE_SHIFT_MAX));
+}
 
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
@@ -208,6 +248,9 @@ interface PersistedUIState {
   vinylNowPlayingSize: VinylSize;
   vinylSanctuarySize: VinylSize;
   roomLightEnabled: boolean;
+  roomLightIntensity: number;
+  roomLightStop: RoomLightStopSetting;
+  roomLightHueShift: number;
   landingView: LandingView;
 }
 
@@ -303,6 +346,16 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     );
   if (typeof persisted.roomLightEnabled === 'boolean')
     out.roomLightEnabled = persisted.roomLightEnabled;
+  if (persisted.roomLightIntensity !== undefined)
+    out.roomLightIntensity = coerceRoomLightIntensity(persisted.roomLightIntensity);
+  if (persisted.roomLightStop !== undefined)
+    out.roomLightStop = coerceEnum(
+      persisted.roomLightStop,
+      ROOM_LIGHT_STOP_SETTINGS,
+      ROOM_LIGHT_STOP_DEFAULT
+    );
+  if (persisted.roomLightHueShift !== undefined)
+    out.roomLightHueShift = coerceRoomLightHueShift(persisted.roomLightHueShift);
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -344,6 +397,9 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'vinylNowPlayingSize',
   'vinylSanctuarySize',
   'roomLightEnabled',
+  'roomLightIntensity',
+  'roomLightStop',
+  'roomLightHueShift',
   'landingView',
 ]);
 
@@ -503,6 +559,14 @@ interface UIState {
   vinylNowPlayingSize: VinylSize;
   vinylSanctuarySize: VinylSize;
   roomLightEnabled: boolean;
+  /**
+   * Room-light shaping, honored only while `roomLightEnabled` is on: grade
+   * strength in percent (0–150), the stop the grade holds at (`auto` follows
+   * the clock), and the warmth hue nudge in degrees.
+   */
+  roomLightIntensity: number;
+  roomLightStop: RoomLightStopSetting;
+  roomLightHueShift: number;
   landingView: LandingView;
 }
 
@@ -526,6 +590,9 @@ interface UIActions {
   setVinylNowPlayingSize: (size: VinylSize) => void;
   setVinylSanctuarySize: (size: VinylSize) => void;
   setRoomLightEnabled: (enabled: boolean) => void;
+  setRoomLightIntensity: (intensity: number) => void;
+  setRoomLightStop: (stop: RoomLightStopSetting) => void;
+  setRoomLightHueShift: (degrees: number) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -581,6 +648,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     vinylNowPlayingSize: VINYL_NOW_PLAYING_SIZE_DEFAULT,
     vinylSanctuarySize: VINYL_SANCTUARY_SIZE_DEFAULT,
     roomLightEnabled: true,
+    roomLightIntensity: ROOM_LIGHT_INTENSITY_DEFAULT,
+    roomLightStop: ROOM_LIGHT_STOP_DEFAULT,
+    roomLightHueShift: ROOM_LIGHT_HUE_SHIFT_DEFAULT,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -647,6 +717,15 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setRoomLightEnabled: enabled => {
       set({ roomLightEnabled: enabled });
+    },
+    setRoomLightIntensity: intensity => {
+      set({ roomLightIntensity: coerceRoomLightIntensity(intensity) });
+    },
+    setRoomLightStop: stop => {
+      set({ roomLightStop: coerceEnum(stop, ROOM_LIGHT_STOP_SETTINGS, ROOM_LIGHT_STOP_DEFAULT) });
+    },
+    setRoomLightHueShift: degrees => {
+      set({ roomLightHueShift: coerceRoomLightHueShift(degrees) });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -752,6 +831,9 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         vinylNowPlayingSize: s.vinylNowPlayingSize,
         vinylSanctuarySize: s.vinylSanctuarySize,
         roomLightEnabled: s.roomLightEnabled,
+        roomLightIntensity: s.roomLightIntensity,
+        roomLightStop: s.roomLightStop,
+        roomLightHueShift: s.roomLightHueShift,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

@@ -1,4 +1,5 @@
 import type {
+  RoomLightStopSetting,
   VinylFinish,
   VinylLabelSource,
   VinylRingStyle,
@@ -155,6 +156,46 @@ export interface IVisualEffectsSectionView {
   readonly roomLightEnabled: boolean;
   /** Toggle the time-of-day lighting grade. */
   readonly onRoomLightChange: (next: boolean) => void;
+
+  /** Localized title for the room-light stop picker. */
+  readonly roomLightStopTitle: string;
+  /** Localized description for the room-light stop picker. */
+  readonly roomLightStopDescription: string;
+  /** Render-ready chips for the room-light stop picker (`auto` follows the clock). */
+  readonly roomLightStopOptions: readonly IChipOption<RoomLightStopSetting>[];
+  /** Select the stop the grade holds at, or `auto` to follow the clock. */
+  readonly onSelectRoomLightStop: (stop: RoomLightStopSetting) => void;
+
+  /** Localized title for the room-light intensity slider. */
+  readonly roomLightIntensityTitle: string;
+  /** Localized description for the room-light intensity slider. */
+  readonly roomLightIntensityDescription: string;
+  /** Grade strength in percent, 0–150. */
+  readonly roomLightIntensity: number;
+  /** Intensity slider bounds and step. */
+  readonly roomLightIntensityMin: number;
+  readonly roomLightIntensityMax: number;
+  readonly roomLightIntensityStep: number;
+  /** Set the grade strength. */
+  readonly onRoomLightIntensityChange: (value: number) => void;
+
+  /** Localized title for the warmth hue slider. */
+  readonly roomLightHueTitle: string;
+  /** Localized description for the warmth hue slider. */
+  readonly roomLightHueDescription: string;
+  /** Warmth hue nudge in degrees. */
+  readonly roomLightHueShift: number;
+  /** Signed, degree-suffixed display form of the hue nudge. */
+  readonly roomLightHueValueLabel: string;
+  /** Hue slider bounds and step. */
+  readonly roomLightHueMin: number;
+  readonly roomLightHueMax: number;
+  readonly roomLightHueStep: number;
+  /** Localized end labels under the hue slider. */
+  readonly roomLightHueCoolerLabel: string;
+  readonly roomLightHueWarmerLabel: string;
+  /** Set the warmth hue nudge. */
+  readonly onRoomLightHueShiftChange: (value: number) => void;
 
   /** Localized "Tempo breathing" toggle label. */
   readonly tempoBreathingLabel: string;

@@ -532,6 +532,22 @@
     "coverCrossfadeDesc": "Tło z okładką płynnie przenika z jednej płyty w następną. To wyłącznie efekt wizualny — crossfade dźwięku znajdziesz w ustawieniach odtwarzania.",
     "roomLight": "Światło pokoju",
     "roomLightDesc": "Aplikacja podąża za Twoją porą dnia — chłodne światło poranka, złota poświata przed zachodem, a po zmroku lekko przyciemniony pokój z ciepłą lampką na biurku. Zmiany przenikają się minutami.",
+    "roomLightStopTitle": "Pora dnia",
+    "roomLightStopDesc": "Podążaj za zegarem albo zatrzymaj pokój w jednej porze dnia.",
+    "roomLightStops": {
+      "auto": "Auto",
+      "dawn": "Świt",
+      "day": "Dzień",
+      "goldenHour": "Złota godzina",
+      "dusk": "Zmierzch",
+      "night": "Noc"
+    },
+    "roomLightIntensityTitle": "Natężenie światła",
+    "roomLightIntensityDesc": "Jak mocno gradacja barwi scenę. 100% to zamierzony wygląd; wyższe wartości go podbijają.",
+    "roomLightHueTitle": "Ciepło lampki",
+    "roomLightHueDesc": "Dostosuj ciepło światła — chłodniejszy, niebieskawy odcień albo cieplejszy, bursztynowy.",
+    "roomLightHueCooler": "Chłodniej",
+    "roomLightHueWarmer": "Cieplej",
     "tempoBreathing": "Oddychanie w tempie",
     "tempoBreathingDesc": "Poświata okładki, unosząca się maskotka i pulsowanie kompaktowego odtwarzacza oddychają w tempie odtwarzanego utworu. Utwory bez danych o tempie zachowują stały rytm.",
     "tempoBreathingHint": "Większość biblioteki nie ma jeszcze danych o tempie, więc oddychanie rzadko się włącza. Uruchom analizę raz w ustawieniach biblioteki.",
@@ -595,7 +611,9 @@
       "noise": "Podgląd szumu",
       "noiseOn": "Tekstura włączona",
       "noiseOff": "Tekstura wyłączona",
-      "vinyl": "Podgląd winylu"
+      "vinyl": "Podgląd winylu",
+      "roomLight": "Podgląd światła pokoju",
+      "roomLightOff": "Światło wyłączone"
     },
     "sectionsAriaLabel": "Sekcje ustawień",
     "theme": {
@@ -751,18 +769,44 @@
       "previewArtist": "Odtwarzanie na Twoim tle"
     },
     "background": {
-      "choose": "Wybierz obraz…",
-      "replace": "Zmień obraz…",
-      "remove": "Usuń",
       "hint": "PNG, JPEG, WebP lub GIF · do 20 MB",
       "retry": "Spróbuj ponownie",
+      "library": {
+        "title": "Zapisane tła",
+        "desc": "Zapisz kilka scen, a potem pokazuj wybraną, obracaj je albo przypisz do pór dnia.",
+        "add": "Dodaj obraz…",
+        "defaultLabel": "Tło {{n}}",
+        "unnamed": "Bez nazwy",
+        "makeActive": "Pokaż {{name}}",
+        "rename": "Zmień nazwę {{name}}",
+        "remove": "Usuń {{name}}",
+        "full": "Biblioteka jest pełna — usuń obraz, aby dodać kolejny.",
+        "modeTitle": "Które tło się wyświetla",
+        "modeDesc": "Twój wybór, automatyczna rotacja albo harmonogram pory dnia.",
+        "modes": {
+          "single": "Mój wybór",
+          "rotation": "Rotacja",
+          "timeOfDay": "Pora dnia"
+        },
+        "intervalTitle": "Rotacja",
+        "intervalDesc": "Jak często rotacja przechodzi do kolejnego zapisanego obrazu.",
+        "intervals": {
+          "launch": "Co uruchomienie",
+          "hourly": "Co godzinę",
+          "daily": "Co dzień"
+        },
+        "scheduleTitle": "Sceny pory dnia",
+        "scheduleDesc": "Daj każdej porze dnia własny obraz — ten sam cykl dnia, za którym podąża Światło pokoju. Pory bez obrazu pokazują Twój wybór.",
+        "scheduleFallback": "Mój wybór"
+      },
       "errors": {
         "tooLarge": "Ten obraz jest za duży. Wybierz plik poniżej 20 MB.",
         "unsupportedFormat": "Ten typ pliku nie jest obsługiwany. Użyj PNG, JPEG, WebP lub GIF.",
         "notAnImage": "Ten plik nie jest obrazem, na jaki wskazuje jego nazwa.",
         "dimensionsTooLarge": "Ten obraz jest zbyt duży, aby go wyświetlić. Dłuższy bok musi mieć mniej niż 8192 piksele.",
+        "libraryFull": "Biblioteka teł mieści do 12 obrazów. Najpierw usuń jeden.",
         "generic": "Nie udało się zmienić tła.",
-        "readFailed": "Nie udało się odczytać bieżącego tła."
+        "readFailed": "Nie udało się odczytać zapisanych teł."
       }
     }
   },

@@ -119,6 +119,15 @@ pub enum MainStoreKey {
     /// Renderer-writable would mean the renderer chooses that name.
     #[serde(rename = "appearance.customBackground")]
     AppearanceCustomBackground,
+    /// The saved-background library: entries with ids and labels, plus the
+    /// active pick.
+    ///
+    /// Main-only for the same reason as the single-record key above — every
+    /// entry *names a file the serve route will open*. The single-record key
+    /// stays behind as a mirror of the active entry so a downgraded build
+    /// keeps showing the user's wallpaper.
+    #[serde(rename = "appearance.backgroundLibrary")]
+    AppearanceBackgroundLibrary,
 }
 
 impl RendererStoreKey {
@@ -173,7 +182,7 @@ impl RendererStoreKey {
 
 impl MainStoreKey {
     /// Every main-only key.
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::DiscordRpcSettings,
         Self::CompactWindowBounds,
         Self::DownloadsLocation,
@@ -183,6 +192,7 @@ impl MainStoreKey {
         Self::ScrobbleSettings,
         Self::V2CrossoverPinged,
         Self::AppearanceCustomBackground,
+        Self::AppearanceBackgroundLibrary,
     ];
 
     /// The electron-store dot path this key lives at in the document.
@@ -200,6 +210,7 @@ impl MainStoreKey {
             Self::ScrobbleSettings => "scrobble.settings",
             Self::V2CrossoverPinged => "v2.crossoverPinged",
             Self::AppearanceCustomBackground => "appearance.customBackground",
+            Self::AppearanceBackgroundLibrary => "appearance.backgroundLibrary",
         }
     }
 }

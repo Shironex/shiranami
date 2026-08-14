@@ -1,7 +1,7 @@
 import { useThemeStore, CUSTOM_THEME } from '@/stores/useThemeStore';
 import { useThemeBgStore } from '@/stores/useThemeBgStore';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
-import { backgroundUrls, useCustomBackgroundQuery } from '@/hooks/queries/useCustomBackground';
+import { backgroundUrls, useEffectiveBackgroundEntry } from '@/hooks/queries/useBackgroundLibrary';
 import type { IThemeBackgroundView } from './ThemeBackground.types';
 
 /**
@@ -37,15 +37,17 @@ export function useThemeBackground(): IThemeBackgroundView {
   useThemeBgStore(() => null);
 
   // These two do re-render the layer, and are meant to: one changes when the
-  // user imports or clears an image, the other when they toggle a motion
-  // preference. Neither fires during a drag.
-  const { data: record } = useCustomBackgroundQuery();
+  // effective saved background changes (an import, a delete, a rotation tick,
+  // a schedule crossing a stop boundary), the other when the user toggles a
+  // motion preference. Neither fires during a drag.
+  const entry = useEffectiveBackgroundEntry();
   const motionAllowed = useDecorativeMotion();
 
   if (theme !== CUSTOM_THEME) {
     return { theme, hasThemeImage: theme !== 'none', imageUrl: `./themes/${theme}.webp` };
   }
 
+  const record = entry?.background ?? null;
   const { url, stillUrl } = backgroundUrls(record);
   const frozen = !motionAllowed && record?.animated === true && stillUrl !== null;
   const resolved = frozen ? stillUrl : url;

@@ -61,27 +61,19 @@ export interface IAppearanceSectionView {
   /** Select a theme. */
   readonly onSelectTheme: (theme: ThemeId) => void;
 
-  // --- Custom background ---
+  // --- Custom background (the saved-background library) ---
   /** Whether the "your own image" theme is the active one. */
   readonly isCustomTheme: boolean;
-  /** Loopback URL of the imported image, for the tile thumbnail. */
+  /** Loopback URL of the effective saved image, for the tile thumbnail. */
   readonly customThumb: string | null;
-  /** Whether an image has been imported (controls the remove button). */
-  readonly hasCustomBackground: boolean;
-  /** Whether the native picker is open or the import is still running. */
-  readonly isPickingBackground: boolean;
   /**
-   * Whether reading the imported background failed. Distinct from "none is
-   * imported": without the distinction a failed read looks like an empty state,
-   * and the card offers to import an image the user already has.
+   * Whether reading the saved backgrounds failed. Distinct from "none is
+   * saved": without the distinction a failed read looks like an empty state,
+   * and the card offers to import images the user already has.
    */
   readonly customBackgroundFailed: boolean;
   /** Try the read again. */
   readonly onRetryCustomBackground: () => void;
-  /** Open the picker and import the chosen image. */
-  readonly onPickBackground: () => void;
-  /** Forget the imported image and delete its files. */
-  readonly onClearBackground: () => void;
 
   // --- Background adjustments ---
   /** Whether any background adjustment differs from default (shows reset). */

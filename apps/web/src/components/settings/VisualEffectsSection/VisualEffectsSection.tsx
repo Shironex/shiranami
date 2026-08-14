@@ -5,10 +5,12 @@ import {
   SettingsInfoCallout,
   SettingsToggleRow,
 } from '@/components/settings/SettingsCard';
+import { Slider } from '@/components/ui/slider';
 import { LibraryBannerPreview } from '@/components/settings/LibraryBannerPreview';
 import { LowPerformancePreview } from '@/components/settings/LowPerformancePreview';
 import { NoiseOverlayPreview } from '@/components/settings/NoiseOverlayPreview';
 import { NowPlayingViewPreview } from '@/components/settings/NowPlayingViewPreview';
+import { RoomLightPreview } from '@/components/settings/RoomLightPreview';
 import { SanctuarySection } from '@/components/settings/SanctuarySection';
 import { VinylPreview } from '@/components/settings/VinylPreview';
 import { useVisualEffectsSection } from './VisualEffectsSection.hooks';
@@ -107,6 +109,27 @@ export default function VisualEffectsSection() {
     roomLightDescription,
     roomLightEnabled,
     onRoomLightChange,
+    roomLightStopTitle,
+    roomLightStopDescription,
+    roomLightStopOptions,
+    onSelectRoomLightStop,
+    roomLightIntensityTitle,
+    roomLightIntensityDescription,
+    roomLightIntensity,
+    roomLightIntensityMin,
+    roomLightIntensityMax,
+    roomLightIntensityStep,
+    onRoomLightIntensityChange,
+    roomLightHueTitle,
+    roomLightHueDescription,
+    roomLightHueShift,
+    roomLightHueValueLabel,
+    roomLightHueMin,
+    roomLightHueMax,
+    roomLightHueStep,
+    roomLightHueCoolerLabel,
+    roomLightHueWarmerLabel,
+    onRoomLightHueShiftChange,
     tempoBreathingLabel,
     tempoBreathingDescription,
     tempoBreathingEnabled,
@@ -248,6 +271,53 @@ export default function VisualEffectsSection() {
           onCheckedChange={onRoomLightChange}
           divider
         />
+        <RoomLightPreview enabled={roomLightEnabled} />
+
+        {roomLightEnabled && (
+          <div className="space-y-4 px-3" data-slot="room-light-options">
+            <div>
+              <p className="mb-1 text-sm font-medium text-foreground">{roomLightStopTitle}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{roomLightStopDescription}</p>
+              <OptionChips options={roomLightStopOptions} onSelect={onSelectRoomLightStop} />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">{roomLightIntensityTitle}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {roomLightIntensity}%
+                </span>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">{roomLightIntensityDescription}</p>
+              <Slider
+                min={roomLightIntensityMin}
+                max={roomLightIntensityMax}
+                step={roomLightIntensityStep}
+                value={[roomLightIntensity]}
+                onValueChange={([v]) => onRoomLightIntensityChange(v)}
+              />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">{roomLightHueTitle}</p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {roomLightHueValueLabel}
+                </span>
+              </div>
+              <p className="mb-3 text-xs text-muted-foreground">{roomLightHueDescription}</p>
+              <Slider
+                min={roomLightHueMin}
+                max={roomLightHueMax}
+                step={roomLightHueStep}
+                value={[roomLightHueShift]}
+                onValueChange={([v]) => onRoomLightHueShiftChange(v)}
+              />
+              <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{roomLightHueCoolerLabel}</span>
+                <span>{roomLightHueWarmerLabel}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <SettingsToggleRow
           label={tempoBreathingLabel}

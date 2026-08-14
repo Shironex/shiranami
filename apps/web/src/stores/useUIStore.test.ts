@@ -425,6 +425,67 @@ describe('roomLightEnabled (time-of-day lighting grade gate)', () => {
   });
 });
 
+describe('room-light shaping (roomLightIntensity / roomLightStop / roomLightHueShift)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to the authored look: full strength, auto stop, no hue nudge', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(100);
+    expect(store.getState().roomLightStop).toBe('auto');
+    expect(store.getState().roomLightHueShift).toBe(0);
+  });
+
+  it('persists the setters and clamps their ranges', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+
+    store.getState().setRoomLightIntensity(999);
+    store.getState().setRoomLightStop('dusk');
+    store.getState().setRoomLightHueShift(-999);
+
+    expect(store.getState().roomLightIntensity).toBe(150);
+    expect(store.getState().roomLightStop).toBe('dusk');
+    expect(store.getState().roomLightHueShift).toBe(-30);
+    expect(readPersisted().roomLightIntensity).toBe(150);
+    expect(readPersisted().roomLightStop).toBe('dusk');
+    expect(readPersisted().roomLightHueShift).toBe(-30);
+  });
+
+  it('restores persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { roomLightIntensity: 60, roomLightStop: 'goldenHour', roomLightHueShift: 15 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(60);
+    expect(store.getState().roomLightStop).toBe('goldenHour');
+    expect(store.getState().roomLightHueShift).toBe(15);
+  });
+
+  it('coerces persisted garbage back to the defaults', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          roomLightIntensity: 'strong',
+          roomLightStop: 'midnight',
+          roomLightHueShift: 'warm',
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(100);
+    expect(store.getState().roomLightStop).toBe('auto');
+    expect(store.getState().roomLightHueShift).toBe(0);
+  });
+});
+
 describe('coerceVisualizerStyle (persist merge path)', () => {
   const ALL_STYLES = [
     'bars',

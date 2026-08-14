@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useThemeStore, type ThemeId } from '@/stores/useThemeStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { customBackgroundKeys } from '@/hooks/queries/useCustomBackground';
+import { backgroundLibraryKeys, libraryOfRecord } from '@/hooks/queries/useBackgroundLibrary';
 import type { CustomBackground } from '@shiranami/contracts/bindings';
 import ThemeBackground from './ThemeBackground';
 
@@ -43,7 +43,7 @@ function seeded(
       useThemeStore.setState({ theme });
       useUIStore.setState({ lowPerformanceMode });
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-      client.setQueryData(customBackgroundKeys.current, record);
+      client.setQueryData(backgroundLibraryKeys.library, libraryOfRecord(record));
       return (
         <QueryClientProvider client={client}>
           <div className="relative w-full h-64">

@@ -59,34 +59,94 @@ export const ROOM_LIGHT_STOPS: readonly IRoomLightStop[] = [
 ];
 
 /**
- * The grade for a local hour. Fractional hours floor to their containing hour
- * and out-of-range values wrap modulo 24, so a clock source can never select
- * nothing; hours before the first stop (small hours) wrap to the last (night).
+ * The stop key for a local hour. Fractional hours floor to their containing
+ * hour and out-of-range values wrap modulo 24, so a clock source can never
+ * select nothing; hours before the first stop (small hours) wrap to the last
+ * (night). Exposed on its own because the background scheduler keys off the
+ * *stop*, not the grade — both features read the same clock the same way.
  */
-export function roomLightForHour(hour: number): IRoomLightGrade {
+export function roomLightStopKeyForHour(hour: number): RoomLightStopKey {
   const normalized = ((Math.floor(hour) % 24) + 24) % 24;
   let active = ROOM_LIGHT_STOPS[ROOM_LIGHT_STOPS.length - 1];
   for (const stop of ROOM_LIGHT_STOPS) {
     if (stop.fromHour <= normalized) active = stop;
   }
-  return active.grade;
+  return active.key;
+}
+
+/** The grade for a local hour — see {@link roomLightStopKeyForHour}. */
+export function roomLightForHour(hour: number): IRoomLightGrade {
+  return gradeForStopKey(roomLightStopKeyForHour(hour));
+}
+
+/** The grade a stop key names. */
+export function gradeForStopKey(key: RoomLightStopKey): IRoomLightGrade {
+  // The keys are a closed union, so the find can only miss if the stop table
+  // and the union drift — which the fallback turns into "night", never a crash.
+  return (
+    ROOM_LIGHT_STOPS.find(stop => stop.key === key) ?? ROOM_LIGHT_STOPS[ROOM_LIGHT_STOPS.length - 1]
+  ).grade;
+}
+
+/** User adjustments layered over a grade — see {@link roomLightLayerStyle}. */
+export interface IRoomLightAdjustments {
+  /** Grade strength in percent, 0–150; 100 is the authored look. */
+  readonly intensity: number;
+  /** Warmth hue nudge in degrees, applied to the tint and the lamp pool. */
+  readonly hueShift: number;
+}
+
+/** The authored look: full strength, no hue nudge. */
+const NEUTRAL_ADJUSTMENTS: IRoomLightAdjustments = { intensity: 100, hueShift: 0 };
+
+/**
+ * Rotate the hue of one of our `oklch(L C H)` tint constants by `degrees`.
+ *
+ * A string transform rather than CSS relative-color syntax on purpose: the
+ * tints are our own constants in a known format, so parsing them here keeps
+ * the output a plain color every engine paints, and keeps the math testable.
+ * Anything that does not match the expected form passes through unchanged.
+ */
+export function shiftOklchHue(color: string, degrees: number): string {
+  if (degrees === 0) return color;
+  const match = /^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/.exec(color);
+  if (!match) return color;
+  const hue = (((Number(match[3]) + degrees) % 360) + 360) % 360;
+  return `oklch(${match[1]} ${match[2]} ${hue})`;
 }
 
 /**
  * The `--room-light-*` custom properties the `.room-light` layer consumes
- * (globals.css): the tint pre-mixed to its warmth over transparent, and the
- * lamp vignette's opacity. Kept a pure builder so AmbientBackground's hook and
- * the per-stop Storybook stories derive pixel-identical layers.
+ * (globals.css): the tint pre-mixed to its warmth over transparent, the lamp
+ * vignette's opacity, and the hue nudge the lamp gradient adds to its own
+ * stops. Kept a pure builder so AmbientBackground's hook, the settings
+ * preview and the per-stop Storybook stories derive pixel-identical layers.
+ *
+ * `adjustments` scales warmth and lamp by `intensity` (clamped so 150% can
+ * never push either past fully opaque) and rotates the warmth hue by
+ * `hueShift`; omitting it keeps the authored grade byte-identical.
  */
-export function roomLightLayerStyle(grade: IRoomLightGrade): CSSProperties {
+export function roomLightLayerStyle(
+  grade: IRoomLightGrade,
+  adjustments: IRoomLightAdjustments = NEUTRAL_ADJUSTMENTS
+): CSSProperties {
+  const scale = Math.max(0, adjustments.intensity) / 100;
+  const warmth = Math.min(1, grade.warmth * scale);
+  const lamp = Math.min(1, grade.lampVignette * scale);
   return {
-    '--room-light-tint': `color-mix(in oklab, ${grade.tint} ${Math.round(grade.warmth * 100)}%, transparent)`,
-    '--room-light-lamp': String(grade.lampVignette),
+    '--room-light-tint': `color-mix(in oklab, ${shiftOklchHue(grade.tint, adjustments.hueShift)} ${Math.round(warmth * 100)}%, transparent)`,
+    '--room-light-lamp': String(lamp),
+    '--room-light-lamp-hue': String(adjustments.hueShift),
   } as CSSProperties;
 }
 
-/** The room-light grade for the current local hour, live across hour boundaries. */
-export function useRoomLight(): IRoomLightGrade {
+/**
+ * The room-light grade for the current local hour, live across hour
+ * boundaries — or, when `stop` names a key, that stop held indefinitely.
+ * The clock keeps ticking either way so flipping back to `'auto'` lands on
+ * the right hour immediately.
+ */
+export function useRoomLight(stop: RoomLightStopKey | 'auto' = 'auto'): IRoomLightGrade {
   const hour = useCurrentHour();
-  return roomLightForHour(hour);
+  return stop === 'auto' ? roomLightForHour(hour) : gradeForStopKey(stop);
 }

@@ -44,7 +44,8 @@ pub mod sweep;
 
 pub use ingest::import_background;
 pub use record::{
-    ALLOWED_EXTENSIONS, BACKGROUND_DIR_NAME, CustomBackground, MAX_DIMENSION, MAX_FILE_BYTES,
+    ALLOWED_EXTENSIONS, BACKGROUND_DIR_NAME, BackgroundLibrary, BackgroundLibraryEntry,
+    CustomBackground, MAX_DIMENSION, MAX_FILE_BYTES, MAX_LABEL_CHARS, MAX_LIBRARY_ENTRIES,
     background_dir, is_allowed_extension, still_name_for,
 };
 pub use sweep::{BackgroundReference, SweepReport, sweep_orphans};
