@@ -33,6 +33,7 @@ function reset(): void {
     tempoBreathingEnabled: true,
     artworkBloomEnabled: true,
     coverCrossfadeEnabled: true,
+    roomLightEnabled: true,
   });
   useLibraryStore.setState({ library: [], libraryLoaded: true });
   vi.clearAllMocks();
@@ -50,6 +51,7 @@ describe('VisualEffectsSection', () => {
     expect(screen.getByText('Noise texture')).toBeInTheDocument();
     expect(screen.getByText('Artwork bloom')).toBeInTheDocument();
     expect(screen.getByText('Cover crossfade')).toBeInTheDocument();
+    expect(screen.getByText('Room light')).toBeInTheDocument();
     expect(screen.getByText('Tempo breathing')).toBeInTheDocument();
   });
 
@@ -73,6 +75,17 @@ describe('VisualEffectsSection', () => {
     await user.click(screen.getByRole('switch', { name: 'Cover crossfade' }));
 
     expect(setCoverCrossfadeEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles the room light through the store setter', async () => {
+    const user = userEvent.setup();
+    const setRoomLightEnabled = vi.fn();
+    useUIStore.setState({ setRoomLightEnabled });
+    render(<VisualEffectsSection />);
+
+    await user.click(screen.getByRole('switch', { name: 'Room light' }));
+
+    expect(setRoomLightEnabled).toHaveBeenCalledWith(false);
   });
 
   it('toggles tempo breathing through the store setter', async () => {

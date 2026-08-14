@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
+import { useRoomLight, roomLightLayerStyle } from '@/hooks/useRoomLight';
 import { useTempoBreathing } from '@/hooks/useTempoBreathing';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -79,8 +80,10 @@ export function useAmbientBackground(): IAmbientBackgroundView {
   const noiseOverlayEnabled = useUIStore(s => s.noiseOverlayEnabled);
   const artworkBloomEnabled = useUIStore(s => s.artworkBloomEnabled);
   const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
+  const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
   const reducedMotion = useReducedMotion();
   const tempoBreathing = useTempoBreathing();
+  const roomLight = useRoomLight();
 
   // The bloom has its own first-class toggle; low-performance mode stays the
   // master kill on top of it (it also unmounts the whole layer via `enabled`,
@@ -135,5 +138,8 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     bloomKey: currentTrack?.id,
     showBloom: Boolean(currentTrack) && !reducedMotion && bloomEnabled,
     breathing: tempoBreathing.active,
+    // Low-perf already unmounts the whole layer via `enabled`; gating here too
+    // keeps the same no-leak discipline as the bloom's derived flags.
+    roomLightStyle: roomLightEnabled && !lowPerformanceMode ? roomLightLayerStyle(roomLight) : null,
   };
 }
