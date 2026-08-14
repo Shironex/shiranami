@@ -1,6 +1,17 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useUIStore, VINYL_LABEL_SOURCES, VINYL_RING_STYLES } from '@/stores/useUIStore';
+import {
+  useUIStore,
+  ROOM_LIGHT_HUE_SHIFT_MAX,
+  ROOM_LIGHT_HUE_SHIFT_MIN,
+  ROOM_LIGHT_HUE_SHIFT_STEP,
+  ROOM_LIGHT_INTENSITY_MAX,
+  ROOM_LIGHT_INTENSITY_MIN,
+  ROOM_LIGHT_INTENSITY_STEP,
+  ROOM_LIGHT_STOP_SETTINGS,
+  VINYL_LABEL_SOURCES,
+  VINYL_RING_STYLES,
+} from '@/stores/useUIStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { pendingAnalysisInput } from '@/hooks/useAnalysis';
 import { isRadioTrack } from '@/lib/utils';
@@ -33,6 +44,12 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
   const setVinylRingStyle = useUIStore(s => s.setVinylRingStyle);
   const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
   const setRoomLightEnabled = useUIStore(s => s.setRoomLightEnabled);
+  const roomLightStop = useUIStore(s => s.roomLightStop);
+  const setRoomLightStop = useUIStore(s => s.setRoomLightStop);
+  const roomLightIntensity = useUIStore(s => s.roomLightIntensity);
+  const setRoomLightIntensity = useUIStore(s => s.setRoomLightIntensity);
+  const roomLightHueShift = useUIStore(s => s.roomLightHueShift);
+  const setRoomLightHueShift = useUIStore(s => s.setRoomLightHueShift);
   const library = useLibraryStore(s => s.library);
 
   const vinylLabelOptions = VINYL_LABEL_SOURCES.map(value => ({
@@ -45,6 +62,12 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     value,
     label: t(`app.vinylRing.${value}`),
     isActive: vinylRingStyle === value,
+  }));
+
+  const roomLightStopOptions = ROOM_LIGHT_STOP_SETTINGS.map(value => ({
+    value,
+    label: t(`app.roomLightStops.${value}`),
+    isActive: roomLightStop === value,
   }));
 
   // The silent-failure guard: a library without tempo data never breathes, and
@@ -111,6 +134,30 @@ export function useVisualEffectsSection(): IVisualEffectsSectionView {
     roomLightDescription: t('app.roomLightDesc'),
     roomLightEnabled,
     onRoomLightChange: setRoomLightEnabled,
+
+    roomLightStopTitle: t('app.roomLightStopTitle'),
+    roomLightStopDescription: t('app.roomLightStopDesc'),
+    roomLightStopOptions,
+    onSelectRoomLightStop: setRoomLightStop,
+
+    roomLightIntensityTitle: t('app.roomLightIntensityTitle'),
+    roomLightIntensityDescription: t('app.roomLightIntensityDesc'),
+    roomLightIntensity,
+    roomLightIntensityMin: ROOM_LIGHT_INTENSITY_MIN,
+    roomLightIntensityMax: ROOM_LIGHT_INTENSITY_MAX,
+    roomLightIntensityStep: ROOM_LIGHT_INTENSITY_STEP,
+    onRoomLightIntensityChange: setRoomLightIntensity,
+
+    roomLightHueTitle: t('app.roomLightHueTitle'),
+    roomLightHueDescription: t('app.roomLightHueDesc'),
+    roomLightHueShift,
+    roomLightHueValueLabel: `${roomLightHueShift > 0 ? '+' : ''}${roomLightHueShift}°`,
+    roomLightHueMin: ROOM_LIGHT_HUE_SHIFT_MIN,
+    roomLightHueMax: ROOM_LIGHT_HUE_SHIFT_MAX,
+    roomLightHueStep: ROOM_LIGHT_HUE_SHIFT_STEP,
+    roomLightHueCoolerLabel: t('app.roomLightHueCooler'),
+    roomLightHueWarmerLabel: t('app.roomLightHueWarmer'),
+    onRoomLightHueShiftChange: setRoomLightHueShift,
 
     tempoBreathingLabel: t('app.tempoBreathing'),
     tempoBreathingDescription: t('app.tempoBreathingDesc'),

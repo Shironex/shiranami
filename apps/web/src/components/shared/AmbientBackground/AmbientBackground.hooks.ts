@@ -81,9 +81,12 @@ export function useAmbientBackground(): IAmbientBackgroundView {
   const artworkBloomEnabled = useUIStore(s => s.artworkBloomEnabled);
   const coverCrossfadeEnabled = useUIStore(s => s.coverCrossfadeEnabled);
   const roomLightEnabled = useUIStore(s => s.roomLightEnabled);
+  const roomLightIntensity = useUIStore(s => s.roomLightIntensity);
+  const roomLightStop = useUIStore(s => s.roomLightStop);
+  const roomLightHueShift = useUIStore(s => s.roomLightHueShift);
   const reducedMotion = useReducedMotion();
   const tempoBreathing = useTempoBreathing();
-  const roomLight = useRoomLight();
+  const roomLight = useRoomLight(roomLightStop);
 
   // The bloom has its own first-class toggle; low-performance mode stays the
   // master kill on top of it (it also unmounts the whole layer via `enabled`,
@@ -140,6 +143,12 @@ export function useAmbientBackground(): IAmbientBackgroundView {
     breathing: tempoBreathing.active,
     // Low-perf already unmounts the whole layer via `enabled`; gating here too
     // keeps the same no-leak discipline as the bloom's derived flags.
-    roomLightStyle: roomLightEnabled && !lowPerformanceMode ? roomLightLayerStyle(roomLight) : null,
+    roomLightStyle:
+      roomLightEnabled && !lowPerformanceMode
+        ? roomLightLayerStyle(roomLight, {
+            intensity: roomLightIntensity,
+            hueShift: roomLightHueShift,
+          })
+        : null,
   };
 }

@@ -504,6 +504,22 @@
     "coverCrossfadeDesc": "Tło z okładką płynnie przenika z jednej płyty w następną. To wyłącznie efekt wizualny — crossfade dźwięku znajdziesz w ustawieniach odtwarzania.",
     "roomLight": "Światło pokoju",
     "roomLightDesc": "Aplikacja podąża za Twoją porą dnia — chłodne światło poranka, złota poświata przed zachodem, a po zmroku lekko przyciemniony pokój z ciepłą lampką na biurku. Zmiany przenikają się minutami.",
+    "roomLightStopTitle": "Pora dnia",
+    "roomLightStopDesc": "Podążaj za zegarem albo zatrzymaj pokój w jednej porze dnia.",
+    "roomLightStops": {
+      "auto": "Auto",
+      "dawn": "Świt",
+      "day": "Dzień",
+      "goldenHour": "Złota godzina",
+      "dusk": "Zmierzch",
+      "night": "Noc"
+    },
+    "roomLightIntensityTitle": "Natężenie światła",
+    "roomLightIntensityDesc": "Jak mocno gradacja barwi scenę. 100% to zamierzony wygląd; wyższe wartości go podbijają.",
+    "roomLightHueTitle": "Ciepło lampki",
+    "roomLightHueDesc": "Dostosuj ciepło światła — chłodniejszy, niebieskawy odcień albo cieplejszy, bursztynowy.",
+    "roomLightHueCooler": "Chłodniej",
+    "roomLightHueWarmer": "Cieplej",
     "tempoBreathing": "Oddychanie w tempie",
     "tempoBreathingDesc": "Poświata okładki, unosząca się maskotka i pulsowanie kompaktowego odtwarzacza oddychają w tempie odtwarzanego utworu. Utwory bez danych o tempie zachowują stały rytm.",
     "tempoBreathingHint": "Większość biblioteki nie ma jeszcze danych o tempie, więc oddychanie rzadko się włącza. Uruchom analizę raz w ustawieniach biblioteki.",
@@ -538,7 +554,9 @@
       "noise": "Podgląd szumu",
       "noiseOn": "Tekstura włączona",
       "noiseOff": "Tekstura wyłączona",
-      "vinyl": "Podgląd winylu"
+      "vinyl": "Podgląd winylu",
+      "roomLight": "Podgląd światła pokoju",
+      "roomLightOff": "Światło wyłączone"
     },
     "sectionsAriaLabel": "Sekcje ustawień",
     "theme": {

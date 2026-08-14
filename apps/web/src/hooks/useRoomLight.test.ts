@@ -2,11 +2,15 @@ import { renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ROOM_LIGHT_STOPS,
+  gradeForStopKey,
   roomLightForHour,
   roomLightLayerStyle,
+  roomLightStopKeyForHour,
+  shiftOklchHue,
   useRoomLight,
   type RoomLightStopKey,
 } from './useRoomLight';
+import { ROOM_LIGHT_STOP_SETTINGS } from '@/stores/useUIStore';
 
 function gradeOf(key: RoomLightStopKey) {
   return ROOM_LIGHT_STOPS.find(stop => stop.key === key)!.grade;
@@ -69,6 +73,27 @@ describe('roomLightForHour', () => {
   });
 });
 
+describe('the stop-setting union in useUIStore', () => {
+  it('is auto plus exactly the stop keys, in stop order', () => {
+    // The store cannot import this hook module (stores never depend on hooks),
+    // so its hand-written union is pinned here against the one source of truth.
+    expect(ROOM_LIGHT_STOP_SETTINGS).toEqual(['auto', ...ROOM_LIGHT_STOPS.map(stop => stop.key)]);
+  });
+});
+
+describe('shiftOklchHue', () => {
+  it('rotates the hue and wraps modulo 360', () => {
+    expect(shiftOklchHue('oklch(0.75 0.14 65)', 30)).toBe('oklch(0.75 0.14 95)');
+    expect(shiftOklchHue('oklch(0.75 0.14 350)', 30)).toBe('oklch(0.75 0.14 20)');
+    expect(shiftOklchHue('oklch(0.75 0.14 10)', -30)).toBe('oklch(0.75 0.14 340)');
+  });
+
+  it('returns unrecognised colors and zero shifts unchanged', () => {
+    expect(shiftOklchHue('rebeccapurple', 30)).toBe('rebeccapurple');
+    expect(shiftOklchHue('oklch(0.75 0.14 65)', 0)).toBe('oklch(0.75 0.14 65)');
+  });
+});
+
 describe('roomLightLayerStyle', () => {
   it('pre-mixes the tint to its warmth and exposes the lamp opacity', () => {
     const style = roomLightLayerStyle(gradeOf('goldenHour')) as Record<string, string>;
@@ -77,6 +102,37 @@ describe('roomLightLayerStyle', () => {
       'color-mix(in oklab, oklch(0.75 0.14 65) 10%, transparent)'
     );
     expect(style['--room-light-lamp']).toBe('0');
+    expect(style['--room-light-lamp-hue']).toBe('0');
+  });
+
+  it('scales warmth and lamp with intensity, clamped at fully opaque', () => {
+    const half = roomLightLayerStyle(gradeOf('night'), {
+      intensity: 50,
+      hueShift: 0,
+    }) as Record<string, string>;
+    // night: warmth 0.22 -> 11%, lamp 1 -> 0.5
+    expect(half['--room-light-tint']).toContain(' 11%, transparent)');
+    expect(half['--room-light-lamp']).toBe('0.5');
+
+    const boosted = roomLightLayerStyle(gradeOf('night'), {
+      intensity: 150,
+      hueShift: 0,
+    }) as Record<string, string>;
+    // night's lamp is already 1; 150% must not push it past opaque.
+    expect(boosted['--room-light-tint']).toContain(' 33%, transparent)');
+    expect(boosted['--room-light-lamp']).toBe('1');
+  });
+
+  it('rotates the tint hue and publishes the lamp nudge', () => {
+    const style = roomLightLayerStyle(gradeOf('goldenHour'), {
+      intensity: 100,
+      hueShift: -20,
+    }) as Record<string, string>;
+
+    expect(style['--room-light-tint']).toBe(
+      'color-mix(in oklab, oklch(0.75 0.14 45) 10%, transparent)'
+    );
+    expect(style['--room-light-lamp-hue']).toBe('-20');
   });
 });
 
@@ -94,5 +150,21 @@ describe('useRoomLight', () => {
     const { result } = renderHook(() => useRoomLight());
 
     expect(result.current).toEqual(gradeOf('goldenHour'));
+  });
+
+  it('holds the named stop regardless of the clock', () => {
+    vi.setSystemTime(new Date(2026, 7, 14, 12, 0, 0));
+
+    const { result } = renderHook(() => useRoomLight('night'));
+
+    expect(result.current).toEqual(gradeOf('night'));
+  });
+});
+
+describe('roomLightStopKeyForHour / gradeForStopKey', () => {
+  it('agree with roomLightForHour at every hour', () => {
+    for (let hour = 0; hour < 24; hour += 1) {
+      expect(gradeForStopKey(roomLightStopKeyForHour(hour))).toEqual(roomLightForHour(hour));
+    }
   });
 });
