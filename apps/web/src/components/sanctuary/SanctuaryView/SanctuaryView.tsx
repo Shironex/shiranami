@@ -25,6 +25,7 @@ export default function SanctuaryView() {
     currentTrack,
     titleText,
     variant,
+    vinylStageWidthClass,
     chromeVisible,
     lyrics,
     hasSyncedLyrics,
@@ -166,7 +167,7 @@ export default function SanctuaryView() {
 
         {variant === 'vinyl' && (
           <>
-            <div className="shrink-0 w-[min(48vh,44vw,34rem)]">
+            <div className={cn('shrink-0', vinylStageWidthClass)}>
               <VinylRecord albumArt={currentTrack.albumArt} albumAlt={currentTrack.album} />
             </div>
 

@@ -76,6 +76,8 @@ export interface INowPlayingViewView {
   readonly lowPerformanceMode: boolean;
   /** Render the spinning vinyl record in place of the album-art card. */
   readonly vinylDisplayEnabled: boolean;
+  /** Disc width inside the artwork slot for the user's size choice. */
+  readonly vinylSizeClass: string;
   /** Whether the album art plays the ±3° track-change tilt (off under reduced
    *  motion / low-performance mode). */
   readonly albumArtTiltEnabled: boolean;
