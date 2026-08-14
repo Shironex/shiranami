@@ -16,24 +16,56 @@ export function usePlaylistSubmenu({
 }: IPlaylistSubmenuProps): IPlaylistSubmenuView {
   const { t } = useTranslation('contextMenu');
   const parentRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLButtonElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
   const [submenuSide, setSubmenuSide] = useState<'right' | 'left'>('right');
   const [isSubmenuOpen, setIsSubmenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keyboard opens hand focus to the panel once it mounts; hover opens don't.
+  const openedByKeyboardRef = useRef(false);
 
-  const handleMouseEnter = useCallback(() => {
+  const cancelPendingClose = useCallback(() => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-    setIsSubmenuOpen(true);
   }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    cancelPendingClose();
+    setIsSubmenuOpen(true);
+  }, [cancelPendingClose]);
 
   const handleMouseLeave = useCallback(() => {
     closeTimerRef.current = setTimeout(() => {
       setIsSubmenuOpen(false);
     }, CLOSE_DELAY_MS);
   }, []);
+
+  const handleRowKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        cancelPendingClose();
+        openedByKeyboardRef.current = true;
+        setIsSubmenuOpen(true);
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setIsSubmenuOpen(false);
+      }
+    },
+    [cancelPendingClose]
+  );
+
+  // After a keyboard open, move focus into the panel so the picker is
+  // immediately operable (the roving track-menu focus stays on the row
+  // otherwise).
+  useEffect(() => {
+    if (!isSubmenuOpen || !openedByKeyboardRef.current) return;
+    openedByKeyboardRef.current = false;
+    const first = submenuRef.current?.querySelector<HTMLElement>('button:not([disabled]), input');
+    first?.focus({ preventScroll: true });
+  }, [isSubmenuOpen]);
 
   useEffect(() => {
     return () => {
@@ -54,6 +86,7 @@ export function usePlaylistSubmenu({
     trackIds,
     onClose,
     parentRef,
+    rowRef,
     submenuRef,
     isSubmenuOpen,
     submenuClassName: cn(
@@ -62,5 +95,6 @@ export function usePlaylistSubmenu({
     ),
     onMouseEnter: handleMouseEnter,
     onMouseLeave: handleMouseLeave,
+    onRowKeyDown: handleRowKeyDown,
   };
 }
