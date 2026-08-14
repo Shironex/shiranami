@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { RenderResult } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +61,13 @@ function reset(): void {
     sanctuaryActive: false,
     sanctuaryAutoEntered: false,
     sanctuaryVariant: 'cover',
+    sanctuaryClockFace: 'minimal',
+    sanctuaryClockFormat: 'system',
+    sanctuaryClockSeconds: false,
+    sanctuaryRotation: 'off',
+    sanctuaryRotationMinutes: 5,
+    sanctuaryTrackInfo: { cover: true, clock: true, vinyl: true },
+    sanctuaryTimeOfDay: false,
   });
 }
 
@@ -143,5 +150,104 @@ describe('SanctuaryView', () => {
     fireEvent.pointerMove(window);
 
     expect(useSanctuaryStore.getState().sanctuaryActive).toBe(true);
+  });
+
+  it('renders the clock with the selected face treatment', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'clock',
+      sanctuaryClockFace: 'serif',
+    });
+
+    renderView(<SanctuaryView />);
+
+    const clock = document.querySelector('[data-slot="sanctuary-clock"]');
+    expect(clock).toHaveAttribute('data-face', 'serif');
+    expect(clock).toHaveClass('font-serif');
+  });
+
+  it('honors the forced hour formats and the seconds preference', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'clock',
+      sanctuaryClockFormat: '24h',
+      sanctuaryClockSeconds: true,
+    });
+
+    const { unmount } = renderView(<SanctuaryView />);
+    const clock = () => document.querySelector('[data-slot="sanctuary-clock"]');
+    expect(clock()).toHaveTextContent(/^\d{2}:\d{2}:\d{2}$/);
+    unmount();
+
+    useSanctuaryStore.setState({ sanctuaryClockFormat: '12h', sanctuaryClockSeconds: false });
+    renderView(<SanctuaryView />);
+    expect(clock()).toHaveTextContent(/[AP]M/i);
+  });
+
+  it('hides the track info on stages whose preference is off', () => {
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'cover',
+      sanctuaryTrackInfo: { cover: false, clock: true, vinyl: true },
+    });
+
+    renderView(<SanctuaryView />);
+
+    expect(screen.queryByRole('heading', { name: 'Midnight Tapes' })).not.toBeInTheDocument();
+    // The lyric focus stage is its own preference and stays.
+    expect(screen.getByText('the active line')).toBeInTheDocument();
+  });
+
+  it('follow-the-day picks the stage from the hour and drops the manual toggle', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 14, 23, 0, 0));
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'cover',
+      sanctuaryTimeOfDay: true,
+    });
+
+    try {
+      renderView(<SanctuaryView />);
+
+      // 23:00 is the night phase: the clock with the oversized face.
+      const clock = document.querySelector('[data-slot="sanctuary-clock"]');
+      expect(clock).toHaveAttribute('data-face', 'oversized');
+      expect(screen.queryByRole('button', { name: 'Show the clock' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Leave Sanctuary' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('timer rotation advances the stage after the configured minutes', () => {
+    vi.useFakeTimers();
+    usePlaybackStore.setState({ currentTrack: makeTrack(), duration: 215 });
+    useSanctuaryStore.setState({
+      sanctuaryActive: true,
+      sanctuaryVariant: 'cover',
+      sanctuaryRotation: 'minutes',
+      sanctuaryRotationMinutes: 2,
+    });
+
+    try {
+      renderView(<SanctuaryView />);
+
+      act(() => {
+        vi.advanceTimersByTime(2 * 60_000);
+      });
+      expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('clock');
+
+      act(() => {
+        vi.advanceTimersByTime(2 * 60_000);
+      });
+      expect(useSanctuaryStore.getState().sanctuaryVariant).toBe('vinyl');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

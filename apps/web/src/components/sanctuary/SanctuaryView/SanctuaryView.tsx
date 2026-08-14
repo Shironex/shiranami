@@ -1,5 +1,6 @@
 import { Music, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { SanctuaryClockFace } from '@/stores/useSanctuaryStore';
 import { Companion } from '@/components/companion/Companion';
 import { VinylRecord } from '@/components/shared/VinylRecord';
 import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
@@ -10,6 +11,17 @@ import { TimeDisplay } from '@/components/player/TimeDisplay';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { useSanctuaryView } from './SanctuaryView.hooks';
+
+/**
+ * The three clock treatments: the minimal display face, a serif quiet-library
+ * face, and thin oversized numerals. Sizing/weight/family only — the shared
+ * layout classes live on the element.
+ */
+const CLOCK_FACE_CLASS: Record<SanctuaryClockFace, string> = {
+  minimal: 'font-display text-[clamp(4rem,16vw,11rem)] tracking-tight',
+  serif: 'font-serif text-[clamp(4rem,15vw,10.5rem)] tracking-tight',
+  oversized: 'font-display font-extralight text-[clamp(4.5rem,21vw,15rem)] tracking-tighter',
+};
 
 /**
  * Sanctuary Mode: the fullscreen immersive player. The artwork bloom behind it
@@ -25,6 +37,9 @@ export default function SanctuaryView() {
     currentTrack,
     titleText,
     variant,
+    clockFace,
+    showTrackInfo,
+    showVariantToggle,
     chromeVisible,
     lyrics,
     hasSyncedLyrics,
@@ -74,14 +89,15 @@ export default function SanctuaryView() {
   ) : null;
 
   // Shared by the cover and vinyl stages — the title + artist/album lines.
-  const trackInfo = (
+  // Null when this stage's track-info preference is off: the art stands alone.
+  const trackInfo = showTrackInfo ? (
     <div className="text-center max-w-[70vw]">
       <h1 className="font-serif italic text-3xl @5xl:text-4xl text-foreground truncate">
         {titleText}
       </h1>
       <p className="text-sm text-muted-foreground mt-1.5 truncate">{trackLine}</p>
     </div>
-  );
+  ) : null;
 
   // Built above JSX render position (declarative-JSX rule): the ±1 focus
   // stage, or nothing for tracks without synced lyrics.
@@ -109,18 +125,20 @@ export default function SanctuaryView() {
 
       {/* Top chrome: variant toggle + exit */}
       <div className={cn('absolute top-0 inset-x-0 z-10 flex justify-end gap-1 p-4', chromeClass)}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <IconButton
-              onClick={onToggleVariant}
-              className="glass-subtle text-muted-foreground/70 hover:text-foreground"
-              aria-label={variantToggleLabel}
-            >
-              <VariantIcon />
-            </IconButton>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{variantToggleLabel}</TooltipContent>
-        </Tooltip>
+        {showVariantToggle && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <IconButton
+                onClick={onToggleVariant}
+                className="glass-subtle text-muted-foreground/70 hover:text-foreground"
+                aria-label={variantToggleLabel}
+              >
+                <VariantIcon />
+              </IconButton>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{variantToggleLabel}</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <IconButton
@@ -178,16 +196,25 @@ export default function SanctuaryView() {
 
         {variant === 'clock' && (
           <>
-            <div className="font-display text-[clamp(4rem,16vw,11rem)] leading-none tabular-nums tracking-tight text-foreground">
+            <div
+              data-slot="sanctuary-clock"
+              data-face={clockFace}
+              className={cn(
+                'leading-none tabular-nums text-foreground',
+                CLOCK_FACE_CLASS[clockFace]
+              )}
+            >
               {timeLabel}
             </div>
             <div className="text-base text-muted-foreground capitalize">
               {dateLabel}
               {weatherLabel && <span className="text-muted-foreground/70"> · {weatherLabel}</span>}
             </div>
-            <p className="text-sm text-muted-foreground/60 max-w-[70vw] truncate">
-              {titleText} — {trackLine}
-            </p>
+            {showTrackInfo && (
+              <p className="text-sm text-muted-foreground/60 max-w-[70vw] truncate">
+                {titleText} — {trackLine}
+              </p>
+            )}
           </>
         )}
       </div>

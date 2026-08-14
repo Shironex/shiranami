@@ -7,6 +7,7 @@ import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
 import {
   useSanctuaryStore,
+  nextSanctuaryVariant,
   SANCTUARY_CHROME_TIMEOUT_MS,
   type SanctuaryVariant,
 } from '@/stores/useSanctuaryStore';
@@ -15,6 +16,7 @@ import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useLyricsView } from '@/hooks/useLyricsView';
 import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
+import { useSanctuaryScene } from '@/hooks/useSanctuaryScene';
 import type { ISanctuaryViewView } from './SanctuaryView.types';
 
 /**
@@ -23,9 +25,6 @@ import type { ISanctuaryViewView } from './SanctuaryView.types';
  * `F` would exit here *and* toggle there — re-entering the mode it just left.
  */
 const GLOBAL_SANCTUARY_KEYS = new Set(['f', 'F', 'Escape']);
-
-/** The in-view toggle walks the three center stages in this order. */
-const VARIANT_CYCLE: SanctuaryVariant[] = ['cover', 'clock', 'vinyl'];
 
 /** Toggle chrome per upcoming variant: its localized label key and icon. */
 const NEXT_VARIANT_META: Record<SanctuaryVariant, { labelKey: string; icon: LucideIcon }> = {
@@ -41,8 +40,21 @@ export function useSanctuaryView(): ISanctuaryViewView {
   const variant = useSanctuaryStore(s => s.sanctuaryVariant);
   const setVariant = useSanctuaryStore(s => s.setSanctuaryVariant);
   const exitSanctuary = useSanctuaryStore(s => s.exitSanctuary);
+  const clockFacePref = useSanctuaryStore(s => s.sanctuaryClockFace);
+  const clockFormat = useSanctuaryStore(s => s.sanctuaryClockFormat);
+  const clockSeconds = useSanctuaryStore(s => s.sanctuaryClockSeconds);
+  const rotation = useSanctuaryStore(s => s.sanctuaryRotation);
+  const rotationMinutes = useSanctuaryStore(s => s.sanctuaryRotationMinutes);
+  const trackInfoByVariant = useSanctuaryStore(s => s.sanctuaryTrackInfo);
+  const timeOfDay = useSanctuaryStore(s => s.sanctuaryTimeOfDay);
   const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
   const lyrics = useLyricsView();
+
+  // Follow-the-day: the hour of day owns the stage (and, for clock phases,
+  // the face); the user's manual pick and rotation take over otherwise.
+  const scene = useSanctuaryScene();
+  const effectiveVariant: SanctuaryVariant = timeOfDay ? scene.variant : variant;
+  const clockFace = timeOfDay && scene.clockFace !== null ? scene.clockFace : clockFacePref;
 
   // The resident is chrome here — it rides the same fade; "keeps watch"
   // instead leaves it asleep at 40% in a corner when the chrome swims away.
@@ -51,7 +63,7 @@ export function useSanctuaryView(): ISanctuaryViewView {
 
   const weatherEnabled = useWeatherStore(s => s.enabled);
   const weatherCoords = useWeatherStore(s => s.coords);
-  const weather = useWeatherQuery(weatherEnabled && variant === 'clock', weatherCoords);
+  const weather = useWeatherQuery(weatherEnabled && effectiveVariant === 'clock', weatherCoords);
 
   // ── Stillness: chrome swims away after four quiet seconds ────────────────
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -99,10 +111,22 @@ export function useSanctuaryView(): ISanctuaryViewView {
   // ── Clock ────────────────────────────────────────────────────────────────
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    if (variant !== 'clock') return;
+    if (effectiveVariant !== 'clock') return;
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
-  }, [variant]);
+  }, [effectiveVariant]);
+
+  // ── Rotation: the stage quietly advances on a timer ──────────────────────
+  // Only while the sanctuary is up (this hook unmounts with it), and never
+  // under follow-the-day, where the hour owns the stage.
+  useEffect(() => {
+    if (timeOfDay || rotation !== 'minutes') return;
+    const id = window.setInterval(() => {
+      const s = useSanctuaryStore.getState();
+      s.setSanctuaryVariant(nextSanctuaryVariant(s.sanctuaryVariant));
+    }, rotationMinutes * 60_000);
+    return () => window.clearInterval(id);
+  }, [timeOfDay, rotation, rotationMinutes]);
 
   // The sanctuary only exists around a playing track.
   useEffect(() => {
@@ -119,14 +143,19 @@ export function useSanctuaryView(): ISanctuaryViewView {
   // view agrees with the player bar instead of showing a second answer.
   const titleText = useTrackTitle(currentTrack);
 
-  const nextVariant = VARIANT_CYCLE[(VARIANT_CYCLE.indexOf(variant) + 1) % VARIANT_CYCLE.length];
+  const nextVariant = nextSanctuaryVariant(variant);
   const nextMeta = NEXT_VARIANT_META[nextVariant];
 
   return {
     hasTrack: Boolean(currentTrack),
     currentTrack,
     titleText,
-    variant,
+    variant: effectiveVariant,
+    clockFace,
+    showTrackInfo: trackInfoByVariant[effectiveVariant],
+    // Under follow-the-day the manual toggle would fight the hour — the
+    // chrome drops the button rather than surface a dead control.
+    showVariantToggle: !timeOfDay,
     // Reduced motion: the chrome still hides (a screensaver that never clears
     // its controls is not a screensaver) but without the fade transition.
     chromeVisible,
@@ -134,7 +163,14 @@ export function useSanctuaryView(): ISanctuaryViewView {
     hasSyncedLyrics: (lyrics.synced?.length ?? 0) > 0,
     lyricsSyncedDimOpacity,
     showWaveformSeekbar,
-    timeLabel: now.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }),
+    timeLabel: now.toLocaleTimeString(i18n.language, {
+      hour: '2-digit',
+      minute: '2-digit',
+      ...(clockSeconds && { second: '2-digit' as const }),
+      // 'system' follows the app language's own hour convention.
+      ...(clockFormat === '12h' && { hour12: true }),
+      ...(clockFormat === '24h' && { hourCycle: 'h23' as const }),
+    }),
     dateLabel: now.toLocaleDateString(i18n.language, {
       weekday: 'long',
       day: 'numeric',
