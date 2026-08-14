@@ -1,6 +1,5 @@
 {
   "title": "Downloads",
-  "subtitle": "Track and manage your active and completed downloads.",
   "section": {
     "active": "Active",
     "queued": "Queued",
@@ -35,6 +34,10 @@
     "cancelAllFailed": "Couldn't cancel the queue. Please try again."
   },
   "loading": "Loading downloads…",
+  "loadError": {
+    "title": "Couldn't load the download queue",
+    "subtitle": "Something went wrong. Try again."
+  },
   "empty": {
     "title": "No downloads yet",
     "description": "Tracks you download from search, recommendations, or playlist import will appear here."

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
 import { logger } from '@/lib/logger';
+import { hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import type { DownloadQueueItem } from '@shiranami/contracts';
 import type { IDownloadSection, IDownloadsViewView } from './DownloadsView.types';
@@ -51,9 +52,11 @@ function cancelAll() {
 
 export function useDownloadsView(): IDownloadsViewView {
   const { t } = useTranslation('downloads');
+  const { t: tCommon } = useTranslation('common');
   const items = useDownloadQueueStore(s => s.items);
   const paused = useDownloadQueueStore(s => s.paused);
   const hydrated = useDownloadQueueStore(s => s.hydrated);
+  const hydrationFailed = useDownloadQueueStore(s => s.hydrationFailed);
   const [showCancelAllConfirm, setShowCancelAllConfirm] = useState(false);
 
   const sections = useMemo<IDownloadSection[]>(() => {
@@ -84,6 +87,9 @@ export function useDownloadsView(): IDownloadsViewView {
     paused,
     isEmpty: items.length === 0,
     hydrated,
+    isError: !hydrated && hydrationFailed,
+    retryLabel: tCommon('retry'),
+    onRetryHydration: hydrateDownloadQueue,
     hasPendingWork,
     hasCompleted,
     showCancelAllConfirm,
