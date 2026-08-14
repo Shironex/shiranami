@@ -5,8 +5,9 @@ import VinylPreview from './VinylPreview';
 
 /**
  * settings · VinylPreview. The live preview for the vinyl record display in
- * Visual effects settings: a miniature of the real VinylRecord component that
- * drops to a quarter opacity when the effect is turned off. The mock is
+ * Visual effects settings: one miniature of the real VinylRecord component
+ * per stage (Now Playing / Sanctuary), each sized by its own preference, all
+ * dropping to a quarter opacity when the effect is turned off. The mock is
  * exposed as a labelled `role="img"`.
  */
 const meta: Meta<typeof VinylPreview> = {
@@ -30,13 +31,16 @@ export default meta;
 
 type Story = StoryObj<typeof VinylPreview>;
 
-/** Effect on — the record miniature renders at full strength. */
+/** Effect on — a record miniature per stage renders at full strength. */
 export const Enabled: Story = {
   args: { enabled: true },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('img', { name: 'Vinyl preview' })).toBeInTheDocument();
-    await expect(canvasElement.querySelector('[data-slot="vinyl-record"]')).toBeInTheDocument();
+    await expect(canvasElement.querySelectorAll('[data-slot="vinyl-record"]')).toHaveLength(2);
+    await expect(
+      canvasElement.querySelector('[data-slot="vinyl-preview-sanctuary"]')
+    ).toBeInTheDocument();
   },
 };
 
