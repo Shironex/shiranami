@@ -1,4 +1,5 @@
 import { Play } from 'lucide-react';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { useThemeBackgroundPreview } from './ThemeBackgroundPreview.hooks';
 
 /**
@@ -31,7 +32,7 @@ export default function ThemeBackgroundPreview() {
   if (!hasBackground) return null;
 
   return (
-    <div className="relative h-[148px] overflow-hidden rounded-xl border border-border/30 bg-background">
+    <PreviewFrame size="scene" canvasClassName="bg-background">
       {/* Image — same class + url() resolution as the real ThemeBackground, but
           opacity/blur are scoped here instead of via the document root vars. */}
       <div
@@ -64,6 +65,6 @@ export default function ThemeBackgroundPreview() {
           </div>
         </div>
       </div>
-    </div>
+    </PreviewFrame>
   );
 }

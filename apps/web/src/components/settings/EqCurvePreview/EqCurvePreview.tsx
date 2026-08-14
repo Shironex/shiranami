@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { useEqCurvePreview, EQ_CURVE_VIEWBOX } from './EqCurvePreview.hooks';
 import type { IEqCurvePreviewProps } from './EqCurvePreview.types';
 
@@ -18,11 +19,9 @@ export default function EqCurvePreview(props: IEqCurvePreviewProps) {
   const tickLabels = ticks.map(tick => <span key={tick.freq}>{tick.label}</span>);
 
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-xl border border-border/30 bg-background/40 transition-opacity',
-        disabled && 'opacity-50'
-      )}
+    <PreviewFrame
+      size="none"
+      className={cn('relative overflow-hidden p-0 transition-opacity', disabled && 'opacity-50')}
     >
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
@@ -65,6 +64,6 @@ export default function EqCurvePreview(props: IEqCurvePreviewProps) {
       <div className="flex justify-between px-2 pb-1.5 text-[9px] tabular-nums text-muted-foreground/60">
         {tickLabels}
       </div>
-    </div>
+    </PreviewFrame>
   );
 }

@@ -1,24 +1,29 @@
 import { Suspense } from 'react';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useVisualizerStylePreview } from './VisualizerStylePreview.hooks';
+
+/** Faint blueprint grid: 1px foreground lines every 24px, theme-driven. */
+const GRID_LINE = 'color-mix(in oklab, var(--foreground) 2.5%, transparent)';
 
 export default function VisualizerStylePreview() {
   const { title, Visualizer, source } = useVisualizerStylePreview();
 
   return (
     <SettingsPreview title={title}>
-      <div
-        className="relative h-[140px] overflow-hidden rounded-xl border border-border/30"
-        style={{
-          background: 'linear-gradient(135deg, oklch(0.12 0.015 270), oklch(0.09 0.015 255))',
-        }}
-      >
+      <PreviewFrame label={title} size="scene">
+        {/* Dimmed stage backdrop for the glowing bars, from theme tokens so it
+            follows the active palette instead of a hardcoded navy. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, var(--surface), var(--background))' }}
+        />
         <div
           aria-hidden="true"
           className="absolute inset-0"
           style={{
-            backgroundImage:
-              'linear-gradient(oklch(1 0 0 / 0.025) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 0.025) 1px, transparent 1px)',
+            backgroundImage: `linear-gradient(${GRID_LINE} 1px, transparent 1px), linear-gradient(90deg, ${GRID_LINE} 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
           }}
         />
@@ -27,7 +32,7 @@ export default function VisualizerStylePreview() {
             <Visualizer source={source} active />
           </Suspense>
         </div>
-      </div>
+      </PreviewFrame>
     </SettingsPreview>
   );
 }
