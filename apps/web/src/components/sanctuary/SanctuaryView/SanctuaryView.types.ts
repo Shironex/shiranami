@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { Track } from '@/stores/types';
-import type { SanctuaryVariant } from '@/stores/useSanctuaryStore';
+import type { SanctuaryClockFace, SanctuaryVariant } from '@/stores/useSanctuaryStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
 import type { ICompanionPresence } from '@/hooks/useCompanionPresence';
 
@@ -17,8 +17,17 @@ export interface ISanctuaryViewView {
    * else it is `currentTrack.title`. Empty string when nothing is playing.
    */
   readonly titleText: string;
-  /** What sits center-stage: the cover, or the clock. */
+  /**
+   * What sits center-stage: the cover, the clock, or the vinyl. Already the
+   * effective pick — under follow-the-day the hour decides, not the setting.
+   */
   readonly variant: SanctuaryVariant;
+  /** Clock variant: how the numerals are drawn (may come from the scene). */
+  readonly clockFace: SanctuaryClockFace;
+  /** Whether the current stage keeps the title/artist lines on screen. */
+  readonly showTrackInfo: boolean;
+  /** The manual stage toggle hides while follow-the-day owns the stage. */
+  readonly showVariantToggle: boolean;
   /** Vinyl variant: pre-resolved width class for the user's disc-size choice. */
   readonly vinylStageWidthClass: string;
   /** Whether the swim-in chrome (controls, buttons) is currently visible. */
