@@ -123,4 +123,28 @@ describe('Companion', () => {
     expect(svg.style.getPropertyValue('--companion-peek-y')).toBe('-1px');
     expect(svg.style.getPropertyValue('--companion-lean')).toBe('2deg');
   });
+
+  it('stamps data-accessories and layers every worn keepsake', () => {
+    const { container } = render(
+      <Companion
+        species="shio"
+        stage={4}
+        mode="listening"
+        motion={false}
+        accessories={['beret', 'satchel']}
+      />
+    );
+    expect(container.querySelector('svg')).toHaveAttribute('data-accessories', 'beret satchel');
+    expect(container.querySelectorAll('.companion-acc')).toHaveLength(2);
+    expect(container.querySelector('.companion-a-beret')).not.toBeNull();
+    expect(container.querySelector('.companion-a-satchel')).not.toBeNull();
+  });
+
+  it('renders bare (no data-accessories, no keepsake nodes) when none are worn', () => {
+    const { container } = render(
+      <Companion species="hotaru" stage={4} mode="listening" motion={false} accessories={[]} />
+    );
+    expect(container.querySelector('svg')).not.toHaveAttribute('data-accessories');
+    expect(container.querySelector('.companion-acc')).toBeNull();
+  });
 });

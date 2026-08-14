@@ -16,7 +16,7 @@ function reset(): void {
     dressForWeather: true,
   });
   useCompanionRuntimeStore.setState({
-    ledger: { name: null, xpHours: null, hasBackend: false },
+    ledger: { name: null, xpHours: null, accessories: [], hasBackend: false },
   });
 }
 
@@ -66,7 +66,7 @@ describe('CompanionSection', () => {
     expect(screen.queryByText(/hours of listening/)).not.toBeInTheDocument();
 
     useCompanionRuntimeStore.setState({
-      ledger: { name: null, xpHours: 112, hasBackend: true },
+      ledger: { name: null, xpHours: 112, accessories: [], hasBackend: true },
     });
     rerender(<CompanionSection />);
     expect(screen.getByText(/grown from 112 hours of listening/)).toBeInTheDocument();
@@ -74,9 +74,68 @@ describe('CompanionSection', () => {
 
   it('greets a hatchling without inventing hours', () => {
     useCompanionRuntimeStore.setState({
-      ledger: { name: null, xpHours: 0, hasBackend: true },
+      ledger: { name: null, xpHours: 0, accessories: [], hasBackend: true },
     });
     render(<CompanionSection />);
     expect(screen.getByText(/just hatched/)).toBeInTheDocument();
+  });
+
+  it('hides the keepsake wardrobe without a ledger to persist to', () => {
+    render(<CompanionSection />);
+    expect(screen.queryByText('Little keepsakes')).not.toBeInTheDocument();
+  });
+
+  it('renames the companion inline, trimming the draft', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<CompanionSection />);
+    useCompanionRuntimeStore.setState({
+      ledger: { name: 'Puddle', xpHours: 112, accessories: [], hasBackend: true },
+    });
+    rerender(<CompanionSection />);
+
+    expect(screen.getByText('Puddle')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
+
+    const input = screen.getByRole('textbox', { name: 'Name' });
+    await user.clear(input);
+    await user.type(input, '  Mochi  ');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(useCompanionRuntimeStore.getState().ledger.name).toBe('Mochi');
+  });
+
+  it('offers "Give a name" while the companion is still nameless', () => {
+    const { rerender } = render(<CompanionSection />);
+    useCompanionRuntimeStore.setState({
+      ledger: { name: null, xpHours: 5, accessories: [], hasBackend: true },
+    });
+    rerender(<CompanionSection />);
+    expect(screen.getByRole('button', { name: 'Give a name' })).toBeInTheDocument();
+    expect(screen.getByText('No name yet')).toBeInTheDocument();
+  });
+
+  it('gates keepsakes by the reached stage and toggles the worn set', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<CompanionSection />);
+    // After mount: the driver's ledger probe has already answered (absent in
+    // tests), so this stands as the state the section re-reads.
+    useCompanionRuntimeStore.setState({
+      machine: { ...useCompanionRuntimeStore.getState().machine, stage: 2 },
+      ledger: { name: null, xpHours: 112, accessories: [], hasBackend: true },
+    });
+    rerender(<CompanionSection />);
+
+    // Stage 2: beret + glasses reachable, satchel + pendant still growing.
+    expect(screen.getByRole('button', { name: 'beret' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'round glasses' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'satchel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'shell pendant' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'beret' }));
+    expect(useCompanionRuntimeStore.getState().ledger.accessories).toEqual(['beret']);
+    expect(screen.getByRole('button', { name: 'beret' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'beret' }));
+    expect(useCompanionRuntimeStore.getState().ledger.accessories).toEqual([]);
   });
 });

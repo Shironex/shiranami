@@ -107,6 +107,14 @@ export const commands = {
 	 */
 	companionSetSpecies: (species: Species) => __TAURI_INVOKE<CompanionState>("companion_set_species", { species }),
 	/**
+	 *  `companion:set-accessories` — replace the worn accessory set.
+	 * 
+	 *  The renderer sends the whole set every time (never a delta), so the column
+	 *  is always exactly what the listener last chose. Which ids exist and which
+	 *  stages unlock them is renderer vocabulary; the ledger stores the choice.
+	 */
+	companionSetAccessories: (accessories: string[]) => __TAURI_INVOKE<CompanionState>("companion_set_accessories", { accessories }),
+	/**
 	 *  `db:backup:export` — write a consistent copy of the library to `destination`.
 	 * 
 	 *  The snapshot is taken with `VACUUM INTO`, which is transactionally

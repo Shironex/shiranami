@@ -63,6 +63,7 @@ const EditTagsDialogManager = lazy(
 const OnboardingWizard = lazy(
   () => import('@/components/onboarding/OnboardingWizard/OnboardingWizard')
 );
+const NamingCeremony = lazy(() => import('@/components/companion/NamingCeremony/NamingCeremony'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -364,6 +365,13 @@ function App() {
             <ErrorBoundary viewName="EditTagsDialogManager">
               <Suspense fallback={null}>
                 <EditTagsDialogManager />
+              </Suspense>
+            </ErrorBoundary>
+            {/* The companion's one-time naming moment — self-gating (stage,
+                name, ceremony flag), so mounting it is unconditional. */}
+            <ErrorBoundary viewName="NamingCeremony">
+              <Suspense fallback={null}>
+                <NamingCeremony />
               </Suspense>
             </ErrorBoundary>
 

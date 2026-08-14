@@ -240,11 +240,13 @@ export const IPC_CHANNELS = {
   },
   companion: {
     // The desk companion's ledger (v2-only): singleton state hatched from
-    // play history, the naming ceremony, and the Shio/Hotaru switch. The
-    // event streams XP accrued by db:history:record-play.
+    // play history, the naming ceremony, the Shio/Hotaru switch, and the
+    // worn keepsake accessories. The event streams XP accrued by
+    // db:history:record-play.
     getState: 'companion:get-state',
     setName: 'companion:set-name',
     setSpecies: 'companion:set-species',
+    setAccessories: 'companion:set-accessories',
     xp: 'companion:xp',
   },
   loudness: {
@@ -362,6 +364,7 @@ export const V2_ONLY_CHANNELS = [
   'companion:get-state',
   'companion:set-name',
   'companion:set-species',
+  'companion:set-accessories',
   'companion:xp',
   'lyrics:save-batch',
   'lyrics:save-cancel',

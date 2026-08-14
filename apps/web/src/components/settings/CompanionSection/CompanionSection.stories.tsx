@@ -53,7 +53,7 @@ export const WithLedger: Story = {
   loaders: [
     async () => {
       useCompanionRuntimeStore.setState({
-        ledger: { name: null, xpHours: 112, hasBackend: true },
+        ledger: { name: null, xpHours: 112, accessories: [], hasBackend: true },
       });
       useCompanionRuntimeStore.setState(state => ({
         machine: { ...state.machine, stage: 2 },

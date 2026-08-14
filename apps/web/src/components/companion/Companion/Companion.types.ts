@@ -6,6 +6,7 @@ import type {
   CompanionStage,
 } from '@/lib/companionMachine';
 import type { CompanionOutfit } from '@/lib/companionOutfit';
+import type { CompanionAccessory } from '@/lib/companionAccessories';
 
 /** Face variant shown by the sprite (drives the `data-face` attribute). */
 export type CompanionFace = 'open' | 'half' | 'closed';
@@ -25,6 +26,11 @@ export interface ICompanionProps {
    * `data-stage`). Null/omitted = bare — byte-identical to the outfit-less rig.
    */
   readonly outfit?: CompanionOutfit | null;
+  /**
+   * Worn keepsakes (drives the space-separated `data-accessories` attribute;
+   * unlike the single-slot outfit, several may layer). Empty/omitted = bare.
+   */
+  readonly accessories?: readonly CompanionAccessory[];
   /** Rendered width in px (56 = player perch, 64 = Now Playing). */
   readonly size?: number;
   readonly className?: string;
