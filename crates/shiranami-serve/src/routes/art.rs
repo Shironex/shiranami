@@ -24,6 +24,7 @@ use axum::extract::{Path as UrlPath, State};
 use axum::response::Response;
 use bytes::Bytes;
 use shiranami_core::paths::is_path_within;
+use tokio::io::AsyncReadExt as _;
 use tokio_util::io::ReaderStream;
 
 use crate::art_cache::DEFAULT_MAX_BYTES;
@@ -61,7 +62,7 @@ pub async fn handle(
         ));
     }
 
-    let (file, size) = open_regular_file("art", &path).await?;
+    let (mut file, size) = open_regular_file("art", &path).await?;
 
     // Anything past the cache budget is streamed and never held: reading it to
     // populate a cache that would immediately refuse it is the worst of both.
@@ -73,11 +74,21 @@ pub async fn handle(
 
     tracing::debug!(size, hit = false, streamed = false, "art route serving");
 
-    let bytes = Bytes::from(
-        tokio::fs::read(&path)
-            .await
-            .map_err(|_| ServeError::NotFound)?,
-    );
+    // Read the handle we already hold rather than opening the path a second
+    // time. The stat this route now does ahead of the open is what makes a
+    // directory refuse identically on every platform, and it is worth one
+    // syscall — but only if the open it guards is then actually used.
+    //
+    // `size` is a capacity hint, not a promise: `read_to_end` reads whatever is
+    // there, and the length that reaches the wire is taken from the bytes below,
+    // so a file that changed under us cannot produce a Content-Length that
+    // disagrees with the body.
+    let mut buffer = Vec::with_capacity(size as usize);
+    file.read_to_end(&mut buffer)
+        .await
+        .map_err(|_| ServeError::NotFound)?;
+
+    let bytes = Bytes::from(buffer);
     state.art_cache().insert(name.clone(), bytes.clone());
 
     Ok(image_response(&name, bytes.len() as u64, Body::from(bytes)))
