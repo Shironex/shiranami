@@ -111,11 +111,7 @@ function ToolsInstaller({
     );
   }
   return (
-    <Button
-      type="button"
-      onClick={affordance.onInstall}
-      className="w-full rounded-xl [&_svg]:size-3.5"
-    >
+    <Button type="button" onClick={affordance.onInstall} className="w-full [&_svg]:size-3.5">
       <ArrowDownToLine />
       {installLabel}
     </Button>

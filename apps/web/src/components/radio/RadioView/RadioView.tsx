@@ -218,13 +218,7 @@ export default function RadioView() {
         </div>
         {showLoadMore && (
           <div className="shrink-0 flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isLoadingMore}
-              onClick={onLoadMore}
-              className="rounded-xl"
-            >
+            <Button variant="outline" size="sm" disabled={isLoadingMore} onClick={onLoadMore}>
               {isLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {t('loadMore')}
             </Button>

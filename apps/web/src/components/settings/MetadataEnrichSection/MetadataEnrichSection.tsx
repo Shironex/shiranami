@@ -136,7 +136,7 @@ export default function MetadataEnrichSection() {
                   ref={confirmYesRef}
                   size="sm"
                   onClick={onConfirmedEnrich}
-                  className="gap-2 rounded-lg bg-warning text-sm text-warning-foreground shadow-none hover:bg-warning/90 [&_svg]:size-3.5"
+                  className="gap-2 bg-warning text-sm text-warning-foreground shadow-none hover:bg-warning/90 [&_svg]:size-3.5"
                 >
                   <Search />
                   {t('lib.enrichYesWrite')}
@@ -145,7 +145,7 @@ export default function MetadataEnrichSection() {
                   variant="ghost"
                   size="sm"
                   onClick={onDismissConfirm}
-                  className="rounded-lg text-sm text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                 >
                   {tc('cancel')}
                 </Button>
@@ -158,7 +158,7 @@ export default function MetadataEnrichSection() {
                 onClick={onEnrich}
                 disabled={enrichDisabled}
                 aria-busy={isEnriching}
-                className="rounded-xl bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
+                className="bg-primary/15 text-primary shadow-none hover:bg-primary/25 [&_svg]:size-3.5"
               >
                 {isEnriching ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
@@ -173,7 +173,7 @@ export default function MetadataEnrichSection() {
                   onClick={onCancel}
                   disabled={isCancelling}
                   aria-busy={isCancelling}
-                  className="rounded-xl [&_svg]:size-3.5"
+                  className="[&_svg]:size-3.5"
                 >
                   {isCancelling ? (
                     <Loader2 className="animate-spin" aria-hidden="true" />

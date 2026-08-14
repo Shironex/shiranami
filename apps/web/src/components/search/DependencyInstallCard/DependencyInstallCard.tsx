@@ -38,7 +38,7 @@ export default function DependencyInstallCard(props: IDependencyInstallCardProps
 
         {showInstallButton && (
           <>
-            <Button onClick={onInstall} className="h-auto w-full rounded-xl py-2.5">
+            <Button onClick={onInstall} className="h-auto w-full py-2.5">
               <ArrowDownToLine />
               {installButtonLabel}
             </Button>

@@ -152,7 +152,7 @@ export default function ImportDialog(props: IImportDialogProps) {
 
               {/* Actions */}
               {state === 'ready' && (
-                <Button onClick={startImport} className="h-auto w-full rounded-xl py-2.5">
+                <Button onClick={startImport} className="h-auto w-full py-2.5">
                   <Download />
                   {t('downloadAll', { count: tracks.length })}
                 </Button>
