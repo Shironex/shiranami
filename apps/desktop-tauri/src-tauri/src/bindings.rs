@@ -284,6 +284,7 @@ mod tests {
             "companionGetState",
             "companionSetName",
             "companionSetSpecies",
+            "companionSetAccessories",
             "shellShowInFolder",
             "shellTrashFile",
             "debugStart",

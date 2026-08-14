@@ -211,6 +211,38 @@ pub async fn set_species(
     Ok(row.into())
 }
 
+/// Replace the worn accessory set, returning the updated state.
+///
+/// Stored as a JSON array in the `accessories` column. The repo stores what
+/// it is given — which ids exist and which stages unlock them is renderer
+/// vocabulary (the accessories are delight, not ledger truth), deliberately
+/// not restated here where it would drift.
+pub async fn set_accessories(
+    conn: &mut SqliteConnection,
+    accessories: &[String],
+    now: &str,
+) -> Result<CompanionState> {
+    ensure_hatched(&mut *conn, now).await?;
+
+    // Serializing a slice of strings cannot fail; the fallback only exists so
+    // this path can never panic the caller over a delight feature.
+    let stored = serde_json::to_string(accessories).unwrap_or_else(|_| "[]".to_owned());
+
+    let row: CompanionRow = sqlx::query_as(
+        "UPDATE companion_state SET accessories = ?1 WHERE id = 1 \
+         RETURNING name, species, stage, xp, accessories, hatched_at, last_seen_at",
+    )
+    .bind(stored)
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(|source| DbError::Query {
+        operation: "dress the companion",
+        source,
+    })?;
+
+    Ok(row.into())
+}
+
 /// Record a sighting: stamp `last_seen_at` with the caller's instant.
 ///
 /// The read that precedes it deliberately returns the *previous* value, which
