@@ -24,6 +24,8 @@ export interface IQueueUpNextRow {
 export interface IQueuePanelView {
   /** Bound `queue` namespace translator. */
   readonly t: TranslateFn;
+  /** Bound `common` namespace translator (save/name-placeholder labels). */
+  readonly tCommon: TranslateFn;
   /** Header action passed through from props. */
   readonly headerAction: ReactNode;
   /** Whether the queue has any entries (drives the empty state). */
@@ -54,6 +56,22 @@ export interface IQueuePanelView {
   readonly onConfirmClear: () => void;
   /** Dismiss the confirm popover without clearing. */
   readonly onCancelClear: () => void;
+  /** Whether the save-as-playlist name popover is open. */
+  readonly showSaveForm: boolean;
+  /** Open/close the save-as-playlist popover (closing resets the name). */
+  readonly onSaveFormOpenChange: (open: boolean) => void;
+  /** The draft playlist name. */
+  readonly saveName: string;
+  /** Update the draft playlist name. */
+  readonly onSaveNameChange: (name: string) => void;
+  /** Enter saves, Escape closes — the sibling name-form conventions. */
+  readonly onSaveNameKeyDown: (e: React.KeyboardEvent) => void;
+  /** Whether the create-with-tracks mutation is in flight. */
+  readonly isSavingPlaylist: boolean;
+  /** Whether the save action is enabled (non-empty name, not already saving). */
+  readonly canSavePlaylist: boolean;
+  /** Create a playlist from the current queue under the draft name. */
+  readonly onSaveAsPlaylist: () => Promise<void>;
   /** Play (or toggle) the track at the given queue index. */
   readonly onPlayIndex: (index: number) => void;
   /** Remove the track at the given queue index. */

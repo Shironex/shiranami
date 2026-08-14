@@ -1,6 +1,7 @@
-import { Trash2, Music } from 'lucide-react';
+import { Trash2, Music, ListPlus, Loader2 } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -12,6 +13,7 @@ import type { IQueuePanelProps } from './QueuePanel.types';
 export default function QueuePanel(props: IQueuePanelProps) {
   const {
     t,
+    tCommon,
     headerAction,
     hasQueue,
     nowPlayingTrack,
@@ -25,6 +27,14 @@ export default function QueuePanel(props: IQueuePanelProps) {
     onClearConfirmOpenChange,
     onConfirmClear,
     onCancelClear,
+    showSaveForm,
+    onSaveFormOpenChange,
+    saveName,
+    onSaveNameChange,
+    onSaveNameKeyDown,
+    isSavingPlaylist,
+    canSavePlaylist,
+    onSaveAsPlaylist,
     onPlayIndex,
     onRemove,
     onDragStart,
@@ -53,6 +63,44 @@ export default function QueuePanel(props: IQueuePanelProps) {
           {t('title')}
         </h2>
         <div className="flex items-center gap-1">
+          {hasQueue && (
+            <Popover open={showSaveForm} onOpenChange={onSaveFormOpenChange}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <IconButton aria-label={t('saveAsPlaylist')}>
+                      <ListPlus />
+                    </IconButton>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t('saveAsPlaylist')}</TooltipContent>
+              </Tooltip>
+              <PopoverContent align="end" className="w-64">
+                <p className="text-xs font-medium text-foreground/80 mb-2">{t('saveAsPlaylist')}</p>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    value={saveName}
+                    onChange={e => onSaveNameChange(e.target.value)}
+                    onKeyDown={onSaveNameKeyDown}
+                    placeholder={tCommon('namePlaceholder')}
+                    aria-label={tCommon('namePlaceholder')}
+                    disabled={isSavingPlaylist}
+                    className="flex-1 min-w-0 px-2 py-1 rounded-lg bg-background/50 border border-border/30 text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => void onSaveAsPlaylist()}
+                    disabled={!canSavePlaylist}
+                    className="h-7 bg-primary/20 px-2.5 text-primary shadow-none hover:bg-primary/30 [&_svg]:size-3.5"
+                  >
+                    {isSavingPlaylist && <Loader2 className="animate-spin" />}
+                    {tCommon('save')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           {hasQueue && (
             <Popover open={showClearConfirm} onOpenChange={onClearConfirmOpenChange}>
               <Tooltip>
