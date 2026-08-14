@@ -50,6 +50,28 @@ export function reconstructBatchesFromSnapshot(items: DownloadQueueItem[]): void
   }
 }
 
+/**
+ * Fetch the persisted main-process queue and mirror it into the renderer
+ * stores: batches first (so the App-level importer sees each batch the instant
+ * it sees its items — zustand setState is synchronous), then the queue
+ * snapshot. On failure the queue store is flagged so the Downloads view can
+ * surface an error state with a retry; any later queue-state broadcast also
+ * recovers the snapshot.
+ */
+export function hydrateDownloadQueue(): void {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader
+    .getDownloadQueue()
+    .then(snapshot => {
+      reconstructBatchesFromSnapshot(snapshot.items);
+      useDownloadQueueStore.getState().applySnapshot(snapshot);
+    })
+    .catch((err: unknown) => {
+      logger.error('[downloads] queue hydration failed', err);
+      useDownloadQueueStore.getState().markHydrationFailed();
+    });
+}
+
 export interface BatchImportSummary {
   done: number;
   skipped: number;

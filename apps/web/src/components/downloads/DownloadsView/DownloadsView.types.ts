@@ -19,8 +19,14 @@ export interface IDownloadsViewView {
   readonly paused: boolean;
   /** No items at all (shows the empty/loading frame). */
   readonly isEmpty: boolean;
-  /** False until the first snapshot lands — holds a blank frame instead of the empty state. */
+  /** False until the first snapshot lands — holds a skeleton frame instead of the empty state. */
   readonly hydrated: boolean;
+  /** Initial hydration failed before any snapshot landed — shows the error state. */
+  readonly isError: boolean;
+  /** Label for the error-state retry action (common namespace). */
+  readonly retryLabel: string;
+  /** Re-attempt the initial queue hydration after a failure. */
+  readonly onRetryHydration: () => void;
   /** There is in-flight or pending work to pause / cancel. */
   readonly hasPendingWork: boolean;
   /** There are completed/terminal items to clear. */

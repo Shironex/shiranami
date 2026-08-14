@@ -23,10 +23,17 @@ interface DownloadQueueState {
    * doesn't flash the empty state on launch.
    */
   hydrated: boolean;
+  /**
+   * True when the initial queue fetch failed before any snapshot landed. Only
+   * meaningful while `hydrated` is false — any successful snapshot (retry or
+   * queue-state broadcast) clears it and the queue is live again.
+   */
+  hydrationFailed: boolean;
 }
 
 interface DownloadQueueActions {
   applySnapshot: (snapshot: DownloadQueueSnapshot) => void;
+  markHydrationFailed: () => void;
   getById: (id: string) => DownloadQueueItem | undefined;
   getByUrl: (url: string) => DownloadQueueItem | undefined;
   getByYoutubeId: (youtubeId: string) => DownloadQueueItem | undefined;
@@ -55,6 +62,7 @@ export const useDownloadQueueStore = create<DownloadQueueState & DownloadQueueAc
     activeCount: 0,
     paused: false,
     hydrated: false,
+    hydrationFailed: false,
 
     applySnapshot: snapshot => {
       const { byUrl, byYoutubeId } = buildIndices(snapshot.items);
@@ -66,8 +74,11 @@ export const useDownloadQueueStore = create<DownloadQueueState & DownloadQueueAc
         activeCount: snapshot.activeCount,
         paused: snapshot.paused,
         hydrated: true,
+        hydrationFailed: false,
       });
     },
+
+    markHydrationFailed: () => set({ hydrationFailed: true }),
 
     getById: id => get().items.find(item => item.id === id),
     getByUrl: url => get().byUrl.get(url),

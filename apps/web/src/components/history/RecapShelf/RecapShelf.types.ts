@@ -18,6 +18,8 @@ export interface IRecapShelfWeek {
 }
 
 export interface IRecapShelfView {
+  /** Unique id wiring the shelf section's `aria-labelledby` to its heading. */
+  readonly headingId: string;
   /** Shelf heading ("Recaps"). */
   readonly title: string;
   /** Sub-caption under the heading. */
