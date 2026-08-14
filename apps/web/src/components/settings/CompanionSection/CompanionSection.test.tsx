@@ -85,6 +85,35 @@ describe('CompanionSection', () => {
     expect(screen.queryByText('Little keepsakes')).not.toBeInTheDocument();
   });
 
+  it('renames the companion inline, trimming the draft', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<CompanionSection />);
+    useCompanionRuntimeStore.setState({
+      ledger: { name: 'Puddle', xpHours: 112, accessories: [], hasBackend: true },
+    });
+    rerender(<CompanionSection />);
+
+    expect(screen.getByText('Puddle')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Rename' }));
+
+    const input = screen.getByRole('textbox', { name: 'Name' });
+    await user.clear(input);
+    await user.type(input, '  Mochi  ');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(useCompanionRuntimeStore.getState().ledger.name).toBe('Mochi');
+  });
+
+  it('offers "Give a name" while the companion is still nameless', () => {
+    const { rerender } = render(<CompanionSection />);
+    useCompanionRuntimeStore.setState({
+      ledger: { name: null, xpHours: 5, accessories: [], hasBackend: true },
+    });
+    rerender(<CompanionSection />);
+    expect(screen.getByRole('button', { name: 'Give a name' })).toBeInTheDocument();
+    expect(screen.getByText('No name yet')).toBeInTheDocument();
+  });
+
   it('gates keepsakes by the reached stage and toggles the worn set', async () => {
     const user = userEvent.setup();
     const { rerender } = render(<CompanionSection />);

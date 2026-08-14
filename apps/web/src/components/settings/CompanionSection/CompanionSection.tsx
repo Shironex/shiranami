@@ -2,6 +2,9 @@ import { Lock, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Companion } from '@/components/companion/Companion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { COMPANION_NAME_MAX_LENGTH } from '@/hooks/useCompanionPresence';
 import { useCompanionSection } from './CompanionSection.hooks';
 
 /**
@@ -26,6 +29,15 @@ export default function CompanionSection() {
     accessoryOptions,
     onToggleAccessory,
     accessories,
+    showNameRow,
+    name,
+    editingName,
+    nameDraft,
+    onNameDraftChange,
+    canSaveName,
+    onStartRename,
+    onCancelRename,
+    onSaveName,
     stage,
     motion,
     stageLine,
@@ -62,6 +74,50 @@ export default function CompanionSection() {
       <span className="text-xs text-muted-foreground -mt-1.5">{option.epithet}</span>
     </button>
   ));
+
+  // Name row — display + inline edit; the whole row needs the ledger.
+  const nameRow = showNameRow ? (
+    editingName ? (
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+          onSaveName();
+        }}
+        className="flex items-center gap-2"
+      >
+        <Input
+          value={nameDraft}
+          onChange={event => onNameDraftChange(event.target.value)}
+          aria-label={t('app.interface.companion.nameLabel')}
+          maxLength={COMPANION_NAME_MAX_LENGTH}
+          className="h-8 max-w-52 text-sm"
+          autoFocus
+        />
+        <Button type="submit" size="sm" disabled={!canSaveName}>
+          {t('app.interface.companion.nameSave')}
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancelRename}>
+          {t('app.interface.companion.nameCancel')}
+        </Button>
+      </form>
+    ) : (
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground leading-snug">
+            {t('app.interface.companion.nameLabel')}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            {name ?? t('app.interface.companion.nameNone')}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onStartRename} disabled={!enabled}>
+          {name
+            ? t('app.interface.companion.renameAction')
+            : t('app.interface.companion.nameAction')}
+        </Button>
+      </div>
+    )
+  ) : null;
 
   const keepsakeChips = accessoryOptions.map(option => (
     <button
@@ -104,6 +160,8 @@ export default function CompanionSection() {
         </p>
         <div className="flex gap-3">{speciesButtons}</div>
       </div>
+
+      {nameRow}
 
       <SettingsToggleRow
         label={t('app.interface.companion.keepsWatch')}

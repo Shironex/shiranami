@@ -47,6 +47,17 @@ export interface ICompanionSectionView {
   readonly onToggleAccessory: (id: CompanionAccessory) => void;
   /** Worn keepsakes, for the live previews. */
   readonly accessories: readonly CompanionAccessory[];
+  /** The name row exists only when the ledger does, like the wardrobe. */
+  readonly showNameRow: boolean;
+  /** User-chosen name; null until the naming ceremony (or a rename here). */
+  readonly name: string | null;
+  readonly editingName: boolean;
+  readonly nameDraft: string;
+  readonly onNameDraftChange: (value: string) => void;
+  readonly canSaveName: boolean;
+  readonly onStartRename: () => void;
+  readonly onCancelRename: () => void;
+  readonly onSaveName: () => void;
   /** Current stage — the previews render the pet as it actually is today. */
   readonly stage: CompanionStage;
   /** Decorative motion allowed — previews sway only when the app itself may. */

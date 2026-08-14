@@ -85,6 +85,9 @@ export function useCompanionPresence(): ICompanionPresence {
   };
 }
 
+/** Longest name the ledger accepts from the UI — a pet name, not a paragraph. */
+export const COMPANION_NAME_MAX_LENGTH = 24;
+
 /** The Settings-facing read of the durable self (ledger or local fallback). */
 export interface ICompanionLedgerView {
   /** User-chosen name; null until named or without a backend. */
@@ -128,7 +131,7 @@ export function useCompanionLedger(): ICompanionLedgerView {
   );
 
   const setName = useCallback((next: string) => {
-    const trimmed = next.trim();
+    const trimmed = next.trim().slice(0, COMPANION_NAME_MAX_LENGTH);
     if (trimmed.length === 0) return;
     // Optimistic: the runtime ledger paints immediately, the ledger write is
     // fire-and-forget under the same trust the species mirror lives under.
