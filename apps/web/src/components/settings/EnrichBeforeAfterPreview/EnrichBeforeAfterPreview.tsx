@@ -19,7 +19,7 @@ function TrackTagCard({ variant, title, artist, album }: ITrackTagCardProps) {
     isBefore ? 'italic text-muted-foreground/60' : 'text-muted-foreground'
   );
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-border/30 bg-background/40 px-2.5 py-2">
+    <div className="flex items-center gap-2.5 rounded-lg border border-border/25 bg-surface/60 px-2.5 py-2">
       {isBefore ? (
         <div className="grid size-10 shrink-0 place-items-center rounded-md border border-dashed border-border/50 bg-background/60 text-muted-foreground/50">
           <ImageOff className="size-4" />
