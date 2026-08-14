@@ -1,5 +1,6 @@
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
 import type { useTranslation } from 'react-i18next';
+import type { SleepStopMode } from '@/stores/useSleepTimerStore';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
@@ -29,6 +30,12 @@ export interface ISleepTimerView {
   readonly isActive: boolean;
   /** Whether the running timer is the wind-down ending (labels swap). */
   readonly isWindDown: boolean;
+  /**
+   * Localized label for an armed boundary stop ("Stopping after this
+   * track/album"), or null when no boundary stop is armed. Replaces the
+   * countdown in the popover — a boundary stop has no fixed end time.
+   */
+  readonly stopModeLabel: string | null;
   /** Formatted remaining time (mm:ss; minutes uncapped). */
   readonly remainingLabel: string;
   /** Localized trigger tooltip (countdown when active). */
@@ -47,6 +54,8 @@ export interface ISleepTimerView {
   readonly onSelectPreset: (minutes: number) => void;
   /** Start the wind-down ending and close. */
   readonly onSelectWindDown: () => void;
+  /** Arm an end-of-track/end-of-album stop and close. */
+  readonly onSelectStopAfter: (mode: SleepStopMode) => void;
   /** Cancel a running timer and close. */
   readonly onCancel: () => void;
   /** Switch the popover to the custom-minutes face. */

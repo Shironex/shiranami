@@ -16,6 +16,7 @@ export default function SleepTimer() {
     customInputRef,
     isActive,
     isWindDown,
+    stopModeLabel,
     remainingLabel,
     tooltipText,
     triggerLabel,
@@ -25,6 +26,7 @@ export default function SleepTimer() {
     onOpenChange,
     onSelectPreset,
     onSelectWindDown,
+    onSelectStopAfter,
     onCancel,
     onShowCustom,
     onShowPresets,
@@ -77,8 +79,16 @@ export default function SleepTimer() {
 
           {isActive && (
             <div className="px-1 pb-1">
-              <p className="text-lg font-semibold text-primary tabular-nums">{remainingLabel}</p>
-              <p className="text-[10px] text-muted-foreground">{t('remaining')}</p>
+              {stopModeLabel ? (
+                <p className="text-sm font-semibold text-primary">{stopModeLabel}</p>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold text-primary tabular-nums">
+                    {remainingLabel}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{t('remaining')}</p>
+                </>
+              )}
             </div>
           )}
 
@@ -94,6 +104,29 @@ export default function SleepTimer() {
                 )}
               >
                 {t('custom')}
+              </button>
+
+              <div className="my-1 border-t border-border/40" aria-hidden="true" />
+
+              <button
+                onClick={() => onSelectStopAfter('track')}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+                  'hover:bg-accent/50 hover:text-foreground',
+                  'text-muted-foreground'
+                )}
+              >
+                {t('endOfTrack')}
+              </button>
+              <button
+                onClick={() => onSelectStopAfter('album')}
+                className={cn(
+                  'w-full text-left px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+                  'hover:bg-accent/50 hover:text-foreground',
+                  'text-muted-foreground'
+                )}
+              >
+                {t('endOfAlbum')}
               </button>
 
               <div className="my-1 border-t border-border/40" aria-hidden="true" />

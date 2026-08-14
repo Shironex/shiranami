@@ -6,6 +6,7 @@ import {
   SLEEP_TIMER_PRESETS,
   SLEEP_TIMER_MIN_MINUTES,
   SLEEP_TIMER_MAX_MINUTES,
+  type SleepStopMode,
 } from '@/stores/useSleepTimerStore';
 import type { ISleepTimerPreset, ISleepTimerView } from './SleepTimer.types';
 
@@ -51,12 +52,14 @@ export function useSleepTimer(): ISleepTimerView {
   const endTime = useSleepTimerStore(s => s.endTime);
   const remaining = useSleepTimerStore(s => s.remaining);
   const windDown = useSleepTimerStore(s => s.windDown);
+  const stopMode = useSleepTimerStore(s => s.stopMode);
   const start = useSleepTimerStore(s => s.start);
   const startWindDown = useSleepTimerStore(s => s.startWindDown);
+  const startStopAfter = useSleepTimerStore(s => s.startStopAfter);
   const cancel = useSleepTimerStore(s => s.cancel);
 
-  const isActive = endTime !== null;
-  const isWindDown = isActive && windDown;
+  const isActive = endTime !== null || stopMode !== null;
+  const isWindDown = endTime !== null && windDown;
 
   const onOpenChange = useCallback((next: boolean) => {
     if (next) {
@@ -79,6 +82,14 @@ export function useSleepTimer(): ISleepTimerView {
     startWindDown();
     setOpen(false);
   }, [startWindDown]);
+
+  const onSelectStopAfter = useCallback(
+    (mode: SleepStopMode) => {
+      startStopAfter(mode);
+      setOpen(false);
+    },
+    [startStopAfter]
+  );
 
   const onCancel = useCallback(() => {
     cancel();
@@ -133,11 +144,18 @@ export function useSleepTimer(): ISleepTimerView {
 
   const remainingLabel = formatRemaining(remaining);
 
-  const tooltipText = isActive
-    ? isWindDown
-      ? t('windDownIn', { time: remainingLabel })
-      : t('sleepIn', { time: remainingLabel })
-    : t('label');
+  // A boundary stop has no countdown — its label doubles as the tooltip.
+  const stopModeLabel = stopMode
+    ? t(stopMode === 'track' ? 'stopAtTrackEnd' : 'stopAtAlbumEnd')
+    : null;
+
+  const tooltipText = stopModeLabel
+    ? stopModeLabel
+    : isActive
+      ? isWindDown
+        ? t('windDownIn', { time: remainingLabel })
+        : t('sleepIn', { time: remainingLabel })
+      : t('label');
 
   return {
     t,
@@ -148,6 +166,7 @@ export function useSleepTimer(): ISleepTimerView {
     customInputRef,
     isActive,
     isWindDown,
+    stopModeLabel,
     remainingLabel,
     tooltipText,
     triggerLabel: t('label'),
@@ -157,6 +176,7 @@ export function useSleepTimer(): ISleepTimerView {
     onOpenChange,
     onSelectPreset,
     onSelectWindDown,
+    onSelectStopAfter,
     onCancel,
     onShowCustom,
     onShowPresets,

@@ -16,8 +16,10 @@ const mockState = vi.hoisted(() => ({
   endTime: null as number | null,
   remaining: 0,
   windDown: false,
+  stopMode: null as 'track' | 'album' | null,
   start: vi.fn(),
   startWindDown: vi.fn(),
+  startStopAfter: vi.fn(),
   cancel: vi.fn(),
 }));
 
@@ -44,8 +46,10 @@ describe('SleepTimer', () => {
     mockState.endTime = null;
     mockState.remaining = 0;
     mockState.windDown = false;
+    mockState.stopMode = null;
     mockState.start.mockReset();
     mockState.startWindDown.mockReset();
+    mockState.startStopAfter.mockReset();
     mockState.cancel.mockReset();
   });
 
@@ -193,6 +197,62 @@ describe('SleepTimer', () => {
 
     await user.click(screen.getByRole('button', { name: 'label' }));
     expect(screen.getByText('custom')).toBeInTheDocument();
+  });
+
+  it('renders the end-of-track and end-of-album options', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.getByText('endOfTrack')).toBeInTheDocument();
+    expect(screen.getByText('endOfAlbum')).toBeInTheDocument();
+  });
+
+  it('arms the end-of-track stop and closes the popover', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('endOfTrack'));
+
+    expect(mockState.startStopAfter).toHaveBeenCalledWith('track');
+    expect(mockState.start).not.toHaveBeenCalled();
+  });
+
+  it('arms the end-of-album stop', async () => {
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    await user.click(screen.getByText('endOfAlbum'));
+
+    expect(mockState.startStopAfter).toHaveBeenCalledWith('album');
+  });
+
+  it('shows the boundary-stop label (no countdown) and cancel while armed', async () => {
+    mockState.stopMode = 'track';
+
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    const trigger = screen.getByRole('button', { name: 'label' });
+    expect(trigger.className).toContain('text-primary');
+
+    await user.click(trigger);
+    expect(screen.getByText('active')).toBeInTheDocument();
+    expect(screen.getByText('stopAtTrackEnd')).toBeInTheDocument();
+    expect(screen.queryByText('remaining')).not.toBeInTheDocument();
+    expect(screen.getByText('cancelTimer')).toBeInTheDocument();
+  });
+
+  it('shows the album label for an armed end-of-album stop', async () => {
+    mockState.stopMode = 'album';
+
+    const user = userEvent.setup();
+    renderSleepTimer();
+
+    await user.click(screen.getByRole('button', { name: 'label' }));
+    expect(screen.getByText('stopAtAlbumEnd')).toBeInTheDocument();
   });
 
   it('renders the wind-down option under the presets', async () => {

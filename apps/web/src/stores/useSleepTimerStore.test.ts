@@ -10,12 +10,12 @@ vi.mock('@/lib/platform', () => ({
   IS_MAC: false,
 }));
 
-function makeTrack(id: string, loudnessLufs: number | null): Track {
+function makeTrack(id: string, loudnessLufs: number | null, album = 'Nocturne'): Track {
   return {
     id,
     title: id,
     artist: 'Aoi',
-    album: 'Nocturne',
+    album,
     duration: 200,
     filePath: `/music/${id}.mp3`,
     loudnessLufs,
@@ -28,6 +28,7 @@ function resetStore() {
     duration: null,
     remaining: 0,
     windDown: false,
+    stopMode: null,
   });
   usePlaybackStore.setState({
     isPlaying: false,
@@ -36,6 +37,7 @@ function resetStore() {
     queue: [],
     queueIndex: -1,
     currentTrack: null,
+    repeatMode: 'off',
   });
   useWindDownStore.setState({
     lastCompletion: null,
@@ -169,6 +171,119 @@ describe('useSleepTimerStore', () => {
     it('does nothing if endTime is null', () => {
       useSleepTimerStore.getState().tick();
       expect(useSleepTimerStore.getState().remaining).toBe(0);
+    });
+  });
+
+  describe('boundary stop modes', () => {
+    /** Seed a playing queue: [same-album, same-album, other-album]. */
+    function seedQueue(queueIndex: number) {
+      const queue = [makeTrack('a1', -10), makeTrack('a2', -12), makeTrack('b1', -14, 'Daybreak')];
+      usePlaybackStore.setState({
+        queue,
+        queueIndex,
+        currentTrack: queue[queueIndex],
+        isPlaying: true,
+      });
+    }
+
+    it('arming a boundary stop replaces a running timed timer', () => {
+      useSleepTimerStore.getState().start(30);
+      useSleepTimerStore.getState().startStopAfter('track');
+
+      const s = useSleepTimerStore.getState();
+      expect(s.stopMode).toBe('track');
+      expect(s.endTime).toBeNull();
+      expect(s.duration).toBeNull();
+      expect(s.remaining).toBe(0);
+
+      // The replaced timer's tick is gone: nothing expires later.
+      vi.advanceTimersByTime(31 * 60 * 1000);
+      expect(useSleepTimerStore.getState().stopMode).toBe('track');
+    });
+
+    it('a timed timer or wind-down started afterwards disarms the boundary stop', () => {
+      useSleepTimerStore.getState().startStopAfter('album');
+      useSleepTimerStore.getState().start(15);
+      expect(useSleepTimerStore.getState().stopMode).toBeNull();
+
+      useSleepTimerStore.getState().startStopAfter('album');
+      useSleepTimerStore.getState().startWindDown();
+      expect(useSleepTimerStore.getState().stopMode).toBeNull();
+    });
+
+    it('cancel disarms the boundary stop', () => {
+      useSleepTimerStore.getState().startStopAfter('track');
+      useSleepTimerStore.getState().cancel();
+      expect(useSleepTimerStore.getState().stopMode).toBeNull();
+    });
+
+    it('stopsAtBoundary is false when nothing is armed', () => {
+      seedQueue(0);
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(false);
+    });
+
+    it('end-of-track fires at every track end', () => {
+      seedQueue(0);
+      useSleepTimerStore.getState().startStopAfter('track');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(true);
+    });
+
+    it('end-of-album holds while the next track is on the same album', () => {
+      seedQueue(0);
+      useSleepTimerStore.getState().startStopAfter('album');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(false);
+    });
+
+    it('end-of-album fires when the next track is a different album', () => {
+      seedQueue(1);
+      useSleepTimerStore.getState().startStopAfter('album');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(true);
+    });
+
+    it('end-of-album fires when the queue runs out', () => {
+      seedQueue(2);
+      useSleepTimerStore.getState().startStopAfter('album');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(true);
+    });
+
+    it('end-of-album follows the repeat-all wrap back to the queue head', () => {
+      // Last track ('Daybreak') wraps to the first ('Nocturne') — different
+      // albums, so the boundary stop fires at the wrap.
+      seedQueue(2);
+      usePlaybackStore.setState({ repeatMode: 'all' });
+      useSleepTimerStore.getState().startStopAfter('album');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(true);
+
+      // Same-album wrap: a queue that is all one album never leaves it, except
+      // that the wrap from its last track back to its first is still the
+      // album's end.
+      const oneAlbum = [makeTrack('a1', -10), makeTrack('a2', -12)];
+      usePlaybackStore.setState({
+        queue: oneAlbum,
+        queueIndex: 0,
+        currentTrack: oneAlbum[0],
+        repeatMode: 'all',
+      });
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(false);
+    });
+
+    it('end-of-album fires at the track end under repeat-one', () => {
+      // Repeat-one loops the current track forever — the album would never
+      // end, so the only boundary there is has to count.
+      seedQueue(0);
+      usePlaybackStore.setState({ repeatMode: 'one' });
+      useSleepTimerStore.getState().startStopAfter('album');
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(true);
+    });
+
+    it('completeBoundaryStop pauses playback and disarms', () => {
+      seedQueue(0);
+      useSleepTimerStore.getState().startStopAfter('track');
+      useSleepTimerStore.getState().completeBoundaryStop();
+
+      expect(useSleepTimerStore.getState().stopMode).toBeNull();
+      expect(useSleepTimerStore.getState().stopsAtBoundary()).toBe(false);
+      expect(usePlaybackStore.getState().isPlaying).toBe(false);
     });
   });
 

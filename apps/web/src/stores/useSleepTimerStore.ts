@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useWindDownStore } from '@/stores/useWindDownStore';
 import { orderQueueCalmestFirst } from '@/lib/windDownQueue';
+import { albumKeyOf } from '@/lib/albumSort';
 
 export const SLEEP_TIMER_PRESETS = [15, 30, 45, 60, 90] as const;
 
@@ -19,6 +20,13 @@ export const WIND_DOWN_MINUTES = 15;
  */
 export const WIND_DOWN_DIM_WINDOW_SECONDS = 10 * 60;
 
+/**
+ * Track-boundary stop modes: finish the current track (or the current album),
+ * then pause. Unlike the minute presets there is no countdown — the audio
+ * engine asks `stopsAtBoundary` at each natural track end.
+ */
+export type SleepStopMode = 'track' | 'album';
+
 interface SleepTimerState {
   /** Timestamp (ms) when the timer expires, or null if inactive */
   endTime: number | null;
@@ -33,6 +41,8 @@ interface SleepTimerState {
    * with it.
    */
   windDown: boolean;
+  /** Armed track-boundary stop, or null. Mutually exclusive with `endTime`. */
+  stopMode: SleepStopMode | null;
 }
 
 interface SleepTimerActions {
@@ -44,8 +54,21 @@ interface SleepTimerActions {
    * drifts.
    */
   startWindDown: () => void;
+  /** Arm a track-boundary stop: finish the current track/album, then pause. */
+  startStopAfter: (mode: SleepStopMode) => void;
   cancel: () => void;
   tick: () => void;
+  /**
+   * Whether the armed boundary stop fires when the current track ends. Called
+   * by the audio engine at (and just before) each natural track end, so it
+   * also gates the early crossfade into a track that must not play.
+   */
+  stopsAtBoundary: () => boolean;
+  /**
+   * Fire the armed boundary stop at a natural track end: pause playback where
+   * it stands and disarm. No fade — the track has already ended on its own.
+   */
+  completeBoundaryStop: () => void;
 }
 
 let tickInterval: ReturnType<typeof setInterval> | null = null;
@@ -88,6 +111,7 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
   duration: null,
   remaining: 0,
   windDown: false,
+  stopMode: null,
 
   start: minutes => {
     // Enforce the bounds at the store boundary so every caller (presets, custom
@@ -97,8 +121,14 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
       Math.max(SLEEP_TIMER_MIN_MINUTES, Math.trunc(minutes))
     );
     const endTime = Date.now() + normalized * 60 * 1000;
-    // A plain timer replaces any wind-down in flight — its ending with it.
-    set({ endTime, duration: normalized, remaining: normalized * 60, windDown: false });
+    // A plain timer replaces any wind-down or boundary stop in flight.
+    set({
+      endTime,
+      duration: normalized,
+      remaining: normalized * 60,
+      windDown: false,
+      stopMode: null,
+    });
     startTick();
   },
 
@@ -116,14 +146,23 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
       duration: WIND_DOWN_MINUTES,
       remaining: WIND_DOWN_MINUTES * 60,
       windDown: true,
+      stopMode: null,
     });
     startTick();
+  },
+
+  startStopAfter: mode => {
+    // A boundary stop replaces any timed timer in flight, wind-down included —
+    // there is no countdown, so the tick and any pending fade go with it.
+    clearTick();
+    clearFade();
+    set({ endTime: null, duration: null, remaining: 0, windDown: false, stopMode: mode });
   },
 
   cancel: () => {
     clearTick();
     clearFade();
-    set({ endTime: null, duration: null, remaining: 0, windDown: false });
+    set({ endTime: null, duration: null, remaining: 0, windDown: false, stopMode: null });
   },
 
   tick: () => {
@@ -173,5 +212,31 @@ export const useSleepTimerStore = create<SleepTimerState & SleepTimerActions>((s
     } else {
       set({ remaining });
     }
+  },
+
+  stopsAtBoundary: () => {
+    const { stopMode } = get();
+    if (!stopMode) return false;
+    if (stopMode === 'track') return true;
+
+    const { queue, queueIndex, repeatMode, currentTrack } = usePlaybackStore.getState();
+    // Repeat-one loops the current track forever, so its end is the only album
+    // boundary that will ever arrive — fire rather than never stop.
+    if (repeatMode === 'one') return true;
+
+    // The track that will follow in queue order (wrapping under repeat-all).
+    let nextIndex = queueIndex + 1;
+    if (nextIndex >= queue.length) {
+      if (repeatMode !== 'all') return true; // the queue ends with this track
+      nextIndex = 0;
+    }
+    const next = queue[nextIndex];
+    if (!next || !currentTrack) return true;
+    return albumKeyOf(next) !== albumKeyOf(currentTrack);
+  },
+
+  completeBoundaryStop: () => {
+    set({ stopMode: null });
+    usePlaybackStore.getState().pause();
   },
 }));
