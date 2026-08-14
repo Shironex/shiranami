@@ -11,8 +11,11 @@ export default function LyricsPanel({ headerAction }: ILyricsPanelProps) {
     plain,
     activeLine,
     isLoading,
+    isError,
     sourceLabel,
+    retryLabel,
     onLineClick,
+    onRetry,
     syncedDimOpacity,
     plainOpacity,
     syncedBaseClassName,
@@ -50,9 +53,13 @@ export default function LyricsPanel({ headerAction }: ILyricsPanelProps) {
         plain={plain}
         activeLine={activeLine}
         isLoading={isLoading}
+        isError={isError}
         onLineClick={onLineClick}
+        onRetry={onRetry}
         loadingLabel={t('finding')}
         emptyLabel={t('notFound')}
+        errorLabel={t('error')}
+        retryLabel={retryLabel}
         syncedDimOpacity={syncedDimOpacity}
         plainOpacity={plainOpacity}
         syncedContainerClassName="px-5 py-6"
