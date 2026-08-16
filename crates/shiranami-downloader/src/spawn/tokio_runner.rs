@@ -1,6 +1,6 @@
 //! The real [`ProcessRunner`], over `tokio::process`.
 //!
-//! Four hardening decisions live here, three of them ported and one new:
+//! Five hardening decisions live here, three of them ported and two new:
 //!
 //! - **No shell, ever.** `Command` takes an argv array, so there is no quoting
 //!   layer for a video title with a `;` in it to escape from.
@@ -14,6 +14,9 @@
 //! - **Both pipes are drained concurrently.** Reading stdout to completion
 //!   before touching stderr deadlocks the moment the child fills the stderr
 //!   pipe buffer, which is exactly what a verbose failure does.
+//! - **No console window on Windows.** `CREATE_NO_WINDOW` on every spawn:
+//!   without it each yt-dlp or ffmpeg child allocates its own console and the
+//!   user watches cmd windows flash for the length of the download queue.
 
 use std::process::Stdio;
 use std::time::Duration;
@@ -59,17 +62,26 @@ impl ProcessRunner for TokioRunner {
             return Err(ProcessError::Cancelled);
         }
 
-        let mut child = Command::new(&spec.program)
+        let mut command = Command::new(&spec.program);
+        command
             .args(&spec.args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-            .map_err(|source| ProcessError::Spawn {
-                program: spec.program.clone(),
-                source,
-            })?;
+            .kill_on_drop(true);
+
+        // CREATE_NO_WINDOW. A console-subsystem child spawned from a GUI
+        // parent allocates its own console on Windows, so without this flag
+        // every yt-dlp and ffmpeg run flashes a cmd window at the user. The
+        // pipes above are unaffected — the flag only suppresses the console,
+        // and stdin is already `/dev/null`.
+        #[cfg(windows)]
+        command.creation_flags(0x0800_0000);
+
+        let mut child = command.spawn().map_err(|source| ProcessError::Spawn {
+            program: spec.program.clone(),
+            source,
+        })?;
 
         tracing::debug!(
             program = %spec.program.display(),
