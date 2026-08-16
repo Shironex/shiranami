@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { DownloadQueueItem, DownloadQueueSnapshot } from '@shiranami/contracts';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
@@ -105,5 +105,41 @@ describe('DownloadsView', () => {
 
     expect(screen.getByText(/Queue paused/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Resume the download queue' })).toBeInTheDocument();
+  });
+
+  it('retries a failed row and the whole failed set through the downloader bridge', () => {
+    seedQueue([
+      makeItem({ id: 'f', status: 'error', error: 'boom', title: 'Failed track' }),
+      makeItem({ id: 'a', status: 'active', title: 'Active track' }),
+    ]);
+    render(<DownloadsView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry download of Failed track' }));
+    expect(window.electronAPI.downloader.retryDownload).toHaveBeenCalledWith('f');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry failed downloads' }));
+    expect(window.electronAPI.downloader.retryAllFailedDownloads).toHaveBeenCalled();
+  });
+
+  it('disables the retry-failed header action when nothing failed', () => {
+    seedQueue([makeItem({ id: 'a', status: 'active' })]);
+    render(<DownloadsView />);
+
+    expect(screen.getByRole('button', { name: 'Retry failed downloads' })).toBeDisabled();
+  });
+
+  it('offers no retry affordances when the runtime lacks retry support', () => {
+    const downloader = window.electronAPI.downloader as { retryDownload?: unknown };
+    const saved = downloader.retryDownload;
+    delete downloader.retryDownload;
+    try {
+      seedQueue([makeItem({ id: 'f', status: 'error', error: 'boom', title: 'Failed track' })]);
+      render(<DownloadsView />);
+
+      expect(screen.queryByRole('button', { name: 'Retry failed downloads' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Retry download of Failed track' })).toBeNull();
+    } finally {
+      downloader.retryDownload = saved;
+    }
   });
 });

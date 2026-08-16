@@ -164,6 +164,18 @@ impl DownloadQueue {
         self.apply(effects).await;
     }
 
+    /// Re-queue one failed item.
+    pub async fn retry(self: &Arc<Self>, id: &str) {
+        let effects = lock(&self.state).retry(id, now_ms());
+        self.apply(effects).await;
+    }
+
+    /// Re-queue every failed item.
+    pub async fn retry_all_failed(self: &Arc<Self>) {
+        let effects = lock(&self.state).retry_all_failed(now_ms());
+        self.apply(effects).await;
+    }
+
     /// Perform a transition's effects, in order.
     async fn apply(self: &Arc<Self>, effects: Vec<Effect>) {
         for effect in effects {

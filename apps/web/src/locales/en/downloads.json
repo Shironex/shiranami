@@ -15,6 +15,8 @@
   },
   "action": {
     "cancel": "Cancel",
+    "retry": "Retry",
+    "retryFailed": "Retry failed",
     "clearCompleted": "Clear completed",
     "pause": "Pause",
     "resume": "Resume",
@@ -28,6 +30,8 @@
   },
   "error": {
     "cancelFailed": "Couldn't cancel the download. Please try again.",
+    "retryFailed": "Couldn't retry the download. Please try again.",
+    "retryAllFailed": "Couldn't retry the failed downloads. Please try again.",
     "clearFailed": "Couldn't clear completed downloads. Please try again.",
     "pauseFailed": "Couldn't pause the queue. Please try again.",
     "resumeFailed": "Couldn't resume the queue. Please try again.",
@@ -44,6 +48,8 @@
   },
   "a11y": {
     "cancelDownload": "Cancel download of {{title}}",
+    "retryDownload": "Retry download of {{title}}",
+    "retryAllFailed": "Retry failed downloads",
     "progress": "Download progress for {{title}}",
     "pauseQueue": "Pause the download queue",
     "resumeQueue": "Resume the download queue",

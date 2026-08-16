@@ -440,6 +440,12 @@ export interface DownloaderApi {
   enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
   cancelDownload: (id: string) => Promise<void>;
   cancelAllDownloads: () => Promise<void>;
+  // Optional: only the Tauri runtime implements retry. The renderer feature-
+  // detects these and hides the retry affordances where they are absent, so
+  // the legacy Electron preload stays compilable without a main-process
+  // handler it will never grow.
+  retryDownload?: (id: string) => Promise<void>;
+  retryAllFailedDownloads?: () => Promise<void>;
   clearCompletedDownloads: () => Promise<void>;
   pauseDownloadQueue: () => Promise<void>;
   resumeDownloadQueue: () => Promise<void>;

@@ -1,4 +1,4 @@
-//! The eight `downloader:queue-*` channels, exercised against a fake driver.
+//! The ten `downloader:queue-*` channels, exercised against a fake driver.
 //!
 //! Split from `queue.rs` and included with `#[path]` rather than left in it:
 //! the two together run past the module-shape cap, and of the two halves the
@@ -268,6 +268,32 @@ async fn cancel_all_empties_the_queue_and_unpauses_it() {
     assert!(snapshot.items.is_empty());
     assert!(!snapshot.paused, "the paused flag is reset");
     assert!(persistence.stored().is_empty());
+}
+
+/// Retry mirrors cancel's tolerance: an unknown id or a row that is not
+/// `error` is a no-op, because the renderer can fire it from a row a
+/// `queue-state` event has already settled differently. The error → queued
+/// transition itself is covered exhaustively by the pure state-machine
+/// suites; this asserts the driver wiring does not reject the race.
+#[tokio::test]
+async fn retrying_an_unknown_or_unfailed_item_is_a_no_op() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let Harness { queue, .. } = harness(dir.path());
+
+    queue.pause().await;
+    let id = queue.enqueue(input("https://youtu.be/abc")).await;
+
+    queue.retry(&id).await;
+    queue.retry("no-such-item").await;
+    queue.retry_all_failed().await;
+
+    let snapshot = queue.snapshot();
+    assert_eq!(snapshot.items.len(), 1);
+    assert_eq!(
+        snapshot.items[0].status,
+        DownloadQueueStatus::Queued,
+        "a queued row is left exactly where it was"
+    );
 }
 
 /// v1's cancel was a no-op for an unknown id, because the renderer can fire

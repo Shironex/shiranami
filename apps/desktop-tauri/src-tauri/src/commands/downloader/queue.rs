@@ -1,12 +1,12 @@
-//! The eight `downloader:queue-*` channels.
+//! The ten `downloader:queue-*` channels.
 //!
-//! `enqueue`, `cancel`, `cancel-all`, `clear-completed`, `pause`, `resume`,
-//! `mark-imported`, `get`.
+//! `enqueue`, `cancel`, `cancel-all`, `retry`, `retry-all`, `clear-completed`,
+//! `pause`, `resume`, `mark-imported`, `get`.
 //!
-//! # Seven of the eight answer nothing, and that is the contract
+//! # Eight of the ten answer nothing, and that is the contract
 //!
 //! Only `enqueue` (the new item's id) and `get` (the snapshot) return a value.
-//! The other six answer `void` and the renderer learns what happened from the
+//! The other eight answer `void` and the renderer learns what happened from the
 //! `downloader:queue-state` event, which the driver broadcasts after every
 //! structural change. That is v1's design and it is load-bearing: two clients
 //! of the same queue — the downloads view and the mini player — stay in sync
@@ -81,6 +81,30 @@ pub async fn downloader_queue_cancel(state: State<'_, AppState>, id: String) -> 
 #[specta::specta]
 pub async fn downloader_queue_cancel_all(state: State<'_, AppState>) -> CommandResult<()> {
     queue(&state)?.cancel_all().await;
+    Ok(())
+}
+
+/// `downloader:queue-retry` — re-queue one failed item by id.
+///
+/// A no-op for an unknown id or a non-failed item, mirroring `queue-cancel`:
+/// the renderer can fire this from a row a `queue-state` event has already
+/// settled or removed, and rejecting would surface that race as an error.
+#[tauri::command]
+#[specta::specta]
+pub async fn downloader_queue_retry(state: State<'_, AppState>, id: String) -> CommandResult<()> {
+    if id.is_empty() {
+        return Err(bad_request("the download id must not be empty"));
+    }
+
+    queue(&state)?.retry(&id).await;
+    Ok(())
+}
+
+/// `downloader:queue-retry-all` — re-queue every failed item.
+#[tauri::command]
+#[specta::specta]
+pub async fn downloader_queue_retry_all(state: State<'_, AppState>) -> CommandResult<()> {
+    queue(&state)?.retry_all_failed().await;
     Ok(())
 }
 

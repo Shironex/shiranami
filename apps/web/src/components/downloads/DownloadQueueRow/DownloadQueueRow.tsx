@@ -1,11 +1,11 @@
-import { Music, X } from 'lucide-react';
+import { Music, RotateCcw, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DownloadProgressButton } from '@/components/shared/DownloadProgressButton';
 import { DownloadProgressBar } from '@/components/shared/DownloadProgressBar';
 import { useDownloadQueueRow } from './DownloadQueueRow.hooks';
 import type { IDownloadQueueRowProps } from './DownloadQueueRow.types';
 
-export default function DownloadQueueRow({ item, onCancel }: IDownloadQueueRowProps) {
+export default function DownloadQueueRow({ item, onCancel, onRetry }: IDownloadQueueRowProps) {
   const {
     showThumbnail,
     onThumbnailError,
@@ -16,10 +16,13 @@ export default function DownloadQueueRow({ item, onCancel }: IDownloadQueueRowPr
     buttonTitle,
     isActive,
     isCancellable,
+    isRetryable,
     cancelTitle,
     cancelAriaLabel,
+    retryTitle,
+    retryAriaLabel,
     progressAriaLabel,
-  } = useDownloadQueueRow({ item, onCancel });
+  } = useDownloadQueueRow({ item, onCancel, onRetry });
 
   return (
     <div
@@ -62,6 +65,17 @@ export default function DownloadQueueRow({ item, onCancel }: IDownloadQueueRowPr
           disabled
           onDownload={() => {}}
         />
+        {isRetryable && (
+          <button
+            type="button"
+            onClick={() => onRetry?.(item.id)}
+            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-border/20 text-muted-foreground/60 transition-colors hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            title={retryTitle}
+            aria-label={retryAriaLabel}
+          >
+            <RotateCcw className="size-4" />
+          </button>
+        )}
         {isCancellable && (
           <button
             type="button"

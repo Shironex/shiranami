@@ -23,13 +23,17 @@ function toDownloadStatus(status: DownloadQueueStatus): DownloadStatus {
   }
 }
 
-export function useDownloadQueueRow({ item }: IDownloadQueueRowProps): IDownloadQueueRowView {
+export function useDownloadQueueRow({
+  item,
+  onRetry,
+}: IDownloadQueueRowProps): IDownloadQueueRowView {
   const { t } = useTranslation('downloads');
   // Fall back to the Music icon if the thumbnail URL is broken/unreachable.
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
   const isActive = item.status === 'active' || item.status === 'converting';
   const isCancellable = isActive || item.status === 'queued';
+  const isRetryable = item.status === 'error' && onRetry !== undefined;
   const statusLabel = t(`status.${item.status}`);
 
   const statusClass = cn(
@@ -53,8 +57,11 @@ export function useDownloadQueueRow({ item }: IDownloadQueueRowProps): IDownload
     buttonTitle: item.status === 'error' ? item.error : undefined,
     isActive,
     isCancellable,
+    isRetryable,
     cancelTitle: t('action.cancel'),
     cancelAriaLabel: t('a11y.cancelDownload', { title: item.title }),
+    retryTitle: t('action.retry'),
+    retryAriaLabel: t('a11y.retryDownload', { title: item.title }),
     progressAriaLabel: t('a11y.progress', { title: item.title }),
   };
 }

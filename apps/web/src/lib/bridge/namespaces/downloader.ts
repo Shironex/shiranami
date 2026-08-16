@@ -36,6 +36,12 @@ export const downloaderApi: DownloaderApi = {
   cancelAllDownloads: async () => {
     await commands.downloaderQueueCancelAll();
   },
+  retryDownload: async id => {
+    await commands.downloaderQueueRetry(id);
+  },
+  retryAllFailedDownloads: async () => {
+    await commands.downloaderQueueRetryAll();
+  },
   clearCompletedDownloads: async () => {
     await commands.downloaderQueueClearCompleted();
   },

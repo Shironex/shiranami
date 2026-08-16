@@ -1,4 +1,4 @@
-import { AlertCircle, DownloadCloud, Trash2, Pause, Play, Ban } from 'lucide-react';
+import { AlertCircle, DownloadCloud, Trash2, Pause, Play, Ban, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -22,6 +22,9 @@ export default function DownloadsView() {
     showCancelAllConfirm,
     setShowCancelAllConfirm,
     onCancelItem,
+    onRetryItem,
+    hasFailed,
+    onRetryAllFailed,
     onClearCompleted,
     onPauseQueue,
     onResumeQueue,
@@ -73,7 +76,7 @@ export default function DownloadsView() {
   const sectionBlocks = sections.map(section => {
     if (section.items.length === 0) return null;
     const rows = section.items.map(item => (
-      <DownloadQueueRow key={item.id} item={item} onCancel={onCancelItem} />
+      <DownloadQueueRow key={item.id} item={item} onCancel={onCancelItem} onRetry={onRetryItem} />
     ));
     const heading = `${t(`section.${section.key}`)} · ${section.items.length}`;
     return (
@@ -142,6 +145,19 @@ export default function DownloadsView() {
           </div>
         </PopoverContent>
       </Popover>
+
+      {onRetryAllFailed && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRetryAllFailed}
+          disabled={!hasFailed}
+          aria-label={t('a11y.retryAllFailed')}
+        >
+          <RotateCcw className="size-4" />
+          {t('action.retryFailed')}
+        </Button>
+      )}
 
       <Button variant="outline" size="sm" onClick={onClearCompleted} disabled={!hasCompleted}>
         <Trash2 className="size-4" />

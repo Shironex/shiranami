@@ -18,6 +18,22 @@ function cancel(id: string) {
   });
 }
 
+function retry(id: string) {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.retryDownload?.(id).catch((err: unknown) => {
+    logger.error('[downloads] retry failed', err);
+    toast.error(i18n.t('error.retryFailed', { ns: 'downloads' }));
+  });
+}
+
+function retryAllFailed() {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.retryAllFailedDownloads?.().catch((err: unknown) => {
+    logger.error('[downloads] retry all failed', err);
+    toast.error(i18n.t('error.retryAllFailed', { ns: 'downloads' }));
+  });
+}
+
 function clearCompleted() {
   if (!IS_ELECTRON) return;
   window.electronAPI.downloader.clearCompletedDownloads().catch((err: unknown) => {
@@ -80,6 +96,10 @@ export function useDownloadsView(): IDownloadsViewView {
   const hasPendingWork =
     sections.find(s => s.key === 'active')!.items.length > 0 ||
     sections.find(s => s.key === 'queued')!.items.length > 0;
+  const hasFailed = items.some(item => item.status === 'error');
+  // Feature-detected: the legacy Electron preload has no retry handler, so the
+  // affordances only render where the runtime actually implements the channel.
+  const canRetry = IS_ELECTRON && typeof window.electronAPI.downloader.retryDownload === 'function';
 
   return {
     t,
@@ -95,6 +115,9 @@ export function useDownloadsView(): IDownloadsViewView {
     showCancelAllConfirm,
     setShowCancelAllConfirm,
     onCancelItem: cancel,
+    onRetryItem: canRetry ? retry : undefined,
+    hasFailed,
+    onRetryAllFailed: canRetry ? retryAllFailed : undefined,
     onClearCompleted: clearCompleted,
     onPauseQueue: pauseQueue,
     onResumeQueue: resumeQueue,

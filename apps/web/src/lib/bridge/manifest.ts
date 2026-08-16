@@ -166,6 +166,8 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'downloader:queue-enqueue': ['downloader', 'enqueueDownload'],
   'downloader:queue-cancel': ['downloader', 'cancelDownload'],
   'downloader:queue-cancel-all': ['downloader', 'cancelAllDownloads'],
+  'downloader:queue-retry': ['downloader', 'retryDownload'],
+  'downloader:queue-retry-all': ['downloader', 'retryAllFailedDownloads'],
   'downloader:queue-clear-completed': ['downloader', 'clearCompletedDownloads'],
   'downloader:queue-pause': ['downloader', 'pauseDownloadQueue'],
   'downloader:queue-resume': ['downloader', 'resumeDownloadQueue'],

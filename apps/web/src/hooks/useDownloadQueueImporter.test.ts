@@ -2,8 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
 
-import { orderBatchDone, importBatchInOrder } from '@/hooks/useDownloadQueueImporter';
+import {
+  batchIdsToForget,
+  importBatchInOrder,
+  orderBatchDone,
+} from '@/hooks/useDownloadQueueImporter';
 import type { BatchDoneEntry } from '@/stores/useDownloadBatchStore';
+import type { DownloadQueueItem } from '@shiranami/contracts';
 import type { Track } from '@/stores/types';
 
 function done(batchIndex: number, filePath: string, youtubeId?: string): BatchDoneEntry {
@@ -20,6 +25,36 @@ function makeTrack(id: string, filePath: string): Track {
     filePath,
   } as Track;
 }
+
+describe('batchIdsToForget', () => {
+  function queueItem(id: string, overrides: Partial<DownloadQueueItem> = {}): DownloadQueueItem {
+    return {
+      id,
+      url: `https://youtu.be/${id}`,
+      title: id,
+      status: 'done',
+      progress: 100,
+      enqueuedAt: 0,
+      batchId: 'b1',
+      batchIndex: 0,
+      ...overrides,
+    };
+  }
+
+  it('keeps batch-owned and already-removed ids but drops retried ones', () => {
+    const items = [
+      queueItem('done-member'),
+      // A retried item left the batch: its row is live state again (in flight)
+      // or awaits the single-import path's own mark-imported (done) — either
+      // way the coordinator must not forget it.
+      queueItem('retried', { batchId: undefined, batchIndex: undefined, status: 'active' }),
+    ];
+
+    const ids = batchIdsToForget(new Set(['done-member', 'retried', 'already-gone']), items);
+
+    expect(ids).toEqual(['done-member', 'already-gone']);
+  });
+});
 
 describe('orderBatchDone', () => {
   it('sorts done entries ascending by batchIndex', () => {

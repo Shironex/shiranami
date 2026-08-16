@@ -15,6 +15,8 @@
   },
   "action": {
     "cancel": "Anuluj",
+    "retry": "Ponów",
+    "retryFailed": "Ponów nieudane",
     "clearCompleted": "Wyczyść zakończone",
     "pause": "Wstrzymaj",
     "resume": "Wznów",
@@ -28,6 +30,8 @@
   },
   "error": {
     "cancelFailed": "Nie udało się anulować pobierania. Spróbuj ponownie.",
+    "retryFailed": "Nie udało się ponowić pobierania. Spróbuj ponownie.",
+    "retryAllFailed": "Nie udało się ponowić nieudanych pobierań. Spróbuj ponownie.",
     "clearFailed": "Nie udało się wyczyścić zakończonych pobierań. Spróbuj ponownie.",
     "pauseFailed": "Nie udało się wstrzymać kolejki. Spróbuj ponownie.",
     "resumeFailed": "Nie udało się wznowić kolejki. Spróbuj ponownie.",
@@ -44,6 +48,8 @@
   },
   "a11y": {
     "cancelDownload": "Anuluj pobieranie {{title}}",
+    "retryDownload": "Ponów pobieranie {{title}}",
+    "retryAllFailed": "Ponów nieudane pobierania",
     "progress": "Postęp pobierania {{title}}",
     "pauseQueue": "Wstrzymaj kolejkę pobierań",
     "resumeQueue": "Wznów kolejkę pobierań",

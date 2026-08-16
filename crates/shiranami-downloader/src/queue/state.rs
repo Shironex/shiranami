@@ -40,6 +40,7 @@
 //!   │              ▼
 //!   │            done
 //!   │
+//!   ├── retry: `error` is re-queued as a standalone item (batch intent dropped)
 //!   └── restart: anything not `done` is reloaded as `queued`
 //! ```
 
@@ -267,16 +268,99 @@ impl QueueState {
     /// items keep their row in the view until `clear_completed` takes them.
     /// The asymmetry is v1's, and it is what makes a resolved playlist import
     /// disappear from the downloads panel once its playlist has been created.
+    ///
+    /// Two carve-outs, both for [`Self::retry`]:
+    ///
+    /// - A **failed** batch item is *released* rather than removed — its batch
+    ///   fields are cleared and it stays in the view as an ordinary failed
+    ///   download, retryable and clearable. Removing it with the rest would
+    ///   make a failed playlist track vanish the moment its import resolves,
+    ///   before the user could retry it.
+    /// - An id whose item is back **in flight** (a retry re-queued it before
+    ///   the coordinator got here) keeps its persisted row: that row is live
+    ///   state again, and dropping it would lose the download on restart.
     pub fn mark_imported(&mut self, ids: &[String]) -> Vec<Effect> {
-        let mut effects = vec![Effect::ForgetMany(ids.to_vec())];
+        // `Error` is excluded even though it is terminal: a failed item's row
+        // was already dropped at `finish_error`, so there is nothing to forget
+        // — and a concurrent retry may have just re-persisted the id, which a
+        // late `ForgetMany` from this call would silently delete.
+        let forgettable: Vec<String> = ids
+            .iter()
+            .filter(|id| {
+                self.get(id).is_none_or(|item| {
+                    is_terminal(item.status) && item.status != DownloadQueueStatus::Error
+                })
+            })
+            .cloned()
+            .collect();
+        let mut effects = vec![Effect::ForgetMany(forgettable)];
+        let mut changed = false;
+
+        for item in &mut self.items {
+            if item.batch_id.is_some()
+                && ids.contains(&item.id)
+                && item.status == DownloadQueueStatus::Error
+            {
+                item.batch_id = None;
+                item.batch_index = None;
+                item.batch_source_title = None;
+                item.batch_create_playlist = None;
+                changed = true;
+            }
+        }
 
         let before = self.items.len();
         self.items
             .retain(|item| !(item.batch_id.is_some() && ids.contains(&item.id)));
+        changed |= self.items.len() != before;
 
-        if self.items.len() != before {
+        if changed {
             effects.push(Effect::Broadcast);
         }
+        effects
+    }
+
+    /// Re-queue one failed item.
+    ///
+    /// Only `error` admits a retry: `done` and `canceled` are settled by
+    /// success or by the user's own hand, and a stray click must not undo
+    /// either. The item keeps its identity — same id, same row position — so
+    /// the renderer's url/id indices never see a duplicate, which is the
+    /// reason this is a transition rather than a fresh enqueue.
+    ///
+    /// Batch intent is dropped: the batch coordinator has already counted this
+    /// item as terminal, so its playlist resolves without it either way. A
+    /// retry downloads for the library, on the single-import path.
+    pub fn retry(&mut self, id: &str, now: i64) -> Vec<Effect> {
+        let Some(item) = self.find_mut(id) else {
+            return Vec::new();
+        };
+        if item.status != DownloadQueueStatus::Error {
+            return Vec::new();
+        }
+
+        requeue(item, now);
+        let mut effects = vec![Effect::Persist(Box::new(item.clone())), Effect::Broadcast];
+        effects.extend(self.pump());
+        effects
+    }
+
+    /// Re-queue every failed item.
+    pub fn retry_all_failed(&mut self, now: i64) -> Vec<Effect> {
+        let mut effects = Vec::new();
+        for item in &mut self.items {
+            if item.status != DownloadQueueStatus::Error {
+                continue;
+            }
+            requeue(item, now);
+            effects.push(Effect::Persist(Box::new(item.clone())));
+        }
+
+        if effects.is_empty() {
+            return effects;
+        }
+        effects.push(Effect::Broadcast);
+        effects.extend(self.pump());
         effects
     }
 
@@ -434,6 +518,21 @@ impl QueueState {
         item.progress = 100.0;
         vec![Effect::Broadcast]
     }
+}
+
+/// Reset one failed item back to `queued`, as a standalone download.
+fn requeue(item: &mut DownloadQueueItem, now: i64) {
+    item.status = DownloadQueueStatus::Queued;
+    item.error = None;
+    item.progress = 0.0;
+    item.file_path = None;
+    item.started_at = None;
+    item.finished_at = None;
+    item.enqueued_at = now;
+    item.batch_id = None;
+    item.batch_index = None;
+    item.batch_source_title = None;
+    item.batch_create_playlist = None;
 }
 
 /// Whether a status admits no further transition.

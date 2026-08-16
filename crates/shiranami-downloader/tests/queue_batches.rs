@@ -54,9 +54,82 @@ fn mark_imported_removes_resolved_batch_items_but_leaves_singles() {
 }
 
 #[test]
+fn retrying_a_failed_batch_item_releases_it_to_a_standalone_download() {
+    let mut state = QueueState::new();
+    state.enqueue(batch_input("https://example.com/batch"), "b".to_owned(), 1);
+    state.finish_error("b", "boom".to_owned(), 100);
+
+    state.retry("b", 200);
+
+    let item = state.get("b").expect("the item is still listed");
+    assert_eq!(item.status, DownloadQueueStatus::Active);
+    assert_eq!(
+        item.batch_id, None,
+        "the batch resolves without this item either way — a retry downloads \
+         for the library, not for the playlist, so the single-import path \
+         picks it up when it lands"
+    );
+    assert_eq!(item.batch_index, None);
+    assert_eq!(item.batch_source_title, None);
+    assert_eq!(item.batch_create_playlist, None);
+}
+
+#[test]
+fn mark_imported_releases_failed_batch_items_instead_of_dropping_them() {
+    let mut state = QueueState::new();
+    state.enqueue(batch_input("https://example.com/done"), "d".to_owned(), 1);
+    state.enqueue(batch_input("https://example.com/failed"), "f".to_owned(), 2);
+    state.finish_done("d", "/tmp/done.mp3".to_owned(), 100);
+    state.finish_error("f", "boom".to_owned(), 101);
+
+    let effects = state.mark_imported(&["d".to_owned(), "f".to_owned()]);
+
+    assert_eq!(
+        effects.first(),
+        Some(&Effect::ForgetMany(vec!["d".to_owned()])),
+        "only the done row is forgotten — the failed one was already dropped \
+         at finish_error, and forgetting it again could clobber the row a \
+         concurrent retry just re-persisted"
+    );
+    assert!(effects.contains(&Effect::Broadcast));
+    assert!(state.get("d").is_none());
+    let failed = state
+        .get("f")
+        .expect("the failed item stays visible for retry");
+    assert_eq!(failed.status, DownloadQueueStatus::Error);
+    assert_eq!(
+        failed.batch_id, None,
+        "released: with no batch protection left, clear-completed can take it"
+    );
+}
+
+#[test]
+fn mark_imported_leaves_a_retried_items_live_row_alone() {
+    let mut state = QueueState::new();
+    state.enqueue(batch_input("https://example.com/failed"), "f".to_owned(), 1);
+    state.finish_error("f", "boom".to_owned(), 100);
+    state.retry("f", 200);
+
+    let effects = state.mark_imported(&["f".to_owned()]);
+
+    assert_eq!(
+        effects.first(),
+        Some(&Effect::ForgetMany(Vec::new())),
+        "the retried item's row is live state again — dropping it would lose \
+         the download on the next restart"
+    );
+    assert_eq!(
+        state.get("f").map(|item| item.status),
+        Some(DownloadQueueStatus::Active),
+        "the coordinator's late mark-imported must not touch a retry in flight"
+    );
+}
+
+#[test]
 fn mark_imported_with_no_batch_items_does_not_broadcast() {
     let mut state = QueueState::new();
     state.enqueue(input("https://example.com/single"), "s".to_owned(), 1);
+    state.finish_done("s", "/tmp/single.mp3".to_owned(), 100);
 
     let effects = state.mark_imported(&["s".to_owned()]);
 

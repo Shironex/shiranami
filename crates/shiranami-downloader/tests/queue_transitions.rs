@@ -251,6 +251,97 @@ fn progress_for_an_unknown_id_changes_nothing() {
 }
 
 #[test]
+fn retrying_a_failed_item_requeues_it_and_persists_the_row() {
+    let mut state = QueueState::new();
+    let ids = fill(&mut state, 1);
+    state.finish_error(&ids[0], "boom".to_owned(), 100);
+
+    let effects = state.retry(&ids[0], 200);
+
+    let Some(Effect::Persist(item)) = effects.first() else {
+        panic!("the first effect must be the write-through persist");
+    };
+    assert_eq!(
+        item.status,
+        DownloadQueueStatus::Queued,
+        "the row is persisted as queued, before promotion mutates it"
+    );
+    assert_eq!(item.error, None);
+    assert_eq!(
+        item.enqueued_at, 200,
+        "a retry is a re-enqueue, and says so"
+    );
+    assert_eq!(effects.get(1), Some(&Effect::Broadcast));
+    assert_eq!(
+        started(&effects),
+        vec![ids[0].clone()],
+        "a free slot promotes the retried item immediately"
+    );
+
+    let item = state.get(&ids[0]).expect("the item is still listed");
+    assert_eq!(item.status, DownloadQueueStatus::Active);
+    assert_eq!(item.error, None);
+    assert_eq!(item.finished_at, None);
+    assert_eq!(item.progress, 0.0);
+}
+
+#[test]
+fn retry_is_a_no_op_for_anything_but_a_failed_item() {
+    let mut state = QueueState::new();
+    let ids = fill(&mut state, MAX_CONCURRENCY as usize);
+    state.enqueue(input("https://example.com/c"), "c".to_owned(), 99);
+    state.cancel("c", 100);
+    state.finish_done(&ids[0], "/tmp/a.mp3".to_owned(), 101);
+
+    assert!(
+        state.retry(&ids[0], 200).is_empty(),
+        "a stray click must not re-download a finished row"
+    );
+    assert!(
+        state.retry(&ids[1], 200).is_empty(),
+        "an active row is already running"
+    );
+    assert!(
+        state.retry("c", 200).is_empty(),
+        "canceled is a user decision, not a failure — retry targets only `error`"
+    );
+    assert!(state.retry("never-existed", 200).is_empty());
+}
+
+#[test]
+fn retry_all_failed_requeues_every_failed_item_and_nothing_else() {
+    let mut state = QueueState::new();
+    let ids = fill(&mut state, 3);
+    state.finish_error(&ids[0], "boom".to_owned(), 100);
+    state.finish_error(&ids[1], "boom".to_owned(), 101);
+    state.finish_done(&ids[2], "/tmp/c.mp3".to_owned(), 102);
+
+    let effects = state.retry_all_failed(200);
+
+    let persisted: Vec<&str> = effects
+        .iter()
+        .filter_map(|effect| match effect {
+            Effect::Persist(item) => Some(item.id.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(persisted, vec![ids[0].as_str(), ids[1].as_str()]);
+    assert_eq!(
+        state.get(&ids[0]).map(|item| item.status),
+        Some(DownloadQueueStatus::Active),
+        "free slots promote retried items immediately"
+    );
+    assert_eq!(
+        state.get(&ids[2]).map(|item| item.status),
+        Some(DownloadQueueStatus::Done)
+    );
+    assert!(
+        state.retry_all_failed(300).is_empty(),
+        "with nothing failed left there is nothing to do — and nothing to broadcast"
+    );
+}
+
+#[test]
 fn the_enqueue_effect_order_persists_before_broadcasting() {
     let mut state = QueueState::new();
     let effects = state.enqueue(input("https://example.com/a"), "a".to_owned(), 1);

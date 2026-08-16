@@ -259,6 +259,8 @@ function createElectronAPIMock(): ElectronAPI {
       enqueueDownload: asyncFn(''),
       cancelDownload: asyncFn(undefined),
       cancelAllDownloads: asyncFn(undefined),
+      retryDownload: asyncFn(undefined),
+      retryAllFailedDownloads: asyncFn(undefined),
       clearCompletedDownloads: asyncFn(undefined),
       pauseDownloadQueue: asyncFn(undefined),
       resumeDownloadQueue: asyncFn(undefined),

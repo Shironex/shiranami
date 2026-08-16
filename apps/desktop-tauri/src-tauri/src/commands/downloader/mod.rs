@@ -1,5 +1,5 @@
-//! `downloader:*` — twenty-three channels, ported from
-//! `apps/desktop/src/main/ipc/downloader.ts`.
+//! `downloader:*` — twenty-five channels: twenty-three ported from
+//! `apps/desktop/src/main/ipc/downloader.ts`, plus v2's two retry channels.
 //!
 //! The largest namespace in the surface after `db:tracks`, and the one with the
 //! most going on behind it: two managed binaries, a search path, a queue with
@@ -11,7 +11,7 @@
 //! # A folder, not a file
 //!
 //! `lint:meta`'s `rust-module-shape` caps a module at 400 code lines, and
-//! twenty-three commands with their tests are well past it. The split is by
+//! twenty-five commands with their tests are well past it. The split is by
 //! what the commands *talk to*, which is also how they group in v1's file:
 //!
 //! | Module        | Channels | Talks to                                    |
@@ -19,7 +19,7 @@
 //! | [`location`]  | 2        | the settings store and `location`           |
 //! | [`tools`]     | 9        | `bin::Tools`, the two binary managers       |
 //! | [`fetch`]     | 4        | `SearchService`, `DownloadRunner`           |
-//! | [`queue`]     | 8        | `queue::DownloadQueue`                      |
+//! | [`queue`]     | 10       | `queue::DownloadQueue`                      |
 //!
 //! # Four of these are fallback channels, and one of the four changed shape
 //!

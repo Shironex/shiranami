@@ -911,6 +911,16 @@ export const commands = {
 	downloaderQueueCancel: (id: string) => __TAURI_INVOKE<null>("downloader_queue_cancel", { id }),
 	/**  `downloader:queue-cancel-all` — cancel everything queued or active. */
 	downloaderQueueCancelAll: () => __TAURI_INVOKE<null>("downloader_queue_cancel_all"),
+	/**
+	 *  `downloader:queue-retry` — re-queue one failed item by id.
+	 * 
+	 *  A no-op for an unknown id or a non-failed item, mirroring `queue-cancel`:
+	 *  the renderer can fire this from a row a `queue-state` event has already
+	 *  settled or removed, and rejecting would surface that race as an error.
+	 */
+	downloaderQueueRetry: (id: string) => __TAURI_INVOKE<null>("downloader_queue_retry", { id }),
+	/**  `downloader:queue-retry-all` — re-queue every failed item. */
+	downloaderQueueRetryAll: () => __TAURI_INVOKE<null>("downloader_queue_retry_all"),
 	/**  `downloader:queue-clear-completed` — drop finished, failed and cancelled rows. */
 	downloaderQueueClearCompleted: () => __TAURI_INVOKE<null>("downloader_queue_clear_completed"),
 	/**

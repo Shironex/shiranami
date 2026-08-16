@@ -2,8 +2,8 @@
 //!
 //! A file of its own because `lint:meta` forbids a `macro_rules!` in a `mod.rs`
 //! — a manifest declares and re-exports, it does not implement — and because
-//! twenty-three paths in one place is easier to check against
-//! `packages/contracts/src/ipc/channels.ts` than twenty-three scattered across
+//! twenty-five paths in one place is easier to check against
+//! `packages/contracts/src/ipc/channels.ts` than twenty-five scattered across
 //! four modules.
 //!
 //! The order is v1's `IPC_CHANNELS.downloader` order, not alphabetical, so the
@@ -37,6 +37,8 @@ macro_rules! commands {
                 crate::commands::downloader::queue::downloader_queue_enqueue,
                 crate::commands::downloader::queue::downloader_queue_cancel,
                 crate::commands::downloader::queue::downloader_queue_cancel_all,
+                crate::commands::downloader::queue::downloader_queue_retry,
+                crate::commands::downloader::queue::downloader_queue_retry_all,
                 crate::commands::downloader::queue::downloader_queue_clear_completed,
                 crate::commands::downloader::queue::downloader_queue_pause,
                 crate::commands::downloader::queue::downloader_queue_resume,

@@ -37,6 +37,12 @@ export interface IDownloadsViewView {
   readonly setShowCancelAllConfirm: (open: boolean) => void;
   /** Cancel a single download by id (explicit user action — surfaces failures). */
   readonly onCancelItem: (id: string) => void;
+  /** Retry a single failed download. Absent when the runtime has no retry support. */
+  readonly onRetryItem: ((id: string) => void) | undefined;
+  /** There are failed items to retry. */
+  readonly hasFailed: boolean;
+  /** Retry every failed download. Absent when the runtime has no retry support. */
+  readonly onRetryAllFailed: (() => void) | undefined;
   /** Clear all completed/terminal downloads. */
   readonly onClearCompleted: () => void;
   /** Pause the queue. */
