@@ -4,3 +4,8 @@
 # Keep generated SQL migrations LF on every platform so the embedded-vs-on-disk
 # migration test stays stable on Windows checkouts.
 *.sql text eol=lf
+
+# Keep Rust sources LF on every platform. rustfmt.toml pins
+# `newline_style = "Unix"`, so a CRLF checkout makes `cargo fmt --check` fail on
+# every tracked file on Windows, for changes nobody made.
+*.rs text eol=lf
