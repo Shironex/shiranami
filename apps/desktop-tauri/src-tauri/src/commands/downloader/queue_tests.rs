@@ -320,6 +320,11 @@ async fn cancelling_an_unknown_id_is_a_no_op() {
 ///
 /// Both drop the persisted row either way, which is the part that matters
 /// after a restart: an imported download must not be resumed.
+///
+/// Both rows are `done` before the call, which is the only thing the
+/// renderer imports. It matters because `retry` re-queues an item without
+/// leaving a trace, so an unfinished row is indistinguishable from one a
+/// retry has just revived, and `mark_imported` spares those on purpose.
 #[tokio::test]
 async fn mark_imported_drops_batch_rows_from_the_view_and_keeps_single_ones() {
     let dir = tempfile::tempdir().expect("a temp dir");
@@ -335,11 +340,25 @@ async fn mark_imported_drops_batch_rows_from_the_view_and_keeps_single_ones() {
     let batched_id = queue.enqueue(batched).await;
     let single_id = queue.enqueue(input("https://youtu.be/two")).await;
 
-    queue
+    for mut item in persistence.stored() {
+        item.status = DownloadQueueStatus::Done;
+        item.file_path = Some(format!("{}.mp3", item.id));
+        persistence.upsert(&item).await.expect("the row stores");
+    }
+
+    let restarted = queue_over(
+        Arc::clone(&persistence),
+        Arc::new(RecordingSink::default()),
+        Arc::new(StalledRunner::default()),
+        dir.path().join("downloads"),
+    );
+    restarted.hydrate_and_resume().await;
+
+    restarted
         .mark_imported(&[batched_id.clone(), single_id.clone()])
         .await;
 
-    let remaining = queue.snapshot();
+    let remaining = restarted.snapshot();
     assert_eq!(remaining.items.len(), 1, "the batch row left the view");
     assert_eq!(remaining.items[0].id, single_id);
     assert!(
