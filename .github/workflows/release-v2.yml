@@ -1,0 +1,397 @@
+name: Release v2 (draft)
+
+# `workflow_dispatch` only, and deliberately so. v1's `release.yml` fires on a
+# published GitHub release, which is the right trigger for a shipping product
+# and the wrong one for a rewrite that is not out yet — v2 must not be able to
+# build and upload itself because someone tagged something. Phase 20 is where a
+# trigger gets added, if one ever does.
+#
+# Nothing this workflow produces is public: the release is created as a DRAFT,
+# and `v2.json` — the manifest the v1 Electron app polls (architecture §4.1) —
+# is generated with `enabled: false` unless the dispatcher deliberately says
+# otherwise. A draft release pushes no tag and serves no asset URLs, so a run of
+# this workflow cannot start a rollout by itself.
+#
+# ## Windows code signing
+#
+# Gated on the repository variable `WINDOWS_SIGNING_ENABLED` rather than on the
+# secrets themselves: the `secrets` context is not readable from an `if:`, and a
+# job-level `env` cannot gate a *different* job. One variable keeps the build
+# side and the verify side switching together. Set it to `true` at the same time
+# as the certificate secrets, never before.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, e.g. 2.0.0 or 2.0.0-rc.1'
+        required: true
+        type: string
+      tag:
+        description: 'Tag for the draft release. Defaults to v<version>.'
+        required: false
+        type: string
+      min_v1_version:
+        description: 'Lowest v1 version offered the handover. Must be a v1.x that carries the bridge.'
+        required: true
+        default: '1.0.1'
+        type: string
+      download_page:
+        description: 'URL the macOS handover modal opens (§4.3).'
+        required: false
+        default: 'https://shiranami.app/download'
+        type: string
+      prerelease:
+        description: 'Mark the draft as a prerelease.'
+        required: false
+        default: true
+        type: boolean
+      enable_handover:
+        description: 'DANGER: publish v2.json with enabled:true, starting the v1 rollout. Phase 20 only.'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  HUSKY: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # arm64 only, matching what v1 actually shipped: electron-builder's
+          # `dmg` target with no `arch` builds for the host, and the host has
+          # been arm64 since macos-latest moved. Intel Macs have never had a
+          # Shiranami build; a universal binary is a deliberate future change,
+          # not something to slip in with the bundle config.
+          - os: macos-latest
+            platform: macos
+          - os: windows-latest
+            platform: windows
+
+    runs-on: ${{ matrix.os }}
+
+    # Job-level so the steps below can gate on them from an `if:`. A step's own
+    # `env:` is not readable by that step's `if:`.
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-release-
+
+      # The workspace sits at 2.0.0-alpha.0 in git; the release version is a
+      # dispatch input and is never committed. `Cargo.lock` goes stale for the
+      # workspace's own crates as a result, which is why no step below passes
+      # `--locked`.
+      - name: Stamp the release version
+        run: node scripts/set-version-v2.mjs "${{ inputs.version }}"
+
+      # Import the Authenticode certificate into the user store so
+      # `certificateThumbprint` below can find it. The cert is pending, same as
+      # macOS's (§4.3), so today this is skipped and the installer ships
+      # unsigned with the SmartScreen warning that implies.
+      - name: Import the Windows signing certificate
+        id: windows-cert
+        if: matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          Remove-Item $pfx -Force
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+
+      # Signing config is an overlay rather than a `tauri.conf.json` entry so a
+      # developer's `pnpm tauri build` never asks for a certificate it cannot
+      # have. `tauri build --config` deep-merges this over the committed file.
+      - name: Write the signing config overlay
+        id: signing-overlay
+        if: matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: bash
+        env:
+          THUMBPRINT: ${{ steps.windows-cert.outputs.thumbprint }}
+        run: |
+          cat > "${RUNNER_TEMP}/signing.conf.json" <<JSON
+          {
+            "bundle": {
+              "windows": {
+                "certificateThumbprint": "${THUMBPRINT}",
+                "digestAlgorithm": "sha256",
+                "timestampUrl": "http://timestamp.digicert.com"
+              }
+            }
+          }
+          JSON
+          echo "config=--config ${RUNNER_TEMP}/signing.conf.json" >> "$GITHUB_OUTPUT"
+
+      # `beforeBuildCommand` builds the shared packages and `apps/web` inside
+      # this step, so the Sentry and Last.fm variables have to be here — they
+      # are read by the Vite build *and* by `option_env!` in the Rust crates,
+      # and an absent one silently produces a build with that integration off.
+      - name: Build the bundle
+        shell: bash
+        run: pnpm tauri build ${{ steps.signing-overlay.outputs.config }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SHIRANAMI_LASTFM_API_KEY: ${{ secrets.SHIRANAMI_LASTFM_API_KEY }}
+          SHIRANAMI_LASTFM_SECRET: ${{ secrets.SHIRANAMI_LASTFM_SECRET }}
+
+      # Risk R8, and the reason §4.4 pins the order build → Authenticode →
+      # re-minisign → publish. Authenticode rewrites the installer's bytes, so
+      # any minisign signature produced before it describes a file that no
+      # longer exists and every client would reject the update. This runs only
+      # on the signed path; an unsigned build's signature is already correct.
+      - name: Re-sign the installer after Authenticode
+        if: matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          shopt -s nullglob
+          installers=(target/release/bundle/nsis/*-setup.exe)
+          if [ ${#installers[@]} -eq 0 ]; then
+            echo "::error::No NSIS installer to re-sign"
+            exit 1
+          fi
+          for installer in "${installers[@]}"; do
+            echo "Re-signing ${installer}"
+            pnpm tauri signer sign "${installer}"
+          done
+
+      # `strip = true` keeps the shipped binary small and `split-debuginfo`
+      # leaves the symbols in a sidecar (`.dSYM` on macOS, `.pdb` on Windows).
+      # Without this upload a minidump from a packaged build is a list of
+      # addresses — the consent-gated reporting Phase 16 wired would exist, but
+      # nothing could read what it sends.
+      - name: Upload native debug symbols to Sentry
+        if: env.SENTRY_AUTH_TOKEN != ''
+        shell: bash
+        env:
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: pnpm dlx @sentry/cli@2 debug-files upload --include-sources target/release
+
+      - name: Collect the bundles
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          shopt -s nullglob
+          for file in \
+            target/release/bundle/dmg/*.dmg \
+            target/release/bundle/macos/*.app.tar.gz \
+            target/release/bundle/macos/*.app.tar.gz.sig \
+            target/release/bundle/nsis/*-setup.exe \
+            target/release/bundle/nsis/*-setup.exe.sig
+          do
+            cp "$file" dist-release/
+          done
+          ls -la dist-release
+
+      - name: Upload the bundles
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundle-${{ matrix.platform }}
+          path: dist-release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  manifests:
+    name: Generate manifests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download the bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bundle-*
+          path: bundles
+          merge-multiple: true
+
+      # The generator's guards mirror the v1 bridge's zod schema and its
+      # installer-name check. A violation there is invisible at runtime — the
+      # bridge goes dormant in silence — so it has to fail here. Called directly
+      # rather than through pnpm: the script is Node builtins only and this job
+      # has no reason to install a workspace.
+      - name: Self-test the generator
+        run: node scripts/build-update-manifests.mjs --self-test
+
+      - name: Build latest.json and v2.json
+        run: |
+          node scripts/build-update-manifests.mjs \
+            --artifacts bundles \
+            --out manifests \
+            --version "${{ inputs.version }}" \
+            --tag "${{ inputs.tag || format('v{0}', inputs.version) }}" \
+            --repo "${{ github.repository }}" \
+            --min-v1 "${{ inputs.min_v1_version }}" \
+            --download-page "${{ inputs.download_page }}" \
+            --enabled "${{ inputs.enable_handover }}"
+
+      - name: Show the manifests
+        run: cat manifests/latest.json manifests/v2.json
+
+      - name: Upload the manifests
+        uses: actions/upload-artifact@v7
+        with:
+          name: manifests
+          path: manifests/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish draft release
+    needs: manifests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - name: Resolve the tag
+        id: resolve
+        run: echo "tag=${{ inputs.tag || format('v{0}', inputs.version) }}" >> "$GITHUB_OUTPUT"
+
+      - name: Download everything
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      # Draft, always. A draft release creates no git tag and serves no asset
+      # URLs, so the `latest.json` endpoint in `tauri.conf.json` keeps 404ing —
+      # which `is_release_pending` already treats as "nothing to see" rather than
+      # as an error (Phase 16). Publishing is a human action taken in the GitHub
+      # UI after the verify jobs below have gone green.
+      - name: Create the draft release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          draft: true
+          prerelease: ${{ inputs.prerelease }}
+          make_latest: false
+          tag_name: ${{ steps.resolve.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Shiranami ${{ inputs.version }}
+          fail_on_unmatched_files: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-minisign:
+    name: Verify update signature
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends minisign
+
+      # Re-download rather than reuse the build artifacts: the point of this job
+      # is that the bytes GitHub is serving are the bytes the signature covers.
+      - name: Download the published assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p verify && cd verify
+          gh release download "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern 'latest.json' --pattern '*-setup.exe'
+
+      - name: Verify the installer against latest.json
+        run: |
+          cd verify
+          # `pubkey` in tauri.conf.json is the base64 of the whole .pub file, and
+          # each `signature` in the feed is the base64 of a .sig file; minisign(1)
+          # wants both back in their original form.
+          node -e '
+            const fs = require("fs");
+            const conf = JSON.parse(fs.readFileSync("../apps/desktop-tauri/src-tauri/tauri.conf.json", "utf8"));
+            const pub = Buffer.from(conf.plugins.updater.pubkey, "base64").toString("utf8");
+            fs.writeFileSync("updater.pub", pub.endsWith("\n") ? pub : pub + "\n");
+
+            const feed = JSON.parse(fs.readFileSync("latest.json", "utf8"));
+            const entry = feed.platforms["windows-x86_64"];
+            if (!entry) throw new Error("latest.json carries no windows-x86_64 entry");
+            const sig = Buffer.from(entry.signature, "base64").toString("utf8");
+            fs.writeFileSync("installer.sig", sig.endsWith("\n") ? sig : sig + "\n");
+
+            const name = new URL(entry.url).pathname.split("/").pop();
+            if (!fs.existsSync(name)) throw new Error(`latest.json points at ${name}, which is not in the release`);
+            fs.writeFileSync("installer.name", name);
+          '
+          minisign -V -m "$(cat installer.name)" -x installer.sig -p updater.pub
+          echo "minisign verification passed for $(cat installer.name)"
+
+  verify-authenticode:
+    name: Verify Authenticode signature
+    needs: publish
+    if: ${{ vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download the published installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p verify && cd verify
+          gh release download "${{ needs.publish.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*-setup.exe'
+
+      - name: Verify with signtool
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match 'x64' } | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found on the runner' }
+          Get-ChildItem verify\*-setup.exe | ForEach-Object {
+            & $signtool.FullName verify /pa /v $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Authenticode verification failed for $($_.Name)" }
+          }
