@@ -36,6 +36,9 @@ packages/database/drizzle/**/*.db-*
 playwright-report/
 test-results/
 apps/desktop/e2e/.tmp/
+# Isolated HOMEs, staged v1 profiles and generated audio for the Tauri E2E
+# suite. Rebuilt from scratch by every run's onPrepare.
+apps/desktop-tauri/e2e/.tmp/
 /design/
 # Storybook static build output
 apps/web/storybook-static/
