@@ -7,6 +7,12 @@ import { sendToRenderer } from '../utils/window';
 
 const U = IPC_CHANNELS.updater;
 
+/** Delay before the first update check, so it never competes with first paint. */
+export const INITIAL_UPDATE_CHECK_DELAY_MS = 5_000;
+
+/** Cadence of the periodic update check. Shared with the v2 handover bridge. */
+export const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 let updaterEnabled = false;
 let updaterInitialized = false;
 
@@ -91,18 +97,13 @@ export function initializeAutoUpdater(_mainWindow: BrowserWindow, isDev: boolean
     }
   });
 
-  // Initial check after 5 seconds
   setTimeout(() => {
     checkForUpdates();
-  }, 5000);
+  }, INITIAL_UPDATE_CHECK_DELAY_MS);
 
-  // Periodic checks every hour
-  setInterval(
-    () => {
-      checkForUpdates();
-    },
-    60 * 60 * 1000
-  );
+  setInterval(() => {
+    checkForUpdates();
+  }, UPDATE_CHECK_INTERVAL_MS);
 }
 
 export async function checkForUpdates(): Promise<{ enabled: boolean }> {

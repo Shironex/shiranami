@@ -7,6 +7,7 @@ import { reportBootFailure } from './app/boot-failure';
 import { createMainWindow } from './app/window';
 import { cleanupIpcHandlers } from './ipc/register';
 import { initializeAutoUpdater } from './app/updater';
+import { initializeV2Bridge, stopV2Bridge } from './app/v2-bridge';
 import { logger, flushLogs } from './app/logger';
 import { createTray, destroyTray } from './app/tray';
 import { initializeSystemBehavior, attachTrayWindowBehavior } from './app/system-behavior';
@@ -212,6 +213,15 @@ async function bootstrap(): Promise<void> {
     } catch (error) {
       logger.warn('Failed to initialize auto-updater:', error);
     }
+
+    // Dormant until a v2 handover manifest is published. Initialized separately
+    // from the auto-updater because that one bails out on macOS (unsigned app),
+    // and macOS users still need the crossover notice.
+    try {
+      initializeV2Bridge(mainWindow, !app.isPackaged);
+    } catch (error) {
+      logger.warn('Failed to initialize the v2 handover bridge:', error);
+    }
   }
 }
 
@@ -270,6 +280,7 @@ app.on('before-quit', event => {
     try {
       cancelRecommendationRefresh();
       stopScrobbler();
+      stopV2Bridge();
     } catch (err) {
       logger.warn('[shutdown] recommendation/scrobbler stop failed', err);
     }
