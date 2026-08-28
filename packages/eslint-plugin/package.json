@@ -21,7 +21,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@typescript-eslint/utils": "8.59.4",
+    "@typescript-eslint/utils": "8.68.0",
     "micromatch": "^4.0.8"
   },
   "devDependencies": {
