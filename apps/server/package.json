@@ -43,7 +43,7 @@
     "@nestjs/schematics": "^11.1.0",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.33",
-    "@types/node": "^25.9.1",
+    "@types/node": "^26.4.0",
     "@types/pg": "^8.16.0",
     "prisma": "^7.9.0",
     "typescript": "^5.9.3"

@@ -23,7 +23,7 @@
     "@shiranami/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.8.0",
+    "@types/node": "^26.4.0",
     "typescript": "^5.9.3"
   }
 }
