@@ -29,18 +29,51 @@ export async function waitForBridge(): Promise<void> {
   );
 }
 
+/**
+ * Every link in the chain that has to hold for `window.__shiranami` to exist,
+ * read in one round trip.
+ *
+ * The registry is the end of a five-step handoff — env var to `preflight.e2e`,
+ * to the init-script plugin, to `window.__SHIRANAMI_E2E__`, to
+ * `electronAPI.__e2e`, to `main.tsx`'s dynamic import — and a bare "it never
+ * appeared" says nothing about which step broke. Each of these is cheap and
+ * observable from the renderer, so the timeout reports them instead of guessing.
+ */
+async function bridgeDiagnostics(): Promise<string> {
+  try {
+    const state = await browser.execute(() => ({
+      e2eGlobal: (window as unknown as { __SHIRANAMI_E2E__?: unknown }).__SHIRANAMI_E2E__,
+      bridge: 'electronAPI' in window,
+      bridgeFlag: window.electronAPI?.__e2e,
+      tauriGlobal: typeof (window as unknown as { __TAURI__?: unknown }).__TAURI__,
+      registry: typeof (window as unknown as { __shiranami?: unknown }).__shiranami,
+    }));
+    return JSON.stringify(state);
+  } catch (error) {
+    return `unreadable (${error instanceof Error ? error.message : String(error)})`;
+  }
+}
+
 /** Wait for the e2e store registry. Only present under `SHIRANAMI_E2E=1`. */
 export async function waitForStores(): Promise<void> {
   await waitForBridge();
-  await browser.waitUntil(
-    async () => (await browser.execute(() => window.__shiranami !== undefined)) === true,
-    {
-      timeout: BOOT_TIMEOUT,
-      timeoutMsg:
-        'window.__shiranami never appeared — either SHIRANAMI_E2E was not 1, or main.tsx did ' +
-        'not reach its dynamic import of e2e-bridge',
-    }
-  );
+  try {
+    await browser.waitUntil(
+      async () => (await browser.execute(() => window.__shiranami !== undefined)) === true,
+      { timeout: BOOT_TIMEOUT, timeoutMsg: 'window.__shiranami never appeared' }
+    );
+  } catch (error) {
+    const state = await bridgeDiagnostics();
+    throw new Error(
+      `window.__shiranami never appeared. Renderer state: ${state}. ` +
+        'Read it left to right — the first false/undefined is the broken link: ' +
+        '__SHIRANAMI_E2E__ undefined means the init-script plugin did not run or ' +
+        '`preflight.e2e` was false (SHIRANAMI_E2E did not reach the process); ' +
+        'bridgeFlag false with the global true means the shim read it too late; ' +
+        'both true with registry undefined means the dynamic import of ' +
+        `e2e-bridge failed. Original: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }
 
 /**

@@ -211,4 +211,26 @@ export const config: WebdriverIO.Config = {
 
     // `onboarding` is left exactly as `resetProfile` made it: empty.
   },
+
+  /**
+   * Give a retried `onboarding` run the cold profile it is named after.
+   *
+   * `specFileRetries` re-runs the *file*, not the fixture, and completing the
+   * wizard is a one-way door — it writes `app.onboardingCompleted` and the
+   * dialog never returns for the life of the profile. So the retry replayed
+   * nine tests against an already-onboarded profile and turned three genuine
+   * failures into six meaningless ones, burying the real signal.
+   *
+   * Safe to do per session **only** because this capability declares exactly
+   * one spec file. The `library` and `migrated` capabilities deliberately share
+   * one profile across their specs so that a value written by one process can
+   * be asserted by the next, which is why they are left alone here and staged
+   * once in `onPrepare`.
+   */
+  beforeSession(_config, capabilities) {
+    const profileName = (capabilities as unknown as Record<string, unknown>)['shiranami:profile'];
+    if (profileName !== 'onboarding') return;
+
+    resetProfile('onboarding');
+  },
 };

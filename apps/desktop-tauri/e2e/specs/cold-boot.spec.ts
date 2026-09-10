@@ -37,11 +37,32 @@ const WIZARD = 'div[role="dialog"][aria-modal="true"]';
  * `OnboardingWizard.hooks.ts` gives it three different captions — "Next",
  * "Skip for now" on the folders step when nothing is configured, and "Open
  * library" on the last one — before translation is even considered.
+ *
+ * It is the footer's **last child container**, not `button:last-of-type`.
+ * `:last-of-type` is scoped per parent, and the footer holds three
+ * button-bearing children — the back slot, the progress-dot group, and this
+ * one — so that selector matched the last dot as well, and matched it first in
+ * document order. Clicking it called `onSelect` for the *final* step instead of
+ * advancing one.
  */
-const NEXT = `${WIZARD} footer button:last-of-type`;
+const NEXT = `${WIZARD} footer > div:last-child button`;
 
 /** The only direct `<button>` child of the dialog. */
 const SKIP = `${WIZARD} > button`;
+
+/**
+ * A language pill, by its caption.
+ *
+ * Scoped through the wizard element rather than written as one string:
+ * wdio only recognises the `=text` strategy after a *bare* tag, so
+ * `` `${WIZARD} button[aria-pressed]=English` `` was never parsed as a text
+ * match. It fell through to CSS, where `=English` is invalid, and WebKit threw
+ * `SyntaxError` — surfacing as "a JavaScript exception occurred when running
+ * element" rather than as a missing element.
+ */
+async function languagePill(label: string) {
+  return (await browser.$(WIZARD)).$(`button=${label}`);
+}
 
 /** Which step is showing. The dot's label ends in the raw step id in every locale. */
 async function currentStep(): Promise<string> {
@@ -97,8 +118,8 @@ describe('cold boot', () => {
     // them — a language picker that renamed itself into a language you cannot
     // read would be a poor picker — so matching on the text is safe here in a
     // way it is nowhere else in this file.
-    const english = await browser.$(`${WIZARD} button[aria-pressed]=English`);
-    const polish = await browser.$(`${WIZARD} button[aria-pressed]=Polski`);
+    const english = await languagePill('English');
+    const polish = await languagePill('Polski');
 
     expect(await english.isExisting()).toBe(true);
     expect(await polish.isExisting()).toBe(true);
@@ -110,13 +131,10 @@ describe('cold boot', () => {
     const heading = await browser.$('#onboarding-step-heading');
     const before = await heading.getText();
 
-    await (await browser.$(`${WIZARD} button[aria-pressed]=Polski`)).click();
+    await (await languagePill('Polski')).click();
 
     await browser.waitUntil(
-      async () =>
-        (await (
-          await browser.$(`${WIZARD} button[aria-pressed]=Polski`)
-        ).getAttribute('aria-pressed')) === 'true',
+      async () => (await (await languagePill('Polski')).getAttribute('aria-pressed')) === 'true',
       { timeout: 10_000, timeoutMsg: 'the Polish pill never became the pressed one' }
     );
 
@@ -133,7 +151,7 @@ describe('cold boot', () => {
     });
 
     // Back to English so the remaining assertions read the copy they expect.
-    await (await browser.$(`${WIZARD} button[aria-pressed]=English`)).click();
+    await (await languagePill('English')).click();
     await browser.waitUntil(
       async () => (await (await browser.$('#onboarding-step-heading')).getText()) === before,
       { timeout: 10_000, timeoutMsg: 'the heading did not return to English' }
