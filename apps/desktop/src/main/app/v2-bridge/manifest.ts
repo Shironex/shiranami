@@ -18,8 +18,24 @@ import { getManifestUrl, MANIFEST_MAX_BYTES, MANIFEST_TIMEOUT_MS } from './const
 /** A dotted numeric version, optionally with a suffix (`2.0.0`, `2.0.0-rc.1`). */
 const versionString = z.string().regex(/^\d+(\.\d+)*(-.+)?$/, 'expected a dotted numeric version');
 
+/**
+ * `z.url()` validates with the `URL()` constructor, which accepts any scheme —
+ * `http:`, `file:`, `mailto:` included. The artifact URL feeds an automatic
+ * download-and-launch on packaged Windows, so the scheme is pinned to `https:`
+ * here rather than trusted to whatever the manifest happens to carry.
+ */
+function isHttps(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+const httpsUrl = z.url().refine(isHttps, 'expected an https: URL');
+
 const artifactSchema = z.object({
-  url: z.url(),
+  url: httpsUrl,
   /** Lowercase hex sha256 of the artifact bytes. */
   sha256: z.string().regex(/^[a-fA-F0-9]{64}$/, 'expected a hex sha256 digest'),
   size: z.number().int().positive(),
@@ -41,7 +57,7 @@ export const v2ManifestSchema = z.object({
    * Landing-page download URL used by the manual (macOS) path. Optional and
    * additive: absent means fall back to the platform artifact URL.
    */
-  download_page: z.url().optional(),
+  download_page: httpsUrl.optional(),
 });
 
 export type V2Manifest = z.infer<typeof v2ManifestSchema>;

@@ -111,6 +111,23 @@ describe('fetchV2Manifest — the dormant path', () => {
     await expect(fetchV2Manifest()).resolves.toBeNull();
   });
 
+  it('returns null when a platform artifact is served over plain http', async () => {
+    const bad = manifestFixture();
+    bad.platforms[currentPlatformKey()]!.url =
+      'http://shiranami.app/releases/Shiranami_2.0.0_x64-setup.exe';
+    fetchMock.mockResolvedValue(jsonResponse(JSON.stringify(bad)));
+
+    await expect(fetchV2Manifest()).resolves.toBeNull();
+  });
+
+  it('returns null when download_page uses a non-https scheme', async () => {
+    const bad = manifestFixture();
+    bad.download_page = 'file:///tmp/download.html';
+    fetchMock.mockResolvedValue(jsonResponse(JSON.stringify(bad)));
+
+    await expect(fetchV2Manifest()).resolves.toBeNull();
+  });
+
   it('returns null when the body exceeds the size cap', async () => {
     const oversized = ' '.repeat(MANIFEST_MAX_BYTES + 1);
     fetchMock.mockResolvedValue({

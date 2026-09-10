@@ -59,11 +59,40 @@ function manifest(overrides: Partial<V2Manifest> = {}): V2Manifest {
   };
 }
 
-function respondWith(bytes: Buffer, init: { ok?: boolean; status?: number } = {}): void {
+/**
+ * Stub a fetch response the way the downloader consumes it: a `content-length`
+ * header and a streamed body. `contentLength` can be set independently of the
+ * real payload so a lying header can be exercised, and the body is emitted in
+ * small chunks so the size cap is hit mid-stream rather than on the first read.
+ */
+function respondWith(
+  bytes: Buffer,
+  init: { ok?: boolean; status?: number; contentLength?: number | null } = {}
+): void {
+  const declared =
+    init.contentLength === undefined ? bytes.length : (init.contentLength ?? undefined);
+
   fetchMock.mockResolvedValue({
     ok: init.ok ?? true,
     status: init.status ?? 200,
-    arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.length),
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === 'content-length' && declared !== undefined ? String(declared) : null,
+    },
+    body: {
+      getReader() {
+        let offset = 0;
+        return {
+          async read() {
+            if (offset >= bytes.length) return { done: true, value: undefined };
+            const chunk = bytes.subarray(offset, offset + 8);
+            offset += chunk.length;
+            return { done: false, value: new Uint8Array(chunk) };
+          },
+          async cancel() {},
+        };
+      },
+    },
   });
 }
 
@@ -116,9 +145,12 @@ describe('runWindowsHandover', () => {
   });
 
   it('refuses to run an installer whose digest does not match the manifest', async () => {
-    respondWith(Buffer.from('a completely different payload'));
+    // Size is derived from the payload so this reaches the digest check rather
+    // than short-circuiting on the earlier length comparison.
+    const wrongPayload = Buffer.from('a completely different payload');
+    respondWith(wrongPayload);
 
-    await expect(runWindowsHandover(artifact({ size: 30 }))).resolves.toBe(false);
+    await expect(runWindowsHandover(artifact({ size: wrongPayload.length }))).resolves.toBe(false);
     expect(mockSpawn).not.toHaveBeenCalled();
     expect(mockApp.quit).not.toHaveBeenCalled();
   });
@@ -128,6 +160,25 @@ describe('runWindowsHandover', () => {
 
     await expect(runWindowsHandover(artifact({ size: 999 }))).resolves.toBe(false);
     expect(mockSpawn).not.toHaveBeenCalled();
+  });
+
+  it('refuses a content-length larger than the manifest size before reading a body', async () => {
+    respondWith(INSTALLER_BYTES, { contentLength: 4 * 1024 * 1024 * 1024 });
+
+    await expect(runWindowsHandover(artifact())).resolves.toBe(false);
+    expect(mockSpawn).not.toHaveBeenCalled();
+    expect(fs.existsSync(installerPath())).toBe(false);
+  });
+
+  it('aborts a body that outgrows the manifest size even without a content-length', async () => {
+    // No content-length header, so the ceiling can only be enforced mid-stream.
+    const oversized = Buffer.alloc(INSTALLER_BYTES.length * 4, 0x41);
+    respondWith(oversized, { contentLength: null });
+
+    await expect(runWindowsHandover(artifact())).resolves.toBe(false);
+    expect(mockSpawn).not.toHaveBeenCalled();
+    expect(mockApp.quit).not.toHaveBeenCalled();
+    expect(fs.existsSync(installerPath())).toBe(false);
   });
 
   it('gives up when the download fails', async () => {

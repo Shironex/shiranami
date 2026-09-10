@@ -51,6 +51,39 @@ function sha256(bytes: Buffer): string {
 }
 
 /**
+ * Read a response body into a Buffer, aborting as soon as it exceeds `limit`
+ * bytes. `response.arrayBuffer()` would allocate whatever the host sends before
+ * any check could run, so the ceiling is enforced chunk by chunk instead.
+ */
+async function readCapped(response: Response, limit: number): Promise<Buffer> {
+  if (!response.body) {
+    throw new Error('installer response had no body');
+  }
+
+  const chunks: Buffer[] = [];
+  let total = 0;
+
+  const reader = response.body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      total += value.byteLength;
+      if (total > limit) {
+        throw new Error(`installer body exceeded the manifest size (${limit} bytes)`);
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+
+  return Buffer.concat(chunks, total);
+}
+
+/**
  * Download the artifact and verify it byte-for-byte against the manifest.
  * Returns the path of the verified installer, or null on any failure (network,
  * size mismatch, digest mismatch, disk).
@@ -79,7 +112,21 @@ async function downloadVerifiedInstaller(artifact: V2Artifact): Promise<string |
       logger.error(`[v2-bridge] Installer download failed: HTTP ${response.status}`);
       return null;
     }
-    bytes = Buffer.from(await response.arrayBuffer());
+
+    // `artifact.size` is what the manifest *claims*; this is what the host
+    // actually serves. Reading through a capped stream instead of buffering
+    // `arrayBuffer()` outright means a host serving a multi-gigabyte body is
+    // refused after one chunk over the ceiling, rather than after it has
+    // already exhausted the main process.
+    const declared = Number(response.headers.get('content-length') ?? '');
+    if (Number.isFinite(declared) && declared > artifact.size) {
+      logger.error(
+        `[v2-bridge] Installer content-length ${declared} exceeds the manifest size ${artifact.size}`
+      );
+      return null;
+    }
+
+    bytes = await readCapped(response, artifact.size);
   } catch (error) {
     logger.error('[v2-bridge] Installer download failed:', error);
     return null;

@@ -193,6 +193,21 @@ describe('checkForV2Handover — active', () => {
     expect(mockHandover.showHandoverNotice).toHaveBeenCalledTimes(1);
   });
 
+  it('does not auto-install when the handoff descriptor could not be written', async () => {
+    setPlatform('win32');
+    // `writeJsonAtomic` does not create directories, so pointing userData at a
+    // path that does not exist makes both writes throw and the descriptor fail.
+    mockApp.userData = path.join(dir, 'not-created');
+    serveManifest(manifestFixture());
+
+    await expect(checkForV2Handover(win)).resolves.toBe('notified');
+
+    // The automatic path ends in app.quit(); without the descriptor on disk v2
+    // could not find the v1 library and the user would have no way back.
+    expect(mockHandover.runWindowsHandover).not.toHaveBeenCalled();
+    expect(mockHandover.showHandoverNotice).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the manual notice on an unpackaged Windows run', async () => {
     setPlatform('win32');
     mockApp.isPackaged = false;

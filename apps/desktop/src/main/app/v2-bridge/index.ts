@@ -87,16 +87,30 @@ export async function checkForV2Handover(
 
     logger.info(`[v2-bridge] Handover manifest is live for v${manifest.version}`);
     pingCrossover(manifest);
-    await writeHandoffFiles(mainWindow);
+    const handoffWritten = await writeHandoffFiles(mainWindow);
 
     // Only a packaged Windows build can install over itself; anything else
     // (macOS, Linux, an unpackaged run) gets the manual notice.
-    if (process.platform === 'win32' && app.isPackaged) {
+    //
+    // The descriptor gate matters more than it looks: the automatic path ends
+    // in `app.quit()` after the installer is spawned, so it is a one-way door.
+    // Without `v2-handoff.json` on disk v2's first run cannot locate the v1
+    // userData, database or downloads folder, and the library is not migrated
+    // — with v1 already replaced, the user has no way to retry. A failed
+    // descriptor write therefore degrades to the manual notice, which leaves
+    // v1 installed and the library intact, so a later launch can try again.
+    if (process.platform === 'win32' && app.isPackaged && handoffWritten) {
       surfacedThisSession = true;
       if (await runWindowsHandover(artifact)) return 'handed-off';
       logger.warn('[v2-bridge] Automatic handover failed — falling back to the manual notice');
       await showHandoverNotice(mainWindow, manifest, artifact);
       return 'notified';
+    }
+
+    if (!handoffWritten) {
+      logger.warn(
+        '[v2-bridge] Handoff descriptor did not reach disk — offering the manual handover instead'
+      );
     }
 
     surfacedThisSession = true;
