@@ -138,6 +138,44 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 
 export const changelog: ChangelogRelease[] = [
   {
+    version: '1.0.1',
+    date: '2026-09-10',
+    title: l('Getting ready for Shiranami 2', 'Przygotowanie na Shiranami 2'),
+    description: l(
+      'A small maintenance release whose main job is to prepare this version for what comes next. Shiranami 2 rebuilds the app’s core for a much lighter footprint, and because it is a different kind of application underneath, this release teaches the 1.x line how to hand you over to it — carrying your library, playlists and settings across when the time comes. Until 2.0 is actually out, that feature stays completely inactive and nothing about how Shiranami works today changes. Alongside it: a fix for the album cover on the now-playing screen, and a dependency security update.',
+      'Niewielkie wydanie konserwacyjne, którego głównym zadaniem jest przygotowanie tej wersji na to, co nadejdzie. Shiranami 2 przebudowuje rdzeń aplikacji, aby była znacznie lżejsza, a ponieważ pod spodem jest to inny rodzaj aplikacji, to wydanie uczy linię 1.x, jak przekazać Cię do niej — przenosząc Twoją bibliotekę, playlisty i ustawienia, gdy przyjdzie na to czas. Do czasu premiery 2.0 ta funkcja pozostaje całkowicie nieaktywna i nic w dzisiejszym działaniu Shiranami się nie zmienia. Poza tym: poprawka okładki albumu na ekranie odtwarzania i aktualizacja bezpieczeństwa zależności.'
+    ),
+    categories: [
+      {
+        label: l('What’s Next', 'Co dalej'),
+        entries: [
+          l(
+            'This release can hand you over to Shiranami 2 when it arrives, bringing your library, playlists and settings with you. It does nothing at all until 2.0 is published — and when that happens, you will be told before anything is installed.',
+            'To wydanie potrafi przekazać Cię do Shiranami 2, gdy ta wersja się pojawi, zabierając ze sobą Twoją bibliotekę, playlisty i ustawienia. Do czasu publikacji 2.0 nie robi absolutnie nic — a gdy to nastąpi, zostaniesz o tym poinformowany, zanim cokolwiek zostanie zainstalowane.'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'The album cover on the now-playing screen no longer goes dark and blurry a moment after it appears.',
+            'Okładka albumu na ekranie odtwarzania nie staje się już ciemna i rozmyta chwilę po pojawieniu się.'
+          ),
+        ],
+      },
+      {
+        label: l('Security', 'Bezpieczeństwo'),
+        entries: [
+          l(
+            'Patched a high-severity denial-of-service vulnerability in a dependency used during file pattern matching.',
+            'Załatano lukę typu odmowa usługi o wysokiej istotności w zależności używanej przy dopasowywaniu wzorców plików.'
+          ),
+        ],
+      },
+    ],
+  },
+  {
     version: '1.0.0',
     date: '2026-08-01',
     title: l(
