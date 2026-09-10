@@ -168,8 +168,12 @@ export const changelog: ChangelogRelease[] = [
         label: l('Security', 'Bezpieczeństwo'),
         entries: [
           l(
-            'Patched a high-severity denial-of-service vulnerability in a dependency used during file pattern matching.',
-            'Załatano lukę typu odmowa usługi o wysokiej istotności w zależności używanej przy dopasowywaniu wzorców plików.'
+            'Updated the app runtime to its latest patch release, closing two known security advisories.',
+            'Zaktualizowano środowisko uruchomieniowe aplikacji do najnowszego wydania poprawkowego, zamykając dwa znane zgłoszenia bezpieczeństwa.'
+          ),
+          l(
+            'Refreshed the bundled libraries Shiranami uses for image processing, update checks and file pattern matching, clearing several known vulnerabilities — including denial-of-service issues reachable while reading album art and while checking for updates.',
+            'Odświeżono dołączone biblioteki, z których Shiranami korzysta przy przetwarzaniu obrazów, sprawdzaniu aktualizacji i dopasowywaniu wzorców plików, usuwając kilka znanych podatności — w tym problemy typu odmowa usługi możliwe do wywołania podczas odczytu okładek albumów i sprawdzania aktualizacji.'
           ),
         ],
       },
