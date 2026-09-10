@@ -16,25 +16,45 @@ const byName = new Map(map.components.map(c => [c.name, c]));
 // Onboarding steps were rescued by the context fix -> their render CHANGED ->
 // do NOT adopt old (blank/mismatch) verdicts; let them be freshly graded.
 const REGRADE = new Set([
-  'AppearanceStep', 'FoldersStep', 'OnboardingWizard', 'PlaybackStep',
-  'PrivacyStep', 'SummaryStep', 'ToolsStep', 'VisualizerStep',
+  'AppearanceStep',
+  'FoldersStep',
+  'OnboardingWizard',
+  'PlaybackStep',
+  'PrivacyStep',
+  'SummaryStep',
+  'ToolsStep',
+  'VisualizerStep',
 ]);
 
-let adopted = 0, skipped = 0, missing = 0;
+let adopted = 0,
+  skipped = 0,
+  missing = 0;
 for (const f of readdirSync(backup).filter(x => x.endsWith('.grade.json'))) {
   const name = f.replace('.grade.json', '');
-  if (REGRADE.has(name)) { skipped++; continue; }
+  if (REGRADE.has(name)) {
+    skipped++;
+    continue;
+  }
   const c = byName.get(name);
-  if (!c || !c.sourceKey) { missing++; continue; }
+  if (!c || !c.sourceKey) {
+    missing++;
+    continue;
+  }
   const verdict = JSON.parse(readFileSync(join(backup, f), 'utf8'));
   // only adopt if every story is match/close (fullyGraded); mismatch -> re-grade
   const vals = Object.values(verdict.stories || {});
-  if (!vals.length || !vals.every(v => ['match', 'close'].includes(v.verdict))) { skipped++; continue; }
+  if (!vals.length || !vals.every(v => ['match', 'close'].includes(v.verdict))) {
+    skipped++;
+    continue;
+  }
   // restore verdict
   writeFileSync(join(cmp, f), JSON.stringify(verdict));
   // patch capture json gradeKey -> current
   const capPath = join(cmp, `${name}.json`);
-  if (!existsSync(capPath)) { missing++; continue; }
+  if (!existsSync(capPath)) {
+    missing++;
+    continue;
+  }
   const cap = JSON.parse(readFileSync(capPath, 'utf8'));
   cap.sourceKey = c.sourceKey;
   cap.gradeKey = gradeKeyFrom(c.sourceKey);
@@ -44,4 +64,6 @@ for (const f of readdirSync(backup).filter(x => x.endsWith('.grade.json'))) {
   writeFileSync(capPath, JSON.stringify(cap));
   adopted++;
 }
-console.log(`adopted: ${adopted} | skipped(regrade/non-clean): ${skipped} | missing capture/map: ${missing}`);
+console.log(
+  `adopted: ${adopted} | skipped(regrade/non-clean): ${skipped} | missing capture/map: ${missing}`
+);

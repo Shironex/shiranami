@@ -36,7 +36,7 @@ const sentryPlugins = shouldUploadSourcemaps
 // Bundling them would defeat the rebuild step.
 const mainExternal = [
   'electron',
-  ...Object.keys(pkg.dependencies ?? {}).filter((d) => !d.startsWith('@shiranami/')),
+  ...Object.keys(pkg.dependencies ?? {}).filter(d => !d.startsWith('@shiranami/')),
 ];
 
 // Preload: runs in Electron's sandboxed renderer context. require() from the

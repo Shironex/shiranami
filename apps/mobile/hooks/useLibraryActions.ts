@@ -36,7 +36,7 @@ export function useLibraryActions() {
       await db.runAsync(
         `INSERT OR IGNORE INTO tracks (id, file_path, title, artist, album, duration)
          VALUES (?, ?, ?, ?, 'Unknown Album', NULL)`,
-        [file.id, file.uri, title, artist],
+        [file.id, file.uri, title, artist]
       );
     }
 
@@ -65,7 +65,7 @@ export function useLibraryActions() {
         albumArt: r.album_art ?? undefined,
         isFavorite: !!r.is_favorite,
         playCount: r.play_count ?? 0,
-      })),
+      }))
     );
 
     return files.length;

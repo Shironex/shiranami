@@ -14,7 +14,7 @@ function LyricsPanelInner() {
     currentTrack?.title,
     currentTrack?.artist,
     currentTrack?.album,
-    currentTrack?.duration,
+    currentTrack?.duration
   );
 
   const activeLine = getActiveLine(currentTime);
@@ -52,9 +52,7 @@ function LyricsPanelInner() {
       <View style={s.container}>
         <FlatList
           data={lyrics.plain.split('\n')}
-          renderItem={({ item }) => (
-            <Text style={s.plainLine}>{item || ' '}</Text>
-          )}
+          renderItem={({ item }) => <Text style={s.plainLine}>{item || ' '}</Text>}
           keyExtractor={(_, i) => String(i)}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.listContent}
@@ -66,11 +64,7 @@ function LyricsPanelInner() {
   // Synced lyrics
   const renderLine = ({ item, index }: { item: LyricLine; index: number }) => {
     const isActive = index === activeLine;
-    return (
-      <Text style={[s.syncedLine, isActive && s.activeLine]}>
-        {item.text}
-      </Text>
-    );
+    return <Text style={[s.syncedLine, isActive && s.activeLine]}>{item.text}</Text>;
   };
 
   return (

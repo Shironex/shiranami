@@ -48,7 +48,7 @@ describe('db:playlists payload schemas', () => {
       expect(
         playlistsCreateArgs.safeParse([
           { name: 'Chill', description: 'lofi beats', coverArt: 'art://x' },
-        ]).success,
+        ]).success
       ).toBe(true);
     });
 
@@ -64,34 +64,26 @@ describe('db:playlists payload schemas', () => {
   describe('playlistsCreateWithTracksArgs', () => {
     it('accepts with track ids', () => {
       expect(
-        playlistsCreateWithTracksArgs.safeParse([
-          { name: 'Mix', trackIds: [UUID, UUID2] },
-        ]).success,
+        playlistsCreateWithTracksArgs.safeParse([{ name: 'Mix', trackIds: [UUID, UUID2] }]).success
       ).toBe(true);
     });
 
     it('accepts with empty trackIds', () => {
-      expect(
-        playlistsCreateWithTracksArgs.safeParse([
-          { name: 'Mix', trackIds: [] },
-        ]).success,
-      ).toBe(true);
+      expect(playlistsCreateWithTracksArgs.safeParse([{ name: 'Mix', trackIds: [] }]).success).toBe(
+        true
+      );
     });
 
     it('rejects non-uuid track id', () => {
       expect(
-        playlistsCreateWithTracksArgs.safeParse([
-          { name: 'Mix', trackIds: ['bad'] },
-        ]).success,
+        playlistsCreateWithTracksArgs.safeParse([{ name: 'Mix', trackIds: ['bad'] }]).success
       ).toBe(false);
     });
   });
 
   describe('playlistsUpdateArgs', () => {
     it('accepts (uuid, partial)', () => {
-      expect(
-        playlistsUpdateArgs.safeParse([UUID, { name: 'Renamed' }]).success,
-      ).toBe(true);
+      expect(playlistsUpdateArgs.safeParse([UUID, { name: 'Renamed' }]).success).toBe(true);
     });
 
     it('accepts (uuid, {})', () => {
@@ -105,26 +97,24 @@ describe('db:playlists payload schemas', () => {
 
   describe('playlistsAddTrackArgs / playlistsRemoveTrackArgs', () => {
     it('accept {playlistId, trackId}', () => {
+      expect(playlistsAddTrackArgs.safeParse([{ playlistId: UUID, trackId: UUID2 }]).success).toBe(
+        true
+      );
       expect(
-        playlistsAddTrackArgs.safeParse([{ playlistId: UUID, trackId: UUID2 }]).success,
-      ).toBe(true);
-      expect(
-        playlistsRemoveTrackArgs.safeParse([{ playlistId: UUID, trackId: UUID2 }]).success,
+        playlistsRemoveTrackArgs.safeParse([{ playlistId: UUID, trackId: UUID2 }]).success
       ).toBe(true);
     });
 
     it('reject non-uuid trackId', () => {
-      expect(
-        playlistsAddTrackArgs.safeParse([{ playlistId: UUID, trackId: 'bad' }]).success,
-      ).toBe(false);
+      expect(playlistsAddTrackArgs.safeParse([{ playlistId: UUID, trackId: 'bad' }]).success).toBe(
+        false
+      );
     });
   });
 
   describe('playlistsGetPlaylistsForTracksArgs', () => {
     it('accepts array of uuids', () => {
-      expect(
-        playlistsGetPlaylistsForTracksArgs.safeParse([[UUID, UUID2]]).success,
-      ).toBe(true);
+      expect(playlistsGetPlaylistsForTracksArgs.safeParse([[UUID, UUID2]]).success).toBe(true);
     });
 
     it('accepts empty array', () => {
@@ -132,33 +122,25 @@ describe('db:playlists payload schemas', () => {
     });
 
     it('rejects array with non-uuid', () => {
-      expect(
-        playlistsGetPlaylistsForTracksArgs.safeParse([['bad']]).success,
-      ).toBe(false);
+      expect(playlistsGetPlaylistsForTracksArgs.safeParse([['bad']]).success).toBe(false);
     });
   });
 
   describe('playlistsReorderArgs', () => {
     it('accepts valid reorder payload', () => {
       expect(
-        playlistsReorderArgs.safeParse([
-          { playlistId: UUID, trackIds: [UUID, UUID2] },
-        ]).success,
+        playlistsReorderArgs.safeParse([{ playlistId: UUID, trackIds: [UUID, UUID2] }]).success
       ).toBe(true);
     });
 
     it('rejects non-uuid playlistId', () => {
       expect(
-        playlistsReorderArgs.safeParse([
-          { playlistId: 'bad', trackIds: [UUID] },
-        ]).success,
+        playlistsReorderArgs.safeParse([{ playlistId: 'bad', trackIds: [UUID] }]).success
       ).toBe(false);
     });
 
     it('rejects missing trackIds', () => {
-      expect(
-        playlistsReorderArgs.safeParse([{ playlistId: UUID }]).success,
-      ).toBe(false);
+      expect(playlistsReorderArgs.safeParse([{ playlistId: UUID }]).success).toBe(false);
     });
   });
 });

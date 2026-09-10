@@ -17,7 +17,7 @@ export function useShareDeepLink(): UseShareDeepLinkResult {
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    return window.electronAPI.share.onDeepLink((code) => {
+    return window.electronAPI.share.onDeepLink(code => {
       setImportCode(code);
       setImportOpen(true);
     });

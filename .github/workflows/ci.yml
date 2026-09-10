@@ -91,6 +91,16 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Repo-convention rules that ESLint can't express (file placement,
+      # forbidden source text, architecture boundaries). The runner discovers
+      # its own targets, so no file list is pinned here and new rules are
+      # picked up without touching this workflow.
+      - name: Lint meta
+        run: pnpm lint:meta
+
+      - name: Format check
+        run: pnpm format:check
+
   typecheck:
     name: Type Check
     needs: [changes]

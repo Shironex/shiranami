@@ -17,11 +17,7 @@ import {
   SkipForward,
 } from 'lucide-react-native';
 import { LyricsPanel } from '@/components/player/LyricsPanel';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Text } from '@/components/ui/text';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -111,13 +107,14 @@ export default function PlayerScreen() {
         <View style={s.trackInfo}>
           <View style={s.trackInfoRow}>
             <View style={s.trackInfoText}>
-              <Text style={s.trackTitle} numberOfLines={1}>{currentTrack.title}</Text>
-              <Text style={s.trackArtist} numberOfLines={1}>{currentTrack.artist}</Text>
+              <Text style={s.trackTitle} numberOfLines={1}>
+                {currentTrack.title}
+              </Text>
+              <Text style={s.trackArtist} numberOfLines={1}>
+                {currentTrack.artist}
+              </Text>
             </View>
-            <Pressable
-              onPress={() => toggleFavorite(currentTrack.id)}
-              hitSlop={12}
-            >
+            <Pressable onPress={() => toggleFavorite(currentTrack.id)} hitSlop={12}>
               <Heart
                 size={22}
                 color={currentTrack.isFavorite ? colors.favorite : colors.mutedForeground}
@@ -141,10 +138,7 @@ export default function PlayerScreen() {
         {/* Controls */}
         <View style={s.controls}>
           <Pressable onPress={toggleShuffle} hitSlop={12}>
-            <Shuffle
-              size={22}
-              color={isShuffled ? colors.primary : colors.mutedForeground}
-            />
+            <Shuffle size={22} color={isShuffled ? colors.primary : colors.mutedForeground} />
           </Pressable>
           <Pressable onPress={previous} hitSlop={12}>
             <SkipBack size={28} color={colors.foreground} fill={colors.foreground} />
@@ -162,10 +156,7 @@ export default function PlayerScreen() {
             <SkipForward size={28} color={colors.foreground} fill={colors.foreground} />
           </Pressable>
           <Pressable onPress={cycleRepeatMode} hitSlop={12}>
-            <RepeatIcon
-              size={22}
-              color={repeatActive ? colors.primary : colors.mutedForeground}
-            />
+            <RepeatIcon size={22} color={repeatActive ? colors.primary : colors.mutedForeground} />
           </Pressable>
         </View>
       </View>

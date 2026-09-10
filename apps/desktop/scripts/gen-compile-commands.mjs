@@ -68,7 +68,16 @@ const db = target.sources
     return {
       directory: root,
       file,
-      arguments: ['clang++', '-std=c++17', '-x', 'c++', ...defineFlags, ...includeFlags, '-c', file],
+      arguments: [
+        'clang++',
+        '-std=c++17',
+        '-x',
+        'c++',
+        ...defineFlags,
+        ...includeFlags,
+        '-c',
+        file,
+      ],
     };
   });
 

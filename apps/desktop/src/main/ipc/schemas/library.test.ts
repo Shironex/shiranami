@@ -43,9 +43,7 @@ describe('library payload schemas', () => {
 
   describe('validateFilesArgs', () => {
     it('accepts an array of non-empty paths', () => {
-      expect(
-        validateFilesArgs.safeParse([['/a.mp3', '/b.flac']]).success,
-      ).toBe(true);
+      expect(validateFilesArgs.safeParse([['/a.mp3', '/b.flac']]).success).toBe(true);
     });
 
     it('accepts an empty array', () => {

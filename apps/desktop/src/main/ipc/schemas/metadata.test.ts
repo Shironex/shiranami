@@ -41,16 +41,13 @@ describe('metadata payload schemas', () => {
     });
 
     it('accepts albumArt as null', () => {
-      expect(
-        enrichTrackInputSchema.safeParse({ ...validTrack, albumArt: null })
-          .success,
-      ).toBe(true);
+      expect(enrichTrackInputSchema.safeParse({ ...validTrack, albumArt: null }).success).toBe(
+        true
+      );
     });
 
     it('rejects non-uuid id', () => {
-      expect(
-        enrichTrackInputSchema.safeParse({ ...validTrack, id: 'bad' }).success,
-      ).toBe(false);
+      expect(enrichTrackInputSchema.safeParse({ ...validTrack, id: 'bad' }).success).toBe(false);
     });
   });
 
@@ -60,7 +57,7 @@ describe('metadata payload schemas', () => {
         metadataEnrichTracksArgs.safeParse([
           [validTrack],
           { writeToFile: true, onlyMissing: false },
-        ]).success,
+        ]).success
       ).toBe(true);
     });
 
@@ -73,7 +70,7 @@ describe('metadata payload schemas', () => {
         metadataEnrichTracksArgs.safeParse([
           [validTrack],
           { writeToFile: 'yes', onlyMissing: false },
-        ]).success,
+        ]).success
       ).toBe(false);
     });
   });

@@ -4,11 +4,9 @@ import { playlistExtractArgs, playlistCancelArgs } from './playlist';
 describe('playlist (extraction) payload schemas', () => {
   describe('playlistExtractArgs', () => {
     it('accepts a URL string', () => {
-      expect(
-        playlistExtractArgs.safeParse([
-          'https://open.spotify.com/playlist/123',
-        ]).success,
-      ).toBe(true);
+      expect(playlistExtractArgs.safeParse(['https://open.spotify.com/playlist/123']).success).toBe(
+        true
+      );
     });
 
     it('rejects empty string', () => {

@@ -8,15 +8,11 @@ describe('lyrics payload schemas', () => {
     });
 
     it('accepts (title, artist, album)', () => {
-      expect(
-        lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album']).success,
-      ).toBe(true);
+      expect(lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album']).success).toBe(true);
     });
 
     it('accepts (title, artist, album, duration)', () => {
-      expect(
-        lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album', 180]).success,
-      ).toBe(true);
+      expect(lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album', 180]).success).toBe(true);
     });
 
     it('rejects missing title', () => {
@@ -28,9 +24,7 @@ describe('lyrics payload schemas', () => {
     });
 
     it('rejects non-number duration', () => {
-      expect(
-        lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album', '180']).success,
-      ).toBe(false);
+      expect(lyricsFetchArgs.safeParse(['Song', 'Artist', 'Album', '180']).success).toBe(false);
     });
   });
 });

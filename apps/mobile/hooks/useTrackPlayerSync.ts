@@ -1,5 +1,10 @@
 import { useEffect, useRef } from 'react';
-import TrackPlayer, { usePlaybackState, useProgress, Event, State } from 'react-native-track-player';
+import TrackPlayer, {
+  usePlaybackState,
+  useProgress,
+  Event,
+  State,
+} from 'react-native-track-player';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
 /**

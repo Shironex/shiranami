@@ -17,9 +17,9 @@ export function DownloadBar() {
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      setPct((prev) => {
+      setPct(prev => {
         if (prev >= 100) {
-          setStage((s) => (s + 1) % STAGES.length);
+          setStage(s => (s + 1) % STAGES.length);
           return 0;
         }
         return prev + 2;

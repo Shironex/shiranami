@@ -11,9 +11,7 @@ describe('useSearchSuggestions', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.mocked(window.electronAPI.downloader.suggest).mockReset();
-    vi.mocked(window.electronAPI.downloader.suggest).mockResolvedValue(
-      fakeSuggestions as never,
-    );
+    vi.mocked(window.electronAPI.downloader.suggest).mockResolvedValue(fakeSuggestions as never);
   });
 
   afterEach(() => {
@@ -79,9 +77,7 @@ describe('useSearchSuggestions', () => {
   });
 
   it('does not open dropdown when suggest returns empty array', async () => {
-    vi.mocked(window.electronAPI.downloader.suggest).mockResolvedValue(
-      [] as never,
-    );
+    vi.mocked(window.electronAPI.downloader.suggest).mockResolvedValue([] as never);
 
     const { result } = renderHook(() => useSearchSuggestions('xyz'));
 
@@ -96,13 +92,15 @@ describe('useSearchSuggestions', () => {
   it('ignores stale results when query changed while fetching', async () => {
     let resolveSuggest!: (value: string[]) => void;
     vi.mocked(window.electronAPI.downloader.suggest).mockImplementation(
-      () => new Promise((resolve) => { resolveSuggest = resolve; }),
+      () =>
+        new Promise(resolve => {
+          resolveSuggest = resolve;
+        })
     );
 
-    const { result, rerender } = renderHook(
-      ({ query }) => useSearchSuggestions(query),
-      { initialProps: { query: 'lofi' } },
-    );
+    const { result, rerender } = renderHook(({ query }) => useSearchSuggestions(query), {
+      initialProps: { query: 'lofi' },
+    });
 
     // Trigger debounce for first query
     act(() => {
@@ -150,10 +148,9 @@ describe('useSearchSuggestions', () => {
   });
 
   it('dismiss() suppresses the next fetch and closes', async () => {
-    const { result, rerender } = renderHook(
-      ({ query }) => useSearchSuggestions(query),
-      { initialProps: { query: 'lofi' } },
-    );
+    const { result, rerender } = renderHook(({ query }) => useSearchSuggestions(query), {
+      initialProps: { query: 'lofi' },
+    });
 
     // Open dropdown
     await act(async () => {
@@ -193,9 +190,7 @@ describe('useSearchSuggestions', () => {
   });
 
   it('silently ignores IPC errors', async () => {
-    vi.mocked(window.electronAPI.downloader.suggest).mockRejectedValue(
-      new Error('IPC failed'),
-    );
+    vi.mocked(window.electronAPI.downloader.suggest).mockRejectedValue(new Error('IPC failed'));
 
     const { result } = renderHook(() => useSearchSuggestions('lofi'));
 
@@ -209,10 +204,9 @@ describe('useSearchSuggestions', () => {
   });
 
   it('resets suggestions when query becomes empty', async () => {
-    const { result, rerender } = renderHook(
-      ({ query }) => useSearchSuggestions(query),
-      { initialProps: { query: 'lofi' } },
-    );
+    const { result, rerender } = renderHook(({ query }) => useSearchSuggestions(query), {
+      initialProps: { query: 'lofi' },
+    });
 
     // Get suggestions
     await act(async () => {

@@ -32,23 +32,26 @@ export function useYouTubeSearch() {
     };
   }, [query]);
 
-  const search = useCallback(async (q: string | undefined = undefined) => {
-    const searchQuery = q ?? query;
-    if (!searchQuery.trim()) return;
+  const search = useCallback(
+    async (q: string | undefined = undefined) => {
+      const searchQuery = q ?? query;
+      if (!searchQuery.trim()) return;
 
-    setLoading(true);
-    setError(null);
-    setSuggestions([]);
-    try {
-      const data = await searchYouTube(searchQuery.trim());
-      setResults(data);
-      if (q) setQuery(q);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [query]);
+      setLoading(true);
+      setError(null);
+      setSuggestions([]);
+      try {
+        const data = await searchYouTube(searchQuery.trim());
+        setResults(data);
+        if (q) setQuery(q);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Search failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [query]
+  );
 
   const clear = useCallback(() => {
     setQuery('');

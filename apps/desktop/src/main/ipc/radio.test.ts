@@ -59,9 +59,7 @@ describe('radio ipc (integration)', () => {
     expect(await isFavorite(null as never, station.stationUuid)).toBe(true);
     // Valid-shape UUID that isn't in the DB — zod only rejects malformed shapes,
     // so a well-formed UUID that doesn't match a row should return false.
-    expect(
-      await isFavorite(null as never, '00000000-0000-4000-8000-000000000000'),
-    ).toBe(false);
+    expect(await isFavorite(null as never, '00000000-0000-4000-8000-000000000000')).toBe(false);
   });
 
   it('radio:favorites:get-all returns all saved stations', async () => {

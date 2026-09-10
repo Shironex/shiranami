@@ -199,18 +199,24 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const { queue, queueIndex } = get();
     if (
       fromIndex === toIndex ||
-      fromIndex < 0 || fromIndex >= queue.length ||
-      toIndex < 0 || toIndex >= queue.length
-    ) return;
+      fromIndex < 0 ||
+      fromIndex >= queue.length ||
+      toIndex < 0 ||
+      toIndex >= queue.length
+    )
+      return;
 
     const newQueue = [...queue];
     const [moved] = newQueue.splice(fromIndex, 1);
     newQueue.splice(toIndex, 0, moved);
 
     const currentId = queue[queueIndex]?.id;
-    const newIndex = currentId != null
-      ? newQueue.findIndex((t, i) => t.id === currentId && (i === queueIndex || newQueue.indexOf(t) === i))
-      : queueIndex;
+    const newIndex =
+      currentId != null
+        ? newQueue.findIndex(
+            (t, i) => t.id === currentId && (i === queueIndex || newQueue.indexOf(t) === i)
+          )
+        : queueIndex;
 
     set({ queue: newQueue, queueIndex: newIndex === -1 ? queueIndex : newIndex });
   },
@@ -227,8 +233,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   toggleFavorite: (trackId: string) => {
     const { library, queue, currentTrack } = get();
-    const toggle = (t: Track) =>
-      t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t;
+    const toggle = (t: Track) => (t.id === trackId ? { ...t, isFavorite: !t.isFavorite } : t);
 
     const updates: Partial<PlayerState> = {
       library: library.map(toggle),
@@ -259,9 +264,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const { isShuffled, queue, currentTrack } = get();
     if (!isShuffled) {
       const others = queue.filter(t => t.id !== currentTrack?.id);
-      const shuffled = currentTrack
-        ? [currentTrack, ...shuffleArray(others)]
-        : shuffleArray(queue);
+      const shuffled = currentTrack ? [currentTrack, ...shuffleArray(others)] : shuffleArray(queue);
       set({ queue: shuffled, queueIndex: 0, isShuffled: true });
     } else {
       set({ isShuffled: false });
@@ -274,11 +277,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({ repeatMode: modes[(modes.indexOf(repeatMode) + 1) % modes.length] });
   },
 
-  _setCurrentTime: (currentTime) => set({ currentTime }),
-  _setDuration: (duration) => set({ duration }),
-  _setIsPlaying: (isPlaying) => set({ isPlaying }),
-  _setIsLoading: (loading) => set({ isLoading: loading }),
-  _setError: (error) => set({ error }),
+  _setCurrentTime: currentTime => set({ currentTime }),
+  _setDuration: duration => set({ duration }),
+  _setIsPlaying: isPlaying => set({ isPlaying }),
+  _setIsLoading: loading => set({ isLoading: loading }),
+  _setError: error => set({ error }),
   _onTrackEnd: () => {
     const { repeatMode } = get();
     if (repeatMode === 'one') {

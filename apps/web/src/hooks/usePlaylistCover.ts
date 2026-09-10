@@ -11,10 +11,7 @@ interface UsePlaylistCoverOptions {
 /**
  * Manages playlist cover art using TanStack Query mutations.
  */
-export function usePlaylistCover({
-  playlistId,
-  suggestedCoverArt,
-}: UsePlaylistCoverOptions) {
+export function usePlaylistCover({ playlistId, suggestedCoverArt }: UsePlaylistCoverOptions) {
   const { t: tToast } = useTranslation('toast');
   const [showCoverMenu, setShowCoverMenu] = useState(false);
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);

@@ -19,16 +19,7 @@ export const recommendationsNotInterestedArgs = z.tuple([z.string().min(1)]);
 // strings are coerced to 'unknown' so a tampered payload degrades gracefully
 // instead of throwing.
 const smartMixWeather = z
-  .enum([
-    'clear',
-    'partly_cloudy',
-    'cloudy',
-    'rain',
-    'snow',
-    'thunderstorm',
-    'fog',
-    'unknown',
-  ])
+  .enum(['clear', 'partly_cloudy', 'cloudy', 'rain', 'snow', 'thunderstorm', 'fog', 'unknown'])
   // `.catch` coerces any non-matching value to 'unknown' instead of throwing, so a
   // tampered/stale weather string degrades gracefully rather than rejecting the call.
   .catch('unknown');

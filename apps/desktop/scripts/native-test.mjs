@@ -27,7 +27,8 @@ const vitestBin = path.join(path.dirname(require.resolve('vitest/package.json'))
 
 const root = process.cwd();
 const fixtureDir = path.join(root, 'src', 'native', 'test', 'fixtures');
-const exeName = process.platform === 'win32' ? 'shiranami_native_tests.exe' : 'shiranami_native_tests';
+const exeName =
+  process.platform === 'win32' ? 'shiranami_native_tests.exe' : 'shiranami_native_tests';
 const testExe = path.join(root, 'build', 'Release', exeName);
 
 function run(file, args, extraEnv = {}) {

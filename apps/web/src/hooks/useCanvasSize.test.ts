@@ -14,7 +14,12 @@ describe('useCanvasSize', () => {
     vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
       width: 200,
       height: 48,
-      top: 0, left: 0, right: 200, bottom: 48, x: 0, y: 0,
+      top: 0,
+      left: 0,
+      right: 200,
+      bottom: 48,
+      x: 0,
+      y: 0,
       toJSON: () => ({}),
     } as DOMRect);
     Object.defineProperty(window, 'devicePixelRatio', { configurable: true, value: 2 });
@@ -46,7 +51,9 @@ describe('useCanvasSize', () => {
       matches: true,
       media: '',
       onchange: null,
-      addEventListener: vi.fn((_: string, cb: (e: MediaQueryListEvent) => void) => listeners.push(cb)),
+      addEventListener: vi.fn((_: string, cb: (e: MediaQueryListEvent) => void) =>
+        listeners.push(cb)
+      ),
       removeEventListener: vi.fn(),
       addListener: vi.fn(),
       removeListener: vi.fn(),
@@ -57,7 +64,7 @@ describe('useCanvasSize', () => {
     const { result } = renderHook(() => useCanvasSize(ref));
     Object.defineProperty(window, 'devicePixelRatio', { configurable: true, value: 3 });
     act(() => {
-      listeners.forEach((cb) => cb({} as MediaQueryListEvent));
+      listeners.forEach(cb => cb({} as MediaQueryListEvent));
     });
     expect(result.current.dprRef.current).toBe(3);
   });

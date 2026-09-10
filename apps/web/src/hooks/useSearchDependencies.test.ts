@@ -19,7 +19,9 @@ function mockCheckDependencies(result: { ytdlpInstalled: boolean; ffmpegInstalle
   vi.mocked(window.electronAPI.downloader.checkDependencies).mockResolvedValue(result);
 }
 
-function mockInstallDependencies(results: Array<{ tool: 'ytdlp' | 'ffmpeg'; success: boolean; error?: string }> = []) {
+function mockInstallDependencies(
+  results: Array<{ tool: 'ytdlp' | 'ffmpeg'; success: boolean; error?: string }> = []
+) {
   vi.mocked(window.electronAPI.downloader.installDependencies).mockResolvedValue({ results });
 }
 
@@ -155,9 +157,12 @@ describe('useSearchDependencies', () => {
     expect(result.current.dependencyInstallError).toBeNull();
 
     // The hook schedules a 700ms setTimeout to set state to 'ready'
-    await waitFor(() => {
-      expect(result.current.dependencyState).toBe('ready');
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(result.current.dependencyState).toBe('ready');
+      },
+      { timeout: 2000 }
+    );
   });
 
   it('shows toast.success when install result is successful', async () => {
@@ -251,10 +256,9 @@ describe('useSearchDependencies', () => {
 
     expect(result.current.dependencyInstallStatus).toBe('error');
     expect(result.current.dependencyInstallError).toBe('Network timeout');
-    expect(toast.error).toHaveBeenCalledWith(
-      expect.stringContaining('failedInstallSearchError'),
-      { id: 'dependency-install' }
-    );
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('failedInstallSearchError'), {
+      id: 'dependency-install',
+    });
   });
 
   it('handles install throwing a non-Error value', async () => {

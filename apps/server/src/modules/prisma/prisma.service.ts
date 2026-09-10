@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectPinoLogger(PrismaService.name) private readonly logger: PinoLogger,
-    config: ConfigService,
+    config: ConfigService
   ) {
     const adapter = new PrismaPg({ connectionString: config.getOrThrow<string>('DATABASE_URL') });
     super({ adapter });

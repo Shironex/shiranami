@@ -21,14 +21,18 @@ const glowA = await sharp(
   Buffer.from(`<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg">
     <circle cx="250" cy="250" r="250" fill="rgba(130,90,210,0.18)"/>
   </svg>`)
-).blur(90).toBuffer();
+)
+  .blur(90)
+  .toBuffer();
 
 // Second subtle glow top-right
 const glowB = await sharp(
   Buffer.from(`<svg width="350" height="350" xmlns="http://www.w3.org/2000/svg">
     <circle cx="175" cy="175" r="175" fill="rgba(100,60,180,0.12)"/>
   </svg>`)
-).blur(70).toBuffer();
+)
+  .blur(70)
+  .toBuffer();
 
 // Accent line under tagline
 const accentLine = Buffer.from(`<svg width="60" height="3" xmlns="http://www.w3.org/2000/svg">

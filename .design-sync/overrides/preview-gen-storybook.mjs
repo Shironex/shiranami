@@ -88,11 +88,13 @@ export function generatePreviewSource(c, opts) {
   // story paired to a module export (pairing happens in source-storybook.mjs
   // — c.storyIds[].exportKey).
   const skipSet = new Set(opts.skip ?? []);
-  const visible = (c.storyIds ?? []).filter((s) => !skipSet.has(s.id));
-  const paired = visible.filter((s) => s.exportKey);
+  const visible = (c.storyIds ?? []).filter(s => !skipSet.has(s.id));
+  const paired = visible.filter(s => s.exportKey);
   if (!c.storySrc || paired.length === 0) {
     if (c.storySrc && visible.length > 0) {
-      console.error(`  (preview: ${c.name} — no story exports paired (storyName overrides?); showing the floor card)`);
+      console.error(
+        `  (preview: ${c.name} — no story exports paired (storyName overrides?); showing the floor card)`
+      );
     }
     return null;
   }
@@ -104,12 +106,12 @@ export function generatePreviewSource(c, opts) {
   // the same file must compile from either home. One import per distinct
   // story module, in first-paired order; S is the first (and for
   // single-module components the only) one.
-  const toSpec = (p) => {
+  const toSpec = p => {
     const rel = relative(process.cwd(), p).replace(/\\/g, '/');
     return JSON.stringify(`@ds-stories/${rel}`.replace(/\.[cm]?[jt]sx?$/, ''));
   };
   const modVars = new Map(); // story source path -> import identifier
-  const modVarFor = (p) => {
+  const modVarFor = p => {
     if (!modVars.has(p)) modVars.set(p, modVars.size === 0 ? 'S' : `S${modVars.size + 1}`);
     return modVars.get(p);
   };
@@ -130,13 +132,17 @@ export function generatePreviewSource(c, opts) {
     const mod = modVarFor(s.storySrc ?? c.storySrc);
     const dupKey = `${mod}:${s.exportKey}`;
     if (seen.has(dupKey)) {
-      console.error(`  (preview: ${c.name} — story "${s.name}" pairs to already-emitted export ${s.exportKey}; skipping duplicate)`);
+      console.error(
+        `  (preview: ${c.name} — story "${s.name}" pairs to already-emitted export ${s.exportKey}; skipping duplicate)`
+      );
       continue;
     }
     seen.add(dupKey);
     const label = exportName(s.exportKey, used);
     s.emitted = label;
-    lines.push(`export const ${label} = /* ${s.name} */ compose(${mod}, ${JSON.stringify(s.exportKey)});`);
+    lines.push(
+      `export const ${label} = /* ${s.name} */ compose(${mod}, ${JSON.stringify(s.exportKey)});`
+    );
   }
   const imports = [...modVars.entries()]
     .map(([p, v]) => `import * as ${v} from ${toSpec(p)};`)

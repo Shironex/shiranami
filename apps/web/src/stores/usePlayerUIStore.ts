@@ -15,9 +15,9 @@ interface PlayerUIActions {
 
 export type PlayerUIStore = PlayerUIState & PlayerUIActions;
 
-export const usePlayerUIStore = create<PlayerUIStore>()((set) => ({
+export const usePlayerUIStore = create<PlayerUIStore>()(set => ({
   scrubTime: null,
-  setScrubTime: (time) => set({ scrubTime: time }),
+  setScrubTime: time => set({ scrubTime: time }),
 }));
 
 // Preserve store state across Vite HMR (dev only, tree-shaken in production)

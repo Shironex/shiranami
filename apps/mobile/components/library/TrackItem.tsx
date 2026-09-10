@@ -28,10 +28,7 @@ function TrackItemInner({ track, isActive, onPress, onFavoritePress }: TrackItem
         )}
       </View>
       <View style={s.info}>
-        <Text
-          style={[s.title, isActive && s.titleActive]}
-          numberOfLines={1}
-        >
+        <Text style={[s.title, isActive && s.titleActive]} numberOfLines={1}>
           {track.title}
         </Text>
         <Text style={s.artist} numberOfLines={1}>

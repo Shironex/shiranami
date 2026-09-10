@@ -40,7 +40,10 @@ describe('usePlaylistImportStore', () => {
     });
 
     it('clears extracting state', () => {
-      usePlaylistImportStore.setState({ isExtracting: true, extractProgress: { current: 1, total: 5, trackName: 'x' } });
+      usePlaylistImportStore.setState({
+        isExtracting: true,
+        extractProgress: { current: 1, total: 5, trackName: 'x' },
+      });
       usePlaylistImportStore.getState().setTracks([makeSearchResult('a')]);
       expect(usePlaylistImportStore.getState().isExtracting).toBe(false);
       expect(usePlaylistImportStore.getState().extractProgress).toBeNull();
@@ -63,7 +66,9 @@ describe('usePlaylistImportStore', () => {
       usePlaylistImportStore.getState().setTracks([makeSearchResult('v1')]);
       const id = usePlaylistImportStore.getState().tracks[0].id;
 
-      usePlaylistImportStore.getState().updateTrackStatus(id, 'error', undefined, 'network failure');
+      usePlaylistImportStore
+        .getState()
+        .updateTrackStatus(id, 'error', undefined, 'network failure');
       const track = usePlaylistImportStore.getState().tracks[0];
       expect(track.status).toBe('error');
       expect(track.error).toBe('network failure');
@@ -91,11 +96,9 @@ describe('usePlaylistImportStore', () => {
   // --- removeTracks ---
   describe('removeTracks', () => {
     it('removes multiple tracks by id set', () => {
-      usePlaylistImportStore.getState().setTracks([
-        makeSearchResult('v1'),
-        makeSearchResult('v2'),
-        makeSearchResult('v3'),
-      ]);
+      usePlaylistImportStore
+        .getState()
+        .setTracks([makeSearchResult('v1'), makeSearchResult('v2'), makeSearchResult('v3')]);
       const ids = new Set([
         usePlaylistImportStore.getState().tracks[0].id,
         usePlaylistImportStore.getState().tracks[2].id,

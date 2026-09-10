@@ -12,13 +12,7 @@ export {
   useInstallUpdateMutation,
 } from '@/hooks/queries/useUpdater';
 
-export type UpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'available'
-  | 'downloading'
-  | 'ready'
-  | 'error';
+export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
 
 export interface UseUpdaterEventsResult {
   status: UpdateStatus;
@@ -55,7 +49,7 @@ export function useUpdaterEvents(): UseUpdaterEventsResult {
         setStatus('checking');
         setError(null);
       }),
-      updater.onUpdateAvailable((info) => {
+      updater.onUpdateAvailable(info => {
         setStatus('available');
         setVersion(info.version);
         setError(null);
@@ -64,15 +58,15 @@ export function useUpdaterEvents(): UseUpdaterEventsResult {
         setStatus('idle');
         setError(null);
       }),
-      updater.onDownloadProgress((p) => {
+      updater.onDownloadProgress(p => {
         setStatus('downloading');
         setProgress(Math.round(p.percent));
       }),
-      updater.onUpdateDownloaded((info) => {
+      updater.onUpdateDownloaded(info => {
         setStatus('ready');
         setVersion(info.version);
       }),
-      updater.onUpdateError((message) => {
+      updater.onUpdateError(message => {
         if (message === 'RELEASE_PENDING') {
           setStatus('idle');
           setError(null);
@@ -84,7 +78,7 @@ export function useUpdaterEvents(): UseUpdaterEventsResult {
     ];
 
     return () => {
-      unsubsRef.current.forEach((fn) => fn());
+      unsubsRef.current.forEach(fn => fn());
       unsubsRef.current = [];
     };
   }, []);

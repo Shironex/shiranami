@@ -7,7 +7,7 @@ import Redis from 'ioredis';
 export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy {
   constructor(
     config: ConfigService,
-    @InjectPinoLogger(RedisService.name) private readonly logger: PinoLogger,
+    @InjectPinoLogger(RedisService.name) private readonly logger: PinoLogger
   ) {
     super(config.getOrThrow<string>('REDIS_URL'), {
       maxRetriesPerRequest: 3,
@@ -15,7 +15,7 @@ export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy
     });
 
     this.on('connect', () => this.logger.info('Connected to Redis'));
-    this.on('error', (err) => this.logger.error({ err }, 'Redis connection error'));
+    this.on('error', err => this.logger.error({ err }, 'Redis connection error'));
   }
 
   async onModuleInit() {

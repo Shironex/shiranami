@@ -16,7 +16,7 @@ export interface ContextMenuPosition {
 export function useContextMenuDismiss(
   menuRef: RefObject<HTMLElement | null>,
   position: ContextMenuPosition,
-  onClose: () => void,
+  onClose: () => void
 ): ContextMenuPosition {
   const [adjusted, setAdjusted] = useState(position);
 
@@ -36,7 +36,9 @@ export function useContextMenuDismiss(
 
   // Close on Escape + scroll (ignore scrolls inside the menu itself)
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
     const onScroll = (e: Event) => {
       if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
       onClose();

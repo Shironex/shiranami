@@ -19,23 +19,21 @@ describe('media payload schemas', () => {
 
     it('accepts a state with string albumArt', () => {
       expect(
-        mediaPlaybackStateArgs.safeParse([
-          { ...validState, albumArt: 'shiranami-art://hash' },
-        ]).success,
+        mediaPlaybackStateArgs.safeParse([{ ...validState, albumArt: 'shiranami-art://hash' }])
+          .success
       ).toBe(true);
     });
 
     it('rejects missing required field', () => {
       expect(
-        mediaPlaybackStateArgs.safeParse([{ ...validState, isPlaying: undefined }])
-          .success,
+        mediaPlaybackStateArgs.safeParse([{ ...validState, isPlaying: undefined }]).success
       ).toBe(false);
     });
 
     it('rejects non-boolean isPlaying', () => {
-      expect(
-        mediaPlaybackStateArgs.safeParse([{ ...validState, isPlaying: 1 }]).success,
-      ).toBe(false);
+      expect(mediaPlaybackStateArgs.safeParse([{ ...validState, isPlaying: 1 }]).success).toBe(
+        false
+      );
     });
   });
 

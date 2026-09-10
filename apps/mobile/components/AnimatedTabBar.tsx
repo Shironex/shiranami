@@ -58,10 +58,10 @@ function LibraryIcon({ active }: { active: boolean }) {
       scale.value = withRepeat(
         withSequence(
           withTiming(1.08, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
         ),
         -1,
-        false,
+        false
       );
     } else {
       scale.value = withSpring(1, { damping: 15 });
@@ -89,10 +89,10 @@ function SearchIcon({ active }: { active: boolean }) {
       translateY.value = withRepeat(
         withSequence(
           withTiming(-2, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.ease) })
         ),
         -1,
-        false,
+        false
       );
     } else {
       translateY.value = withSpring(0, { damping: 15 });
@@ -120,10 +120,10 @@ function RadioIcon({ active }: { active: boolean }) {
       scale.value = withRepeat(
         withSequence(
           withTiming(1.06, { duration: 800, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.96, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.96, { duration: 800, easing: Easing.inOut(Easing.ease) })
         ),
         -1,
-        false,
+        false
       );
     } else {
       scale.value = withSpring(1, { damping: 15 });
@@ -152,10 +152,10 @@ function SettingsIcon({ active }: { active: boolean }) {
         withSequence(
           withTiming(-4, { duration: 600, easing: Easing.inOut(Easing.ease) }),
           withTiming(4, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 600, easing: Easing.inOut(Easing.ease) })
         ),
         -1,
-        false,
+        false
       );
     } else {
       rotation.value = withSpring(0, { damping: 15 });
@@ -265,10 +265,10 @@ function SlidingPill({ activeIndex, tabWidth }: { activeIndex: number; tabWidth:
     glowOpacity.value = withRepeat(
       withSequence(
         withTiming(0.7, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.3, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.3, { duration: 1500, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
-      false,
+      false
     );
   }, [glowOpacity]);
 
