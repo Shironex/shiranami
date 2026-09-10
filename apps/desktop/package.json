@@ -47,7 +47,7 @@
     "music-metadata": "^11.12.3",
     "node-addon-api": "^8.8.0",
     "node-id3": "^0.2.9",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "zod": "^4.4.3"
   },
   "optionalDependencies": {
