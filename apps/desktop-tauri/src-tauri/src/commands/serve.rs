@@ -88,9 +88,11 @@ impl std::fmt::Debug for ServeInfo {
 #[tauri::command]
 #[specta::specta]
 pub async fn serve_info(state: State<'_, AppState>) -> CommandResult<ServeInfo> {
-    // Borrowed, never cloned: `crate::shutdown` reaches the handle through
-    // `Arc::try_unwrap`, so an `Arc` escaping this command into anything
-    // long-lived would leave the server running past `ExitRequested`.
+    // Borrowed rather than cloned — no longer load-bearing, but still the right
+    // shape. `crate::stop_media_server` used to unwrap this `Arc` and so was
+    // broken by any clone that outlived a command; it takes `&ServeHandle` now,
+    // and an escaping clone costs nothing. Kept because a command has no reason
+    // to hold the server past its own return.
     let deferred = state.deferred();
     let serve = deferred
         .serve

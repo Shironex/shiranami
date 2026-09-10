@@ -63,10 +63,17 @@ pub const DEFAULT_LEVEL: &str = "info";
 /// after boot. Boot therefore hands it to `tauri::Builder`'s managed state and
 /// the process holds it until exit.
 ///
-/// Deliberately opaque: there is nothing to call on it, and the only thing a
-/// caller can get wrong is dropping it early.
+/// Nearly opaque: the only two things a caller may do are change the filter and
+/// [`flush`](LogGuard::flush) on the way out. Dropping it early is the one thing
+/// that can be got wrong.
 pub struct LogGuard {
-    _appender: tracing_appender::non_blocking::WorkerGuard,
+    /// `None` once [`flush`](LogGuard::flush) has consumed it.
+    ///
+    /// Behind a `Mutex` because the flush happens from `RunEvent::ExitRequested`,
+    /// which hands out `&AppHandle` and therefore only ever `&LogGuard` — and
+    /// dropping the worker guard is the only way `tracing_appender` exposes to
+    /// wait for the file to be written.
+    appender: std::sync::Mutex<Option<tracing_appender::non_blocking::WorkerGuard>>,
     reload: reload::Handle<EnvFilter, tracing_subscriber::Registry>,
 }
 
@@ -99,6 +106,32 @@ impl LogGuard {
                 false
             }
         }
+    }
+
+    /// Drain the file appender's worker and wait for it to finish writing.
+    ///
+    /// # Why this is not left to `Drop`
+    ///
+    /// `tao`'s event loop ends the process with `std::process::exit`, so nothing
+    /// the app manages is ever dropped and no destructor on this guard can run.
+    /// Every line emitted in the last moments of a session — which is exactly
+    /// the window a shutdown bug lives in — was therefore being written into a
+    /// worker that the process outran. Calling this from the `ExitRequested`
+    /// handler is what makes those lines reach the file a user attaches to a bug
+    /// report.
+    ///
+    /// Idempotent: the guard is taken, so a second call is a no-op. That matters
+    /// because `ExitRequested` is not documented to fire exactly once.
+    pub fn flush(&self) {
+        let taken = match self.appender.lock() {
+            Ok(mut slot) => slot.take(),
+            // A poisoned lock means a panic happened while holding it. There is
+            // nothing to recover and refusing to flush would lose the panic's
+            // own log line, which is the one worth keeping.
+            Err(poisoned) => poisoned.into_inner().take(),
+        };
+        // Dropping the `WorkerGuard` signals the worker and joins it.
+        drop(taken);
     }
 }
 
@@ -177,7 +210,7 @@ pub fn install(logs_dir: &Path) -> LogGuard {
     };
 
     LogGuard {
-        _appender: guard,
+        appender: std::sync::Mutex::new(Some(guard)),
         reload: reload_handle,
     }
 }

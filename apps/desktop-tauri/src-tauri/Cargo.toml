@@ -19,6 +19,35 @@ crate-type = ["lib"]
 [build-dependencies]
 tauri-build = { workspace = true }
 
+# The workspace's first Cargo feature, and deliberately the only kind of thing
+# that gets one: a dependency that must be provably absent from a shipped build.
+#
+# Everything else conditional in this crate keys off `cfg!(target_os = …)`,
+# `cfg!(debug_assertions)` or an environment variable, because those choose
+# between behaviours that all ship. This one chooses whether an HTTP control
+# surface is *linked at all*, which no runtime check can promise. `debug_assertions`
+# would have been the documented route, but it would also put the server into
+# every `pnpm tauri:dev` build, and `[target.'cfg(debug_assertions)'.dependencies]`
+# is not a thing Cargo evaluates.
+[features]
+# `tauri/custom-protocol` is not decoration here, and it is the reason the first
+# E2E run reached a webview with no application in it.
+#
+# `tauri`'s own build script computes `let dev = !has_feature("custom-protocol")`
+# and exports it as the `dev` cfg. `tauri-codegen` then reads that: when `dev` is
+# true *and* `build.devUrl` is set — which it is, `http://localhost:15175` — it
+# embeds `EmbeddedAssets::default()`, an empty set, and points the window at the
+# dev server instead of at `frontendDist`. The Tauri CLI turns the feature on for
+# `tauri build`; a bare `cargo build`, which is what this suite needs in order to
+# add `e2e` on top, does not. So the binary booted, the webview opened, and it sat
+# on a failed connection to a Vite server no one had started — `__TAURI_INTERNALS__`
+# absent, `window.electronAPI` never installed, and nothing in the log to say why.
+#
+# Enabling it here means the suite drives the *production* asset pipeline: real
+# embedded `apps/web/dist`, real `csp` rather than `devCsp`. The profile stays
+# `debug`, which is orthogonal — `dev` is feature-derived, not profile-derived.
+e2e = ["dep:tauri-plugin-wdio-webdriver", "tauri/custom-protocol"]
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -65,6 +94,9 @@ tauri-plugin-global-shortcut = { workspace = true }
 tauri-plugin-autostart = { workspace = true }
 tauri-plugin-sentry = { workspace = true }
 sentry = { workspace = true }
+
+# Phase 18. Optional, and reached only through the `e2e` feature above.
+tauri-plugin-wdio-webdriver = { workspace = true, optional = true }
 
 # Phase 14. The command/event surface and the bindings it emits.
 #

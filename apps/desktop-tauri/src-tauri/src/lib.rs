@@ -118,6 +118,20 @@ pub fn run() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
+    // The embedded W3C WebDriver server the Phase 18 E2E suite drives (§8 ring
+    // 3). It is behind a Cargo feature rather than `debug_assertions` so that
+    // the crate is not even compiled into an ordinary `pnpm tauri:dev` build,
+    // and a release build cannot grow an HTTP control surface by accident.
+    //
+    // The plugin listens only when the harness passes `TAURI_WEBDRIVER_PORT`,
+    // and it registers no commands, so it needs no entry in
+    // `capabilities/default.json` — which is fortunate, since capabilities are
+    // baked at build time and could not be made conditional on a feature.
+    #[cfg(feature = "e2e")]
+    {
+        builder = builder.plugin(tauri_plugin_wdio_webdriver::init());
+    }
+
     if let Some(client) = sentry_enabled {
         // Only when consent, packaging and a DSN all agreed.
         //
@@ -258,33 +272,59 @@ pub fn run() {
     });
 }
 
-/// Stop the loopback server on the way out.
+/// Stop the loopback server on the way out, then flush the log.
 ///
 /// §2.4 makes this the server's documented lifetime: *"started in `setup()` …
 /// shut down on `ExitRequested`"*. Nothing else needs unwinding — the download
 /// queue's children carry `kill_on_drop(true)` (R20) and every background task
 /// is a runtime task the process is about to drop.
+///
+/// # The three lines this writes are the phase's evidence
+///
+/// Phases 16 and 17 both recorded that this path had never been exercised: a
+/// dev run terminated by signal never reaches `ExitRequested`, and no automation
+/// harness could deliver a real quit. Phase 18's E2E suite can, so the path now
+/// says so in the log — and the flush below is what makes those lines survive
+/// `tao`'s `std::process::exit`, which runs no destructors and was silently
+/// eating the tail of every session's log.
 fn shutdown(app: &tauri::AppHandle) {
+    tracing::info!("exit requested; shutting down");
+    stop_media_server(app);
+    tracing::info!("graceful shutdown complete");
+
+    // Last, because the file appender's worker is joined here and anything
+    // logged afterwards would reach the console layer only.
+    if let Some(logging) = app.try_state::<infra::logging::LogGuard>() {
+        logging.flush();
+    }
+}
+
+/// The §2.4 half of [`shutdown`], split out so the flush cannot be skipped by an
+/// early return on a process that never finished booting.
+///
+/// # This used to be an `Arc::try_unwrap`, and it never once succeeded
+///
+/// `ServeHandle::shutdown` consumed `self`, so reaching it meant unwrapping the
+/// `Arc` that `Deferred` holds — and `Deferred` *is* one of the references, kept
+/// alive by the `AppState` this function has to borrow to find the handle at
+/// all. The count was therefore never below two and the unwrap always took its
+/// `Err` arm, logging "the media server is still referenced" and leaving the
+/// listener to `process::exit`. Nothing user-visible broke, which is why three
+/// phases of review missed it: the process died a moment later either way.
+///
+/// The first E2E run of this path caught it on the first try. `shutdown` now
+/// takes `&self`, so the shared reference is enough and there is no unwrap left
+/// to fail.
+fn stop_media_server(app: &tauri::AppHandle) {
     let Some(state) = app.try_state::<state::AppState>() else {
         return;
     };
-    let Some(serve) = state.deferred().serve.clone() else {
+    let Some(serve) = state.deferred().serve.as_ref() else {
         return;
     };
 
-    // `ServeHandle::shutdown` consumes `self`, and `Deferred` holds it behind an
-    // `Arc` so a command can read the base URL. Unwrapping the `Arc` is the only
-    // way to call it, and it succeeds exactly when nothing else holds a
-    // reference — which at exit is the normal case. When it does not, dropping
-    // the process takes the listener with it a moment later, so a missed
-    // graceful shutdown costs an in-flight range request that was about to be
-    // cancelled anyway.
-    match std::sync::Arc::try_unwrap(serve) {
-        Ok(handle) => tauri::async_runtime::block_on(handle.shutdown()),
-        Err(_) => {
-            tracing::debug!("the media server is still referenced; leaving it to process exit")
-        }
-    }
+    tauri::async_runtime::block_on(serve.shutdown());
+    tracing::info!("the loopback media server is stopped");
 }
 
 /// Brings the existing main window back to the foreground.
