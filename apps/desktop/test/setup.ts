@@ -24,6 +24,7 @@ export function setMockMainWindow(win: BrowserWindow | null): void {
 // importable; captureException is a harmless no-op in tests.
 vi.mock('@sentry/electron/main', () => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }));
 
 vi.mock('electron', () => ({

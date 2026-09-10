@@ -157,40 +157,7 @@ export function classifyYtDlpFailure(output: string): string {
   return tail || 'yt-dlp failed without producing any output';
 }
 
-/** Extract the numeric `.`-separated segments from a yt-dlp version string. */
-export function extractVersionSegments(version: string | null | undefined): number[] {
-  if (!version) return [];
-
-  const match = version.match(/\d+(?:\.\d+)*/);
-  if (!match) return [];
-
-  return match[0]
-    .split('.')
-    .map(part => Number.parseInt(part, 10))
-    .filter(part => Number.isFinite(part));
-}
-
-/** True when `latestVersion` is strictly newer than `currentVersion`. */
-export function hasUpdate(currentVersion: string | null, latestVersion: string | null): boolean {
-  const currentSegments = extractVersionSegments(currentVersion);
-  const latestSegments = extractVersionSegments(latestVersion);
-
-  if (currentSegments.length === 0 || latestSegments.length === 0) {
-    return false;
-  }
-
-  const maxLength = Math.max(currentSegments.length, latestSegments.length);
-
-  for (let index = 0; index < maxLength; index += 1) {
-    const current = currentSegments[index] ?? 0;
-    const latest = latestSegments[index] ?? 0;
-
-    if (latest > current) return true;
-    if (latest < current) return false;
-  }
-
-  return false;
-}
+export { extractVersionSegments, hasUpdate } from './version';
 
 /**
  * Parse the newline-delimited JSON output produced by `yt-dlp --dump-json`
