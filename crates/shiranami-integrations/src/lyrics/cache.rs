@@ -43,7 +43,11 @@ pub fn cache_key(title: &str, artist: &str) -> String {
 /// scan is far cheaper than the allocation a linked structure would need, and
 /// insertion order *is* the recency order, which is exactly how the JavaScript
 /// `Map` this replaces behaved.
-#[derive(Debug, Default)]
+///
+/// [`Default`] is written by hand rather than derived: a derived one would set
+/// `capacity` to 0, which both disagrees with [`LyricsCache::new`] and leaves
+/// [`LyricsCache::set`] evicting from an empty vector.
+#[derive(Debug)]
 pub struct LyricsCache {
     /// Oldest first, newest last.
     entries: Mutex<Vec<(String, LrclibOutcome)>>,
@@ -56,11 +60,17 @@ impl LyricsCache {
         Self::with_capacity(LYRICS_CACHE_MAX)
     }
 
-    /// A cache holding `capacity` entries.
+    /// A cache holding `capacity` entries, at least one.
+    ///
+    /// A zero capacity is raised to 1. `set` evicts *before* it pushes, so a
+    /// genuinely zero-capacity cache would have to remove from an empty vector
+    /// to honour the bound; one entry is the smallest cache that is still a
+    /// cache. The clamp lives here so every later method can rely on the
+    /// invariant instead of re-checking it.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             entries: Mutex::new(Vec::new()),
-            capacity,
+            capacity: capacity.max(1),
         }
     }
 
@@ -96,6 +106,12 @@ impl LyricsCache {
     /// Whether the cache is empty.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Default for LyricsCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -279,6 +295,30 @@ mod tests {
         assert_eq!(cache.get("a"), None, "the oldest entry was evicted");
         assert_eq!(cache.get("b"), Some(found("two")));
         assert_eq!(cache.get("c"), Some(found("three")));
+    }
+
+    /// A derived `Default` gave `capacity` 0, so the first `set` evicted from an
+    /// empty vector and panicked. `default()` and `new()` must be the same cache.
+    #[test]
+    fn the_default_cache_matches_new_and_accepts_writes() {
+        let cache = LyricsCache::default();
+        cache.set("a", found("one"));
+
+        assert_eq!(cache.get("a"), Some(found("one")));
+        assert_eq!(cache.len(), 1);
+    }
+
+    /// The same panic reached through the other door: `with_capacity` is public,
+    /// so a zero passed straight in must be clamped rather than trusted.
+    #[test]
+    fn a_zero_capacity_is_raised_to_one_rather_than_panicking() {
+        let cache = LyricsCache::with_capacity(0);
+        cache.set("a", found("one"));
+        cache.set("b", found("two"));
+
+        assert_eq!(cache.len(), 1, "still a bounded cache");
+        assert_eq!(cache.get("a"), None, "the oldest entry was evicted");
+        assert_eq!(cache.get("b"), Some(found("two")));
     }
 
     /// A read is what makes an entry recent. Without the promotion, the entry a
