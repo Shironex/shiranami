@@ -14,12 +14,23 @@
  * allowlist, and an E2E run is the only place both halves are real.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { browser } from '@wdio/globals';
 
 import { waitForStores, waitForShell } from '../helpers/app.js';
+import { REPO_ROOT } from '../helpers/paths.js';
 import { profile, settingsValue } from '../helpers/profile.js';
 
 const HOME = profile('library').home;
+
+/** Read rather than written down, so a version bump does not break this spec. */
+const CONFIG_VERSION = (
+  JSON.parse(
+    fs.readFileSync(path.join(REPO_ROOT, 'apps/desktop-tauri/src-tauri/tauri.conf.json'), 'utf8')
+  ) as { version: string }
+).version;
 
 describe('invoke roundtrip', () => {
   before(async () => {
@@ -32,7 +43,7 @@ describe('invoke roundtrip', () => {
 
     // `tauri.conf.json`'s `version`, which `app_get_version` reads from the
     // baked config rather than from `package.json`.
-    expect(version).toBe('2.0.0-alpha.0');
+    expect(version).toBe(CONFIG_VERSION);
   });
 
   it('persists a renderer write through to the settings file', async () => {
