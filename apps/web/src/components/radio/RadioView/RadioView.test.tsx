@@ -84,9 +84,34 @@ describe('RadioView', () => {
     expect(skeletons.length).toBeGreaterThanOrEqual(10);
   });
 
+  it('shows skeleton rows on first paint, before the mount effect flips isLoading', () => {
+    // The store boots with isLoading false; the load effect only runs after
+    // the first paint. That frame must show skeletons, not the empty state.
+    mockState = { ...defaultState(), isLoading: false };
+    const { container } = render(<RadioView />);
+    const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
+    expect(skeletons.length).toBeGreaterThanOrEqual(10);
+    expect(screen.queryByText('No stations found')).not.toBeInTheDocument();
+  });
+
   it('loads top stations on first mount', () => {
     render(<RadioView />);
     expect(loadTopStations).toHaveBeenCalled();
+  });
+
+  it('marks the active mode tab and genre pills with aria-pressed', () => {
+    mockState = { ...defaultState(), isLoading: false, filters: { tagList: ['jazz'] } };
+    render(<RadioView />);
+
+    expect(screen.getByRole('button', { name: /top stations/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByRole('button', { name: /favorites/i })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.getByRole('button', { name: 'Jazz' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('switches to the favorites mode', async () => {

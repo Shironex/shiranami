@@ -1,0 +1,275 @@
+name: Rust Checks
+
+# Path-filtered on purpose: the pnpm CI in ci.yml and this workflow share a
+# repo but not a toolchain, and neither should be waiting on the other.
+
+permissions:
+  contents: read
+
+# (Duplicated rather than anchored: GitHub Actions does not resolve YAML
+# aliases. Keep the two lists identical.)
+on:
+  push:
+    branches: [master, v2]
+    paths:
+      - 'crates/**'
+      - 'apps/desktop-tauri/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'rustfmt.toml'
+      - 'clippy.toml'
+      # Emitted by cargo test and diffed by this workflow, so an edit to either
+      # the bindings or the prover has to re-run the gate that owns them.
+      - 'packages/contracts/src/generated/**'
+      - 'scripts/verify-drift-guard.mjs'
+      # v1's migrations are the reference the committed schema fixture is
+      # generated from, so a change there has to re-run the fixture check.
+      - 'packages/database/drizzle/**'
+      - 'packages/database/src/migrate.ts'
+      - 'scripts/verify-db-baseline.mjs'
+      # The analyser canary drives the serve crate's CORS layer through a real
+      # audio graph; a change to either half has to re-run it.
+      - 'scripts/analyser-canary.mjs'
+      - '.github/workflows/rust-checks.yml'
+  pull_request:
+    branches: [master, v2]
+    paths:
+      - 'crates/**'
+      - 'apps/desktop-tauri/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - 'rustfmt.toml'
+      - 'clippy.toml'
+      # Emitted by cargo test and diffed by this workflow, so an edit to either
+      # the bindings or the prover has to re-run the gate that owns them.
+      - 'packages/contracts/src/generated/**'
+      - 'scripts/verify-drift-guard.mjs'
+      # v1's migrations are the reference the committed schema fixture is
+      # generated from, so a change there has to re-run the fixture check.
+      - 'packages/database/drizzle/**'
+      - 'packages/database/src/migrate.ts'
+      - 'scripts/verify-db-baseline.mjs'
+      # The analyser canary drives the serve crate's CORS layer through a real
+      # audio graph; a change to either half has to re-run it.
+      - 'scripts/analyser-canary.mjs'
+      - '.github/workflows/rust-checks.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # Nothing here publishes; keep the fetch quiet and reproducible.
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  rust-checks:
+    name: Rust (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Tauri links against the system webview even when we only lint it.
+      # Linux is not a shipping target (architecture §1.2); this is only so the
+      # cheapest runner can compile the shell.
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      # Installs exactly the toolchain pinned in rust-toolchain.toml.
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      # Only so `pnpm verify:drift-guard` resolves below. The script itself uses
+      # nothing but Node builtins, git and cargo, so the workspace install is
+      # skipped — this job has no business waiting on node_modules. Not using
+      # the shared ./.github/actions/setup action here: it always turns on
+      # setup-node's pnpm cache, and an install-free job never creates a pnpm
+      # store for actions/cache to save, which fails the job at post-job
+      # cleanup even though every real step passed.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-checks-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-checks-
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Re-exports the TypeScript bindings as a side effect (architecture §2.5:
+      # "export runs inside `cargo test`"), which is what gives the next step
+      # something to diff.
+      - name: Test
+        run: cargo test --workspace
+
+      - name: Bindings are up to date
+        run: |
+          git diff --exit-code packages/contracts/src/generated \
+            || {
+              echo "::error::Generated bindings are stale. Run \`cargo test -p shiranami-desktop --lib bindings\` and commit packages/contracts/src/generated."
+              exit 1
+            }
+
+      # The diff above is only a gate if it can still fail. This perturbs a
+      # `#[derive(specta::Type)]` type and REQUIRES the diff to trip — nightcore
+      # shipped a drift guard that was vacuous for its entire life (issue #422,
+      # risk R17), and a guard that silently no-ops is worse than no guard.
+      - name: Drift guard is not vacuous
+        run: pnpm verify:drift-guard
+
+      # `crates/shiranami-db/fixtures/v1-schema.json` is the reference the
+      # `sqlite_master` diff test proves the squashed baseline against, and it
+      # is generated from `packages/database`. The cargo test is hermetic
+      # against the committed file, so only this step can notice that the file
+      # has stopped describing v1 (architecture §3.2, risk R6). Uses nothing but
+      # Node builtins — `node:sqlite`, no `node_modules` — which is why it fits
+      # in this install-free job.
+      - name: v1 schema fixture is not stale
+        run: pnpm verify:db-baseline
+
+  rust-cross-check:
+    # souvlaki, taskbar progress, WebView2 browser args and the macOS keychain
+    # bindings are all cfg-gated, so a Linux-only lint never compiles them.
+    # Required, not advisory (architecture D24).
+    #
+    # It lints AND tests: see the Test step below for what a lint-only
+    # cross-check missed.
+    name: Rust cross-check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # A ceiling, not an estimate. Without one, a hung test holds the runner for
+    # GitHub's default 360 minutes. Windows runs used to take 19 to 47 minutes,
+    # 8 to 28 of them in one test that flushed the WAL ~120,000 times (see
+    # `service_golden.rs`). Without that test they measured 12 to 19, so 30
+    # leaves headroom for a cold cache on a slow runner.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-cross-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-cross-
+
+      # `-- -D warnings` denies in the workspace crates only, never in
+      # dependencies — unlike RUSTFLAGS, which would fail on third-party noise.
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # Compiling for a platform is not the same as behaving on it, and this job
+      # used to prove only the first. Sixteen tests failed on Windows for months
+      # without CI noticing, and one of them was not a test bug: `migrate::copy`
+      # flushed through a read-only handle, which is fine for `fdatasync` and
+      # `ERROR_ACCESS_DENIED` for `FlushFileBuffers`, so the v1 -> v2 profile
+      # migration could not copy a single file on the platform the app
+      # primarily ships to. A Linux-only suite cannot see that class of bug at
+      # all — the code compiles perfectly.
+      #
+      # No bindings diff here on purpose: `cargo test` re-exports them as a side
+      # effect, and the Linux job above is the one that owns that gate. Running
+      # it three times would just be three chances to disagree.
+      #
+      # `shiranami-desktop` is excluded, and only its *tests* are: clippy above
+      # still compiles the whole workspace on both platforms, which is what D24
+      # asks for. Its lib test binary cannot start on the Windows runner —
+      # `STATUS_ENTRYPOINT_NOT_FOUND` (0xc0000139), the webview loader resolving
+      # against an export it does not have — and that is a native-runtime
+      # staging problem on the runner, not something the suite is testing.
+      # Little is lost: that crate is the wiring shell, and its tests are source
+      # -text arch guards and a specta export, none of which can answer
+      # differently per platform. The crates whose behaviour genuinely does
+      # differ — paths, migrate copies, the serve routes — are all in here, and
+      # are exactly where the sixteen failures were.
+      - name: Test
+        run: cargo test --workspace --exclude shiranami-desktop
+
+  analyser-canary:
+    # The permanent detector for risk R2's silent-failure mode: a media response
+    # that loses `Access-Control-Allow-Origin` still plays while the analyser
+    # reads digital silence (docs/v2/spike-a-results.md §2). Nothing else in CI
+    # can see it — every other CORS test asserts on a `reqwest` response, and
+    # this failure only exists inside a browser's audio graph.
+    #
+    # macOS rather than ubuntu, and the reason is the engine: R2 is specifically
+    # about WKWebView, and Playwright's WebKit on macOS is the Mac port of
+    # WebKit while its Linux build is the GTK/WPE port. Chromium runs alongside
+    # as the WebView2 stand-in for the Windows target. Both are headless, so
+    # this needs a runner, not a display.
+    name: Analyser energy canary
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-canary-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-canary-
+
+      # Unlike the other jobs in this workflow this one needs node_modules: the
+      # driver is a Playwright script.
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # macOS needs no OS-level browser dependencies, so no --with-deps.
+      - name: Install browser engines
+        run: pnpm exec playwright install chromium webkit
+
+      # Only the serve crate and its dependencies — the harness is an example
+      # target, so nothing here compiles Tauri.
+      - name: Build the harness
+        run: cargo build -p shiranami-serve --example analyser_canary
+
+      - name: Analyser energy canary
+        env:
+          CANARY_HARNESS_BIN: target/debug/examples/analyser_canary
+        run: pnpm canary:analyser

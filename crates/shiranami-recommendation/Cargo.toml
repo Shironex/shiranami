@@ -1,0 +1,54 @@
+[package]
+name = "shiranami-recommendation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+shiranami-core.workspace = true
+shiranami-db.workspace = true
+shiranami-downloader.workspace = true
+
+# `service` only. The shelf cache stores its items as a JSON array in one TEXT
+# column, exactly as v1's `JSON.stringify(items)` did, so the payload round-trip
+# is `serde_json` over the same camelCase models the renderer receives.
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# `service` only. A failed recompute serves the cached shelf rather than failing
+# the channel, which is a decision worth a log line — the shelf looks merely
+# stale from the outside.
+sqlx = { workspace = true }
+tracing = { workspace = true }
+
+# `service::discover` only, and all three for the RD-mix fan-out:
+# `futures`' `buffered` bounds it at four while keeping seed order — the
+# ordering is what decides which mix's copy of a shared video survives the
+# dedupe — `tokio-util`'s `CancellationToken` is the token the reused
+# `ProcessRunner` seam takes, and `tokio::fs` answers "is yt-dlp installed?" the
+# way `YtDlpManager::is_installed` answers it.
+futures = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+# `core`'s golden-vector fixture: `serde` reads the recorded inputs out of it,
+# `serde_json` parses it and asserts that a generated mix `id` still equals the
+# serde name of its `SmartMixKind` — the renderer keys on that string, and the
+# port put the two in separate places for the first time.
+#
+# `service`'s tests additionally need a real temporary database and a runtime.
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+# `service::discover`'s tests script the `ProcessRunner` seam, and the trait is
+# `#[async_trait]` — implementing it needs the same macro the trait was declared
+# with.
+async-trait = { workspace = true }
+
+[lints]
+workspace = true

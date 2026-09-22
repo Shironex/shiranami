@@ -22,6 +22,17 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(root, './src'),
+      // Source, not `dist` — see the note in vite.config.ts. Must precede any
+      // bare '@shiranami/contracts' entry: alias matching is prefix-based.
+      '@shiranami/contracts/bindings': resolve(
+        root,
+        '../../packages/contracts/src/generated/bindings.ts'
+      ),
+      // Source, matching vite.config.ts and vitest.storybook.config.ts. Without
+      // it this project alone resolved contracts through `dist`, so a test could
+      // pass or fail on whether `build:packages` had been run since the last
+      // edit — the three configs disagreeing is the bug, not the alias.
+      '@shiranami/contracts': resolve(root, '../../packages/contracts/src/index.ts'),
       '@shiranami/shared': resolve(root, '../../packages/shared/src/index.ts'),
     },
   },

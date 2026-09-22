@@ -28,7 +28,7 @@ export default function HistoryViewSkeleton() {
   ));
 
   const listPanels = listPanelKeys.map(key => (
-    <div key={key} className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+    <div key={key} className="rounded-panel border border-border/25 bg-surface/30 p-4">
       <Skeleton className="h-5 w-36" />
       <div className="mt-4 space-y-3">{panelRows}</div>
     </div>
@@ -53,12 +53,19 @@ export default function HistoryViewSkeleton() {
         <div className="mt-5 flex gap-2">{heroPills}</div>
       </div>
       <div className="grid gap-4 md:grid-cols-4">{statCards}</div>
-      <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
-        <Skeleton className="h-5 w-40" />
+      {/* Mirrors the promoted activity panel so the page doesn't reflow. */}
+      <div className="rounded-panel border border-border/25 bg-surface/30 p-5 sm:p-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-9 rounded-lg" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+        </div>
         <Skeleton className="mt-5 h-40 w-full rounded-2xl" />
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">{listPanels}</div>
-      <div className="rounded-[24px] border border-border/25 bg-surface/30 p-4">
+      <div className="rounded-panel border border-border/25 bg-surface/30 p-4">
         <Skeleton className="h-5 w-40" />
         <div className="mt-4 space-y-3">{recentRows}</div>
       </div>

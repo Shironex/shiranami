@@ -14,9 +14,13 @@ const SYNCED: LyricLine[] = [
 const baseArgs = {
   activeLine: 1,
   isLoading: false,
+  isError: false,
   onLineClick: () => {},
+  onRetry: () => {},
   loadingLabel: 'Finding lyrics...',
   emptyLabel: 'No lyrics found',
+  errorLabel: "Couldn't load lyrics",
+  retryLabel: 'Retry',
   syncedDimOpacity: 0.4,
   plainOpacity: 0.85,
   syncedSpacingClassName: 'space-y-4',
@@ -28,11 +32,12 @@ const baseArgs = {
 };
 
 /**
- * lyrics · LyricsBody. The shared 4-branch lyrics render (loading → synced →
- * plain → empty) behind NowPlayingView and LyricsPanel, parameterized by each
- * surface's size-class maps, spacing, and container classes. Synced lyrics
- * render as a list of seekable line buttons; plain lyrics as a `<pre>`; the
- * loading and empty branches show a labelled spinner / music glyph. Stories
+ * lyrics · LyricsBody. The shared 5-branch lyrics render (loading → synced →
+ * plain → error → empty) behind NowPlayingView and LyricsPanel, parameterized
+ * by each surface's size-class maps, spacing, and container classes. Synced
+ * lyrics render as a list of seekable line buttons; plain lyrics as a `<pre>`;
+ * the loading and empty branches show a labelled spinner / music glyph; the
+ * error branch adds a destructive-tinted glyph plus a Retry action. Stories
  * drive each branch via args.
  */
 const meta: Meta<typeof LyricsBody> = {
@@ -108,5 +113,19 @@ export const Empty: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('No lyrics found')).toBeInTheDocument();
+  },
+};
+
+/** Error — the destructive-tinted failure glyph with its Retry action. */
+export const Error: Story = {
+  args: {
+    synced: null,
+    plain: null,
+    isError: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Couldn't load lyrics")).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   },
 };

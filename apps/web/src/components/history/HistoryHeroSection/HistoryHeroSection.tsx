@@ -11,7 +11,7 @@ export default function HistoryHeroSection(props: IHistoryHeroSectionProps) {
       type="button"
       onClick={() => onSelectRange(range.id)}
       className={cn(
-        'rounded-full border px-4 py-2 text-xs font-medium transition-colors',
+        'focus-ring rounded-full border px-4 py-2 text-xs font-medium transition-colors',
         range.isActive
           ? 'border-primary/60 bg-primary/15 text-primary'
           : 'border-border/20 bg-background/30 text-muted-foreground hover:border-border/35 hover:text-foreground'

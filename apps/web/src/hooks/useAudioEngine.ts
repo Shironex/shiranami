@@ -1,7 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { clamp01 } from '@shiranami/shared';
-import { usePlaybackStore, currentTimeRef } from '@/stores/usePlaybackStore';
+import {
+  usePlaybackStore,
+  currentTimeRef,
+  type LoudnessLevelingMode,
+} from '@/stores/usePlaybackStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
 import type { Track } from '@/stores/types';
 import { IS_ELECTRON } from '@/lib/platform';
 import {
@@ -15,11 +20,12 @@ import {
   setPreampDb,
 } from '@/lib/audioAnalyser';
 import { useEqStore } from '@/stores/useEqStore';
-import { computeLoudnessGainDb, dbToLinear } from '@/lib/loudness';
+import { computeLevelingGainDb, dbToLinear, type TrackLoudness } from '@/lib/loudness';
 import { queryClient } from '@/lib/queryClient';
 import { historyKeys } from '@/hooks/queries/useHistory';
 import { isRadioTrack } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { toStreamUrl } from '@/lib/bridge/stream-urls';
 
 /** Minimum interval (ms) between Zustand store updates for currentTime. */
 const STORE_UPDATE_INTERVAL = 250;
@@ -29,10 +35,17 @@ const MAX_SESSION_DELTA_SECONDS = 1;
 
 type Deck = 'A' | 'B';
 
+/**
+ * The URL a deck loads for a track.
+ *
+ * §2.4 replaced v1's `shiranami-audio://` and `shiranami-radio://` schemes with
+ * the loopback server, whose origin carries an ephemeral port and a per-session
+ * token and therefore cannot be a literal. The construction moved to the bridge,
+ * which is the one place that knows them; this stays the single call site it is
+ * reached from, exactly as §2.4's renderer row scopes it.
+ */
 function getTrackSrc(track: Track): string {
-  if (track.filePath.startsWith('shiranami-radio://')) return track.filePath;
-  const normalized = track.filePath.replace(/\\/g, '/');
-  return `shiranami-audio://play?path=${encodeURIComponent(normalized)}`;
+  return toStreamUrl(track.filePath);
 }
 
 /**
@@ -50,16 +63,30 @@ export function fadeIn(progress: number): number {
  * Linear (amplitude) gain factor for loudness leveling on a single track.
  * Returns 1 (no-op) when leveling is disabled or the track's loudness is
  * unmeasured/non-finite, otherwise 10^(dB/20) for the computed ReplayGain-style
- * adjustment. Exported for unit testing.
+ * adjustment — mode picks track vs album reference, and the true-peak guard
+ * caps boosts (see `computeLevelingGainDb`). Exported for unit testing.
  */
 export function loudnessLinearGain(
-  measuredLufs: number | null | undefined,
+  track: TrackLoudness | null,
   enabled: boolean,
+  mode: LoudnessLevelingMode,
   targetLufs: number
 ): number {
   if (!enabled) return 1;
-  const db = computeLoudnessGainDb(measuredLufs, targetLufs);
+  const db = computeLevelingGainDb(track, mode, targetLufs);
   return dbToLinear(db);
+}
+
+/**
+ * Which `play_history.source` a session belongs to.
+ *
+ * Only ever returns `'library'` today, because `resetPlaybackSession` refuses
+ * to open a session for anything else. Written as a derivation rather than a
+ * literal so that lifting that restriction is a one-line change here instead
+ * of a hunt for a hardcoded string.
+ */
+function sourceFor(track: Track): string {
+  return isRadioTrack(track.filePath) ? 'radio' : 'library';
 }
 
 /**
@@ -95,40 +122,52 @@ export function useAudioEngine() {
   });
 
   // Per-deck loudness state. `deckLufsRef` holds each deck's loaded track's
-  // measured integrated loudness (the source of truth — the incoming/idle deck's
+  // measured loudness surface (the source of truth — the incoming/idle deck's
   // track is not `currentTrack`, so we can't re-derive it from the store on a
   // mid-crossfade toggle). `deckLoudnessRef` caches the linear gain factor
   // applied on top of the user volume in `setVolume`. Both are set at every
   // deck-load point so each deck's track is normalized independently.
-  const deckLufsRef = useRef<{ A: number | null | undefined; B: number | null | undefined }>({
+  const deckLufsRef = useRef<{ A: TrackLoudness | null; B: TrackLoudness | null }>({
     A: null,
     B: null,
   });
   const deckLoudnessRef = useRef<{ A: number; B: number }>({ A: 1, B: 1 });
 
-  /** Recompute and cache a deck's linear loudness factor from its stored LUFS
-   * and the current loudness settings. Returns the factor. */
+  /** Recompute and cache a deck's linear loudness factor from its stored
+   * loudness surface and the current loudness settings. Returns the factor. */
   function updateDeckLoudness(deck: Deck): number {
     const pb = usePlaybackStore.getState();
     const factor = loudnessLinearGain(
       deckLufsRef.current[deck],
       pb.loudnessEnabled,
+      pb.loudnessLevelingMode,
       pb.loudnessTargetLufs
     );
     deckLoudnessRef.current[deck] = factor;
     return factor;
   }
 
-  /** Store a deck's track LUFS and refresh its cached loudness factor, logging
-   * the applied adjustment when leveling is on and a measurement exists. */
+  /** Store a deck's track loudness surface and refresh its cached factor,
+   * logging the applied adjustment when leveling is on and a measurement
+   * exists. */
   function setDeckTrackLoudness(deck: Deck, track: Track | null) {
-    deckLufsRef.current[deck] = track?.loudnessLufs;
+    deckLufsRef.current[deck] = track
+      ? {
+          loudnessLufs: track.loudnessLufs,
+          albumLoudnessLufs: track.albumLoudnessLufs,
+          truePeakDb: track.truePeakDb,
+        }
+      : null;
     const factor = updateDeckLoudness(deck);
     const pb = usePlaybackStore.getState();
     if (pb.loudnessEnabled && track && track.loudnessLufs != null) {
-      const db = computeLoudnessGainDb(track.loudnessLufs, pb.loudnessTargetLufs);
+      const db = computeLevelingGainDb(
+        deckLufsRef.current[deck],
+        pb.loudnessLevelingMode,
+        pb.loudnessTargetLufs
+      );
       logger.info(
-        `[loudness] Deck ${deck} "${track.title}" ${track.loudnessLufs.toFixed(1)} LUFS → ${db >= 0 ? '+' : ''}${db.toFixed(1)} dB (×${factor.toFixed(3)})`
+        `[loudness] Deck ${deck} "${track.title}" ${track.loudnessLufs.toFixed(1)} LUFS (${pb.loudnessLevelingMode}) → ${db >= 0 ? '+' : ''}${db.toFixed(1)} dB (×${factor.toFixed(3)})`
       );
     }
   }
@@ -226,6 +265,29 @@ export function useAudioEngine() {
 
   // ── Playback session (listening history) ──────────────────────
 
+  /**
+   * Radio is deliberately excluded from `play_history`, and this is the only
+   * place that decision is made.
+   *
+   * It is a schema constraint, not a policy: `play_history.track_id` is
+   * `NOT NULL REFERENCES tracks(id) ON DELETE CASCADE`
+   * (`crates/shiranami-db/migrations/0001_baseline.sql`), and both engines
+   * enforce it — `pool.rs`'s `.foreign_keys(true)` and `client.ts`'s
+   * `pragma foreign_keys = ON`. A radio track's id is `radio:<station-uuid>`,
+   * minted by `stationToTrack` for the queue and never written to `tracks`, so
+   * an insert for one cannot succeed. Recording radio here would not be a
+   * feature that works differently; it would be a `FOREIGN KEY constraint
+   * failed` on every station, swallowed by the catch in `flushPlaybackSession`
+   * and visible as nothing at all.
+   *
+   * Radio listening belongs in a table that does not reference `tracks`. Until
+   * that lands, a radio session simply is not a session — hence `track: null`,
+   * which makes `flushPlaybackSession` return before it can build a row.
+   *
+   * The seam for enabling it is `recordPlay`'s `source` argument, which
+   * `flushPlaybackSession` now passes explicitly: `'library'` here, `'radio'`
+   * for the radio path when there is somewhere for it to go.
+   */
   const resetPlaybackSession = useCallback((track: Track | null) => {
     playbackSessionRef.current = {
       track: track && !isRadioTrack(track.filePath) ? track : null,
@@ -259,7 +321,11 @@ export function useAudioEngine() {
         trackId: track.id,
         playedSeconds,
         duration,
-        source: 'library',
+        // Explicit rather than relying on the handler's default, so the
+        // 'library' / 'radio' contract in `packages/contracts/src/ipc/history.ts`
+        // has a real caller. Every session that reaches here is a library one
+        // by construction — see `resetPlaybackSession` for why radio cannot be.
+        source: sourceFor(track),
       });
       incrementTrackPlayCount(track.id);
       queryClient.invalidateQueries({ queryKey: historyKeys.all });
@@ -363,6 +429,10 @@ export function useAudioEngine() {
   const startCrossfade = useCallback(() => {
     // Guard: don't start a new crossfade while one is already in progress
     if (crossfadeRef.current.active) return;
+
+    // An armed sleep-timer boundary stop means this track must end naturally —
+    // no early crossfade into a track that won't play.
+    if (useSleepTimerStore.getState().stopsAtBoundary()) return;
 
     const state = usePlaybackStore.getState();
     const { queue, queueIndex, repeatMode: rm, crossfadeDuration } = state;
@@ -489,8 +559,9 @@ export function useAudioEngine() {
       deckARef.current.preload = 'auto';
       // Required so MediaElementAudioSourceNode receives actual samples;
       // without it Web Audio outputs silent zeroes for cross-origin sources.
-      // shiranami-audio:// is registered with corsEnabled, so the protocol
-      // handler serves with permissive CORS headers.
+      // The loopback server answers every media route with
+      // `Access-Control-Allow-Origin: *` (§2.4, Spike A) precisely so this
+      // holds — a missing header here is a silent player, not an error.
       deckARef.current.crossOrigin = 'anonymous';
     }
     if (!deckBRef.current) {
@@ -922,12 +993,18 @@ export function useAudioEngine() {
   useEffect(() => {
     let prevEnabled = usePlaybackStore.getState().loudnessEnabled;
     let prevTarget = usePlaybackStore.getState().loudnessTargetLufs;
+    let prevMode = usePlaybackStore.getState().loudnessLevelingMode;
     const unsub = usePlaybackStore.subscribe(state => {
-      if (state.loudnessEnabled === prevEnabled && state.loudnessTargetLufs === prevTarget) {
+      if (
+        state.loudnessEnabled === prevEnabled &&
+        state.loudnessTargetLufs === prevTarget &&
+        state.loudnessLevelingMode === prevMode
+      ) {
         return;
       }
       prevEnabled = state.loudnessEnabled;
       prevTarget = state.loudnessTargetLufs;
+      prevMode = state.loudnessLevelingMode;
       updateDeckLoudness('A');
       updateDeckLoudness('B');
       if (!crossfadeRef.current.active) {
@@ -984,6 +1061,14 @@ export function useAudioEngine() {
       if (audio !== getActiveDeck()) return;
       const endedTrack = usePlaybackStore.getState().currentTrack;
       void flushPlaybackSession();
+      // An armed sleep-timer boundary stop (end of track / end of album)
+      // fires here: pause instead of advancing, leaving the queue where the
+      // listener drifted off — the same resting state as a queue running out.
+      const sleepTimer = useSleepTimerStore.getState();
+      if (sleepTimer.stopsAtBoundary()) {
+        sleepTimer.completeBoundaryStop();
+        return;
+      }
       if (usePlaybackStore.getState().repeatMode === 'one' && endedTrack) {
         resetPlaybackSession(endedTrack);
       }
@@ -1044,6 +1129,13 @@ export function useAudioEngine() {
 
     const onEnded = () => {
       if (repeatMode === 'one') {
+        // A sleep-timer boundary stop wins over the repeat loop. Checked on
+        // live store state so the outcome is the same whichever 'ended'
+        // listener runs first: before the stop fires `stopsAtBoundary` is
+        // true; after it fires the store is already paused.
+        const sleepTimer = useSleepTimerStore.getState();
+        if (sleepTimer.stopsAtBoundary()) return;
+        if (!usePlaybackStore.getState().isPlaying) return;
         audio.currentTime = 0;
         audio.play().catch(err => {
           if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);

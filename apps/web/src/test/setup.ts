@@ -92,11 +92,23 @@ Object.defineProperty(window, 'matchMedia', {
 
 window.scrollTo = vi.fn() as typeof window.scrollTo;
 
+// jsdom implements none of the pointer-capture API and no scrolling. Radix's
+// Select calls all four while opening, so a test that clicks a select trigger
+// fails on the primitive rather than on the component. Guarded so a future
+// jsdom that grows real implementations keeps them.
 if (!Element.prototype.setPointerCapture) {
   Element.prototype.setPointerCapture = function () {};
 }
 if (!Element.prototype.releasePointerCapture) {
   Element.prototype.releasePointerCapture = function () {};
+}
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = function () {
+    return false;
+  };
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
 }
 
 function asyncFn<T>(value: T) {
@@ -134,8 +146,18 @@ function createElectronAPIMock(): ElectronAPI {
       onScanProgress: vi.fn(() => noopUnsub()),
       cancelScan: asyncFn(undefined),
     },
+    analysis: {
+      analyze: asyncFn({ analyzed: 0, skipped: 0, failed: 0 }),
+      cancel: asyncFn(undefined),
+      onProgress: vi.fn(() => noopUnsub()),
+    },
     loudness: {
       analyze: asyncFn({ analyzed: 0, skipped: 0, failed: 0 }),
+      cancel: asyncFn(undefined),
+      onProgress: vi.fn(() => noopUnsub()),
+    },
+    doctor: {
+      scan: asyncFn({ scanned: 0, healthy: 0, cancelled: false, findings: [] }),
       cancel: asyncFn(undefined),
       onProgress: vi.fn(() => noopUnsub()),
     },
@@ -161,6 +183,9 @@ function createElectronAPIMock(): ElectronAPI {
     },
     lyrics: {
       fetch: asyncFn({ synced: null, plain: null, source: null }),
+      saveBatch: asyncFn({ saved: 0, skipped: 0, notFound: 0, failed: 0, cancelled: false }),
+      saveCancel: asyncFn(undefined),
+      onSaveProgress: vi.fn(() => noopUnsub()),
     },
     weather: {
       geocode: asyncFn(null),
@@ -181,6 +206,7 @@ function createElectronAPIMock(): ElectronAPI {
         existsMany: asyncFn([]),
         updateMany: asyncFn(undefined),
         getIdByPath: asyncFn(null),
+        search: asyncFn([]),
       },
       history: {
         recordPlay: vi.fn(),
@@ -233,6 +259,8 @@ function createElectronAPIMock(): ElectronAPI {
       enqueueDownload: asyncFn(''),
       cancelDownload: asyncFn(undefined),
       cancelAllDownloads: asyncFn(undefined),
+      retryDownload: asyncFn(undefined),
+      retryAllFailedDownloads: asyncFn(undefined),
       clearCompletedDownloads: asyncFn(undefined),
       pauseDownloadQueue: asyncFn(undefined),
       resumeDownloadQueue: asyncFn(undefined),

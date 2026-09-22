@@ -1,5 +1,6 @@
 {
   "title": "Skróty klawiszowe",
+  "description": "Wszystkie skróty klawiszowe dostępne w Shiranami, pogrupowane według tego, co kontrolują.",
   "playback": "Odtwarzanie",
   "navigation": "Nawigacja",
   "panelsUi": "Panele i UI",
@@ -10,6 +11,8 @@
   "seekForward5s": "Przewiń 5s",
   "seekBack10s": "Cofnij 10s",
   "seekForward10s": "Przewiń 10s",
+  "seekBack": "Cofnij",
+  "seekForward": "Przewiń",
   "volumeUp": "Głośniej",
   "volumeDown": "Ciszej",
   "muteUnmute": "Wycisz / Włącz dźwięk",
@@ -33,6 +36,21 @@
   "toggleAlwaysOnTop": "Przełącz zawsze na wierzchu",
   "toggleNowPlaying": "Przełącz widok Teraz odtwarzane",
   "toggleVisualizer": "Pokaż/ukryj wizualizator",
+  "toggleSanctuary": "Włącz/wyłącz tryb sanktuarium",
   "showHelp": "Pokaż tę pomoc",
-  "closePanel": "Wstecz / wyczyść zaznaczenie / zamknij panel"
+  "closePanel": "Wstecz / wyczyść zaznaczenie / zamknij panel",
+  "rebind": {
+    "cardSubtitle": "Kliknij skrót, aby zmienić jego klawisze",
+    "hint": "Kliknij skrót, a następnie naciśnij nową kombinację klawiszy. Naciśnij Esc, aby anulować.",
+    "pressKeys": "Naciśnij klawisze…",
+    "bindingAria": "Zmień skrót dla „{{action}}” (obecnie {{keys}})",
+    "captureAria": "Nagrywanie nowego skrótu dla „{{action}}” — naciśnij nową kombinację klawiszy, Esc aby anulować",
+    "conflictAction": "Już używane przez „{{action}}”. Naciśnij inny klawisz.",
+    "reservedNavigation": "Zarezerwowane dla nawigacji widoków (1–9). Naciśnij inny klawisz.",
+    "reservedSystem": "Zarezerwowane przez Shiranami. Naciśnij inny klawisz.",
+    "resetBindingAria": "Przywróć domyślny skrót dla „{{action}}” ({{keys}})",
+    "resetAllTitle": "Przywróć wszystkie skróty",
+    "resetAllDesc": "Przywraca wszystkim skrótom domyślne klawisze",
+    "resetAll": "Przywróć wszystkie"
+  }
 }

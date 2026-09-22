@@ -29,6 +29,6 @@ describe('StatTile', () => {
     );
 
     const hint = screen.getByText('+2h 18m vs. last week');
-    expect(hint).toHaveClass('text-emerald-400/90');
+    expect(hint).toHaveClass('text-success/90');
   });
 });

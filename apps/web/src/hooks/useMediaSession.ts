@@ -124,6 +124,22 @@ export function useMediaSession() {
         case 'toggle-play':
           togglePlay();
           break;
+        // `play` and `pause` reach this channel only under the Tauri backend.
+        // The OS remote has always had two separate buttons; v1 answered them
+        // renderer-side through `navigator.mediaSession.setActionHandler`, which
+        // is suppressed now that souvlaki is the single source of OS media
+        // integration — so they travel over IPC instead and land here.
+        //
+        // The guards are the ones the mediaSession handlers above use, and they
+        // are why this cannot live in the bridge: only the store knows whether
+        // playback is already running, and a remote that sends `play` while
+        // playing must not toggle to paused.
+        case 'play':
+          if (!usePlaybackStore.getState().isPlaying) togglePlay();
+          break;
+        case 'pause':
+          if (usePlaybackStore.getState().isPlaying) togglePlay();
+          break;
         case 'next':
           next();
           break;

@@ -10,14 +10,15 @@ import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useAmbientColor } from '@/hooks/useAmbientColor';
 import { useFavoriteCelebration } from '@/hooks/useFavoriteCelebration';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { isRadioTrack } from '@/lib/utils';
-import { IS_MAC } from '@/lib/platform';
+import { formatBindingLabel } from '@/lib/keymap';
+import { useKeymapStore } from '@/stores/useKeymapStore';
 import type { IPlayerBarView } from './PlayerBar.types';
-
-const MOD = IS_MAC ? '⌘' : 'Ctrl';
 
 export function usePlayerBar(): IPlayerBarView {
   const { t } = useTranslation('player');
+  const bindings = useKeymapStore(s => s.bindings);
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   // Heart state reads through the overlay so a toggle from any surface
   // reflects on the player bar without re-allocating `library`.
@@ -34,6 +35,7 @@ export function usePlayerBar(): IPlayerBarView {
   const setCompactMode = useCompactStore(s => s.setCompactMode);
   const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
   const enterNowPlaying = useViewStore(s => s.enterNowPlaying);
+  const titleText = useTrackTitle(currentTrack);
 
   // Element visibility (Settings · Interface · Player bar). Core playback
   // controls and the seek bar are not toggleable.
@@ -78,6 +80,10 @@ export function usePlayerBar(): IPlayerBarView {
   return {
     t,
     currentTrack,
+    // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+    // station name otherwise. Identical to `currentTrack.title` for everything
+    // else, so the bar renders one value rather than branching.
+    titleText,
     isRadio,
     isFavorite,
     showSeekRow,
@@ -105,10 +111,10 @@ export function usePlayerBar(): IPlayerBarView {
     heartControls,
     favoriteBurst,
     showFavoriteBurst,
-    compactTooltip: t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` }),
+    compactTooltip: t('compactModeTooltip', { shortcut: formatBindingLabel(bindings.compactMode) }),
     visualizerTooltip: t('visualizerTooltip'),
-    lyricsTooltip: t('lyricsTooltip', { shortcut: `${MOD}+L` }),
-    queueTooltip: t('queueTooltip', { shortcut: `${MOD}+Q` }),
+    lyricsTooltip: t('lyricsTooltip', { shortcut: formatBindingLabel(bindings.toggleLyrics) }),
+    queueTooltip: t('queueTooltip', { shortcut: formatBindingLabel(bindings.toggleQueue) }),
     onToggleFavorite,
     onEnterCompact,
     onToggleVisualizer: toggleVisualizer,

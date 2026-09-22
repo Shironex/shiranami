@@ -33,7 +33,7 @@ function VolumeControl({ sliderClassName = 'w-24' }: IVolumeControlProps) {
         <TooltipTrigger asChild>
           <button
             onClick={onToggleMute}
-            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="focus-ring rounded-md w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
             aria-label={buttonLabel}
           >
             <VolumeIcon className="w-4 h-4" />

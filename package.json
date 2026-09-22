@@ -12,6 +12,8 @@
     "dev:landing": "pnpm --filter @shiranami/landing dev",
     "dev:mobile": "pnpm --filter @shiranami/mobile dev",
     "dev:sentry": "node scripts/dev-sentry.mjs",
+    "tauri": "pnpm --filter @shiranami/desktop-tauri exec tauri",
+    "tauri:dev": "pnpm --filter @shiranami/desktop-tauri dev",
     "build": "pnpm build:packages && pnpm --filter @shiranami/web build && pnpm --filter @shiranami/desktop build",
     "build:packages": "pnpm --filter @shiranami/contracts build && pnpm --filter @shiranami/shared build && pnpm --filter @shiranami/database build && pnpm --filter @shiranami/recommendation build",
     "build:landing": "pnpm --filter @shiranami/landing build",
@@ -20,6 +22,10 @@
     "package:mac": "pnpm build && pnpm --filter @shiranami/desktop package:mac",
     "lint": "pnpm --filter @shiranami/eslint-plugin build && eslint .",
     "lint:meta": "tsx tools/lint-meta/cli.ts",
+    "verify:drift-guard": "node scripts/verify-drift-guard.mjs",
+    "verify:db-baseline": "node --disable-warning=ExperimentalWarning --experimental-sqlite scripts/verify-db-baseline.mjs",
+    "verify:art-baseline": "node scripts/verify-art-baseline.mjs",
+    "verify:release-manifests": "node scripts/build-update-manifests.mjs --self-test",
     "new:component": "tsx tools/codegen/new-component.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -35,10 +41,13 @@
     "rebuild:electron": "pnpm --filter @shiranami/desktop rebuild",
     "generate-icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/screenshot-app.mjs",
+    "canary:analyser": "node scripts/analyser-canary.mjs",
+    "check:mock-mode": "node scripts/check-mock-mode.mjs",
+    "visual:windows": "node scripts/visual-check-windows.mjs",
     "prepare": "husky"
   },
   "engines": {
-    "node": ">=22.12.0",
+    "node": ">=22.23.0",
     "pnpm": ">=9.0.0"
   },
   "lint-staged": {
@@ -70,7 +79,7 @@
     "prettier": "^3.8.3",
     "sharp": "^0.35.4",
     "sql.js": "^1.14.1",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.10",

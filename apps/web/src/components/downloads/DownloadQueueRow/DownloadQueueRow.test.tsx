@@ -76,4 +76,30 @@ describe('DownloadQueueRow', () => {
 
     expect(screen.queryByRole('button', { name: /Cancel download of/ })).toBeNull();
   });
+
+  it('calls onRetry with the item id when the retry button on a failed row is clicked', () => {
+    const onRetry = vi.fn();
+    render(
+      <DownloadQueueRow
+        item={makeItem({ id: 'abc', status: 'error', error: 'boom' })}
+        onCancel={vi.fn()}
+        onRetry={onRetry}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Retry download of/ }));
+
+    expect(onRetry).toHaveBeenCalledWith('abc');
+  });
+
+  it('renders no retry button on non-failed rows, or when the runtime has no retry support', () => {
+    const { rerender } = render(
+      <DownloadQueueRow item={makeItem({ status: 'done' })} onCancel={vi.fn()} onRetry={vi.fn()} />
+    );
+    expect(screen.queryByRole('button', { name: /Retry download of/ })).toBeNull();
+
+    // A failed row without an onRetry handler (legacy runtime) stays action-less.
+    rerender(<DownloadQueueRow item={makeItem({ status: 'error' })} onCancel={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /Retry download of/ })).toBeNull();
+  });
 });

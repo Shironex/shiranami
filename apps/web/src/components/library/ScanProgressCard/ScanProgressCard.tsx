@@ -34,7 +34,7 @@ export default function ScanProgressCard() {
         size="sm"
         onClick={onCancel}
         disabled={isCancelling}
-        className="rounded-lg [&_svg]:size-3.5"
+        className="[&_svg]:size-3.5"
       >
         {isCancelling ? <Loader2 className="animate-spin" /> : <Ban />}
         {cancelLabel}

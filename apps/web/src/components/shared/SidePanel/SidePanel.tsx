@@ -1,10 +1,14 @@
 import { lazy, Suspense } from 'react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { IconButton } from '@/components/ui/icon-button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { PanelResizeHandle } from '@/components/shared/PanelResizeHandle';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { RIGHT_PANEL_WIDTH_MIN, RIGHT_PANEL_WIDTH_MAX } from '@/stores/usePanelSizeStore';
+import { PANEL_SLIDE_OFFSET, PANEL_TRANSITION } from '@/lib/motion';
 import { useSidePanel } from './SidePanel.hooks';
+import { SidePanelSkeleton } from './SidePanelSkeleton';
 import type { ISidePanelProps } from './SidePanel.types';
 
 const LyricsPanel = lazy(() => import('@/components/lyrics/LyricsPanel/LyricsPanel'));
@@ -20,6 +24,7 @@ export default function SidePanel(props: ISidePanelProps) {
     t,
     shouldRender,
     content,
+    reducedMotion,
     rightPanelWidth,
     side,
     resizeEdge,
@@ -35,26 +40,36 @@ export default function SidePanel(props: ISidePanelProps) {
   const flipButton = (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
-          onClick={onFlip}
-          aria-label={flipLabel}
-          className="text-muted-foreground/40 hover:text-foreground transition-colors"
-        >
-          <FlipIcon className="w-3.5 h-3.5" />
-        </button>
+        <IconButton onClick={onFlip} aria-label={flipLabel}>
+          <FlipIcon />
+        </IconButton>
       </TooltipTrigger>
       <TooltipContent side="bottom">{flipLabel}</TooltipContent>
     </Tooltip>
   );
 
+  // A gentle fade + slide from the docked edge; width stays static so the
+  // resize handle keeps full control of it. App.tsx wraps the mount site in
+  // AnimatePresence so the exit leg plays before unmount.
+  const slideOffset = side === 'right' ? PANEL_SLIDE_OFFSET : -PANEL_SLIDE_OFFSET;
+  const motionProps = reducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0, x: slideOffset },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: slideOffset },
+        transition: PANEL_TRANSITION,
+      };
+
   return (
-    <div
+    <motion.div
       id="player-side-panel"
       className={cn(
         'relative border-border/30 shrink-0 flex flex-col overflow-hidden bg-surface/30',
         side === 'right' ? 'border-l' : 'border-r'
       )}
       style={{ width: rightPanelWidth }}
+      {...motionProps}
     >
       <PanelResizeHandle
         edge={resizeEdge}
@@ -67,7 +82,7 @@ export default function SidePanel(props: ISidePanelProps) {
         aria-controls="player-side-panel"
       />
       <ErrorBoundary viewName="RightPanel">
-        <Suspense fallback={null}>
+        <Suspense fallback={<SidePanelSkeleton />}>
           {content === 'lyrics' ? (
             <LyricsPanel headerAction={flipButton} />
           ) : (
@@ -75,6 +90,6 @@ export default function SidePanel(props: ISidePanelProps) {
           )}
         </Suspense>
       </ErrorBoundary>
-    </div>
+    </motion.div>
   );
 }

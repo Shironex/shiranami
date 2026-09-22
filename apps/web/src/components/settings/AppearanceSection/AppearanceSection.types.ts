@@ -1,5 +1,6 @@
 import type { useTranslation } from 'react-i18next';
 import type { ThemeId } from '@/stores/useThemeStore';
+import type { ThemeBgFit } from '@/stores/useThemeBgStore';
 import type { SupportedLanguage } from '@/lib/i18n';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
@@ -60,6 +61,20 @@ export interface IAppearanceSectionView {
   /** Select a theme. */
   readonly onSelectTheme: (theme: ThemeId) => void;
 
+  // --- Custom background (the saved-background library) ---
+  /** Whether the "your own image" theme is the active one. */
+  readonly isCustomTheme: boolean;
+  /** Loopback URL of the effective saved image, for the tile thumbnail. */
+  readonly customThumb: string | null;
+  /**
+   * Whether reading the saved backgrounds failed. Distinct from "none is
+   * saved": without the distinction a failed read looks like an empty state,
+   * and the card offers to import images the user already has.
+   */
+  readonly customBackgroundFailed: boolean;
+  /** Try the read again. */
+  readonly onRetryCustomBackground: () => void;
+
   // --- Background adjustments ---
   /** Whether any background adjustment differs from default (shows reset). */
   readonly isBgModified: boolean;
@@ -91,6 +106,12 @@ export interface IAppearanceSectionView {
   readonly onSetBgBlur: (value: number) => void;
   /** Set background dim. */
   readonly onSetBgDim: (value: number) => void;
+  /** How the image fills the viewport. */
+  readonly bgFit: ThemeBgFit;
+  /** Every available fit mode, in display order. */
+  readonly bgFitOptions: readonly ThemeBgFit[];
+  /** Set the fit mode. */
+  readonly onSetBgFit: (value: ThemeBgFit) => void;
   /** Reset all background adjustments. */
   readonly onResetBg: () => void;
 
@@ -99,4 +120,8 @@ export interface IAppearanceSectionView {
   readonly hasAccentOverride: boolean;
   /** Reset the accent override (back to auto). */
   readonly onResetAccent: () => void;
+  /** "Follow the record": accent derived from the playing cover's palette. */
+  readonly followArtAccent: boolean;
+  /** Toggle the follow-the-record accent. */
+  readonly onFollowArtChange: (enabled: boolean) => void;
 }

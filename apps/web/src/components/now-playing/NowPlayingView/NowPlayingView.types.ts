@@ -4,6 +4,7 @@ import type { Track } from '@/stores/types';
 import type { NowPlayingPanel } from '@/stores/useUIStore';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import type { useLyricsView } from '@/hooks/useLyricsView';
+import type { ICompanionPresence } from '@/hooks/useCompanionPresence';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 type LyricsView = ReturnType<typeof useLyricsView>;
@@ -47,20 +48,36 @@ export interface INowPlayingViewView {
   readonly hasTrack: boolean;
   /** The currently-playing track (null only transiently, before the shell bails). */
   readonly currentTrack: Track | null;
+  /**
+   * The title line. For a radio stream this is the station's ICY `StreamTitle`
+   * once one has arrived and the station's own name until then; for everything
+   * else it is `currentTrack.title`. Empty string when nothing is playing.
+   */
+  readonly titleText: string;
   /** Formatted total-duration label for the track. */
   readonly durationLabel: string;
+  /** "≈ 82 BPM · A minor" estimate line, or null when the track has neither. */
+  readonly tempoKeyLine: string | null;
   /** Whether the waveform seekbar is shown instead of the plain seek bar. */
   readonly showWaveformSeekbar: boolean;
   /** The active right-column panel, or null when the panel is hidden. */
   readonly panel: NowPlayingPanel;
   /** Whether any panel is visible — drives the two-column vs centered layout. */
   readonly panelVisible: boolean;
+  /** The resident's live machine read for the album-art corner cameo. */
+  readonly companion: ICompanionPresence;
+  /** Render the corner cameo at all (master toggle). */
+  readonly companionVisible: boolean;
   /** Render-ready entries for the lyrics / queue / EQ toggle group. */
   readonly panelButtons: readonly INowPlayingPanelButton[];
   /** Localized label for the toggle group's `aria-label`. */
   readonly panelGroupLabel: string;
   /** Whether low-performance mode is on — softens panel-switch animation. */
   readonly lowPerformanceMode: boolean;
+  /** Render the spinning vinyl record in place of the album-art card. */
+  readonly vinylDisplayEnabled: boolean;
+  /** Disc width inside the artwork slot for the user's size choice. */
+  readonly vinylSizeClass: string;
   /** Whether the album art plays the ±3° track-change tilt (off under reduced
    *  motion / low-performance mode). */
   readonly albumArtTiltEnabled: boolean;
@@ -68,6 +85,8 @@ export interface INowPlayingViewView {
   readonly lyricsClasses: INowPlayingLyricsClasses;
   /** Lyrics data layer (synced/plain lines, active line, loading, click handler). */
   readonly lyrics: LyricsView;
+  /** Render the depth-of-field focus stage instead of the synced list. */
+  readonly showLyricsFocus: boolean;
   /** Idle-line opacity for plain lyrics. */
   readonly lyricsPlainOpacity: number;
   /** Dim opacity for inactive synced lyrics. */

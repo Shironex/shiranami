@@ -8,7 +8,9 @@ import {
   LYRICS_PLAIN_FONT_SIZE_DEFAULT,
   LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+  LYRICS_PRESENTATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
+import { useUIStore } from '@/stores/useUIStore';
 
 import LyricsSection from './LyricsSection';
 
@@ -28,7 +30,9 @@ function reset(): void {
     lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
     lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
     lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+    lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
   });
+  useUIStore.setState({ nowPlayingViewEnabled: true });
   vi.clearAllMocks();
 }
 
@@ -72,5 +76,32 @@ describe('LyricsSection', () => {
     await user.click(plainSizeButtons[2]);
 
     expect(setLyricsPlainFontSize).toHaveBeenCalledWith('lg');
+  });
+
+  it('points Focus at the Now Playing view when that view is disabled', () => {
+    useLyricsAppearanceStore.setState({ lyricsPresentation: 'focus' });
+    useUIStore.setState({ nowPlayingViewEnabled: false });
+
+    renderSection();
+
+    expect(screen.getByText(/appears in the Now Playing view/)).toBeInTheDocument();
+  });
+
+  it('keeps the hint away when the Now Playing view is enabled', () => {
+    useLyricsAppearanceStore.setState({ lyricsPresentation: 'focus' });
+    useUIStore.setState({ nowPlayingViewEnabled: true });
+
+    renderSection();
+
+    expect(screen.queryByText(/appears in the Now Playing view/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the hint away while the presentation is the list', () => {
+    useLyricsAppearanceStore.setState({ lyricsPresentation: 'list' });
+    useUIStore.setState({ nowPlayingViewEnabled: false });
+
+    renderSection();
+
+    expect(screen.queryByText(/appears in the Now Playing view/)).not.toBeInTheDocument();
   });
 });

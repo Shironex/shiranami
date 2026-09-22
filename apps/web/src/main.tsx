@@ -1,3 +1,9 @@
+// MUST stay the first import. Installs `window.electronAPI` over the Tauri
+// bindings, and does nothing at all outside the Tauri webview. `@/lib/platform`
+// freezes IS_ELECTRON at module scope and is reached through this file's own
+// import graph (queryClient -> sentry -> i18n), so a statement in the body below
+// would run after that constant had already been decided.
+import '@/lib/bridge/install';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';

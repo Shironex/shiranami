@@ -23,6 +23,7 @@
   "selectedTracks": "{{count}} selected",
   "selectAll": "Select All",
   "clearSelection": "Clear Selection",
+  "hintClose": "Close",
   "more": "More",
   "bulkActionsLabel": "Bulk actions",
   "resizeRightPanel": "Resize side panel",

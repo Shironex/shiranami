@@ -21,6 +21,26 @@
     "hours_other": "{{count}} hours",
     "hoursAndMinutes": "{{hours}} and {{minutes}}"
   },
+  "driftNote": "You drifted off at {{time}} — picked up where you left off.",
+  "recap": {
+    "title": "The week,",
+    "titleEm": "in short.",
+    "time_one": "{{duration}} of music, in a single sitting.",
+    "time_other": "{{duration}} of music across {{count}} sittings.",
+    "track_one": "You kept coming back to {{title}}.",
+    "track_other": "You kept coming back to {{title}} — {{count}} times.",
+    "loudest": "Loudest at {{hour}}.",
+    "archiveAction": "Past weeks"
+  },
+  "memories": {
+    "titleYear": "A year ago,",
+    "titleYearEm": "tonight.",
+    "titleHalfYear": "Six months ago,",
+    "titleHalfYearEm": "tonight.",
+    "line_one": "This one drifted through that evening.",
+    "line_other": "This one kept the night company — {{count}} plays.",
+    "playAria": "Play {{title}} by {{artist}}"
+  },
   "clock": {
     "week": "WK {{week}}",
     "ariaLabel": "Current time, {{time}}"

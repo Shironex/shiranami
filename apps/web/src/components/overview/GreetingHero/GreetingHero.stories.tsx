@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { within, expect } from 'storybook/test';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
+import { useWindDownStore } from '@/stores/useWindDownStore';
 
 import GreetingHero from './GreetingHero';
 
@@ -28,10 +29,16 @@ const meta: Meta<typeof GreetingHero> = {
   },
   decorators: [
     Story => {
-      // Baseline: nothing playing, weather off — matches the no-tracks subtitle
-      // and suppresses the weather row, so the hero renders deterministically.
+      // Baseline: nothing playing, weather off, no wind-down memory — matches
+      // the no-tracks subtitle, suppresses the weather row and the drift note,
+      // so the hero renders deterministically.
       useWeatherStore.setState({ enabled: false, coords: null });
       usePlaybackStore.setState({ currentTrack: null });
+      useWindDownStore.setState({
+        lastCompletion: null,
+        noteAcknowledged: false,
+        closingLineUntil: null,
+      });
       const [client] = useState(
         () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
       );
@@ -64,5 +71,27 @@ export const Default: Story = {
     // The clock card is always present; the weather row is opt-in (off here).
     await expect(canvas.getByRole('group', { name: /Current time/ })).toBeInTheDocument();
     await expect(canvas.queryByText('Weather unavailable')).not.toBeInTheDocument();
+    await expect(canvas.queryByText(/You drifted off at/)).not.toBeInTheDocument();
+  },
+};
+
+/** The morning after a wind-down — the greeting carries the one-line memory. */
+export const MorningAfterWindDown: Story = {
+  decorators: [
+    Story => {
+      useWindDownStore.setState({
+        lastCompletion: {
+          at: new Date(Date.now() - 8 * 3600_000).toISOString(),
+          trackTitle: 'Tokyo Rain',
+        },
+        noteAcknowledged: false,
+        closingLineUntil: null,
+      });
+      return <Story />;
+    },
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText(/You drifted off at/)).toBeInTheDocument();
   },
 };

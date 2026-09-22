@@ -60,7 +60,7 @@ export const TrendUp: Story = {
     const canvas = within(canvasElement);
     const hint = canvas.getByText('+2h 18m vs. last week');
     await expect(hint).toBeInTheDocument();
-    await expect(hint).toHaveClass('text-emerald-400/90');
+    await expect(hint).toHaveClass('text-success/90');
   },
 };
 
@@ -77,6 +77,6 @@ export const TrendDown: Story = {
     const canvas = within(canvasElement);
     const hint = canvas.getByText('−45m vs. last week');
     await expect(hint).toBeInTheDocument();
-    await expect(hint).not.toHaveClass('text-emerald-400/90');
+    await expect(hint).not.toHaveClass('text-success/90');
   },
 };

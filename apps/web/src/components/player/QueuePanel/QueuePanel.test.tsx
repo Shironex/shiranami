@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ReactNode } from 'react';
 import type { Track } from '@/stores/types';
 
 import QueuePanel from './QueuePanel';
@@ -42,6 +43,25 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+const createWithTracksMutation = vi.hoisted(() => ({
+  mutateAsync: vi.fn(async (data: { name: string; trackIds: string[] }) => ({
+    id: 'pl-1',
+    name: data.name,
+  })),
+  isPending: false,
+}));
+
+vi.mock('@/hooks/queries/usePlaylists', () => ({
+  useCreatePlaylistWithTracksMutation: () => createWithTracksMutation,
+}));
+
+// Radix tooltips need a provider; pass the trigger child straight through.
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: () => null,
+}));
+
 function setQueueState(tracks: Track[], index: number): void {
   playbackState.queue = tracks;
   playbackState.queueIndex = index;
@@ -59,7 +79,8 @@ describe('QueuePanel', () => {
     setQueueState([], -1);
     render(<QueuePanel />);
 
-    expect(screen.getByText('empty')).toBeInTheDocument();
+    expect(screen.getByText('emptyTitle')).toBeInTheDocument();
+    expect(screen.getByText('emptySubtitle')).toBeInTheDocument();
     expect(screen.queryByText('clear')).not.toBeInTheDocument();
   });
 
@@ -83,12 +104,52 @@ describe('QueuePanel', () => {
     expect(screen.getByText('upNext:2')).toBeInTheDocument();
   });
 
-  it('clears the queue from the header action', async () => {
+  it('clears the queue only after confirming the destructive popover', async () => {
     setQueueState([makeTrack({ id: 'q0', title: 'Now' })], 0);
     render(<QueuePanel />);
 
-    await userEvent.click(screen.getByText('clear'));
+    await userEvent.click(screen.getByRole('button', { name: 'clear' }));
+    expect(playbackState.clearQueue).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'clearConfirmAction' }));
     expect(playbackState.clearQueue).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the queue when the confirm popover is dismissed', async () => {
+    setQueueState([makeTrack({ id: 'q0', title: 'Now' })], 0);
+    render(<QueuePanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'clear' }));
+    await userEvent.click(screen.getByRole('button', { name: 'keep' }));
+
+    expect(playbackState.clearQueue).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'clearConfirmAction' })).not.toBeInTheDocument();
+  });
+
+  it('saves the whole queue as a playlist under the typed name', async () => {
+    setQueueState(
+      [makeTrack({ id: 'q0', title: 'Now' }), makeTrack({ id: 'q1', title: 'Next' })],
+      0
+    );
+    render(<QueuePanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'saveAsPlaylist' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'namePlaceholder' }), 'Evening mix');
+    await userEvent.click(screen.getByRole('button', { name: 'save' }));
+
+    expect(createWithTracksMutation.mutateAsync).toHaveBeenCalledWith({
+      name: 'Evening mix',
+      trackIds: ['q0', 'q1'],
+    });
+  });
+
+  it('does not save while the playlist name is empty', async () => {
+    setQueueState([makeTrack({ id: 'q0', title: 'Now' })], 0);
+    render(<QueuePanel />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'saveAsPlaylist' }));
+    expect(screen.getByRole('button', { name: 'save' })).toBeDisabled();
+    expect(createWithTracksMutation.mutateAsync).not.toHaveBeenCalled();
   });
 
   it('renders the header action passed via props', () => {

@@ -5,11 +5,22 @@ import type { ThemeId } from '@/stores/useThemeStore';
 // and renders a solid swatch so the default reads as "no photo". Lives in its
 // own module (not the shell) so the shell and its hook can both read it without
 // a circular `<shell> -> .hooks -> <shell>` import edge.
-export const THEME_TILES: Array<{ id: ThemeId; nameKey: string; thumb?: string }> = [
+export interface IThemeTile {
+  id: ThemeId;
+  nameKey: string;
+  thumb?: string;
+}
+
+export const THEME_TILES: IThemeTile[] = [
   { id: 'none', nameKey: 'none' },
   { id: 'lofi-night', nameKey: 'lofiNight', thumb: './themes/lofi-night.webp' },
   { id: 'snow', nameKey: 'snow', thumb: './themes/snow.webp' },
   { id: 'summer', nameKey: 'summer', thumb: './themes/summer.webp' },
   { id: 'sunset', nameKey: 'sunset', thumb: './themes/sunset.webp' },
   { id: 'wisteria', nameKey: 'wisteria', thumb: './themes/wisteria.webp' },
+  // Last, and the only tile whose thumb is not a committed asset: it is the
+  // user's own image, passed in as a prop because this grid is presentational
+  // and has no business fetching one. With no image imported yet it falls back
+  // to the same solid swatch `none` uses, which reads as "nothing here yet".
+  { id: 'custom', nameKey: 'custom' },
 ];

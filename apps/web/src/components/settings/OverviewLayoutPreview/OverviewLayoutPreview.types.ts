@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { InterfaceElementKey } from '@/stores/useInterfaceStore';
+import type { OverviewSectionId } from '@/lib/overview-sections';
 
 export type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`>;
 
@@ -40,6 +41,12 @@ export interface IOverviewBlockProps {
 export interface IOverviewLayoutPreviewView {
   /** Localized preview panel title (also used as the aria-label). */
   readonly title: string;
+  /** User-chosen section order the mock blocks render in. */
+  readonly sectionOrder: readonly OverviewSectionId[];
+  /** Weekly-recap card block state. */
+  readonly recap: IOverviewBlockState;
+  /** On-this-night memories card block state. */
+  readonly memories: IOverviewBlockState;
   /** Stats strip block state. */
   readonly stats: IOverviewBlockState;
   /** Top-tracks-this-week block state. */
@@ -72,4 +79,8 @@ export interface IOverviewLayoutPreviewView {
   readonly recTiles: readonly number[];
   /** Recently-added skeleton rows. */
   readonly recentRows: readonly IOverviewBarRow[];
+  /** Weekly-recap skeleton prose rows. */
+  readonly recapRows: readonly IOverviewBarRow[];
+  /** On-this-night memories skeleton prose rows. */
+  readonly memoryRows: readonly IOverviewBarRow[];
 }

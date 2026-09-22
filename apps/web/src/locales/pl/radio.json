@@ -36,5 +36,13 @@
   "errorTitle": "Nie udało się załadować stacji radiowych",
   "errorSubtitle": "Coś poszło nie tak. Spróbuj ponownie.",
   "removeFavorite": "Usuń z ulubionych",
-  "addFavorite": "Dodaj do ulubionych"
+  "addFavorite": "Dodaj do ulubionych",
+  "diaryTitle": "Złapane z anteny",
+  "diaryTooltip": "Co zagrała stacja, której słuchasz",
+  "diaryClose": "Zamknij dziennik",
+  "diarySubtitleIdle": "Nic nie gra",
+  "diaryIdle": "Włącz stację, a to, co zapowie, zbierze się tutaj.",
+  "diaryEmpty": "Ta stacja nie podała jeszcze żadnego tytułu.",
+  "diaryGetTrack": "Pobierz „{{title}}”",
+  "diaryNoMatch": "Nie udało się nic znaleźć dla tego tytułu"
 }

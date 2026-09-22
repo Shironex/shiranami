@@ -13,7 +13,7 @@ export default function AlbumSortControl(props: IAlbumSortControlProps) {
       key={option.mode}
       onClick={() => onModeChange(option.mode)}
       className={cn(
-        'text-left px-2 py-1.5 rounded-md text-xs transition-colors',
+        'focus-ring text-left px-2 py-1.5 rounded-md text-xs transition-colors',
         option.active ? 'bg-primary/15 text-primary' : 'text-foreground/80 hover:bg-accent'
       )}
     >
@@ -25,7 +25,7 @@ export default function AlbumSortControl(props: IAlbumSortControlProps) {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="flex items-center gap-1.5 rounded-xl border border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="focus-ring flex items-center gap-1.5 rounded-xl border border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
           aria-label={labels.button}
           title={labels.button}
         >
@@ -44,7 +44,7 @@ export default function AlbumSortControl(props: IAlbumSortControlProps) {
             <button
               onClick={() => onOrderChange('asc')}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
+                'focus-ring flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
                 order === 'asc'
                   ? 'bg-primary/15 text-primary'
                   : 'text-foreground/80 hover:bg-accent'
@@ -58,7 +58,7 @@ export default function AlbumSortControl(props: IAlbumSortControlProps) {
             <button
               onClick={() => onOrderChange('desc')}
               className={cn(
-                'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
+                'focus-ring flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs transition-colors',
                 order === 'desc'
                   ? 'bg-primary/15 text-primary'
                   : 'text-foreground/80 hover:bg-accent'

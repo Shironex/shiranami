@@ -38,11 +38,7 @@ export default function DownloadsSection() {
               caption={s.dependencyInstallCaption}
             />
           ) : (
-            <Button
-              type="button"
-              onClick={s.onInstallMissingTools}
-              className="rounded-xl [&_svg]:size-3.5"
-            >
+            <Button type="button" onClick={s.onInstallMissingTools} className="[&_svg]:size-3.5">
               <ArrowDownToLine />
               {s.installMissingLabel}
             </Button>
@@ -99,7 +95,7 @@ export default function DownloadsSection() {
                   type="button"
                   variant="secondary"
                   onClick={s.onInstallYtDlp}
-                  className="rounded-xl [&_svg]:size-3.5"
+                  className="[&_svg]:size-3.5"
                 >
                   <Download />
                   {s.updateYtdlpLabel}
@@ -138,7 +134,7 @@ export default function DownloadsSection() {
                   type="button"
                   variant="secondary"
                   onClick={s.onInstallFfmpeg}
-                  className="rounded-xl [&_svg]:size-3.5"
+                  className="[&_svg]:size-3.5"
                 >
                   <Download />
                   {s.updateFfmpegLabel}

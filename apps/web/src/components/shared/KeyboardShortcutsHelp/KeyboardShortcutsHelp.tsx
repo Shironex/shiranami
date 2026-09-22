@@ -1,4 +1,12 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useKeyboardShortcutsHelp } from './KeyboardShortcutsHelp.hooks';
 import type { IShortcut, IShortcutCategory } from './KeyboardShortcutsHelp.types';
 
@@ -117,6 +125,9 @@ export default function KeyboardShortcutsHelp() {
               <DialogTitle className="font-display text-[1.55rem] font-semibold tracking-tight text-foreground leading-tight">
                 {t('title')}
               </DialogTitle>
+              <DialogDescription className="text-[0.78rem] text-muted-foreground/80">
+                {t('description')}
+              </DialogDescription>
             </div>
           </DialogHeader>
 
@@ -138,6 +149,10 @@ export default function KeyboardShortcutsHelp() {
               <CategorySection category={panelsUi} t={t} />
             </div>
           </div>
+
+          <DialogHintBar className="mx-0 mb-0 border-white/[0.05] px-9 py-3">
+            <DialogHint keyLabel="Esc" label={t('hintClose', { ns: 'common' })} />
+          </DialogHintBar>
         </div>
       </DialogContent>
     </Dialog>

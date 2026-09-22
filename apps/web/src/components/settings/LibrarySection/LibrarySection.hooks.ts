@@ -87,6 +87,10 @@ export function useLibrarySection(): ILibrarySectionView {
     t,
     tc,
     isElectron: IS_ELECTRON,
+    // Feature-detected, not merely platform-gated: `analysis` and `doctor`
+    // are v2-only optional members of the shared preload contract.
+    showAnalysis: IS_ELECTRON && window.electronAPI.analysis != null && library.length > 0,
+    showDoctor: IS_ELECTRON && window.electronAPI.doctor != null && library.length > 0,
     trackCount: library.length,
     trackCountLabel,
     hasTracks: library.length > 0,

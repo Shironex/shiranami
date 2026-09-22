@@ -1,5 +1,13 @@
 import { Download, Loader2, AlertCircle, Music, Check } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useImportDialog } from './ImportDialog.hooks';
@@ -21,7 +29,7 @@ export default function ImportDialog(props: IImportDialogProps) {
     startImport,
   } = useImportDialog(props);
 
-  const trackCountLabel = `${tracks.length} ${tracks.length === 1 ? 'track' : 'tracks'}`;
+  const trackCountLabel = t('trackCount', { count: tracks.length });
 
   const isLoadingOrIdle = state === 'loading' || state === 'idle';
   const isResultState = state === 'ready' || state === 'downloading' || state === 'done';
@@ -44,13 +52,13 @@ export default function ImportDialog(props: IImportDialogProps) {
           isActive
             ? 'bg-primary/10 border border-primary/20'
             : isCompleted
-              ? 'bg-green-500/5'
+              ? 'bg-success/5'
               : 'bg-accent/30'
         }`}
       >
         <span
           className={`text-xs w-5 text-center shrink-0 transition-colors duration-300 ${
-            isCompleted ? 'text-green-400' : isActive ? 'text-primary' : 'text-muted-foreground/50'
+            isCompleted ? 'text-success' : isActive ? 'text-primary' : 'text-muted-foreground/50'
           }`}
         >
           {isCompleted ? (
@@ -64,7 +72,7 @@ export default function ImportDialog(props: IImportDialogProps) {
         <Music
           className={`w-4 h-4 shrink-0 transition-colors duration-300 ${
             isCompleted
-              ? 'text-green-400/50'
+              ? 'text-success/50'
               : isActive
                 ? 'text-primary/60'
                 : 'text-muted-foreground/40'
@@ -92,6 +100,7 @@ export default function ImportDialog(props: IImportDialogProps) {
             <Download className="h-5 w-5" />
             {t('importTitle')}
           </DialogTitle>
+          <DialogDescription>{t('importDescription')}</DialogDescription>
         </DialogHeader>
 
         <div className="overflow-y-auto overflow-x-hidden scrollbar-thin max-h-[calc(80vh-5rem)]">
@@ -152,7 +161,7 @@ export default function ImportDialog(props: IImportDialogProps) {
 
               {/* Actions */}
               {state === 'ready' && (
-                <Button onClick={startImport} className="h-auto w-full rounded-xl py-2.5">
+                <Button onClick={startImport} className="h-auto w-full py-2.5">
                   <Download />
                   {t('downloadAll', { count: tracks.length })}
                 </Button>
@@ -160,10 +169,10 @@ export default function ImportDialog(props: IImportDialogProps) {
 
               {state === 'done' && (
                 <div className="flex flex-col items-center gap-2 py-2">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Check className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                    <Check className="w-5 h-5 text-success" />
                   </div>
-                  <p className="text-sm text-green-400 font-medium">{t('downloadComplete')}</p>
+                  <p className="text-sm text-success font-medium">{t('downloadComplete')}</p>
                   {playlistData && (
                     <p className="text-xs text-muted-foreground">
                       {t('playlistCreated', {
@@ -176,6 +185,10 @@ export default function ImportDialog(props: IImportDialogProps) {
             </div>
           )}
         </div>
+
+        <DialogHintBar>
+          <DialogHint keyLabel="Esc" label={t('hintClose', { ns: 'common' })} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );

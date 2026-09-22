@@ -71,7 +71,11 @@ export default function AppearanceStep() {
       <div className="space-y-4">
         <div className="space-y-3">
           <p className="text-xs font-medium text-foreground">{t('appearance.themeTitle')}</p>
-          <ThemeTileGrid value={theme} onSelect={onSelectTheme} columns={2} />
+          {/* No custom tile during first run: selecting it opens a native file
+              picker, and a modal OS dialog inside onboarding is a different
+              contract from the same affordance in Settings. It stays one tap
+              away in Appearance once the app is actually running. */}
+          <ThemeTileGrid value={theme} onSelect={onSelectTheme} columns={2} showCustom={false} />
           <p className="text-center text-[11px] text-muted-foreground/70">
             {t('appearance.themeHint')}
           </p>

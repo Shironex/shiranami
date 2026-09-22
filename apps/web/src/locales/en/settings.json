@@ -21,6 +21,7 @@
     "sidebar": "Main navigation visibility",
     "weather": "Weather on the Overview clock",
     "system": "Startup and tray behavior",
+    "shortcuts": "Rebind keyboard shortcuts",
     "scrobble": "Scrobble to Last.fm and ListenBrainz",
     "discord": "Discord integration settings",
     "updates": "Application update channel",
@@ -43,6 +44,7 @@
   "sidebar": "Sidebar",
   "weather": "Weather",
   "system": "System",
+  "shortcuts": "Shortcuts",
   "scrobble": "Scrobbling",
   "discord": "Discord",
   "updates": "Updates",
@@ -128,6 +130,38 @@
     "scanCancel": "Cancel",
     "scanCancelling": "Cancelling..."
   },
+  "doctor": {
+    "title": "Library health",
+    "subtitle": "What only a real decode can tell you",
+    "idle": "Decode every file and report damage, truncation and oddities",
+    "run": "Run check",
+    "cancel": "Cancel",
+    "progress": "Checking {{current}} / {{total}} — {{track}}",
+    "summaryHealthy": "All {{scanned}} files decoded clean",
+    "summaryFindings_one": "Checked {{scanned}} files — 1 finding",
+    "summaryFindings_other": "Checked {{scanned}} files — {{count}} findings",
+    "summaryCancelled_one": "Stopped early after {{scanned}} files — 1 finding so far",
+    "summaryCancelled_other": "Stopped early after {{scanned}} files — {{count}} findings so far",
+    "findingMissingFile": "File is missing from disk",
+    "findingUnreadable": "File could not be decoded",
+    "findingNoAudio": "No audio stream in the file",
+    "findingUnsupportedCodec": "This build can't analyse this codec — the file still plays",
+    "findingTruncated": "File ends early — likely an interrupted download",
+    "findingDamagedPackets_one": "1 damaged frame was skipped",
+    "findingDamagedPackets_other": "{{count}} damaged frames were skipped",
+    "findingDurationMismatch": "Tagged as {{expected}} but decodes to {{actual}}",
+    "findingClipping": "True peak {{peak}} dBTP — above full scale",
+    "findingSilent": "The audio is digital silence"
+  },
+  "analysis": {
+    "title": "Tempo and key",
+    "subtitle": "The engine listens once and remembers the pace of every track",
+    "coverage": "{{analyzed}} of {{total}} tracks carry tempo and key estimates",
+    "coverageComplete": "Every track carries its tempo and key estimates",
+    "run": "Analyze library",
+    "cancel": "Cancel",
+    "progress": "Analysing {{current}} / {{total}}…"
+  },
   "diskUsage": {
     "title": "Disk Usage",
     "subtitle": "How much space your music takes and what's free on each drive",
@@ -172,6 +206,10 @@
     "loudness": "Loudness leveling",
     "loudnessDesc": "Play all tracks at a consistent perceived volume",
     "loudnessTarget": "Target loudness",
+    "loudnessMode": "Leveling mode",
+    "loudnessModeDesc": "Album keeps a record's quiet moments quiet; Track levels every song alike",
+    "loudnessModeTrack": "Track",
+    "loudnessModeAlbum": "Album",
     "loudnessAnalyze": "Analyze library",
     "loudnessAnalyzeDesc": "Measure loudness for tracks not yet analysed",
     "loudnessAnalyzing": "Analysing {{current}} / {{total}}…",
@@ -292,7 +330,17 @@
       "title": "Sources",
       "subtitle": "Where lyrics are looked up for your tracks",
       "preferSyncedTitle": "Prefer synced lyrics from LRCLIB",
-      "preferSyncedDesc": "When a track only has a plain-text lyrics file, fetch synced lyrics from LRCLIB instead. Local and embedded synced lyrics always win."
+      "preferSyncedDesc": "When a track only has a plain-text lyrics file, fetch synced lyrics from LRCLIB instead. Local and embedded synced lyrics always win.",
+      "saveFetchedTitle": "Save fetched lyrics beside your music",
+      "saveFetchedDesc": "When lyrics are found online, keep a timed .lrc file next to the track so they still work offline. A lyrics file you already have is never replaced.",
+      "saveRunTitle": "Fetch and save lyrics for your library",
+      "saveRunDesc": "Look up every track once and save what is found. Tracks that already have a lyrics file are skipped without a lookup.",
+      "saveRun": "Save lyrics for library",
+      "saveCancel": "Cancel",
+      "saveProgress": "Saving {{current}} / {{total}}…",
+      "saveSummary": "Saved {{saved}} · skipped {{skipped}} · not found {{notFound}} · failed {{failed}}",
+      "saveSummaryCancelled": "Cancelled — saved {{saved}} · skipped {{skipped}} · not found {{notFound}} · failed {{failed}}",
+      "saveDisabledHint": "Turn on saving above to run this."
     },
     "plain": {
       "title": "Plain text",
@@ -308,7 +356,14 @@
       "opacityTitle": "Dim opacity",
       "opacityDesc": "How visible non-active lines are. The current line stays at full contrast.",
       "fontSizeTitle": "Font size",
-      "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically."
+      "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically.",
+      "presentationTitle": "Presentation",
+      "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches.",
+      "focusHint": "The focus stage appears in the Now Playing view, which is currently turned off. Enable it under Visual effects and lyrics will take the stage there."
+    },
+    "presentation": {
+      "list": "List",
+      "focus": "Focus"
     },
     "size": {
       "sm": "Small",
@@ -402,16 +457,127 @@
     "sidebarResetDesc": "Restore the default order and item visibility",
     "nowPlayingView": "Now Playing view",
     "nowPlayingViewDesc": "Double-click album art in the player bar or now-playing card, or press Ctrl+Shift+P, to open an immersive full view",
+    "vinylDisplay": "Vinyl record display",
+    "vinylDisplayDesc": "Swap the album art in the Now Playing view for a slowly spinning vinyl record. Sanctuary Mode also gains a vinyl center stage.",
+    "vinylDisplayLabelTitle": "Record label",
+    "vinylDisplayLabelDesc": "What the record's center label shows: the album artwork, or the 白波 brand mark.",
+    "vinylDisplayLabel": {
+      "artwork": "Artwork",
+      "logo": "Brand mark"
+    },
+    "vinylRingTitle": "Reactive ring",
+    "vinylRingDesc": "A light ring around the disc that follows the music: a calm glow, a bar spectrum, or nothing at all.",
+    "vinylRing": {
+      "off": "Off",
+      "glow": "Glow",
+      "spectrum": "Spectrum"
+    },
+    "vinylSpeedTitle": "Rotation speed",
+    "vinylSpeedDesc": "How fast the platter turns — each choice spins at its real RPM: a slow long-play, a lively single, or an old shellac 78.",
+    "vinylSpeed": {
+      "33": "33⅓ RPM",
+      "45": "45 RPM",
+      "78": "78 RPM"
+    },
+    "vinylFinishTitle": "Disc finish",
+    "vinylFinishDesc": "The pressing itself: classic black, a translucent clear disc, an accent-tinted marble swirl, or a picture disc with the album art across the whole face.",
+    "vinylFinish": {
+      "black": "Black",
+      "clear": "Clear",
+      "marble": "Marble",
+      "picture": "Picture disc"
+    },
+    "vinylSizeTitle": "Disc size",
+    "vinylSizeDesc": "How much of each stage the record fills — chosen separately for the Now Playing view and Sanctuary Mode.",
+    "vinylSizeNowPlaying": "Now Playing",
+    "vinylSizeSanctuary": "Sanctuary",
+    "vinylSize": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "vinylTonearm": "Tonearm",
+    "vinylTonearmDesc": "A tonearm rests on the record while it plays and lifts away when paused.",
     "libraryHeroCard": "Now playing banner",
     "libraryHeroCardDesc": "Show the large now-playing card above Library and Favorites. Turn off to give albums more room. The player bar still shows track info.",
     "lowPerfMode": "Low performance mode",
     "lowPerfModeDesc": "Disable visualizer, glass blur, noise overlay, and ambient gradients. Recommended for older or integrated-GPU machines.",
     "noiseOverlay": "Noise texture",
     "noiseOverlayDesc": "Subtle film-grain texture layered over the UI. Off by default. Adds a small amount of GPU work.",
+    "artworkBloom": "Artwork bloom",
+    "artworkBloomDesc": "Blurred copies of the record's cover drift slowly behind the app. When off, a calm color glow takes its place.",
+    "coverCrossfade": "Cover crossfade",
+    "coverCrossfadeDesc": "The artwork backdrop dissolves from one record into the next. This is the visual dissolve only — the audio crossfade lives in Playback.",
+    "roomLight": "Room light",
+    "roomLightDesc": "The app follows your local day — cool morning light, a golden-hour wash toward sunset, and a slightly dimmer room with a warm desk lamp after dark. Changes drift in over minutes.",
+    "roomLightStopTitle": "Time of day",
+    "roomLightStopDesc": "Follow your clock, or hold the room at one moment of the day.",
+    "roomLightStops": {
+      "auto": "Auto",
+      "dawn": "Dawn",
+      "day": "Day",
+      "goldenHour": "Golden hour",
+      "dusk": "Dusk",
+      "night": "Night"
+    },
+    "roomLightIntensityTitle": "Light intensity",
+    "roomLightIntensityDesc": "How strongly the grade colors the scene. 100% is the authored look; higher leans into it.",
+    "roomLightHueTitle": "Lamp warmth",
+    "roomLightHueDesc": "Nudge the warmth of the light — a cooler, bluer cast or a warmer, amber one.",
+    "roomLightHueCooler": "Cooler",
+    "roomLightHueWarmer": "Warmer",
+    "tempoBreathing": "Tempo breathing",
+    "tempoBreathingDesc": "The artwork bloom, the floating mascot, and the compact player's pulse breathe at the tempo of the playing track. Tracks without tempo data keep their fixed rhythm.",
+    "tempoBreathingHint": "Most of your library has no tempo data yet, so the breathing rarely engages. Run the analysis once from the Library settings.",
     "sidebarPlaylists": "Show playlists",
     "sidebarPlaylistsDesc": "Display your playlists in the sidebar",
     "effects": "Visual effects",
     "effectsDesc": "Immersive surfaces and rendering extras",
+    "sanctuary": {
+      "title": "Sanctuary Mode",
+      "desc": "Press F while music plays: the app dissolves into a fullscreen player — the cover, the lyric, and the light.",
+      "variantTitle": "Center stage",
+      "variantDesc": "What fills the screen: the record's cover, a spinning vinyl, or a large clock with the track underneath.",
+      "variant": {
+        "cover": "Cover",
+        "clock": "Clock",
+        "vinyl": "Vinyl"
+      },
+      "trackInfoTitle": "Track details",
+      "trackInfoDesc": "Which stages keep the title and artist on screen. Turn a stage off and its art stands alone.",
+      "timeOfDay": "Follow the day",
+      "timeOfDayDesc": "Dawn, day, dusk and night pick the stage on their own — a serif clock at first light, the cover by day, the record at dusk, thin numerals at night.",
+      "rotationTitle": "Rotate the stage",
+      "rotationDesc": "Quietly move to the next stage on its own.",
+      "rotation": {
+        "off": "Off",
+        "minutes": "Every few minutes",
+        "entry": "Each entry"
+      },
+      "rotationMinutesTitle": "Minutes between turns",
+      "rotationMinutesDesc": "How long each stage holds before the next takes over.",
+      "clockFaceTitle": "Clock face",
+      "clockFaceDesc": "How the numerals are drawn when the clock takes the stage.",
+      "clockFace": {
+        "minimal": "Minimal",
+        "serif": "Library",
+        "oversized": "Oversized"
+      },
+      "clockFormatTitle": "Hour format",
+      "clockFormatDesc": "Follow the app language, or force a 12- or 24-hour clock.",
+      "clockFormat": {
+        "system": "Language default",
+        "12h": "12-hour",
+        "24h": "24-hour"
+      },
+      "clockSeconds": "Show seconds",
+      "clockSecondsDesc": "Let the seconds tick along under the stillness.",
+      "autoEnter": "Enter on its own",
+      "autoEnterDesc": "After a stretch of stillness while music plays, your desk quietly becomes a lofi display. Any key or pointer move brings the app right back.",
+      "minutesTitle": "Stillness before entering",
+      "minutesDesc": "How long the app waits without any activity before entering by itself.",
+      "minutes": "{{count}} min"
+    },
     "effectPreview": {
       "nowPlayingView": "Now Playing preview",
       "libraryBanner": "Banner preview",
@@ -422,7 +588,10 @@
       "full": "Full",
       "noise": "Noise preview",
       "noiseOn": "Texture enabled",
-      "noiseOff": "Texture disabled"
+      "noiseOff": "Texture disabled",
+      "vinyl": "Vinyl preview",
+      "roomLight": "Room light preview",
+      "roomLightOff": "Light off"
     },
     "sectionsAriaLabel": "Settings sections",
     "theme": {
@@ -435,13 +604,16 @@
         "snow": "Snow",
         "summer": "Summer",
         "sunset": "Sunset",
-        "wisteria": "Wisteria"
+        "wisteria": "Wisteria",
+        "custom": "Your image"
       }
     },
     "accent": {
       "title": "Accent color",
       "desc": "Pick the highlight color used across the app. Auto follows the active theme.",
       "auto": "Auto (theme accent)",
+      "followArt": "Follow the record",
+      "followArtDesc": "Borrow the accent from the playing album's cover. Eases between records; black-and-white covers keep your chosen accent.",
       "custom": "Custom color",
       "apply": "Use {{name}} accent",
       "reset": "Reset",
@@ -470,9 +642,39 @@
       "topBarTitle": "Top bar",
       "topBarDesc": "Elements shown in the bar at the top of the window",
       "topBarPreview": "Top bar preview",
+      "companion": {
+        "title": "Companion",
+        "desc": "A small resident that lives on your player",
+        "enable": "Show companion",
+        "enableDesc": "Shio or Hotaru sits on the player bar, sways with whatever's on, and slowly grows with your listening. It never asks for anything.",
+        "speciesLabel": "Who lives here",
+        "shioEpithet": "the tide-cat",
+        "hotaruEpithet": "the star jelly",
+        "nameLabel": "Name",
+        "nameNone": "No name yet",
+        "nameAction": "Give a name",
+        "renameAction": "Rename",
+        "nameSave": "Save",
+        "nameCancel": "Cancel",
+        "keepsWatch": "Keeps watch in Sanctuary",
+        "keepsWatchDesc": "Stays asleep in a corner, lights low, while the sanctuary plays",
+        "dressForWeather": "Dresses for the weather",
+        "dressForWeatherDesc": "A tiny accessory for the sky outside — a leaf umbrella in the rain, a scarf on cold days. Follows the seasons when weather is off.",
+        "keepsakes": "Little keepsakes",
+        "keepsakesDesc": "Small treasures picked up along the way — more unlock as it grows.",
+        "keepsake_beret": "beret",
+        "keepsake_glasses": "round glasses",
+        "keepsake_satchel": "satchel",
+        "keepsake_pendant": "shell pendant",
+        "stageLineNew": "{{name}} · just hatched — it grows as you listen",
+        "stageLine_one": "{{name}} · grown from {{count}} hour of listening",
+        "stageLine_other": "{{name}} · grown from {{count}} hours of listening"
+      },
       "overviewTitle": "Overview widgets",
-      "overviewDesc": "Choose which sections appear on your Overview page",
+      "overviewDesc": "Choose which sections appear on your Overview page, and in what order",
       "overviewPreview": "Overview preview",
+      "overviewReorderHint": "Drag the handle to reorder sections. Use the switches to show or hide widgets.",
+      "overviewDragHandle": "Reorder {{label}}",
       "playerTitle": "Player bar",
       "playerDesc": "Choose which elements appear in the player bar. Playback controls and the seek bar always stay.",
       "playerPreview": "Player bar preview",
@@ -480,8 +682,13 @@
       "elements": {
         "topBarLanguageSwitcher": "Language switcher",
         "topBarLanguageSwitcherDesc": "Quick language toggle in the top bar. The language picker stays available in Appearance settings.",
+        "overviewRecap": "Weekly recap",
+        "overviewRecapDesc": "A few quiet lines about each finished week; past weeks stay in History",
+        "overviewMemories": "On this night",
+        "overviewMemoriesDesc": "A track you played a year ago tonight — or six months, when the year is quiet",
         "overviewStats": "Stats strip",
         "overviewStatsDesc": "Listening time, sessions, and trend for the week",
+        "overviewInsights": "Weekly insights",
         "overviewTopWeek": "Top this week",
         "overviewTopWeekDesc": "Your most played tracks of the last 7 days",
         "overviewClock": "Listening clock",
@@ -526,10 +733,57 @@
       "blurDesc": "Soften the background image edges",
       "dim": "Dim overlay",
       "dimDesc": "Dark layer over the image to keep text readable",
+      "fit": "Fit",
+      "fitDesc": "How your image fills the window. Contain shows all of it; cover crops to fill.",
+      "fitOptions": {
+        "cover": "Cover",
+        "contain": "Contain"
+      },
       "reset": "Reset",
       "previewTitle": "Preview",
       "previewTrack": "Sample Track",
       "previewArtist": "Now playing over your background"
+    },
+    "background": {
+      "hint": "PNG, JPEG, WebP or GIF · up to 20 MB",
+      "retry": "Try again",
+      "library": {
+        "title": "Saved backgrounds",
+        "desc": "Save a few scenes, then show your pick, rotate through them, or map them to the time of day.",
+        "add": "Add image…",
+        "defaultLabel": "Background {{n}}",
+        "unnamed": "Untitled",
+        "makeActive": "Show {{name}}",
+        "rename": "Rename {{name}}",
+        "remove": "Remove {{name}}",
+        "full": "The library is full — remove an image to add another.",
+        "modeTitle": "Which image shows",
+        "modeDesc": "Your pick, an automatic rotation, or a time-of-day schedule.",
+        "modes": {
+          "single": "My pick",
+          "rotation": "Rotation",
+          "timeOfDay": "Time of day"
+        },
+        "intervalTitle": "Rotate",
+        "intervalDesc": "How often the rotation moves to the next saved image.",
+        "intervals": {
+          "launch": "Every launch",
+          "hourly": "Every hour",
+          "daily": "Every day"
+        },
+        "scheduleTitle": "Time-of-day scenes",
+        "scheduleDesc": "Give each part of the day its own image — the same day cycle Room light follows. Times without one show your pick.",
+        "scheduleFallback": "My pick"
+      },
+      "errors": {
+        "tooLarge": "That image is too large. Pick one under 20 MB.",
+        "unsupportedFormat": "That file type is not supported. Use a PNG, JPEG, WebP or GIF.",
+        "notAnImage": "That file is not the image its name claims to be.",
+        "dimensionsTooLarge": "That image is too big to display. Its longest edge must be under 8192 pixels.",
+        "libraryFull": "The background library holds up to 12 images. Remove one first.",
+        "generic": "The background could not be changed.",
+        "readFailed": "Could not read your saved backgrounds."
+      }
     }
   },
   "dl": {

@@ -1,0 +1,44 @@
+[package]
+name = "shiranami-metadata"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+shiranami-core.workspace = true
+shiranami-net.workspace = true
+
+fast_image_resize = { workspace = true }
+futures = { workspace = true }
+image = { workspace = true }
+lofty = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+specta = { workspace = true }
+# `specta_typescript::Number` pins `MetadataLookupResult::confidence` to
+# `number`; specta's default float mapping is `number | null`, since serde_json
+# writes a NaN as `null`. Same reason `shiranami-core` and `shiranami-library`
+# take it.
+specta-typescript = { workspace = true }
+thiserror = { workspace = true }
+# `macros` for the `tokio::select!` in `enrich::batch`. It is added here rather
+# than in the workspace row because this is the only crate whose *library* needs
+# it, and without it `cargo check -p shiranami-metadata` fails: the feature was
+# arriving only through unification with this crate's own dev-dependency, which
+# a lib-only selection never enables.
+tokio = { workspace = true, features = ["macros"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

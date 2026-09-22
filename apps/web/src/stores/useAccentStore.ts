@@ -1,5 +1,5 @@
 import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
-import { hexToRgb, isHexColor, relativeLuminance, contrastRatio } from '@/lib/color';
+import { hexToRgb, isHexColor, prefersDarkInk } from '@/lib/color';
 
 /**
  * Preset accent swatches. The first five mirror the per-theme accents in
@@ -28,11 +28,10 @@ const STORE_KEY = 'shiranami.accent-store';
 
 // Foreground candidates for text rendered on the accent. Values mirror
 // --primary-foreground (:root) and --foreground so overridden accents keep
-// the same ink colors the rest of the palette uses.
+// the same ink colors the rest of the palette uses; the WCAG pick between
+// them is `prefersDarkInk` (lib/color), shared with the art-palette ink.
 const DARK_FOREGROUND = 'oklch(0.1 0.02 280)';
 const LIGHT_FOREGROUND = 'oklch(0.97 0.01 280)';
-const DARK_FOREGROUND_LUMINANCE = 0.012;
-const LIGHT_FOREGROUND_LUMINANCE = 0.92;
 
 const ACCENT_PROPS = ['--primary', '--primary-rgb', '--primary-foreground', '--ring'] as const;
 
@@ -55,12 +54,7 @@ export function applyAccent(accentColor: string | null): void {
     for (const prop of ACCENT_PROPS) style.removeProperty(prop);
     return;
   }
-  const luminance = relativeLuminance(rgb);
-  const foreground =
-    contrastRatio(luminance, DARK_FOREGROUND_LUMINANCE) >=
-    contrastRatio(luminance, LIGHT_FOREGROUND_LUMINANCE)
-      ? DARK_FOREGROUND
-      : LIGHT_FOREGROUND;
+  const foreground = prefersDarkInk(rgb) ? DARK_FOREGROUND : LIGHT_FOREGROUND;
   style.setProperty('--primary', accentColor);
   style.setProperty('--primary-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
   style.setProperty('--primary-foreground', foreground);
@@ -70,31 +64,47 @@ export function applyAccent(accentColor: string | null): void {
 interface AccentState {
   /** #rrggbb override, or null to follow the active theme's accent. */
   accentColor: string | null;
+  /**
+   * "Follow the record": derive the accent from the playing cover's palette.
+   * The actual application lives in AmbientColorProvider (it owns the
+   * palette); picking a manual accent or resetting turns this back off so
+   * the user's explicit choice always wins.
+   */
+  followArtAccent: boolean;
   setAccentColor: (hex: string | null) => void;
+  setFollowArtAccent: (enabled: boolean) => void;
   resetAccent: () => void;
 }
 
 export const useAccentStore = createPersistedStore<AccentState>(
   set => ({
     accentColor: ACCENT_DEFAULT,
+    followArtAccent: false,
     setAccentColor: hex => {
       const next = coerceAccent(hex);
       applyAccent(next);
-      set({ accentColor: next });
+      set({ accentColor: next, followArtAccent: false });
+    },
+    setFollowArtAccent: enabled => {
+      set({ followArtAccent: enabled });
     },
     resetAccent: () => {
       applyAccent(ACCENT_DEFAULT);
-      set({ accentColor: ACCENT_DEFAULT });
+      set({ accentColor: ACCENT_DEFAULT, followArtAccent: false });
     },
   }),
   {
     name: STORE_KEY,
     version: 1,
-    partialize: s => ({ accentColor: s.accentColor }),
-    sanitize: (persisted, current) => ({
-      ...current,
-      accentColor: coerceAccent((persisted as Partial<AccentState> | undefined)?.accentColor),
-    }),
+    partialize: s => ({ accentColor: s.accentColor, followArtAccent: s.followArtAccent }),
+    sanitize: (persisted, current) => {
+      const p = persisted as Partial<AccentState> | undefined;
+      return {
+        ...current,
+        accentColor: coerceAccent(p?.accentColor),
+        followArtAccent: typeof p?.followArtAccent === 'boolean' ? p.followArtAccent : false,
+      };
+    },
     onRehydrate: state => applyAccent(state.accentColor),
   }
 );

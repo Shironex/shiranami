@@ -34,5 +34,13 @@
   "errorTitle": "Couldn't load radio stations",
   "errorSubtitle": "Something went wrong. Try again.",
   "removeFavorite": "Remove from favorites",
-  "addFavorite": "Add to favorites"
+  "addFavorite": "Add to favorites",
+  "diaryTitle": "Caught on air",
+  "diaryTooltip": "What the station on air has played",
+  "diaryClose": "Close the diary",
+  "diarySubtitleIdle": "Nothing on air",
+  "diaryIdle": "Play a station and what it announces will collect here.",
+  "diaryEmpty": "This station hasn't announced a title yet.",
+  "diaryGetTrack": "Get \"{{title}}\"",
+  "diaryNoMatch": "Couldn't find anything for that title"
 }

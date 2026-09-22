@@ -1,5 +1,6 @@
 {
   "title": "Find Missing Metadata",
+  "description": "Preview matched metadata from online sources before applying it to this track.",
   "searching": "Searching for matching metadata…",
   "noMatchTitle": "No matching metadata found",
   "noMatchBody": "Try editing the title or artist before retrying.",

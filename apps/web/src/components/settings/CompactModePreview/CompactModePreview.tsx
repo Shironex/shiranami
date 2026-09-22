@@ -1,4 +1,5 @@
 import { Music2, Heart, Mic2, Play, SkipBack, SkipForward } from 'lucide-react';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { cn } from '@/lib/utils';
 import { useCompactModePreview } from './CompactModePreview.hooks';
@@ -29,11 +30,7 @@ export default function CompactModePreview() {
 
   return (
     <SettingsPreview title={title}>
-      <div
-        className="bg-background/40 border border-border/30 rounded-xl p-4 flex flex-col items-center justify-center gap-0"
-        role="img"
-        aria-label={title}
-      >
+      <PreviewFrame label={title} size="none" className="flex flex-col items-center justify-center">
         {/* Mock mini-player card */}
         <div
           className={cn(
@@ -103,7 +100,7 @@ export default function CompactModePreview() {
         </div>
 
         <p className="text-[10px] text-muted-foreground/60 text-center mt-2">{disclaimer}</p>
-      </div>
+      </PreviewFrame>
     </SettingsPreview>
   );
 }

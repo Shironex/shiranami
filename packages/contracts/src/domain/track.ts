@@ -23,6 +23,16 @@ export interface Track {
   playCount: number | null;
   createdAt: string;
   updatedAt: string;
+  /** Album-level integrated loudness (LUFS); null = unanalysed or no album. */
+  albumLoudnessLufs: number | null;
+  /** Loudest true peak (dBTP); null = unanalysed or digital silence. */
+  truePeakDb: number | null;
+  /** Loudness range (EBU Tech 3342, LU); null = unanalysed. */
+  loudnessRange: number | null;
+  /** Estimated tempo (BPM), octave-folded into 60-180; null = unanalysed or no detectable beat. */
+  bpm: number | null;
+  /** Estimated musical key, e.g. "C major" / "A minor"; null = unanalysed or undetectable. */
+  musicalKey: string | null;
 }
 
 /**
@@ -110,6 +120,16 @@ export interface DisplayTrack {
   playCount?: number;
   /** Integrated loudness (LUFS) for loudness leveling; absent = unanalysed. */
   loudnessLufs?: number | null;
+  /** Album-level integrated loudness (LUFS); absent = unanalysed or no album. */
+  albumLoudnessLufs?: number | null;
+  /** Loudest true peak (dBTP), the boost guard; absent = unanalysed. */
+  truePeakDb?: number | null;
+  /** Loudness range (LU), a dynamics figure; absent = unanalysed. */
+  loudnessRange?: number | null;
+  /** Estimated tempo (BPM), octave-folded into 60-180; absent = unanalysed or no detectable beat. */
+  bpm?: number | null;
+  /** Estimated musical key, e.g. "C major" / "A minor"; absent = unanalysed or undetectable. */
+  musicalKey?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

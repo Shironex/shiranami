@@ -22,10 +22,16 @@ export interface ILyricsPanelView {
   readonly activeLine: number;
   /** Lyrics fetch in flight. */
   readonly isLoading: boolean;
+  /** Lyrics fetch failed (drives LyricsBody's error branch). */
+  readonly isError: boolean;
   /** Translated source-badge label (Local / Embedded / LRCLIB), or null when unresolved. */
   readonly sourceLabel: string | null;
+  /** Translated Retry label for the error branch. */
+  readonly retryLabel: string;
   /** Seek to a line's timestamp. */
   readonly onLineClick: (time: number) => void;
+  /** Re-run the failed lyrics fetch. */
+  readonly onRetry: () => void;
   /** Idle/past synced-line dim opacity from user prefs. */
   readonly syncedDimOpacity: number;
   /** Plain-lyrics text opacity from user prefs. */

@@ -18,6 +18,7 @@
 
 import type { WatchedFolder } from '../domain/folder';
 import type { LyricsResult } from '../domain/lyrics';
+import type { LyricsBatchProgress, LyricsBatchSummary, LyricsBatchTrack } from './lyrics';
 import type { PlaylistExtractResult, SearchResult, TrackMetadata } from '../domain/media';
 import type { InstallDependenciesResult } from '../domain/dependencies';
 import type { DownloadQueueSnapshot, EnqueueDownloadInput } from '../domain/download-queue';
@@ -64,6 +65,9 @@ import type {
   RecordPlayInput,
   WeeklyInsights,
 } from './history';
+import type { AnalysisBatchResult, AnalysisInput, AnalysisProgress } from './analysis';
+import type { CompanionSpecies, CompanionState, CompanionXpGain } from './companion';
+import type { DoctorProgress, DoctorScanInput, DoctorScanResult } from './doctor';
 import type { LoudnessAnalyzeInput, LoudnessAnalyzeResult, LoudnessProgress } from './loudness';
 import type {
   EnrichProgress,
@@ -135,6 +139,59 @@ export interface LibraryApi {
   cancelScan: () => Promise<void>;
 }
 
+// ── analysis ──────────────────────────────────────────────────────────────
+
+export interface AnalysisApi {
+  /**
+   * Decode each submitted file once and persist every measurement the engine
+   * makes — waveform peaks, loudness, and tempo/key — on the track row.
+   * Tracks already carrying everything, and missing files, are skipped.
+   */
+  analyze: (tracks: AnalysisInput[]) => Promise<AnalysisBatchResult>;
+  cancel: () => Promise<void>;
+  onProgress: (callback: (data: AnalysisProgress) => void) => () => void;
+}
+
+// ── doctor ────────────────────────────────────────────────────────────────
+
+export interface DoctorApi {
+  /**
+   * Decode every submitted file once and report decode-truth findings —
+   * truncation, damaged packets, duration lies, clipping, silence. Findings
+   * are informative; nothing is fixed, deleted or written.
+   */
+  scan: (tracks: DoctorScanInput[]) => Promise<DoctorScanResult>;
+  cancel: () => Promise<void>;
+  onProgress: (callback: (data: DoctorProgress) => void) => () => void;
+}
+
+// ── companion ─────────────────────────────────────────────────────────────
+
+export interface CompanionApi {
+  /**
+   * The companion's persistent self. The first call ever hatches the
+   * singleton, seeding its XP from the whole play history; `lastSeenAt` in
+   * the returned state is the *previous* sighting (the call stamps the new
+   * one after reading), so return-after-absence moods cost one round trip.
+   */
+  getState: () => Promise<CompanionState>;
+  /** The naming ceremony. Returns the updated state. */
+  setName: (name: string) => Promise<CompanionState>;
+  /**
+   * Switch who lives with you. Stage, XP, name and accessories all survive
+   * the switch — a preference, not a collection.
+   */
+  setSpecies: (species: CompanionSpecies) => Promise<CompanionState>;
+  /**
+   * Replace the worn accessory set (the whole set every time, never a
+   * delta). Which ids exist and which stages unlock them is renderer
+   * vocabulary; the ledger stores the choice.
+   */
+  setAccessories: (accessories: string[]) => Promise<CompanionState>;
+  /** XP accrued from a recorded play, streamed by `db:history:record-play`. */
+  onXp: (callback: (gain: CompanionXpGain) => void) => () => void;
+}
+
 // ── loudness ──────────────────────────────────────────────────────────────
 
 export interface LoudnessApi {
@@ -188,6 +245,22 @@ export interface LyricsApi {
     duration?: number,
     filePath?: string
   ) => Promise<LyricsResult>;
+  /**
+   * Fetch and save lyrics for a set of tracks. Rejects with
+   * `lyrics.save_disabled` when the opt-in is off, and `lyrics.save_busy`
+   * when a run is already going.
+   *
+   * v2-only, hence optional — as with `analysis` and `doctor`, the v1 preload
+   * implements this interface and has no write-back to run, so the renderer
+   * feature-detects and hides the control where these are absent. Optional on
+   * the *members* rather than on the namespace because `lyrics.fetch` is a
+   * ported v1 channel and must stay unconditionally present.
+   */
+  saveBatch?: (tracks: LyricsBatchTrack[]) => Promise<LyricsBatchSummary>;
+  /** Stop the active write-back run. A no-op when idle. v2-only. */
+  saveCancel?: () => Promise<void>;
+  /** Subscribe to write-back progress. Returns an unsubscribe function. v2-only. */
+  onSaveProgress?: (callback: (progress: LyricsBatchProgress) => void) => () => void;
 }
 
 // ── weather ───────────────────────────────────────────────────────────────
@@ -215,6 +288,13 @@ export interface DbTracksApi {
   exists: (filePath: string) => Promise<boolean>;
   existsMany: (filePaths: string[]) => Promise<string[]>;
   getIdByPath: (filePath: string) => Promise<string | null>;
+  /**
+   * Ranked FTS5 search, best match first; an empty query returns no rows.
+   * v2-only (F6), hence optional: the v1 preload also implements this
+   * interface and has no FTS index — the renderer feature-detects and keeps
+   * its client-side filter where this is absent.
+   */
+  search?: (query: string, limit?: number) => Promise<Track[]>;
 }
 
 export interface DbHistoryApi {
@@ -227,11 +307,20 @@ export interface DbHistoryApi {
     since?: string | null;
     until?: string | null;
   }) => Promise<ListeningStatsSummary>;
-  getActivity: (options?: { since?: string | null }) => Promise<ListeningActivityPoint[]>;
+  /** `until` is exclusive on all three activity reads, mirroring `getSummary` —
+   *  optional, so every v1 `{ since }`-only call shape keeps working. */
+  getActivity: (options?: {
+    since?: string | null;
+    until?: string | null;
+  }) => Promise<ListeningActivityPoint[]>;
   getHourlyActivity: (options?: {
     since?: string | null;
+    until?: string | null;
   }) => Promise<ListeningHourlyActivityPoint[]>;
-  getWeeklyInsights: (options?: { since?: string | null }) => Promise<WeeklyInsights>;
+  getWeeklyInsights: (options?: {
+    since?: string | null;
+    until?: string | null;
+  }) => Promise<WeeklyInsights>;
 }
 
 export interface DbFoldersApi {
@@ -351,6 +440,12 @@ export interface DownloaderApi {
   enqueueDownload: (input: EnqueueDownloadInput) => Promise<string>;
   cancelDownload: (id: string) => Promise<void>;
   cancelAllDownloads: () => Promise<void>;
+  // Optional: only the Tauri runtime implements retry. The renderer feature-
+  // detects these and hides the retry affordances where they are absent, so
+  // the legacy Electron preload stays compilable without a main-process
+  // handler it will never grow.
+  retryDownload?: (id: string) => Promise<void>;
+  retryAllFailedDownloads?: () => Promise<void>;
   clearCompletedDownloads: () => Promise<void>;
   pauseDownloadQueue: () => Promise<void>;
   resumeDownloadQueue: () => Promise<void>;
@@ -414,8 +509,76 @@ export interface RadioFavoritesApi {
   isFavorite: (stationUuid: string) => Promise<boolean>;
 }
 
+/**
+ * What a station said it is playing, de-framed from its ICY metadata.
+ *
+ * `raw` is the source of truth — the `StreamTitle` exactly as it decoded — and
+ * is what the UI renders. `artist`/`title` are a best-effort split on the
+ * `Artist - Title` convention and are null whenever the string does not carry
+ * it, which is often: idents, ads and bare track names all arrive here.
+ *
+ * `streamUrl` is the station URL the renderer asked for, so a title arriving
+ * late from a station the user already left can be ignored rather than shown.
+ */
+export interface RadioNowPlaying {
+  streamUrl: string;
+  raw: string;
+  artist: string | null;
+  title: string | null;
+}
+
+/**
+ * One line of the radio diary: a title a station sent, as it was stored.
+ *
+ * The kept form of a {@link RadioNowPlaying}, minus `streamUrl` — that field
+ * exists on the event so a title from a station the user already left can be
+ * discarded, and means nothing once the row is filed under a station.
+ *
+ * `raw` stays the source of truth: it is what the panel renders and what "get
+ * this track" searches on, so a row whose `artist`/`title` split came out wrong
+ * is still one the user can read and act on.
+ */
+export interface RadioLogEntry {
+  id: number;
+  stationUuid: string;
+  raw: string;
+  artist: string | null;
+  title: string | null;
+  /** ISO-8601 instant the title was recorded. */
+  heardAt: string;
+}
+
+/**
+ * The private, local log of what each station played. Nothing here is uploaded
+ * or shared.
+ */
+export interface RadioLogApi {
+  /**
+   * File one title against a station. Called when the now-playing event reports
+   * a *change* — never on a timer.
+   *
+   * Resolves to `null` when the title is a consecutive repeat of the station's
+   * most recent entry, which is what a mid-song reconnect produces.
+   */
+  record: (stationUuid: string, playing: RadioNowPlaying) => Promise<RadioLogEntry | null>;
+  /** One station's entries, newest first. */
+  get: (stationUuid: string, limit?: number) => Promise<RadioLogEntry[]>;
+}
+
 export interface RadioApi {
   favorites: RadioFavoritesApi;
+  /**
+   * The station's now-playing title, one call per *change*. v2-only: v1
+   * declined ICY metadata, so the Electron preload leaves this undefined and
+   * the renderer feature-detects.
+   */
+  onNowPlaying?: (callback: (playing: RadioNowPlaying) => void) => () => void;
+  /**
+   * The diary of what stations played. v2-only for the same reason as
+   * `onNowPlaying`: v1 had no titles to keep, so the Electron preload leaves
+   * this undefined and the renderer feature-detects.
+   */
+  log?: RadioLogApi;
 }
 
 // ── shell ─────────────────────────────────────────────────────────────────
@@ -583,6 +746,25 @@ export interface SharedElectronApi {
   window: WindowApi;
   app: AppApi;
   library: LibraryApi;
+  /**
+   * The one-pass analysis engine (F1/F2). v2-only, hence optional: the v1
+   * preload also implements this interface and has no engine to run — the
+   * renderer feature-detects and hides the card where this is absent.
+   */
+  analysis?: AnalysisApi;
+  /**
+   * The Library Doctor (F8). v2-only, hence optional: the v1 preload also
+   * implements this interface and its decoder cannot produce the findings —
+   * the renderer feature-detects and hides the card where this is absent.
+   */
+  doctor?: DoctorApi;
+  /**
+   * The desk companion's ledger (v2 companion, Phase 1). v2-only, hence
+   * optional: the v1 preload also implements this interface and has no
+   * companion — the renderer feature-detects and keeps the perch empty
+   * where this is absent.
+   */
+  companion?: CompanionApi;
   loudness: LoudnessApi;
   waveform: WaveformApi;
   db: DbApi;

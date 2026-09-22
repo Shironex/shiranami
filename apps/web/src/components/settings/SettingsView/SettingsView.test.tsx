@@ -67,6 +67,9 @@ vi.mock('@/components/settings/WeatherSection', () => ({
 vi.mock('@/components/settings/ScrobbleSection', () => ({
   ScrobbleSection: () => <div data-testid="ScrobbleSection" />,
 }));
+vi.mock('@/components/settings/ShortcutsSection', () => ({
+  ShortcutsSection: () => <div data-testid="ShortcutsSection" />,
+}));
 vi.mock('@/components/settings/SystemSection', () => ({
   SystemSection: () => <div data-testid="SystemSection" />,
 }));

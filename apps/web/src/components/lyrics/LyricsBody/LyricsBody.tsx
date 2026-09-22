@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
-import { Loader2, Music2 } from 'lucide-react';
+import { AlertCircle, Loader2, Music2, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LyricsList } from '../LyricsList';
 import { useLyricsBody } from './LyricsBody.hooks';
 import type { ILyricsBodyProps } from './LyricsBody.types';
 
 /**
- * The shared 4-branch lyrics render (loading → synced → plain → empty) behind
- * NowPlayingView and LyricsPanel, parameterized by each surface's size-class
- * maps, spacing, and container classes.
+ * The shared 5-branch lyrics render (loading → synced → plain → error → empty)
+ * behind NowPlayingView and LyricsPanel, parameterized by each surface's
+ * size-class maps, spacing, and container classes. The error branch sits after
+ * the content branches so a failed refetch never hides lyrics we already have.
  */
 export default function LyricsBody(props: ILyricsBodyProps): ReactNode {
   const { hasSynced, hasPlain, lyricsVars, syncedWrapperClassName } = useLyricsBody(props);
@@ -17,9 +19,13 @@ export default function LyricsBody(props: ILyricsBodyProps): ReactNode {
     plain,
     activeLine,
     isLoading,
+    isError,
     onLineClick,
+    onRetry,
     loadingLabel,
     emptyLabel,
+    errorLabel,
+    retryLabel,
     plainOpacity,
     syncedContainerClassName,
     syncedSpacingClassName,
@@ -70,6 +76,26 @@ export default function LyricsBody(props: ILyricsBodyProps): ReactNode {
         <pre className={plainTextClassName} style={{ opacity: plainOpacity }}>
           {plain}
         </pre>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div
+        className={cn(
+          'flex-1 flex flex-col items-center justify-center gap-3',
+          stateContainerClassName
+        )}
+      >
+        <div className="w-9 h-9 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+          <AlertCircle className="w-4 h-4 text-destructive" aria-hidden="true" />
+        </div>
+        <p className="text-xs font-medium text-muted-foreground">{errorLabel}</p>
+        <Button variant="outline" size="sm" onClick={onRetry} className="h-7 rounded-xl px-3">
+          <RotateCcw className="size-3.5" />
+          {retryLabel}
+        </Button>
       </div>
     );
   }

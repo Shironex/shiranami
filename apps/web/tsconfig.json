@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@shiranami/contracts/bindings": ["../../packages/contracts/src/generated/bindings"],
       "@shiranami/contracts": ["../../packages/contracts/src"],
       "@shiranami/shared": ["../../packages/shared/src"],
       "@shiranami/shared/*": ["../../packages/shared/src/*"]

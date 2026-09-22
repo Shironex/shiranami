@@ -1,0 +1,88 @@
+name: Visual Checks (Windows)
+
+# CDP-driven visual checks against the live Tauri renderer (architecture §8,
+# risk R5). v1 drove these by launching Electron with
+# `--remote-debugging-port=9222` and attaching Playwright over CDP. macOS lost
+# that when the shell became a WKWebView — WebKit has no CDP — but Windows keeps
+# it, because WebView2 is Chromium and takes the flag through the window's
+# `additionalBrowserArgs`. macOS keeps component coverage through the Mock Mode
+# job in ci.yml and Storybook instead.
+#
+# !! THIS WORKFLOW HAS NEVER RUN !!
+#
+# It and `scripts/visual-check-windows.mjs` were written on macOS, where only
+# `--print-config` can execute. The CDP attach and the WebView2 argument
+# plumbing need a first real run on a Windows machine before this is trusted —
+# run it locally with `pnpm visual:windows`, or dispatch this workflow, and only
+# then consider making it required. Nothing else depends on it in the meantime.
+#
+# Opt-in on purpose: a Windows runner compiling the Rust workspace from cold is
+# the most expensive job in the repo (R9), and this check is a diagnostic rather
+# than a gate. Two ways in — dispatch it by hand, or put the `visual-windows`
+# label on a pull request.
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  visual-windows:
+    name: Visual check (WebView2 CDP)
+    # `labeled` fires for every label; only ours starts a Windows runner.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'visual-windows'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pinned Rust toolchain
+        run: rustup show
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-cargo-visual-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-visual-
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      # Playwright attaches to WebView2 over CDP rather than launching a browser,
+      # but it still needs a Chromium build present to drive the protocol.
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium
+
+      # The script derives the Tauri config overlay, runs `tauri dev` with it and
+      # waits for :9222. `tauri dev` compiles the workspace and starts the vite
+      # dev server through beforeDevCommand, so the first run on a cold cache is
+      # long — hence the 45-minute cap above.
+      - name: Visual check
+        run: pnpm visual:windows
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-windows
+          path: test-results/visual-windows/
+          if-no-files-found: warn

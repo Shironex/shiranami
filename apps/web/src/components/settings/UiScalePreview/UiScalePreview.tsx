@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { PreviewFrame } from '@/components/settings/PreviewFrame';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
 import { useUiScalePreview } from './UiScalePreview.hooks';
 import type { IUiScalePreviewProps, IUiScaleSampleTileProps } from './UiScalePreview.types';
@@ -64,12 +65,8 @@ export default function UiScalePreview({ scale }: IUiScalePreviewProps) {
 
   return (
     <SettingsPreview title={title}>
-      <div
-        className="rounded-xl border border-border/30 bg-background/40 p-3"
-        role="img"
-        aria-label={title}
-      >
-        <div className="mx-auto flex max-w-[340px] items-start gap-3">
+      <PreviewFrame label={title} size="none">
+        <div className="mx-auto flex max-w-[360px] items-start gap-3">
           <SampleTile label={baseLabel} factor={1} title={sampleTitle} subtitle={sampleSubtitle} />
           <SampleTile
             label={currentLabel}
@@ -79,7 +76,7 @@ export default function UiScalePreview({ scale }: IUiScalePreviewProps) {
             active
           />
         </div>
-      </div>
+      </PreviewFrame>
     </SettingsPreview>
   );
 }

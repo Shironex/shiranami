@@ -1,7 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useThemeTileGrid } from './ThemeTileGrid.hooks';
-import { THEME_TILES } from './ThemeTileGrid.constants';
 import type { IThemeTileGridProps } from './ThemeTileGrid.types';
 
 /**
@@ -11,9 +10,9 @@ import type { IThemeTileGridProps } from './ThemeTileGrid.types';
  */
 export default function ThemeTileGrid(props: IThemeTileGridProps) {
   const { value, onSelect, columns = 3 } = props;
-  const { t, onKeyDown } = useThemeTileGrid(props);
+  const { t, tiles: visibleTiles, activeIndex, onKeyDown } = useThemeTileGrid(props);
 
-  const tiles = THEME_TILES.map(tile => {
+  const tiles = visibleTiles.map((tile, index) => {
     const isActive = value === tile.id;
     const name = t(`app.theme.names.${tile.nameKey}`);
     return (
@@ -23,7 +22,7 @@ export default function ThemeTileGrid(props: IThemeTileGridProps) {
         role="radio"
         aria-checked={isActive}
         aria-label={t('app.theme.apply', { name })}
-        tabIndex={isActive ? 0 : -1}
+        tabIndex={index === activeIndex ? 0 : -1}
         onClick={() => onSelect(tile.id)}
         className={cn(
           'group relative aspect-video rounded-xl overflow-hidden border text-left transition-all',

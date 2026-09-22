@@ -17,10 +17,10 @@ export default function ToolStatusRow(props: IToolStatusRowProps) {
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-background/50 border border-border/20">
       {installed ? (
         <>
-          <Check className="w-4 h-4 text-green-400" />
+          <Check className="w-4 h-4 text-success" />
           <span className="text-sm text-foreground">{installedTitle}</span>
           {updateAvailable ? (
-            <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-amber-300">
+            <span className="ml-auto text-[10px] font-medium uppercase tracking-wider text-warning">
               {updateAvailableLabel}
             </span>
           ) : (

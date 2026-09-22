@@ -6,6 +6,7 @@ import { SCALE_ICON } from '@/lib/motion';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
+import { CompanionPerch } from '@/components/companion/CompanionPerch';
 import { FavoriteBurst } from '../FavoriteBurst';
 import { PlayerControls } from '../PlayerControls';
 import { SeekBar } from '../SeekBar';
@@ -21,6 +22,7 @@ export default function PlayerBar() {
   const {
     t,
     currentTrack,
+    titleText,
     isFavorite,
     showSeekRow,
     ambientColor,
@@ -74,6 +76,9 @@ export default function PlayerBar() {
             'glass border-t border-border/30'
           )}
         >
+          {/* The resident sits on the bar's top edge, feet over the border. */}
+          <CompanionPerch />
+
           {/* Ambient glow — skipped in low performance mode */}
           {!lowPerformanceMode && (
             <div
@@ -120,12 +125,10 @@ export default function PlayerBar() {
                 className="min-w-0"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {currentTrack.title}
-                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{titleText}</p>
                   {isRadioTrack(currentTrack.filePath) && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-semibold uppercase tracking-wider shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive text-[9px] font-semibold uppercase tracking-wider shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
                       {t('live')}
                     </span>
                   )}
@@ -183,90 +186,97 @@ export default function PlayerBar() {
             )}
           </div>
 
-          {/* Right - volume + panel toggles (adaptive) */}
-          <div className="shrink-0 min-[900px]:w-[264px] flex items-center justify-end gap-2 min-[900px]:gap-2.5 relative">
-            {hasButtonCluster && (
-              <div className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1">
-                {/* Collapsed into overflow on < 900px */}
-                {hasUtilityButtons && (
-                  <div className="flex items-center gap-0.5 min-[900px]:hidden">
-                    <PlayerOverflowMenu />
-                  </div>
-                )}
+          {/* Right - volume + panel toggles (adaptive). Rides the transport-controls
+              band: the phantom lane below mirrors the seek row's height so the
+              buttons stay level with the controls instead of crowding the seekbar. */}
+          <div className="shrink-0 min-[900px]:w-[264px] flex flex-col items-end gap-1.5 relative">
+            <div className="flex items-center gap-2 min-[900px]:gap-2.5">
+              {hasButtonCluster && (
+                <div className="glass-subtle flex items-center gap-0.5 rounded-xl border border-border/20 p-1">
+                  {/* Collapsed into overflow on < 900px */}
+                  {hasUtilityButtons && (
+                    <div className="flex items-center gap-0.5 min-[900px]:hidden">
+                      <PlayerOverflowMenu />
+                    </div>
+                  )}
 
-                {/* Expanded inline on >= 900px */}
-                {hasUtilityButtons && (
-                  <div className="hidden min-[900px]:flex items-center gap-0.5">
-                    {showSleepTimer && <SleepTimer />}
-                    {showEqualizer && <EqualizerPanel />}
-                    {showCompactButton && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <IconButton onClick={onEnterCompact} aria-label={t('compactMode')}>
-                            <Minimize2 />
-                          </IconButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">{compactTooltip}</TooltipContent>
-                      </Tooltip>
-                    )}
-                    {showVisualizerButton && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <IconButton
-                            onClick={onToggleVisualizer}
-                            className={cn(
-                              showVisualizer &&
-                                'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
-                            )}
-                            aria-label={t('toggleVisualizer')}
-                          >
-                            <AudioLines />
-                          </IconButton>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">{visualizerTooltip}</TooltipContent>
-                      </Tooltip>
-                    )}
-                  </div>
-                )}
+                  {/* Expanded inline on >= 900px */}
+                  {hasUtilityButtons && (
+                    <div className="hidden min-[900px]:flex items-center gap-0.5">
+                      {showSleepTimer && <SleepTimer />}
+                      {showEqualizer && <EqualizerPanel />}
+                      {showCompactButton && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <IconButton onClick={onEnterCompact} aria-label={t('compactMode')}>
+                              <Minimize2 />
+                            </IconButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">{compactTooltip}</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {showVisualizerButton && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <IconButton
+                              onClick={onToggleVisualizer}
+                              className={cn(
+                                showVisualizer &&
+                                  'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+                              )}
+                              aria-label={t('toggleVisualizer')}
+                            >
+                              <AudioLines />
+                            </IconButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">{visualizerTooltip}</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  )}
 
-                {/* Highest-priority actions — hideable, but shown by default */}
-                {showLyricsButton && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconButton
-                        onClick={onToggleLyrics}
-                        className={cn(
-                          lyricsActive &&
-                            'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
-                        )}
-                        aria-label={t('toggleLyrics')}
-                      >
-                        <Mic2 />
-                      </IconButton>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{lyricsTooltip}</TooltipContent>
-                  </Tooltip>
-                )}
-                {showQueueButton && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <IconButton
-                        onClick={onToggleQueue}
-                        className={cn(
-                          queueActive &&
-                            'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
-                        )}
-                        aria-label={t('toggleQueue')}
-                      >
-                        <ListMusic />
-                      </IconButton>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">{queueTooltip}</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-            )}
-            {showVolume && <VolumeControl sliderClassName="w-20" />}
+                  {/* Highest-priority actions — hideable, but shown by default */}
+                  {showLyricsButton && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <IconButton
+                          onClick={onToggleLyrics}
+                          className={cn(
+                            lyricsActive &&
+                              'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+                          )}
+                          aria-label={t('toggleLyrics')}
+                        >
+                          <Mic2 />
+                        </IconButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{lyricsTooltip}</TooltipContent>
+                    </Tooltip>
+                  )}
+                  {showQueueButton && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <IconButton
+                          onClick={onToggleQueue}
+                          className={cn(
+                            queueActive &&
+                              'text-primary bg-primary/10 hover:bg-primary/15 hover:text-primary'
+                          )}
+                          aria-label={t('toggleQueue')}
+                        >
+                          <ListMusic />
+                        </IconButton>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{queueTooltip}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
+              {showVolume && <VolumeControl sliderClassName="w-20" />}
+            </div>
+            {/* Phantom seek-row lane: h-7 matches WaveformSeekbar's canvas,
+                h-3 matches SeekBar's py-1 + h-1 track. */}
+            {showSeekRow && <div aria-hidden className={showWaveformSeekbar ? 'h-7' : 'h-3'} />}
           </div>
         </motion.div>
       )}

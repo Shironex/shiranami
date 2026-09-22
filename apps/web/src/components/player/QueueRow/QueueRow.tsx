@@ -37,7 +37,7 @@ function QueueRowBody({
         <p className="text-[10px] text-muted-foreground/50 truncate">{track.artist}</p>
       </div>
 
-      <span className="text-[10px] text-muted-foreground/30 tabular-nums shrink-0">
+      <span className="text-[10px] text-muted-foreground/50 tabular-nums shrink-0">
         {durationLabel}
       </span>
     </>
@@ -57,7 +57,7 @@ function RemoveButton({
     <motion.button
       whileTap={{ scale: 0.75 }}
       onClick={onClick}
-      className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
+      className="shrink-0 p-0.5 rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all duration-150"
       aria-label={ariaLabel}
     >
       <X className="w-3 h-3" />
@@ -83,7 +83,7 @@ export default function SortableQueueRow(props: ISortableQueueRowProps) {
       onClick={onPlay}
     >
       <button
-        className="shrink-0 p-0.5 rounded text-muted-foreground/20 opacity-0 group-hover:opacity-100 hover:text-muted-foreground/60 transition-all duration-150 cursor-grab active:cursor-grabbing touch-none"
+        className="focus-ring shrink-0 p-0.5 rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-muted-foreground/60 transition-all duration-150 cursor-grab active:cursor-grabbing touch-none"
         aria-label={labels.dragToReorder}
         {...attributes}
         {...listeners}

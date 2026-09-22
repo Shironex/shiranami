@@ -143,7 +143,7 @@ export default function PlaylistsView() {
                 size="sm"
                 onClick={onCreate}
                 disabled={!canCreate}
-                className="h-7 rounded-lg bg-primary/20 px-3 text-primary shadow-none hover:bg-primary/30 [&_svg]:size-3.5"
+                className="h-7 bg-primary/20 px-3 text-primary shadow-none hover:bg-primary/30 [&_svg]:size-3.5"
               >
                 {isCreating && <Loader2 className="animate-spin" />}
                 {isCreating ? t('creating') : t('create')}
@@ -152,7 +152,7 @@ export default function PlaylistsView() {
                 variant="ghost"
                 size="sm"
                 onClick={closeNewForm}
-                className="h-7 rounded-lg px-2 text-muted-foreground"
+                className="h-7 px-2 text-muted-foreground"
               >
                 {tCommon('cancel')}
               </Button>

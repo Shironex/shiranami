@@ -1,0 +1,173 @@
+[package]
+name = "shiranami-desktop"
+description = "Shiranami desktop shell (Tauri v2)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+default-run = "shiranami-desktop"
+
+[lib]
+# The shell is a library so commands and boot wiring stay unit-testable; the
+# binary below is a three-line entry point.
+name = "shiranami_desktop_lib"
+crate-type = ["lib"]
+
+[build-dependencies]
+tauri-build = { workspace = true }
+
+# The workspace's first Cargo feature, and deliberately the only kind of thing
+# that gets one: a dependency that must be provably absent from a shipped build.
+#
+# Everything else conditional in this crate keys off `cfg!(target_os = …)`,
+# `cfg!(debug_assertions)` or an environment variable, because those choose
+# between behaviours that all ship. This one chooses whether an HTTP control
+# surface is *linked at all*, which no runtime check can promise. `debug_assertions`
+# would have been the documented route, but it would also put the server into
+# every `pnpm tauri:dev` build, and `[target.'cfg(debug_assertions)'.dependencies]`
+# is not a thing Cargo evaluates.
+[features]
+# `tauri/custom-protocol` is not decoration here, and it is the reason the first
+# E2E run reached a webview with no application in it.
+#
+# `tauri`'s own build script computes `let dev = !has_feature("custom-protocol")`
+# and exports it as the `dev` cfg. `tauri-codegen` then reads that: when `dev` is
+# true *and* `build.devUrl` is set — which it is, `http://localhost:15175` — it
+# embeds `EmbeddedAssets::default()`, an empty set, and points the window at the
+# dev server instead of at `frontendDist`. The Tauri CLI turns the feature on for
+# `tauri build`; a bare `cargo build`, which is what this suite needs in order to
+# add `e2e` on top, does not. So the binary booted, the webview opened, and it sat
+# on a failed connection to a Vite server no one had started — `__TAURI_INTERNALS__`
+# absent, `window.electronAPI` never installed, and nothing in the log to say why.
+#
+# Enabling it here means the suite drives the *production* asset pipeline: real
+# embedded `apps/web/dist`, real `csp` rather than `devCsp`. The profile stays
+# `debug`, which is orthogonal — `dev` is feature-derived, not profile-derived.
+e2e = ["dep:tauri-plugin-wdio-webdriver", "tauri/custom-protocol"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tauri = { workspace = true }
+tauri-plugin-single-instance = { workspace = true }
+tracing = { workspace = true }
+# `boot::sequence::BootError` is the one error type this crate declares itself:
+# a launch refusal, whose variants are what §3.1 step 7 requires be shown to a
+# user instead of an empty library.
+thiserror = { workspace = true }
+
+# Phase 14 lane 6. The OS surfaces §2.2 #30 and #31 name, all called from Rust
+# and none exposed to the webview: `tauri-plugin-dialog` for the two file
+# pickers, `tauri-plugin-opener` for "reveal in file manager" and "open the log
+# folder", `trash` for the recycle bin, `sys-locale` for the OS region code, and
+# `sysinfo` for the debug panel's per-process CPU/RSS — which is all v2 has,
+# there being no Chromium `getAppMetrics` to port.
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-opener = { workspace = true }
+trash = { workspace = true }
+sys-locale = { workspace = true }
+sysinfo = { workspace = true }
+
+# Sanctuary Mode (v2): the display-sleep assertion `window:set-display-sleep-
+# inhibited` holds while the fullscreen sanctuary doubles as a screensaver.
+keepawake = { workspace = true }
+
+# The debug sampler's 1 Hz tick (`tauri::async_runtime` re-exports spawn and
+# channels but not timers), and `join!` for the two tool-status probes v1 ran
+# with `Promise.all`. Deliberately *not* for `spawn` — R16 bans the bare form
+# and `arch_guards` enforces it.
+tokio = { workspace = true }
+
+# Phase 16 (app shell & boot). Everything here is composition-root-only: the
+# boot sequence, the logging it installs, the plugins it registers and the
+# consent gate in front of Sentry.
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+fix-path-env = { workspace = true }
+tauri-plugin-updater = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
+tauri-plugin-os = { workspace = true }
+tauri-plugin-global-shortcut = { workspace = true }
+tauri-plugin-autostart = { workspace = true }
+tauri-plugin-sentry = { workspace = true }
+sentry = { workspace = true }
+
+# Phase 18. Optional, and reached only through the `e2e` feature above.
+tauri-plugin-wdio-webdriver = { workspace = true, optional = true }
+
+# Phase 14. The command/event surface and the bindings it emits.
+#
+# `specta-typescript` and `specta-serde` are here because this crate now owns
+# the *file* the drift guard diffs: `shiranami-core` still declares the type
+# vocabulary, but a command signature is what pulls a type into the export, so
+# the exporter has to run where the commands are.
+specta = { workspace = true }
+specta-serde = { workspace = true }
+specta-typescript = { workspace = true }
+tauri-specta = { workspace = true }
+
+# The command layer acquires the pool's one connection and passes `&mut *conn`
+# down (`shiranami_db::repo`), so it names `SqliteConnection` in its own
+# signatures. No SQL is written here — that stays in `shiranami-db`.
+sqlx = { workspace = true }
+
+# Row identifiers. `shiranami_db::repo` takes an `id` argument wherever a row
+# needs a new primary key (`history::record_play`, `radio::add`) rather than
+# minting one itself, so the one source of randomness stays in the composition
+# root and a test can pin the id it asserts on.
+uuid = { workspace = true }
+
+# The two composition-root seams (`crate::seam`) are `Arc<dyn Trait>` with async
+# methods, and native `async fn` in traits is not dyn-compatible. Same reason
+# `shiranami-downloader` takes it for its `ProcessRunner`.
+async-trait = { workspace = true }
+
+# `shiranami-downloader`'s `SearchService::search` takes a `CancellationToken`,
+# and share-payload assembly calls it to resolve a track `youtube_mappings` has
+# never seen. Nothing here starts a cancellable job of its own — the token is an
+# argument this crate has to be able to name.
+# The scan, enrich, loudness and downloader commands each own cancellable runs,
+# and the crates below them take `&CancellationToken` — v1's `utilityProcess`
+# handshake and its `AbortController` slots collapse into this one type. The
+# command layer has to *construct* tokens too: `playlist:cancel` cancels a run
+# started by a different invoke, so the token outlives the command that made it.
+tokio-util = { workspace = true }
+
+# The one-pass analysis batch (`analysis:analyze`) runs one decode per core on
+# a private pool, the same shape `shiranami-library`'s folder scan owns — see
+# that crate for why the pool is private rather than the global one. The
+# decode itself stays in `shiranami-audio`, which deliberately never spawns;
+# how many run at once is precisely the command layer's decision to make.
+rayon = { workspace = true }
+
+# The composition root depends on every domain crate; no domain crate depends
+# on it. Wiring lives here, logic never does — any file in this crate that
+# grows past 400 code lines means logic leaked out of a crate.
+shiranami-audio = { workspace = true }
+shiranami-core = { workspace = true }
+shiranami-db = { workspace = true }
+shiranami-downloader = { workspace = true }
+shiranami-integrations = { workspace = true }
+shiranami-library = { workspace = true }
+shiranami-media-controls = { workspace = true }
+shiranami-metadata = { workspace = true }
+shiranami-net = { workspace = true }
+shiranami-recommendation = { workspace = true }
+shiranami-serve = { workspace = true }
+
+[dev-dependencies]
+# The reference namespaces are tested against the real state composition, which
+# means a real database file and a real settings file — both temporary.
+tempfile = { workspace = true }
+# §8's Ring 2: `tauri::test::mock_app` gives a real `AppHandle` over
+# `MockRuntime`, with no webview and no window server. Boot's service builders
+# take one because every event sink emits through it, so without this their
+# tests could only assert on predicates rather than on what they build.
+tauri = { workspace = true, features = ["test"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

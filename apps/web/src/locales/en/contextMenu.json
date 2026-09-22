@@ -18,6 +18,8 @@
   "shufflePlaylist": "Shuffle Playlist",
   "removeFromPlaylist": "Remove from playlist",
   "addToPlaylistAria": "Add to playlist",
+  "trackMenuAria": "Track actions",
+  "playlistMenuAria": "Playlist actions",
   "selectedCount": "{{count}} selected",
   "dragToReorder": "Drag to reorder",
   "findMissingMetadata": "Find Missing Metadata",

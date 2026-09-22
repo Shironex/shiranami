@@ -104,7 +104,7 @@ export default function PlaylistRow(props: RowComponentProps<IPlaylistRowProps>)
             <p className="text-xs text-muted-foreground truncate">{result.uploader}</p>
             {isLowConfidence && (
               <span
-                className="flex items-center gap-1 text-[10px] font-medium text-amber-500 shrink-0"
+                className="flex items-center gap-1 text-[10px] font-medium text-warning shrink-0"
                 title={lowConfidenceHint}
               >
                 <AlertTriangle className="w-3 h-3" />
@@ -140,7 +140,7 @@ export default function PlaylistRow(props: RowComponentProps<IPlaylistRowProps>)
               event.stopPropagation();
               onRemove();
             }}
-            className="shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+            className="focus-ring shrink-0 relative z-10 w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             title={removeLabel}
             aria-label={removeLabel}
           >

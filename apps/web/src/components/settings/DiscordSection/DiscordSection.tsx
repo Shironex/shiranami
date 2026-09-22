@@ -39,7 +39,7 @@ export default function DiscordSection() {
       onClick={() => onSelectActivity(chip.value)}
       aria-pressed={chip.isActive}
       className={cn(
-        'rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
+        'focus-ring rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
         chip.isActive
           ? 'bg-sky-500/20 text-sky-600 dark:text-sky-400'
           : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'

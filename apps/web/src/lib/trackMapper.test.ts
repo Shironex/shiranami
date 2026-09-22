@@ -53,9 +53,38 @@ describe('mapDbTrackToTrack', () => {
       isFavorite: true,
       playCount: 42,
       loudnessLufs: -16.5,
+      albumLoudnessLufs: null,
+      truePeakDb: null,
+      loudnessRange: null,
+      bpm: null,
+      musicalKey: null,
       createdAt: '2025-01-01T00:00:00Z',
       updatedAt: '2025-02-01T00:00:00Z',
     });
+  });
+
+  it('carries the F2 tempo and key columns through when present', () => {
+    const track = mapDbTrackToTrack({
+      ...fullRecord,
+      bpm: 81.6,
+      musicalKey: 'A minor',
+    });
+
+    expect(track.bpm).toBe(81.6);
+    expect(track.musicalKey).toBe('A minor');
+  });
+
+  it('carries the F5 loudness-profile columns through when present', () => {
+    const track = mapDbTrackToTrack({
+      ...fullRecord,
+      albumLoudnessLufs: -13.2,
+      truePeakDb: -0.8,
+      loudnessRange: 6.1,
+    });
+
+    expect(track.albumLoudnessLufs).toBe(-13.2);
+    expect(track.truePeakDb).toBe(-0.8);
+    expect(track.loudnessRange).toBe(6.1);
   });
 
   it('falls back to translated default when artist is missing', () => {

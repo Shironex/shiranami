@@ -23,6 +23,16 @@ export const LOUDNESS_TARGET_MIN_LUFS = -23;
 export const LOUDNESS_TARGET_MAX_LUFS = -9;
 export const LOUDNESS_MAX_GAIN_DB = 12;
 
+/**
+ * How leveling picks its reference when enabled. `track` is v1's behaviour:
+ * every track lands at the target. `album` levels whole records — the gain
+ * comes from the album's measured loudness, so the quiet interlude stays quiet
+ * relative to its record — and falls back per-track to track gain wherever no
+ * album measurement exists.
+ */
+export type LoudnessLevelingMode = 'track' | 'album';
+export const DEFAULT_LOUDNESS_LEVELING_MODE: LoudnessLevelingMode = 'track';
+
 const STORE_KEY = 'shiranami.player-store';
 
 const LEGACY_KEYS = {
@@ -36,6 +46,7 @@ type PersistedPlaybackState = {
   sleepFadeDuration: number;
   loudnessEnabled: boolean;
   loudnessTargetLufs: number;
+  loudnessLevelingMode: LoudnessLevelingMode;
 };
 
 function sanitizeLoudnessTarget(v: unknown): number {
@@ -71,6 +82,8 @@ function sanitize(
     out.loudnessEnabled = persisted.loudnessEnabled;
   if (persisted.loudnessTargetLufs !== undefined)
     out.loudnessTargetLufs = sanitizeLoudnessTarget(persisted.loudnessTargetLufs);
+  if (persisted.loudnessLevelingMode === 'track' || persisted.loudnessLevelingMode === 'album')
+    out.loudnessLevelingMode = persisted.loudnessLevelingMode;
   return out;
 }
 
@@ -114,6 +127,7 @@ interface PlaybackState {
   // Loudness leveling (ReplayGain / EBU R128)
   loudnessEnabled: boolean;
   loudnessTargetLufs: number;
+  loudnessLevelingMode: LoudnessLevelingMode;
 
   // Sleep timer
   sleepFadeDuration: number; // seconds — fade-out window before the sleep timer pauses
@@ -165,6 +179,7 @@ interface PlaybackActions {
   // Loudness leveling
   setLoudnessEnabled: (enabled: boolean) => void;
   setLoudnessTargetLufs: (lufs: number) => void;
+  setLoudnessLevelingMode: (mode: LoudnessLevelingMode) => void;
 
   // Sleep timer
   setSleepFadeDuration: (duration: number) => void;
@@ -218,6 +233,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     crossfadeDuration: DEFAULT_CROSSFADE_DURATION,
     loudnessEnabled: false,
     loudnessTargetLufs: DEFAULT_LOUDNESS_TARGET_LUFS,
+    loudnessLevelingMode: DEFAULT_LOUDNESS_LEVELING_MODE,
     sleepFadeDuration: DEFAULT_SLEEP_FADE_DURATION,
     _sleepFading: false,
     _seekTarget: null,
@@ -292,6 +308,9 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     },
     setLoudnessTargetLufs: lufs => {
       set({ loudnessTargetLufs: sanitizeLoudnessTarget(lufs) });
+    },
+    setLoudnessLevelingMode: mode => {
+      set({ loudnessLevelingMode: mode });
     },
 
     setSleepFadeDuration: duration => {
@@ -454,6 +473,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
       sleepFadeDuration: s.sleepFadeDuration,
       loudnessEnabled: s.loudnessEnabled,
       loudnessTargetLufs: s.loudnessTargetLufs,
+      loudnessLevelingMode: s.loudnessLevelingMode,
     }),
     sanitize: (persisted, current) => ({
       ...current,

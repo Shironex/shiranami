@@ -1,9 +1,10 @@
 import { Languages, Paintbrush, Palette, RotateCcw } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { ThemeTileGrid } from '@/components/shared/theme/ThemeTileGrid';
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { BackgroundLibraryManager } from '@/components/settings/BackgroundLibraryManager';
 import { AccentPreview } from '@/components/settings/AccentPreview';
 import { UiScalePreview } from '@/components/settings/UiScalePreview';
 import { SettingsPreview } from '@/components/settings/SettingsPreview';
@@ -27,6 +28,10 @@ export default function AppearanceSection() {
     theme,
     hasThemeBackground,
     onSelectTheme,
+    isCustomTheme,
+    customThumb,
+    customBackgroundFailed,
+    onRetryCustomBackground,
     isBgModified,
     bgOpacity,
     bgOpacityPercent,
@@ -45,9 +50,14 @@ export default function AppearanceSection() {
     onSetBgOpacity,
     onSetBgBlur,
     onSetBgDim,
+    bgFit,
+    bgFitOptions,
+    onSetBgFit,
     onResetBg,
     hasAccentOverride,
     onResetAccent,
+    followArtAccent,
+    onFollowArtChange,
   } = useAppearanceSection();
 
   const languageButtons = languageOptions.map(lang => (
@@ -55,7 +65,7 @@ export default function AppearanceSection() {
       key={lang.code}
       onClick={() => onSelectLanguage(lang.code)}
       className={cn(
-        'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+        'focus-ring px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
         lang.isActive
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
@@ -70,13 +80,46 @@ export default function AppearanceSection() {
       key={preset.value}
       onClick={() => onSetUiScale(preset.value)}
       className={cn(
-        'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+        'focus-ring px-2 py-1 rounded-md text-xs font-medium transition-colors',
         preset.isActive
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
       )}
     >
       {preset.value}%
+    </button>
+  ));
+
+  const showBackgroundReadError = isCustomTheme && customBackgroundFailed;
+
+  // Roving tabindex: exactly one radio in a group is tabbable and the arrows
+  // move between them. Two native buttons both carrying `role="radio"` would
+  // otherwise put two stops in the tab order and answer nothing to an arrow
+  // key — a dead end in forms mode, even though it looks correct.
+  const onFitKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].includes(e.key)) return;
+    e.preventDefault();
+    const current = Math.max(0, bgFitOptions.indexOf(bgFit));
+    const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    onSetBgFit(bgFitOptions[(current + delta + bgFitOptions.length) % bgFitOptions.length]);
+  };
+
+  const fitButtons = bgFitOptions.map(option => (
+    <button
+      key={option}
+      type="button"
+      role="radio"
+      aria-checked={bgFit === option}
+      tabIndex={bgFit === option ? 0 : -1}
+      onClick={() => onSetBgFit(option)}
+      className={cn(
+        'focus-ring rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors',
+        bgFit === option
+          ? 'border-primary/60 bg-primary/10 text-foreground'
+          : 'border-border/50 text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {t(`app.bgAdjust.fitOptions.${option}`)}
     </button>
   ));
 
@@ -114,7 +157,7 @@ export default function AppearanceSection() {
               {isScaleModified && (
                 <button
                   onClick={onResetUiScale}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="focus-ring rounded-sm text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {resetLabel}
                 </button>
@@ -130,7 +173,32 @@ export default function AppearanceSection() {
 
       {/* Card 2 — Theme */}
       <SettingsCard icon={Palette} title={t('app.theme.title')} subtitle={t('app.theme.desc')}>
-        <ThemeTileGrid value={theme} onSelect={onSelectTheme} />
+        <ThemeTileGrid value={theme} onSelect={onSelectTheme} customThumb={customThumb} />
+
+        {isCustomTheme && (
+          <div className="mt-3 border-t border-border/40 pt-4">
+            <div className="mb-3 px-3">
+              <p className="text-sm font-medium text-foreground">
+                {t('app.background.library.title')}
+              </p>
+              <p className="text-xs text-muted-foreground">{t('app.background.library.desc')}</p>
+            </div>
+            <BackgroundLibraryManager />
+          </div>
+        )}
+
+        {showBackgroundReadError && (
+          <div className="mt-2 flex items-center gap-2 px-3" role="alert">
+            <p className="text-[11px] text-destructive">{t('app.background.errors.readFailed')}</p>
+            <button
+              type="button"
+              onClick={onRetryCustomBackground}
+              className="focus-ring rounded-lg px-2 py-1 text-[11px] font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              {t('app.background.retry')}
+            </button>
+          </div>
+        )}
 
         {hasThemeBackground && (
           <div className="px-3 pt-4 border-t border-border/40 space-y-5">
@@ -139,7 +207,7 @@ export default function AppearanceSection() {
               {isBgModified && (
                 <button
                   onClick={onResetBg}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="focus-ring rounded-sm flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={t('app.bgAdjust.reset')}
                 >
                   <RotateCcw className="size-3" />
@@ -198,6 +266,24 @@ export default function AppearanceSection() {
               />
             </div>
 
+            {/* Fit — only meaningful for an imported image. The five bundled
+                photos are cropped for `cover`, so offering `contain` on them
+                would letterbox a picture that was composed not to be. */}
+            {isCustomTheme && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">{t('app.bgAdjust.fit')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('app.bgAdjust.fitDesc')}</p>
+                <div
+                  role="radiogroup"
+                  aria-label={t('app.bgAdjust.fit')}
+                  onKeyDown={onFitKeyDown}
+                  className="flex gap-2"
+                >
+                  {fitButtons}
+                </div>
+              </div>
+            )}
+
             {/* Contained preview — the settings glass panel covers most of the
                 live canvas, so a scaled sample is the only honest way to judge
                 blur/dim while dragging. tone="info" reads as a reflection. */}
@@ -219,7 +305,7 @@ export default function AppearanceSection() {
           hasAccentOverride ? (
             <button
               onClick={onResetAccent}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="focus-ring rounded-sm flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               aria-label={t('app.accent.reset')}
             >
               <RotateCcw className="size-3" />
@@ -228,6 +314,17 @@ export default function AppearanceSection() {
           ) : undefined
         }
       >
+        {/* "Follow the record" — the accent becomes the playing cover's
+            clamped vibrant swatch. The manual picker below stays usable while
+            this is on; picking a swatch turns follow-art back off (an explicit
+            choice always wins). */}
+        <SettingsToggleRow
+          label={t('app.accent.followArt')}
+          description={t('app.accent.followArtDesc')}
+          checked={followArtAccent}
+          onCheckedChange={onFollowArtChange}
+        />
+
         <div className="px-3 pb-1">
           <AccentColorPicker />
         </div>

@@ -9,7 +9,7 @@ export default function HistoryTopTrackRow(props: IHistoryTopTrackRowProps) {
     <button
       type="button"
       onClick={onPlay}
-      className="flex w-full items-center gap-3 rounded-2xl border border-border/20 bg-background/25 px-3 py-3 text-left transition-colors hover:border-border/35 hover:bg-accent/35"
+      className="focus-ring flex w-full items-center gap-3 rounded-2xl border border-border/20 bg-background/25 px-3 py-3 text-left transition-colors hover:border-border/35 hover:bg-accent/35"
     >
       <HistoryTrackArtwork albumArt={track.albumArt} title={track.title} />
       <div className="min-w-0 flex-1">
