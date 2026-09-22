@@ -17,11 +17,9 @@ pnpm-lock.yaml
 packages/contracts/src/generated/
 
 # Captured verbatim from Spotify's embed endpoint; must stay byte-identical to
-# the real (minified) response the parser is tested against. Copied into
-# `shiranami-downloader` so the Rust suite survives Phase 20 deleting
-# `apps/desktop`; a test asserts the two are the same bytes, which reformatting
-# either one would break.
-apps/desktop/src/main/ipc/__fixtures__/spotify-embed-playlist.html
+# the real (minified) response the parser is tested against. Copied from v1
+# before the Electron app was deleted, so reformatting it would test the
+# parser against a page Spotify never served.
 crates/shiranami-downloader/fixtures/
 
 # Local generated artifacts (gitignored, but this repo's prettier setup does
@@ -36,7 +34,7 @@ apps/server/src/generated/
 # bytes exactly, so reformatting them would assert the formatter instead.
 crates/shiranami-audio/tests/fixtures/v1-peaks-cache/
 
-# Emitted by `pnpm verify:db-baseline --write` and compared byte-for-byte by
-# that same script's verifying mode. Prettier reformatting it would make the
-# staleness check fail for reasons that have nothing to do with v1's schema.
+# A frozen record of v1's schema, generated from v1's migrations before the
+# Electron app was deleted. Nothing can regenerate it now, so keep it exactly
+# as recorded.
 crates/shiranami-db/fixtures/

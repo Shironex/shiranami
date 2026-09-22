@@ -22,7 +22,7 @@ const PROBE_RELATIVE_PATHS = [
   'apps/web/src/__lint_meta_probe__.tsx',
   'apps/web/src/__lint_meta_probe__.test.ts',
   'apps/web/src/__lint_meta_probe__.test.tsx',
-  'apps/desktop/src/main/__lint_meta_probe__.ts',
+  'apps/desktop-tauri/e2e/__lint_meta_probe__.ts',
 ] as const;
 
 /** Normalize an ESLint severity (number | string | [severity, ...opts]) to 0/1/2. */

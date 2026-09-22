@@ -1,12 +1,11 @@
 //! What v2's album-art pipeline does and does not reproduce from v1.
 //!
-//! Runs against `fixtures/v1-art.json`, which
-//! `scripts/verify-art-baseline.mjs` generates by executing v1's **real** code:
-//! Electron `nativeImage` for pipeline A and `sharp` for pipeline B, over the
-//! committed covers in `fixtures/covers/`. The fixture is read with
-//! `include_str!`, so this test is hermetic and keeps working after
-//! `apps/desktop` is deleted at cutover (Phase 20) — the same arrangement
-//! `shiranami-db` uses for `v1-schema.json`.
+//! Runs against `fixtures/v1-art.json`, which was recorded by executing v1's
+//! **real** code: Electron `nativeImage` for pipeline A and `sharp` for
+//! pipeline B, over the committed covers in `fixtures/covers/`. The Electron app
+//! is gone (Phase 20), so the fixture is a frozen record read with
+//! `include_str!` — the same arrangement `shiranami-db` uses for
+//! `v1-schema.json`.
 //!
 //! # The verdict this file records
 //!
@@ -310,6 +309,6 @@ fn the_fixture_covers_every_committed_image() {
 
     assert_eq!(
         recorded, on_disk,
-        "regenerate with `pnpm verify:art-baseline --write --with-electron`"
+        "the v1 record and the committed covers disagree — restore both from git history"
     );
 }

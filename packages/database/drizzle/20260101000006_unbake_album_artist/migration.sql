@@ -1,1 +1,0 @@
-UPDATE `tracks` SET `album_artist` = NULL WHERE `album_artist` = `artist`

@@ -39,7 +39,7 @@ const { chromium } = await import(PW);
 const EXTERNAL_URL = process.env.MOCK_MODE_URL ?? null;
 const URL = EXTERNAL_URL ?? 'http://localhost:15175/';
 
-/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx and screenshot-app.mjs. */
+/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx. */
 const VIEWS = [
   'library',
   'playlists',

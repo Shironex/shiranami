@@ -66,9 +66,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # arm64 only, matching what v1 actually shipped: electron-builder's
-          # `dmg` target with no `arch` builds for the host, and the host has
-          # been arm64 since macos-latest moved. Intel Macs have never had a
+          # arm64 only, matching what v1 actually shipped: v1's `dmg` target
+          # had no `arch`, so it built for the host, and the host has been
+          # arm64 since macos-latest moved. Intel Macs have never had a
           # Shiranami build; a universal binary is a deliberate future change,
           # not something to slip in with the bundle config.
           - os: macos-latest

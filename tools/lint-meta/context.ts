@@ -36,9 +36,9 @@ const WORKSPACE_SOURCE_SUBDIRS = ['src', 'test', 'tests'] as const;
 const WORKSPACE_GROUPS = ['apps', 'packages'] as const;
 
 /*
- * apps/mobile is excluded from the pnpm workspace (its React Native deps break
- * electron-builder packaging), so it is not linted by ESLint either; keep the
- * meta-lint scan in lockstep so it never flags files no other gate covers.
+ * apps/mobile is excluded from the pnpm workspace, so it is not linted by
+ * ESLint either; keep the meta-lint scan in lockstep so it never flags files no
+ * other gate covers.
  */
 const SKIP_WORKSPACES = new Set(['mobile']);
 

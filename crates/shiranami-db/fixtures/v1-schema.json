@@ -1,5 +1,5 @@
 {
-  "_generator": "scripts/verify-db-baseline.mjs — regenerate with `pnpm verify:db-baseline --write`. Do not edit by hand.",
+  "_generator": "Generated from v1's migrations by scripts/verify-db-baseline.mjs, which was removed with the Electron app. A frozen record of v1.0.1's schema: do not edit by hand.",
   "_source": "packages/database/drizzle/*/migration.sql, applied in folder order",
   "userVersion": 8,
   "drizzleMigrations": [

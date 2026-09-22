@@ -5,7 +5,7 @@
  * ## Why this is Windows-only
  *
  * v1 drove visual checks by launching Electron with `--remote-debugging-port=9222`
- * and attaching Playwright over CDP (`scripts/screenshot-app.mjs`). That workflow
+ * and attaching Playwright over CDP (a script removed with the Electron app). That workflow
  * dies on macOS in v2: WKWebView has no CDP and never will. It survives on
  * Windows, because WebView2 is Chromium and accepts `--remote-debugging-port`
  * through the webview's additional browser arguments (architecture §8, risk R5).
@@ -95,7 +95,7 @@ export function inspectConfig(base, args) {
   return { app: { windows } };
 }
 
-/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx and screenshot-app.mjs. */
+/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx. */
 const VIEWS = [
   'library',
   'playlists',

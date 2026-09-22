@@ -14,8 +14,8 @@
 use serde_json::{Value, json};
 use sqlx::{AssertSqlSafe, Row, SqliteConnection};
 
-/// The schema listing generated from v1's real migrations by
-/// `pnpm verify:db-baseline`.
+/// The schema listing generated from v1's real migrations, frozen when the
+/// Electron app was deleted.
 pub(crate) fn fixture() -> Value {
     serde_json::from_str(include_str!("../../fixtures/v1-schema.json"))
         .expect("the committed v1 schema fixture must be valid JSON")

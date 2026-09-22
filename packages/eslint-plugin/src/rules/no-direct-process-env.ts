@@ -17,14 +17,12 @@ type MessageIds = 'directProcessEnv';
 
 /*
  * Files that legitimately read process.env outside the typed config seam:
- * bootstrap entrypoints, the universal logger (runs in Node, browser, and
- * Electron), build scripts, config files, and tests that stub env directly.
+ * bootstrap entrypoints, the universal logger (runs in Node and the browser),
+ * build scripts, config files, and tests that stub env directly.
  * Consumers override `allowedFiles` to express their own boundary.
  */
 const DEFAULT_ALLOWED_FILES: readonly string[] = [
   'apps/server/**',
-  'apps/desktop/src/main/**',
-  'apps/desktop/src/native/**',
   'packages/shared/**',
   'scripts/**',
   '**/scripts/**',

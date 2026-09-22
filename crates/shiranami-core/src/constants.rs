@@ -2,8 +2,8 @@
 //!
 //! These two literals are **not** a Rust redefinition free to change — they are
 //! a mirror of values already baked into shipped migration SQL. Both appear as
-//! column defaults in `packages/database/drizzle/…_baseline/migration.sql` and
-//! `…_heal_legacy_tables/migration.sql`:
+//! column defaults in v1's `…_baseline/migration.sql` and
+//! `…_heal_legacy_tables/migration.sql` (vendored in `shiranami-db`):
 //!
 //! ```sql
 //! `artist` text DEFAULT 'Unknown Artist',

@@ -37,9 +37,9 @@
 //! So in v1 today, the same cover already lands under two different hashes
 //! depending on whether the track arrived through a library scan or through a
 //! metadata write. "Match v1's bytes" has no well-defined target. The evidence
-//! is measured rather than asserted: `scripts/verify-art-baseline.mjs` runs
-//! v1's real sharp pipeline over committed source images and records the hashes
-//! into `fixtures/v1-art.json`, and `tests/art_v1_compat.rs` proves against
+//! is measured rather than asserted: v1's real sharp pipeline was run over
+//! committed source images and its hashes recorded into `fixtures/v1-art.json`
+//! before the Electron app was deleted, and `tests/art_v1_compat.rs` proves against
 //! that fixture that the scheme matches and the bytes do not.
 //!
 //! ## What that costs, precisely

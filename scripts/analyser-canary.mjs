@@ -45,7 +45,7 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 
-// Same indirection as scripts/screenshot-app.mjs: playwright is a root
+// Same indirection as scripts/visual-check-windows.mjs: playwright is a root
 // devDependency, but a caller running this from elsewhere can point at its own.
 const PW = process.env.PLAYWRIGHT_PATH ?? 'playwright';
 const playwright = await import(PW);

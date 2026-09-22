@@ -28,14 +28,8 @@ coverage
 docs/*
 # docs/v2 is the tracked home of the Rust/Tauri rewrite plan, not agent scratch.
 !docs/v2/
-# Versioned migration folders under packages/database/drizzle/ ARE tracked
-# (they are the canonical migration ledger). Only ignore local dev databases.
-packages/database/data/
-packages/database/drizzle/**/*.db
-packages/database/drizzle/**/*.db-*
 playwright-report/
 test-results/
-apps/desktop/e2e/.tmp/
 # Isolated HOMEs, staged v1 profiles and generated audio for the Tauri E2E
 # suite. Rebuilt from scratch by every run's onPrepare.
 apps/desktop-tauri/e2e/.tmp/

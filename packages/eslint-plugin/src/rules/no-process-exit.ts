@@ -17,13 +17,11 @@ type MessageIds = 'processExit';
 /*
  * `process.exit()` belongs only to bootstrap/shutdown paths and standalone
  * CLIs, never to request-scoped or renderer code where it would kill the whole
- * process mid-flight. The Electron main process, native bindings, the server
- * entrypoints, and repo scripts are the legitimate exit sites; consumers
+ * process mid-flight. The server entrypoints and repo scripts are the
+ * legitimate exit sites; consumers
  * override `allowedFiles` to express their own boundary.
  */
 const DEFAULT_ALLOWED_FILES: readonly string[] = [
-  'apps/desktop/src/main/**',
-  'apps/desktop/src/native/**',
   'apps/server/**',
   'scripts/**',
   '**/scripts/**',

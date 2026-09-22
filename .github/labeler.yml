@@ -1,10 +1,11 @@
 # Path-based auto-labels for pull requests.
 # Label names match the existing repo taxonomy (gh label list).
 
-area:electron:
+area:v2:
   - changed-files:
       - any-glob-to-any-file:
           - apps/desktop/**
+          - crates/**
 
 area:frontend:
   - changed-files:
@@ -23,8 +24,6 @@ area:build:
       - any-glob-to-any-file:
           - .github/**
           - scripts/**
-          - electron-builder.json
-          - apps/desktop/electron-builder.json
           - Dockerfile*
           - docker-compose.yml
           - eslint.config.mjs

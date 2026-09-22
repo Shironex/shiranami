@@ -1,5 +1,5 @@
 {
-  "_generator": "scripts/verify-art-baseline.mjs — regenerate with `pnpm verify:art-baseline --write`. Do not edit by hand.",
+  "_generator": "Measured from v1's real pipelines by scripts/verify-art-baseline.mjs, which was removed with the Electron app. A frozen record of v1.0.1's output: do not edit by hand.",
   "_what": "What v1's two album-art pipelines produce for the covers in fixtures/covers/. Pipeline A is Electron nativeImage (main process), pipeline B is sharp (scan utility). v2 reproduces the geometry, the hash construction and the URL shape exactly, and deliberately reproduces neither pipeline's bytes — see architecture.md §3.3 (D16, R14).",
   "maxDimension": 512,
   "jpegQuality": 85,
