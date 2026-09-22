@@ -43,7 +43,7 @@
     }
   },
   "sharp": {
-    "_capturedWith": "sharp 0.35.3",
+    "_capturedWith": "sharp 0.35.4",
     "entries": {
       "cover-small.png": {
         "hash": "c5608abb8c6018deef7b3e513151079b",
