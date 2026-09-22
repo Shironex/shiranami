@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "version": "2.0.0",
+  "min_v1_version": "1.0.1",
+  "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Shironex/shiranami/releases/download/v2.0.0/Shiranami_2.0.0_aarch64.dmg",
+      "sha256": "f67cbb05ac0cdde7b5fddca5424f0c65bbb17d7253eb7d2b5b72b771cac13233",
+      "size": 16479379
+    },
+    "win32-x64": {
+      "url": "https://shiranami.app/download",
+      "sha256": "fab23b4af39ae44ae6c3d37a1d519ec650cb28bfd1bfab113b4f8c15889550ad",
+      "size": 12475189
+    }
+  },
+  "download_page": "https://shiranami.app/download"
+}
